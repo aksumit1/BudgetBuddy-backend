@@ -1,0 +1,109 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'GuardDuty Integration for BudgetBuddy Backend'
+
+Parameters:
+  Environment:
+    Type: String
+    Default: production
+    AllowedValues: [development, staging, production]
+
+Resources:
+  # GuardDuty Detector
+  GuardDutyDetector:
+    Type: AWS::GuardDuty::Detector
+    Properties:
+      Enable: true
+      FindingPublishingFrequency: FIFTEEN_MINUTES
+      DataSources:
+        S3Logs:
+          Enable: true
+        Kubernetes:
+          AuditLogs:
+            Enable: true
+        MalwareProtection:
+          ScanEc2InstanceWithFindings:
+            EbsVolumes:
+              Enable: true
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-guardduty'
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Service
+          Value: budgetbuddy-backend
+
+  # GuardDuty Findings SNS Topic
+  GuardDutyFindingsTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Sub '${AWS::StackName}-guardduty-findings'
+      DisplayName: GuardDuty Security Findings
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-guardduty-findings'
+        - Key: Environment
+          Value: !Ref Environment
+
+  # GuardDuty Findings Subscription
+  GuardDutyFindingsSubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      TopicArn: !Ref GuardDutyFindingsTopic
+      Protocol: email
+      Endpoint: !Ref AlertEmail
+
+  AlertEmail:
+    Type: String
+    Default: security@budgetbuddy.com
+    Description: Email address for GuardDuty alerts
+
+  # EventBridge Rule for GuardDuty Findings
+  GuardDutyEventRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: !Sub '${AWS::StackName}-guardduty-findings'
+      Description: Route GuardDuty findings to SNS
+      EventPattern:
+        source:
+          - aws.guardduty
+        detail-type:
+          - GuardDuty Finding
+        detail:
+          severity:
+            - numeric:
+                - gte: 4.0  # High and Critical findings
+      Targets:
+        - Arn: !Ref GuardDutyFindingsTopic
+          Id: GuardDutyFindingsTarget
+
+  # IAM Role for GuardDuty to publish to SNS
+  GuardDutySNSPublishRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub '${AWS::StackName}-guardduty-sns-role'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: events.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: SNSPublish
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - sns:Publish
+                Resource: !Ref GuardDutyFindingsTopic
+
+Outputs:
+  GuardDutyDetectorId:
+    Description: GuardDuty Detector ID
+    Value: !Ref GuardDutyDetector
+
+  GuardDutyFindingsTopicArn:
+    Description: SNS Topic ARN for GuardDuty findings
+    Value: !Ref GuardDutyFindingsTopic
+

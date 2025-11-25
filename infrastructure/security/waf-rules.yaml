@@ -1,0 +1,274 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Comprehensive WAF Rules for BudgetBuddy Backend'
+
+Parameters:
+  Environment:
+    Type: String
+    Default: production
+    AllowedValues: [development, staging, production]
+
+Resources:
+  # WAF Web ACL for ALB
+  WAFWebACL:
+    Type: AWS::WAFv2::WebACL
+    Properties:
+      Name: !Sub '${AWS::StackName}-waf'
+      Scope: REGIONAL
+      DefaultAction:
+        Allow: {}
+      Description: Comprehensive WAF rules for BudgetBuddy Backend
+      Rules:
+        # Rate Limiting Rule
+        - Name: RateLimitRule
+          Priority: 1
+          Statement:
+            RateBasedStatement:
+              Limit: 2000
+              AggregateKeyType: IP
+          Action:
+            Block: {}
+          VisibilityConfig:
+            SampledRequestsEnabled: true
+            CloudWatchMetricsEnabled: true
+            MetricName: RateLimitRule
+
+        # AWS Managed Rules - Common Rule Set
+        - Name: AWSManagedRulesCommonRuleSet
+          Priority: 2
+          OverrideAction:
+            None: {}
+          Statement:
+            ManagedRuleGroupStatement:
+              VendorName: AWS
+              Name: AWSManagedRulesCommonRuleSet
+          VisibilityConfig:
+            SampledRequestsEnabled: true
+            CloudWatchMetricsEnabled: true
+            MetricName: CommonRuleSetMetric
+
+        # AWS Managed Rules - Known Bad Inputs
+        - Name: AWSManagedRulesKnownBadInputsRuleSet
+          Priority: 3
+          OverrideAction:
+            None: {}
+          Statement:
+            ManagedRuleGroupStatement:
+              VendorName: AWS
+              Name: AWSManagedRulesKnownBadInputsRuleSet
+          VisibilityConfig:
+            SampledRequestsEnabled: true
+            CloudWatchMetricsEnabled: true
+            MetricName: KnownBadInputsMetric
+
+        # AWS Managed Rules - SQL Injection
+        - Name: AWSManagedRulesSQLiRuleSet
+          Priority: 4
+          OverrideAction:
+            None: {}
+          Statement:
+            ManagedRuleGroupStatement:
+              VendorName: AWS
+              Name: AWSManagedRulesSQLiRuleSet
+          VisibilityConfig:
+            SampledRequestsEnabled: true
+            CloudWatchMetricsEnabled: true
+            MetricName: SQLiRuleSetMetric
+
+        # AWS Managed Rules - Linux Operating System
+        - Name: AWSManagedRulesLinuxRuleSet
+          Priority: 5
+          OverrideAction:
+            None: {}
+          Statement:
+            ManagedRuleGroupStatement:
+              VendorName: AWS
+              Name: AWSManagedRulesLinuxRuleSet
+          VisibilityConfig:
+            SampledRequestsEnabled: true
+            CloudWatchMetricsEnabled: true
+            MetricName: LinuxRuleSetMetric
+
+        # AWS Managed Rules - IP Reputation List
+        - Name: AWSManagedRulesAmazonIpReputationList
+          Priority: 6
+          OverrideAction:
+            None: {}
+          Statement:
+            ManagedRuleGroupStatement:
+              VendorName: AWS
+              Name: AWSManagedRulesAmazonIpReputationList
+          VisibilityConfig:
+            SampledRequestsEnabled: true
+            CloudWatchMetricsEnabled: true
+            MetricName: IPReputationListMetric
+
+        # AWS Managed Rules - Core Rule Set
+        - Name: AWSManagedRulesCoreRuleSet
+          Priority: 7
+          OverrideAction:
+            None: {}
+          Statement:
+            ManagedRuleGroupStatement:
+              VendorName: AWS
+              Name: AWSManagedRulesCoreRuleSet
+          VisibilityConfig:
+            SampledRequestsEnabled: true
+            CloudWatchMetricsEnabled: true
+            MetricName: CoreRuleSetMetric
+
+        # Custom Rule - Block Suspicious User Agents
+        - Name: BlockSuspiciousUserAgents
+          Priority: 10
+          Statement:
+            OrStatement:
+              Statements:
+                - ByteMatchStatement:
+                    SearchString: "sqlmap"
+                    FieldToMatch:
+                      SingleHeader:
+                        Name: "user-agent"
+                    TextTransformations:
+                      - Priority: 0
+                        Type: LOWERCASE
+                - ByteMatchStatement:
+                    SearchString: "nikto"
+                    FieldToMatch:
+                      SingleHeader:
+                        Name: "user-agent"
+                    TextTransformations:
+                      - Priority: 0
+                        Type: LOWERCASE
+                - ByteMatchStatement:
+                    SearchString: "nmap"
+                    FieldToMatch:
+                      SingleHeader:
+                        Name: "user-agent"
+                    TextTransformations:
+                      - Priority: 0
+                        Type: LOWERCASE
+          Action:
+            Block: {}
+          VisibilityConfig:
+            SampledRequestsEnabled: true
+            CloudWatchMetricsEnabled: true
+            MetricName: SuspiciousUserAgents
+
+        # Custom Rule - Block Common Attack Patterns
+        - Name: BlockCommonAttackPatterns
+          Priority: 11
+          Statement:
+            OrStatement:
+              Statements:
+                - ByteMatchStatement:
+                    SearchString: "../../"
+                    FieldToMatch:
+                      UriPath: {}
+                    TextTransformations:
+                      - Priority: 0
+                        Type: URL_DECODE
+                - ByteMatchStatement:
+                    SearchString: "union select"
+                    FieldToMatch:
+                      AllQueryArguments: {}
+                    TextTransformations:
+                      - Priority: 0
+                        Type: LOWERCASE
+                - ByteMatchStatement:
+                    SearchString: "<script"
+                    FieldToMatch:
+                      Body: {}
+                    TextTransformations:
+                      - Priority: 0
+                        Type: LOWERCASE
+          Action:
+            Block: {}
+          VisibilityConfig:
+            SampledRequestsEnabled: true
+            CloudWatchMetricsEnabled: true
+            MetricName: CommonAttackPatterns
+
+        # Geo-blocking (Optional - block specific countries)
+        - Name: GeoBlockingRule
+          Priority: 20
+          Statement:
+            GeoMatchStatement:
+              CountryCodes:
+                - !If [IsProduction, !Ref AWS::NoValue, ['CN', 'RU', 'KP']]  # Only in non-production
+          Action:
+            Block: {}
+          VisibilityConfig:
+            SampledRequestsEnabled: true
+            CloudWatchMetricsEnabled: true
+            MetricName: GeoBlocking
+
+        # IP Allow List (for trusted IPs)
+        - Name: IPAllowList
+          Priority: 0
+          Statement:
+            IPSetReferenceStatement:
+              Arn: !GetAtt IPAllowListSet.Arn
+          Action:
+            Allow: {}
+          VisibilityConfig:
+            SampledRequestsEnabled: true
+            CloudWatchMetricsEnabled: true
+            MetricName: IPAllowList
+
+      VisibilityConfig:
+        SampledRequestsEnabled: true
+        CloudWatchMetricsEnabled: true
+        MetricName: BudgetBuddyWAF
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-waf'
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Service
+          Value: budgetbuddy-backend
+
+  # IP Allow List Set
+  IPAllowListSet:
+    Type: AWS::WAFv2::IPSet
+    Properties:
+      Name: !Sub '${AWS::StackName}-ip-allow-list'
+      Scope: REGIONAL
+      Description: IP addresses allowed to bypass WAF rules
+      Addresses: []  # Add trusted IPs here
+      IPAddressVersion: IPV4
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-ip-allow-list'
+
+  # WAF Logging Configuration
+  WAFLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/waf/${AWS::StackName}'
+      RetentionInDays: 7
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-waf-logs'
+
+  WAFLoggingConfiguration:
+    Type: AWS::WAFv2::LoggingConfiguration
+    Properties:
+      ResourceArn: !GetAtt WAFWebACL.Arn
+      LogDestinationConfigs:
+        - !GetAtt WAFLogGroup.Arn
+
+  # Conditions
+  IsProduction:
+    Fn::Equals:
+      - !Ref Environment
+      - production
+
+Outputs:
+  WAFWebACLArn:
+    Description: WAF Web ACL ARN
+    Value: !GetAtt WAFWebACL.Arn
+    Export:
+      Name: !Sub '${AWS::StackName}-WAFWebACL'
+
+  WAFWebACLId:
+    Description: WAF Web ACL ID
+    Value: !GetAtt WAFWebACL.Id

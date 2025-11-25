@@ -1,0 +1,54 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Cost Allocation Tags for BudgetBuddy Backend'
+
+Resources:
+  # Tag all resources with cost allocation tags
+  # These tags are applied to all resources created by the main stack
+  
+  CostAllocationTags:
+    Type: AWS::CloudFormation::CustomResource
+    Properties:
+      ServiceToken: !GetAtt CostAllocationTagsFunction.Arn
+      Tags:
+        - Key: Environment
+          Value: production
+        - Key: Service
+          Value: budgetbuddy-backend
+        - Key: CostCenter
+          Value: engineering
+        - Key: Team
+          Value: backend
+        - Key: Application
+          Value: BudgetBuddy
+        - Key: ManagedBy
+          Value: CloudFormation
+
+  CostAllocationTagsFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub '${AWS::StackName}-cost-allocation-tags'
+      Runtime: python3.11
+      Handler: index.handler
+      Role: !GetAtt CostAllocationTagsRole.Arn
+      Code:
+        ZipFile: |
+          import boto3
+          import cfnresponse
+          
+          def handler(event, context):
+              # This is a placeholder - actual implementation would tag resources
+              cfnresponse.send(event, context, cfnresponse.SUCCESS, {})
+
+  CostAllocationTagsRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+

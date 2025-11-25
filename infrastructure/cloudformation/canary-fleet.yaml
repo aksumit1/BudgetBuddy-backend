@@ -1,0 +1,230 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Canary Fleet for BudgetBuddy Backend Testing'
+
+Parameters:
+  Environment:
+    Type: String
+    Default: staging
+    AllowedValues: [development, staging, production]
+
+  ClusterName:
+    Type: String
+    Description: ECS Cluster Name
+
+  TargetGroupArn:
+    Type: String
+    Description: ALB Target Group ARN for canary
+
+  TaskExecutionRoleArn:
+    Type: String
+    Description: ECS Task Execution Role ARN
+
+  TaskRoleArn:
+    Type: String
+    Description: ECS Task Role ARN
+
+  ImageURI:
+    Type: String
+    Description: ECR Image URI for canary
+
+  CanaryPercentage:
+    Type: Number
+    Default: 10
+    Description: Percentage of traffic to route to canary (0-100)
+
+Resources:
+  # Canary Target Group
+  CanaryTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: !Sub '${AWS::StackName}-canary-tg'
+      Port: 8080
+      Protocol: HTTP
+      VpcId: !Ref VPC
+      TargetType: ip
+      HealthCheckProtocol: HTTP
+      HealthCheckPath: /actuator/health
+      HealthCheckIntervalSeconds: 30
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 2
+      UnhealthyThresholdCount: 3
+      Matcher:
+        HttpCode: '200'
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-canary-tg'
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Service
+          Value: budgetbuddy-backend-canary
+
+  # Canary ECS Service
+  CanaryECSService:
+    Type: AWS::ECS::Service
+    Properties:
+      ServiceName: budgetbuddy-backend-canary
+      Cluster: !Ref ClusterName
+      TaskDefinition: !Ref CanaryTaskDefinition
+      DesiredCount: 1
+      LaunchType: FARGATE
+      PlatformVersion: LATEST
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: DISABLED
+          SecurityGroups:
+            - !Ref ECSSecurityGroup
+          Subnets:
+            - !Ref PrivateSubnet1
+            - !Ref PrivateSubnet2
+      LoadBalancers:
+        - ContainerName: budgetbuddy-backend
+          ContainerPort: 8080
+          TargetGroupArn: !Ref CanaryTargetGroup
+      DeploymentConfiguration:
+        MaximumPercent: 200
+        MinimumHealthyPercent: 100
+      HealthCheckGracePeriodSeconds: 60
+      EnableExecuteCommand: true
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Service
+          Value: budgetbuddy-backend-canary
+        - Key: Canary
+          Value: 'true'
+
+  # Canary Task Definition
+  CanaryTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: budgetbuddy-backend-canary
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      Cpu: 256
+      Memory: 512
+      ExecutionRoleArn: !Ref TaskExecutionRoleArn
+      TaskRoleArn: !Ref TaskRoleArn
+      RuntimePlatform:
+        CpuArchitecture: ARM64
+        OperatingSystemFamily: LINUX
+      ContainerDefinitions:
+        - Name: budgetbuddy-backend
+          Image: !Ref ImageURI
+          Essential: true
+          PortMappings:
+            - ContainerPort: 8080
+              Protocol: tcp
+          Environment:
+            - Name: AWS_REGION
+              Value: !Ref AWS::Region
+            - Name: ENVIRONMENT
+              Value: canary
+            - Name: CANARY_ENABLED
+              Value: 'true'
+          HealthCheck:
+            Command:
+              - CMD-SHELL
+              - 'wget --no-verbose --tries=1 --spider http://localhost:8080/actuator/health || exit 1'
+            Interval: 30
+            Timeout: 5
+            Retries: 3
+            StartPeriod: 40
+
+  # ALB Listener Rule for Canary Traffic
+  CanaryListenerRule:
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    Properties:
+      ListenerArn: !Ref ALBListener
+      Priority: 100
+      Conditions:
+        - HttpHeaderConfig:
+            HttpHeaderName: X-Canary
+            Values:
+              - 'true'
+      Actions:
+        - Type: forward
+          TargetGroupArn: !Ref CanaryTargetGroup
+          ForwardConfig:
+            TargetGroups:
+              - TargetGroupArn: !Ref CanaryTargetGroup
+                Weight: !Ref CanaryPercentage
+              - TargetGroupArn: !Ref ProductionTargetGroup
+                Weight: !Sub '${100 - ${CanaryPercentage}}'
+
+  # CloudWatch Alarms for Canary
+  CanaryErrorRateAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub '${AWS::StackName}-canary-error-rate'
+      AlarmDescription: Alert when canary error rate exceeds threshold
+      MetricName: HTTPCode_Target_5XX_Count
+      Namespace: AWS/ApplicationELB
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 2
+      Threshold: 10
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: TargetGroup
+          Value: !GetAtt CanaryTargetGroup.TargetGroupFullName
+      AlarmActions:
+        - !Ref CanaryAlarmSNS
+
+  CanaryResponseTimeAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub '${AWS::StackName}-canary-response-time'
+      AlarmDescription: Alert when canary response time exceeds threshold
+      MetricName: TargetResponseTime
+      Namespace: AWS/ApplicationELB
+      Statistic: Average
+      Period: 300
+      EvaluationPeriods: 2
+      Threshold: 1000
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: TargetGroup
+          Value: !GetAtt CanaryTargetGroup.TargetGroupFullName
+      AlarmActions:
+        - !Ref CanaryAlarmSNS
+
+  CanaryAlarmSNS:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Sub '${AWS::StackName}-canary-alarms'
+      DisplayName: Canary Fleet Alarms
+
+  VPC:
+    Type: String
+    Description: VPC ID
+
+  ECSSecurityGroup:
+    Type: String
+    Description: ECS Security Group ID
+
+  PrivateSubnet1:
+    Type: String
+    Description: Private Subnet 1 ID
+
+  PrivateSubnet2:
+    Type: String
+    Description: Private Subnet 2 ID
+
+  ALBListener:
+    Type: String
+    Description: ALB Listener ARN
+
+  ProductionTargetGroup:
+    Type: String
+    Description: Production Target Group ARN
+
+Outputs:
+  CanaryTargetGroupArn:
+    Description: Canary Target Group ARN
+    Value: !Ref CanaryTargetGroup
+
+  CanaryServiceName:
+    Description: Canary ECS Service Name
+    Value: !GetAtt CanaryECSService.Name
+

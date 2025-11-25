@@ -1,0 +1,87 @@
+{
+  "widgets": [
+    {
+      "type": "metric",
+      "properties": {
+        "metrics": [
+          ["AWS/ECS", "CPUUtilization", {"stat": "Average", "label": "CPU Utilization"}],
+          ["AWS/ECS", "MemoryUtilization", {"stat": "Average", "label": "Memory Utilization"}]
+        ],
+        "period": 300,
+        "stat": "Average",
+        "region": "us-east-1",
+        "title": "ECS Service Metrics",
+        "yAxis": {
+          "left": {
+            "min": 0,
+            "max": 100
+          }
+        }
+      }
+    },
+    {
+      "type": "metric",
+      "properties": {
+        "metrics": [
+          ["AWS/ApplicationELB", "RequestCount", {"stat": "Sum", "label": "Request Count"}],
+          ["AWS/ApplicationELB", "TargetResponseTime", {"stat": "Average", "label": "Response Time"}]
+        ],
+        "period": 300,
+        "stat": "Average",
+        "region": "us-east-1",
+        "title": "Load Balancer Metrics"
+      }
+    },
+    {
+      "type": "metric",
+      "properties": {
+        "metrics": [
+          ["AWS/DynamoDB", "ConsumedReadCapacityUnits", {"stat": "Sum", "label": "Read Capacity"}],
+          ["AWS/DynamoDB", "ConsumedWriteCapacityUnits", {"stat": "Sum", "label": "Write Capacity"}]
+        ],
+        "period": 300,
+        "stat": "Average",
+        "region": "us-east-1",
+        "title": "DynamoDB Metrics"
+      }
+    },
+    {
+      "type": "metric",
+      "properties": {
+        "metrics": [
+          ["BudgetBuddy", "RequestCount", {"stat": "Sum", "label": "API Requests"}],
+          ["BudgetBuddy", "ErrorCount", {"stat": "Sum", "label": "Errors"}],
+          ["BudgetBuddy", "ResponseTime", {"stat": "Average", "label": "Response Time"}]
+        ],
+        "period": 300,
+        "stat": "Average",
+        "region": "us-east-1",
+        "title": "Application Metrics"
+      }
+    },
+    {
+      "type": "metric",
+      "properties": {
+        "metrics": [
+          ["BudgetBuddy/PCI-DSS", "PANEncryption", {"stat": "Sum", "label": "PAN Encryptions"}],
+          ["BudgetBuddy/PCI-DSS", "CardholderDataAccess", {"stat": "Sum", "label": "Card Data Access"}],
+          ["BudgetBuddy/PCI-DSS", "UnauthorizedAccess", {"stat": "Sum", "label": "Unauthorized Access"}]
+        ],
+        "period": 300,
+        "stat": "Sum",
+        "region": "us-east-1",
+        "title": "PCI-DSS Compliance Metrics"
+      }
+    },
+    {
+      "type": "log",
+      "properties": {
+        "query": "SOURCE '/aws/ecs/budgetbuddy-cluster' | fields @timestamp, @message\n| filter @message like /ERROR/\n| sort @timestamp desc\n| limit 100",
+        "region": "us-east-1",
+        "title": "Error Logs",
+        "view": "table"
+      }
+    }
+  ]
+}
+

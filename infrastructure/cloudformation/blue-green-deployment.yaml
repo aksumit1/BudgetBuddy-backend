@@ -1,0 +1,238 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Blue-Green Deployment Configuration for BudgetBuddy Backend'
+
+Parameters:
+  Environment:
+    Type: String
+    Default: production
+    AllowedValues: [development, staging, production]
+
+  ClusterName:
+    Type: String
+    Description: ECS Cluster Name
+
+  ImageURI:
+    Type: String
+    Description: New image URI for green deployment
+
+  DesiredCount:
+    Type: Number
+    Default: 2
+    Description: Desired task count
+
+Resources:
+  # Green Target Group (New Deployment)
+  GreenTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: !Sub '${AWS::StackName}-green-tg'
+      Port: 8080
+      Protocol: HTTP
+      VpcId: !Ref VPC
+      TargetType: ip
+      HealthCheckProtocol: HTTP
+      HealthCheckPath: /actuator/health
+      HealthCheckIntervalSeconds: 30
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 2
+      UnhealthyThresholdCount: 3
+      Matcher:
+        HttpCode: '200'
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-green-tg'
+        - Key: Deployment
+          Value: green
+
+  # Green ECS Service
+  GreenECSService:
+    Type: AWS::ECS::Service
+    Properties:
+      ServiceName: !Sub '${AWS::StackName}-green'
+      Cluster: !Ref ClusterName
+      TaskDefinition: !Ref GreenTaskDefinition
+      DesiredCount: !Ref DesiredCount
+      LaunchType: FARGATE
+      PlatformVersion: LATEST
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: DISABLED
+          SecurityGroups:
+            - !Ref ECSSecurityGroup
+          Subnets:
+            - !Ref PrivateSubnet1
+            - !Ref PrivateSubnet2
+            - !Ref PrivateSubnet3
+      LoadBalancers:
+        - ContainerName: budgetbuddy-backend
+          ContainerPort: 8080
+          TargetGroupArn: !Ref GreenTargetGroup
+      DeploymentConfiguration:
+        MaximumPercent: 200
+        MinimumHealthyPercent: 100
+        DeploymentCircuitBreaker:
+          Enable: true
+          Rollback: true
+      HealthCheckGracePeriodSeconds: 60
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Deployment
+          Value: green
+
+  # Green Task Definition
+  GreenTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: !Sub '${AWS::StackName}-green'
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      Cpu: 512
+      Memory: 1024
+      ExecutionRoleArn: !Ref TaskExecutionRoleArn
+      TaskRoleArn: !Ref TaskRoleArn
+      RuntimePlatform:
+        CpuArchitecture: ARM64
+        OperatingSystemFamily: LINUX
+      ContainerDefinitions:
+        - Name: budgetbuddy-backend
+          Image: !Ref ImageURI
+          Essential: true
+          PortMappings:
+            - ContainerPort: 8080
+              Protocol: tcp
+          Environment:
+            - Name: AWS_REGION
+              Value: !Ref AWS::Region
+            - Name: ENVIRONMENT
+              Value: !Ref Environment
+            - Name: DEPLOYMENT_COLOR
+              Value: green
+          HealthCheck:
+            Command:
+              - CMD-SHELL
+              - 'wget --no-verbose --tries=1 --spider http://localhost:8080/actuator/health || exit 1'
+            Interval: 30
+            Timeout: 5
+            Retries: 3
+            StartPeriod: 40
+
+  # Deployment Validation Lambda
+  DeploymentValidationFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub '${AWS::StackName}-deployment-validation'
+      Runtime: python3.11
+      Handler: index.handler
+      Role: !GetAtt DeploymentValidationRole.Arn
+      Timeout: 300
+      Environment:
+        Variables:
+          TARGET_GROUP_ARN: !Ref GreenTargetGroup
+          HEALTH_CHECK_TIMEOUT: '60'
+      Code:
+        ZipFile: |
+          import boto3
+          import time
+          import json
+          
+          elbv2 = boto3.client('elbv2')
+          
+          def handler(event, context):
+              target_group_arn = event.get('targetGroupArn')
+              timeout = int(event.get('timeout', 60))
+              
+              start_time = time.time()
+              max_attempts = timeout // 5
+              
+              for attempt in range(max_attempts):
+                  response = elbv2.describe_target_health(TargetGroupArn=target_group_arn)
+                  
+                  healthy_count = sum(1 for target in response['TargetHealthDescriptions'] 
+                                    if target['TargetHealth']['State'] == 'healthy')
+                  total_count = len(response['TargetHealthDescriptions'])
+                  
+                  if healthy_count == total_count and total_count > 0:
+                      return {
+                          'statusCode': 200,
+                          'body': json.dumps({
+                              'status': 'healthy',
+                              'healthyTargets': healthy_count,
+                              'totalTargets': total_count
+                          })
+                      }
+                  
+                  time.sleep(5)
+              
+              return {
+                  'statusCode': 500,
+                  'body': json.dumps({
+                      'status': 'unhealthy',
+                      'message': 'Deployment validation failed'
+                  })
+              }
+
+  DeploymentValidationRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: ELBAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - elasticloadbalancing:DescribeTargetHealth
+                Resource: '*'
+
+  VPC:
+    Type: String
+    Description: VPC ID
+
+  ECSSecurityGroup:
+    Type: String
+    Description: ECS Security Group ID
+
+  PrivateSubnet1:
+    Type: String
+    Description: Private Subnet 1 ID
+
+  PrivateSubnet2:
+    Type: String
+    Description: Private Subnet 2 ID
+
+  PrivateSubnet3:
+    Type: String
+    Description: Private Subnet 3 ID
+
+  TaskExecutionRoleArn:
+    Type: String
+    Description: ECS Task Execution Role ARN
+
+  TaskRoleArn:
+    Type: String
+    Description: ECS Task Role ARN
+
+Outputs:
+  GreenTargetGroupArn:
+    Description: Green Target Group ARN
+    Value: !Ref GreenTargetGroup
+
+  GreenServiceName:
+    Description: Green ECS Service Name
+    Value: !GetAtt GreenECSService.Name
+
+  DeploymentValidationFunctionArn:
+    Description: Deployment Validation Lambda Function ARN
+    Value: !GetAtt DeploymentValidationFunction.Arn
+

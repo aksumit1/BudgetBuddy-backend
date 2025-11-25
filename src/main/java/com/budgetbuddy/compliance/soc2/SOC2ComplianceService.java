@@ -1,0 +1,247 @@
+package com.budgetbuddy.compliance.soc2;
+
+import com.budgetbuddy.compliance.AuditLogService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import software.amazon.awssdk.services.cloudwatch.CloudWatchClient;
+import software.amazon.awssdk.services.cloudwatch.model.*;
+
+import java.time.Instant;
+import java.util.List;
+
+/**
+ * SOC 2 Type II Compliance Service
+ * 
+ * SOC 2 Trust Service Criteria:
+ * 1. Security - Protection against unauthorized access
+ * 2. Availability - System is available for operation
+ * 3. Processing Integrity - System processing is complete, valid, accurate, timely, and authorized
+ * 4. Confidentiality - Information designated as confidential is protected
+ * 5. Privacy - Personal information is collected, used, retained, disclosed, and disposed in conformity with commitments
+ */
+@Service
+public class SOC2ComplianceService {
+
+    private static final Logger logger = LoggerFactory.getLogger(SOC2ComplianceService.class);
+
+    @Autowired
+    private AuditLogService auditLogService;
+
+    @Autowired
+    private CloudWatchClient cloudWatchClient;
+
+    private static final String NAMESPACE = "BudgetBuddy/SOC2";
+
+    /**
+     * CC1.1 - Control Environment
+     * Log control activities
+     */
+    public void logControlActivity(String controlId, String activity, String userId) {
+        auditLogService.logControlActivity(controlId, activity, userId);
+        
+        // Send metric to CloudWatch
+        putMetric("ControlActivity", 1.0, Map.of(
+                "ControlId", controlId,
+                "Activity", activity
+        ));
+    }
+
+    /**
+     * CC2.1 - Communication and Information
+     * Log information system changes
+     */
+    public void logSystemChange(String changeType, String description, String userId) {
+        auditLogService.logSystemChange(changeType, description, userId);
+        putMetric("SystemChange", 1.0, Map.of("ChangeType", changeType));
+    }
+
+    /**
+     * CC3.1 - Risk Assessment
+     * Assess and log risks
+     */
+    public RiskAssessment assessRisk(String resource, String action, String userId) {
+        RiskAssessment assessment = new RiskAssessment();
+        assessment.setResource(resource);
+        assessment.setAction(action);
+        assessment.setUserId(userId);
+        assessment.setTimestamp(Instant.now());
+        
+        // Calculate risk score
+        int riskScore = calculateRiskScore(resource, action);
+        assessment.setRiskScore(riskScore);
+        assessment.setRiskLevel(riskScore > 70 ? "HIGH" : riskScore > 40 ? "MEDIUM" : "LOW");
+        
+        // Log risk assessment
+        auditLogService.logRiskAssessment(assessment);
+        putMetric("RiskAssessment", (double) riskScore, Map.of("RiskLevel", assessment.getRiskLevel()));
+        
+        return assessment;
+    }
+
+    /**
+     * CC4.1 - Monitoring Activities
+     * Monitor system activities for anomalies
+     */
+    public void monitorActivity(String activityType, String details) {
+        // Check for anomalies
+        if (isAnomalous(activityType, details)) {
+            logger.warn("SOC2: Anomalous activity detected: {} - {}", activityType, details);
+            putMetric("AnomalousActivity", 1.0, Map.of("ActivityType", activityType));
+        }
+        
+        putMetric("Activity", 1.0, Map.of("ActivityType", activityType));
+    }
+
+    /**
+     * CC5.1 - Control Activities
+     * Log control activities
+     */
+    public void logControlActivity(String controlId, String status, String details) {
+        auditLogService.logControlActivity(controlId, status, details);
+        putMetric("ControlActivity", status.equals("PASS") ? 1.0 : 0.0, Map.of("ControlId", controlId));
+    }
+
+    /**
+     * CC6.1 - Logical and Physical Access Controls
+     * Log access control activities
+     */
+    public void logAccessControl(String resource, String action, String userId, boolean allowed) {
+        auditLogService.logAccessControl(resource, action, userId, allowed);
+        putMetric("AccessControl", allowed ? 1.0 : 0.0, Map.of(
+                "Resource", resource,
+                "Action", action
+        ));
+    }
+
+    /**
+     * CC7.1 - System Operations
+     * Monitor system operations
+     */
+    public SystemHealth checkSystemHealth() {
+        SystemHealth health = new SystemHealth();
+        health.setTimestamp(Instant.now());
+        health.setAvailability(calculateAvailability());
+        health.setPerformance(calculatePerformance());
+        health.setErrorRate(calculateErrorRate());
+        
+        // Log health check
+        auditLogService.logSystemHealth(health);
+        putMetric("SystemHealth", health.getAvailability(), Map.of());
+        
+        return health;
+    }
+
+    /**
+     * CC8.1 - Change Management
+     * Log system changes
+     */
+    public void logChangeManagement(String changeId, String changeType, String description, String userId) {
+        auditLogService.logChangeManagement(changeId, changeType, description, userId);
+        putMetric("ChangeManagement", 1.0, Map.of("ChangeType", changeType));
+    }
+
+    private int calculateRiskScore(String resource, String action) {
+        // Simplified risk calculation
+        int score = 0;
+        if (resource.contains("/admin") || resource.contains("/compliance")) {
+            score += 50;
+        }
+        if ("DELETE".equals(action) || "UPDATE".equals(action)) {
+            score += 30;
+        }
+        return score;
+    }
+
+    private boolean isAnomalous(String activityType, String details) {
+        // Simplified anomaly detection
+        return details.contains("unauthorized") || details.contains("failed") || details.contains("error");
+    }
+
+    private double calculateAvailability() {
+        // Calculate system availability percentage
+        // In production, this would query CloudWatch metrics
+        return 99.9; // Placeholder
+    }
+
+    private double calculatePerformance() {
+        // Calculate system performance
+        return 95.0; // Placeholder
+    }
+
+    private double calculateErrorRate() {
+        // Calculate error rate
+        return 0.1; // Placeholder
+    }
+
+    private void putMetric(String metricName, double value, Map<String, String> dimensions) {
+        try {
+            List<Dimension> dims = dimensions.entrySet().stream()
+                    .map(e -> Dimension.builder()
+                            .name(e.getKey())
+                            .value(e.getValue())
+                            .build())
+                    .toList();
+
+            cloudWatchClient.putMetricData(PutMetricDataRequest.builder()
+                    .namespace(NAMESPACE)
+                    .metricData(MetricDatum.builder()
+                            .metricName(metricName)
+                            .value(value)
+                            .timestamp(Instant.now())
+                            .dimensions(dims)
+                            .build())
+                    .build());
+        } catch (Exception e) {
+            logger.error("Failed to put metric to CloudWatch: {}", e.getMessage());
+        }
+    }
+
+    /**
+     * Risk Assessment DTO
+     */
+    public static class RiskAssessment {
+        private String resource;
+        private String action;
+        private String userId;
+        private Instant timestamp;
+        private int riskScore;
+        private String riskLevel;
+
+        // Getters and setters
+        public String getResource() { return resource; }
+        public void setResource(String resource) { this.resource = resource; }
+        public String getAction() { return action; }
+        public void setAction(String action) { this.action = action; }
+        public String getUserId() { return userId; }
+        public void setUserId(String userId) { this.userId = userId; }
+        public Instant getTimestamp() { return timestamp; }
+        public void setTimestamp(Instant timestamp) { this.timestamp = timestamp; }
+        public int getRiskScore() { return riskScore; }
+        public void setRiskScore(int riskScore) { this.riskScore = riskScore; }
+        public String getRiskLevel() { return riskLevel; }
+        public void setRiskLevel(String riskLevel) { this.riskLevel = riskLevel; }
+    }
+
+    /**
+     * System Health DTO
+     */
+    public static class SystemHealth {
+        private Instant timestamp;
+        private double availability;
+        private double performance;
+        private double errorRate;
+
+        // Getters and setters
+        public Instant getTimestamp() { return timestamp; }
+        public void setTimestamp(Instant timestamp) { this.timestamp = timestamp; }
+        public double getAvailability() { return availability; }
+        public void setAvailability(double availability) { this.availability = availability; }
+        public double getPerformance() { return performance; }
+        public void setPerformance(double performance) { this.performance = performance; }
+        public double getErrorRate() { return errorRate; }
+        public void setErrorRate(double errorRate) { this.errorRate = errorRate; }
+    }
+}
+

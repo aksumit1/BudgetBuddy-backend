@@ -1,0 +1,72 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'AWS Budgets for BudgetBuddy Backend Cost Management'
+
+Parameters:
+  MonthlyBudgetAmount:
+    Type: Number
+    Default: 400
+    Description: Monthly budget amount in USD
+
+  AlertEmail:
+    Type: String
+    Default: ops@budgetbuddy.com
+    Description: Email address for budget alerts
+
+Resources:
+  MonthlyBudget:
+    Type: AWS::Budgets::Budget
+    Properties:
+      Budget:
+        BudgetName: !Sub '${AWS::StackName}-monthly-budget'
+        BudgetLimit:
+          Amount: !Ref MonthlyBudgetAmount
+          Unit: USD
+        TimeUnit: MONTHLY
+        BudgetType: COST
+        CostFilters:
+          TagKeyValue:
+            - Key: 'Service$'
+              Values:
+                - 'budgetbuddy-backend'
+        CalculatedSpend:
+          ActualSpend:
+            Amount: 0
+            Unit: USD
+        TimePeriod:
+          Start: !Ref BudgetStartDate
+      NotificationsWithSubscribers:
+        - Notification:
+            NotificationType: ACTUAL
+            ComparisonOperator: GREATER_THAN
+            Threshold: 80
+            ThresholdType: PERCENTAGE
+          Subscribers:
+            - SubscriptionType: EMAIL
+              Address: !Ref AlertEmail
+        - Notification:
+            NotificationType: ACTUAL
+            ComparisonOperator: GREATER_THAN
+            Threshold: 100
+            ThresholdType: PERCENTAGE
+          Subscribers:
+            - SubscriptionType: EMAIL
+              Address: !Ref AlertEmail
+        - Notification:
+            NotificationType: FORECASTED
+            ComparisonOperator: GREATER_THAN
+            Threshold: 100
+            ThresholdType: PERCENTAGE
+          Subscribers:
+            - SubscriptionType: EMAIL
+              Address: !Ref AlertEmail
+
+  BudgetStartDate:
+    Type: String
+    Default: '2024-01-01'
+    Description: Budget start date (YYYY-MM-DD)
+
+Outputs:
+  BudgetName:
+    Description: Budget Name
+    Value: !Ref MonthlyBudget
+

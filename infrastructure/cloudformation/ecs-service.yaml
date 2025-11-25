@@ -1,0 +1,195 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'BudgetBuddy Backend ECS Service'
+
+Parameters:
+  Environment:
+    Type: String
+    Default: production
+    AllowedValues: [development, staging, production]
+
+  ClusterName:
+    Type: String
+    Description: ECS Cluster Name
+
+  TargetGroupArn:
+    Type: String
+    Description: ALB Target Group ARN
+
+  TaskExecutionRoleArn:
+    Type: String
+    Description: ECS Task Execution Role ARN
+
+  TaskRoleArn:
+    Type: String
+    Description: ECS Task Role ARN
+
+  ImageURI:
+    Type: String
+    Description: ECR Image URI
+
+  DesiredCount:
+    Type: Number
+    Default: 2
+    Description: Desired number of tasks
+
+  CPU:
+    Type: Number
+    Default: 256
+    Description: CPU units (256 = 0.25 vCPU)
+    AllowedValues: [256, 512, 1024, 2048, 4096]
+
+  Memory:
+    Type: Number
+    Default: 512
+    Description: Memory in MB
+    AllowedValues: [512, 1024, 2048, 3072, 4096, 5120, 6144, 7168, 8192]
+  
+  UseFargateSpot:
+    Type: String
+    Default: 'false'
+    AllowedValues: ['true', 'false']
+    Description: Use Fargate Spot for cost savings (staging only)
+
+Resources:
+  ECSService:
+    Type: AWS::ECS::Service
+    Properties:
+      ServiceName: budgetbuddy-backend
+      Cluster: !Ref ClusterName
+      TaskDefinition: !Ref TaskDefinition
+      DesiredCount: !Ref DesiredCount
+      LaunchType: !If [UseFargateSpot, FARGATE, FARGATE]
+      PlatformVersion: LATEST
+      CapacityProviderStrategy: !If
+        - UseFargateSpot
+        - - CapacityProvider: FARGATE_SPOT
+            Weight: 3
+          - CapacityProvider: FARGATE
+            Weight: 1
+        - !Ref AWS::NoValue
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: DISABLED
+          SecurityGroups:
+            - !Ref ECSSecurityGroup
+          Subnets:
+            - !Ref PrivateSubnet1
+            - !Ref PrivateSubnet2
+            - !Ref PrivateSubnet3
+      LoadBalancers:
+        - ContainerName: budgetbuddy-backend
+          ContainerPort: 8080
+          TargetGroupArn: !Ref TargetGroupArn
+      DeploymentConfiguration:
+        MaximumPercent: 200
+        MinimumHealthyPercent: 100
+        DeploymentCircuitBreaker:
+          Enable: true
+          Rollback: true
+      HealthCheckGracePeriodSeconds: 60
+      EnableExecuteCommand: true
+      EnableLogging: true
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Service
+          Value: budgetbuddy-backend
+        - Key: CostCenter
+          Value: engineering
+        - Key: Team
+          Value: backend
+        - Key: Application
+          Value: BudgetBuddy
+
+  TaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: budgetbuddy-backend
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      Cpu: !Ref CPU
+      Memory: !Ref Memory
+      ExecutionRoleArn: !Ref TaskExecutionRoleArn
+      TaskRoleArn: !Ref TaskRoleArn
+      RuntimePlatform:
+        CpuArchitecture: ARM64
+        OperatingSystemFamily: LINUX
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Service
+          Value: budgetbuddy-backend
+        - Key: CostCenter
+          Value: engineering
+        - Key: Team
+          Value: backend
+        - Key: Application
+          Value: BudgetBuddy
+      ContainerDefinitions:
+        - Name: budgetbuddy-backend
+          Image: !Ref ImageURI
+          Essential: true
+          PortMappings:
+            - ContainerPort: 8080
+              Protocol: tcp
+          Environment:
+            - Name: AWS_REGION
+              Value: !Ref AWS::Region
+            - Name: ENVIRONMENT
+              Value: !Ref Environment
+            - Name: DYNAMODB_TABLE_PREFIX
+              Value: BudgetBuddy
+            - Name: AWS_CLOUDWATCH_ENABLED
+              Value: 'true'
+            - Name: AWS_CLOUDWATCH_LOG_GROUP
+              Value: !Sub '/aws/ecs/${ClusterName}'
+            - Name: METRICS_ENABLED
+              Value: 'true'
+            - Name: METRICS_FILTER
+              Value: 'true'
+            - Name: API_BASE_URL
+              Value: !Sub 'https://api.${DomainName}'
+            - Name: OAUTH2_ENABLED
+              Value: 'false'
+          Secrets:
+            - Name: JWT_SECRET
+              ValueFrom: !Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:budgetbuddy/jwt-secret'
+            - Name: PLAID_CLIENT_ID
+              ValueFrom: !Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:budgetbuddy/plaid:clientId::'
+            - Name: PLAID_SECRET
+              ValueFrom: !Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:budgetbuddy/plaid:secret::'
+            - Name: STRIPE_SECRET_KEY
+              ValueFrom: !Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:budgetbuddy/stripe:secretKey::'
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Sub '/aws/ecs/${ClusterName}'
+              awslogs-region: !Ref AWS::Region
+              awslogs-stream-prefix: ecs
+          HealthCheck:
+            Command:
+              - CMD-SHELL
+              - 'wget --no-verbose --tries=1 --spider http://localhost:8080/actuator/health || exit 1'
+            Interval: 30
+            Timeout: 5
+            Retries: 3
+            StartPeriod: 40
+          ResourceRequirements:
+            - Type: CPU
+              Value: !Ref CPU
+            - Type: MEMORY
+              Value: !Ref Memory
+          # Optimized resource allocation based on workload
+          # Production: 512 CPU, 1024 MB (0.5 vCPU, 1GB RAM)
+          # Staging: 256 CPU, 512 MB (0.25 vCPU, 512MB RAM)
+
+Outputs:
+  ServiceName:
+    Description: ECS Service Name
+    Value: !GetAtt ECSService.Name
+
+  ServiceArn:
+    Description: ECS Service ARN
+    Value: !GetAtt ECSService.ServiceArn
+

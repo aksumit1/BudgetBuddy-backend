@@ -1,0 +1,197 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'CloudFront Distribution for BudgetBuddy Backend API Caching'
+
+Parameters:
+  ALBDNSName:
+    Type: String
+    Description: Application Load Balancer DNS Name
+
+  SSLCertificateArn:
+    Type: String
+    Description: ACM Certificate ARN for CloudFront
+
+Resources:
+  CloudFrontDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        Comment: BudgetBuddy Backend API Distribution
+        DefaultRootObject: ''
+        PriceClass: PriceClass_100  # Use only North America and Europe (cost optimization)
+        HttpVersion: http2and3
+        IPV6Enabled: true
+        Aliases:
+          - !Sub 'api.${DomainName}'
+        Origins:
+          - Id: ALBOrigin
+            DomainName: !Ref ALBDNSName
+            CustomOriginConfig:
+              HTTPPort: 80
+              HTTPSPort: 443
+              OriginProtocolPolicy: https-only
+              OriginSslProtocols:
+                - TLSv1.2
+              OriginReadTimeout: 60
+              OriginKeepaliveTimeout: 5
+        DefaultCacheBehavior:
+          TargetOriginId: ALBOrigin
+          ViewerProtocolPolicy: redirect-to-https
+          AllowedMethods:
+            - DELETE
+            - GET
+            - HEAD
+            - OPTIONS
+            - PATCH
+            - POST
+            - PUT
+          CachedMethods:
+            - GET
+            - HEAD
+            - OPTIONS
+          Compress: true
+          CachePolicyId: 4135ea2d-6df8-44a3-9df3-4b5a84be39ad  # Managed-CachingOptimized
+          OriginRequestPolicyId: 216adef6-5c79-47e2-89d8-8f8c8b8b8b8b  # Managed-CORS-S3Origin (custom for API)
+          ResponseHeadersPolicyId: 67f7725c-6f97-4210-82d7-5512b07e9e07  # Managed-SecurityHeadersPolicy
+          MinTTL: 0
+          DefaultTTL: 300  # 5 minutes for GET requests
+          MaxTTL: 3600  # 1 hour maximum
+        CacheBehaviors:
+          # Cache health checks longer
+          - PathPattern: '/actuator/health'
+            TargetOriginId: ALBOrigin
+            ViewerProtocolPolicy: redirect-to-https
+            AllowedMethods:
+              - GET
+              - HEAD
+            CachedMethods:
+              - GET
+              - HEAD
+            Compress: true
+            CachePolicyId: 4135ea2d-6df8-44a3-9df3-4b5a84be39ad
+            DefaultTTL: 60  # 1 minute for health checks
+            MinTTL: 0
+            MaxTTL: 300
+          # Don't cache authentication endpoints
+          - PathPattern: '/api/auth/*'
+            TargetOriginId: ALBOrigin
+            ViewerProtocolPolicy: redirect-to-https
+            AllowedMethods:
+              - DELETE
+              - GET
+              - HEAD
+              - OPTIONS
+              - PATCH
+              - POST
+              - PUT
+            CachedMethods:
+              - GET
+              - HEAD
+            Compress: true
+            CachePolicyId: 4135ea2d-6df8-44a3-9df3-4b5a84be39ad
+            DefaultTTL: 0  # No caching for auth
+            MinTTL: 0
+            MaxTTL: 0
+        CustomErrorResponses:
+          - ErrorCode: 403
+            ResponseCode: 403
+            ResponsePagePath: /error/403.html
+            ErrorCachingMinTTL: 300
+          - ErrorCode: 404
+            ResponseCode: 404
+            ResponsePagePath: /error/404.html
+            ErrorCachingMinTTL: 300
+          - ErrorCode: 500
+            ResponseCode: 500
+            ResponsePagePath: /error/500.html
+            ErrorCachingMinTTL: 60
+        ViewerCertificate:
+          AcmCertificateArn: !Ref SSLCertificateArn
+          SslSupportMethod: sni-only
+          MinimumProtocolVersion: TLSv1.2_2021
+        Restrictions:
+          GeoRestriction:
+            RestrictionType: none
+        Logging:
+          Bucket: !GetAtt CloudFrontLogsBucket.DomainName
+          Prefix: cloudfront-logs/
+          IncludeCookies: false
+        WebACLId: !Ref WAFWebACL
+        Tags:
+          - Key: Name
+            Value: budgetbuddy-backend-cloudfront
+          - Key: Environment
+            Value: production
+          - Key: Service
+            Value: budgetbuddy-backend
+          - Key: CostCenter
+            Value: engineering
+
+  CloudFrontLogsBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub '${AWS::StackName}-cloudfront-logs-${AWS::AccountId}'
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      LifecycleConfiguration:
+        Rules:
+          - Id: DeleteOldLogs
+            Status: Enabled
+            ExpirationInDays: 90
+            Transitions:
+              - TransitionInDays: 30
+                StorageClass: STANDARD_IA
+              - TransitionInDays: 60
+                StorageClass: GLACIER
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-cloudfront-logs'
+        - Key: Environment
+          Value: production
+        - Key: Service
+          Value: budgetbuddy-backend
+        - Key: CostCenter
+          Value: engineering
+
+  WAFWebACL:
+    Type: AWS::WAFv2::WebACL
+    Properties:
+      Name: budgetbuddy-cloudfront-waf
+      Scope: CLOUDFRONT
+      DefaultAction:
+        Allow: {}
+      Rules:
+        - Name: RateLimitRule
+          Priority: 1
+          Statement:
+            RateBasedStatement:
+              Limit: 2000
+              AggregateKeyType: IP
+          Action:
+            Block: {}
+          VisibilityConfig:
+            SampledRequestsEnabled: true
+            CloudWatchMetricsEnabled: true
+            MetricName: CloudFrontRateLimitRule
+      VisibilityConfig:
+        SampledRequestsEnabled: true
+        CloudWatchMetricsEnabled: true
+        MetricName: BudgetBuddyCloudFrontWAF
+
+  DomainName:
+    Type: String
+    Default: budgetbuddy.com
+    Description: Domain name for the application
+
+Outputs:
+  CloudFrontDistributionId:
+    Description: CloudFront Distribution ID
+    Value: !Ref CloudFrontDistribution
+
+  CloudFrontDomainName:
+    Description: CloudFront Distribution Domain Name
+    Value: !GetAtt CloudFrontDistribution.DomainName
+

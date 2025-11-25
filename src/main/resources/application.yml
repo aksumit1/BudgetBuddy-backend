@@ -1,0 +1,235 @@
+spring:
+  application:
+    name: budgetbuddy-backend
+  
+  # Jackson Configuration
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+    time-zone: UTC
+
+# Server Configuration
+server:
+  port: ${SERVER_PORT:8080}
+  error:
+    include-message: always
+    include-binding-errors: always
+    include-stacktrace: on_param
+    include-exception: false
+  compression:
+    enabled: true
+    mime-types: application/json,application/xml,text/html,text/xml,text/plain
+
+# Application Configuration
+app:
+  name: BudgetBuddy Backend
+  version: 1.0.0
+  
+  # AWS Configuration
+  aws:
+    region: ${AWS_REGION:us-east-1}
+    dynamodb:
+      table-prefix: ${DYNAMODB_TABLE_PREFIX:BudgetBuddy}
+      endpoint: ${DYNAMODB_ENDPOINT:} # Leave empty for production, use for LocalStack
+    s3:
+      bucket-name: ${AWS_S3_BUCKET:budgetbuddy-storage}
+    cloudwatch:
+      enabled: ${AWS_CLOUDWATCH_ENABLED:true}
+      namespace: BudgetBuddy
+      log-group: ${AWS_CLOUDWATCH_LOG_GROUP:/aws/ecs/budgetbuddy-backend}
+    iam:
+      role-arn: ${AWS_IAM_ROLE_ARN:} # ECS Task Role ARN
+    kms:
+      key-id: ${AWS_KMS_KEY_ID:} # For encryption at rest
+  
+  # JWT Configuration
+  jwt:
+    secret: ${JWT_SECRET:your-256-bit-secret-key-change-in-production}
+    secret-name: ${JWT_SECRET_NAME:budgetbuddy/jwt-secret}
+    expiration: 86400000 # 24 hours
+    refresh-expiration: 604800000 # 7 days
+  
+  # Plaid Configuration
+  plaid:
+    client-id: ${PLAID_CLIENT_ID:}
+    secret: ${PLAID_SECRET:}
+    environment: ${PLAID_ENVIRONMENT:sandbox} # sandbox, development, production
+    webhook-verification-key: ${PLAID_WEBHOOK_VERIFICATION_KEY:}
+  
+  # Rate Limiting
+  rate-limit:
+    enabled: true
+    requests-per-minute: 60
+    requests-per-hour: 1000
+  
+  # Security
+  security:
+    cors:
+      allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:8080}
+      allowed-methods: GET,POST,PUT,DELETE,OPTIONS
+      allowed-headers: "*"
+      allow-credentials: true
+    encryption:
+      algorithm: AES-256-GCM
+      key: ${ENCRYPTION_KEY:change-in-production}
+    tls:
+      min-version: ${TLS_MIN_VERSION:TLSv1.2}
+      enabled-protocols: ${TLS_ENABLED_PROTOCOLS:TLSv1.2,TLSv1.3}
+    certificate-pinning:
+      enabled: ${CERTIFICATE_PINNING_ENABLED:true}
+      certificates: ${CERTIFICATE_PINNED_HASHES:} # Comma-separated list of SHA-256 hashes
+  
+  # Compliance
+  compliance:
+    audit-log:
+      enabled: true
+      retention-days: 2555 # 7 years
+    data-retention:
+      enabled: true
+      user-data-retention-days: 1095 # 3 years
+      transaction-data-retention-days: 2555 # 7 years
+  
+  # Analytics
+  analytics:
+    enabled: true
+    batch-size: 1000
+    aggregation-interval: 3600 # 1 hour
+
+# Actuator Configuration (Minimal - only essential endpoints)
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: when-authorized
+      probes:
+        enabled: true
+  metrics:
+    export:
+      cloudwatch:
+        enabled: ${AWS_CLOUDWATCH_ENABLED:true}
+        namespace: ${spring.application.name}
+    tags:
+      application: ${spring.application.name}
+
+# Logging Configuration (Structured Logging with Correlation IDs)
+logging:
+  level:
+    root: INFO
+    com.budgetbuddy: INFO
+    org.springframework.security: WARN
+    software.amazon.awssdk: WARN
+    org.springframework.web: WARN
+    org.hibernate: WARN
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] [%X{correlationId}] %-5level %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] [%X{correlationId}] %-5level %logger{36} - %msg%n"
+  # CloudWatch Logs integration via ECS log driver
+  # Retention: 7 days (configured in CloudFormation)
+
+# Metrics Configuration
+metrics:
+  enabled: ${METRICS_ENABLED:true}
+  filter-unnecessary: ${METRICS_FILTER:true}
+  export:
+    cloudwatch:
+      enabled: ${AWS_CLOUDWATCH_ENABLED:true}
+      namespace: ${spring.application.name}
+      batch-size: 20  # Batch metrics to reduce costs
+
+# OAuth2 Configuration
+oauth2:
+  enabled: ${OAUTH2_ENABLED:false}
+  jwt:
+    issuer-uri: ${OAUTH2_ISSUER_URI:}
+    jwk-set-uri: ${OAUTH2_JWK_SET_URI:}
+
+# API Configuration
+api:
+  version: 1.0.0
+  base-url: ${API_BASE_URL:https://api.budgetbuddy.com}
+  default-locale: ${API_DEFAULT_LOCALE:en_US}
+  supported-locales: ${API_SUPPORTED_LOCALES:en_US,en_GB,fr_FR,es_ES,de_DE,it_IT,ja_JP,zh_CN,ko_KR,pt_BR,ru_RU,ar_SA,hi_IN}
+
+# Feature Flags
+app:
+  features:
+    enable-plaid: ${FEATURE_PLAID_ENABLED:true}
+    enable-stripe: ${FEATURE_STRIPE_ENABLED:true}
+    enable-oauth2: ${FEATURE_OAUTH2_ENABLED:false}
+    enable-advanced-analytics: ${FEATURE_ADVANCED_ANALYTICS_ENABLED:false}
+    enable-notifications: ${FEATURE_NOTIFICATIONS_ENABLED:true}
+
+# Performance Configuration
+performance:
+  async:
+    core-pool-size: ${ASYNC_CORE_POOL_SIZE:10}
+    max-pool-size: ${ASYNC_MAX_POOL_SIZE:50}
+    queue-capacity: ${ASYNC_QUEUE_CAPACITY:100}
+  cache:
+    default-ttl: ${CACHE_DEFAULT_TTL:1800}
+    max-size: ${CACHE_MAX_SIZE:10000}
+
+# Resilience Configuration
+resilience:
+  circuit-breaker:
+    failure-rate-threshold: ${CIRCUIT_BREAKER_FAILURE_RATE:50}
+    wait-duration: ${CIRCUIT_BREAKER_WAIT_DURATION:60}
+    sliding-window-size: ${CIRCUIT_BREAKER_WINDOW_SIZE:10}
+  retry:
+    max-attempts: ${RETRY_MAX_ATTEMPTS:3}
+    wait-duration: ${RETRY_WAIT_DURATION:1000}
+
+# AWS AppConfig Configuration
+app:
+  aws:
+    appconfig:
+      application: ${APP_CONFIG_APPLICATION:budgetbuddy-backend}
+      environment: ${APP_CONFIG_ENVIRONMENT:production}
+      config-profile: ${APP_CONFIG_PROFILE:default}
+      refresh-interval: ${APP_CONFIG_REFRESH_INTERVAL:60}
+    secrets-manager:
+      enabled: ${AWS_SECRETS_MANAGER_ENABLED:false}
+      refresh-interval: ${AWS_SECRETS_MANAGER_REFRESH_INTERVAL:3600}
+
+# Deployment Safety Configuration
+deployment:
+  health-check-timeout: ${DEPLOYMENT_HEALTH_CHECK_TIMEOUT:60}
+  health-check-interval: ${DEPLOYMENT_HEALTH_CHECK_INTERVAL:5}
+  max-health-check-attempts: ${DEPLOYMENT_MAX_HEALTH_CHECK_ATTEMPTS:12}
+  smoke-test-endpoints: ${DEPLOYMENT_SMOKE_TEST_ENDPOINTS:/actuator/health,/api/auth/register}
+
+# OpenAPI/Swagger Configuration
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+    tags-sorter: alpha
+    operations-sorter: alpha
+
+# Resilience4j Configuration
+resilience4j:
+  circuitbreaker:
+    instances:
+      plaid:
+        registerHealthIndicator: true
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        permittedNumberOfCallsInHalfOpenState: 3
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+        waitDurationInOpenState: 10s
+        failureRateThreshold: 50
+        eventConsumerBufferSize: 10
+  retry:
+    instances:
+      plaid:
+        maxAttempts: 3
+        waitDuration: 1s
+        enableExponentialBackoff: true
+        exponentialBackoffMultiplier: 2
+

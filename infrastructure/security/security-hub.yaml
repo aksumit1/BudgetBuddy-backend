@@ -1,0 +1,108 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Security Hub Integration for BudgetBuddy Backend'
+
+Parameters:
+  Environment:
+    Type: String
+    Default: production
+    AllowedValues: [development, staging, production]
+
+Resources:
+  # Security Hub Standard Subscription
+  SecurityHubStandard:
+    Type: AWS::SecurityHub::Hub
+    Properties:
+      EnableDefaultStandards: true
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-security-hub'
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Service
+          Value: budgetbuddy-backend
+
+  # Security Hub Findings SNS Topic
+  SecurityHubFindingsTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Sub '${AWS::StackName}-security-hub-findings'
+      DisplayName: Security Hub Findings
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-security-hub-findings'
+        - Key: Environment
+          Value: !Ref Environment
+
+  # Security Hub Findings Subscription
+  SecurityHubFindingsSubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      TopicArn: !Ref SecurityHubFindingsTopic
+      Protocol: email
+      Endpoint: !Ref AlertEmail
+
+  AlertEmail:
+    Type: String
+    Default: security@budgetbuddy.com
+    Description: Email address for Security Hub alerts
+
+  # EventBridge Rule for Security Hub Findings
+  SecurityHubEventRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: !Sub '${AWS::StackName}-security-hub-findings'
+      Description: Route Security Hub findings to SNS
+      EventPattern:
+        source:
+          - aws.securityhub
+        detail-type:
+          - Security Hub Findings - Imported
+        detail:
+          findings:
+            Severity:
+              Label:
+                - CRITICAL
+                - HIGH
+      Targets:
+        - Arn: !Ref SecurityHubFindingsTopic
+          Id: SecurityHubFindingsTarget
+
+  # Security Hub Custom Action
+  SecurityHubCustomAction:
+    Type: AWS::SecurityHub::ActionTarget
+    Properties:
+      Name: !Sub '${AWS::StackName}-remediate'
+      Description: Remediate security finding
+      Identifier: budgetbuddy-remediate
+
+  # IAM Role for Security Hub to publish to SNS
+  SecurityHubSNSPublishRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub '${AWS::StackName}-security-hub-sns-role'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: events.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: SNSPublish
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - sns:Publish
+                Resource: !Ref SecurityHubFindingsTopic
+
+Outputs:
+  SecurityHubArn:
+    Description: Security Hub ARN
+    Value: !GetAtt SecurityHubStandard.Arn
+
+  SecurityHubFindingsTopicArn:
+    Description: SNS Topic ARN for Security Hub findings
+    Value: !Ref SecurityHubFindingsTopic
+

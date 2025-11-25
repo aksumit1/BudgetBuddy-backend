@@ -1,0 +1,55 @@
+spring:
+  application:
+    name: budgetbuddy-backend-test
+  
+  # Test Database Configuration
+  dynamodb:
+    endpoint: http://localhost:4566 # LocalStack endpoint for testing
+    region: us-east-1
+
+# Test Application Configuration
+app:
+  name: BudgetBuddy Backend Test
+  version: 1.0.0-test
+  
+  aws:
+    region: us-east-1
+    dynamodb:
+      table-prefix: TestBudgetBuddy
+      endpoint: http://localhost:4566
+    s3:
+      bucket-name: test-budgetbuddy-storage
+    cloudwatch:
+      enabled: false # Disable CloudWatch in tests
+  
+  jwt:
+    secret: test-jwt-secret-key-for-testing-only
+    expiration: 3600000 # 1 hour for tests
+    refresh-expiration: 86400000 # 1 day for tests
+  
+  plaid:
+    client-id: test-client-id
+    secret: test-secret
+    environment: sandbox
+  
+  rate-limit:
+    enabled: true
+    requests-per-minute: 1000 # Higher limit for tests
+    requests-per-hour: 10000
+  
+  security:
+    cors:
+      allowed-origins: "*" # Allow all in tests
+    certificate-pinning:
+      enabled: false # Disable in tests
+    tls:
+      min-version: TLSv1.2
+      enabled-protocols: TLSv1.2,TLSv1.3
+
+# Logging
+logging:
+  level:
+    root: INFO
+    com.budgetbuddy: DEBUG
+    org.springframework: WARN
+    software.amazon.awssdk: WARN

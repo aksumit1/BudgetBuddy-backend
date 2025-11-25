@@ -1,0 +1,42 @@
+package com.budgetbuddy.repository.dynamodb;
+
+import com.budgetbuddy.compliance.AuditLogTable;
+import org.springframework.stereotype.Repository;
+import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
+import software.amazon.awssdk.enhanced.dynamodb.DynamoDbIndex;
+import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable;
+import software.amazon.awssdk.enhanced.dynamodb.Key;
+import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
+import software.amazon.awssdk.enhanced.dynamodb.model.QueryConditional;
+
+import java.util.List;
+import java.util.stream.Collectors;
+
+/**
+ * DynamoDB Repository for Audit Logs
+ */
+@Repository
+public class AuditLogRepository {
+
+    private final DynamoDbTable<AuditLogTable> auditLogTable;
+    private final DynamoDbIndex<AuditLogTable> userIdCreatedAtIndex;
+    private static final String TABLE_NAME = "BudgetBuddy-AuditLogs";
+
+    public AuditLogRepository(DynamoDbEnhancedClient enhancedClient) {
+        this.auditLogTable = enhancedClient.table(TABLE_NAME, TableSchema.fromBean(AuditLogTable.class));
+        this.userIdCreatedAtIndex = auditLogTable.index("UserIdCreatedAtIndex");
+    }
+
+    public void save(AuditLogTable auditLog) {
+        auditLogTable.putItem(auditLog);
+    }
+
+    public List<AuditLogTable> findByUserIdAndDateRange(String userId, Long startTimestamp, Long endTimestamp) {
+        return userIdCreatedAtIndex.query(QueryConditional.keyEqualTo(Key.builder().partitionValue(userId).build()))
+                .items()
+                .stream()
+                .filter(log -> log.getCreatedAt() >= startTimestamp && log.getCreatedAt() <= endTimestamp)
+                .collect(Collectors.toList());
+    }
+}
+

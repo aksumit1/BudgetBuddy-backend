@@ -1,0 +1,27 @@
+package com.budgetbuddy.config;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient;
+
+/**
+ * AWS Secrets Manager Configuration
+ */
+@Configuration
+public class SecretsManagerConfig {
+
+    @Value("${app.aws.region:us-east-1}")
+    private String awsRegion;
+
+    @Bean
+    public SecretsManagerClient secretsManagerClient() {
+        return SecretsManagerClient.builder()
+                .region(Region.of(awsRegion))
+                .credentialsProvider(DefaultCredentialsProvider.create())
+                .build();
+    }
+}
+
