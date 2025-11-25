@@ -6,7 +6,7 @@ import com.budgetbuddy.compliance.iso27001.ISO27001ComplianceService;
 import com.budgetbuddy.compliance.soc2.SOC2ComplianceService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticatedPrincipal;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
@@ -40,7 +40,7 @@ public class ComplianceReportingController {
      */
     @GetMapping("/soc2")
     public ResponseEntity<SOC2ComplianceService.SystemHealth> getSOC2Report(
-            @AuthenticatedPrincipal UserDetails userDetails) {
+            @AuthenticationPrincipal UserDetails userDetails) {
         com.budgetbuddy.model.dynamodb.UserTable user = userService.findByEmail(userDetails.getUsername())
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
@@ -58,7 +58,7 @@ public class ComplianceReportingController {
      */
     @GetMapping("/hipaa/breaches")
     public ResponseEntity<HIPAAComplianceService.BreachReport> getHIPAABreaches(
-            @AuthenticatedPrincipal UserDetails userDetails,
+            @AuthenticationPrincipal UserDetails userDetails,
             @RequestParam(required = false) String userId) {
         com.budgetbuddy.model.dynamodb.UserTable user = userService.findByEmail(userDetails.getUsername())
                 .orElseThrow(() -> new RuntimeException("User not found"));
@@ -77,7 +77,7 @@ public class ComplianceReportingController {
      */
     @GetMapping("/iso27001/incidents")
     public ResponseEntity<ISO27001ComplianceService.SecurityIncident> getISO27001Incidents(
-            @AuthenticatedPrincipal UserDetails userDetails) {
+            @AuthenticationPrincipal UserDetails userDetails) {
         com.budgetbuddy.model.dynamodb.UserTable user = userService.findByEmail(userDetails.getUsername())
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
@@ -95,7 +95,7 @@ public class ComplianceReportingController {
      */
     @GetMapping("/financial/transactions")
     public ResponseEntity<FinancialComplianceReport> getFinancialComplianceReport(
-            @AuthenticatedPrincipal UserDetails userDetails,
+            @AuthenticationPrincipal UserDetails userDetails,
             @RequestParam Instant startDate,
             @RequestParam Instant endDate) {
         com.budgetbuddy.model.dynamodb.UserTable user = userService.findByEmail(userDetails.getUsername())

@@ -14,7 +14,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticatedPrincipal;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
@@ -67,7 +67,7 @@ public class PlaidController {
         @ApiResponse(responseCode = "500", description = "Internal server error")
     })
     public ResponseEntity<LinkTokenResponse> createLinkToken(
-            @AuthenticatedPrincipal UserDetails userDetails) {
+            @AuthenticationPrincipal UserDetails userDetails) {
         if (userDetails == null || userDetails.getUsername() == null) {
             throw new AppException(ErrorCode.UNAUTHORIZED, "User not authenticated");
         }
@@ -108,7 +108,7 @@ public class PlaidController {
         @ApiResponse(responseCode = "500", description = "Internal server error")
     })
     public ResponseEntity<ExchangeTokenResponse> exchangePublicToken(
-            @AuthenticatedPrincipal UserDetails userDetails,
+            @AuthenticationPrincipal UserDetails userDetails,
             @Valid @RequestBody ExchangeTokenRequest request) {
         if (userDetails == null || userDetails.getUsername() == null) {
             throw new AppException(ErrorCode.UNAUTHORIZED, "User not authenticated");
@@ -154,7 +154,7 @@ public class PlaidController {
         description = "Retrieves all linked financial accounts for the authenticated user"
     )
     public ResponseEntity<AccountsResponse> getAccounts(
-            @AuthenticatedPrincipal UserDetails userDetails,
+            @AuthenticationPrincipal UserDetails userDetails,
             @RequestParam @NotBlank @Parameter(description = "Plaid access token") String accessToken) {
         if (userDetails == null || userDetails.getUsername() == null) {
             throw new AppException(ErrorCode.UNAUTHORIZED, "User not authenticated");
@@ -194,7 +194,7 @@ public class PlaidController {
         description = "Manually triggers synchronization of accounts and transactions from Plaid"
     )
     public ResponseEntity<Map<String, String>> syncData(
-            @AuthenticatedPrincipal UserDetails userDetails,
+            @AuthenticationPrincipal UserDetails userDetails,
             @Valid @RequestBody SyncRequest request) {
         if (userDetails == null || userDetails.getUsername() == null) {
             throw new AppException(ErrorCode.UNAUTHORIZED, "User not authenticated");

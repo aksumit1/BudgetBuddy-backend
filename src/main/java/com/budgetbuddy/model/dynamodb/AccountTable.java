@@ -1,6 +1,9 @@
 package com.budgetbuddy.model.dynamodb;
 
-import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.*;
+import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbAttribute;
+import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbBean;
+import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbPartitionKey;
+import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbSecondaryPartitionKey;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -9,7 +12,6 @@ import java.time.Instant;
  * DynamoDB table for Accounts
  */
 @DynamoDbBean
-@DynamoDbTable(tableName = "BudgetBuddy-Accounts")
 public class AccountTable {
 
     private String accountId; // Partition key

@@ -1,10 +1,6 @@
 package com.budgetbuddy.model;
 
-import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
-import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.annotation.LastModifiedDate;
-import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -12,72 +8,42 @@ import java.time.LocalDateTime;
 
 /**
  * Transaction entity representing a financial transaction
+ * Note: This is a domain model. For DynamoDB persistence, use TransactionTable.
  */
-@Entity
-@Table(name = "transactions", indexes = {
-    @Index(name = "idx_transaction_user", columnList = "user_id"),
-    @Index(name = "idx_transaction_account", columnList = "account_id"),
-    @Index(name = "idx_transaction_date", columnList = "transaction_date"),
-    @Index(name = "idx_transaction_plaid", columnList = "plaid_transaction_id"),
-    @Index(name = "idx_transaction_category", columnList = "category")
-})
-@EntityListeners(AuditingEntityListener.class)
 public class Transaction {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @NotNull
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
     @NotNull
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "account_id", nullable = false)
     private Account account;
 
-    @Column(nullable = false, precision = 19, scale = 2)
     private BigDecimal amount;
 
-    @Column(length = 255)
     private String description;
 
-    @Column(length = 100)
     private String merchantName;
 
-    @Column(length = 50)
-    @Enumerated(EnumType.STRING)
     private TransactionCategory category;
 
-    @Column(nullable = false)
     private LocalDate transactionDate;
 
-    @Column(length = 3)
     private String currencyCode = "USD";
 
-    @Column(length = 255)
     private String plaidTransactionId; // Plaid transaction identifier
 
-    @Column
     private Boolean pending = false;
 
-    @Column
     private String location; // JSON string for location data
 
-    @Column
     private String paymentChannel; // online, in_store, etc.
 
-    @Column
     private String authorizedDate; // ISO date string
 
-    @CreatedDate
-    @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    @LastModifiedDate
-    @Column(nullable = false)
     private LocalDateTime updatedAt;
 
     // Constructors

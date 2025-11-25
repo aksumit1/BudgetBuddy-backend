@@ -12,7 +12,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -29,9 +28,10 @@ import java.util.Optional;
  * - Transaction synchronization
  * - Scheduled sync
  * - Error handling
+ * 
+ * Note: DynamoDB doesn't use Spring's @Transactional. Use DynamoDB TransactWriteItems for transactions.
  */
 @Service
-@Transactional
 public class PlaidSyncService {
 
     private static final Logger logger = LoggerFactory.getLogger(PlaidSyncService.class);

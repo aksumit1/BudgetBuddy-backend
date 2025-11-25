@@ -1,6 +1,10 @@
 package com.budgetbuddy.compliance;
 
-import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.*;
+import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbAttribute;
+import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbBean;
+import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbPartitionKey;
+import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbSecondaryPartitionKey;
+import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbSecondarySortKey;
 
 import java.time.Instant;
 
@@ -8,7 +12,6 @@ import java.time.Instant;
  * DynamoDB table for Audit Logs
  */
 @DynamoDbBean
-@DynamoDbTable(tableName = "BudgetBuddy-AuditLogs")
 public class AuditLogTable {
 
     private String auditLogId; // Partition key

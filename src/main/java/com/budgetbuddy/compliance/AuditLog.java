@@ -1,51 +1,29 @@
 package com.budgetbuddy.compliance;
 
-import jakarta.persistence.*;
-import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.jpa.domain.support.AuditingEntityListener;
-
 import java.time.LocalDateTime;
 
 /**
  * Audit Log entity for compliance tracking
+ * Note: This is a domain model. For DynamoDB persistence, use AuditLogTable.
  */
-@Entity
-@Table(name = "audit_logs", indexes = {
-    @Index(name = "idx_audit_user", columnList = "user_id"),
-    @Index(name = "idx_audit_action", columnList = "action"),
-    @Index(name = "idx_audit_resource", columnList = "resource_type, resource_id"),
-    @Index(name = "idx_audit_created", columnList = "created_at")
-})
-@EntityListeners(AuditingEntityListener.class)
 public class AuditLog {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "user_id")
     private Long userId;
 
-    @Column(nullable = false, length = 100)
     private String action;
 
-    @Column(nullable = false, length = 100)
     private String resourceType;
 
-    @Column(length = 255)
     private String resourceId;
 
-    @Column(columnDefinition = "TEXT")
     private String details;
 
-    @Column(length = 45)
     private String ipAddress;
 
-    @Column(columnDefinition = "TEXT")
     private String userAgent;
 
-    @CreatedDate
-    @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
     // Getters and setters

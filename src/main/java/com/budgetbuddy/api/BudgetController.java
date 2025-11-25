@@ -9,7 +9,7 @@ import com.budgetbuddy.service.UserService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticatedPrincipal;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
@@ -35,7 +35,7 @@ public class BudgetController {
     }
 
     @GetMapping
-    public ResponseEntity<List<BudgetTable>> getBudgets(@AuthenticatedPrincipal UserDetails userDetails) {
+    public ResponseEntity<List<BudgetTable>> getBudgets(@AuthenticationPrincipal UserDetails userDetails) {
         if (userDetails == null || userDetails.getUsername() == null) {
             throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
         }
@@ -49,7 +49,7 @@ public class BudgetController {
 
     @PostMapping
     public ResponseEntity<BudgetTable> createOrUpdateBudget(
-            @AuthenticatedPrincipal UserDetails userDetails,
+            @AuthenticationPrincipal UserDetails userDetails,
             @Valid @RequestBody CreateBudgetRequest request) {
         if (userDetails == null || userDetails.getUsername() == null) {
             throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
@@ -76,7 +76,7 @@ public class BudgetController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteBudget(
-            @AuthenticatedPrincipal UserDetails userDetails,
+            @AuthenticationPrincipal UserDetails userDetails,
             @PathVariable String id) {
         if (userDetails == null || userDetails.getUsername() == null) {
             throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");

@@ -9,7 +9,7 @@ import com.budgetbuddy.service.UserService;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticatedPrincipal;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
@@ -38,7 +38,7 @@ public class TransactionController {
 
     @GetMapping
     public ResponseEntity<List<TransactionTable>> getTransactions(
-            @AuthenticatedPrincipal UserDetails userDetails,
+            @AuthenticationPrincipal UserDetails userDetails,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
         if (userDetails == null || userDetails.getUsername() == null) {
@@ -63,7 +63,7 @@ public class TransactionController {
 
     @GetMapping("/range")
     public ResponseEntity<List<TransactionTable>> getTransactionsInRange(
-            @AuthenticatedPrincipal UserDetails userDetails,
+            @AuthenticationPrincipal UserDetails userDetails,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
         if (userDetails == null || userDetails.getUsername() == null) {
@@ -86,7 +86,7 @@ public class TransactionController {
 
     @GetMapping("/total")
     public ResponseEntity<TotalSpendingResponse> getTotalSpending(
-            @AuthenticatedPrincipal UserDetails userDetails,
+            @AuthenticationPrincipal UserDetails userDetails,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
         if (userDetails == null || userDetails.getUsername() == null) {
@@ -109,7 +109,7 @@ public class TransactionController {
 
     @PostMapping
     public ResponseEntity<TransactionTable> createTransaction(
-            @AuthenticatedPrincipal UserDetails userDetails,
+            @AuthenticationPrincipal UserDetails userDetails,
             @RequestBody CreateTransactionRequest request) {
         if (userDetails == null || userDetails.getUsername() == null) {
             throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
@@ -149,7 +149,7 @@ public class TransactionController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteTransaction(
-            @AuthenticatedPrincipal UserDetails userDetails,
+            @AuthenticationPrincipal UserDetails userDetails,
             @PathVariable String id) {
         if (userDetails == null || userDetails.getUsername() == null) {
             throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");

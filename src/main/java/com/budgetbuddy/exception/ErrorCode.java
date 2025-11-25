@@ -11,6 +11,7 @@ public enum ErrorCode {
     TOKEN_EXPIRED(1003, "Token expired"),
     TOKEN_INVALID(1004, "Invalid token"),
     UNAUTHORIZED_ACCESS(1005, "Unauthorized access"),
+    UNAUTHORIZED(1005, "Unauthorized access"), // Alias for UNAUTHORIZED_ACCESS
     INSUFFICIENT_PERMISSIONS(1006, "Insufficient permissions"),
     ACCOUNT_LOCKED(1007, "Account locked"),
     ACCOUNT_DISABLED(1008, "Account disabled"),
@@ -57,6 +58,8 @@ public enum ErrorCode {
     DATABASE_CONNECTION_FAILED(6001, "Database connection failed"),
     DATABASE_QUERY_FAILED(6002, "Database query failed"),
     RECORD_NOT_FOUND(6003, "Record not found"),
+    ACCOUNT_NOT_FOUND(6003, "Account not found"), // Alias for RECORD_NOT_FOUND
+    TRANSACTION_NOT_FOUND(6003, "Transaction not found"), // Alias for RECORD_NOT_FOUND
     RECORD_ALREADY_EXISTS(6004, "Record already exists"),
     TRANSACTION_FAILED(6005, "Database transaction failed"),
     STORAGE_ERROR(6006, "Storage error"),

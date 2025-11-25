@@ -8,7 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticatedPrincipal;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
@@ -70,7 +70,7 @@ public class OAuth2Controller {
         description = "Returns user information extracted from OAuth2 JWT token"
     )
     public ResponseEntity<Map<String, Object>> getUserInfo(
-            @AuthenticatedPrincipal Jwt jwt) {
+            @AuthenticationPrincipal Jwt jwt) {
         
         if (jwt == null) {
             throw new AppException(ErrorCode.UNAUTHORIZED, "JWT token is missing");

@@ -8,7 +8,9 @@ import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable;
 import software.amazon.awssdk.enhanced.dynamodb.Key;
 import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
 import software.amazon.awssdk.enhanced.dynamodb.model.QueryConditional;
+import software.amazon.awssdk.core.pagination.sync.SdkIterable;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -32,11 +34,17 @@ public class AuditLogRepository {
     }
 
     public List<AuditLogTable> findByUserIdAndDateRange(String userId, Long startTimestamp, Long endTimestamp) {
-        return userIdCreatedAtIndex.query(QueryConditional.keyEqualTo(Key.builder().partitionValue(userId).build()))
-                .items()
-                .stream()
-                .filter(log -> log.getCreatedAt() >= startTimestamp && log.getCreatedAt() <= endTimestamp)
-                .collect(Collectors.toList());
+        List<AuditLogTable> results = new ArrayList<>();
+        SdkIterable<software.amazon.awssdk.enhanced.dynamodb.model.Page<AuditLogTable>> pages = 
+                userIdCreatedAtIndex.query(QueryConditional.keyEqualTo(Key.builder().partitionValue(userId).build()));
+        for (software.amazon.awssdk.enhanced.dynamodb.model.Page<AuditLogTable> page : pages) {
+            for (AuditLogTable log : page.items()) {
+                if (log.getCreatedAt() >= startTimestamp && log.getCreatedAt() <= endTimestamp) {
+                    results.add(log);
+                }
+            }
+        }
+        return results;
     }
 }
 

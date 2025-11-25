@@ -1,60 +1,38 @@
 package com.budgetbuddy.model;
 
-import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
-import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.annotation.LastModifiedDate;
-import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 /**
  * Budget entity representing a monthly budget for a category
+ * Note: This is a domain model. For DynamoDB persistence, use BudgetTable.
  */
-@Entity
-@Table(name = "budgets", indexes = {
-    @Index(name = "idx_budget_user", columnList = "user_id"),
-    @Index(name = "idx_budget_category", columnList = "category")
-})
-@EntityListeners(AuditingEntityListener.class)
 public class Budget {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @NotNull
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @Column(length = 50)
-    @Enumerated(EnumType.STRING)
-    private TransactionCategory category;
+    private Transaction.TransactionCategory category;
 
-    @Column(nullable = false, precision = 19, scale = 2)
     private BigDecimal monthlyLimit;
 
-    @Column(nullable = false, precision = 19, scale = 2)
     private BigDecimal currentSpent = BigDecimal.ZERO;
 
-    @Column(length = 3)
     private String currencyCode = "USD";
 
-    @CreatedDate
-    @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    @LastModifiedDate
-    @Column(nullable = false)
     private LocalDateTime updatedAt;
 
     // Constructors
     public Budget() {
     }
 
-    public Budget(User user, TransactionCategory category, BigDecimal monthlyLimit) {
+    public Budget(User user, Transaction.TransactionCategory category, BigDecimal monthlyLimit) {
         this.user = user;
         this.category = category;
         this.monthlyLimit = monthlyLimit;
@@ -77,11 +55,11 @@ public class Budget {
         this.user = user;
     }
 
-    public TransactionCategory getCategory() {
+    public Transaction.TransactionCategory getCategory() {
         return category;
     }
 
-    public void setCategory(TransactionCategory category) {
+    public void setCategory(Transaction.TransactionCategory category) {
         this.category = category;
     }
 

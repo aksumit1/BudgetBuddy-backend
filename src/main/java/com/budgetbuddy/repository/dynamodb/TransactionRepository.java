@@ -9,7 +9,9 @@ import software.amazon.awssdk.enhanced.dynamodb.Key;
 import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
 import software.amazon.awssdk.enhanced.dynamodb.model.QueryConditional;
 import software.amazon.awssdk.enhanced.dynamodb.model.QueryEnhancedRequest;
+import software.amazon.awssdk.core.pagination.sync.SdkIterable;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -57,12 +59,22 @@ public class TransactionRepository {
         if (limit <= 0) limit = 50;
         if (limit > 100) limit = 100; // Max limit for performance
         
-        return userIdDateIndex.query(QueryConditional.keyEqualTo(Key.builder().partitionValue(userId).build()))
-                .items()
-                .stream()
-                .skip(skip)
-                .limit(limit)
-                .collect(Collectors.toList());
+        List<TransactionTable> results = new ArrayList<>();
+        SdkIterable<software.amazon.awssdk.enhanced.dynamodb.model.Page<TransactionTable>> pages = 
+                userIdDateIndex.query(QueryConditional.keyEqualTo(Key.builder().partitionValue(userId).build()));
+        int count = 0;
+        for (software.amazon.awssdk.enhanced.dynamodb.model.Page<TransactionTable> page : pages) {
+            for (TransactionTable item : page.items()) {
+                if (count >= skip) {
+                    results.add(item);
+                    if (results.size() >= limit) {
+                        return results;
+                    }
+                }
+                count++;
+            }
+        }
+        return results;
     }
 
     /**
@@ -86,29 +98,38 @@ public class TransactionRepository {
         // Use GSI with sort key range query for efficient date range filtering
         // Query all items for user, then filter by date range in application
         // Note: For very large datasets, consider using DynamoDB Streams or separate date-based partitions
-        return userIdDateIndex.query(QueryConditional.keyEqualTo(Key.builder().partitionValue(userId).build()))
-                .items()
-                .stream()
-                .filter(t -> {
-                    if (t == null) return false;
+        List<TransactionTable> results = new ArrayList<>();
+        SdkIterable<software.amazon.awssdk.enhanced.dynamodb.model.Page<TransactionTable>> pages = 
+                userIdDateIndex.query(QueryConditional.keyEqualTo(Key.builder().partitionValue(userId).build()));
+        for (software.amazon.awssdk.enhanced.dynamodb.model.Page<TransactionTable> page : pages) {
+            for (TransactionTable t : page.items()) {
+                if (t != null && t.getTransactionDate() != null) {
                     String txDate = t.getTransactionDate();
-                    if (txDate == null) return false;
                     // Compare dates as strings (ISO-8601 format allows lexicographic comparison)
-                    return txDate.compareTo(startDate) >= 0 && txDate.compareTo(endDate) <= 0;
-                })
-                .limit(1000) // Safety limit to prevent memory issues
-                .collect(Collectors.toList());
+                    if (txDate.compareTo(startDate) >= 0 && txDate.compareTo(endDate) <= 0) {
+                        results.add(t);
+                        if (results.size() >= 1000) { // Safety limit
+                            return results;
+                        }
+                    }
+                }
+            }
+        }
+        return results;
     }
 
     public Optional<TransactionTable> findByPlaidTransactionId(String plaidTransactionId) {
         if (plaidTransactionId == null || plaidTransactionId.isEmpty()) {
             return Optional.empty();
         }
-        var result = plaidTransactionIdIndex.query(QueryConditional.keyEqualTo(Key.builder().partitionValue(plaidTransactionId).build()))
-                .items()
-                .stream()
-                .findFirst();
-        return result;
+        SdkIterable<software.amazon.awssdk.enhanced.dynamodb.model.Page<TransactionTable>> pages = 
+                plaidTransactionIdIndex.query(QueryConditional.keyEqualTo(Key.builder().partitionValue(plaidTransactionId).build()));
+        for (software.amazon.awssdk.enhanced.dynamodb.model.Page<TransactionTable> page : pages) {
+            for (TransactionTable item : page.items()) {
+                return Optional.of(item);
+            }
+        }
+        return Optional.empty();
     }
 
     public void delete(String transactionId) {

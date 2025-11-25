@@ -1,6 +1,9 @@
 package com.budgetbuddy.model.dynamodb;
 
-import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.*;
+import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbAttribute;
+import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbBean;
+import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbPartitionKey;
+import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbSecondaryPartitionKey;
 
 import java.time.Instant;
 import java.util.Set;
@@ -12,7 +15,6 @@ import java.util.Set;
  * Security: Stores server-side hashed passwords with server salt
  */
 @DynamoDbBean
-@DynamoDbTable(tableName = "BudgetBuddy-Users")
 public class UserTable {
 
     private String userId; // Partition key

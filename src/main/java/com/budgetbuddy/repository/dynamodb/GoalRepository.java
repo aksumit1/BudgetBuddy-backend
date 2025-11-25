@@ -8,7 +8,9 @@ import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable;
 import software.amazon.awssdk.enhanced.dynamodb.Key;
 import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
 import software.amazon.awssdk.enhanced.dynamodb.model.QueryConditional;
+import software.amazon.awssdk.core.pagination.sync.SdkIterable;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -38,12 +40,18 @@ public class GoalRepository {
     }
 
     public List<GoalTable> findByUserId(String userId) {
-        return userIdIndex.query(QueryConditional.keyEqualTo(Key.builder().partitionValue(userId).build()))
-                .items()
-                .stream()
-                .filter(goal -> goal.getActive() != null && goal.getActive())
-                .sorted((g1, g2) -> g1.getTargetDate().compareTo(g2.getTargetDate()))
-                .collect(Collectors.toList());
+        List<GoalTable> results = new ArrayList<>();
+        SdkIterable<software.amazon.awssdk.enhanced.dynamodb.model.Page<GoalTable>> pages = 
+                userIdIndex.query(QueryConditional.keyEqualTo(Key.builder().partitionValue(userId).build()));
+        for (software.amazon.awssdk.enhanced.dynamodb.model.Page<GoalTable> page : pages) {
+            for (GoalTable goal : page.items()) {
+                if (goal.getActive() != null && goal.getActive()) {
+                    results.add(goal);
+                }
+            }
+        }
+        results.sort((g1, g2) -> g1.getTargetDate().compareTo(g2.getTargetDate()));
+        return results;
     }
 
     public void delete(String goalId) {

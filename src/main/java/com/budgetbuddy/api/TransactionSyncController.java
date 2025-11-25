@@ -13,7 +13,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticatedPrincipal;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
@@ -59,7 +59,7 @@ public class TransactionSyncController {
         description = "Triggers full synchronization of transactions from Plaid. Returns immediately with sync status."
     )
     public ResponseEntity<Map<String, Object>> syncTransactions(
-            @AuthenticatedPrincipal UserDetails userDetails,
+            @AuthenticationPrincipal UserDetails userDetails,
             @RequestParam @NotBlank @Parameter(description = "Plaid access token") String accessToken) {
         
         if (userDetails == null || userDetails.getUsername() == null) {
@@ -102,7 +102,7 @@ public class TransactionSyncController {
         description = "Syncs only new or updated transactions since a specific date for efficient updates"
     )
     public ResponseEntity<TransactionSyncService.SyncResult> syncIncremental(
-            @AuthenticatedPrincipal UserDetails userDetails,
+            @AuthenticationPrincipal UserDetails userDetails,
             @RequestParam @NotBlank @Parameter(description = "Plaid access token") String accessToken,
             @RequestParam @Parameter(description = "Sync transactions since this date") 
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate sinceDate) {
@@ -160,7 +160,7 @@ public class TransactionSyncController {
         description = "Returns the status and results of the last transaction synchronization"
     )
     public ResponseEntity<Map<String, Object>> getSyncStatus(
-            @AuthenticatedPrincipal UserDetails userDetails) {
+            @AuthenticationPrincipal UserDetails userDetails) {
         
         if (userDetails == null || userDetails.getUsername() == null) {
             throw new AppException(ErrorCode.UNAUTHORIZED, "User not authenticated");

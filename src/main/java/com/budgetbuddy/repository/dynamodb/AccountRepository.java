@@ -8,7 +8,9 @@ import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable;
 import software.amazon.awssdk.enhanced.dynamodb.Key;
 import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
 import software.amazon.awssdk.enhanced.dynamodb.model.QueryConditional;
+import software.amazon.awssdk.core.pagination.sync.SdkIterable;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -40,19 +42,28 @@ public class AccountRepository {
     }
 
     public List<AccountTable> findByUserId(String userId) {
-        return userIdIndex.query(QueryConditional.keyEqualTo(Key.builder().partitionValue(userId).build()))
-                .items()
-                .stream()
-                .filter(account -> account.getActive() != null && account.getActive())
-                .collect(Collectors.toList());
+        List<AccountTable> results = new ArrayList<>();
+        SdkIterable<software.amazon.awssdk.enhanced.dynamodb.model.Page<AccountTable>> pages = 
+                userIdIndex.query(QueryConditional.keyEqualTo(Key.builder().partitionValue(userId).build()));
+        for (software.amazon.awssdk.enhanced.dynamodb.model.Page<AccountTable> page : pages) {
+            for (AccountTable account : page.items()) {
+                if (account.getActive() != null && account.getActive()) {
+                    results.add(account);
+                }
+            }
+        }
+        return results;
     }
 
     public Optional<AccountTable> findByPlaidAccountId(String plaidAccountId) {
-        var result = plaidAccountIdIndex.query(QueryConditional.keyEqualTo(Key.builder().partitionValue(plaidAccountId).build()))
-                .items()
-                .stream()
-                .findFirst();
-        return result;
+        SdkIterable<software.amazon.awssdk.enhanced.dynamodb.model.Page<AccountTable>> pages = 
+                plaidAccountIdIndex.query(QueryConditional.keyEqualTo(Key.builder().partitionValue(plaidAccountId).build()));
+        for (software.amazon.awssdk.enhanced.dynamodb.model.Page<AccountTable> page : pages) {
+            for (AccountTable item : page.items()) {
+                return Optional.of(item);
+            }
+        }
+        return Optional.empty();
     }
 }
 

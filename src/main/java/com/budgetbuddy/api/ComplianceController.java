@@ -6,7 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticatedPrincipal;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
@@ -33,7 +33,7 @@ public class ComplianceController {
      */
     @GetMapping("/gdpr/export")
     public ResponseEntity<GDPRComplianceService.GDPRDataExport> exportData(
-            @AuthenticatedPrincipal UserDetails userDetails) {
+            @AuthenticationPrincipal UserDetails userDetails) {
         com.budgetbuddy.model.dynamodb.UserTable user = userService.findByEmail(userDetails.getUsername())
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
@@ -47,7 +47,7 @@ public class ComplianceController {
      */
     @GetMapping(value = "/gdpr/export/portable", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<String> exportDataPortable(
-            @AuthenticatedPrincipal UserDetails userDetails) {
+            @AuthenticationPrincipal UserDetails userDetails) {
         com.budgetbuddy.model.dynamodb.UserTable user = userService.findByEmail(userDetails.getUsername())
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
@@ -63,7 +63,7 @@ public class ComplianceController {
      */
     @DeleteMapping("/gdpr/delete")
     public ResponseEntity<Void> deleteData(
-            @AuthenticatedPrincipal UserDetails userDetails,
+            @AuthenticationPrincipal UserDetails userDetails,
             @RequestParam(required = false, defaultValue = "false") boolean confirm) {
         if (!confirm) {
             return ResponseEntity.badRequest().build();
@@ -82,7 +82,7 @@ public class ComplianceController {
      */
     @PutMapping("/gdpr/update")
     public ResponseEntity<Void> updateData(
-            @AuthenticatedPrincipal UserDetails userDetails,
+            @AuthenticationPrincipal UserDetails userDetails,
             @RequestBody UpdateDataRequest request) {
         com.budgetbuddy.model.dynamodb.UserTable user = userService.findByEmail(userDetails.getUsername())
                 .orElseThrow(() -> new RuntimeException("User not found"));
@@ -103,7 +103,7 @@ public class ComplianceController {
      */
     @GetMapping(value = "/dma/export", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<String> exportDataDMA(
-            @AuthenticatedPrincipal UserDetails userDetails,
+            @AuthenticationPrincipal UserDetails userDetails,
             @RequestParam(defaultValue = "JSON") String format) {
         com.budgetbuddy.model.dynamodb.UserTable user = userService.findByEmail(userDetails.getUsername())
                 .orElseThrow(() -> new RuntimeException("User not found"));

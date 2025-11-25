@@ -1,12 +1,8 @@
 package com.budgetbuddy.model;
 
-import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
-import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.annotation.LastModifiedDate;
-import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
 import java.util.HashSet;
@@ -14,71 +10,44 @@ import java.util.Set;
 
 /**
  * User entity representing an application user
+ * Note: This is a domain model. For DynamoDB persistence, use UserTable.
  */
-@Entity
-@Table(name = "users", indexes = {
-    @Index(name = "idx_user_email", columnList = "email"),
-    @Index(name = "idx_user_created", columnList = "created_at")
-})
-@EntityListeners(AuditingEntityListener.class)
 public class User {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @NotBlank
     @Email
-    @Column(unique = true, nullable = false, length = 255)
     private String email;
 
     @NotBlank
     @Size(min = 8, max = 255)
-    @Column(nullable = false)
     private String password; // Hashed password
 
-    @Column(length = 100)
     private String firstName;
 
-    @Column(length = 100)
     private String lastName;
 
-    @Column(length = 20)
     private String phoneNumber;
 
-    @Column(nullable = false)
     private Boolean enabled = true;
 
-    @Column(nullable = false)
     private Boolean emailVerified = false;
 
-    @Column(nullable = false)
     private Boolean twoFactorEnabled = false;
 
-    @Column(length = 50)
     private String preferredCurrency = "USD";
 
-    @Column(length = 10)
     private String timezone = "UTC";
 
-    @ElementCollection(fetch = FetchType.EAGER)
-    @CollectionTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"))
-    @Column(name = "role")
-    @Enumerated(EnumType.STRING)
     private Set<Role> roles = new HashSet<>();
 
-    @CreatedDate
-    @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    @LastModifiedDate
-    @Column(nullable = false)
     private LocalDateTime updatedAt;
 
-    @Column
     private LocalDateTime lastLoginAt;
 
-    @Column
     private LocalDateTime passwordChangedAt;
 
     // Constructors

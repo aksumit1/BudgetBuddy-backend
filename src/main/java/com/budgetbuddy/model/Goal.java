@@ -1,10 +1,6 @@
 package com.budgetbuddy.model;
 
-import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
-import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.annotation.LastModifiedDate;
-import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -12,58 +8,35 @@ import java.time.LocalDateTime;
 
 /**
  * Goal entity representing a financial goal
+ * Note: This is a domain model. For DynamoDB persistence, use GoalTable.
  */
-@Entity
-@Table(name = "goals", indexes = {
-    @Index(name = "idx_goal_user", columnList = "user_id"),
-    @Index(name = "idx_goal_target_date", columnList = "target_date")
-})
-@EntityListeners(AuditingEntityListener.class)
 public class Goal {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @NotNull
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @Column(nullable = false, length = 255)
     private String name;
 
-    @Column(length = 1000)
     private String description;
 
-    @Column(nullable = false, precision = 19, scale = 2)
     private BigDecimal targetAmount;
 
-    @Column(nullable = false, precision = 19, scale = 2)
     private BigDecimal currentAmount = BigDecimal.ZERO;
 
-    @Column(nullable = false)
     private LocalDate targetDate;
 
-    @Column(precision = 19, scale = 2)
     private BigDecimal monthlyContribution;
 
-    @Column(length = 50)
-    @Enumerated(EnumType.STRING)
     private GoalType goalType;
 
-    @Column(length = 3)
     private String currencyCode = "USD";
 
-    @Column(nullable = false)
     private Boolean active = true;
 
-    @CreatedDate
-    @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    @LastModifiedDate
-    @Column(nullable = false)
     private LocalDateTime updatedAt;
 
     // Constructors

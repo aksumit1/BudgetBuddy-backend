@@ -6,7 +6,7 @@ import com.budgetbuddy.aws.cloudwatch.CloudWatchService;
 import com.budgetbuddy.aws.codepipeline.CodePipelineService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticatedPrincipal;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
@@ -42,7 +42,7 @@ public class AWSMonitoringController {
      */
     @GetMapping("/cloudwatch/metrics")
     public ResponseEntity<Map<String, Object>> getCloudWatchMetrics(
-            @AuthenticatedPrincipal UserDetails userDetails,
+            @AuthenticationPrincipal UserDetails userDetails,
             @RequestParam String metricName,
             @RequestParam Instant startTime,
             @RequestParam Instant endTime) {
@@ -62,7 +62,7 @@ public class AWSMonitoringController {
      */
     @GetMapping("/cloudtrail/events")
     public ResponseEntity<List<software.amazon.awssdk.services.cloudtrail.model.Event>> getCloudTrailEvents(
-            @AuthenticatedPrincipal UserDetails userDetails,
+            @AuthenticationPrincipal UserDetails userDetails,
             @RequestParam(required = false) String userId,
             @RequestParam Instant startTime,
             @RequestParam Instant endTime) {
@@ -84,7 +84,7 @@ public class AWSMonitoringController {
      */
     @GetMapping("/cloudformation/stacks")
     public ResponseEntity<List<software.amazon.awssdk.services.cloudformation.model.StackSummary>> getCloudFormationStacks(
-            @AuthenticatedPrincipal UserDetails userDetails) {
+            @AuthenticationPrincipal UserDetails userDetails) {
         com.budgetbuddy.model.dynamodb.UserTable user = userService.findByEmail(userDetails.getUsername())
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
@@ -102,7 +102,7 @@ public class AWSMonitoringController {
      */
     @GetMapping("/codepipeline/status")
     public ResponseEntity<Map<String, String>> getCodePipelineStatus(
-            @AuthenticatedPrincipal UserDetails userDetails,
+            @AuthenticationPrincipal UserDetails userDetails,
             @RequestParam String pipelineName) {
         com.budgetbuddy.model.dynamodb.UserTable user = userService.findByEmail(userDetails.getUsername())
                 .orElseThrow(() -> new RuntimeException("User not found"));

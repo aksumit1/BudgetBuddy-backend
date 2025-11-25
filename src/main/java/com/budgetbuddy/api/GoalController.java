@@ -10,7 +10,7 @@ import jakarta.validation.Valid;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticatedPrincipal;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
@@ -37,7 +37,7 @@ public class GoalController {
     }
 
     @GetMapping
-    public ResponseEntity<List<GoalTable>> getGoals(@AuthenticatedPrincipal UserDetails userDetails) {
+    public ResponseEntity<List<GoalTable>> getGoals(@AuthenticationPrincipal UserDetails userDetails) {
         if (userDetails == null || userDetails.getUsername() == null) {
             throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
         }
@@ -51,7 +51,7 @@ public class GoalController {
 
     @PostMapping
     public ResponseEntity<GoalTable> createGoal(
-            @AuthenticatedPrincipal UserDetails userDetails,
+            @AuthenticationPrincipal UserDetails userDetails,
             @Valid @RequestBody CreateGoalRequest request) {
         if (userDetails == null || userDetails.getUsername() == null) {
             throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
@@ -94,7 +94,7 @@ public class GoalController {
 
     @PutMapping("/{id}/progress")
     public ResponseEntity<GoalTable> updateProgress(
-            @AuthenticatedPrincipal UserDetails userDetails,
+            @AuthenticationPrincipal UserDetails userDetails,
             @PathVariable String id,
             @RequestBody UpdateProgressRequest request) {
         if (userDetails == null || userDetails.getUsername() == null) {
@@ -118,7 +118,7 @@ public class GoalController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteGoal(
-            @AuthenticatedPrincipal UserDetails userDetails,
+            @AuthenticationPrincipal UserDetails userDetails,
             @PathVariable String id) {
         if (userDetails == null || userDetails.getUsername() == null) {
             throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");

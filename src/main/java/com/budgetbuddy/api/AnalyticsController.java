@@ -5,7 +5,7 @@ import com.budgetbuddy.model.User;
 import com.budgetbuddy.service.UserService;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticatedPrincipal;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
@@ -29,7 +29,7 @@ public class AnalyticsController {
 
     @GetMapping("/spending-summary")
     public ResponseEntity<AnalyticsService.SpendingSummary> getSpendingSummary(
-            @AuthenticatedPrincipal UserDetails userDetails,
+            @AuthenticationPrincipal UserDetails userDetails,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
         User user = userService.findByEmail(userDetails.getUsername())
@@ -41,7 +41,7 @@ public class AnalyticsController {
 
     @GetMapping("/spending-by-category")
     public ResponseEntity<Map<String, java.math.BigDecimal>> getSpendingByCategory(
-            @AuthenticatedPrincipal UserDetails userDetails,
+            @AuthenticationPrincipal UserDetails userDetails,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
         User user = userService.findByEmail(userDetails.getUsername())

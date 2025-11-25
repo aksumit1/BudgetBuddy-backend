@@ -8,7 +8,9 @@ import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable;
 import software.amazon.awssdk.enhanced.dynamodb.Key;
 import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
 import software.amazon.awssdk.enhanced.dynamodb.model.QueryConditional;
+import software.amazon.awssdk.core.pagination.sync.SdkIterable;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -38,10 +40,15 @@ public class BudgetRepository {
     }
 
     public List<BudgetTable> findByUserId(String userId) {
-        return userIdIndex.query(QueryConditional.keyEqualTo(Key.builder().partitionValue(userId).build()))
-                .items()
-                .stream()
-                .collect(Collectors.toList());
+        List<BudgetTable> results = new ArrayList<>();
+        SdkIterable<software.amazon.awssdk.enhanced.dynamodb.model.Page<BudgetTable>> pages = 
+                userIdIndex.query(QueryConditional.keyEqualTo(Key.builder().partitionValue(userId).build()));
+        for (software.amazon.awssdk.enhanced.dynamodb.model.Page<BudgetTable> page : pages) {
+            for (BudgetTable item : page.items()) {
+                results.add(item);
+            }
+        }
+        return results;
     }
 
     public Optional<BudgetTable> findByUserIdAndCategory(String userId, String category) {

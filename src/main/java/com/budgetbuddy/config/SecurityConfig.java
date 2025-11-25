@@ -1,6 +1,7 @@
 package com.budgetbuddy.config;
 
 import com.budgetbuddy.security.oauth2.OAuth2Config;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,7 +36,7 @@ public class SecurityConfig {
     private static final Logger logger = LoggerFactory.getLogger(SecurityConfig.class);
 
     @Autowired(required = false)
-    private OAuth2Config.JwtDecoder jwtDecoder;
+    private JwtDecoder jwtDecoder;
 
     @Value("${app.security.jwt.enabled:true}")
     private boolean jwtEnabled;

@@ -6,10 +6,14 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import software.amazon.awssdk.services.cloudwatch.CloudWatchClient;
-import software.amazon.awssdk.services.cloudwatch.model.*;
+import software.amazon.awssdk.services.cloudwatch.model.Dimension;
+import software.amazon.awssdk.services.cloudwatch.model.MetricDatum;
+import software.amazon.awssdk.services.cloudwatch.model.PutMetricDataRequest;
+import software.amazon.awssdk.services.cloudwatch.model.StandardUnit;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 
 /**
  * SOC 2 Type II Compliance Service
@@ -96,9 +100,9 @@ public class SOC2ComplianceService {
 
     /**
      * CC5.1 - Control Activities
-     * Log control activities
+     * Log control activities with status
      */
-    public void logControlActivity(String controlId, String status, String details) {
+    public void logControlActivityWithStatus(String controlId, String status, String details) {
         auditLogService.logControlActivity(controlId, status, details);
         putMetric("ControlActivity", status.equals("PASS") ? 1.0 : 0.0, Map.of("ControlId", controlId));
     }

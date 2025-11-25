@@ -8,6 +8,7 @@ import software.amazon.awssdk.enhanced.dynamodb.Key;
 import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
 import software.amazon.awssdk.enhanced.dynamodb.model.QueryConditional;
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
+import software.amazon.awssdk.core.pagination.sync.SdkIterable;
 
 import java.util.Optional;
 
@@ -37,12 +38,14 @@ public class UserRepository {
 
     public Optional<UserTable> findByEmail(String email) {
         // Query GSI for email lookup
-        var result = userTable.index(EMAIL_INDEX)
-                .query(QueryConditional.keyEqualTo(Key.builder().partitionValue(email).build()))
-                .items()
-                .stream()
-                .findFirst();
-        return result;
+        SdkIterable<software.amazon.awssdk.enhanced.dynamodb.model.Page<UserTable>> pages = 
+                userTable.index(EMAIL_INDEX).query(QueryConditional.keyEqualTo(Key.builder().partitionValue(email).build()));
+        for (software.amazon.awssdk.enhanced.dynamodb.model.Page<UserTable> page : pages) {
+            for (UserTable item : page.items()) {
+                return Optional.of(item);
+            }
+        }
+        return Optional.empty();
     }
 
     public boolean existsByEmail(String email) {
