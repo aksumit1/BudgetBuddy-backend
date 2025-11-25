@@ -99,7 +99,7 @@ public class SecurityConfig {
                 .httpStrictTransportSecurity(hsts -> hsts
                     .maxAgeInSeconds(31536000)) // 1 year, includeSubdomains and preload are default
                 .frameOptions(frame -> frame.deny())
-                .contentTypeOptions(contentType -> contentType.disable())
+                .contentTypeOptions(contentType -> {}) // Enable X-Content-Type-Options: nosniff (default behavior)
                 .xssProtection(xss -> xss
                     .headerValue(org.springframework.security.web.header.writers.XXssProtectionHeaderWriter.HeaderValue.ENABLED_MODE_BLOCK))
                 .contentSecurityPolicy(csp -> csp
