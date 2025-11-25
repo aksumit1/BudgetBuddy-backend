@@ -98,7 +98,7 @@ class AppConfigIntegrationTest {
         appConfigIntegration.cleanup();
 
         // Then - Should not throw exception
-        assertDoesNotThrow(() -> appConfigIntegration.cleanup());
+        assertDoesNotThrow() -> appConfigIntegration.cleanup());
     }
 }
 

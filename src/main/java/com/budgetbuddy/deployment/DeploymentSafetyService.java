@@ -58,7 +58,7 @@ public class DeploymentSafetyService {
     /**
      * Validate deployment health
      */
-    public DeploymentValidationResult validateDeployment((final String baseUrl) {
+    public DeploymentValidationResult validateDeployment(final String baseUrl) {
         if (baseUrl == null || baseUrl.isEmpty()) {
             logger.error("Base URL is null or empty");
             DeploymentValidationResult result = new DeploymentValidationResult();
@@ -113,7 +113,7 @@ public class DeploymentSafetyService {
     /**
      * Perform health check
      */
-    private boolean performHealthCheck((final String baseUrl) {
+    private boolean performHealthCheck(final String baseUrl) {
         try {
             String healthUrl = baseUrl + "/actuator/health";
             ResponseEntity<String> response = restTemplate.getForEntity(healthUrl, String.class);
@@ -133,7 +133,7 @@ public class DeploymentSafetyService {
     /**
      * Run smoke tests
      */
-    public SmokeTestResult runSmokeTests((final String baseUrl) {
+    public SmokeTestResult runSmokeTests(final String baseUrl) {
         if (baseUrl == null || baseUrl.isEmpty()) {
             logger.error("Base URL is null or empty for smoke tests");
             SmokeTestResult result = new SmokeTestResult();
@@ -194,7 +194,7 @@ public class DeploymentSafetyService {
     /**
      * Validate deployment readiness
      */
-    public boolean isDeploymentReady((final String baseUrl) {
+    public boolean isDeploymentReady(final String baseUrl) {
         if (baseUrl == null || baseUrl.isEmpty()) {
             logger.error("Base URL is null or empty");
             return false;

@@ -27,7 +27,7 @@ public class CodePipelineService {
     /**
      * Get pipeline status
      */
-    public String getPipelineStatus((final String pipelineName) {
+    public String getPipelineStatus(final String pipelineName) {
         try {
             GetPipelineStateResponse response = codePipelineClient.getPipelineState(
                     GetPipelineStateRequest.builder()
@@ -82,7 +82,7 @@ public class CodePipelineService {
     /**
      * Start pipeline execution
      */
-    public String startPipelineExecution((final String pipelineName) {
+    public String startPipelineExecution(final String pipelineName) {
         try {
             StartPipelineExecutionResponse response = codePipelineClient.startPipelineExecution(
                     StartPipelineExecutionRequest.builder()

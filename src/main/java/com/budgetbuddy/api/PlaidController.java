@@ -70,7 +70,7 @@ public class PlaidController {
         }
 
         UserTable user = userService.findByEmail(userDetails.getUsername())
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                .orElseThrow() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
 
         try {
             var response = plaidService.createLinkToken(user.getUserId(), "BudgetBuddy");
@@ -116,7 +116,7 @@ public class PlaidController {
         }
 
         UserTable user = userService.findByEmail(userDetails.getUsername())
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                .orElseThrow() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
 
         try {
             var response = plaidService.exchangePublicToken(request.getPublicToken());
@@ -162,7 +162,7 @@ public class PlaidController {
         }
 
         UserTable user = userService.findByEmail(userDetails.getUsername())
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                .orElseThrow() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
 
         try {
             var response = plaidService.getAccounts(accessToken);
@@ -205,7 +205,7 @@ public class PlaidController {
         }
 
         UserTable user = userService.findByEmail(userDetails.getUsername())
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                .orElseThrow() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
 
         try {
             plaidSyncService.syncAccounts(user, request.getAccessToken());
@@ -254,7 +254,7 @@ public class PlaidController {
         private Object item;
 
         public java.util.List<Object> getAccounts() { return accounts; }
-        public void setAccounts((final java.util.List<Object> accounts) { this.accounts = accounts; }
+        public void setAccounts(final java.util.List<Object> accounts) { this.accounts = accounts; }
         public Object getItem() { return item; }
         public void setItem(final Object item) { this.item = item; }
     }

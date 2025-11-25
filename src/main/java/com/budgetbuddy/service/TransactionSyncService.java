@@ -205,7 +205,7 @@ public class TransactionSyncService {
     /**
      * Extract Plaid transaction ID from Plaid transaction object
      */
-    private String extractPlaidTransactionId((final Object plaidTransaction) {
+    private String extractPlaidTransactionId(final Object plaidTransaction) {
         // In production, properly extract transaction ID from Plaid transaction object
         // This is a placeholder - actual implementation depends on Plaid SDK structure
         try {
@@ -220,7 +220,7 @@ public class TransactionSyncService {
     /**
      * Create TransactionTable from Plaid transaction
      */
-    private TransactionTable createTransactionFromPlaid((final String userId, final Object plaidTransaction) {
+    private TransactionTable createTransactionFromPlaid(final String userId, final Object plaidTransaction) {
         TransactionTable transaction = new TransactionTable();
         transaction.setTransactionId(java.util.UUID.randomUUID().toString());
         transaction.setUserId(userId);
@@ -234,7 +234,7 @@ public class TransactionSyncService {
     /**
      * Update TransactionTable from Plaid transaction
      */
-    private void updateTransactionFromPlaid((final TransactionTable transaction, final Object plaidTransaction) {
+    private void updateTransactionFromPlaid(final TransactionTable transaction, final Object plaidTransaction) {
         // Update transaction fields from Plaid
         // In production, properly map all fields from Plaid transaction
         transaction.setUpdatedAt(java.time.Instant.now());

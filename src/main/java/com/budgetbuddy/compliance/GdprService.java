@@ -54,9 +54,9 @@ public class GdprService {
      *
      * TODO: Refactor for DynamoDB - needs conversion from domain models to table models
      */
-    public String exportUserData((final String userId) {
+    public String exportUserData(final String userId) {
         var userTable = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+                .orElseThrow() -> new IllegalArgumentException("User not found"));
 
         try {
             // Collect all user data using DynamoDB repositories
@@ -105,7 +105,7 @@ public class GdprService {
      *
      * TODO: Refactor for DynamoDB
      */
-    public void deleteUserData((final String userId) {
+    public void deleteUserData(final String userId) {
         try {
             // Archive data before deletion
             String archiveUrl = exportUserData(userId);
@@ -144,7 +144,7 @@ public class GdprService {
     }
 
     // Helper methods to convert table models to domain models (stubs for now)
-    private User convertUserTable((final com.budgetbuddy.model.dynamodb.UserTable userTable) {
+    private User convertUserTable(final com.budgetbuddy.model.dynamodb.UserTable userTable) {
         // TODO: Implement conversion
         return new User();
     }
@@ -169,7 +169,7 @@ public class GdprService {
         return new com.budgetbuddy.model.Goal();
     }
 
-    private AuditLog convertAuditLogTable((final com.budgetbuddy.compliance.AuditLogTable auditLogTable) {
+    private AuditLog convertAuditLogTable(final com.budgetbuddy.compliance.AuditLogTable auditLogTable) {
         // TODO: Implement conversion
         return new AuditLog();
     }
@@ -201,15 +201,15 @@ public class GdprService {
         public User getUser() { return user; }
         public void setUser(final User user) { this.user = user; }
         public java.util.List<com.budgetbuddy.model.Account> getAccounts() { return accounts; }
-        public void setAccounts((final java.util.List<com.budgetbuddy.model.Account> accounts) { this.accounts = accounts; }
+        public void setAccounts(final java.util.List<com.budgetbuddy.model.Account> accounts) { this.accounts = accounts; }
         public java.util.List<com.budgetbuddy.model.Transaction> getTransactions() { return transactions; }
-        public void setTransactions((final java.util.List<com.budgetbuddy.model.Transaction> transactions) { this.transactions = transactions; }
+        public void setTransactions(final java.util.List<com.budgetbuddy.model.Transaction> transactions) { this.transactions = transactions; }
         public java.util.List<com.budgetbuddy.model.Budget> getBudgets() { return budgets; }
-        public void setBudgets((final java.util.List<com.budgetbuddy.model.Budget> budgets) { this.budgets = budgets; }
+        public void setBudgets(final java.util.List<com.budgetbuddy.model.Budget> budgets) { this.budgets = budgets; }
         public java.util.List<com.budgetbuddy.model.Goal> getGoals() { return goals; }
-        public void setGoals((final java.util.List<com.budgetbuddy.model.Goal> goals) { this.goals = goals; }
+        public void setGoals(final java.util.List<com.budgetbuddy.model.Goal> goals) { this.goals = goals; }
         public java.util.List<AuditLog> getAuditLogs() { return auditLogs; }
-        public void setAuditLogs((final java.util.List<AuditLog> auditLogs) { this.auditLogs = auditLogs; }
+        public void setAuditLogs(final java.util.List<AuditLog> auditLogs) { this.auditLogs = auditLogs; }
     }
 }
 

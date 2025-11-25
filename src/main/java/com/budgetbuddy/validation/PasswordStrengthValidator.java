@@ -26,12 +26,12 @@ public class PasswordStrengthValidator implements ConstraintValidator<StrongPass
     private static final int MAX_PASSWORD_LENGTH = 128;
 
     @Override
-    public void initialize((final StrongPassword constraintAnnotation) {
+    public void initialize(final StrongPassword constraintAnnotation) {
         // No initialization needed
     }
 
     @Override
-    public boolean isValid((final String password, final ConstraintValidatorContext context) {
+    public boolean isValid(final String password, final ConstraintValidatorContext context) {
         if (password == null || password.isEmpty()) {
             return false;
         }

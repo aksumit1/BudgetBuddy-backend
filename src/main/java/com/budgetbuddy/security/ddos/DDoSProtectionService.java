@@ -52,7 +52,7 @@ public class DDoSProtectionService {
      * Check if IP is allowed to make requests
      * Thread-safe implementation
      */
-    public boolean isAllowed((final String ipAddress) {
+    public boolean isAllowed(final String ipAddress) {
         if (ipAddress == null || ipAddress.isEmpty()) {
             logger.warn("IP address is null or empty");
             return false;
@@ -104,7 +104,7 @@ public class DDoSProtectionService {
     /**
      * Record a request for monitoring and analysis
      */
-    public void recordRequest((final String ipAddress, final String userId) {
+    public void recordRequest(final String ipAddress, final String userId) {
         if (ipAddress == null || ipAddress.isEmpty()) {
             return;
         }
@@ -182,7 +182,7 @@ public class DDoSProtectionService {
         }
     }
 
-    private boolean isBlockedInDynamoDB((final String ipAddress) {
+    private boolean isBlockedInDynamoDB(final String ipAddress) {
         if (ipAddress == null || ipAddress.isEmpty()) {
             return false;
         }
@@ -210,7 +210,7 @@ public class DDoSProtectionService {
         return false;
     }
 
-    private void blockIpInDynamoDB((final String ipAddress) {
+    private void blockIpInDynamoDB(final String ipAddress) {
         if (ipAddress == null || ipAddress.isEmpty()) {
             return;
         }
@@ -235,9 +235,9 @@ public class DDoSProtectionService {
     /**
      * Async block IP to avoid blocking the request thread
      */
-    private void blockIpInDynamoDBAsync((final String ipAddress) {
+    private void blockIpInDynamoDBAsync(final String ipAddress) {
         // Use a separate thread to avoid blocking
-        new Thread(() -> blockIpInDynamoDB(ipAddress), "ddos-block-async").start();
+        new Thread() -> blockIpInDynamoDB(ipAddress), "ddos-block-async").start();
     }
 
     /**

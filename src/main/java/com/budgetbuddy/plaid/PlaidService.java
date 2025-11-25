@@ -69,7 +69,7 @@ public class PlaidService {
      */
     @CircuitBreaker(name = "plaid")
     @Retry(name = "plaid")
-    public LinkTokenCreateResponse createLinkToken((final String userId, final String clientName) {
+    public LinkTokenCreateResponse createLinkToken(final String userId, final String clientName) {
         if (userId == null || userId.isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "User ID cannot be null or empty");
         }
@@ -110,7 +110,7 @@ public class PlaidService {
      */
     @CircuitBreaker(name = "plaid")
     @Retry(name = "plaid")
-    public ItemPublicTokenExchangeResponse exchangePublicToken((final String publicToken) {
+    public ItemPublicTokenExchangeResponse exchangePublicToken(final String publicToken) {
         if (publicToken == null || publicToken.isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Public token cannot be null or empty");
         }
@@ -142,7 +142,7 @@ public class PlaidService {
      */
     @CircuitBreaker(name = "plaid")
     @Retry(name = "plaid")
-    public AccountsGetResponse getAccounts((final String accessToken) {
+    public AccountsGetResponse getAccounts(final String accessToken) {
         if (accessToken == null || accessToken.isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Access token cannot be null or empty");
         }
@@ -175,7 +175,7 @@ public class PlaidService {
      */
     @CircuitBreaker(name = "plaid")
     @Retry(name = "plaid")
-    public TransactionsGetResponse getTransactions((final String accessToken, final String startDate, final String endDate) {
+    public TransactionsGetResponse getTransactions(final String accessToken, final String startDate, final String endDate) {
         if (accessToken == null || accessToken.isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Access token cannot be null or empty");
         }
@@ -220,7 +220,7 @@ public class PlaidService {
      */
     @CircuitBreaker(name = "plaid")
     @Retry(name = "plaid")
-    public InstitutionsGetResponse getInstitutions((final String query, final int count) {
+    public InstitutionsGetResponse getInstitutions(final String query, final int count) {
         if (query == null || query.isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Query cannot be null or empty");
         }
@@ -275,7 +275,7 @@ public class PlaidService {
      */
     @CircuitBreaker(name = "plaid")
     @Retry(name = "plaid")
-    public ItemRemoveResponse removeItem((final String accessToken) {
+    public ItemRemoveResponse removeItem(final String accessToken) {
         if (accessToken == null || accessToken.isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Access token cannot be null or empty");
         }

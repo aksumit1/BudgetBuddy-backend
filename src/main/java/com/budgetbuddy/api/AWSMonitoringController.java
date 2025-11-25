@@ -47,7 +47,7 @@ public class AWSMonitoringController {
             @RequestParam Instant startTime,
             @RequestParam Instant endTime) {
         com.budgetbuddy.model.dynamodb.UserTable user = userService.findByEmail(userDetails.getUsername())
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow() -> new RuntimeException("User not found"));
 
         if (!hasMonitoringAccess(user)) {
             return ResponseEntity.status(403).build();
@@ -67,7 +67,7 @@ public class AWSMonitoringController {
             @RequestParam Instant startTime,
             @RequestParam Instant endTime) {
         com.budgetbuddy.model.dynamodb.UserTable user = userService.findByEmail(userDetails.getUsername())
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow() -> new RuntimeException("User not found"));
 
         if (!hasMonitoringAccess(user)) {
             return ResponseEntity.status(403).build();
@@ -86,7 +86,7 @@ public class AWSMonitoringController {
     public ResponseEntity<List<software.amazon.awssdk.services.cloudformation.model.StackSummary>> getCloudFormationStacks(
             @AuthenticationPrincipal UserDetails userDetails) {
         com.budgetbuddy.model.dynamodb.UserTable user = userService.findByEmail(userDetails.getUsername())
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow() -> new RuntimeException("User not found"));
 
         if (!hasMonitoringAccess(user)) {
             return ResponseEntity.status(403).build();
@@ -105,7 +105,7 @@ public class AWSMonitoringController {
             @AuthenticationPrincipal UserDetails userDetails,
             @RequestParam String pipelineName) {
         com.budgetbuddy.model.dynamodb.UserTable user = userService.findByEmail(userDetails.getUsername())
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow() -> new RuntimeException("User not found"));
 
         if (!hasMonitoringAccess(user)) {
             return ResponseEntity.status(403).build();
@@ -115,7 +115,7 @@ public class AWSMonitoringController {
         return ResponseEntity.ok(Map.of("pipelineName", pipelineName, "status", status));
     }
 
-    private boolean hasMonitoringAccess((final com.budgetbuddy.model.dynamodb.UserTable user) {
+    private boolean hasMonitoringAccess(final com.budgetbuddy.model.dynamodb.UserTable user) {
         return user.getRoles() != null &&
                (user.getRoles().contains("ADMIN") || user.getRoles().contains("MONITORING"));
     }

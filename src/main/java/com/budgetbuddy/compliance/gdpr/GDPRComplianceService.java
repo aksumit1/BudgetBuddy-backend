@@ -55,7 +55,7 @@ public class GDPRComplianceService {
      * Article 15: Right to access
      * Provide user with all their personal data
      */
-    public GDPRDataExport exportUserData((final String userId) {
+    public GDPRDataExport exportUserData(final String userId) {
         logger.info("GDPR: Exporting data for user: {}", userId);
 
         GDPRDataExport export = new GDPRDataExport();
@@ -100,7 +100,7 @@ public class GDPRComplianceService {
      * Article 17: Right to erasure / Right to be forgotten
      * Delete all user data
      */
-    public void deleteUserData((final String userId) {
+    public void deleteUserData(final String userId) {
         logger.info("GDPR: Deleting all data for user: {}", userId);
 
         // Delete transactions
@@ -144,7 +144,7 @@ public class GDPRComplianceService {
      * Article 20: Right to data portability
      * Export user data in machine-readable format (JSON)
      */
-    public String exportDataPortable((final String userId) {
+    public String exportDataPortable(final String userId) {
         GDPRDataExport export = exportUserData(userId);
 
         // Convert to JSON
@@ -161,7 +161,7 @@ public class GDPRComplianceService {
      * Article 16: Right to rectification
      * Update user data
      */
-    public void updateUserData((final String userId, final UserTable updatedData) {
+    public void updateUserData(final String userId, final UserTable updatedData) {
         logger.info("GDPR: Updating data for user: {}", userId);
 
         userRepository.findById(userId).ifPresent(user -> {
@@ -186,7 +186,7 @@ public class GDPRComplianceService {
         });
     }
 
-    private void deleteFromS3((final String userId, final String accountId) {
+    private void deleteFromS3(final String userId, final String accountId) {
         try {
             String key = "users/" + userId + "/accounts/" + accountId + "/";
             // List and delete all objects with this prefix
@@ -221,15 +221,15 @@ public class GDPRComplianceService {
         public UserTable getUserData() { return userData; }
         public void setUserData(final UserTable userData) { this.userData = userData; }
         public List<com.budgetbuddy.model.dynamodb.TransactionTable> getTransactions() { return transactions; }
-        public void setTransactions((final List<com.budgetbuddy.model.dynamodb.TransactionTable> transactions) { this.transactions = transactions; }
+        public void setTransactions(final List<com.budgetbuddy.model.dynamodb.TransactionTable> transactions) { this.transactions = transactions; }
         public List<com.budgetbuddy.model.dynamodb.AccountTable> getAccounts() { return accounts; }
-        public void setAccounts((final List<com.budgetbuddy.model.dynamodb.AccountTable> accounts) { this.accounts = accounts; }
+        public void setAccounts(final List<com.budgetbuddy.model.dynamodb.AccountTable> accounts) { this.accounts = accounts; }
         public List<com.budgetbuddy.model.dynamodb.BudgetTable> getBudgets() { return budgets; }
-        public void setBudgets((final List<com.budgetbuddy.model.dynamodb.BudgetTable> budgets) { this.budgets = budgets; }
+        public void setBudgets(final List<com.budgetbuddy.model.dynamodb.BudgetTable> budgets) { this.budgets = budgets; }
         public List<com.budgetbuddy.model.dynamodb.GoalTable> getGoals() { return goals; }
-        public void setGoals((final List<com.budgetbuddy.model.dynamodb.GoalTable> goals) { this.goals = goals; }
+        public void setGoals(final List<com.budgetbuddy.model.dynamodb.GoalTable> goals) { this.goals = goals; }
         public List<com.budgetbuddy.compliance.AuditLogTable> getAuditLogs() { return auditLogs; }
-        public void setAuditLogs((final List<com.budgetbuddy.compliance.AuditLogTable> auditLogs) { this.auditLogs = auditLogs; }
+        public void setAuditLogs(final List<com.budgetbuddy.compliance.AuditLogTable> auditLogs) { this.auditLogs = auditLogs; }
     }
 }
 

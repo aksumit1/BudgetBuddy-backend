@@ -27,7 +27,7 @@ public class UserRepository {
         this.userTable = enhancedClient.table(TABLE_NAME, TableSchema.fromBean(UserTable.class));
     }
 
-    public void save((final UserTable user) {
+    public void save(final UserTable user) {
         userTable.putItem(user);
     }
 
@@ -48,11 +48,11 @@ public class UserRepository {
         return Optional.empty();
     }
 
-    public boolean existsByEmail((final String email) {
+    public boolean existsByEmail(final String email) {
         return findByEmail(email).isPresent();
     }
 
-    public void delete((final String userId) {
+    public void delete(final String userId) {
         userTable.deleteItem(Key.builder().partitionValue(userId).build());
     }
 }

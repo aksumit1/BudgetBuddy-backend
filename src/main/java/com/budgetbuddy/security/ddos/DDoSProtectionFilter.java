@@ -47,7 +47,7 @@ public class DDoSProtectionFilter extends OncePerRequestFilter {
     }
 
     @Override
-    protected void doFilterInternal((final HttpServletRequest request, final HttpServletResponse response, final FilterChain filterChain) throws ServletException, IOException {
+    protected void doFilterInternal(final HttpServletRequest request, final HttpServletResponse response, final FilterChain filterChain) throws ServletException, IOException {
 
         String clientIp = getClientIpAddress(request);
         String userId = getUserIdFromRequest(request);
@@ -103,7 +103,7 @@ public class DDoSProtectionFilter extends OncePerRequestFilter {
      * Extract client IP address from request
      * Handles X-Forwarded-For with multiple IPs safely
      */
-    private String getClientIpAddress((final HttpServletRequest request) {
+    private String getClientIpAddress(final HttpServletRequest request) {
         if (request == null) {
             return null;
         }
@@ -129,7 +129,7 @@ public class DDoSProtectionFilter extends OncePerRequestFilter {
         return ip != null && !ip.isEmpty() ? ip : request.getRemoteAddr();
     }
 
-    private String getUserIdFromRequest((final HttpServletRequest request) {
+    private String getUserIdFromRequest(final HttpServletRequest request) {
         if (request == null) {
             return null;
         }
@@ -148,7 +148,7 @@ public class DDoSProtectionFilter extends OncePerRequestFilter {
      * Calculate total header size
      * Thread-safe and handles null values
      */
-    private int getTotalHeaderSize((final HttpServletRequest request) {
+    private int getTotalHeaderSize(final HttpServletRequest request) {
         if (request == null) {
             return 0;
         }

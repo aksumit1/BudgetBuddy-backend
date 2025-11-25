@@ -20,7 +20,7 @@ public class ApiVersioningInterceptor implements HandlerInterceptor {
     private String apiBaseUrl;
 
     @Override
-    public boolean preHandle((final HttpServletRequest request, final HttpServletResponse response, final Object handler) {
+    public boolean preHandle(final HttpServletRequest request, final HttpServletResponse response, final Object handler) {
         // Add API version header
         response.setHeader("X-API-Version", apiVersion);
 

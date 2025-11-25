@@ -21,12 +21,12 @@ public class EmailValidator implements ConstraintValidator<ValidEmail, String> {
     private static final int MAX_EMAIL_LENGTH = 254; // RFC 5321 limit
 
     @Override
-    public void initialize((final ValidEmail constraintAnnotation) {
+    public void initialize(final ValidEmail constraintAnnotation) {
         // No initialization needed
     }
 
     @Override
-    public boolean isValid((final String email, final ConstraintValidatorContext context) {
+    public boolean isValid(final String email, final ConstraintValidatorContext context) {
         if (email == null || email.isEmpty()) {
             return false;
         }

@@ -100,7 +100,7 @@ public class TransactionService {
      * Calculate total spending in date range (aggregated query to minimize data transfer)
      * Note: DynamoDB doesn't support aggregation, so we calculate in application
      */
-    public BigDecimal getTotalSpending((final UserTable user, final LocalDate startDate, final LocalDate endDate) {
+    public BigDecimal getTotalSpending(final UserTable user, final LocalDate startDate, final LocalDate endDate) {
         if (user == null || user.getUserId() == null || user.getUserId().isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "User is required");
         }
@@ -119,7 +119,7 @@ public class TransactionService {
     /**
      * Save transaction (from Plaid sync)
      */
-    public TransactionTable saveTransaction((final TransactionTable transaction) {
+    public TransactionTable saveTransaction(final TransactionTable transaction) {
         if (transaction == null) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Transaction cannot be null");
         }
@@ -143,7 +143,7 @@ public class TransactionService {
     /**
      * Create manual transaction
      */
-    public TransactionTable createTransaction((final UserTable user, final String accountId, final BigDecimal amount, final LocalDate transactionDate, final String description, final String category) {
+    public TransactionTable createTransaction(final UserTable user, final String accountId, final BigDecimal amount, final LocalDate transactionDate, final String description, final String category) {
         if (user == null || user.getUserId() == null || user.getUserId().isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "User is required");
         }
@@ -161,7 +161,7 @@ public class TransactionService {
         }
 
         AccountTable account = accountRepository.findById(accountId)
-                .orElseThrow(() -> new AppException(ErrorCode.ACCOUNT_NOT_FOUND, "Account not found"));
+                .orElseThrow() -> new AppException(ErrorCode.ACCOUNT_NOT_FOUND, "Account not found"));
 
         if (account.getUserId() == null || !account.getUserId().equals(user.getUserId())) {
             throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "Account does not belong to user");
@@ -186,7 +186,7 @@ public class TransactionService {
     /**
      * Delete transaction
      */
-    public void deleteTransaction((final UserTable user, final String transactionId) {
+    public void deleteTransaction(final UserTable user, final String transactionId) {
         if (user == null || user.getUserId() == null || user.getUserId().isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "User is required");
         }
@@ -195,7 +195,7 @@ public class TransactionService {
         }
 
         TransactionTable transaction = transactionRepository.findById(transactionId)
-                .orElseThrow(() -> new AppException(ErrorCode.TRANSACTION_NOT_FOUND, "Transaction not found"));
+                .orElseThrow() -> new AppException(ErrorCode.TRANSACTION_NOT_FOUND, "Transaction not found"));
 
         if (transaction.getUserId() == null || !transaction.getUserId().equals(user.getUserId())) {
             throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "Transaction does not belong to user");

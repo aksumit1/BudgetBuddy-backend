@@ -251,7 +251,7 @@ class TransactionServiceTest {
     }
 
     // Helper methods
-    private TransactionTable createTransaction((final String id, final String userId, final BigDecimal amount) {
+    private TransactionTable createTransaction(final String id, final String userId, final BigDecimal amount) {
         TransactionTable transaction = new TransactionTable();
         transaction.setTransactionId(id);
         transaction.setUserId(userId);

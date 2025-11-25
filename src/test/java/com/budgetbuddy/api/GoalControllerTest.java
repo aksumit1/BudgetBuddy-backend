@@ -114,7 +114,7 @@ class GoalControllerTest {
     }
 
     // Helper methods
-    private GoalTable createGoal((final String id) {
+    private GoalTable createGoal(final String id) {
         GoalTable goal = new GoalTable();
         goal.setGoalId(id);
         goal.setUserId("user-123");

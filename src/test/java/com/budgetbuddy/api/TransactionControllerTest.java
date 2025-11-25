@@ -120,7 +120,7 @@ class TransactionControllerTest {
     }
 
     // Helper methods
-    private TransactionTable createTransaction((final String id) {
+    private TransactionTable createTransaction(final String id) {
         TransactionTable transaction = new TransactionTable();
         transaction.setTransactionId(id);
         transaction.setUserId("user-123");

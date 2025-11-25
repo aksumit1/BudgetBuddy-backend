@@ -30,7 +30,7 @@ public class BudgetRepository {
         this.userIdIndex = budgetTable.index("UserIdIndex");
     }
 
-    public void save((final BudgetTable budget) {
+    public void save(final BudgetTable budget) {
         budgetTable.putItem(budget);
     }
 
@@ -57,7 +57,7 @@ public class BudgetRepository {
                 .findFirst();
     }
 
-    public void delete((final String budgetId) {
+    public void delete(final String budgetId) {
         budgetTable.deleteItem(Key.builder().partitionValue(budgetId).build());
     }
 }

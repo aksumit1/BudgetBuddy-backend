@@ -160,7 +160,7 @@ public class UserTable {
         return roles;
     }
 
-    public void setRoles((final Set<String> roles) {
+    public void setRoles(final Set<String> roles) {
         this.roles = roles;
     }
 

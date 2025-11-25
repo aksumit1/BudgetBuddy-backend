@@ -31,7 +31,7 @@ public class CloudWatchService {
     /**
      * Put metric with batching to reduce API calls
      */
-    public void putMetric((final String metricName, final double value, final String unit) {
+    public void putMetric(final String metricName, final double value, final String unit) {
         MetricDatum datum = MetricDatum.builder()
                 .metricName(metricName)
                 .value(value)
@@ -74,7 +74,7 @@ public class CloudWatchService {
     /**
      * Put custom metric with dimensions
      */
-    public void putMetricWithDimensions((final String metricName, final double value, final String unit, final List<Dimension> dimensions) {
+    public void putMetricWithDimensions(final String metricName, final double value, final String unit, final List<Dimension> dimensions) {
         MetricDatum datum = MetricDatum.builder()
                 .metricName(metricName)
                 .value(value)

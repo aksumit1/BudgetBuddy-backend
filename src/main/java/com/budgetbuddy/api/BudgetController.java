@@ -41,7 +41,7 @@ public class BudgetController {
         }
 
         UserTable user = userService.findByEmail(userDetails.getUsername())
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                .orElseThrow() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
 
         List<BudgetTable> budgets = budgetService.getBudgets(user);
         return ResponseEntity.ok(budgets);
@@ -60,7 +60,7 @@ public class BudgetController {
         }
 
         UserTable user = userService.findByEmail(userDetails.getUsername())
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                .orElseThrow() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
 
         if (request.getMonthlyLimit() == null || request.getMonthlyLimit().compareTo(BigDecimal.ZERO) <= 0) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Monthly limit must be positive");
@@ -87,7 +87,7 @@ public class BudgetController {
         }
 
         UserTable user = userService.findByEmail(userDetails.getUsername())
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                .orElseThrow() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
 
         budgetService.deleteBudget(user, id);
         return ResponseEntity.noContent().build();

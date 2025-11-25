@@ -106,6 +106,6 @@ public class OAuth2Controller {
         public String getClientId() { return clientId; }
         public void setClientId(final String clientId) { this.clientId = clientId; }
         public java.util.List<String> getScopes() { return scopes; }
-        public void setScopes((final java.util.List<String> scopes) { this.scopes = scopes; }
+        public void setScopes(final java.util.List<String> scopes) { this.scopes = scopes; }
     }
 }

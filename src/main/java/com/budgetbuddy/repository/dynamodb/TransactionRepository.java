@@ -81,9 +81,9 @@ public class TransactionRepository {
         for (software.amazon.awssdk.enhanced.dynamodb.model.Page<TransactionTable>
                 page : pages) {
             for (TransactionTable item : page.items()) {
-                if (count >= skip) {
+                if (count >= adjustedSkip) {
                     results.add(item);
-                    if (results.size() >= limit) {
+                    if (results.size() >= adjustedLimit) {
                         return results;
                     }
                 }
@@ -144,7 +144,8 @@ public class TransactionRepository {
         return results;
     }
 
-    public Optional<TransactionTable> findByPlaidTransactionId(String plaidTransactionId) {
+    public Optional<TransactionTable> findByPlaidTransactionId(
+            final String plaidTransactionId) {
         if (plaidTransactionId == null || plaidTransactionId.isEmpty()) {
             return Optional.empty();
         }

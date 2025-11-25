@@ -28,7 +28,7 @@ public class SecretsManagerService {
      * Get secret value with caching to reduce API calls
      */
     @Cacheable(value = "secrets", key = "#secretName")
-    public String getSecret((final String secretName) {
+    public String getSecret(final String secretName) {
         try {
             GetSecretValueRequest request = GetSecretValueRequest.builder()
                     .secretId(secretName)

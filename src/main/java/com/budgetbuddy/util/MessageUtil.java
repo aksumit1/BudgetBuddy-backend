@@ -28,14 +28,14 @@ public class MessageUtil {
     /**
      * Get localized message
      */
-    public String getMessage((final String code) {
+    public String getMessage(final String code) {
         return getMessage(code, null);
     }
 
     /**
      * Get localized message with arguments
      */
-    public String getMessage((final String code, final Object[] args) {
+    public String getMessage(final String code, final Object[] args) {
         Locale locale = LocaleContextHolder.getLocale();
         return getMessage(code, args, locale);
     }
@@ -43,7 +43,7 @@ public class MessageUtil {
     /**
      * Get localized message with specific locale
      */
-    public String getMessage((final String code, final Object[] args, final Locale locale) {
+    public String getMessage(final String code, final Object[] args, final Locale locale) {
         try {
             return messageSource.getMessage(code, args, code, locale);
         } catch (Exception e) {
@@ -55,7 +55,7 @@ public class MessageUtil {
     /**
      * Get error message
      */
-    public String getErrorMessage((final String errorCode) {
+    public String getErrorMessage(final String errorCode) {
         String messageKey = "error." + errorCode.toLowerCase().replace("_", ".");
         return getMessage(messageKey);
     }
@@ -63,7 +63,7 @@ public class MessageUtil {
     /**
      * Get success message
      */
-    public String getSuccessMessage((final String successCode) {
+    public String getSuccessMessage(final String successCode) {
         String messageKey = "success." + successCode.toLowerCase().replace("_", ".");
         return getMessage(messageKey);
     }
@@ -71,7 +71,7 @@ public class MessageUtil {
     /**
      * Get validation message
      */
-    public String getValidationMessage((final String validationCode) {
+    public String getValidationMessage(final String validationCode) {
         String messageKey = "validation." + validationCode.toLowerCase().replace("_", ".");
         return getMessage(messageKey);
     }

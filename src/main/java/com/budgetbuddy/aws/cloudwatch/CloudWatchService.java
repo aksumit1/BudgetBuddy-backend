@@ -31,7 +31,7 @@ public class CloudWatchService {
     /**
      * Put custom metric
      */
-    public void putMetric((final String metricName, final double value, Map<String, final String> dimensions) {
+    public void putMetric(final String metricName, final double value, final Map<String, String> dimensions) {
         try {
             List<Dimension> dims = dimensions != null ? dimensions.entrySet().stream()
                     .map(e -> Dimension.builder()
@@ -58,7 +58,7 @@ public class CloudWatchService {
     /**
      * Put metric with unit
      */
-    public void putMetric((final String metricName, final double value, final StandardUnit unit, Map<String, final String> dimensions) {
+    public void putMetric(final String metricName, final double value, final StandardUnit unit, final Map<String, String> dimensions) {
         try {
             List<Dimension> dims = dimensions != null ? dimensions.entrySet().stream()
                     .map(e -> Dimension.builder()
@@ -85,7 +85,7 @@ public class CloudWatchService {
     /**
      * Put log event
      */
-    public void putLogEvent((final String logGroup, final String logStream, final String message) {
+    public void putLogEvent(final String logGroup, final String logStream, final String message) {
         try {
             // Note: CloudWatch Logs requires different API (PutLogEvents)
             // This is a simplified version - in production, use CloudWatch Logs API
@@ -98,7 +98,7 @@ public class CloudWatchService {
     /**
      * Create CloudWatch alarm
      */
-    public void createAlarm((final String alarmName, final String metricName, final double threshold, final String comparisonOperator) {
+    public void createAlarm(final String alarmName, final String metricName, final double threshold, final String comparisonOperator) {
         try {
             cloudWatchClient.putMetricAlarm(PutMetricAlarmRequest.builder()
                     .alarmName(alarmName)
@@ -120,7 +120,7 @@ public class CloudWatchService {
     /**
      * Get metric statistics
      */
-    public GetMetricStatisticsResponse getMetricStatistics((final String metricName, final Instant startTime, final Instant endTime) {
+    public GetMetricStatisticsResponse getMetricStatistics(final String metricName, final Instant startTime, final Instant endTime) {
         try {
             return cloudWatchClient.getMetricStatistics(GetMetricStatisticsRequest.builder()
                     .namespace(namespace)

@@ -50,14 +50,14 @@ public class DistributedLock {
     /**
      * Acquire a distributed lock
      */
-    public LockResult acquireLock((final String lockKey) {
+    public LockResult acquireLock(final String lockKey) {
         return acquireLock(lockKey, DEFAULT_TIMEOUT);
     }
 
     /**
      * Acquire a distributed lock with custom timeout
      */
-    public LockResult acquireLock((final String lockKey, final Duration timeout) {
+    public LockResult acquireLock(final String lockKey, final Duration timeout) {
         if (redisTemplate == null) {
             logger.warn("Redis not available, using local lock (not distributed)");
             return new LockResult(true, UUID.randomUUID().toString());
@@ -91,7 +91,7 @@ public class DistributedLock {
     /**
      * Release a distributed lock atomically
      */
-    public boolean releaseLock((final String lockKey, final String lockValue) {
+    public boolean releaseLock(final String lockKey, final String lockValue) {
         if (redisTemplate == null) {
             logger.debug("Redis not available, skipping lock release");
             return true;

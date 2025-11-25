@@ -24,7 +24,7 @@ public class CorrelationIdFilter extends OncePerRequestFilter {
     private static final String CORRELATION_ID_MDC_KEY = "correlationId";
 
     @Override
-    protected void doFilterInternal((final HttpServletRequest request, final HttpServletResponse response, final FilterChain filterChain) throws ServletException, IOException {
+    protected void doFilterInternal(final HttpServletRequest request, final HttpServletResponse response, final FilterChain filterChain) throws ServletException, IOException {
         String correlationId = request.getHeader(CORRELATION_ID_HEADER);
 
         if (correlationId == null || correlationId.isEmpty()) {

@@ -39,7 +39,7 @@ public class AccountController {
         }
 
         UserTable user = userService.findByEmail(userDetails.getUsername())
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                .orElseThrow() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
 
         if (user.getUserId() == null || user.getUserId().isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "User ID is invalid");
@@ -62,10 +62,10 @@ public class AccountController {
         }
 
         UserTable user = userService.findByEmail(userDetails.getUsername())
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                .orElseThrow() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
 
         AccountTable account = accountRepository.findById(id)
-                .orElseThrow(() -> new AppException(ErrorCode.ACCOUNT_NOT_FOUND, "Account not found"));
+                .orElseThrow() -> new AppException(ErrorCode.ACCOUNT_NOT_FOUND, "Account not found"));
 
         if (account.getUserId() == null || !account.getUserId().equals(user.getUserId())) {
             throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "Access to account denied", null, null, null);

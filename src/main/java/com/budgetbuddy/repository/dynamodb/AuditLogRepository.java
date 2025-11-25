@@ -29,7 +29,7 @@ public class AuditLogRepository {
         this.userIdCreatedAtIndex = auditLogTable.index("UserIdCreatedAtIndex");
     }
 
-    public void save((final AuditLogTable auditLog) {
+    public void save(final AuditLogTable auditLog) {
         auditLogTable.putItem(auditLog);
     }
 

@@ -266,7 +266,7 @@ public class AppConfigIntegration {
     /**
      * Get boolean configuration value
      */
-    public boolean getBooleanConfigValue((final String key, final boolean defaultValue) {
+    public boolean getBooleanConfigValue(final String key, final boolean defaultValue) {
         return getConfigValue(key)
                 .map(s -> {
                     try {
@@ -282,7 +282,7 @@ public class AppConfigIntegration {
     /**
      * Get integer configuration value
      */
-    public int getIntConfigValue((final String key, final int defaultValue) {
+    public int getIntConfigValue(final String key, final int defaultValue) {
         return getConfigValue(key)
                 .map(s -> {
                     try {

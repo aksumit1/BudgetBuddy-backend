@@ -121,7 +121,7 @@ public class PlaidWebhookController {
     /**
      * Process webhook based on type
      */
-    private void processWebhook((final String webhookType, Map<String, final Object> payload) {
+    private void processWebhook(final String webhookType, final Map<String, Object> payload) {
         switch (webhookType) {
             case "TRANSACTIONS":
                 webhookService.handleTransactionWebhook(payload);
@@ -143,7 +143,7 @@ public class PlaidWebhookController {
     /**
      * Extract string value from payload
      */
-    private String extractString((Map<String, final Object> payload, final String key) {
+    private String extractString(final Map<String, Object> payload, final String key) {
         Object value = payload.get(key);
         return value != null ? value.toString() : null;
     }

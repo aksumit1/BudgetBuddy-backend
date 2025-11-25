@@ -37,7 +37,7 @@ public class S3Service {
      * Upload file to S3 with cost optimization
      * Uses Standard storage class for frequently accessed files
      */
-    public String uploadFile((final String key, final InputStream inputStream, final long contentLength, final String contentType) {
+    public String uploadFile(final String key, final InputStream inputStream, final long contentLength, final String contentType) {
         try {
             PutObjectRequest putObjectRequest = PutObjectRequest.builder()
                     .bucket(bucketName)
@@ -58,7 +58,7 @@ public class S3Service {
     /**
      * Upload file with Standard-IA storage class for cost savings on infrequent access
      */
-    public String uploadFileInfrequentAccess((final String key, final InputStream inputStream, final long contentLength, final String contentType) {
+    public String uploadFileInfrequentAccess(final String key, final InputStream inputStream, final long contentLength, final String contentType) {
         try {
             PutObjectRequest putObjectRequest = PutObjectRequest.builder()
                     .bucket(bucketName)
@@ -79,7 +79,7 @@ public class S3Service {
     /**
      * Move file to Glacier for long-term archival (90% cost savings)
      */
-    public void archiveFile((final String key) {
+    public void archiveFile(final String key) {
         try {
             CopyObjectRequest copyRequest = CopyObjectRequest.builder()
                     .sourceBucket(bucketName)
@@ -108,7 +108,7 @@ public class S3Service {
     /**
      * Delete file from S3
      */
-    public void deleteFile((final String key) {
+    public void deleteFile(final String key) {
         try {
             DeleteObjectRequest deleteRequest = DeleteObjectRequest.builder()
                     .bucket(bucketName)
@@ -125,7 +125,7 @@ public class S3Service {
     /**
      * Get presigned URL for file access (cost-effective for direct client access)
      */
-    public String getPresignedUrl((final String key, final int expirationMinutes) {
+    public String getPresignedUrl(final String key, final int expirationMinutes) {
         try {
             GetObjectRequest getObjectRequest = GetObjectRequest.builder()
                     .bucket(bucketName)

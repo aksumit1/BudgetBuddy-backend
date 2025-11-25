@@ -67,7 +67,7 @@ public class DataArchivingService {
     /**
      * Archive specific transactions (called from DynamoDB Streams handler)
      */
-    public void archiveTransactions((final List<TransactionTable> transactions) {
+    public void archiveTransactions(final List<TransactionTable> transactions) {
         if (transactions == null || transactions.isEmpty()) {
             logger.info("No transactions to archive");
             return;

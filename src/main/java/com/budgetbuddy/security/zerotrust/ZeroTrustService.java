@@ -38,7 +38,7 @@ public class ZeroTrustService {
      * @param action Action being performed
      * @return ZeroTrustResult with verification status
      */
-    public ZeroTrustResult verifyAccess((final String userId, final String deviceId, final String resource, final String action) {
+    public ZeroTrustResult verifyAccess(final String userId, final String deviceId, final String resource, final String action) {
         ZeroTrustResult result = new ZeroTrustResult();
 
         // Principle 1: Verify explicitly
@@ -84,7 +84,7 @@ public class ZeroTrustService {
     /**
      * Calculate risk score based on multiple factors
      */
-    private RiskScore calculateRiskScore((final String userId, final String deviceId, final String resource, final String action) {
+    private RiskScore calculateRiskScore(final String userId, final String deviceId, final String resource, final String action) {
         RiskScore riskScore = new RiskScore();
 
         // Factor 1: Device trust
@@ -107,13 +107,13 @@ public class ZeroTrustService {
         return riskScore;
     }
 
-    private int checkTimeAnomaly((final String userId, final String action) {
+    private int checkTimeAnomaly(final String userId, final String action) {
         // Check if action is performed at unusual time
         // For now, return low risk
         return 10;
     }
 
-    private int getResourceSensitivity((final String resource) {
+    private int getResourceSensitivity(final String resource) {
         // Classify resource sensitivity
         if (resource.contains("/admin") || resource.contains("/compliance")) {
             return 80; // High sensitivity
@@ -124,7 +124,7 @@ public class ZeroTrustService {
         }
     }
 
-    private int getActionSensitivity((final String action) {
+    private int getActionSensitivity(final String action) {
         // Classify action sensitivity
         if ("DELETE".equals(action) || "UPDATE".equals(action)) {
             return 60; // High sensitivity
@@ -175,7 +175,7 @@ public class ZeroTrustService {
         private final Map<String, Integer> factors = new java.util.HashMap<>();
         private int score = 0;
 
-        public void addFactor((final String name, final int value) {
+        public void addFactor(final String name, final int value) {
             factors.put(name, value);
             recalculate();
         }

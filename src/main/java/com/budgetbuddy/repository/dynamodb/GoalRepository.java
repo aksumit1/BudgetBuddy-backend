@@ -30,7 +30,7 @@ public class GoalRepository {
         this.userIdIndex = goalTable.index("UserIdIndex");
     }
 
-    public void save((final GoalTable goal) {
+    public void save(final GoalTable goal) {
         goalTable.putItem(goal);
     }
 
@@ -50,11 +50,11 @@ public class GoalRepository {
                 }
             }
         }
-        results.sort((g1, g2) -> g1.getTargetDate().compareTo(g2.getTargetDate()));
+        results.sort(g1, g2) -> g1.getTargetDate().compareTo(g2.getTargetDate()));
         return results;
     }
 
-    public void delete((final String goalId) {
+    public void delete(final String goalId) {
         goalTable.deleteItem(Key.builder().partitionValue(goalId).build());
     }
 }

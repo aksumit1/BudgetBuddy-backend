@@ -32,7 +32,7 @@ public class DeviceAttestationService {
     /**
      * Verify device and register if new
      */
-    public boolean verifyDevice((final String deviceId, final String userId) {
+    public boolean verifyDevice(final String deviceId, final String userId) {
         try {
             // Check if device is registered and trusted
             GetItemResponse response = dynamoDbClient.getItem(GetItemRequest.builder()
@@ -71,7 +71,7 @@ public class DeviceAttestationService {
     /**
      * Register new device (requires additional verification)
      */
-    private boolean registerNewDevice((final String deviceId, final String userId) {
+    private boolean registerNewDevice(final String deviceId, final String userId) {
         // In production, this would require:
         // 1. Email verification
         // 2. SMS verification
@@ -103,7 +103,7 @@ public class DeviceAttestationService {
     /**
      * Get device trust level
      */
-    public DeviceTrustLevel getDeviceTrustLevel((final String deviceId) {
+    public DeviceTrustLevel getDeviceTrustLevel(final String deviceId) {
         // Simplified trust level calculation
         // In production, this would consider:
         // - Device age
@@ -115,7 +115,7 @@ public class DeviceAttestationService {
         return DeviceTrustLevel.MEDIUM; // Default to medium trust
     }
 
-    private void updateLastVerified((final String deviceId, final String userId) {
+    private void updateLastVerified(final String deviceId, final String userId) {
         try {
             dynamoDbClient.updateItem(UpdateItemRequest.builder()
                     .tableName(tableName)

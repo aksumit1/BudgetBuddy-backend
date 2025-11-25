@@ -56,7 +56,7 @@ public class PCIDSSComplianceService {
      * Requirement 3.4 - Render PAN unreadable anywhere it is stored
      * Mask PAN to show only last 4 digits
      */
-    public String maskPAN((final String pan) {
+    public String maskPAN(final String pan) {
         if (pan == null || pan.length() < 4) {
             return "****";
         }
@@ -75,7 +75,7 @@ public class PCIDSSComplianceService {
     /**
      * Requirement 3.4.1 - Primary Account Number (PAN) is masked when displayed
      */
-    public boolean isPANMasked((final String pan) {
+    public boolean isPANMasked(final String pan) {
         return pan != null && pan.matches("\\*{4,}\\d{4}");
     }
 
@@ -83,7 +83,7 @@ public class PCIDSSComplianceService {
      * Requirement 3.5.1 - Documented cryptographic key-management procedures
      * Encrypt PAN using KMS
      */
-    public String encryptPAN((final String pan, final String keyId) {
+    public String encryptPAN(final String pan, final String keyId) {
         try {
             // In production, use KMS to encrypt PAN
             // For now, log the encryption operation
@@ -102,7 +102,7 @@ public class PCIDSSComplianceService {
     /**
      * Requirement 3.5.2 - Restrict access to cryptographic keys to the fewest number of custodians
      */
-    public void logKeyAccess((final String keyId, final String userId, final String operation) {
+    public void logKeyAccess(final String keyId, final String userId, final String operation) {
         auditLogService.logCardDataAccess(userId, "KEY_ACCESS", true);
         putMetric("KeyAccess", 1.0, Map.of("Operation", operation));
         logger.info("PCI-DSS: Key access logged - KeyId: {}, User: {}, Operation: {}", keyId, userId, operation);
@@ -112,7 +112,7 @@ public class PCIDSSComplianceService {
      * Requirement 4.1 - Use strong cryptography and security protocols
      * Validate TLS version and cipher suites
      */
-    public boolean validateTLSConfiguration((final String tlsVersion, final List<String> cipherSuites) {
+    public boolean validateTLSConfiguration(final String tlsVersion, final List<String> cipherSuites) {
         // PCI-DSS requires TLS 1.2 or higher
         if (!tlsVersion.matches("TLSv1\\.(2|3)")) {
             logger.error("PCI-DSS VIOLATION: Invalid TLS version: {}", tlsVersion);
@@ -137,7 +137,7 @@ public class PCIDSSComplianceService {
      * Requirement 7.1 - Limit access to system components and cardholder data to only those individuals
      * whose job requires such access
      */
-    public boolean checkAccessAuthorization((final String userId, final String resource, final String action) {
+    public boolean checkAccessAuthorization(final String userId, final String resource, final String action) {
         // Check if user has authorized access to cardholder data
         boolean authorized = checkBusinessNeedToKnow(userId, resource);
 
@@ -156,7 +156,7 @@ public class PCIDSSComplianceService {
      * Requirement 8.2 - Strong authentication for all access
      * Validate password strength
      */
-    public boolean validatePasswordStrength((final String password) {
+    public boolean validatePasswordStrength(final String password) {
         // PCI-DSS requires:
         // - Minimum 7 characters (12 recommended)
         // - Both numeric and alphabetic characters
@@ -183,7 +183,7 @@ public class PCIDSSComplianceService {
     /**
      * Requirement 8.3 - Multi-factor authentication for all non-console administrative access
      */
-    public void logMFAUsage((final String userId, final String mfaMethod, final boolean success) {
+    public void logMFAUsage(final String userId, final String mfaMethod, final boolean success) {
         auditLogService.logAuthentication(userId, "MFA_" + mfaMethod, success);
         putMetric("MFAUsage", success ? 1.0 : 0.0, Map.of("Method", mfaMethod));
 
@@ -196,7 +196,7 @@ public class PCIDSSComplianceService {
      * Requirement 10.2 - Implement automated audit trails
      * Log all access to cardholder data
      */
-    public void logCardholderDataAccess((final String userId, final String resource, final String action, final boolean authorized) {
+    public void logCardholderDataAccess(final String userId, final String resource, final String action, final boolean authorized) {
         auditLogService.logCardholderDataAccess(userId, resource, authorized);
         putMetric("CardholderDataAccess", 1.0, Map.of(
                 "Action", action,
@@ -212,7 +212,7 @@ public class PCIDSSComplianceService {
     /**
      * Requirement 10.5 - Secure audit trail files so they cannot be altered
      */
-    public void protectAuditTrail((final String auditLogId) {
+    public void protectAuditTrail(final String auditLogId) {
         // In production, this would:
         // 1. Encrypt audit logs
         // 2. Store in write-once storage
@@ -226,7 +226,7 @@ public class PCIDSSComplianceService {
     /**
      * Requirement 11.4 - Use intrusion-detection and/or intrusion-prevention techniques
      */
-    public void detectIntrusion((final String userId, final String resource, final String suspiciousActivity) {
+    public void detectIntrusion(final String userId, final String resource, final String suspiciousActivity) {
         logger.error("PCI-DSS: Intrusion detected - User: {}, Resource: {}, Activity: {}",
                 userId, resource, suspiciousActivity);
         putMetric("IntrusionDetected", 1.0, Map.of("Resource", resource));
@@ -241,7 +241,7 @@ public class PCIDSSComplianceService {
     /**
      * Requirement 12.8 - Maintain information security policy
      */
-    public void logPolicyCompliance((final String policyId, final boolean compliant) {
+    public void logPolicyCompliance(final String policyId, final boolean compliant) {
         auditLogService.logComplianceCheck("PCI-DSS_" + policyId, compliant);
         putMetric("PolicyCompliance", compliant ? 1.0 : 0.0, Map.of("PolicyId", policyId));
 
@@ -254,7 +254,7 @@ public class PCIDSSComplianceService {
      * Requirement 3.2 - Do not store sensitive authentication data after authorization
      * Validate that sensitive data is not stored
      */
-    public boolean validateNoSensitiveDataStorage((final String data) {
+    public boolean validateNoSensitiveDataStorage(final String data) {
         // Check for CVV, full track data, PIN blocks
         if (data == null) {
             return true;
@@ -277,7 +277,7 @@ public class PCIDSSComplianceService {
         return true;
     }
 
-    private boolean isValidPAN((final String pan) {
+    private boolean isValidPAN(final String pan) {
         // Remove spaces and dashes
         String cleaned = pan.replaceAll("[\\s-]", "");
 
@@ -295,7 +295,7 @@ public class PCIDSSComplianceService {
         return isValidLuhn(cleaned);
     }
 
-    private boolean isValidLuhn((final String number) {
+    private boolean isValidLuhn(final String number) {
         int sum = 0;
         boolean alternate = false;
 
@@ -314,7 +314,7 @@ public class PCIDSSComplianceService {
         return (sum % 10 == 0);
     }
 
-    private boolean isWeakCipher((final String cipher) {
+    private boolean isWeakCipher(final String cipher) {
         // List of weak cipher suites
         String[] weakCiphers = {
                 "RC4", "DES", "MD5", "SHA1", "NULL", "EXPORT", "ANON", "ADH", "LOW", "MEDIUM"
@@ -328,7 +328,7 @@ public class PCIDSSComplianceService {
         return false;
     }
 
-    private boolean checkBusinessNeedToKnow((final String userId, final String resource) {
+    private boolean checkBusinessNeedToKnow(final String userId, final String resource) {
         // In production, this would check:
         // 1. User's role
         // 2. Resource access policies
@@ -338,7 +338,7 @@ public class PCIDSSComplianceService {
         return !resource.contains("/admin") || userId.contains("admin");
     }
 
-    private void putMetric((final String metricName, final double value, Map<String, final String> dimensions) {
+    private void putMetric(final String metricName, final double value, final Map<String, String> dimensions) {
         try {
             List<Dimension> dims = dimensions.entrySet().stream()
                     .map(e -> Dimension.builder()

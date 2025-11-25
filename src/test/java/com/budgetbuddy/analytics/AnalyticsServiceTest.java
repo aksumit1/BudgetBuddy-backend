@@ -146,11 +146,11 @@ class AnalyticsServiceTest {
     }
 
     // Helper methods
-    private TransactionTable createTransaction((final String id, final BigDecimal amount) {
+    private TransactionTable createTransaction(final String id, final BigDecimal amount) {
         return createTransaction(id, "FOOD", amount);
     }
 
-    private TransactionTable createTransaction((final String id, final String category, final BigDecimal amount) {
+    private TransactionTable createTransaction(final String id, final String category, final BigDecimal amount) {
         TransactionTable transaction = new TransactionTable();
         transaction.setTransactionId(id);
         transaction.setUserId(testUser.getUserId());

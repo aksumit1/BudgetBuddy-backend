@@ -52,7 +52,7 @@ public class RequestResponseLoggingFilter extends OncePerRequestFilter {
     );
 
     @Override
-    protected void doFilterInternal((final HttpServletRequest request, final HttpServletResponse response, final FilterChain filterChain)
+    protected void doFilterInternal(final HttpServletRequest request, final HttpServletResponse response, final FilterChain filterChain)
             throws ServletException, IOException {
 
         // Generate correlation ID if not present
@@ -85,7 +85,7 @@ public class RequestResponseLoggingFilter extends OncePerRequestFilter {
         }
     }
 
-    private void logRequest((final ContentCachingRequestWrapper request, final String correlationId) {
+    private void logRequest(final ContentCachingRequestWrapper request, final String correlationId) {
         try {
             String method = request.getMethod();
             String uri = request.getRequestURI();
@@ -112,7 +112,7 @@ public class RequestResponseLoggingFilter extends OncePerRequestFilter {
         }
     }
 
-    private void logResponse((final ContentCachingResponseWrapper response, final String correlationId, final long duration) {
+    private void logResponse(final ContentCachingResponseWrapper response, final String correlationId, final long duration) {
         try {
             int status = response.getStatus();
 
@@ -136,7 +136,7 @@ public class RequestResponseLoggingFilter extends OncePerRequestFilter {
         }
     }
 
-    private String getSanitizedBody((final byte[] bodyBytes) {
+    private String getSanitizedBody(final byte[] bodyBytes) {
         if (bodyBytes == null || bodyBytes.length == 0) {
             return "[empty]";
         }
@@ -163,7 +163,7 @@ public class RequestResponseLoggingFilter extends OncePerRequestFilter {
     }
 
     @Override
-    protected boolean shouldNotFilter((final HttpServletRequest request) {
+    protected boolean shouldNotFilter(final HttpServletRequest request) {
         // Skip logging for actuator endpoints and static resources
         String path = request.getRequestURI();
         return path.startsWith("/actuator") ||

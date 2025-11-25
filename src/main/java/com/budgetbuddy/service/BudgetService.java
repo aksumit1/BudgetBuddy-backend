@@ -38,7 +38,7 @@ public class BudgetService {
         this.transactionRepository = transactionRepository;
     }
 
-    public BudgetTable createOrUpdateBudget((final UserTable user, final String category, final BigDecimal monthlyLimit) {
+    public BudgetTable createOrUpdateBudget(final UserTable user, final String category, final BigDecimal monthlyLimit) {
         if (user == null || user.getUserId() == null || user.getUserId().isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "User is required");
         }
@@ -97,7 +97,7 @@ public class BudgetService {
         return budgetRepository.findByUserId(user.getUserId());
     }
 
-    public BudgetTable getBudget((final UserTable user, final String budgetId) {
+    public BudgetTable getBudget(final UserTable user, final String budgetId) {
         if (user == null || user.getUserId() == null || user.getUserId().isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "User is required");
         }
@@ -106,7 +106,7 @@ public class BudgetService {
         }
 
         BudgetTable budget = budgetRepository.findById(budgetId)
-                .orElseThrow(() -> new AppException(ErrorCode.BUDGET_NOT_FOUND, "Budget not found"));
+                .orElseThrow() -> new AppException(ErrorCode.BUDGET_NOT_FOUND, "Budget not found"));
 
         if (budget.getUserId() == null || !budget.getUserId().equals(user.getUserId())) {
             throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "Budget does not belong to user");
@@ -115,7 +115,7 @@ public class BudgetService {
         return budget;
     }
 
-    public void deleteBudget((final UserTable user, final String budgetId) {
+    public void deleteBudget(final UserTable user, final String budgetId) {
         if (user == null || user.getUserId() == null || user.getUserId().isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "User is required");
         }
@@ -124,7 +124,7 @@ public class BudgetService {
         }
 
         BudgetTable budget = budgetRepository.findById(budgetId)
-                .orElseThrow(() -> new AppException(ErrorCode.BUDGET_NOT_FOUND, "Budget not found"));
+                .orElseThrow() -> new AppException(ErrorCode.BUDGET_NOT_FOUND, "Budget not found"));
 
         if (budget.getUserId() == null || !budget.getUserId().equals(user.getUserId())) {
             throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "Budget does not belong to user");

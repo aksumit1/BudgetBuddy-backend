@@ -29,7 +29,7 @@ public class EmailNotificationService {
     /**
      * Send email notification
      */
-    public boolean sendEmail((final String userId, final String toEmail, final String subject, final String body, final String templateId, Map<String, final Object> templateData) {
+    public boolean sendEmail(final String userId, final String toEmail, final String subject, final String body, final String templateId, final Map<String, Object> templateData) {
         try {
             // If template is provided, use template
             if (templateId != null && !templateId.isEmpty()) {
@@ -69,7 +69,7 @@ public class EmailNotificationService {
     /**
      * Send templated email
      */
-    private boolean sendTemplatedEmail((final String toEmail, final String templateId, Map<String, final Object> templateData) {
+    private boolean sendTemplatedEmail(final String toEmail, final String templateId, final Map<String, Object> templateData) {
         try {
             // Convert template data to JSON string
             String templateDataJson = com.fasterxml.jackson.databind.ObjectMapper.class.newInstance()

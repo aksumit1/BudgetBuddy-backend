@@ -58,7 +58,7 @@ public class RateLimitService {
      * Check if user is allowed to make request to endpoint
      * Thread-safe implementation
      */
-    public boolean isAllowed((final String userId, final String endpoint) {
+    public boolean isAllowed(final String userId, final String endpoint) {
         if (userId == null || userId.isEmpty()) {
             logger.warn("User ID is null or empty");
             return false;
@@ -104,7 +104,7 @@ public class RateLimitService {
     /**
      * Get retry-after seconds for rate-limited user
      */
-    public int getRetryAfter((final String userId, final String endpoint) {
+    public int getRetryAfter(final String userId, final String endpoint) {
         if (userId == null || endpoint == null) {
             return 60;
         }
@@ -139,7 +139,7 @@ public class RateLimitService {
         }
     }
 
-    private RateLimitConfig getRateLimitConfig((final String endpoint) {
+    private RateLimitConfig getRateLimitConfig(final String endpoint) {
         if (endpoint == null) {
             return ENDPOINT_LIMITS.get("default");
         }
@@ -151,7 +151,7 @@ public class RateLimitService {
                 .orElse(ENDPOINT_LIMITS.get("default"));
     }
 
-    private TokenBucket loadOrCreateBucket((final String key, final RateLimitConfig config) {
+    private TokenBucket loadOrCreateBucket(final String key, final RateLimitConfig config) {
         if (key == null || config == null) {
             return new TokenBucket(ENDPOINT_LIMITS.get("default"));
         }
@@ -184,7 +184,7 @@ public class RateLimitService {
         return new TokenBucket(config);
     }
 
-    private void updateDynamoDB((final String key, final TokenBucket bucket) {
+    private void updateDynamoDB(final String key, final TokenBucket bucket) {
         if (key == null || bucket == null) {
             return;
         }
@@ -207,8 +207,8 @@ public class RateLimitService {
     /**
      * Async update to avoid blocking the request thread
      */
-    private void updateDynamoDBAsync((final String key, final TokenBucket bucket) {
-        new Thread(() -> updateDynamoDB(key, bucket), "ratelimit-update-async").start();
+    private void updateDynamoDBAsync(final String key, final TokenBucket bucket) {
+        new Thread() -> updateDynamoDB(key, bucket), "ratelimit-update-async").start();
     }
 
     private void initializeTable() {

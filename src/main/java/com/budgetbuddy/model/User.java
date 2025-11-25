@@ -153,7 +153,7 @@ public class User {
         return roles;
     }
 
-    public void setRoles((final Set<Role> roles) {
+    public void setRoles(final Set<Role> roles) {
         this.roles = roles;
     }
 

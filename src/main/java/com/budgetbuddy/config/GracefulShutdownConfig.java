@@ -31,7 +31,7 @@ public class GracefulShutdownConfig {
     private static final int TIMEOUT_SECONDS = 30;
 
     @Bean
-    public ServletWebServerFactory servletContainer((final GracefulShutdown gracefulShutdown) {
+    public ServletWebServerFactory servletContainer(final GracefulShutdown gracefulShutdown) {
         TomcatServletWebServerFactory factory = new TomcatServletWebServerFactory();
         factory.addConnectorCustomizers(gracefulShutdown);
         return factory;
@@ -49,12 +49,12 @@ public class GracefulShutdownConfig {
         private volatile Connector connector;
 
         @Override
-        public void customize((final Connector connector) {
+        public void customize(final Connector connector) {
             this.connector = connector;
         }
 
         @Override
-        public void onApplicationEvent((final ContextClosedEvent event) {
+        public void onApplicationEvent(final ContextClosedEvent event) {
             if (this.connector == null) {
                 log.debug("Connector is null, skipping graceful shutdown");
                 return;
@@ -75,7 +75,7 @@ public class GracefulShutdownConfig {
         /**
          * Shutdown thread pool gracefully
          */
-        private void shutdownThreadPool((final ThreadPoolExecutor threadPoolExecutor) {
+        private void shutdownThreadPool(final ThreadPoolExecutor threadPoolExecutor) {
             try {
                 log.info("Shutting down thread pool gracefully...");
                 threadPoolExecutor.shutdown();

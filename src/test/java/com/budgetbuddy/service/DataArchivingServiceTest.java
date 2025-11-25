@@ -96,13 +96,13 @@ class DataArchivingServiceTest {
     void testArchiveOldTransactions_ScheduledMethod_LogsInfo() {
         // Given - This is a scheduled method, so we just verify it doesn't throw
         // When/Then - Should complete without exception
-        assertDoesNotThrow(() -> {
+        assertDoesNotThrow() -> {
             // Method execution (would be called by scheduler)
         });
     }
 
     // Helper methods
-    private TransactionTable createTransaction((final String id, final BigDecimal amount) {
+    private TransactionTable createTransaction(final String id, final BigDecimal amount) {
         TransactionTable transaction = new TransactionTable();
         transaction.setTransactionId(id);
         transaction.setUserId(UUID.randomUUID().toString());

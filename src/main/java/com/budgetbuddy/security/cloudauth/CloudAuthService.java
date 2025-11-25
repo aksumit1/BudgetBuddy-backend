@@ -36,7 +36,7 @@ public class CloudAuthService {
     /**
      * Authenticate user with Cognito
      */
-    public CloudAuthResult authenticate((final String username, final String password) {
+    public CloudAuthResult authenticate(final String username, final String password) {
         try {
             AdminInitiateAuthResponse response = cognitoClient.adminInitiateAuth(
                     AdminInitiateAuthRequest.builder()
@@ -76,7 +76,7 @@ public class CloudAuthService {
     /**
      * Register new user with Cognito
      */
-    public CloudAuthResult register((final String email, final String password, final String firstName, final String lastName) {
+    public CloudAuthResult register(final String email, final String password, final String firstName, final String lastName) {
         try {
             AdminCreateUserResponse response = cognitoClient.adminCreateUser(
                     AdminCreateUserRequest.builder()
@@ -136,7 +136,7 @@ public class CloudAuthService {
     /**
      * Verify token with Cognito
      */
-    public boolean verifyToken((final String token) {
+    public boolean verifyToken(final String token) {
         try {
             GetUserRequest request = GetUserRequest.builder()
                     .accessToken(token)

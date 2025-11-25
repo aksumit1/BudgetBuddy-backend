@@ -26,7 +26,7 @@ public class PushNotificationService {
     /**
      * Send push notification
      */
-    public boolean sendPushNotification((final String userId, final String title, final String body, Map<String, final Object> data) {
+    public boolean sendPushNotification(final String userId, final String title, final String body, final Map<String, Object> data) {
         try {
             // Get device endpoint ARN for user
             String endpointArn = getDeviceEndpointArn(userId);
@@ -58,7 +58,7 @@ public class PushNotificationService {
     /**
      * Register device for push notifications
      */
-    public String registerDevice((final String userId, final String deviceToken, final String platform) {
+    public String registerDevice(final String userId, final String deviceToken, final String platform) {
         try {
             CreatePlatformEndpointRequest request = CreatePlatformEndpointRequest.builder()
                     .platformApplicationArn(getPlatformApplicationArn(platform))
@@ -77,19 +77,19 @@ public class PushNotificationService {
         }
     }
 
-    private String getDeviceEndpointArn((final String userId) {
+    private String getDeviceEndpointArn(final String userId) {
         // In production, this would query DynamoDB for user's device endpoint ARN
         // Simplified for now
         return null;
     }
 
-    private String getPlatformApplicationArn((final String platform) {
+    private String getPlatformApplicationArn(final String platform) {
         // In production, this would return the appropriate platform application ARN
         // from configuration
         return null;
     }
 
-    private String createPlatformMessage((final String title, final String body, Map<String, final Object> data) {
+    private String createPlatformMessage(final String title, final String body, final Map<String, Object> data) {
         // Create platform-specific JSON message
         // Format: {"default": "...", "APNS": "...", "GCM": "..."}
         try {

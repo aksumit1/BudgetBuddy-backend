@@ -16,7 +16,7 @@ import software.amazon.awssdk.services.dynamodb.model.ListTablesRequest;
 public class HealthCheckConfig {
 
     @Bean
-    public HealthIndicator dynamoDbHealthIndicator((final DynamoDbClient dynamoDbClient) {
+    public HealthIndicator dynamoDbHealthIndicator(final DynamoDbClient dynamoDbClient) {
         return new HealthIndicator() {
             @Override
             public Health health() {

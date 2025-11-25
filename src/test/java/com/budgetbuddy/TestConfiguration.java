@@ -28,7 +28,7 @@ public class TestConfiguration {
 
     @Bean
     @Primary
-    public DynamoDbEnhancedClient dynamoDbEnhancedClient((final DynamoDbClient dynamoDbClient) {
+    public DynamoDbEnhancedClient dynamoDbEnhancedClient(final DynamoDbClient dynamoDbClient) {
         return DynamoDbEnhancedClient.builder()
                 .dynamoDbClient(dynamoDbClient)
                 .build();

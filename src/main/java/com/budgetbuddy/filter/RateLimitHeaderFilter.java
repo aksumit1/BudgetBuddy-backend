@@ -37,7 +37,7 @@ public class RateLimitHeaderFilter extends OncePerRequestFilter {
     }
 
     @Override
-    protected void doFilterInternal((final HttpServletRequest request, final HttpServletResponse response, final FilterChain filterChain)
+    protected void doFilterInternal(final HttpServletRequest request, final HttpServletResponse response, final FilterChain filterChain)
             throws ServletException, IOException {
 
         filterChain.doFilter(request, response);
@@ -68,14 +68,14 @@ public class RateLimitHeaderFilter extends OncePerRequestFilter {
         }
     }
 
-    private void setDefaultRateLimitHeaders((final HttpServletResponse response, final String endpoint) {
+    private void setDefaultRateLimitHeaders(final HttpServletResponse response, final String endpoint) {
         int limit = getRateLimitForEndpoint(endpoint);
         response.setHeader("X-RateLimit-Limit", String.valueOf(limit));
         response.setHeader("X-RateLimit-Remaining", String.valueOf(limit - 1)); // Approximate
         response.setHeader("X-RateLimit-Reset", String.valueOf(System.currentTimeMillis() / 1000 + 60)); // 1 minute
     }
 
-    private String getUserId((final HttpServletRequest request) {
+    private String getUserId(final HttpServletRequest request) {
         // Try to get user ID from security context or request attribute
         // This would be set by authentication filter
         Object userId = request.getAttribute("userId");
@@ -100,7 +100,7 @@ public class RateLimitHeaderFilter extends OncePerRequestFilter {
         return null;
     }
 
-    private RateLimitInfo getRateLimitInfo((final String userId, final String endpoint) {
+    private RateLimitInfo getRateLimitInfo(final String userId, final String endpoint) {
         try {
             // Get rate limit configuration for endpoint
             int limit = getRateLimitForEndpoint(endpoint);
@@ -140,7 +140,7 @@ public class RateLimitHeaderFilter extends OncePerRequestFilter {
         }
     }
 
-    private int getRateLimitForEndpoint((final String endpoint) {
+    private int getRateLimitForEndpoint(final String endpoint) {
         if (endpoint == null) {
             return 50; // Default
         }

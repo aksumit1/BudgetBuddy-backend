@@ -33,7 +33,7 @@ public class CloudFormationService {
      * Get stack status
      * Returns stack status or "NOT_FOUND" if stack doesn't exist
      */
-    public String getStackStatus((final String stackName) {
+    public String getStackStatus(final String stackName) {
         if (stackName == null || stackName.isEmpty()) {
             logger.warn("Stack name is null or empty");
             return "INVALID";

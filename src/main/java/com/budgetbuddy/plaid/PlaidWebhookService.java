@@ -36,7 +36,7 @@ public class PlaidWebhookService {
      * Verify webhook signature
      * In production, verify against Plaid's public key
      */
-    public boolean verifyWebhookSignature((Map<String, final Object> payload, final String verificationHeader) {
+    public boolean verifyWebhookSignature(final Map<String, Object> payload, final String verificationHeader) {
         // In production, implement proper signature verification using Plaid's webhook verification
         // For now, return true (implement actual verification)
         if (verificationHeader == null || verificationHeader.isEmpty()) {
@@ -53,7 +53,7 @@ public class PlaidWebhookService {
      * Handle TRANSACTIONS webhook
      * Processes transaction updates from Plaid
      */
-    public void handleTransactionWebhook((Map<String, final Object> payload) {
+    public void handleTransactionWebhook(final Map<String, Object> payload) {
         String webhookCode = extractString(payload, "webhook_code");
         String itemId = extractString(payload, "item_id");
 
@@ -90,7 +90,7 @@ public class PlaidWebhookService {
      * Handle ITEM webhook
      * Processes item status changes
      */
-    public void handleItemWebhook((Map<String, final Object> payload) {
+    public void handleItemWebhook(final Map<String, Object> payload) {
         String webhookCode = extractString(payload, "webhook_code");
         String itemId = extractString(payload, "item_id");
 
@@ -123,7 +123,7 @@ public class PlaidWebhookService {
      * Handle AUTH webhook
      * Processes authentication events
      */
-    public void handleAuthWebhook((Map<String, final Object> payload) {
+    public void handleAuthWebhook(final Map<String, Object> payload) {
         String webhookCode = extractString(payload, "webhook_code");
         String itemId = extractString(payload, "item_id");
 
@@ -135,7 +135,7 @@ public class PlaidWebhookService {
      * Handle INCOME webhook
      * Processes income verification events
      */
-    public void handleIncomeWebhook((Map<String, final Object> payload) {
+    public void handleIncomeWebhook(final Map<String, Object> payload) {
         String webhookCode = extractString(payload, "webhook_code");
         String itemId = extractString(payload, "item_id");
 
@@ -146,7 +146,7 @@ public class PlaidWebhookService {
     /**
      * Extract string value from payload
      */
-    private String extractString((Map<String, final Object> payload, final String key) {
+    private String extractString(final Map<String, Object> payload, final String key) {
         Object value = payload.get(key);
         return value != null ? value.toString() : null;
     }
@@ -163,20 +163,20 @@ public class PlaidWebhookService {
         return null;
     }
 
-    private void syncTransactionsForItem((final String itemId) {
+    private void syncTransactionsForItem(final String itemId) {
         // Find user by item ID and sync all transactions
         // In production, maintain itemId -> userId mapping
         logger.debug("Syncing all transactions for item: {}", itemId);
         // TODO: Implement actual sync logic
     }
 
-    private void syncNewTransactionsForItem((final String itemId) {
+    private void syncNewTransactionsForItem(final String itemId) {
         // Sync only new transactions since last sync
         logger.debug("Syncing new transactions for item: {}", itemId);
         // TODO: Implement actual sync logic
     }
 
-    private void handleTransactionsRemoved((Map<String, final Object> payload) {
+    private void handleTransactionsRemoved(final Map<String, Object> payload) {
         List<String> removedTransactionIds = extractList(payload, "removed_transactions");
         if (removedTransactionIds != null) {
             logger.info("Removing {} transactions", removedTransactionIds.size());
@@ -186,19 +186,19 @@ public class PlaidWebhookService {
         }
     }
 
-    private void handleItemError((Map<String, final Object> payload) {
+    private void handleItemError(final Map<String, Object> payload) {
         String errorCode = extractString(payload, "error_code");
         String errorMessage = extractString(payload, "error_message");
         logger.error("Item error: code={}, message={}", errorCode, errorMessage);
         // TODO: Notify user and handle error
     }
 
-    private void handlePendingExpiration((Map<String, final Object> payload) {
+    private void handlePendingExpiration(final Map<String, Object> payload) {
         logger.warn("Credentials expiring soon - user action required");
         // TODO: Notify user to reconnect
     }
 
-    private void handlePermissionRevoked((Map<String, final Object> payload) {
+    private void handlePermissionRevoked(final Map<String, Object> payload) {
         logger.info("User revoked permissions - disconnecting item");
         // TODO: Disconnect item and notify user
     }

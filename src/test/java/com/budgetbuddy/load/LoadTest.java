@@ -27,7 +27,7 @@ class LoadTest {
         AtomicInteger failureCount = new AtomicInteger(0);
 
         for (int i = 0; i < CONCURRENT_USERS; i++) {
-            executor.submit(() -> {
+            executor.submit() -> {
                 try {
                     for (int j = 0; j < REQUESTS_PER_USER; j++) {
                         // Simulate API call
@@ -63,7 +63,7 @@ class LoadTest {
 
         // Start load generation
         for (int i = 0; i < 50; i++) {
-            executor.submit(() -> {
+            executor.submit() -> {
                 while (stopSignal.getCount() > 0) {
                     try {
                         // Simulate API request

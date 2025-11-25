@@ -39,7 +39,7 @@ public class StripeService {
      */
     @CircuitBreaker(name = "stripe")
     @Retry(name = "stripe")
-    public PaymentIntent createPaymentIntent((final String userId, final long amount, final String currency, final String description, Map<String, final String> metadata) {
+    public PaymentIntent createPaymentIntent(final String userId, final long amount, final String currency, final String description, final Map<String, String> metadata) {
         try {
             PaymentIntentCreateParams params = PaymentIntentCreateParams.builder()
                     .setAmount(amount)
@@ -69,7 +69,7 @@ public class StripeService {
      */
     @CircuitBreaker(name = "stripe")
     @Retry(name = "stripe")
-    public PaymentIntent confirmPaymentIntent((final String paymentIntentId, final String paymentMethodId) {
+    public PaymentIntent confirmPaymentIntent(final String paymentIntentId, final String paymentMethodId) {
         try {
             PaymentIntentConfirmParams params = PaymentIntentConfirmParams.builder()
                     .setPaymentMethod(paymentMethodId)
@@ -101,7 +101,7 @@ public class StripeService {
      */
     @CircuitBreaker(name = "stripe")
     @Retry(name = "stripe")
-    public Customer createCustomer((final String userId, final String email, final String name, Map<String, final String> metadata) {
+    public Customer createCustomer(final String userId, final String email, final String name, final Map<String, String> metadata) {
         try {
             CustomerCreateParams params = CustomerCreateParams.builder()
                     .setEmail(email)
@@ -126,7 +126,7 @@ public class StripeService {
      */
     @CircuitBreaker(name = "stripe")
     @Retry(name = "stripe")
-    public PaymentMethod createPaymentMethod((final String type, Map<String, final Object> cardDetails) {
+    public PaymentMethod createPaymentMethod(final String type, final Map<String, Object> cardDetails) {
         try {
             PaymentMethodCreateParams.Type paymentType = "card".equalsIgnoreCase(type)
                     ? PaymentMethodCreateParams.Type.CARD
@@ -135,8 +135,8 @@ public class StripeService {
             // Build card details map for Stripe API
             Map<String, Object> cardMap = new HashMap<>();
             cardMap.put("number", cardDetails.get("number"));
-            cardMap.put("exp_month", ((Number) cardDetails.get("expMonth")).longValue());
-            cardMap.put("exp_year", ((Number) cardDetails.get("expYear")).longValue());
+            cardMap.put("exp_month", (Number) cardDetails.get("expMonth")).longValue());
+            cardMap.put("exp_year", (Number) cardDetails.get("expYear")).longValue());
             cardMap.put("cvc", cardDetails.get("cvc"));
 
             PaymentMethodCreateParams params = PaymentMethodCreateParams.builder()
@@ -147,7 +147,7 @@ public class StripeService {
             PaymentMethod paymentMethod = PaymentMethod.create(params);
 
             // PCI-DSS: Mask and validate card number
-            String maskedCard = pciDSSComplianceService.maskPAN((String) cardDetails.get("number"));
+            String maskedCard = pciDSSComplianceService.maskPAN(String) cardDetails.get("number"));
             // Note: logCardDataAccess is on auditLogService, not pciDSSComplianceService
 
             logger.info("Stripe: Payment method created - ID: {}, Type: {}",
@@ -165,7 +165,7 @@ public class StripeService {
      */
     @CircuitBreaker(name = "stripe")
     @Retry(name = "stripe")
-    public Refund createRefund((final String chargeId, final Long amount, final String reason) {
+    public Refund createRefund(final String chargeId, final Long amount, final String reason) {
         try {
             RefundCreateParams.Reason refundReason = null;
             if (reason != null) {
@@ -206,7 +206,7 @@ public class StripeService {
     /**
      * Handle Stripe Exceptions
      */
-    private void handleStripeException((final StripeException e, final String operation) {
+    private void handleStripeException(final StripeException e, final String operation) {
         logger.error("Stripe API error in {}: {} - {}", operation, e.getCode(), e.getMessage());
 
         // Map Stripe error codes to our error codes

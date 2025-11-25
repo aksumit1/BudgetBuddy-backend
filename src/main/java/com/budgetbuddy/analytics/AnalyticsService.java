@@ -43,7 +43,7 @@ public class AnalyticsService {
      * Get spending summary for a user (cached to reduce database load)
      */
     @Cacheable(value = "analytics", key = "#user.userId + '_spending_' + #startDate + '_' + #endDate")
-    public SpendingSummary getSpendingSummary((final UserTable user, final LocalDate startDate, final LocalDate endDate) {
+    public SpendingSummary getSpendingSummary(final UserTable user, final LocalDate startDate, final LocalDate endDate) {
         // Use TransactionService which handles DynamoDB queries
         BigDecimal totalSpending = transactionService.getTotalSpending(user, startDate, endDate);
         List<TransactionTable> transactions = transactionService.getTransactionsInRange(user, startDate, endDate);

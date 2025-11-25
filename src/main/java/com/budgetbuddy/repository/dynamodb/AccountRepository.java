@@ -34,7 +34,7 @@ public class AccountRepository {
                 accountTable.index("PlaidAccountIdIndex");
     }
 
-    public void save((final AccountTable account) {
+    public void save(final AccountTable account) {
         accountTable.putItem(account);
     }
 

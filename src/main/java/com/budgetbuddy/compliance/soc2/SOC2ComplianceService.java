@@ -42,7 +42,7 @@ public class SOC2ComplianceService {
      * CC1.1 - Control Environment
      * Log control activities
      */
-    public void logControlActivity((final String controlId, final String activity, final String userId) {
+    public void logControlActivity(final String controlId, final String activity, final String userId) {
         auditLogService.logControlActivity(controlId, activity, userId);
 
         // Send metric to CloudWatch
@@ -56,7 +56,7 @@ public class SOC2ComplianceService {
      * CC2.1 - Communication and Information
      * Log information system changes
      */
-    public void logSystemChange((final String changeType, final String description, final String userId) {
+    public void logSystemChange(final String changeType, final String description, final String userId) {
         auditLogService.logSystemChange(changeType, description, userId);
         putMetric("SystemChange", 1.0, Map.of("ChangeType", changeType));
     }
@@ -65,7 +65,7 @@ public class SOC2ComplianceService {
      * CC3.1 - Risk Assessment
      * Assess and log risks
      */
-    public RiskAssessment assessRisk((final String resource, final String action, final String userId) {
+    public RiskAssessment assessRisk(final String resource, final String action, final String userId) {
         RiskAssessment assessment = new RiskAssessment();
         assessment.setResource(resource);
         assessment.setAction(action);
@@ -88,7 +88,7 @@ public class SOC2ComplianceService {
      * CC4.1 - Monitoring Activities
      * Monitor system activities for anomalies
      */
-    public void monitorActivity((final String activityType, final String details) {
+    public void monitorActivity(final String activityType, final String details) {
         // Check for anomalies
         if (isAnomalous(activityType, details)) {
             logger.warn("SOC2: Anomalous activity detected: {} - {}", activityType, details);
@@ -102,7 +102,7 @@ public class SOC2ComplianceService {
      * CC5.1 - Control Activities
      * Log control activities with status
      */
-    public void logControlActivityWithStatus((final String controlId, final String status, final String details) {
+    public void logControlActivityWithStatus(final String controlId, final String status, final String details) {
         auditLogService.logControlActivity(controlId, status, details);
         putMetric("ControlActivity", status.equals("PASS") ? 1.0 : 0.0, Map.of("ControlId", controlId));
     }
@@ -111,7 +111,7 @@ public class SOC2ComplianceService {
      * CC6.1 - Logical and Physical Access Controls
      * Log access control activities
      */
-    public void logAccessControl((final String resource, final String action, final String userId, final boolean allowed) {
+    public void logAccessControl(final String resource, final String action, final String userId, final boolean allowed) {
         auditLogService.logAccessControl(resource, action, userId, allowed);
         putMetric("AccessControl", allowed ? 1.0 : 0.0, Map.of(
                 "Resource", resource,
@@ -141,12 +141,12 @@ public class SOC2ComplianceService {
      * CC8.1 - Change Management
      * Log system changes
      */
-    public void logChangeManagement((final String changeId, final String changeType, final String description, final String userId) {
+    public void logChangeManagement(final String changeId, final String changeType, final String description, final String userId) {
         auditLogService.logChangeManagement(changeId, changeType, description, userId);
         putMetric("ChangeManagement", 1.0, Map.of("ChangeType", changeType));
     }
 
-    private int calculateRiskScore((final String resource, final String action) {
+    private int calculateRiskScore(final String resource, final String action) {
         // Simplified risk calculation
         int score = 0;
         if (resource.contains("/admin") || resource.contains("/compliance")) {
@@ -158,7 +158,7 @@ public class SOC2ComplianceService {
         return score;
     }
 
-    private boolean isAnomalous((final String activityType, final String details) {
+    private boolean isAnomalous(final String activityType, final String details) {
         // Simplified anomaly detection
         return details.contains("unauthorized") || details.contains("failed") || details.contains("error");
     }
@@ -179,7 +179,7 @@ public class SOC2ComplianceService {
         return 0.1; // Placeholder
     }
 
-    private void putMetric((final String metricName, final double value, Map<String, final String> dimensions) {
+    private void putMetric(final String metricName, final double value, final Map<String, String> dimensions) {
         try {
             List<Dimension> dims = dimensions.entrySet().stream()
                     .map(e -> Dimension.builder()

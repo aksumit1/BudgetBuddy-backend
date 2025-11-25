@@ -46,14 +46,14 @@ public class AuthService {
     /**
      * Authenticate user with secure format (password_hash + salt) or legacy format (password)
      */
-    public AuthResponse authenticate((final AuthRequest request) {
+    public AuthResponse authenticate(final AuthRequest request) {
         if (request == null || request.getEmail() == null || request.getEmail().isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Email is required");
         }
 
         // Find user
         UserTable user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new AppException(ErrorCode.INVALID_CREDENTIALS, "Invalid email or password"));
+                .orElseThrow() -> new AppException(ErrorCode.INVALID_CREDENTIALS, "Invalid email or password"));
 
         if (user.getEnabled() == null || !user.getEnabled()) {
             throw new AppException(ErrorCode.ACCOUNT_DISABLED, "Account is disabled");
@@ -150,7 +150,7 @@ public class AuthService {
         return new AuthResponse(accessToken, refreshToken, expiresAt, userInfo);
     }
 
-    public AuthResponse refreshToken((final String refreshToken) {
+    public AuthResponse refreshToken(final String refreshToken) {
         if (refreshToken == null || refreshToken.isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Refresh token is required");
         }
@@ -165,7 +165,7 @@ public class AuthService {
         }
 
         UserTable user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                .orElseThrow() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
 
         if (user.getEnabled() == null || !user.getEnabled()) {
             throw new AppException(ErrorCode.ACCOUNT_DISABLED, "Account is disabled");

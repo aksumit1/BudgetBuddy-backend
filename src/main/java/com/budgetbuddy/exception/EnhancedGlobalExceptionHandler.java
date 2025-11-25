@@ -143,7 +143,7 @@ public class EnhancedGlobalExceptionHandler {
     /**
      * Sanitize error messages to prevent information leakage
      */
-    private String sanitizeErrorMessage((final String message) {
+    private String sanitizeErrorMessage(final String message) {
         if (message == null) {
             return "An error occurred";
         }
@@ -178,7 +178,7 @@ public class EnhancedGlobalExceptionHandler {
         }
 
         Map<String, Object> sanitized = new HashMap<>();
-        technicalDetails.forEach((key, value) -> {
+        technicalDetails.forEach(key, value) -> {
             // Only include safe technical details
             if (key != null && !key.toLowerCase().contains("password")
                     && !key.toLowerCase().contains("secret")
@@ -191,7 +191,7 @@ public class EnhancedGlobalExceptionHandler {
         return sanitized.isEmpty() ? null : sanitized;
     }
 
-    private HttpStatus mapErrorCodeToHttpStatus((final ErrorCode errorCode) {
+    private HttpStatus mapErrorCodeToHttpStatus(final ErrorCode errorCode) {
         return switch (errorCode) {
             case USER_NOT_FOUND, TRANSACTION_NOT_FOUND, ACCOUNT_NOT_FOUND,
                  BUDGET_NOT_FOUND, GOAL_NOT_FOUND -> HttpStatus.NOT_FOUND;
@@ -227,9 +227,9 @@ public class EnhancedGlobalExceptionHandler {
         public String getMessage() { return message; }
         public void setMessage(final String message) { this.message = message; }
         public Map<String, Object> getTechnicalDetails() { return technicalDetails; }
-        public void setTechnicalDetails((Map<String, final Object> technicalDetails) { this.technicalDetails = technicalDetails; }
+        public void setTechnicalDetails(final Map<String, Object> technicalDetails) { this.technicalDetails = technicalDetails; }
         public Map<String, String> getValidationErrors() { return validationErrors; }
-        public void setValidationErrors((Map<String, final String> validationErrors) { this.validationErrors = validationErrors; }
+        public void setValidationErrors(final Map<String, String> validationErrors) { this.validationErrors = validationErrors; }
         public String getCorrelationId() { return correlationId; }
         public void setCorrelationId(final String correlationId) { this.correlationId = correlationId; }
         public Instant getTimestamp() { return timestamp; }
@@ -246,13 +246,13 @@ public class EnhancedGlobalExceptionHandler {
             private Instant timestamp;
             private String path;
 
-            public ErrorResponseBuilder errorCode((final String errorCode) { this.errorCode = errorCode; return this; }
-            public ErrorResponseBuilder message((final String message) { this.message = message; return this; }
-            public ErrorResponseBuilder technicalDetails((Map<String, final Object> technicalDetails) { this.technicalDetails = technicalDetails; return this; }
-            public ErrorResponseBuilder validationErrors((Map<String, final String> validationErrors) { this.validationErrors = validationErrors; return this; }
-            public ErrorResponseBuilder correlationId((final String correlationId) { this.correlationId = correlationId; return this; }
-            public ErrorResponseBuilder timestamp((final Instant timestamp) { this.timestamp = timestamp; return this; }
-            public ErrorResponseBuilder path((final String path) { this.path = path; return this; }
+            public ErrorResponseBuilder errorCode(final String errorCode) { this.errorCode = errorCode; return this; }
+            public ErrorResponseBuilder message(final String message) { this.message = message; return this; }
+            public ErrorResponseBuilder technicalDetails(final Map<String, Object> technicalDetails) { this.technicalDetails = technicalDetails; return this; }
+            public ErrorResponseBuilder validationErrors(final Map<String, String> validationErrors) { this.validationErrors = validationErrors; return this; }
+            public ErrorResponseBuilder correlationId(final String correlationId) { this.correlationId = correlationId; return this; }
+            public ErrorResponseBuilder timestamp(final Instant timestamp) { this.timestamp = timestamp; return this; }
+            public ErrorResponseBuilder path(final String path) { this.path = path; return this; }
 
             public ErrorResponse build() {
                 ErrorResponse response = new ErrorResponse();

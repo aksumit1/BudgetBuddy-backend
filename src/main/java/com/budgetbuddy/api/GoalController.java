@@ -43,7 +43,7 @@ public class GoalController {
         }
 
         UserTable user = userService.findByEmail(userDetails.getUsername())
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                .orElseThrow() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
 
         List<GoalTable> goals = goalService.getActiveGoals(user);
         return ResponseEntity.ok(goals);
@@ -62,7 +62,7 @@ public class GoalController {
         }
 
         UserTable user = userService.findByEmail(userDetails.getUsername())
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                .orElseThrow() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
 
         if (request.getTargetAmount() == null || request.getTargetAmount().compareTo(BigDecimal.ZERO) <= 0) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Target amount must be positive");
@@ -110,7 +110,7 @@ public class GoalController {
         }
 
         UserTable user = userService.findByEmail(userDetails.getUsername())
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                .orElseThrow() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
 
         GoalTable goal = goalService.updateGoalProgress(user, id, request.getAmount());
         return ResponseEntity.ok(goal);
@@ -129,7 +129,7 @@ public class GoalController {
         }
 
         UserTable user = userService.findByEmail(userDetails.getUsername())
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                .orElseThrow() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
 
         goalService.deleteGoal(user, id);
         return ResponseEntity.noContent().build();

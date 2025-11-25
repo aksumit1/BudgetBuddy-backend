@@ -24,7 +24,7 @@ class ChaosTest {
         Random random = new Random();
 
         for (int i = 0; i < 100; i++) {
-            executor.submit(() -> {
+            executor.submit() -> {
                 try {
                     // Simulate random failure (10% failure rate)
                     if (random.nextInt(100) < 10) {
@@ -57,7 +57,7 @@ class ChaosTest {
         // Simulate cascading failure scenario
         for (int i = 0; i < 10; i++) {
             final int taskId = i;
-            executor.submit(() -> {
+            executor.submit() -> {
                 try {
                     cascadeLatch.await(); // Wait for cascade trigger
                     // Simulate recovery
@@ -88,7 +88,7 @@ class ChaosTest {
 
         try {
             for (int i = 0; i < 10000; i++) {
-                executor.submit(() -> {
+                executor.submit() -> {
                     try {
                         Thread.sleep(10);
                         handledCount.incrementAndGet();

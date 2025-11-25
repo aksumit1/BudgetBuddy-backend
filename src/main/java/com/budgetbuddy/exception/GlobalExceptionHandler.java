@@ -194,7 +194,7 @@ public class GlobalExceptionHandler {
     /**
      * Extract user ID from request
      */
-    private String getUserIdFromRequest((final WebRequest request) {
+    private String getUserIdFromRequest(final WebRequest request) {
         // Extract user ID from request (e.g., from JWT token in SecurityContext)
         // This is a simplified version - in production, extract from SecurityContext
         try {
@@ -209,7 +209,7 @@ public class GlobalExceptionHandler {
     /**
      * Extract client IP from request
      */
-    private String getClientIp((final WebRequest request) {
+    private String getClientIp(final WebRequest request) {
         String ip = request.getHeader("X-Forwarded-For");
         if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
             ip = request.getHeader("X-Real-IP");
@@ -223,7 +223,7 @@ public class GlobalExceptionHandler {
     /**
      * Extract correlation ID from request
      */
-    private String getCorrelationId((final WebRequest request) {
+    private String getCorrelationId(final WebRequest request) {
         String correlationId = request.getHeader("X-Correlation-ID");
         return correlationId != null && !correlationId.isEmpty() ? correlationId : null;
     }

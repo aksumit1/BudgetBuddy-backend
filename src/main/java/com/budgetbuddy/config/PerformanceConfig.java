@@ -95,7 +95,7 @@ public class PerformanceConfig {
         }
     }
 
-    private void shutdownExecutor((final ThreadPoolTaskExecutor executor, final String name) {
+    private void shutdownExecutor(final ThreadPoolTaskExecutor executor, final String name) {
         if (executor == null) {
             return;
         }

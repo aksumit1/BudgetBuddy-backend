@@ -46,7 +46,7 @@ public class TransactionController {
         }
 
         UserTable user = userService.findByEmail(userDetails.getUsername())
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                .orElseThrow() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
 
         // Validate pagination parameters
         if (page < 0) {
@@ -71,7 +71,7 @@ public class TransactionController {
         }
 
         UserTable user = userService.findByEmail(userDetails.getUsername())
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                .orElseThrow() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
 
         if (startDate == null || endDate == null) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Start date and end date are required");
@@ -94,7 +94,7 @@ public class TransactionController {
         }
 
         UserTable user = userService.findByEmail(userDetails.getUsername())
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                .orElseThrow() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
 
         if (startDate == null || endDate == null) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Start date and end date are required");
@@ -116,7 +116,7 @@ public class TransactionController {
         }
 
         UserTable user = userService.findByEmail(userDetails.getUsername())
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                .orElseThrow() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
 
         if (request == null) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Transaction request is required");
@@ -160,7 +160,7 @@ public class TransactionController {
         }
 
         UserTable user = userService.findByEmail(userDetails.getUsername())
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                .orElseThrow() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
 
         transactionService.deleteTransaction(user, id);
         return ResponseEntity.noContent().build();

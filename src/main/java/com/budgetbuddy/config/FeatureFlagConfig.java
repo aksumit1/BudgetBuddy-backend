@@ -47,7 +47,7 @@ public class FeatureFlagConfig {
             this.flags = flags;
         }
 
-        public boolean isEnabled((final String feature) {
+        public boolean isEnabled(final String feature) {
             return flags.getOrDefault(feature, false);
         }
 

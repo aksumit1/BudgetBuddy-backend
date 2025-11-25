@@ -28,7 +28,7 @@ public class GoalService {
         this.goalRepository = goalRepository;
     }
 
-    public GoalTable createGoal((final UserTable user, final String name, final String description, final BigDecimal targetAmount, final LocalDate targetDate, final String goalType) {
+    public GoalTable createGoal(final UserTable user, final String name, final String description, final BigDecimal targetAmount, final LocalDate targetDate, final String goalType) {
         if (user == null || user.getUserId() == null || user.getUserId().isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "User is required");
         }
@@ -69,7 +69,7 @@ public class GoalService {
         return goalRepository.findByUserId(user.getUserId());
     }
 
-    public GoalTable getGoal((final UserTable user, final String goalId) {
+    public GoalTable getGoal(final UserTable user, final String goalId) {
         if (user == null || user.getUserId() == null || user.getUserId().isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "User is required");
         }
@@ -78,7 +78,7 @@ public class GoalService {
         }
 
         GoalTable goal = goalRepository.findById(goalId)
-                .orElseThrow(() -> new AppException(ErrorCode.GOAL_NOT_FOUND, "Goal not found"));
+                .orElseThrow() -> new AppException(ErrorCode.GOAL_NOT_FOUND, "Goal not found"));
 
         if (goal.getUserId() == null || !goal.getUserId().equals(user.getUserId())) {
             throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "Goal does not belong to user");
@@ -87,7 +87,7 @@ public class GoalService {
         return goal;
     }
 
-    public GoalTable updateGoalProgress((final UserTable user, final String goalId, final BigDecimal additionalAmount) {
+    public GoalTable updateGoalProgress(final UserTable user, final String goalId, final BigDecimal additionalAmount) {
         if (user == null || user.getUserId() == null || user.getUserId().isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "User is required");
         }
@@ -99,7 +99,7 @@ public class GoalService {
         }
 
         GoalTable goal = goalRepository.findById(goalId)
-                .orElseThrow(() -> new AppException(ErrorCode.GOAL_NOT_FOUND, "Goal not found"));
+                .orElseThrow() -> new AppException(ErrorCode.GOAL_NOT_FOUND, "Goal not found"));
 
         if (goal.getUserId() == null || !goal.getUserId().equals(user.getUserId())) {
             throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "Goal does not belong to user");
@@ -111,7 +111,7 @@ public class GoalService {
         return goal;
     }
 
-    public void deleteGoal((final UserTable user, final String goalId) {
+    public void deleteGoal(final UserTable user, final String goalId) {
         if (user == null || user.getUserId() == null || user.getUserId().isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "User is required");
         }
@@ -120,7 +120,7 @@ public class GoalService {
         }
 
         GoalTable goal = goalRepository.findById(goalId)
-                .orElseThrow(() -> new AppException(ErrorCode.GOAL_NOT_FOUND, "Goal not found"));
+                .orElseThrow() -> new AppException(ErrorCode.GOAL_NOT_FOUND, "Goal not found"));
 
         if (goal.getUserId() == null || !goal.getUserId().equals(user.getUserId())) {
             throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "Goal does not belong to user");

@@ -51,7 +51,7 @@ public class PlaidSyncService {
     /**
      * Sync accounts for a user
      */
-    public void syncAccounts((final UserTable user, final String accessToken) {
+    public void syncAccounts(final UserTable user, final String accessToken) {
         if (user == null) {
             throw new AppException(ErrorCode.INVALID_INPUT, "User cannot be null");
         }
@@ -119,7 +119,7 @@ public class PlaidSyncService {
     /**
      * Sync transactions for a user
      */
-    public void syncTransactions((final UserTable user, final String accessToken) {
+    public void syncTransactions(final UserTable user, final String accessToken) {
         if (user == null) {
             throw new AppException(ErrorCode.INVALID_INPUT, "User cannot be null");
         }
@@ -198,7 +198,7 @@ public class PlaidSyncService {
     /**
      * Extract account ID from Plaid account
      */
-    private String extractAccountId((final Object plaidAccount) {
+    private String extractAccountId(final Object plaidAccount) {
         // In production, properly extract account ID from Plaid account object
         // This is a placeholder - actual implementation depends on Plaid SDK structure
         try {
@@ -213,7 +213,7 @@ public class PlaidSyncService {
     /**
      * Extract transaction ID from Plaid transaction
      */
-    private String extractTransactionId((final Object plaidTransaction) {
+    private String extractTransactionId(final Object plaidTransaction) {
         // In production, properly extract transaction ID from Plaid transaction object
         try {
             // Use reflection or proper Plaid SDK methods to get transaction ID
@@ -227,7 +227,7 @@ public class PlaidSyncService {
     /**
      * Update account from Plaid account data
      */
-    private void updateAccountFromPlaid((final AccountTable account, final Object plaidAccount) {
+    private void updateAccountFromPlaid(final AccountTable account, final Object plaidAccount) {
         // In production, properly map all fields from Plaid account
         // This is a placeholder
         account.setUpdatedAt(java.time.Instant.now());
@@ -236,7 +236,7 @@ public class PlaidSyncService {
     /**
      * Create transaction from Plaid transaction data
      */
-    private TransactionTable createTransactionFromPlaid((final String userId, final Object plaidTransaction) {
+    private TransactionTable createTransactionFromPlaid(final String userId, final Object plaidTransaction) {
         TransactionTable transaction = new TransactionTable();
         transaction.setTransactionId(java.util.UUID.randomUUID().toString());
         transaction.setUserId(userId);
@@ -249,7 +249,7 @@ public class PlaidSyncService {
     /**
      * Update transaction from Plaid transaction data
      */
-    private void updateTransactionFromPlaid((final TransactionTable transaction, final Object plaidTransaction) {
+    private void updateTransactionFromPlaid(final TransactionTable transaction, final Object plaidTransaction) {
         // Update transaction fields from Plaid
         transaction.setUpdatedAt(java.time.Instant.now());
     }

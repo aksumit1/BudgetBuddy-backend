@@ -53,7 +53,7 @@ public class NotificationService {
     /**
      * Send notification via multiple channels
      */
-    public NotificationResult sendNotification((final NotificationRequest request) {
+    public NotificationResult sendNotification(final NotificationRequest request) {
         if (request == null) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Notification request cannot be null");
         }
@@ -112,7 +112,7 @@ public class NotificationService {
     /**
      * Send email notification
      */
-    private boolean sendEmail((final NotificationRequest request) {
+    private boolean sendEmail(final NotificationRequest request) {
         if (request.getRecipientEmail() == null || request.getRecipientEmail().isEmpty()) {
             logger.warn("Email notification skipped: No email address provided");
             return false;
@@ -136,7 +136,7 @@ public class NotificationService {
     /**
      * Send SMS notification via SNS
      */
-    private boolean sendSMS((final NotificationRequest request) {
+    private boolean sendSMS(final NotificationRequest request) {
         if (request.getRecipientPhone() == null || request.getRecipientPhone().isEmpty()) {
             logger.warn("SMS notification skipped: No phone number provided");
             return false;
@@ -168,7 +168,7 @@ public class NotificationService {
     /**
      * Send push notification
      */
-    private boolean sendPush((final NotificationRequest request) {
+    private boolean sendPush(final NotificationRequest request) {
         try {
             return pushService.sendPushNotification(
                     request.getUserId(),
@@ -185,7 +185,7 @@ public class NotificationService {
     /**
      * Send in-app notification
      */
-    private boolean sendInApp((final NotificationRequest request) {
+    private boolean sendInApp(final NotificationRequest request) {
         try {
             // Store in-app notification in database
             // In production, this would use a notification repository
@@ -200,7 +200,7 @@ public class NotificationService {
     /**
      * Send notification to SNS topic
      */
-    public boolean publishToTopic((final NotificationRequest request) {
+    public boolean publishToTopic(final NotificationRequest request) {
         if (request == null) {
             return false;
         }
@@ -243,7 +243,7 @@ public class NotificationService {
         }
     }
 
-    private String maskPhoneNumber((final String phone) {
+    private String maskPhoneNumber(final String phone) {
         if (phone == null || phone.length() < 4) {
             return "****";
         }
@@ -282,13 +282,13 @@ public class NotificationService {
         public String getRecipientPhone() { return recipientPhone; }
         public void setRecipientPhone(final String recipientPhone) { this.recipientPhone = recipientPhone; }
         public Set<NotificationChannel> getChannels() { return channels; }
-        public void setChannels((final Set<NotificationChannel> channels) { this.channels = channels; }
+        public void setChannels(final Set<NotificationChannel> channels) { this.channels = channels; }
         public String getTemplateId() { return templateId; }
         public void setTemplateId(final String templateId) { this.templateId = templateId; }
         public Map<String, Object> getTemplateData() { return templateData; }
-        public void setTemplateData((Map<String, final Object> templateData) { this.templateData = templateData; }
+        public void setTemplateData(final Map<String, Object> templateData) { this.templateData = templateData; }
         public Map<String, Object> getData() { return data; }
-        public void setData((Map<String, final Object> data) { this.data = data; }
+        public void setData(final Map<String, Object> data) { this.data = data; }
     }
 
     /**
@@ -327,7 +327,7 @@ public class NotificationService {
         public boolean isInAppSent() { return inAppSent; }
         public void setInAppSent(final boolean inAppSent) { this.inAppSent = inAppSent; }
         public Map<String, Boolean> getChannelResults() { return channelResults; }
-        public void setChannelResults((Map<String, final Boolean> channelResults) { this.channelResults = channelResults; }
+        public void setChannelResults(final Map<String, Boolean> channelResults) { this.channelResults = channelResults; }
     }
 
     /**
