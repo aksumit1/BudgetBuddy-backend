@@ -19,8 +19,11 @@ public class IdentityVerificationService {
 
     private static final Logger logger = LoggerFactory.getLogger(IdentityVerificationService.class);
 
-    @Autowired
-    private UserRepository userRepository;
+    private final UserRepository userRepository;
+
+    public IdentityVerificationService(final UserRepository userRepository) {
+        this.userRepository = userRepository;
+    }
 
     /**
      * Verify user identity

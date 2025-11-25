@@ -40,17 +40,20 @@ public class PCIDSSComplianceService {
     private static final Pattern PAN_PATTERN = Pattern.compile("\\b(?:4[0-9]{12}(?:[0-9]{3})?|5[1-5][0-9]{14}|3[47][0-9]{13}|3[0-9]{13}|6(?:011|5[0-9]{2})[0-9]{12})\\b");
     private static final int MIN_PAN_LENGTH = 13;
     private static final int MAX_PAN_LENGTH = 19;
-
-    @Autowired
-    private AuditLogService auditLogService;
-
-    @Autowired
-    private CloudWatchClient cloudWatchClient;
-
-    @Autowired
-    private KmsClient kmsClient;
-
     private static final String NAMESPACE = "BudgetBuddy/PCI-DSS";
+
+    private final AuditLogService auditLogService;
+    private final CloudWatchClient cloudWatchClient;
+    private final KmsClient kmsClient;
+
+    public PCIDSSComplianceService(
+            final AuditLogService auditLogService,
+            final CloudWatchClient cloudWatchClient,
+            final KmsClient kmsClient) {
+        this.auditLogService = auditLogService;
+        this.cloudWatchClient = cloudWatchClient;
+        this.kmsClient = kmsClient;
+    }
 
     /**
      * Requirement 3.4 - Render PAN unreadable anywhere it is stored

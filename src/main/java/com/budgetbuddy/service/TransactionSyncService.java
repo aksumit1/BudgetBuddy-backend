@@ -32,11 +32,15 @@ public class TransactionSyncService {
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
     private static final int DEFAULT_SYNC_DAYS = 30;
 
-    @Autowired
-    private PlaidService plaidService;
+    private final PlaidService plaidService;
+    private final TransactionRepository transactionRepository;
 
-    @Autowired
-    private TransactionRepository transactionRepository;
+    public TransactionSyncService(
+            final PlaidService plaidService,
+            final TransactionRepository transactionRepository) {
+        this.plaidService = plaidService;
+        this.transactionRepository = transactionRepository;
+    }
 
     /**
      * Sync transactions for a user
@@ -85,20 +89,24 @@ public class TransactionSyncService {
                         continue;
                     }
 
-                    // Check if transaction already exists
-                    Optional<TransactionTable> existing = transactionRepository.findByPlaidTransactionId(plaidTransactionId);
-
-                    if (existing.isPresent()) {
-                        // Update existing transaction
-                        TransactionTable transaction = existing.get();
-                        updateTransactionFromPlaid(transaction, plaidTransaction);
-                        transactionRepository.save(transaction);
-                        updatedCount++;
-                    } else {
-                        // Create new transaction
-                        TransactionTable transaction = createTransactionFromPlaid(userId, plaidTransaction);
-                        transactionRepository.save(transaction);
+                    // Use conditional write to prevent duplicates and race conditions
+                    TransactionTable transaction = createTransactionFromPlaid(userId, plaidTransaction, plaidTransactionId);
+                    // plaidTransactionId is always set in createTransactionFromPlaid, so use Plaid deduplication
+                    boolean saved = transactionRepository.saveIfPlaidTransactionNotExists(transaction);
+                    if (saved) {
                         newCount++;
+                    } else {
+                        // Transaction already exists, update it
+                        Optional<TransactionTable> existing = transactionRepository.findByPlaidTransactionId(plaidTransactionId);
+                        if (existing.isPresent()) {
+                            transaction = existing.get();
+                            updateTransactionFromPlaid(transaction, plaidTransaction);
+                            transactionRepository.save(transaction);
+                            updatedCount++;
+                        } else {
+                            logger.warn("Transaction with Plaid ID {} already exists but could not be retrieved", plaidTransactionId);
+                            errorCount++;
+                        }
                     }
                 } catch (Exception e) {
                     logger.error("Failed to sync transaction: {}", e.getMessage(), e);
@@ -170,17 +178,21 @@ public class TransactionSyncService {
                         continue;
                     }
 
-                    Optional<TransactionTable> existing = transactionRepository.findByPlaidTransactionId(plaidTransactionId);
-
-                    if (existing.isPresent()) {
-                        TransactionTable transaction = existing.get();
-                        updateTransactionFromPlaid(transaction, plaidTransaction);
-                        transactionRepository.save(transaction);
-                        updatedCount++;
-                    } else {
-                        TransactionTable transaction = createTransactionFromPlaid(userId, plaidTransaction);
-                        transactionRepository.save(transaction);
+                    // Use conditional write to prevent duplicates and race conditions
+                    TransactionTable transaction = createTransactionFromPlaid(userId, plaidTransaction, plaidTransactionId);
+                    // plaidTransactionId is always set in createTransactionFromPlaid, so use Plaid deduplication
+                    boolean saved = transactionRepository.saveIfPlaidTransactionNotExists(transaction);
+                    if (saved) {
                         newCount++;
+                    } else {
+                        // Transaction already exists, update it
+                        Optional<TransactionTable> existing = transactionRepository.findByPlaidTransactionId(plaidTransactionId);
+                        if (existing.isPresent()) {
+                            transaction = existing.get();
+                            updateTransactionFromPlaid(transaction, plaidTransaction);
+                            transactionRepository.save(transaction);
+                            updatedCount++;
+                        }
                     }
                 } catch (Exception e) {
                     logger.error("Failed to sync transaction in incremental sync: {}", e.getMessage());
@@ -219,11 +231,16 @@ public class TransactionSyncService {
 
     /**
      * Create TransactionTable from Plaid transaction
+     * Sets plaidTransactionId to enable proper Plaid-based deduplication
      */
-    private TransactionTable createTransactionFromPlaid(final String userId, final Object plaidTransaction) {
+    private TransactionTable createTransactionFromPlaid(
+            final String userId,
+            final Object plaidTransaction,
+            final String plaidTransactionId) {
         TransactionTable transaction = new TransactionTable();
         transaction.setTransactionId(java.util.UUID.randomUUID().toString());
         transaction.setUserId(userId);
+        transaction.setPlaidTransactionId(plaidTransactionId); // CRITICAL: Set Plaid ID for deduplication
         // Map other fields from plaidTransaction
         // In production, properly map all fields from Plaid transaction
         transaction.setCreatedAt(java.time.Instant.now());

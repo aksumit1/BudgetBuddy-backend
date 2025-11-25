@@ -11,6 +11,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.ObjectOutputStream;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.zip.GZIPOutputStream;
 
@@ -67,7 +68,10 @@ public class GdprService {
             export.setUser(convertUserTable(userTable));
             export.setAccounts(accountRepository.findByUserId(userId).stream()
                     .map(this::convertAccountTable).collect(java.util.stream.Collectors.toList()));
-            export.setTransactions(transactionRepository.findByUserId(userId, 0, Integer.MAX_VALUE).stream()
+            
+            // Use pagination to avoid memory issues (limit to 10,000 transactions)
+            int transactionLimit = 10000;
+            export.setTransactions(transactionRepository.findByUserId(userId, 0, transactionLimit).stream()
                     .map(this::convertTransactionTable).collect(java.util.stream.Collectors.toList()));
             export.setBudgets(budgetRepository.findByUserId(userId).stream()
                     .map(this::convertBudgetTable).collect(java.util.stream.Collectors.toList()));
@@ -114,27 +118,47 @@ public class GdprService {
             String archiveUrl = exportUserData(userId);
             logger.info("Archived user data before deletion: {}", archiveUrl);
 
-            // Delete all user data
-            transactionRepository.findByUserId(userId, 0, Integer.MAX_VALUE)
-                    .forEach(t -> transactionRepository.delete(t.getTransactionId()));
-            accountRepository.findByUserId(userId)
-                    .forEach(a -> accountRepository.findById(a.getAccountId()).ifPresent(acc ->
-                            accountRepository.save(acc))); // Mark as inactive instead of delete
-            budgetRepository.findByUserId(userId)
-                    .forEach(b -> budgetRepository.delete(b.getBudgetId()));
-            goalRepository.findByUserId(userId)
-                    .forEach(g -> goalRepository.delete(g.getGoalId()));
+            // Delete all user data with pagination to avoid memory issues
+            // Transactions - delete in batches
+            int transactionLimit = 1000;
+            int transactionSkip = 0;
+            List<com.budgetbuddy.model.dynamodb.TransactionTable> transactions;
+            do {
+                transactions = transactionRepository.findByUserId(userId, transactionSkip, transactionLimit);
+                for (com.budgetbuddy.model.dynamodb.TransactionTable t : transactions) {
+                    transactionRepository.delete(t.getTransactionId());
+                }
+                transactionSkip += transactions.size();
+            } while (transactions.size() == transactionLimit);
+
+            // Accounts - mark as inactive instead of delete (for compliance)
+            for (com.budgetbuddy.model.dynamodb.AccountTable account : accountRepository.findByUserId(userId)) {
+                account.setActive(false);
+                account.setUpdatedAt(java.time.Instant.now());
+                accountRepository.save(account);
+            }
+
+            // Budgets - delete
+            for (com.budgetbuddy.model.dynamodb.BudgetTable budget : budgetRepository.findByUserId(userId)) {
+                budgetRepository.delete(budget.getBudgetId());
+            }
+
+            // Goals - delete
+            for (com.budgetbuddy.model.dynamodb.GoalTable goal : goalRepository.findByUserId(userId)) {
+                goalRepository.delete(goal.getGoalId());
+            }
 
             // Anonymize audit logs (keep for compliance, but remove PII)
+            // Use batch operations for better performance
             long sevenYearsAgo = java.time.Instant.now().minusSeconds(7L * 365 * 24 * 60 * 60).getEpochSecond() * 1000;
             long now = System.currentTimeMillis();
-            auditLogRepository.findByUserIdAndDateRange(userId, sevenYearsAgo, now)
-                    .forEach((log) -> {
-                        log.setUserId(null);
-                        log.setIpAddress("REDACTED");
-                        log.setUserAgent("REDACTED");
-                        auditLogRepository.save(log);
-                    });
+            List<com.budgetbuddy.compliance.AuditLogTable> auditLogs = auditLogRepository.findByUserIdAndDateRange(userId, sevenYearsAgo, now);
+            for (com.budgetbuddy.compliance.AuditLogTable log : auditLogs) {
+                log.setUserId(null);
+                log.setIpAddress("REDACTED");
+                log.setUserAgent("REDACTED");
+                auditLogRepository.save(log);
+            }
 
             // Delete user account
             userRepository.delete(userId);
@@ -200,28 +224,163 @@ public class GdprService {
     }
 
     private com.budgetbuddy.model.Account convertAccountTable(com.budgetbuddy.model.dynamodb.AccountTable accountTable) {
-        // TODO: Implement conversion
-        return new com.budgetbuddy.model.Account();
+        if (accountTable == null) {
+            return null;
+        }
+        com.budgetbuddy.model.Account account = new com.budgetbuddy.model.Account();
+        account.setAccountName(accountTable.getAccountName());
+        account.setInstitutionName(accountTable.getInstitutionName());
+        if (accountTable.getAccountType() != null) {
+            try {
+                account.setAccountType(com.budgetbuddy.model.Account.AccountType.valueOf(accountTable.getAccountType()));
+            } catch (IllegalArgumentException e) {
+                logger.warn("Invalid account type: {}", accountTable.getAccountType());
+            }
+        }
+        account.setAccountSubtype(accountTable.getAccountSubtype());
+        account.setBalance(accountTable.getBalance());
+        account.setCurrencyCode(accountTable.getCurrencyCode());
+        account.setPlaidAccountId(accountTable.getPlaidAccountId());
+        account.setPlaidItemId(accountTable.getPlaidItemId());
+        account.setActive(accountTable.getActive());
+        if (accountTable.getLastSyncedAt() != null) {
+            account.setLastSyncedAt(java.time.LocalDateTime.ofInstant(
+                    accountTable.getLastSyncedAt(), java.time.ZoneId.systemDefault()));
+        }
+        if (accountTable.getCreatedAt() != null) {
+            account.setCreatedAt(java.time.LocalDateTime.ofInstant(
+                    accountTable.getCreatedAt(), java.time.ZoneId.systemDefault()));
+        }
+        if (accountTable.getUpdatedAt() != null) {
+            account.setUpdatedAt(java.time.LocalDateTime.ofInstant(
+                    accountTable.getUpdatedAt(), java.time.ZoneId.systemDefault()));
+        }
+        return account;
     }
 
     private com.budgetbuddy.model.Transaction convertTransactionTable(com.budgetbuddy.model.dynamodb.TransactionTable transactionTable) {
-        // TODO: Implement conversion
-        return new com.budgetbuddy.model.Transaction();
+        if (transactionTable == null) {
+            return null;
+        }
+        com.budgetbuddy.model.Transaction transaction = new com.budgetbuddy.model.Transaction();
+        transaction.setAmount(transactionTable.getAmount());
+        transaction.setDescription(transactionTable.getDescription());
+        transaction.setMerchantName(transactionTable.getMerchantName());
+        if (transactionTable.getCategory() != null) {
+            try {
+                transaction.setCategory(com.budgetbuddy.model.Transaction.TransactionCategory.valueOf(transactionTable.getCategory()));
+            } catch (IllegalArgumentException e) {
+                logger.warn("Invalid transaction category: {}", transactionTable.getCategory());
+            }
+        }
+        if (transactionTable.getTransactionDate() != null) {
+            try {
+                transaction.setTransactionDate(java.time.LocalDate.parse(transactionTable.getTransactionDate()));
+            } catch (Exception e) {
+                logger.warn("Invalid transaction date format: {}", transactionTable.getTransactionDate());
+            }
+        }
+        transaction.setCurrencyCode(transactionTable.getCurrencyCode());
+        transaction.setPlaidTransactionId(transactionTable.getPlaidTransactionId());
+        transaction.setPending(transactionTable.getPending());
+        if (transactionTable.getCreatedAt() != null) {
+            transaction.setCreatedAt(java.time.LocalDateTime.ofInstant(
+                    transactionTable.getCreatedAt(), java.time.ZoneId.systemDefault()));
+        }
+        if (transactionTable.getUpdatedAt() != null) {
+            transaction.setUpdatedAt(java.time.LocalDateTime.ofInstant(
+                    transactionTable.getUpdatedAt(), java.time.ZoneId.systemDefault()));
+        }
+        return transaction;
     }
 
     private com.budgetbuddy.model.Budget convertBudgetTable(com.budgetbuddy.model.dynamodb.BudgetTable budgetTable) {
-        // TODO: Implement conversion
-        return new com.budgetbuddy.model.Budget();
+        if (budgetTable == null) {
+            return null;
+        }
+        com.budgetbuddy.model.Budget budget = new com.budgetbuddy.model.Budget();
+        if (budgetTable.getCategory() != null) {
+            try {
+                budget.setCategory(com.budgetbuddy.model.Transaction.TransactionCategory.valueOf(budgetTable.getCategory()));
+            } catch (IllegalArgumentException e) {
+                logger.warn("Invalid budget category: {}", budgetTable.getCategory());
+            }
+        }
+        budget.setMonthlyLimit(budgetTable.getMonthlyLimit());
+        budget.setCurrentSpent(budgetTable.getCurrentSpent());
+        budget.setCurrencyCode(budgetTable.getCurrencyCode());
+        if (budgetTable.getCreatedAt() != null) {
+            budget.setCreatedAt(java.time.LocalDateTime.ofInstant(
+                    budgetTable.getCreatedAt(), java.time.ZoneId.systemDefault()));
+        }
+        if (budgetTable.getUpdatedAt() != null) {
+            budget.setUpdatedAt(java.time.LocalDateTime.ofInstant(
+                    budgetTable.getUpdatedAt(), java.time.ZoneId.systemDefault()));
+        }
+        return budget;
     }
 
     private com.budgetbuddy.model.Goal convertGoalTable(com.budgetbuddy.model.dynamodb.GoalTable goalTable) {
-        // TODO: Implement conversion
-        return new com.budgetbuddy.model.Goal();
+        if (goalTable == null) {
+            return null;
+        }
+        com.budgetbuddy.model.Goal goal = new com.budgetbuddy.model.Goal();
+        goal.setName(goalTable.getName());
+        goal.setDescription(goalTable.getDescription());
+        goal.setTargetAmount(goalTable.getTargetAmount());
+        goal.setCurrentAmount(goalTable.getCurrentAmount());
+        if (goalTable.getTargetDate() != null) {
+            try {
+                goal.setTargetDate(java.time.LocalDate.parse(goalTable.getTargetDate()));
+            } catch (Exception e) {
+                logger.warn("Invalid goal target date format: {}", goalTable.getTargetDate());
+            }
+        }
+        goal.setMonthlyContribution(goalTable.getMonthlyContribution());
+        if (goalTable.getGoalType() != null) {
+            try {
+                goal.setGoalType(com.budgetbuddy.model.Goal.GoalType.valueOf(goalTable.getGoalType()));
+            } catch (IllegalArgumentException e) {
+                logger.warn("Invalid goal type: {}", goalTable.getGoalType());
+            }
+        }
+        goal.setCurrencyCode(goalTable.getCurrencyCode());
+        goal.setActive(goalTable.getActive());
+        if (goalTable.getCreatedAt() != null) {
+            goal.setCreatedAt(java.time.LocalDateTime.ofInstant(
+                    goalTable.getCreatedAt(), java.time.ZoneId.systemDefault()));
+        }
+        if (goalTable.getUpdatedAt() != null) {
+            goal.setUpdatedAt(java.time.LocalDateTime.ofInstant(
+                    goalTable.getUpdatedAt(), java.time.ZoneId.systemDefault()));
+        }
+        return goal;
     }
 
     private AuditLog convertAuditLogTable(final com.budgetbuddy.compliance.AuditLogTable auditLogTable) {
-        // TODO: Implement conversion
-        return new AuditLog();
+        if (auditLogTable == null) {
+            return null;
+        }
+        AuditLog auditLog = new AuditLog();
+        if (auditLogTable.getUserId() != null) {
+            try {
+                auditLog.setUserId(Long.parseLong(auditLogTable.getUserId()));
+            } catch (NumberFormatException e) {
+                logger.warn("Invalid user ID format in audit log: {}", auditLogTable.getUserId());
+            }
+        }
+        auditLog.setAction(auditLogTable.getAction());
+        auditLog.setResourceType(auditLogTable.getResourceType());
+        auditLog.setResourceId(auditLogTable.getResourceId());
+        auditLog.setDetails(auditLogTable.getDetails());
+        auditLog.setIpAddress(auditLogTable.getIpAddress());
+        auditLog.setUserAgent(auditLogTable.getUserAgent());
+        if (auditLogTable.getCreatedAt() != null) {
+            auditLog.setCreatedAt(java.time.LocalDateTime.ofInstant(
+                    java.time.Instant.ofEpochMilli(auditLogTable.getCreatedAt()),
+                    java.time.ZoneId.systemDefault()));
+        }
+        return auditLog;
     }
 
     private byte[] compressData(Object data) {

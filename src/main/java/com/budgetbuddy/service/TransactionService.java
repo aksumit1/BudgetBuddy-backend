@@ -118,6 +118,7 @@ public class TransactionService {
 
     /**
      * Save transaction (from Plaid sync)
+     * Uses conditional write to prevent duplicate transactions (deduplication)
      */
     public TransactionTable saveTransaction(final TransactionTable transaction) {
         if (transaction == null) {
@@ -129,7 +130,26 @@ public class TransactionService {
         if (transaction.getTransactionId() == null || transaction.getTransactionId().isEmpty()) {
             transaction.setTransactionId(UUID.randomUUID().toString());
         }
-        transactionRepository.save(transaction);
+
+        // Use conditional write to prevent duplicate Plaid transactions
+        boolean saved = transactionRepository.saveIfPlaidTransactionNotExists(transaction);
+        if (!saved) {
+            // Transaction already exists (duplicate detected)
+            if (transaction.getPlaidTransactionId() != null && !transaction.getPlaidTransactionId().isEmpty()) {
+                // Duplicate Plaid transaction - fetch by Plaid ID
+                logger.debug("Transaction with Plaid ID {} already exists, fetching existing", transaction.getPlaidTransactionId());
+                return transactionRepository.findByPlaidTransactionId(transaction.getPlaidTransactionId())
+                        .orElseThrow(() -> new AppException(ErrorCode.RECORD_ALREADY_EXISTS, 
+                                "Transaction with Plaid ID already exists but could not be retrieved"));
+            } else {
+                // Duplicate transactionId (no Plaid ID) - fetch by transaction ID
+                logger.debug("Transaction with ID {} already exists, fetching existing", transaction.getTransactionId());
+                return transactionRepository.findById(transaction.getTransactionId())
+                        .orElseThrow(() -> new AppException(ErrorCode.RECORD_ALREADY_EXISTS, 
+                                "Transaction with ID already exists but could not be retrieved"));
+            }
+        }
+
         return transaction;
     }
 

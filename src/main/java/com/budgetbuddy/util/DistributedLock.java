@@ -37,11 +37,20 @@ public class DistributedLock {
         "end";
 
     private final DefaultRedisScript<Long> releaseScript;
+    private final StringRedisTemplate redisTemplate;
 
-    @Autowired(required = false)
-    private StringRedisTemplate redisTemplate;
+    public DistributedLock(final StringRedisTemplate redisTemplate) {
+        this.redisTemplate = redisTemplate;
+        this.releaseScript = new DefaultRedisScript<>();
+        this.releaseScript.setScriptText(RELEASE_LOCK_SCRIPT);
+        this.releaseScript.setResultType(Long.class);
+    }
 
+    /**
+     * Constructor for when Redis is not available (fallback to local locks)
+     */
     public DistributedLock() {
+        this.redisTemplate = null;
         this.releaseScript = new DefaultRedisScript<>();
         this.releaseScript.setScriptText(RELEASE_LOCK_SCRIPT);
         this.releaseScript.setResultType(Long.class);

@@ -42,7 +42,7 @@ This guide ensures all infrastructure is optimized for AWS Free Tier to minimize
 
 **Cost Impact:** $0 for first 25 GB storage, then $0.25/GB
 
-### 4. **VPC Endpoints - All AWS Services (No NAT Gateway)**
+### 4. **VPC Endpoints + NAT Gateway (Optimized)**
 
 **Configuration:**
 - ✅ **DynamoDB VPC Endpoint** (Gateway - FREE)
@@ -53,12 +53,13 @@ This guide ensures all infrastructure is optimized for AWS Free Tier to minimize
 - ✅ **ECR API VPC Endpoint** (Interface - ~$7/month) - for ECR API calls
 - ✅ **CloudWatch Metrics VPC Endpoint** (Interface - ~$7/month) - for PutMetricData
 - ✅ **KMS VPC Endpoint** (Interface - ~$7/month) - for encryption/decryption
-- ✅ **NAT Gateway: REMOVED** - All AWS services accessed via VPC Endpoints
+- ✅ **NAT Gateway: Single Gateway** - Required for external APIs (Plaid, Stripe)
 
 **Cost Impact:** 
 - Gateway endpoints (DynamoDB, S3): FREE
 - Interface endpoints: ~$35/month (5 endpoints: Logs, Secrets Manager, ECR, ECR API, CloudWatch Metrics, KMS)
-- NAT Gateways: $0 (removed - all traffic via VPC Endpoints)
+- NAT Gateway: ~$32/month (only for external API calls - Plaid, Stripe)
+- **Optimization**: AWS service traffic uses VPC Endpoints (no NAT Gateway usage), minimizing data transfer costs
 
 ### 5. **ECR - Free Tier**
 
@@ -72,7 +73,7 @@ This guide ensures all infrastructure is optimized for AWS Free Tier to minimize
 ### 6. **CloudWatch - Free Tier Optimized**
 
 **Configuration:**
-- ✅ **Log retention**: 7 days (minimum for free tier)
+- ✅ **Log retention**: 3 days (optimized for cost)
 - ✅ **Dashboard**: 1 dashboard (free tier: 3 dashboards)
 - ✅ **Alarms**: 10 alarms (free tier: 10 alarms)
 - ✅ **Metrics**: Standard metrics only (free)
@@ -111,17 +112,21 @@ This guide ensures all infrastructure is optimized for AWS Free Tier to minimize
 - ECS Fargate: ~$7-10/month (1 task, 256 CPU, 512 MB)
 - ALB: ~$16/month
 - VPC Interface Endpoints: ~$35/month (5 endpoints: Logs, Secrets Manager, ECR, ECR API, CloudWatch Metrics, KMS)
-- NAT Gateway: $0 (removed - all AWS services via VPC Endpoints)
-- Data Transfer: ~$0.09/GB (first 1 GB free)
+- NAT Gateway: ~$32/month (required for external APIs - Plaid, Stripe)
+- Data Transfer (NAT): ~$0-1/month (only for external API calls)
+- Data Transfer (Other): ~$0.09/GB (first 1 GB free)
 
-### Total Estimated Cost: **~$58-65/month**
+### Total Estimated Cost: **~$90-100/month**
 
 ### Cost Optimization Applied:
-1. ✅ **NAT Gateway removed** - All AWS services accessed via VPC Endpoints: **Saved ~$32/month**
-2. ✅ **VPC Gateway Endpoints** (DynamoDB, S3) - FREE: **Saved ~$0/month**
-3. ✅ **VPC Interface Endpoints** - Only for required AWS services: **Optimized**
+1. ✅ **Single NAT Gateway** - Only for external APIs (Plaid, Stripe): **Minimized usage**
+2. ✅ **VPC Gateway Endpoints** (DynamoDB, S3) - FREE: **AWS services don't use NAT Gateway**
+3. ✅ **VPC Interface Endpoints** - AWS services use endpoints, not NAT Gateway: **Optimized**
+4. ✅ **Minimal NAT Gateway Traffic** - Only external API calls use NAT Gateway: **Cost optimized**
 
-**Current Cost (fully optimized): ~$58-65/month**
+**Current Cost (fully optimized): ~$90-100/month**
+
+**Note**: NAT Gateway is required for external API access (Plaid, Stripe). VPC Endpoints ensure AWS service traffic doesn't use NAT Gateway, keeping costs minimal.
 
 ---
 
@@ -196,7 +201,7 @@ aws ecs update-service \
 - ✅ Internet Gateway: FREE
 - ✅ VPC Gateway Endpoints (DynamoDB, S3): FREE
 - ❌ VPC Interface Endpoints: ~$7/month each (5 endpoints: ~$35/month)
-- ✅ NAT Gateway: REMOVED (all AWS services via VPC Endpoints)
+- ❌ NAT Gateway: ~$32/month (required for external APIs - Plaid, Stripe)
 
 ---
 
@@ -246,5 +251,5 @@ aws ecs update-service \
 - ✅ VPC Interface Endpoints (CloudWatch Logs, Secrets Manager, ECR, CloudWatch Metrics, KMS)
 - ✅ NAT Gateway removed (all AWS services via VPC Endpoints)
 
-**Estimated Monthly Cost:** ~$58-65/month (NAT Gateway removed - all AWS services via VPC Endpoints)
+**Estimated Monthly Cost:** ~$90-100/month (Single NAT Gateway for external APIs, VPC Endpoints for AWS services)
 

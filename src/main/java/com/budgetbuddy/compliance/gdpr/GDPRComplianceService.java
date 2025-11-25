@@ -27,29 +27,33 @@ public class GDPRComplianceService {
 
     private static final Logger logger = LoggerFactory.getLogger(GDPRComplianceService.class);
 
-    @Autowired
-    private UserRepository userRepository;
+    private final UserRepository userRepository;
+    private final TransactionRepository transactionRepository;
+    private final AccountRepository accountRepository;
+    private final BudgetRepository budgetRepository;
+    private final GoalRepository goalRepository;
+    private final AuditLogRepository auditLogRepository;
+    private final S3Client s3Client;
+    private final com.budgetbuddy.compliance.AuditLogService auditLogService;
 
-    @Autowired
-    private TransactionRepository transactionRepository;
-
-    @Autowired
-    private AccountRepository accountRepository;
-
-    @Autowired
-    private BudgetRepository budgetRepository;
-
-    @Autowired
-    private GoalRepository goalRepository;
-
-    @Autowired
-    private AuditLogRepository auditLogRepository;
-
-    @Autowired
-    private S3Client s3Client;
-
-    @Autowired
-    private com.budgetbuddy.compliance.AuditLogService auditLogService;
+    public GDPRComplianceService(
+            final UserRepository userRepository,
+            final TransactionRepository transactionRepository,
+            final AccountRepository accountRepository,
+            final BudgetRepository budgetRepository,
+            final GoalRepository goalRepository,
+            final AuditLogRepository auditLogRepository,
+            final S3Client s3Client,
+            final com.budgetbuddy.compliance.AuditLogService auditLogService) {
+        this.userRepository = userRepository;
+        this.transactionRepository = transactionRepository;
+        this.accountRepository = accountRepository;
+        this.budgetRepository = budgetRepository;
+        this.goalRepository = goalRepository;
+        this.auditLogRepository = auditLogRepository;
+        this.s3Client = s3Client;
+        this.auditLogService = auditLogService;
+    }
 
     /**
      * Article 15: Right to access

@@ -20,8 +20,11 @@ public class DMAComplianceService {
 
     private static final Logger logger = LoggerFactory.getLogger(DMAComplianceService.class);
 
-    @Autowired
-    private GDPRComplianceService gdprComplianceService;
+    private final GDPRComplianceService gdprComplianceService;
+
+    public DMAComplianceService(final GDPRComplianceService gdprComplianceService) {
+        this.gdprComplianceService = gdprComplianceService;
+    }
 
     /**
      * Article 6: Data Portability

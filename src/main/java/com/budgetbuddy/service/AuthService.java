@@ -44,7 +44,8 @@ public class AuthService {
     }
 
     /**
-     * Authenticate user with secure format (password_hash + salt) or legacy format (password)
+     * Authenticate user with secure format (password_hash + salt)
+     * Only secure client-side hashed passwords are supported
      */
     public AuthResponse authenticate(final AuthRequest request) {
         if (request == null || request.getEmail() == null || request.getEmail().isEmpty()) {
@@ -84,7 +85,7 @@ public class AuthService {
             );
         } else {
             throw new AppException(ErrorCode.INVALID_INPUT,
-                    "Either password_hash+salt or password must be provided");
+                    "password_hash and salt must be provided. Only secure format is supported.");
         }
 
         if (!authenticated) {

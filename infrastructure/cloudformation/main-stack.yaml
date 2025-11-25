@@ -97,6 +97,26 @@ Resources:
       InternetGatewayId: !Ref InternetGateway
       VpcId: !Ref VPC
 
+  # NAT Gateway for External API Access (Plaid, Stripe)
+  # Required: ECS tasks in private subnets need internet access for external APIs
+  # Cost-optimized: Single NAT Gateway, VPC Endpoints handle AWS service traffic
+  NatGateway1EIP:
+    Type: AWS::EC2::EIP
+    DependsOn: InternetGatewayAttachment
+    Properties:
+      Domain: vpc
+
+  NatGateway1:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId: !GetAtt NatGateway1EIP.AllocationId
+      SubnetId: !Ref PublicSubnet1
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-nat-gateway-1'
+        - Key: Purpose
+          Value: External API Access (Plaid, Stripe)
+
   PublicRouteTable:
     Type: AWS::EC2::RouteTable
     Properties:
@@ -133,6 +153,15 @@ Resources:
         - Key: Name
           Value: !Sub '${AWS::StackName}-private-routes-1'
 
+  # Route to NAT Gateway for external API access (Plaid, Stripe)
+  # Note: AWS service traffic uses VPC Endpoints (no NAT Gateway usage)
+  DefaultPrivateRoute1:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable1
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NatGateway1
+
   PrivateSubnet1RouteTableAssociation:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
@@ -147,6 +176,15 @@ Resources:
         - Key: Name
           Value: !Sub '${AWS::StackName}-private-routes-2'
 
+  # Route to NAT Gateway for external API access (Plaid, Stripe)
+  # Note: AWS service traffic uses VPC Endpoints (no NAT Gateway usage)
+  DefaultPrivateRoute2:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable2
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NatGateway1
+
   PrivateSubnet2RouteTableAssociation:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
@@ -159,7 +197,8 @@ Resources:
       RouteTableId: !Ref PrivateRouteTable2
       SubnetId: !Ref PrivateSubnet3
 
-  # VPC Endpoints (All AWS services accessed via VPC Endpoints - No NAT Gateway required)
+  # VPC Endpoints (AWS services accessed via VPC Endpoints - Minimizes NAT Gateway usage)
+  # NAT Gateway is only used for external APIs (Plaid, Stripe) - not for AWS services
   DynamoDBEndpoint:
     Type: AWS::EC2::VPCEndpoint
     Properties:
@@ -394,12 +433,7 @@ Resources:
         Rules:
           - Id: DeleteOldLogs
             Status: Enabled
-            ExpirationInDays: 90
-            Transitions:
-              - TransitionInDays: 30
-                StorageClass: STANDARD_IA
-              - TransitionInDays: 60
-                StorageClass: GLACIER
+            ExpirationInDays: 3  # Reduced to 3 days for cost optimization
 
   ALBTargetGroup:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup

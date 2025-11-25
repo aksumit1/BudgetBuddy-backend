@@ -20,20 +20,24 @@ import java.time.Instant;
 @RequestMapping("/api/compliance/reporting")
 public class ComplianceReportingController {
 
-    @Autowired
-    private SOC2ComplianceService soc2ComplianceService;
+    private final SOC2ComplianceService soc2ComplianceService;
+    private final HIPAAComplianceService hipaaComplianceService;
+    private final ISO27001ComplianceService iso27001ComplianceService;
+    private final FinancialComplianceService financialComplianceService;
+    private final com.budgetbuddy.service.UserService userService;
 
-    @Autowired
-    private HIPAAComplianceService hipaaComplianceService;
-
-    @Autowired
-    private ISO27001ComplianceService iso27001ComplianceService;
-
-    @Autowired
-    private FinancialComplianceService financialComplianceService;
-
-    @Autowired
-    private com.budgetbuddy.service.UserService userService;
+    public ComplianceReportingController(
+            final SOC2ComplianceService soc2ComplianceService,
+            final HIPAAComplianceService hipaaComplianceService,
+            final ISO27001ComplianceService iso27001ComplianceService,
+            final FinancialComplianceService financialComplianceService,
+            final com.budgetbuddy.service.UserService userService) {
+        this.soc2ComplianceService = soc2ComplianceService;
+        this.hipaaComplianceService = hipaaComplianceService;
+        this.iso27001ComplianceService = iso27001ComplianceService;
+        this.financialComplianceService = financialComplianceService;
+        this.userService = userService;
+    }
 
     /**
      * SOC2 Compliance Report

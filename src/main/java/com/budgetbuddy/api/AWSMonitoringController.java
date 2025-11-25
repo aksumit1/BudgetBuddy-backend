@@ -22,20 +22,24 @@ import java.util.Map;
 @RequestMapping("/api/aws/monitoring")
 public class AWSMonitoringController {
 
-    @Autowired
-    private CloudWatchService cloudWatchService;
+    private final CloudWatchService cloudWatchService;
+    private final CloudTrailService cloudTrailService;
+    private final CloudFormationService cloudFormationService;
+    private final CodePipelineService codePipelineService;
+    private final com.budgetbuddy.service.UserService userService;
 
-    @Autowired
-    private CloudTrailService cloudTrailService;
-
-    @Autowired
-    private CloudFormationService cloudFormationService;
-
-    @Autowired
-    private CodePipelineService codePipelineService;
-
-    @Autowired
-    private com.budgetbuddy.service.UserService userService;
+    public AWSMonitoringController(
+            final CloudWatchService cloudWatchService,
+            final CloudTrailService cloudTrailService,
+            final CloudFormationService cloudFormationService,
+            final CodePipelineService codePipelineService,
+            final com.budgetbuddy.service.UserService userService) {
+        this.cloudWatchService = cloudWatchService;
+        this.cloudTrailService = cloudTrailService;
+        this.cloudFormationService = cloudFormationService;
+        this.codePipelineService = codePipelineService;
+        this.userService = userService;
+    }
 
     /**
      * Get CloudWatch metrics

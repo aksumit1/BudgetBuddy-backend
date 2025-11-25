@@ -25,14 +25,17 @@ import java.util.Map;
 public class HIPAAComplianceService {
 
     private static final Logger logger = LoggerFactory.getLogger(HIPAAComplianceService.class);
-
-    @Autowired
-    private AuditLogService auditLogService;
-
-    @Autowired
-    private CloudWatchClient cloudWatchClient;
-
     private static final String NAMESPACE = "BudgetBuddy/HIPAA";
+
+    private final AuditLogService auditLogService;
+    private final CloudWatchClient cloudWatchClient;
+
+    public HIPAAComplianceService(
+            final AuditLogService auditLogService,
+            final CloudWatchClient cloudWatchClient) {
+        this.auditLogService = auditLogService;
+        this.cloudWatchClient = cloudWatchClient;
+    }
 
     /**
      * §164.312(a)(1) - Access Control

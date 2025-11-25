@@ -29,14 +29,17 @@ import java.util.Map;
 public class SOC2ComplianceService {
 
     private static final Logger logger = LoggerFactory.getLogger(SOC2ComplianceService.class);
-
-    @Autowired
-    private AuditLogService auditLogService;
-
-    @Autowired
-    private CloudWatchClient cloudWatchClient;
-
     private static final String NAMESPACE = "BudgetBuddy/SOC2";
+
+    private final AuditLogService auditLogService;
+    private final CloudWatchClient cloudWatchClient;
+
+    public SOC2ComplianceService(
+            final AuditLogService auditLogService,
+            final CloudWatchClient cloudWatchClient) {
+        this.auditLogService = auditLogService;
+        this.cloudWatchClient = cloudWatchClient;
+    }
 
     /**
      * CC1.1 - Control Environment

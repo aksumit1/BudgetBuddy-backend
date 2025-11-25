@@ -3,11 +3,18 @@ package com.budgetbuddy.plaid;
 import com.budgetbuddy.model.dynamodb.UserTable;
 import com.budgetbuddy.repository.dynamodb.UserRepository;
 import com.budgetbuddy.service.PlaidSyncService;
+import com.budgetbuddy.aws.secrets.SecretsManagerService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
+import java.nio.charset.StandardCharsets;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 
@@ -25,28 +32,83 @@ import java.util.Map;
 public class PlaidWebhookService {
 
     private static final Logger logger = LoggerFactory.getLogger(PlaidWebhookService.class);
+    private static final String HMAC_SHA256_ALGORITHM = "HmacSHA256";
+    private static final String WEBHOOK_SECRET_KEY = "plaid/webhook_secret";
 
-    @Autowired
-    private PlaidSyncService plaidSyncService;
+    private final PlaidSyncService plaidSyncService;
+    private final UserRepository userRepository;
+    private final SecretsManagerService secretsManagerService;
+    private final ObjectMapper objectMapper;
 
-    @Autowired
-    private UserRepository userRepository;
+    public PlaidWebhookService(
+            final PlaidSyncService plaidSyncService,
+            final UserRepository userRepository,
+            final SecretsManagerService secretsManagerService,
+            final ObjectMapper objectMapper) {
+        this.plaidSyncService = plaidSyncService;
+        this.userRepository = userRepository;
+        this.secretsManagerService = secretsManagerService;
+        this.objectMapper = objectMapper;
+    }
 
     /**
-     * Verify webhook signature
-     * In production, verify against Plaid's public key
+     * Verify webhook signature using HMAC SHA256
+     * Implements Plaid's webhook verification as per:
+     * https://plaid.com/docs/api/webhooks/#webhook-verification
      */
     public boolean verifyWebhookSignature(final Map<String, Object> payload, final String verificationHeader) {
-        // In production, implement proper signature verification using Plaid's webhook verification
-        // For now, return true (implement actual verification)
         if (verificationHeader == null || verificationHeader.isEmpty()) {
             logger.warn("Webhook verification header is missing");
             return false;
         }
 
-        // TODO: Implement actual Plaid webhook signature verification
-        // See: https://plaid.com/docs/api/webhooks/#webhook-verification
-        return true;
+        try {
+            // Get webhook secret from AWS Secrets Manager
+            // getSecret requires secretName and defaultValue
+            String webhookSecret = secretsManagerService.getSecret(WEBHOOK_SECRET_KEY, "");
+            if (webhookSecret == null || webhookSecret.isEmpty()) {
+                logger.error("Plaid webhook secret not found in Secrets Manager");
+                return false;
+            }
+
+            // Convert payload to JSON string (canonical form)
+            String payloadJson = objectMapper.writeValueAsString(payload);
+
+            // Calculate HMAC SHA256 signature
+            Mac mac = Mac.getInstance(HMAC_SHA256_ALGORITHM);
+            SecretKeySpec secretKeySpec = new SecretKeySpec(
+                    webhookSecret.getBytes(StandardCharsets.UTF_8),
+                    HMAC_SHA256_ALGORITHM);
+            mac.init(secretKeySpec);
+            byte[] signatureBytes = mac.doFinal(payloadJson.getBytes(StandardCharsets.UTF_8));
+            String calculatedSignature = Base64.getEncoder().encodeToString(signatureBytes);
+
+            // Compare with provided signature (constant-time comparison to prevent timing attacks)
+            if (calculatedSignature.length() != verificationHeader.length()) {
+                logger.warn("Webhook signature length mismatch");
+                return false;
+            }
+
+            int result = 0;
+            for (int i = 0; i < calculatedSignature.length(); i++) {
+                result |= calculatedSignature.charAt(i) ^ verificationHeader.charAt(i);
+            }
+
+            boolean isValid = result == 0;
+            if (!isValid) {
+                logger.warn("Webhook signature verification failed");
+            }
+            return isValid;
+        } catch (NoSuchAlgorithmException e) {
+            logger.error("HMAC SHA256 algorithm not available", e);
+            return false;
+        } catch (InvalidKeyException e) {
+            logger.error("Invalid webhook secret key", e);
+            return false;
+        } catch (Exception e) {
+            logger.error("Error verifying webhook signature: {}", e.getMessage(), e);
+            return false;
+        }
     }
 
     /**

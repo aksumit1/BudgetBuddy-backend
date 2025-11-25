@@ -87,6 +87,10 @@ public class GoalService {
         return goal;
     }
 
+    /**
+     * Update goal progress (cost-optimized: uses UpdateItem with increment)
+     * Note: Still requires read for authorization check, but increment is atomic
+     */
     public GoalTable updateGoalProgress(final UserTable user, final String goalId, final BigDecimal additionalAmount) {
         if (user == null || user.getUserId() == null || user.getUserId().isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "User is required");
@@ -98,6 +102,7 @@ public class GoalService {
             throw new AppException(ErrorCode.INVALID_INPUT, "Additional amount is required");
         }
 
+        // Authorization check (required for security)
         GoalTable goal = goalRepository.findById(goalId)
                 .orElseThrow(() -> new AppException(ErrorCode.GOAL_NOT_FOUND, "Goal not found"));
 
@@ -105,10 +110,14 @@ public class GoalService {
             throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "Goal does not belong to user");
         }
 
-        BigDecimal currentAmount = goal.getCurrentAmount() != null ? goal.getCurrentAmount() : BigDecimal.ZERO;
-        goal.setCurrentAmount(currentAmount.add(additionalAmount));
-        goalRepository.save(goal);
-        return goal;
+        // Use optimized increment method (more efficient than read-then-write)
+        goalRepository.incrementProgress(goalId, additionalAmount);
+
+        // Return updated goal (read again to get latest value)
+        // Note: In a high-performance scenario, we could calculate the new value
+        // instead of reading, but this ensures consistency
+        return goalRepository.findById(goalId)
+                .orElseThrow(() -> new AppException(ErrorCode.GOAL_NOT_FOUND, "Goal not found after update"));
     }
 
     public void deleteGoal(final UserTable user, final String goalId) {

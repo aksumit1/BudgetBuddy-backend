@@ -14,7 +14,6 @@ public class WebMvcConfig implements WebMvcConfigurer {
 
     private final ApiVersioningInterceptor apiVersioningInterceptor;
 
-    @Autowired
     public WebMvcConfig(final ApiVersioningInterceptor apiVersioningInterceptor) {
         this.apiVersioningInterceptor = apiVersioningInterceptor;
     }

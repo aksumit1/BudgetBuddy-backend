@@ -32,7 +32,7 @@ Resources:
     Type: AWS::Logs::LogGroup
     Properties:
       LogGroupName: !Sub '/ecs/budgetbuddy-backend-${Environment}'
-      RetentionInDays: 7  # Reduced to 7 days for free tier cost optimization
+      RetentionInDays: 3  # Reduced to 3 days for cost optimization
       Tags:
         - Key: Environment
           Value: !Ref Environment

@@ -49,7 +49,6 @@ public class DeploymentSafetyService {
 
     private final RestTemplate restTemplate;
 
-    @Autowired
     public DeploymentSafetyService(final RestTemplateBuilder restTemplateBuilder) {
         // Use request factory to set timeouts (replacement for deprecated setConnectTimeout/setReadTimeout)
         final SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
@@ -96,7 +95,8 @@ public class DeploymentSafetyService {
 
             if (attempt < maxHealthCheckAttempts) {
                 try {
-                    Thread.sleep(healthCheckIntervalSeconds * 1000L);
+                    // Use TimeUnit for better readability and async-friendly pattern
+                    java.util.concurrent.TimeUnit.SECONDS.sleep(healthCheckIntervalSeconds);
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
                     logger.warn("Health check interrupted");

@@ -79,7 +79,12 @@ public class UserService {
         user.setCreatedAt(Instant.now());
         user.setUpdatedAt(Instant.now());
 
-        dynamoDBUserRepository.save(user);
+        // Use conditional write to prevent duplicate users
+        boolean created = dynamoDBUserRepository.saveIfNotExists(user);
+        if (!created) {
+            throw new AppException(ErrorCode.USER_ALREADY_EXISTS,
+                    "User with email " + email + " already exists");
+        }
         logger.info("Created new user with email: {} (secure format)", email);
         return user;
     }
@@ -123,17 +128,19 @@ public class UserService {
     }
 
     /**
-     * Update last login
+     * Update last login (cost-optimized: uses UpdateItem instead of read-before-write)
      */
     public void updateLastLogin(final String userId) {
         if (userId == null || userId.isEmpty()) {
             logger.warn("Attempted to update last login with null or empty user ID");
             return;
         }
-        dynamoDBUserRepository.findById(userId).ifPresent(user -> {
-            user.setLastLoginAt(Instant.now());
-            dynamoDBUserRepository.save(user);
-        });
+        try {
+            dynamoDBUserRepository.updateLastLogin(userId, Instant.now());
+            logger.debug("Updated last login for user: {}", userId);
+        } catch (IllegalArgumentException e) {
+            logger.warn("Failed to update last login for user {}: {}", userId, e.getMessage());
+        }
     }
 
     /**
@@ -169,17 +176,18 @@ public class UserService {
 
 
     /**
-     * Verify email
+     * Verify email (cost-optimized: uses UpdateItem instead of read-before-write)
      */
     public void verifyEmail(final String userId) {
         if (userId == null || userId.isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "User ID is required");
         }
-        UserTable user = dynamoDBUserRepository.findById(userId)
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
-        user.setEmailVerified(true);
-        user.setUpdatedAt(Instant.now());
-        dynamoDBUserRepository.save(user);
+        try {
+            dynamoDBUserRepository.updateField(userId, "emailVerified", true);
+            logger.info("Email verified for user: {}", userId);
+        } catch (IllegalArgumentException e) {
+            throw new AppException(ErrorCode.USER_NOT_FOUND, "User not found: " + userId);
+        }
     }
 
     /**
@@ -195,14 +203,28 @@ public class UserService {
     }
 
     /**
-     * Update Plaid access token
+     * Update Plaid access token (cost-optimized: uses UpdateItem instead of read-before-write)
+     * Note: This method currently only updates the timestamp. To store tokens securely,
+     * additional fields would need to be added to UserTable.
+     * 
+     * CRITICAL FIX: Uses updateTimestamp() instead of save() to prevent data loss.
+     * The previous implementation would overwrite all user fields with null/empty values.
      */
     public void updatePlaidAccessToken(final String userId, final String accessToken, final String itemId) {
-        dynamoDBUserRepository.findById(userId).ifPresent(user -> {
-            // Store Plaid tokens securely (would need additional fields in UserTable)
-            user.setUpdatedAt(Instant.now());
-            dynamoDBUserRepository.save(user);
+        if (userId == null || userId.isEmpty()) {
+            logger.warn("Attempted to update Plaid token with null or empty user ID");
+            return;
+        }
+        try {
+            // Update updatedAt timestamp (tokens would be stored in additional fields)
+            // For now, we just update the timestamp to indicate the token was refreshed
+            // Uses updateTimestamp() to preserve all other user fields
+            dynamoDBUserRepository.updateTimestamp(userId);
             logger.info("Updated Plaid access token for user: {}", userId);
-        });
+        } catch (IllegalArgumentException e) {
+            logger.warn("Failed to update Plaid token for user {}: {}", userId, e.getMessage());
+        } catch (Exception e) {
+            logger.error("Unexpected error updating Plaid token for user {}: {}", userId, e.getMessage(), e);
+        }
     }
 }

@@ -35,14 +35,17 @@ import java.util.Map;
 public class ISO27001ComplianceService {
 
     private static final Logger logger = LoggerFactory.getLogger(ISO27001ComplianceService.class);
-
-    @Autowired
-    private AuditLogService auditLogService;
-
-    @Autowired
-    private CloudWatchClient cloudWatchClient;
-
     private static final String NAMESPACE = "BudgetBuddy/ISO27001";
+
+    private final AuditLogService auditLogService;
+    private final CloudWatchClient cloudWatchClient;
+
+    public ISO27001ComplianceService(
+            final AuditLogService auditLogService,
+            final CloudWatchClient cloudWatchClient) {
+        this.auditLogService = auditLogService;
+        this.cloudWatchClient = cloudWatchClient;
+    }
 
     /**
      * A.9.2.1 - User Registration and De-registration

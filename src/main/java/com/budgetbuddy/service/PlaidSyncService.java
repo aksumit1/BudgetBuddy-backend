@@ -81,23 +81,31 @@ public class PlaidSyncService {
                         continue;
                     }
 
+                    // Check if account exists
                     Optional<AccountTable> existingAccount = accountRepository.findByPlaidAccountId(accountId);
 
                     AccountTable account;
                     if (existingAccount.isPresent()) {
                         account = existingAccount.get();
                         logger.debug("Updating existing account: {}", accountId);
+                        // Update account details
+                        updateAccountFromPlaid(account, plaidAccount);
+                        accountRepository.save(account);
                     } else {
+                        // Create new account
                         account = new AccountTable();
                         account.setAccountId(java.util.UUID.randomUUID().toString());
                         account.setUserId(user.getUserId());
                         account.setPlaidAccountId(accountId);
                         logger.debug("Creating new account: {}", accountId);
+                        // Update account details
+                        updateAccountFromPlaid(account, plaidAccount);
+                        // Use conditional write to prevent race conditions
+                        if (!accountRepository.saveIfNotExists(account)) {
+                            logger.warn("Account with ID {} already exists, skipping", account.getAccountId());
+                            continue;
+                        }
                     }
-
-                    // Update account details
-                    updateAccountFromPlaid(account, plaidAccount);
-                    accountRepository.save(account);
                     syncedCount++;
                 } catch (Exception e) {
                     logger.error("Error syncing account: {}", e.getMessage(), e);
@@ -156,18 +164,41 @@ public class PlaidSyncService {
                         continue;
                     }
 
+                    // Use conditional write to prevent duplicates and race conditions
+                    // First check if transaction already exists
                     Optional<TransactionTable> existing = transactionRepository.findByPlaidTransactionId(transactionId);
-
-                    TransactionTable transaction;
+                    
                     if (existing.isPresent()) {
-                        transaction = existing.get();
+                        // Update existing transaction
+                        TransactionTable transaction = existing.get();
                         updateTransactionFromPlaid(transaction, plaidTransaction);
+                        transactionRepository.save(transaction);
+                        syncedCount++;
                     } else {
-                        transaction = createTransactionFromPlaid(user.getUserId(), plaidTransaction);
+                        // Create new transaction
+                        TransactionTable transaction = createTransactionFromPlaid(user.getUserId(), plaidTransaction);
+                        // Ensure plaidTransactionId is set
+                        transaction.setPlaidTransactionId(transactionId);
+                        
+                        // Use conditional write to prevent duplicate Plaid transactions
+                        boolean saved = transactionRepository.saveIfPlaidTransactionNotExists(transaction);
+                        if (saved) {
+                            syncedCount++;
+                        } else {
+                            // Race condition: transaction was inserted between check and save
+                            // Fetch and update it
+                            Optional<TransactionTable> raceConditionExisting = transactionRepository.findByPlaidTransactionId(transactionId);
+                            if (raceConditionExisting.isPresent()) {
+                                transaction = raceConditionExisting.get();
+                                updateTransactionFromPlaid(transaction, plaidTransaction);
+                                transactionRepository.save(transaction);
+                                syncedCount++;
+                            } else {
+                                logger.warn("Transaction with Plaid ID {} could not be saved or retrieved", transactionId);
+                                errorCount++;
+                            }
+                        }
                     }
-
-                    transactionRepository.save(transaction);
-                    syncedCount++;
                 } catch (Exception e) {
                     logger.error("Error syncing transaction: {}", e.getMessage(), e);
                     errorCount++;

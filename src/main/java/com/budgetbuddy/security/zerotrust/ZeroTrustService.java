@@ -23,11 +23,15 @@ public class ZeroTrustService {
 
     private static final Logger logger = LoggerFactory.getLogger(ZeroTrustService.class);
 
-    @Autowired
-    private DeviceAttestationService deviceAttestationService;
+    private final DeviceAttestationService deviceAttestationService;
+    private final IdentityVerificationService identityVerificationService;
 
-    @Autowired
-    private IdentityVerificationService identityVerificationService;
+    public ZeroTrustService(
+            final DeviceAttestationService deviceAttestationService,
+            final IdentityVerificationService identityVerificationService) {
+        this.deviceAttestationService = deviceAttestationService;
+        this.identityVerificationService = identityVerificationService;
+    }
 
     /**
      * Verify access request with zero trust principles

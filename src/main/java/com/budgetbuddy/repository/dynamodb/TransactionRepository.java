@@ -8,11 +8,28 @@ import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable;
 import software.amazon.awssdk.enhanced.dynamodb.Key;
 import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
 import software.amazon.awssdk.enhanced.dynamodb.model.QueryConditional;
+import software.amazon.awssdk.enhanced.dynamodb.Expression;
+import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
+import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
+import software.amazon.awssdk.services.dynamodb.model.BatchGetItemRequest;
+import software.amazon.awssdk.services.dynamodb.model.BatchGetItemResponse;
+import software.amazon.awssdk.services.dynamodb.model.BatchWriteItemRequest;
+import software.amazon.awssdk.services.dynamodb.model.BatchWriteItemResponse;
+import software.amazon.awssdk.services.dynamodb.model.ConditionalCheckFailedException;
+import software.amazon.awssdk.services.dynamodb.model.KeysAndAttributes;
+import software.amazon.awssdk.services.dynamodb.model.PutRequest;
+import software.amazon.awssdk.services.dynamodb.model.UpdateItemRequest;
+import software.amazon.awssdk.services.dynamodb.model.WriteRequest;
 import software.amazon.awssdk.core.pagination.sync.SdkIterable;
 
+import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * DynamoDB Repository for Transactions
@@ -26,14 +43,18 @@ public class TransactionRepository {
     private final DynamoDbTable<TransactionTable> transactionTable;
     private final DynamoDbIndex<TransactionTable> userIdDateIndex;
     private final DynamoDbIndex<TransactionTable> plaidTransactionIdIndex;
+    private final DynamoDbClient dynamoDbClient;
     private static final String TABLE_NAME = "BudgetBuddy-Transactions";
 
-    public TransactionRepository(final DynamoDbEnhancedClient enhancedClient) {
+    public TransactionRepository(
+            final DynamoDbEnhancedClient enhancedClient,
+            final DynamoDbClient dynamoDbClient) {
         this.transactionTable = enhancedClient.table(TABLE_NAME,
                 TableSchema.fromBean(TransactionTable.class));
         this.userIdDateIndex = transactionTable.index("UserIdDateIndex");
         this.plaidTransactionIdIndex =
                 transactionTable.index("PlaidTransactionIdIndex");
+        this.dynamoDbClient = dynamoDbClient;
     }
 
     public void save(final TransactionTable transaction) {
@@ -169,5 +190,320 @@ public class TransactionRepository {
             throw new IllegalArgumentException("Transaction ID cannot be null or empty");
         }
         transactionTable.deleteItem(Key.builder().partitionValue(transactionId).build());
+    }
+
+    /**
+     * Save transaction only if it doesn't exist (conditional write)
+     * Prevents duplicate transactions (deduplication)
+     */
+    public boolean saveIfNotExists(final TransactionTable transaction) {
+        if (transaction == null) {
+            throw new IllegalArgumentException("Transaction cannot be null");
+        }
+        if (transaction.getTransactionId() == null || transaction.getTransactionId().isEmpty()) {
+            throw new IllegalArgumentException("Transaction ID is required");
+        }
+
+        try {
+            transactionTable.putItem(
+                    software.amazon.awssdk.enhanced.dynamodb.model.PutItemEnhancedRequest.builder(TransactionTable.class)
+                            .item(transaction)
+                            .conditionExpression(
+                                    Expression.builder()
+                                            .expression("attribute_not_exists(transactionId)")
+                                            .build())
+                            .build());
+            return true;
+        } catch (ConditionalCheckFailedException e) {
+            return false; // Transaction already exists
+        }
+    }
+
+    /**
+     * Save transaction only if Plaid transaction ID doesn't exist (conditional write)
+     * Prevents duplicate Plaid transactions
+     * 
+     * CRITICAL FIX: DynamoDB condition expressions only check attributes on the specific item
+     * being written (keyed by transactionId). Since each new transaction has a unique transactionId,
+     * attribute_not_exists(plaidTransactionId) will always pass for new items, even if another
+     * item with a different transactionId already has the same plaidTransactionId.
+     * 
+     * Solution: First check the GSI to see if a transaction with the same plaidTransactionId
+     * exists. If it does, return false. If it doesn't, use conditional write with
+     * attribute_not_exists(transactionId) to prevent overwrites.
+     * 
+     * Note: There's still a small TOCTOU window between the GSI check and the write, but it's
+     * much smaller than before. For true atomicity, use DynamoDB Transactions (TransactWriteItems).
+     */
+    public boolean saveIfPlaidTransactionNotExists(final TransactionTable transaction) {
+        if (transaction == null) {
+            throw new IllegalArgumentException("Transaction cannot be null");
+        }
+        
+        // Ensure transactionId is set (required for primary key)
+        if (transaction.getTransactionId() == null || transaction.getTransactionId().isEmpty()) {
+            throw new IllegalArgumentException("Transaction ID is required");
+        }
+
+        if (transaction.getPlaidTransactionId() == null || transaction.getPlaidTransactionId().isEmpty()) {
+            // If no Plaid ID, use regular save with transactionId check only
+            return saveIfNotExists(transaction);
+        }
+
+        // CRITICAL FIX: Check GSI first to see if plaidTransactionId already exists
+        // DynamoDB condition expressions can't check across items, so we must check the GSI
+        Optional<TransactionTable> existing = findByPlaidTransactionId(transaction.getPlaidTransactionId());
+        if (existing.isPresent()) {
+            // Plaid transaction ID already exists
+            return false;
+        }
+
+        // Plaid transaction ID doesn't exist, use conditional write to prevent overwrites
+        // and minimize TOCTOU window
+        try {
+            // Use conditional write to prevent overwriting existing transaction with same transactionId
+            transactionTable.putItem(
+                    software.amazon.awssdk.enhanced.dynamodb.model.PutItemEnhancedRequest.builder(TransactionTable.class)
+                            .item(transaction)
+                            .conditionExpression(
+                                    Expression.builder()
+                                            .expression("attribute_not_exists(transactionId)")
+                                            .build())
+                            .build());
+            return true;
+        } catch (ConditionalCheckFailedException e) {
+            // Transaction with same transactionId already exists
+            return false;
+        }
+    }
+
+    /**
+     * Batch save transactions using BatchWriteItem (cost-optimized)
+     * DynamoDB allows up to 25 items per batch
+     */
+    public void batchSave(final List<TransactionTable> transactions) {
+        if (transactions == null || transactions.isEmpty()) {
+            return;
+        }
+
+        // DynamoDB batch write limit is 25 items per request
+        final int batchSize = 25;
+        List<List<TransactionTable>> batches = new ArrayList<>();
+        for (int i = 0; i < transactions.size(); i += batchSize) {
+            batches.add(transactions.subList(i, Math.min(i + batchSize, transactions.size())));
+        }
+
+        for (List<TransactionTable> batch : batches) {
+            List<WriteRequest> writeRequests = batch.stream()
+                    .map(transaction -> {
+                        Map<String, AttributeValue> item = new HashMap<>();
+                        item.put("transactionId", AttributeValue.builder().s(transaction.getTransactionId()).build());
+                        if (transaction.getUserId() != null) {
+                            item.put("userId", AttributeValue.builder().s(transaction.getUserId()).build());
+                        }
+                        if (transaction.getTransactionDate() != null) {
+                            item.put("transactionDate", AttributeValue.builder().s(transaction.getTransactionDate()).build());
+                        }
+                        if (transaction.getAmount() != null) {
+                            item.put("amount", AttributeValue.builder().n(transaction.getAmount().toString()).build());
+                        }
+                        // Add other attributes as needed
+                        return WriteRequest.builder()
+                                .putRequest(PutRequest.builder().item(item).build())
+                                .build();
+                    })
+                    .collect(Collectors.toList());
+
+            Map<String, List<WriteRequest>> requestItems = new HashMap<>();
+            requestItems.put(TABLE_NAME, writeRequests);
+
+            BatchWriteItemRequest batchRequest = BatchWriteItemRequest.builder()
+                    .requestItems(requestItems)
+                    .build();
+
+            BatchWriteItemResponse response = com.budgetbuddy.util.RetryHelper.executeWithRetry(() -> {
+                BatchWriteItemResponse resp = dynamoDbClient.batchWriteItem(batchRequest);
+                
+                // Retry if there are unprocessed items
+                if (!resp.unprocessedItems().isEmpty()) {
+                    throw new RuntimeException("Unprocessed items in batch write");
+                }
+                
+                return resp;
+            });
+
+            // All items processed successfully
+        }
+    }
+
+    /**
+     * Batch read transactions by IDs using BatchGetItem (cost-optimized)
+     * DynamoDB allows up to 100 items per batch
+     */
+    public List<TransactionTable> batchFindByIds(final List<String> transactionIds) {
+        if (transactionIds == null || transactionIds.isEmpty()) {
+            return List.of();
+        }
+
+        // DynamoDB batch get limit is 100 items per request
+        final int batchSize = 100;
+        List<TransactionTable> results = new ArrayList<>();
+
+        for (int i = 0; i < transactionIds.size(); i += batchSize) {
+            List<String> batch = transactionIds.subList(i, Math.min(i + batchSize, transactionIds.size()));
+
+            List<Map<String, AttributeValue>> keys = batch.stream()
+                    .map(id -> {
+                        Map<String, AttributeValue> key = new HashMap<>();
+                        key.put("transactionId", AttributeValue.builder().s(id).build());
+                        return key;
+                    })
+                    .collect(Collectors.toList());
+
+            KeysAndAttributes keysAndAttributes = KeysAndAttributes.builder()
+                    .keys(keys)
+                    .build();
+
+            Map<String, KeysAndAttributes> requestItems = new HashMap<>();
+            requestItems.put(TABLE_NAME, keysAndAttributes);
+
+            BatchGetItemRequest batchRequest = BatchGetItemRequest.builder()
+                    .requestItems(requestItems)
+                    .build();
+
+            BatchGetItemResponse response = dynamoDbClient.batchGetItem(batchRequest);
+
+            // Convert response items to TransactionTable objects
+            if (response.responses() != null && response.responses().containsKey(TABLE_NAME)) {
+                List<Map<String, AttributeValue>> items = response.responses().get(TABLE_NAME);
+                for (Map<String, AttributeValue> item : items) {
+                    // Use proper conversion method to fully populate all fields
+                    TransactionTable transaction = convertAttributeValueMapToTransaction(item);
+                    results.add(transaction);
+                }
+            }
+
+            // Retry if there are unprocessed keys
+            if (!response.unprocessedKeys().isEmpty()) {
+                // Retry unprocessed keys with exponential backoff
+                Map<String, KeysAndAttributes> unprocessed = response.unprocessedKeys();
+                BatchGetItemRequest retryRequest = BatchGetItemRequest.builder()
+                        .requestItems(unprocessed)
+                        .build();
+                
+                BatchGetItemResponse retryResponse = com.budgetbuddy.util.RetryHelper.executeWithRetry(() -> {
+                    BatchGetItemResponse resp = dynamoDbClient.batchGetItem(retryRequest);
+                    if (!resp.unprocessedKeys().isEmpty()) {
+                        throw new RuntimeException("Unprocessed keys in batch read");
+                    }
+                    return resp;
+                });
+
+                // Process retry response items
+                if (retryResponse.responses() != null && retryResponse.responses().containsKey(TABLE_NAME)) {
+                    List<Map<String, AttributeValue>> retryItems = retryResponse.responses().get(TABLE_NAME);
+                    for (Map<String, AttributeValue> item : retryItems) {
+                        TransactionTable transaction = convertAttributeValueMapToTransaction(item);
+                        results.add(transaction);
+                    }
+                }
+            }
+        }
+
+        return results;
+    }
+
+    /**
+     * Batch delete transactions using BatchWriteItem
+     */
+    public void batchDelete(final List<String> transactionIds) {
+        if (transactionIds == null || transactionIds.isEmpty()) {
+            return;
+        }
+
+        final int batchSize = 25;
+        for (int i = 0; i < transactionIds.size(); i += batchSize) {
+            List<String> batch = transactionIds.subList(i, Math.min(i + batchSize, transactionIds.size()));
+
+            List<WriteRequest> writeRequests = batch.stream()
+                    .map(id -> {
+                        Map<String, AttributeValue> key = new HashMap<>();
+                        key.put("transactionId", AttributeValue.builder().s(id).build());
+                        return WriteRequest.builder()
+                                .deleteRequest(software.amazon.awssdk.services.dynamodb.model.DeleteRequest.builder()
+                                        .key(key)
+                                        .build())
+                                .build();
+                    })
+                    .collect(Collectors.toList());
+
+            Map<String, List<WriteRequest>> requestItems = new HashMap<>();
+            requestItems.put(TABLE_NAME, writeRequests);
+
+            BatchWriteItemRequest batchRequest = BatchWriteItemRequest.builder()
+                    .requestItems(requestItems)
+                    .build();
+
+            dynamoDbClient.batchWriteItem(batchRequest);
+        }
+    }
+
+    /**
+     * Convert AttributeValue map to TransactionTable
+     * Optimized conversion from DynamoDB AttributeValue maps to domain objects
+     */
+    private TransactionTable convertAttributeValueMapToTransaction(final Map<String, AttributeValue> item) {
+        TransactionTable transaction = new TransactionTable();
+
+        if (item.containsKey("transactionId")) {
+            transaction.setTransactionId(item.get("transactionId").s());
+        }
+        if (item.containsKey("userId")) {
+            transaction.setUserId(item.get("userId").s());
+        }
+        if (item.containsKey("accountId")) {
+            transaction.setAccountId(item.get("accountId").s());
+        }
+        if (item.containsKey("amount")) {
+            String amountStr = item.get("amount").n();
+            if (amountStr != null) {
+                transaction.setAmount(new java.math.BigDecimal(amountStr));
+            }
+        }
+        if (item.containsKey("description")) {
+            transaction.setDescription(item.get("description").s());
+        }
+        if (item.containsKey("merchantName")) {
+            transaction.setMerchantName(item.get("merchantName").s());
+        }
+        if (item.containsKey("category")) {
+            transaction.setCategory(item.get("category").s());
+        }
+        if (item.containsKey("transactionDate")) {
+            transaction.setTransactionDate(item.get("transactionDate").s());
+        }
+        if (item.containsKey("currencyCode")) {
+            transaction.setCurrencyCode(item.get("currencyCode").s());
+        }
+        if (item.containsKey("plaidTransactionId")) {
+            transaction.setPlaidTransactionId(item.get("plaidTransactionId").s());
+        }
+        if (item.containsKey("pending")) {
+            transaction.setPending(item.get("pending").bool());
+        }
+        if (item.containsKey("createdAt")) {
+            String timestamp = item.get("createdAt").n();
+            if (timestamp != null) {
+                transaction.setCreatedAt(Instant.ofEpochSecond(Long.parseLong(timestamp)));
+            }
+        }
+        if (item.containsKey("updatedAt")) {
+            String timestamp = item.get("updatedAt").n();
+            if (timestamp != null) {
+                transaction.setUpdatedAt(Instant.ofEpochSecond(Long.parseLong(timestamp)));
+            }
+        }
+
+        return transaction;
     }
 }

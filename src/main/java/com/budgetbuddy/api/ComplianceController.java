@@ -18,14 +18,18 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/compliance")
 public class ComplianceController {
 
-    @Autowired
-    private GDPRComplianceService gdprComplianceService;
+    private final GDPRComplianceService gdprComplianceService;
+    private final DMAComplianceService dmaComplianceService;
+    private final com.budgetbuddy.service.UserService userService;
 
-    @Autowired
-    private DMAComplianceService dmaComplianceService;
-
-    @Autowired
-    private com.budgetbuddy.service.UserService userService;
+    public ComplianceController(
+            final GDPRComplianceService gdprComplianceService,
+            final DMAComplianceService dmaComplianceService,
+            final com.budgetbuddy.service.UserService userService) {
+        this.gdprComplianceService = gdprComplianceService;
+        this.dmaComplianceService = dmaComplianceService;
+        this.userService = userService;
+    }
 
     /**
      * GDPR Article 15: Right to access

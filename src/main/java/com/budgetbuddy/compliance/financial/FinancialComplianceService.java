@@ -24,14 +24,17 @@ import java.util.Map;
 public class FinancialComplianceService {
 
     private static final Logger logger = LoggerFactory.getLogger(FinancialComplianceService.class);
-
-    @Autowired
-    private CloudWatchClient cloudWatchClient;
-
-    @Autowired
-    private com.budgetbuddy.compliance.AuditLogService auditLogService;
-
     private static final String NAMESPACE = "BudgetBuddy/FinancialCompliance";
+
+    private final CloudWatchClient cloudWatchClient;
+    private final com.budgetbuddy.compliance.AuditLogService auditLogService;
+
+    public FinancialComplianceService(
+            final CloudWatchClient cloudWatchClient,
+            final com.budgetbuddy.compliance.AuditLogService auditLogService) {
+        this.cloudWatchClient = cloudWatchClient;
+        this.auditLogService = auditLogService;
+    }
 
     /**
      * PCI DSS Requirement 3.4 - Render PAN unreadable

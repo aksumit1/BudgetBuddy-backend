@@ -27,11 +27,13 @@ public class StripeService {
 
     private static final Logger logger = LoggerFactory.getLogger(StripeService.class);
 
-    @Autowired
-    private PCIDSSComplianceService pciDSSComplianceService;
+    private final PCIDSSComplianceService pciDSSComplianceService;
 
-    public StripeService(@Value("${app.stripe.secret-key}") String secretKey) {
+    public StripeService(
+            @Value("${app.stripe.secret-key}") final String secretKey,
+            final PCIDSSComplianceService pciDSSComplianceService) {
         Stripe.apiKey = secretKey;
+        this.pciDSSComplianceService = pciDSSComplianceService;
     }
 
     /**
