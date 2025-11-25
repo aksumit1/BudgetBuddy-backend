@@ -13,8 +13,8 @@ import java.net.URI;
  * Test Configuration for DynamoDB
  * Uses LocalStack for local testing
  */
-@TestConfiguration
-public class TestConfiguration {
+@org.springframework.boot.test.context.TestConfiguration
+public class DynamoDBTestConfiguration {
 
     @Bean
     @Primary

@@ -1,8 +1,7 @@
 package com.budgetbuddy.api;
 
+import com.budgetbuddy.dto.AuthRequest;
 import com.budgetbuddy.dto.AuthResponse;
-import com.budgetbuddy.dto.LoginRequest;
-import com.budgetbuddy.dto.RegisterRequest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,7 +14,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@SpringBootTest
+@SpringBootTest(classes = com.budgetbuddy.BudgetBuddyApplication.class)
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 class AuthControllerIntegrationTest {
@@ -28,27 +27,25 @@ class AuthControllerIntegrationTest {
 
     @Test
     void testRegister_Success() throws Exception {
-        RegisterRequest request = new RegisterRequest();
+        AuthRequest request = new AuthRequest();
         request.setEmail("newuser@example.com");
-        request.setPassword("password123");
-        request.setFirstName("New");
-        request.setLastName("User");
+        request.setPasswordHash("hashed-password");
+        request.setSalt("client-salt");
 
         mockMvc.perform(post("/api/auth/register")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.token").exists())
-                .andExpect(jsonPath("$.userId").exists());
+                .andExpect(jsonPath("$.accessToken").exists())
+                .andExpect(jsonPath("$.user.id").exists());
     }
 
     @Test
     void testRegister_InvalidEmail() throws Exception {
-        RegisterRequest request = new RegisterRequest();
+        AuthRequest request = new AuthRequest();
         request.setEmail("invalid-email");
-        request.setPassword("password123");
-        request.setFirstName("Test");
-        request.setLastName("User");
+        request.setPasswordHash("hashed-password");
+        request.setSalt("client-salt");
 
         mockMvc.perform(post("/api/auth/register")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -59,11 +56,10 @@ class AuthControllerIntegrationTest {
     @Test
     void testLogin_Success() throws Exception {
         // First register a user
-        RegisterRequest registerRequest = new RegisterRequest();
+        AuthRequest registerRequest = new AuthRequest();
         registerRequest.setEmail("loginuser@example.com");
-        registerRequest.setPassword("password123");
-        registerRequest.setFirstName("Login");
-        registerRequest.setLastName("User");
+        registerRequest.setPasswordHash("hashed-password");
+        registerRequest.setSalt("client-salt");
 
         mockMvc.perform(post("/api/auth/register")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -71,23 +67,25 @@ class AuthControllerIntegrationTest {
                 .andExpect(status().isOk());
 
         // Then login
-        LoginRequest loginRequest = new LoginRequest();
+        AuthRequest loginRequest = new AuthRequest();
         loginRequest.setEmail("loginuser@example.com");
-        loginRequest.setPassword("password123");
+        loginRequest.setPasswordHash("hashed-password");
+        loginRequest.setSalt("client-salt");
 
         mockMvc.perform(post("/api/auth/login")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(loginRequest)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.token").exists())
-                .andExpect(jsonPath("$.userId").exists());
+                .andExpect(jsonPath("$.accessToken").exists())
+                .andExpect(jsonPath("$.user.id").exists());
     }
 
     @Test
     void testLogin_InvalidCredentials() throws Exception {
-        LoginRequest request = new LoginRequest();
+        AuthRequest request = new AuthRequest();
         request.setEmail("nonexistent@example.com");
-        request.setPassword("wrong-password");
+        request.setPasswordHash("wrong-hash");
+        request.setSalt("client-salt");
 
         mockMvc.perform(post("/api/auth/login")
                 .contentType(MediaType.APPLICATION_JSON)

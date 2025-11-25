@@ -5,7 +5,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 import software.amazon.awssdk.core.client.config.ClientOverrideConfiguration;
-import software.amazon.awssdk.core.retry.RetryPolicy;
+import software.amazon.awssdk.core.retry.RetryMode;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
@@ -32,7 +32,7 @@ public class DynamoDBConfig {
                 .region(Region.of(awsRegion))
                 .credentialsProvider(DefaultCredentialsProvider.create()) // Uses IAM role in ECS/EKS
                 .overrideConfiguration(ClientOverrideConfiguration.builder()
-                        .retryPolicy(RetryPolicy.builder()
+                        .retryPolicy(software.amazon.awssdk.core.retry.RetryPolicy.builder()
                                 .numRetries(3)
                                 .build())
                         .build());

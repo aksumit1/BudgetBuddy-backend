@@ -21,7 +21,7 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * Integration Tests for Budget Service
  */
-@SpringBootTest
+@SpringBootTest(classes = com.budgetbuddy.BudgetBuddyApplication.class)
 @ActiveProfiles("test")
 class BudgetIntegrationTest {
 

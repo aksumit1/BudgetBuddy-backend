@@ -76,5 +76,12 @@ public class AccountRepository {
         }
         return Optional.empty();
     }
+
+    public void delete(final String accountId) {
+        if (accountId == null || accountId.isEmpty()) {
+            throw new IllegalArgumentException("Account ID cannot be null or empty");
+        }
+        accountTable.deleteItem(Key.builder().partitionValue(accountId).build());
+    }
 }
 

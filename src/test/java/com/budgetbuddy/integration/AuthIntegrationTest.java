@@ -24,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * Integration Tests for Authentication
  * Tests end-to-end authentication flow
  */
-@SpringBootTest
+@SpringBootTest(classes = com.budgetbuddy.BudgetBuddyApplication.class)
 @ActiveProfiles("test")
 class AuthIntegrationTest {
 
@@ -80,8 +80,8 @@ class AuthIntegrationTest {
         assertNotNull(response);
         assertNotNull(response.getAccessToken());
         assertNotNull(response.getRefreshToken());
-        assertNotNull(response.getUserInfo());
-        assertEquals(testEmail, response.getUserInfo().getEmail());
+        assertNotNull(response.getUser());
+        assertEquals(testEmail, response.getUser().getEmail());
     }
 
     @Test

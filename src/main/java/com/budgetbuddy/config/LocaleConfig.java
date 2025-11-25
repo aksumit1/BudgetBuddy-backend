@@ -26,16 +26,16 @@ public class LocaleConfig {
                 Locale.US,      // en_US
                 Locale.UK,      // en_GB
                 Locale.FRANCE,  // fr_FR
-                new Locale("es", "ES"), // es_ES
+                Locale.forLanguageTag("es-ES"), // es_ES
                 Locale.GERMANY, // de_DE
                 Locale.ITALY,   // it_IT
                 Locale.JAPAN,   // ja_JP
                 Locale.SIMPLIFIED_CHINESE, // zh_CN
                 Locale.KOREA,   // ko_KR
-                new Locale("pt", "BR"), // pt_BR
-                new Locale("ru", "RU"), // ru_RU
-                new Locale("ar", "SA"), // ar_SA
-                new Locale("hi", "IN")  // hi_IN
+                Locale.forLanguageTag("pt-BR"), // pt_BR
+                Locale.forLanguageTag("ru-RU"), // ru_RU
+                Locale.forLanguageTag("ar-SA"), // ar_SA
+                Locale.forLanguageTag("hi-IN")  // hi_IN
         );
 
         resolver.setSupportedLocales(supportedLocales);

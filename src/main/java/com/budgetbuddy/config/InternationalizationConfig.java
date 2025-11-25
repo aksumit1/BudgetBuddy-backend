@@ -32,10 +32,10 @@ public class InternationalizationConfig {
                 Locale.JAPAN,   // Japanese
                 Locale.CHINA,   // Chinese (Simplified)
                 Locale.KOREA,   // Korean
-                new Locale("pt", "BR"), // Portuguese (Brazil)
-                new Locale("ru", "RU"), // Russian
-                new Locale("ar", "SA"), // Arabic
-                new Locale("hi", "IN")  // Hindi
+                Locale.forLanguageTag("pt-BR"), // Portuguese (Brazil)
+                Locale.forLanguageTag("ru-RU"), // Russian
+                Locale.forLanguageTag("ar-SA"), // Arabic
+                Locale.forLanguageTag("hi-IN")  // Hindi
         ));
         return resolver;
     }

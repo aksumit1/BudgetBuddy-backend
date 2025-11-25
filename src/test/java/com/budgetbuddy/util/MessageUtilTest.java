@@ -34,8 +34,8 @@ class MessageUtilTest {
 
     @Test
     void testGetMessage_WithValidKey_ReturnsMessage() {
-        // Given
-        when(messageSource.getMessage(eq("test.key"), isNull(), any(Locale.class)))
+        // Given - MessageUtil.getMessage calls messageSource.getMessage(code, args, code, locale)
+        when(messageSource.getMessage(eq("test.key"), isNull(), eq("test.key"), any(Locale.class)))
                 .thenReturn("Test message");
 
         // When
@@ -48,9 +48,9 @@ class MessageUtilTest {
 
     @Test
     void testGetMessage_WithArguments_ReturnsFormattedMessage() {
-        // Given
+        // Given - MessageUtil.getMessage calls messageSource.getMessage(code, args, code, locale)
         Object[] args = new Object[]{"John"};
-        when(messageSource.getMessage(eq("test.key"), eq(args), any(Locale.class)))
+        when(messageSource.getMessage(eq("test.key"), eq(args), eq("test.key"), any(Locale.class)))
                 .thenReturn("Hello John");
 
         // When
@@ -63,8 +63,8 @@ class MessageUtilTest {
 
     @Test
     void testGetErrorMessage_WithErrorCode_ReturnsMessage() {
-        // Given
-        when(messageSource.getMessage(eq("error.user.not.found"), isNull(), any(Locale.class)))
+        // Given - MessageUtil.getMessage calls messageSource.getMessage(code, args, code, locale)
+        when(messageSource.getMessage(eq("error.user.not.found"), isNull(), eq("error.user.not.found"), any(Locale.class)))
                 .thenReturn("User not found");
 
         // When
@@ -76,8 +76,8 @@ class MessageUtilTest {
 
     @Test
     void testGetValidationMessage_WithFieldName_ReturnsMessage() {
-        // Given
-        when(messageSource.getMessage(eq("validation.email"), isNull(), any(Locale.class)))
+        // Given - MessageUtil.getMessage calls messageSource.getMessage(code, args, code, locale)
+        when(messageSource.getMessage(eq("validation.email"), isNull(), eq("validation.email"), any(Locale.class)))
                 .thenReturn("Invalid email");
 
         // When

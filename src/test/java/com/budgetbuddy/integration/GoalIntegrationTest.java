@@ -21,7 +21,7 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * Integration Tests for Goal Service
  */
-@SpringBootTest
+@SpringBootTest(classes = com.budgetbuddy.BudgetBuddyApplication.class)
 @ActiveProfiles("test")
 class GoalIntegrationTest {
 

@@ -73,7 +73,7 @@ class AppConfigIntegrationTest {
         ReflectionTestUtils.setField(appConfigIntegration, "latestConfiguration", testConfig);
 
         // When
-        boolean value = appConfigIntegration.getConfigValueAsBoolean("featureEnabled", false);
+        boolean value = appConfigIntegration.getBooleanConfigValue("featureEnabled", false);
 
         // Then
         assertTrue(value);
@@ -86,7 +86,7 @@ class AppConfigIntegrationTest {
         ReflectionTestUtils.setField(appConfigIntegration, "latestConfiguration", testConfig);
 
         // When
-        int value = appConfigIntegration.getConfigValueAsInt("maxRetries", 3);
+        int value = appConfigIntegration.getIntConfigValue("maxRetries", 3);
 
         // Then
         assertEquals(5, value);
@@ -98,7 +98,7 @@ class AppConfigIntegrationTest {
         appConfigIntegration.cleanup();
 
         // Then - Should not throw exception
-        assertDoesNotThrow() -> appConfigIntegration.cleanup());
+        assertDoesNotThrow(() -> appConfigIntegration.cleanup());
     }
 }
 

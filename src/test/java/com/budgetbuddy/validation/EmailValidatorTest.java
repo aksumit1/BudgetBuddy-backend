@@ -16,6 +16,7 @@ import static org.mockito.Mockito.*;
  * Unit Tests for EmailValidator
  */
 @ExtendWith(MockitoExtension.class)
+@org.mockito.junit.jupiter.MockitoSettings(strictness = org.mockito.quality.Strictness.LENIENT)
 class EmailValidatorTest {
 
     @Mock

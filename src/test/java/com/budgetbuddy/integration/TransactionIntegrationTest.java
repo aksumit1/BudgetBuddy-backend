@@ -24,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * Integration Tests for Transaction Service
  * Tests with real DynamoDB (LocalStack)
  */
-@SpringBootTest
+@SpringBootTest(classes = com.budgetbuddy.BudgetBuddyApplication.class)
 @ActiveProfiles("test")
 class TransactionIntegrationTest {
 

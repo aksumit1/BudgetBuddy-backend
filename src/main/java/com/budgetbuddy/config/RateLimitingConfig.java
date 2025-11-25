@@ -2,7 +2,6 @@ package com.budgetbuddy.config;
 
 import io.github.bucket4j.Bandwidth;
 import io.github.bucket4j.Bucket;
-import io.github.bucket4j.Refill;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -24,17 +23,17 @@ public class RateLimitingConfig {
 
     @Bean
     public Bucket defaultBucket() {
-        // Per-minute limit
-        Bandwidth perMinuteLimit = Bandwidth.classic(
-                requestsPerMinute,
-                Refill.intervally(requestsPerMinute, Duration.ofMinutes(1))
-        );
+        // Per-minute limit (using new API without deprecated Refill)
+        Bandwidth perMinuteLimit = Bandwidth.builder()
+                .capacity(requestsPerMinute)
+                .refillIntervally(requestsPerMinute, Duration.ofMinutes(1))
+                .build();
 
-        // Per-hour limit
-        Bandwidth perHourLimit = Bandwidth.classic(
-                requestsPerHour,
-                Refill.intervally(requestsPerHour, Duration.ofHours(1))
-        );
+        // Per-hour limit (using new API without deprecated Refill)
+        Bandwidth perHourLimit = Bandwidth.builder()
+                .capacity(requestsPerHour)
+                .refillIntervally(requestsPerHour, Duration.ofHours(1))
+                .build();
 
         return Bucket.builder()
                 .addLimit(perMinuteLimit)
