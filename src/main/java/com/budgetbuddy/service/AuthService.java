@@ -82,15 +82,6 @@ public class AuthService {
                     user.getPasswordHash(),
                     serverSalt
             );
-        } else if (request.isLegacyFormat()) {
-            // Legacy format: plaintext password (for backward compatibility)
-            logger.warn("Legacy password format used for user: {}. User should update password.", request.getEmail());
-
-            // For legacy, we need to check if user has BCrypt hash (old format)
-            // This would require checking against the old User model
-            // For now, reject legacy format and require password reset
-            throw new AppException(ErrorCode.INVALID_CREDENTIALS,
-                    "Legacy password format not supported. Please reset your password.");
         } else {
             throw new AppException(ErrorCode.INVALID_INPUT,
                     "Either password_hash+salt or password must be provided");

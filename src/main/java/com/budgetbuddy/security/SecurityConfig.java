@@ -1,5 +1,8 @@
 package com.budgetbuddy.security;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -13,6 +16,7 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
@@ -24,18 +28,34 @@ import java.util.List;
 
 /**
  * Security configuration for the application
+ * Supports both JWT and OAuth2 authentication
+ * Production-ready with proper CORS restrictions
  */
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity(prePostEnabled = true)
 public class SecurityConfig {
 
+    private static final Logger logger = LoggerFactory.getLogger(SecurityConfig.class);
+
     private final UserDetailsService userDetailsService;
     private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
     private final JwtTokenProvider tokenProvider;
 
-    @Value("${app.security.cors.allowed-origins}")
-    private String[] allowedOrigins;
+    @Autowired(required = false)
+    private JwtDecoder jwtDecoder;
+
+    @Value("${app.security.cors.allowed-origins:}")
+    private String allowedOrigins;
+
+    @Value("${app.security.jwt.enabled:true}")
+    private boolean jwtEnabled;
+
+    @Value("${app.security.oauth2.enabled:false}")
+    private boolean oauth2Enabled;
+
+    @Value("${spring.profiles.active:}")
+    private String activeProfile;
 
     public SecurityConfig(final UserDetailsService userDetailsService, final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint, final JwtTokenProvider tokenProvider) {
         this.userDetailsService = userDetailsService;
@@ -50,7 +70,7 @@ public class SecurityConfig {
 
     @Bean
     public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
+        return new BCryptPasswordEncoder(12);
     }
 
     @Bean
@@ -76,15 +96,26 @@ public class SecurityConfig {
             .sessionManagement(session -> session
                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
+                .requestMatchers("/actuator/health", "/actuator/info").permitAll()
+                .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html", "/api-docs/**").permitAll()
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/api/public/**").permitAll()
-                .requestMatchers("/actuator/health").permitAll()
-                .requestMatchers("/swagger-ui/**", "/api-docs/**").permitAll()
+                .requestMatchers("/api/plaid/webhooks").permitAll()
                 .anyRequest().authenticated()
             );
 
-        http.authenticationProvider(authenticationProvider());
-        http.addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
+        // Configure OAuth2 if enabled
+        if (oauth2Enabled && jwtDecoder != null) {
+            http.oauth2ResourceServer(oauth2 -> oauth2
+                .jwt(jwt -> jwt.decoder(jwtDecoder))
+            );
+        }
+
+        // Configure JWT if enabled
+        if (jwtEnabled) {
+            http.authenticationProvider(authenticationProvider());
+            http.addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
+        }
 
         return http.build();
     }
@@ -92,11 +123,36 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.asList(allowedOrigins));
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+
+        // Configure allowed origins based on environment
+        boolean isProduction = activeProfile != null && activeProfile.contains("prod");
+
+        if (allowedOrigins != null && !allowedOrigins.isEmpty() && !allowedOrigins.equals("*")) {
+            List<String> origins = Arrays.asList(allowedOrigins.split(","));
+            configuration.setAllowedOrigins(origins);
+            logger.info("CORS configured with specific origins: {}", origins);
+        } else if (isProduction) {
+            // Production: require explicit origins
+            logger.warn("Production environment detected but CORS origins not configured. Defaulting to empty list.");
+            configuration.setAllowedOrigins(List.of());
+        } else {
+            // Development/Staging: allow all
+            configuration.setAllowedOrigins(List.of("*"));
+            logger.info("CORS configured to allow all origins (non-production environment)");
+        }
+
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(Arrays.asList("*"));
-        configuration.setAllowCredentials(true);
+        configuration.setExposedHeaders(Arrays.asList(
+                "Authorization",
+                "X-Request-ID",
+                "X-Rate-Limit-Remaining",
+                "X-Rate-Limit-Reset",
+                "X-Rate-Limit-Limit",
+                "X-API-Version"
+        ));
         configuration.setMaxAge(3600L);
+        configuration.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);

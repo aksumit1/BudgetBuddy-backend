@@ -35,36 +35,20 @@ public class AuthController {
 
     /**
      * Login endpoint
-     * Accepts both secure format (password_hash + salt) and legacy format (password)
+     * Accepts secure format (password_hash + salt)
      */
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody AuthRequest loginRequest) {
         // Validate request format
-        if (!loginRequest.isSecureFormat() && !loginRequest.isLegacyFormat()) {
+        if (!loginRequest.isSecureFormat()) {
             throw new AppException(ErrorCode.INVALID_INPUT,
-                    "Either password_hash+salt (secure) or password (legacy) must be provided");
-        }
-
-        // Reject legacy format in production (security best practice)
-        if (loginRequest.isLegacyFormat()) {
-            logger.warn("Legacy password format rejected for security. User should use password_hash format.");
-            throw new AppException(ErrorCode.INVALID_INPUT,
-                    "Legacy password format not supported. Please use password_hash and salt.");
+                    "password_hash and salt must be provided");
         }
 
         AuthResponse response = authService.authenticate(loginRequest);
         return ResponseEntity.ok(response);
     }
 
-    /**
-     * Legacy signin endpoint (for backward compatibility)
-     * @deprecated Use /login instead
-     */
-    @Deprecated
-    @PostMapping("/signin")
-    public ResponseEntity<AuthResponse> signin(@Valid @RequestBody AuthRequest loginRequest) {
-        return login(loginRequest);
-    }
 
     /**
      * Registration endpoint
@@ -96,15 +80,6 @@ public class AuthController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
-    /**
-     * Legacy signup endpoint (for backward compatibility)
-     * @deprecated Use /register instead
-     */
-    @Deprecated
-    @PostMapping("/signup")
-    public ResponseEntity<AuthResponse> signup(@Valid @RequestBody AuthRequest signUpRequest) {
-        return register(signUpRequest);
-    }
 
     /**
      * Refresh token endpoint

@@ -42,19 +42,23 @@ This guide ensures all infrastructure is optimized for AWS Free Tier to minimize
 
 **Cost Impact:** $0 for first 25 GB storage, then $0.25/GB
 
-### 4. **VPC Endpoints - Eliminate NAT Gateway Costs**
+### 4. **VPC Endpoints - All AWS Services (No NAT Gateway)**
 
 **Configuration:**
 - ✅ **DynamoDB VPC Endpoint** (Gateway - FREE)
 - ✅ **S3 VPC Endpoint** (Gateway - FREE)
 - ✅ **CloudWatch Logs VPC Endpoint** (Interface - ~$7/month)
 - ✅ **Secrets Manager VPC Endpoint** (Interface - ~$7/month)
-- ✅ NAT Gateways still needed for other traffic (can be removed if only using AWS services)
+- ✅ **ECR VPC Endpoint** (Interface - ~$7/month) - for Docker image pulls
+- ✅ **ECR API VPC Endpoint** (Interface - ~$7/month) - for ECR API calls
+- ✅ **CloudWatch Metrics VPC Endpoint** (Interface - ~$7/month) - for PutMetricData
+- ✅ **KMS VPC Endpoint** (Interface - ~$7/month) - for encryption/decryption
+- ✅ **NAT Gateway: REMOVED** - All AWS services accessed via VPC Endpoints
 
 **Cost Impact:** 
-- Gateway endpoints: FREE
-- Interface endpoints: ~$14/month (2 endpoints)
-- NAT Gateways: ~$32/month each (can be reduced to 1 for free tier)
+- Gateway endpoints (DynamoDB, S3): FREE
+- Interface endpoints: ~$35/month (5 endpoints: Logs, Secrets Manager, ECR, ECR API, CloudWatch Metrics, KMS)
+- NAT Gateways: $0 (removed - all traffic via VPC Endpoints)
 
 ### 5. **ECR - Free Tier**
 
@@ -106,18 +110,18 @@ This guide ensures all infrastructure is optimized for AWS Free Tier to minimize
 ### Paid Services (Minimal):
 - ECS Fargate: ~$7-10/month (1 task, 256 CPU, 512 MB)
 - ALB: ~$16/month
-- VPC Interface Endpoints: ~$14/month (2 endpoints)
-- NAT Gateway: ~$32/month (1 gateway, can be removed if using only AWS services)
+- VPC Interface Endpoints: ~$35/month (5 endpoints: Logs, Secrets Manager, ECR, ECR API, CloudWatch Metrics, KMS)
+- NAT Gateway: $0 (removed - all AWS services via VPC Endpoints)
 - Data Transfer: ~$0.09/GB (first 1 GB free)
 
-### Total Estimated Cost: **~$69-75/month**
+### Total Estimated Cost: **~$58-65/month**
 
-### To Reduce Further:
-1. Remove NAT Gateway (use only VPC endpoints): **Save ~$32/month**
-2. Remove VPC Interface Endpoints (use NAT Gateway): **Save ~$14/month**
-3. Use Fargate Spot for production: **Save ~$3-5/month** (but less reliable)
+### Cost Optimization Applied:
+1. ✅ **NAT Gateway removed** - All AWS services accessed via VPC Endpoints: **Saved ~$32/month**
+2. ✅ **VPC Gateway Endpoints** (DynamoDB, S3) - FREE: **Saved ~$0/month**
+3. ✅ **VPC Interface Endpoints** - Only for required AWS services: **Optimized**
 
-**Minimum Cost (with optimizations): ~$23-25/month**
+**Current Cost (fully optimized): ~$58-65/month**
 
 ---
 
@@ -190,9 +194,9 @@ aws ecs update-service \
 ### VPC Free Tier:
 - ✅ VPC, subnets, route tables: FREE
 - ✅ Internet Gateway: FREE
-- ✅ VPC Gateway Endpoints: FREE
-- ❌ NAT Gateway: ~$32/month
-- ❌ VPC Interface Endpoints: ~$7/month each
+- ✅ VPC Gateway Endpoints (DynamoDB, S3): FREE
+- ❌ VPC Interface Endpoints: ~$7/month each (5 endpoints: ~$35/month)
+- ✅ NAT Gateway: REMOVED (all AWS services via VPC Endpoints)
 
 ---
 
@@ -206,10 +210,11 @@ aws ecs update-service \
 5. ✅ **ECR**: Keep last 5 images (already configured)
 
 ### Optional Further Optimizations:
-1. **Remove NAT Gateway** (if only using AWS services):
-   - Use VPC Gateway Endpoints for DynamoDB and S3
-   - Use VPC Interface Endpoints for CloudWatch Logs and Secrets Manager
-   - **Savings**: ~$32/month
+1. ✅ **NAT Gateway Removed** (already applied):
+   - All AWS services accessed via VPC Endpoints
+   - Gateway Endpoints for DynamoDB and S3 (FREE)
+   - Interface Endpoints for CloudWatch Logs, Secrets Manager, ECR, CloudWatch Metrics, KMS
+   - **Savings**: ~$32/month (already applied)
 
 2. **Use Fargate Spot for Production**:
    - 70% cost savings
@@ -235,9 +240,11 @@ aws ecs update-service \
 - ✅ Minimal ECS task size (256 CPU, 512 MB)
 - ✅ Single ECS task (desired count: 1)
 - ✅ DynamoDB on-demand billing
-- ✅ CloudWatch 7-day retention
+- ✅ CloudWatch 3-day retention
 - ✅ ECR lifecycle policy (keep last 5)
-- ✅ VPC Gateway Endpoints (free)
+- ✅ VPC Gateway Endpoints (DynamoDB, S3 - free)
+- ✅ VPC Interface Endpoints (CloudWatch Logs, Secrets Manager, ECR, CloudWatch Metrics, KMS)
+- ✅ NAT Gateway removed (all AWS services via VPC Endpoints)
 
-**Estimated Monthly Cost:** ~$69-75/month (or ~$23-25/month with NAT Gateway removal)
+**Estimated Monthly Cost:** ~$58-65/month (NAT Gateway removed - all AWS services via VPC Endpoints)
 

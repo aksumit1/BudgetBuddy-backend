@@ -17,19 +17,11 @@ public final class AuthRequest {
     @Email(message = "Email should be valid")
     private String email;
 
-    // Legacy field - will be deprecated
-    private String password;
-
-    // New secure fields - client-side hashed password
+    // Secure fields - client-side hashed password
     private String passwordHash;
     private String salt;
 
     public AuthRequest() {
-    }
-
-    public AuthRequest(final String email, final String password) {
-        this.email = email;
-        this.password = password;
     }
 
     public AuthRequest(final String email, final String passwordHash,
@@ -45,20 +37,6 @@ public final class AuthRequest {
 
     public void setEmail(final String email) {
         this.email = email;
-    }
-
-    /**
-     * Legacy password field - deprecated
-     * @deprecated Use passwordHash and salt instead
-     */
-    @Deprecated
-    public String getPassword() {
-        return password;
-    }
-
-    @Deprecated
-    public void setPassword(final String password) {
-        this.password = password;
     }
 
     /**
@@ -89,13 +67,5 @@ public final class AuthRequest {
     public boolean isSecureFormat() {
         return passwordHash != null && !passwordHash.isEmpty()
                && salt != null && !salt.isEmpty();
-    }
-
-    /**
-     * Check if request uses legacy format (plaintext password)
-     */
-    public boolean isLegacyFormat() {
-        return password != null && !password.isEmpty()
-               && (passwordHash == null || passwordHash.isEmpty());
     }
 }

@@ -167,15 +167,6 @@ public class UserService {
         logger.info("Password changed for user: {}", user.getEmail());
     }
 
-    /**
-     * Change password (legacy format)
-     * @deprecated Use changePasswordSecure instead - Legacy JPA method removed
-     */
-    @Deprecated
-    public void changePassword(final String userId, final String newPassword) {
-        logger.warn("Legacy changePassword method called - use changePasswordSecure instead");
-        throw new UnsupportedOperationException("Legacy JPA method no longer supported. Use changePasswordSecure instead.");
-    }
 
     /**
      * Verify email
