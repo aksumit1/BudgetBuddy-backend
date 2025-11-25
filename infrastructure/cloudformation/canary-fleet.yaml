@@ -29,8 +29,13 @@ Parameters:
 
   CanaryPercentage:
     Type: Number
-    Default: 10
-    Description: Percentage of traffic to route to canary (0-100)
+    Default: 0
+    Description: Percentage of traffic to route to canary (0-100). Set to 0 for deployment-time testing only.
+  
+  DesiredCount:
+    Type: Number
+    Default: 0
+    Description: Desired count for canary service (0 = stopped, 1 = minimal for testing)
 
 Resources:
   # Canary Target Group
@@ -65,7 +70,7 @@ Resources:
       ServiceName: budgetbuddy-backend-canary
       Cluster: !Ref ClusterName
       TaskDefinition: !Ref CanaryTaskDefinition
-      DesiredCount: 1
+      DesiredCount: !Ref DesiredCount
       LaunchType: FARGATE
       PlatformVersion: LATEST
       NetworkConfiguration:

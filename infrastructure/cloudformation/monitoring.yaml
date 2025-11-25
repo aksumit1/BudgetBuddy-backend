@@ -1,0 +1,223 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'BudgetBuddy Backend - CloudWatch Monitoring and Alarms'
+
+Parameters:
+  Environment:
+    Type: String
+    Default: production
+    AllowedValues: [development, staging, production]
+    Description: Deployment environment
+  
+  ECSClusterName:
+    Type: String
+    Description: Name of the ECS cluster
+    Default: BudgetBuddy-cluster
+  
+  ALBArn:
+    Type: String
+    Description: ARN of the Application Load Balancer
+  
+  TargetGroupArn:
+    Type: String
+    Description: ARN of the ALB target group
+  
+  SnsTopicArn:
+    Type: String
+    Default: ''
+    Description: SNS topic ARN for alarm notifications (optional)
+
+Resources:
+  # CloudWatch Log Group for ECS
+  ECSLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/ecs/budgetbuddy-backend-${Environment}'
+      RetentionInDays: 7  # Reduced to 7 days for free tier cost optimization
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Service
+          Value: budgetbuddy-backend
+
+  # CloudWatch Dashboard
+  MonitoringDashboard:
+    Type: AWS::CloudWatch::Dashboard
+    Properties:
+      DashboardName: !Sub 'BudgetBuddy-${Environment}-Dashboard'
+      DashboardBody: !Sub |
+        {
+          "widgets": [
+            {
+              "type": "metric",
+              "properties": {
+                "metrics": [
+                  ["AWS/ECS", "CPUUtilization", {"stat": "Average", "label": "CPU Utilization"}],
+                  ["AWS/ECS", "MemoryUtilization", {"stat": "Average", "label": "Memory Utilization"}]
+                ],
+                "period": 300,
+                "stat": "Average",
+                "region": "${AWS::Region}",
+                "title": "ECS Service Metrics"
+              }
+            },
+            {
+              "type": "metric",
+              "properties": {
+                "metrics": [
+                  ["AWS/ApplicationELB", "RequestCount", {"stat": "Sum", "label": "Request Count"}],
+                  ["AWS/ApplicationELB", "TargetResponseTime", {"stat": "Average", "label": "Response Time"}]
+                ],
+                "period": 300,
+                "stat": "Average",
+                "region": "${AWS::Region}",
+                "title": "Load Balancer Metrics"
+              }
+            },
+            {
+              "type": "metric",
+              "properties": {
+                "metrics": [
+                  ["AWS/DynamoDB", "ConsumedReadCapacityUnits", {"stat": "Sum", "label": "Read Capacity"}],
+                  ["AWS/DynamoDB", "ConsumedWriteCapacityUnits", {"stat": "Sum", "label": "Write Capacity"}]
+                ],
+                "period": 300,
+                "stat": "Average",
+                "region": "${AWS::Region}",
+                "title": "DynamoDB Metrics"
+              }
+            },
+            {
+              "type": "metric",
+              "properties": {
+                "metrics": [
+                  ["AWS/ApplicationELB", "HTTPCode_Target_5XX_Count", {"stat": "Sum", "label": "5XX Errors"}],
+                  ["AWS/ApplicationELB", "HTTPCode_Target_4XX_Count", {"stat": "Sum", "label": "4XX Errors"}]
+                ],
+                "period": 300,
+                "stat": "Sum",
+                "region": "${AWS::Region}",
+                "title": "Error Rates"
+              }
+            }
+          ]
+        }
+
+  # SNS Topic for Alarms (if not provided)
+  AlarmSnsTopic:
+    Type: AWS::SNS::Topic
+    Condition: CreateSnsTopic
+    Properties:
+      TopicName: !Sub 'budgetbuddy-${Environment}-alarms'
+      DisplayName: !Sub 'BudgetBuddy ${Environment} Alarms'
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+
+  # ECS CPU High Alarm
+  ECSHighCPUAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub 'budgetbuddy-${Environment}-ecs-high-cpu'
+      AlarmDescription: Alert when ECS CPU utilization exceeds 80%
+      MetricName: CPUUtilization
+      Namespace: AWS/ECS
+      Statistic: Average
+      Period: 300
+      EvaluationPeriods: 2
+      Threshold: 80
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: ClusterName
+          Value: !Ref ECSClusterName
+      AlarmActions:
+        - !If [UseSnsTopic, !Ref SnsTopicArn, !Ref AlarmSnsTopic]
+
+  # ECS Memory High Alarm
+  ECSHighMemoryAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub 'budgetbuddy-${Environment}-ecs-high-memory'
+      AlarmDescription: Alert when ECS memory utilization exceeds 80%
+      MetricName: MemoryUtilization
+      Namespace: AWS/ECS
+      Statistic: Average
+      Period: 300
+      EvaluationPeriods: 2
+      Threshold: 80
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: ClusterName
+          Value: !Ref ECSClusterName
+      AlarmActions:
+        - !If [UseSnsTopic, !Ref SnsTopicArn, !Ref AlarmSnsTopic]
+
+  # ALB High Error Rate Alarm
+  ALBHighErrorRateAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub 'budgetbuddy-${Environment}-alb-high-errors'
+      AlarmDescription: Alert when ALB 5XX error rate exceeds threshold
+      MetricName: HTTPCode_Target_5XX_Count
+      Namespace: AWS/ApplicationELB
+      Statistic: Sum
+      Period: 60
+      EvaluationPeriods: 2
+      Threshold: 10
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: LoadBalancer
+          Value: !Ref ALBArn
+      AlarmActions:
+        - !If [UseSnsTopic, !Ref SnsTopicArn, !Ref AlarmSnsTopic]
+
+  # ALB High Response Time Alarm
+  ALBHighResponseTimeAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub 'budgetbuddy-${Environment}-alb-high-response-time'
+      AlarmDescription: Alert when ALB response time exceeds 2 seconds
+      MetricName: TargetResponseTime
+      Namespace: AWS/ApplicationELB
+      Statistic: Average
+      Period: 300
+      EvaluationPeriods: 2
+      Threshold: 2
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: LoadBalancer
+          Value: !Ref ALBArn
+      AlarmActions:
+        - !If [UseSnsTopic, !Ref SnsTopicArn, !Ref AlarmSnsTopic]
+
+  # Target Group Unhealthy Hosts Alarm
+  TargetGroupUnhealthyAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub 'budgetbuddy-${Environment}-tg-unhealthy'
+      AlarmDescription: Alert when target group has unhealthy targets
+      MetricName: UnHealthyHostCount
+      Namespace: AWS/ApplicationELB
+      Statistic: Average
+      Period: 60
+      EvaluationPeriods: 2
+      Threshold: 1
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: TargetGroup
+          Value: !Ref TargetGroupArn
+      AlarmActions:
+        - !If [UseSnsTopic, !Ref SnsTopicArn, !Ref AlarmSnsTopic]
+
+Conditions:
+  CreateSnsTopic: !Equals [!Ref SnsTopicArn, '']
+  UseSnsTopic: !Not [!Equals [!Ref SnsTopicArn, '']]
+
+Outputs:
+  DashboardUrl:
+    Description: URL to CloudWatch Dashboard
+    Value: !Sub 'https://${AWS::Region}.console.aws.amazon.com/cloudwatch/home?region=${AWS::Region}#dashboards:name=${MonitoringDashboard}'
+  
+  LogGroupName:
+    Description: Name of the ECS log group
+    Value: !Ref ECSLogGroup
+

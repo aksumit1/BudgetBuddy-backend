@@ -183,7 +183,7 @@ Resources:
     Properties:
       RouteTableId: !Ref PrivateRouteTable2
       DestinationCidrBlock: 0.0.0.0/0
-      NatGatewayId: !Ref NatGateway2
+      NatGatewayId: !Ref NatGateway1  # Use single NAT Gateway for free tier cost optimization
 
   PrivateSubnet2RouteTableAssociation:
     Type: AWS::EC2::SubnetRouteTableAssociation
@@ -471,11 +471,11 @@ Resources:
             "rules": [
               {
                 "rulePriority": 1,
-                "description": "Keep last 10 images",
+                "description": "Keep last 5 images for free tier cost optimization",
                 "selection": {
                   "tagStatus": "any",
                   "countType": "imageCountMoreThan",
-                  "countNumber": 10
+                  "countNumber": 5
                 },
                 "action": {
                   "type": "expire"
@@ -617,12 +617,12 @@ Resources:
         - Key: CostCenter
           Value: engineering
 
-  # Auto Scaling
-  ECSServiceAutoScalingTarget:
-    Type: AWS::ApplicationAutoScaling::ScalableTarget
-    Properties:
-      MaxCapacity: !If [IsProduction, 20, 5]
-      MinCapacity: !If [IsProduction, 2, 1]
+  # Auto Scaling (Disabled for free tier - can be enabled later)
+  # ECSServiceAutoScalingTarget:
+  #   Type: AWS::ApplicationAutoScaling::ScalableTarget
+  #   Properties:
+  #     MaxCapacity: !If [IsProduction, 20, 5]
+  #     MinCapacity: !If [IsProduction, 2, 1]
       ResourceId: !Sub 'service/${ECSCluster}/${ECSService}'
       RoleARN: !GetAtt AutoScalingRole.Arn
       ScalableDimension: ecs:service:DesiredCount
@@ -648,18 +648,19 @@ Resources:
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceAutoscaleRole
 
-  ECSServiceScaleUpPolicy:
-    Type: AWS::ApplicationAutoScaling::ScalingPolicy
-    Properties:
-      PolicyName: !Sub '${AWS::StackName}-scale-up'
-      PolicyType: TargetTrackingScaling
-      ScalingTargetId: !Ref ECSServiceAutoScalingTarget
-      TargetTrackingScalingPolicyConfiguration:
-        TargetValue: 70.0
-        PredefinedMetricSpecification:
-          PredefinedMetricType: ECSServiceAverageCPUUtilization
-        ScaleInCooldown: 300
-        ScaleOutCooldown: 60
+  # Auto Scaling Policy (Disabled for free tier - can be enabled later)
+  # ECSServiceScaleUpPolicy:
+  #   Type: AWS::ApplicationAutoScaling::ScalingPolicy
+  #   Properties:
+  #     PolicyName: !Sub '${AWS::StackName}-scale-up'
+  #     PolicyType: TargetTrackingScaling
+  #     ScalingTargetId: !Ref ECSServiceAutoScalingTarget
+  #     TargetTrackingScalingPolicyConfiguration:
+  #       TargetValue: 70.0
+  #       PredefinedMetricSpecification:
+  #         PredefinedMetricType: ECSServiceAverageCPUUtilization
+  #       ScaleInCooldown: 300
+  #       ScaleOutCooldown: 60
 
   # CloudWatch Alarms
   HighCPUAlarm:

@@ -1,5 +1,6 @@
 package com.budgetbuddy.notification;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -18,9 +19,11 @@ public class PushNotificationService {
     private static final Logger logger = LoggerFactory.getLogger(PushNotificationService.class);
 
     private final SnsClient snsClient;
+    private final ObjectMapper objectMapper;
 
-    public PushNotificationService(final SnsClient snsClient) {
+    public PushNotificationService(final SnsClient snsClient, final ObjectMapper objectMapper) {
         this.snsClient = snsClient;
+        this.objectMapper = objectMapper;
     }
 
     /**
@@ -105,19 +108,16 @@ public class PushNotificationService {
                     ),
                     "data", data != null ? data : Map.of()
             );
-            platforms.put("APNS", com.fasterxml.jackson.databind.ObjectMapper.class.newInstance()
-                    .writeValueAsString(apnsPayload));
+            platforms.put("APNS", objectMapper.writeValueAsString(apnsPayload));
 
             // GCM (Android) format
             Map<String, Object> gcmPayload = Map.of(
                     "notification", Map.of("title", title, "body", body),
                     "data", data != null ? data : Map.of()
             );
-            platforms.put("GCM", com.fasterxml.jackson.databind.ObjectMapper.class.newInstance()
-                    .writeValueAsString(gcmPayload));
+            platforms.put("GCM", objectMapper.writeValueAsString(gcmPayload));
 
-            return com.fasterxml.jackson.databind.ObjectMapper.class.newInstance()
-                    .writeValueAsString(platforms);
+            return objectMapper.writeValueAsString(platforms);
         } catch (Exception e) {
             logger.error("Failed to create platform message: {}", e.getMessage());
             return body;

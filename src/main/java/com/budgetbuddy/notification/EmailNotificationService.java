@@ -1,5 +1,6 @@
 package com.budgetbuddy.notification;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -20,10 +21,12 @@ public class EmailNotificationService {
 
     private final SesClient sesClient;
     private final String fromEmail;
+    private final ObjectMapper objectMapper;
 
-    public EmailNotificationService(final SesClient sesClient, @Value("${app.notifications.email.from:noreply@budgetbuddy.com}") String fromEmail) {
+    public EmailNotificationService(final SesClient sesClient, @Value("${app.notifications.email.from:noreply@budgetbuddy.com}") String fromEmail, final ObjectMapper objectMapper) {
         this.sesClient = sesClient;
         this.fromEmail = fromEmail;
+        this.objectMapper = objectMapper;
     }
 
     /**
@@ -72,8 +75,7 @@ public class EmailNotificationService {
     private boolean sendTemplatedEmail(final String toEmail, final String templateId, final Map<String, Object> templateData) {
         try {
             // Convert template data to JSON string
-            String templateDataJson = com.fasterxml.jackson.databind.ObjectMapper.class.newInstance()
-                    .writeValueAsString(templateData);
+            String templateDataJson = objectMapper.writeValueAsString(templateData);
 
             SendTemplatedEmailRequest request = SendTemplatedEmailRequest.builder()
                     .source(fromEmail)

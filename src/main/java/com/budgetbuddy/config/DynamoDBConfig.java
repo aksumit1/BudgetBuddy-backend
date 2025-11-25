@@ -32,9 +32,10 @@ public class DynamoDBConfig {
                 .region(Region.of(awsRegion))
                 .credentialsProvider(DefaultCredentialsProvider.create()) // Uses IAM role in ECS/EKS
                 .overrideConfiguration(ClientOverrideConfiguration.builder()
-                        .retryPolicy(software.amazon.awssdk.core.retry.RetryPolicy.builder()
-                                .numRetries(3)
-                                .build())
+                        .retryPolicy(software.amazon.awssdk.core.retry.RetryPolicy.standard(
+                                software.amazon.awssdk.core.retry.RetryPolicy.StandardRetryOptions.builder()
+                                        .maxAttempts(3)
+                                        .build()))
                         .build());
 
         // For local development with LocalStack

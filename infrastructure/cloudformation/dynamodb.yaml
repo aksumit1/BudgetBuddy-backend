@@ -1,0 +1,374 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'BudgetBuddy Backend - DynamoDB Tables Stack'
+
+Parameters:
+  Environment:
+    Type: String
+    Default: production
+    AllowedValues: [development, staging, production]
+    Description: Deployment environment
+  
+  TablePrefix:
+    Type: String
+    Default: BudgetBuddy
+    Description: Prefix for DynamoDB table names
+
+Resources:
+  # Users Table
+  UsersTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub '${TablePrefix}-Users'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: userId
+          AttributeType: S
+        - AttributeName: email
+          AttributeType: S
+      KeySchema:
+        - AttributeName: userId
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: EmailIndex
+          KeySchema:
+            - AttributeName: email
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+      StreamSpecification:
+        StreamViewType: NEW_AND_OLD_IMAGES
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Application
+          Value: BudgetBuddy
+        - Key: ManagedBy
+          Value: CloudFormation
+
+  # Accounts Table
+  AccountsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub '${TablePrefix}-Accounts'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: accountId
+          AttributeType: S
+        - AttributeName: userId
+          AttributeType: S
+        - AttributeName: plaidAccountId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: accountId
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: UserIdIndex
+          KeySchema:
+            - AttributeName: userId
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+        - IndexName: PlaidAccountIdIndex
+          KeySchema:
+            - AttributeName: plaidAccountId
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+      StreamSpecification:
+        StreamViewType: NEW_AND_OLD_IMAGES
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Application
+          Value: BudgetBuddy
+        - Key: ManagedBy
+          Value: CloudFormation
+
+  # Transactions Table
+  TransactionsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub '${TablePrefix}-Transactions'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: transactionId
+          AttributeType: S
+        - AttributeName: userId
+          AttributeType: S
+        - AttributeName: accountId
+          AttributeType: S
+        - AttributeName: transactionDate
+          AttributeType: S
+        - AttributeName: plaidTransactionId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: transactionId
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: UserIdTransactionDateIndex
+          KeySchema:
+            - AttributeName: userId
+              KeyType: HASH
+            - AttributeName: transactionDate
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+        - IndexName: AccountIdTransactionDateIndex
+          KeySchema:
+            - AttributeName: accountId
+              KeyType: HASH
+            - AttributeName: transactionDate
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+        - IndexName: PlaidTransactionIdIndex
+          KeySchema:
+            - AttributeName: plaidTransactionId
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+      StreamSpecification:
+        StreamViewType: NEW_AND_OLD_IMAGES
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Application
+          Value: BudgetBuddy
+        - Key: ManagedBy
+          Value: CloudFormation
+
+  # Budgets Table
+  BudgetsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub '${TablePrefix}-Budgets'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: budgetId
+          AttributeType: S
+        - AttributeName: userId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: budgetId
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: UserIdIndex
+          KeySchema:
+            - AttributeName: userId
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+      StreamSpecification:
+        StreamViewType: NEW_AND_OLD_IMAGES
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Application
+          Value: BudgetBuddy
+        - Key: ManagedBy
+          Value: CloudFormation
+
+  # Goals Table
+  GoalsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub '${TablePrefix}-Goals'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: goalId
+          AttributeType: S
+        - AttributeName: userId
+          AttributeType: S
+        - AttributeName: targetDate
+          AttributeType: S
+      KeySchema:
+        - AttributeName: goalId
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: UserIdTargetDateIndex
+          KeySchema:
+            - AttributeName: userId
+              KeyType: HASH
+            - AttributeName: targetDate
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+      StreamSpecification:
+        StreamViewType: NEW_AND_OLD_IMAGES
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Application
+          Value: BudgetBuddy
+        - Key: ManagedBy
+          Value: CloudFormation
+
+  # Audit Logs Table
+  AuditLogsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub '${TablePrefix}-AuditLogs'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: auditLogId
+          AttributeType: S
+        - AttributeName: userId
+          AttributeType: S
+        - AttributeName: createdAt
+          AttributeType: S
+        - AttributeName: action
+          AttributeType: S
+      KeySchema:
+        - AttributeName: auditLogId
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: UserIdCreatedAtIndex
+          KeySchema:
+            - AttributeName: userId
+              KeyType: HASH
+            - AttributeName: createdAt
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+        - IndexName: ActionCreatedAtIndex
+          KeySchema:
+            - AttributeName: action
+              KeyType: HASH
+            - AttributeName: createdAt
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+      StreamSpecification:
+        StreamViewType: NEW_AND_OLD_IMAGES
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Application
+          Value: BudgetBuddy
+        - Key: ManagedBy
+          Value: CloudFormation
+
+  # Rate Limit Table
+  RateLimitTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub '${TablePrefix}-RateLimit'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: key
+          AttributeType: S
+      KeySchema:
+        - AttributeName: key
+          KeyType: HASH
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Application
+          Value: BudgetBuddy
+        - Key: ManagedBy
+          Value: CloudFormation
+
+  # DDoS Protection Table
+  DDoSProtectionTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub '${TablePrefix}-DDoSProtection'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: ipAddress
+          AttributeType: S
+      KeySchema:
+        - AttributeName: ipAddress
+          KeyType: HASH
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Application
+          Value: BudgetBuddy
+        - Key: ManagedBy
+          Value: CloudFormation
+
+  # Device Attestation Table
+  DeviceAttestationTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub '${TablePrefix}-DeviceAttestation'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: deviceId
+          AttributeType: S
+        - AttributeName: userId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: deviceId
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: UserIdIndex
+          KeySchema:
+            - AttributeName: userId
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Application
+          Value: BudgetBuddy
+        - Key: ManagedBy
+          Value: CloudFormation
+
+Outputs:
+  UsersTableName:
+    Description: Name of the Users table
+    Value: !Ref UsersTable
+    Export:
+      Name: !Sub '${AWS::StackName}-UsersTable'
+  
+  AccountsTableName:
+    Description: Name of the Accounts table
+    Value: !Ref AccountsTable
+    Export:
+      Name: !Sub '${AWS::StackName}-AccountsTable'
+  
+  TransactionsTableName:
+    Description: Name of the Transactions table
+    Value: !Ref TransactionsTable
+    Export:
+      Name: !Sub '${AWS::StackName}-TransactionsTable'
+  
+  BudgetsTableName:
+    Description: Name of the Budgets table
+    Value: !Ref BudgetsTable
+    Export:
+      Name: !Sub '${AWS::StackName}-BudgetsTable'
+  
+  GoalsTableName:
+    Description: Name of the Goals table
+    Value: !Ref GoalsTable
+    Export:
+      Name: !Sub '${AWS::StackName}-GoalsTable'
+  
+  AuditLogsTableName:
+    Description: Name of the AuditLogs table
+    Value: !Ref AuditLogsTable
+    Export:
+      Name: !Sub '${AWS::StackName}-AuditLogsTable'
+

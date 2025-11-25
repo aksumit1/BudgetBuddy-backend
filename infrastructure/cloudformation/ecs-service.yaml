@@ -29,8 +29,8 @@ Parameters:
 
   DesiredCount:
     Type: Number
-    Default: 2
-    Description: Desired number of tasks
+    Default: 1
+    Description: Desired number of tasks (1 for free tier cost optimization)
 
   CPU:
     Type: Number
