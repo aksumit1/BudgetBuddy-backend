@@ -30,13 +30,7 @@ public class DynamoDBConfig {
     public DynamoDbClient dynamoDbClient() {
         var builder = DynamoDbClient.builder()
                 .region(Region.of(awsRegion))
-                .credentialsProvider(DefaultCredentialsProvider.create()) // Uses IAM role in ECS/EKS
-                .overrideConfiguration(ClientOverrideConfiguration.builder()
-                        .retryPolicy(software.amazon.awssdk.core.retry.RetryPolicy.standard(
-                                software.amazon.awssdk.core.retry.RetryPolicy.StandardRetryOptions.builder()
-                                        .maxAttempts(3)
-                                        .build()))
-                        .build());
+                .credentialsProvider(DefaultCredentialsProvider.create()); // Uses IAM role in ECS/EKS
 
         // For local development with LocalStack
         if (!dynamoDbEndpoint.isEmpty()) {
