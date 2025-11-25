@@ -69,7 +69,7 @@ public class TransactionSyncController {
         }
 
         UserTable user = userService.findByEmail(userDetails.getUsername())
-                .orElseThrow() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
 
         try {
             CompletableFuture<TransactionSyncService.SyncResult> future =
@@ -118,7 +118,7 @@ public class TransactionSyncController {
         }
 
         UserTable user = userService.findByEmail(userDetails.getUsername())
-                .orElseThrow() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
 
         try {
             CompletableFuture<TransactionSyncService.SyncResult> future =
@@ -165,7 +165,7 @@ public class TransactionSyncController {
         }
 
         UserTable user = userService.findByEmail(userDetails.getUsername())
-                .orElseThrow() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
 
         // In production, store sync status in database
         // For now, return a placeholder response

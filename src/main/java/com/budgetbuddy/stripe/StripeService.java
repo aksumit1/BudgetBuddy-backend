@@ -135,8 +135,14 @@ public class StripeService {
             // Build card details map for Stripe API
             Map<String, Object> cardMap = new HashMap<>();
             cardMap.put("number", cardDetails.get("number"));
-            cardMap.put("exp_month", (Number) cardDetails.get("expMonth")).longValue());
-            cardMap.put("exp_year", (Number) cardDetails.get("expYear")).longValue());
+            Object expMonthObj = cardDetails.get("expMonth");
+            Object expYearObj = cardDetails.get("expYear");
+            if (expMonthObj instanceof Number) {
+                cardMap.put("exp_month", ((Number) expMonthObj).longValue());
+            }
+            if (expYearObj instanceof Number) {
+                cardMap.put("exp_year", ((Number) expYearObj).longValue());
+            }
             cardMap.put("cvc", cardDetails.get("cvc"));
 
             PaymentMethodCreateParams params = PaymentMethodCreateParams.builder()
@@ -147,7 +153,8 @@ public class StripeService {
             PaymentMethod paymentMethod = PaymentMethod.create(params);
 
             // PCI-DSS: Mask and validate card number
-            String maskedCard = pciDSSComplianceService.maskPAN(String) cardDetails.get("number"));
+            String maskedCard = pciDSSComplianceService.maskPAN(
+                    (String) cardDetails.get("number"));
             // Note: logCardDataAccess is on auditLogService, not pciDSSComplianceService
 
             logger.info("Stripe: Payment method created - ID: {}, Type: {}",

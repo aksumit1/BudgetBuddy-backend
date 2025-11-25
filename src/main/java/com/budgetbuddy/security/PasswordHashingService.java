@@ -49,23 +49,21 @@ public class PasswordHashingService {
 
         try {
             // Generate server salt if not provided
-            if (serverSalt == null) {
-                serverSalt = generateSalt();
-            }
+            byte[] finalServerSalt = serverSalt != null ? serverSalt : generateSalt();
 
             // Decode client hash and salt
             byte[] clientHashBytes = Base64.getDecoder().decode(clientHash);
             byte[] clientSaltBytes = Base64.getDecoder().decode(clientSalt);
 
             // Combine client hash with server salt for additional security
-            byte[] combined = new byte[clientHashBytes.length + serverSalt.length];
+            byte[] combined = new byte[clientHashBytes.length + finalServerSalt.length];
             System.arraycopy(clientHashBytes, 0, combined, 0, clientHashBytes.length);
-            System.arraycopy(serverSalt, 0, combined, clientHashBytes.length, serverSalt.length);
+            System.arraycopy(finalServerSalt, 0, combined, clientHashBytes.length, finalServerSalt.length);
 
             // Perform server-side PBKDF2 hashing
             PBEKeySpec spec = new PBEKeySpec(
                     new String(combined, StandardCharsets.UTF_8).toCharArray(),
-                    serverSalt,
+                    finalServerSalt,
                     ITERATIONS,
                     KEY_LENGTH
             );
@@ -75,7 +73,7 @@ public class PasswordHashingService {
 
             return new PasswordHashResult(
                     Base64.getEncoder().encodeToString(serverHash),
-                    Base64.getEncoder().encodeToString(serverSalt)
+                    Base64.getEncoder().encodeToString(finalServerSalt)
             );
         } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
             logger.error("Failed to hash password", e);
@@ -97,14 +95,12 @@ public class PasswordHashingService {
 
         try {
             // Generate salt if not provided
-            if (salt == null) {
-                salt = generateSalt();
-            }
+            byte[] finalSalt = salt != null ? salt : generateSalt();
 
             // Perform PBKDF2 hashing
             PBEKeySpec spec = new PBEKeySpec(
                     plaintextPassword.toCharArray(),
-                    salt,
+                    finalSalt,
                     ITERATIONS,
                     KEY_LENGTH
             );
@@ -114,7 +110,7 @@ public class PasswordHashingService {
 
             return new PasswordHashResult(
                     Base64.getEncoder().encodeToString(hash),
-                    Base64.getEncoder().encodeToString(salt)
+                    Base64.getEncoder().encodeToString(finalSalt)
             );
         } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
             logger.error("Failed to hash password", e);

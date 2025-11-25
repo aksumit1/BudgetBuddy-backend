@@ -35,9 +35,9 @@ public class CodePipelineService {
                             .build());
 
             return response.stageStates().stream()
-                    .filter(stage -> !stage.latestExecution().statusAsString().equals("Succeeded"))
+                    .filter((stage) -> !stage.latestExecution().statusAsString().equals("Succeeded"))
                     .findFirst()
-                    .map(stage -> stage.latestExecution().statusAsString())
+                    .map((stage) -> stage.latestExecution().statusAsString())
                     .orElse("Succeeded");
         } catch (Exception e) {
             logger.error("Failed to get pipeline status: {}", e.getMessage());

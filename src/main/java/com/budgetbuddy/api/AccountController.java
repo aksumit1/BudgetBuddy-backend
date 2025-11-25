@@ -39,7 +39,7 @@ public class AccountController {
         }
 
         UserTable user = userService.findByEmail(userDetails.getUsername())
-                .orElseThrow() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
 
         if (user.getUserId() == null || user.getUserId().isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "User ID is invalid");
@@ -62,13 +62,26 @@ public class AccountController {
         }
 
         UserTable user = userService.findByEmail(userDetails.getUsername())
-                .orElseThrow() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
 
         AccountTable account = accountRepository.findById(id)
-                .orElseThrow() -> new AppException(ErrorCode.ACCOUNT_NOT_FOUND, "Account not found"));
+                .orElseThrow(() -> new AppException(ErrorCode.ACCOUNT_NOT_FOUND, "Account not found"));
 
         if (account.getUserId() == null || !account.getUserId().equals(user.getUserId())) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "Access to account denied", null, null, null);
+            // Use SECURITY_VIOLATION (8004) which maps to 403 Forbidden via ErrorCode range
+            // Preserve error context with user-friendly message and technical details
+            java.util.Map<String, Object> context = new java.util.HashMap<>();
+            context.put("accountId", account.getAccountId() != null
+                    ? account.getAccountId() : "unknown");
+            context.put("requestedUserId", account.getUserId() != null
+                    ? account.getUserId() : "unknown");
+            context.put("authenticatedUserId", user.getUserId() != null
+                    ? user.getUserId() : "unknown");
+            throw new AppException(ErrorCode.SECURITY_VIOLATION,
+                    "Access to account denied: User attempted to access account belonging to another user",
+                    context,
+                    "You don't have permission to access this account.",
+                    null);
         }
 
         return ResponseEntity.ok(account);

@@ -32,7 +32,7 @@ public class AnalyticsController {
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
         com.budgetbuddy.model.dynamodb.UserTable userTable = userService.findByEmail(userDetails.getUsername())
-                .orElseThrow() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new RuntimeException("User not found"));
 
         AnalyticsService.SpendingSummary summary = analyticsService.getSpendingSummary(userTable, startDate, endDate);
         return ResponseEntity.ok(summary);
@@ -44,7 +44,7 @@ public class AnalyticsController {
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
         com.budgetbuddy.model.dynamodb.UserTable userTable = userService.findByEmail(userDetails.getUsername())
-                .orElseThrow() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new RuntimeException("User not found"));
 
         Map<String, java.math.BigDecimal> categorySpending =
                 analyticsService.getSpendingByCategory(userTable, startDate, endDate);

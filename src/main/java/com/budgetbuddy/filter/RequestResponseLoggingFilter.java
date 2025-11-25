@@ -94,7 +94,7 @@ public class RequestResponseLoggingFilter extends OncePerRequestFilter {
 
             // Log headers (sanitized)
             StringBuilder headersLog = new StringBuilder();
-            Collections.list(request.getHeaderNames()).forEach(headerName -> {
+            Collections.list(request.getHeaderNames()).forEach((headerName) -> {
                 if (!SENSITIVE_HEADERS.contains(headerName.toLowerCase())) {
                     headersLog.append(headerName).append(": ").append(request.getHeader(headerName)).append("; ");
                 } else {
@@ -118,7 +118,7 @@ public class RequestResponseLoggingFilter extends OncePerRequestFilter {
 
             // Log headers (sanitized)
             StringBuilder headersLog = new StringBuilder();
-            response.getHeaderNames().forEach(headerName -> {
+            response.getHeaderNames().forEach((headerName) -> {
                 if (!SENSITIVE_HEADERS.contains(headerName.toLowerCase())) {
                     headersLog.append(headerName).append(": ").append(response.getHeader(headerName)).append("; ");
                 } else {

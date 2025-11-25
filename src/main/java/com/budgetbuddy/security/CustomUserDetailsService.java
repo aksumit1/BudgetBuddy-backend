@@ -29,7 +29,8 @@ public class CustomUserDetailsService implements UserDetailsService {
     @Override
     public UserDetails loadUserByUsername(final String email) throws UsernameNotFoundException {
         UserTable user = userRepository.findByEmail(email)
-                .orElseThrow() -> new UsernameNotFoundException("User not found with email: " + email));
+                .orElseThrow(() -> new UsernameNotFoundException(
+                        "User not found with email: " + email));
 
         return org.springframework.security.core.userdetails.User.builder()
                 .username(user.getEmail())
@@ -48,7 +49,7 @@ public class CustomUserDetailsService implements UserDetailsService {
             return Set.of(new SimpleGrantedAuthority("ROLE_USER"));
         }
         return roles.stream()
-                .map(role -> new SimpleGrantedAuthority("ROLE_" + role.toUpperCase()))
+                .map((role) -> new SimpleGrantedAuthority("ROLE_" + role.toUpperCase()))
                 .collect(Collectors.toList());
     }
 }

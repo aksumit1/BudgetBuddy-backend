@@ -53,7 +53,7 @@ public class AuthService {
 
         // Find user
         UserTable user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow() -> new AppException(ErrorCode.INVALID_CREDENTIALS, "Invalid email or password"));
+                .orElseThrow(() -> new AppException(ErrorCode.INVALID_CREDENTIALS, "Invalid email or password"));
 
         if (user.getEnabled() == null || !user.getEnabled()) {
             throw new AppException(ErrorCode.ACCOUNT_DISABLED, "Account is disabled");
@@ -107,7 +107,7 @@ public class AuthService {
         java.util.Collection<org.springframework.security.core.GrantedAuthority> authorities;
         if (roles != null && !roles.isEmpty()) {
             authorities = roles.stream()
-                    .map(role -> new SimpleGrantedAuthority("ROLE_" + role.toUpperCase()))
+                    .map((role) -> new SimpleGrantedAuthority("ROLE_" + role.toUpperCase()))
                     .collect(java.util.stream.Collectors.toList());
         } else {
             authorities = Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER"));
@@ -165,7 +165,7 @@ public class AuthService {
         }
 
         UserTable user = userRepository.findByEmail(email)
-                .orElseThrow() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
 
         if (user.getEnabled() == null || !user.getEnabled()) {
             throw new AppException(ErrorCode.ACCOUNT_DISABLED, "Account is disabled");
@@ -176,7 +176,7 @@ public class AuthService {
         java.util.Collection<org.springframework.security.core.GrantedAuthority> authorities;
         if (roles != null && !roles.isEmpty()) {
             authorities = roles.stream()
-                    .map(role -> new SimpleGrantedAuthority("ROLE_" + role.toUpperCase()))
+                    .map((role) -> new SimpleGrantedAuthority("ROLE_" + role.toUpperCase()))
                     .collect(java.util.stream.Collectors.toList());
         } else {
             authorities = Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER"));

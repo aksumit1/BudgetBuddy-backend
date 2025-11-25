@@ -112,7 +112,7 @@ public class TransactionService {
         return transactions.stream()
                 .filter(t -> t != null)
                 .map(TransactionTable::getAmount)
-                .filter(amount -> amount != null)
+                .filter((amount) -> amount != null)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
@@ -161,7 +161,7 @@ public class TransactionService {
         }
 
         AccountTable account = accountRepository.findById(accountId)
-                .orElseThrow() -> new AppException(ErrorCode.ACCOUNT_NOT_FOUND, "Account not found"));
+                .orElseThrow(() -> new AppException(ErrorCode.ACCOUNT_NOT_FOUND, "Account not found"));
 
         if (account.getUserId() == null || !account.getUserId().equals(user.getUserId())) {
             throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "Account does not belong to user");
@@ -195,7 +195,7 @@ public class TransactionService {
         }
 
         TransactionTable transaction = transactionRepository.findById(transactionId)
-                .orElseThrow() -> new AppException(ErrorCode.TRANSACTION_NOT_FOUND, "Transaction not found"));
+                .orElseThrow(() -> new AppException(ErrorCode.TRANSACTION_NOT_FOUND, "Transaction not found"));
 
         if (transaction.getUserId() == null || !transaction.getUserId().equals(user.getUserId())) {
             throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "Transaction does not belong to user");

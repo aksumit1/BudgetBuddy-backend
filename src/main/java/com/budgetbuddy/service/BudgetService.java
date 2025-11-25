@@ -77,7 +77,7 @@ public class BudgetService {
             BigDecimal currentSpent = transactions.stream()
                     .filter(t -> t != null && category.equals(t.getCategory()))
                     .map(TransactionTable::getAmount)
-                    .filter(amount -> amount != null)
+                    .filter((amount) -> amount != null)
                     .reduce(BigDecimal.ZERO, BigDecimal::add);
 
             budget.setCurrentSpent(currentSpent);
@@ -106,7 +106,7 @@ public class BudgetService {
         }
 
         BudgetTable budget = budgetRepository.findById(budgetId)
-                .orElseThrow() -> new AppException(ErrorCode.BUDGET_NOT_FOUND, "Budget not found"));
+                .orElseThrow(() -> new AppException(ErrorCode.BUDGET_NOT_FOUND, "Budget not found"));
 
         if (budget.getUserId() == null || !budget.getUserId().equals(user.getUserId())) {
             throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "Budget does not belong to user");
@@ -124,7 +124,7 @@ public class BudgetService {
         }
 
         BudgetTable budget = budgetRepository.findById(budgetId)
-                .orElseThrow() -> new AppException(ErrorCode.BUDGET_NOT_FOUND, "Budget not found"));
+                .orElseThrow(() -> new AppException(ErrorCode.BUDGET_NOT_FOUND, "Budget not found"));
 
         if (budget.getUserId() == null || !budget.getUserId().equals(user.getUserId())) {
             throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "Budget does not belong to user");

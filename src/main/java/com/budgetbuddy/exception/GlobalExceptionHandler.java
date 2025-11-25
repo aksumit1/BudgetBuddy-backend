@@ -83,7 +83,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleValidationException(
             MethodArgumentNotValidException ex, WebRequest request) {
         Map<String, String> errors = new HashMap<>();
-        ex.getBindingResult().getAllErrors().forEach(error -> {
+        ex.getBindingResult().getAllErrors().forEach((error) -> {
             // JDK 25: Enhanced pattern matching for instanceof
             if (error instanceof FieldError fieldError) {
                 String fieldName = fieldError.getField();

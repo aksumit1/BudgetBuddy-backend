@@ -82,7 +82,7 @@ public class EnhancedGlobalExceptionHandler {
         Locale locale = request.getLocale();
 
         Map<String, String> validationErrors = new HashMap<>();
-        ex.getBindingResult().getAllErrors().forEach(error -> {
+        ex.getBindingResult().getAllErrors().forEach((error) -> {
             // JDK 25: Enhanced pattern matching for instanceof
             if (error instanceof FieldError fieldError) {
                 String fieldName = fieldError.getField();
@@ -148,25 +148,27 @@ public class EnhancedGlobalExceptionHandler {
             return "An error occurred";
         }
 
+        String sanitized = message;
+
         // Remove stack traces
-        if (message.contains("at ") && message.contains("(")) {
-            message = message.split("\n")[0]; // Keep only first line
+        if (sanitized.contains("at ") && sanitized.contains("(")) {
+            sanitized = sanitized.split("\n")[0]; // Keep only first line
         }
 
         // Remove file paths
-        message = message.replaceAll("(/[^\\s]+/)+[^\\s]+\\.java:\\d+", "[file]");
-        message = message.replaceAll("C:\\\\[^\\s]+", "[file]");
+        sanitized = sanitized.replaceAll("(/[^\\s]+/)+[^\\s]+\\.java:\\d+", "[file]");
+        sanitized = sanitized.replaceAll("C:\\\\[^\\s]+", "[file]");
 
         // Remove internal package names (keep only public API)
-        message = message.replaceAll("com\\.budgetbuddy\\.internal\\.[^\\s]+", "[internal]");
+        sanitized = sanitized.replaceAll("com\\.budgetbuddy\\.internal\\.[^\\s]+", "[internal]");
 
         // Remove SQL details
-        message = message.replaceAll("SQL[^;]+;", "[SQL query]");
+        sanitized = sanitized.replaceAll("SQL[^;]+;", "[SQL query]");
 
         // Remove connection strings
-        message = message.replaceAll("jdbc:[^\\s]+", "[database connection]");
+        sanitized = sanitized.replaceAll("jdbc:[^\\s]+", "[database connection]");
 
-        return message;
+        return sanitized;
     }
 
     /**
@@ -178,7 +180,7 @@ public class EnhancedGlobalExceptionHandler {
         }
 
         Map<String, Object> sanitized = new HashMap<>();
-        technicalDetails.forEach(key, value) -> {
+        technicalDetails.forEach((key, value) -> {
             // Only include safe technical details
             if (key != null && !key.toLowerCase().contains("password")
                     && !key.toLowerCase().contains("secret")

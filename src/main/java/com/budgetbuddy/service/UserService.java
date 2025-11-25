@@ -84,15 +84,6 @@ public class UserService {
         return user;
     }
 
-    /**
-     * Create user with legacy format (plaintext password) - for backward compatibility
-     * @deprecated Use createUserSecure instead - Legacy JPA method removed, migration complete
-     */
-    @Deprecated
-    public void createUser(final String email, final String password, final String firstName, final String lastName) {
-        logger.warn("Legacy createUser method called - use createUserSecure instead");
-        throw new UnsupportedOperationException("Legacy JPA method no longer supported. Use createUserSecure instead.");
-    }
 
     /**
      * Find user by email (DynamoDB)
@@ -114,37 +105,7 @@ public class UserService {
         return dynamoDBUserRepository.findById(userId);
     }
 
-    /**
-     * Find user by email (Legacy JPA)
-     * @deprecated Legacy JPA method removed, migration complete
-     */
-    @Deprecated
-    public Optional<com.budgetbuddy.model.User> findByEmailLegacy(String email) {
-        logger.warn("Legacy findByEmailLegacy method called - use findByEmail instead");
-        // Convert DynamoDB UserTable to legacy User model if needed
-        Optional<UserTable> userTable = findByEmail(email);
-        return userTable.map(this::convertToLegacyUser);
-    }
 
-    /**
-     * Find user by ID (Legacy JPA)
-     * @deprecated Legacy JPA method removed, migration complete
-     */
-    @Deprecated
-    public Optional<com.budgetbuddy.model.User> findByIdLegacy(String id) {
-        logger.warn("Legacy findByIdLegacy method called - use findById instead");
-        Optional<UserTable> userTable = findById(id);
-        return userTable.map(this::convertToLegacyUser);
-    }
-
-    /**
-     * Convert UserTable to legacy User model (for backward compatibility)
-     */
-    private com.budgetbuddy.model.User convertToLegacyUser(UserTable userTable) {
-        // This is a placeholder - would need to create User entity from UserTable
-        // For now, throw exception to force migration
-        throw new UnsupportedOperationException("Legacy User model no longer supported. Use UserTable instead.");
-    }
 
     /**
      * Update user
@@ -190,7 +151,7 @@ public class UserService {
         }
 
         UserTable user = dynamoDBUserRepository.findById(userId)
-                .orElseThrow() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
 
         // Perform server-side hashing
         PasswordHashingService.PasswordHashResult result = passwordHashingService.hashClientPassword(
@@ -224,7 +185,7 @@ public class UserService {
             throw new AppException(ErrorCode.INVALID_INPUT, "User ID is required");
         }
         UserTable user = dynamoDBUserRepository.findById(userId)
-                .orElseThrow() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
         user.setEmailVerified(true);
         user.setUpdatedAt(Instant.now());
         dynamoDBUserRepository.save(user);

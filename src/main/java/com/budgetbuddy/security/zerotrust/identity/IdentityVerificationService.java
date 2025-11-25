@@ -27,7 +27,7 @@ public class IdentityVerificationService {
      */
     public boolean verifyIdentity(final String userId) {
         return userRepository.findById(userId)
-                .map(user -> {
+                .map((user) -> {
                     // Check if user is enabled
                     if (user.getEnabled() == null || !user.getEnabled()) {
                         logger.warn("Identity verification failed: User disabled - {}", userId);
@@ -50,7 +50,7 @@ public class IdentityVerificationService {
      */
     public boolean hasPermission(final String userId, final String resource, final String action) {
         return userRepository.findById(userId)
-                .map(user -> {
+                .map((user) -> {
                     Set<String> roles = user.getRoles();
                     if (roles == null || roles.isEmpty()) {
                         return false;

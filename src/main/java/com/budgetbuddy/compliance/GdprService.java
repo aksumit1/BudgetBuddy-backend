@@ -56,7 +56,7 @@ public class GdprService {
      */
     public String exportUserData(final String userId) {
         var userTable = userRepository.findById(userId)
-                .orElseThrow() -> new IllegalArgumentException("User not found"));
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
         try {
             // Collect all user data using DynamoDB repositories
@@ -126,7 +126,7 @@ public class GdprService {
             long sevenYearsAgo = java.time.Instant.now().minusSeconds(7L * 365 * 24 * 60 * 60).getEpochSecond() * 1000;
             long now = System.currentTimeMillis();
             auditLogRepository.findByUserIdAndDateRange(userId, sevenYearsAgo, now)
-                    .forEach(log -> {
+                    .forEach((log) -> {
                         log.setUserId(null);
                         log.setIpAddress("REDACTED");
                         log.setUserAgent("REDACTED");

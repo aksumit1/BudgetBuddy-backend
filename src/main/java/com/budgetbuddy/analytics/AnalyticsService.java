@@ -67,7 +67,7 @@ public class AnalyticsService {
         List<TransactionTable> transactions = transactionService.getTransactionsInRange(user, startDate, endDate);
 
         Map<String, BigDecimal> categorySpending = new HashMap<>();
-        transactions.forEach(transaction -> {
+        transactions.forEach((transaction) -> {
             String category = transaction.getCategory();
             if (category != null) {
                 BigDecimal amount = transaction.getAmount();

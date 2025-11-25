@@ -134,7 +134,7 @@ public class DDoSProtectionService {
             synchronized (this) {
                 // Double-check pattern
                 if (now - lastCacheCleanup > CACHE_CLEANUP_INTERVAL_MS) {
-                    inMemoryCache.entrySet().removeIf(entry -> entry.getValue().isExpired());
+                    inMemoryCache.entrySet().removeIf((entry) -> entry.getValue().isExpired());
                     lastCacheCleanup = now;
                 }
             }
@@ -237,7 +237,7 @@ public class DDoSProtectionService {
      */
     private void blockIpInDynamoDBAsync(final String ipAddress) {
         // Use a separate thread to avoid blocking
-        new Thread() -> blockIpInDynamoDB(ipAddress), "ddos-block-async").start();
+        new Thread(() -> blockIpInDynamoDB(ipAddress), "ddos-block-async").start();
     }
 
     /**

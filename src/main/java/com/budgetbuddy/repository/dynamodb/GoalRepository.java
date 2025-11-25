@@ -13,7 +13,6 @@ import software.amazon.awssdk.core.pagination.sync.SdkIterable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 /**
  * DynamoDB Repository for Goals
@@ -34,12 +33,12 @@ public class GoalRepository {
         goalTable.putItem(goal);
     }
 
-    public Optional<GoalTable> findById(String goalId) {
+    public Optional<GoalTable> findById(final String goalId) {
         GoalTable goal = goalTable.getItem(Key.builder().partitionValue(goalId).build());
         return Optional.ofNullable(goal);
     }
 
-    public List<GoalTable> findByUserId(String userId) {
+    public List<GoalTable> findByUserId(final String userId) {
         List<GoalTable> results = new ArrayList<>();
         SdkIterable<software.amazon.awssdk.enhanced.dynamodb.model.Page<GoalTable>> pages =
                 userIdIndex.query(QueryConditional.keyEqualTo(Key.builder().partitionValue(userId).build()));
@@ -50,7 +49,7 @@ public class GoalRepository {
                 }
             }
         }
-        results.sort(g1, g2) -> g1.getTargetDate().compareTo(g2.getTargetDate()));
+        results.sort((g1, g2) -> g1.getTargetDate().compareTo(g2.getTargetDate()));
         return results;
     }
 

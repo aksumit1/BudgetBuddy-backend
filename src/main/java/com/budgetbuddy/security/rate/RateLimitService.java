@@ -132,7 +132,7 @@ public class RateLimitService {
             synchronized (this) {
                 // Double-check pattern
                 if (now - lastCacheCleanup > CACHE_CLEANUP_INTERVAL_MS) {
-                    inMemoryCache.entrySet().removeIf(entry -> entry.getValue().isExpired());
+                    inMemoryCache.entrySet().removeIf((entry) -> entry.getValue().isExpired());
                     lastCacheCleanup = now;
                 }
             }
@@ -208,7 +208,7 @@ public class RateLimitService {
      * Async update to avoid blocking the request thread
      */
     private void updateDynamoDBAsync(final String key, final TokenBucket bucket) {
-        new Thread() -> updateDynamoDB(key, bucket), "ratelimit-update-async").start();
+        new Thread(() -> updateDynamoDB(key, bucket), "ratelimit-update-async").start();
     }
 
     private void initializeTable() {
