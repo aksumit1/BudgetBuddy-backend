@@ -154,13 +154,13 @@ Resources:
               Value: 'false'
           Secrets:
             - Name: JWT_SECRET
-              ValueFrom: !Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:budgetbuddy/jwt-secret'
+              ValueFrom: !Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:budgetbuddy/${Environment}/jwt-secret'
             - Name: PLAID_CLIENT_ID
-              ValueFrom: !Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:budgetbuddy/plaid:clientId::'
+              ValueFrom: !Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:budgetbuddy/${Environment}/plaid:clientId::'
             - Name: PLAID_SECRET
-              ValueFrom: !Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:budgetbuddy/plaid:secret::'
+              ValueFrom: !Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:budgetbuddy/${Environment}/plaid:secret::'
             - Name: STRIPE_SECRET_KEY
-              ValueFrom: !Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:budgetbuddy/stripe:secretKey::'
+              ValueFrom: !Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:budgetbuddy/${Environment}/stripe:secretKey::'
           LogConfiguration:
             LogDriver: awslogs
             Options:
