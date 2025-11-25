@@ -212,27 +212,37 @@ public class StripeService {
 
     /**
      * Handle Stripe Exceptions
+     * @param e Stripe exception
+     * @param operation Operation name
      */
-    private void handleStripeException(final StripeException e, final String operation) {
-        logger.error("Stripe API error in {}: {} - {}", operation, e.getCode(), e.getMessage());
+    private void handleStripeException(
+            final StripeException e, final String operation) {
+        logger.error("Stripe API error in {}: {} - {}",
+                operation, e.getCode(), e.getMessage());
 
         // Map Stripe error codes to our error codes
         switch (e.getCode()) {
             case "card_declined":
-                throw new AppException(ErrorCode.STRIPE_CARD_DECLINED, e.getMessage());
+                throw new AppException(ErrorCode.STRIPE_CARD_DECLINED,
+                        e.getMessage());
             case "insufficient_funds":
-                throw new AppException(ErrorCode.STRIPE_INSUFFICIENT_FUNDS, e.getMessage());
+                throw new AppException(ErrorCode.STRIPE_INSUFFICIENT_FUNDS,
+                        e.getMessage());
             case "invalid_card":
-                throw new AppException(ErrorCode.STRIPE_INVALID_CARD, e.getMessage());
+                throw new AppException(ErrorCode.STRIPE_INVALID_CARD,
+                        e.getMessage());
             case "rate_limit":
-                throw new AppException(ErrorCode.STRIPE_RATE_LIMIT_EXCEEDED, e.getMessage());
+                throw new AppException(ErrorCode.STRIPE_RATE_LIMIT_EXCEEDED,
+                        e.getMessage());
             case "api_key_expired":
             case "authentication_required":
-                throw new AppException(ErrorCode.STRIPE_INVALID_API_KEY, e.getMessage());
+                throw new AppException(ErrorCode.STRIPE_INVALID_API_KEY,
+                        e.getMessage());
             default:
                 // JDK 25: String template for better readability
                 String errorMsg = "Stripe API error: " + e.getMessage();
-                throw new AppException(ErrorCode.STRIPE_CONNECTION_FAILED,
+                throw new AppException(
+                        ErrorCode.STRIPE_CONNECTION_FAILED,
                         errorMsg, null, null, e);
         }
     }
