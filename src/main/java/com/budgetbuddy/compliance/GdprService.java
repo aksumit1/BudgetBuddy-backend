@@ -10,6 +10,8 @@ import org.springframework.stereotype.Service;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.ObjectOutputStream;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.zip.GZIPOutputStream;
 
 /**
@@ -61,7 +63,8 @@ public class GdprService {
         try {
             // Collect all user data using DynamoDB repositories
             UserDataExport export = new UserDataExport();
-            // TODO: Convert UserTable to User domain model
+            // Convert UserTable to User domain model and set in export
+            export.setUser(convertUserTable(userTable));
             export.setAccounts(accountRepository.findByUserId(userId).stream()
                     .map(this::convertAccountTable).collect(java.util.stream.Collectors.toList()));
             export.setTransactions(transactionRepository.findByUserId(userId, 0, Integer.MAX_VALUE).stream()
@@ -143,10 +146,57 @@ public class GdprService {
         }
     }
 
-    // Helper methods to convert table models to domain models (stubs for now)
+    // Helper methods to convert table models to domain models
     private User convertUserTable(final com.budgetbuddy.model.dynamodb.UserTable userTable) {
-        // TODO: Implement conversion
-        return new User();
+        if (userTable == null) {
+            return null;
+        }
+        User user = new User();
+        user.setEmail(userTable.getEmail());
+        // Note: Password hash is not exported for security (GDPR compliance)
+        // Only export non-sensitive user information
+        user.setFirstName(userTable.getFirstName());
+        user.setLastName(userTable.getLastName());
+        user.setPhoneNumber(userTable.getPhoneNumber());
+        user.setEnabled(userTable.getEnabled());
+        user.setEmailVerified(userTable.getEmailVerified());
+        user.setTwoFactorEnabled(userTable.getTwoFactorEnabled());
+        user.setPreferredCurrency(userTable.getPreferredCurrency());
+        user.setTimezone(userTable.getTimezone());
+        
+        // Convert Set<String> roles to Set<Role>
+        if (userTable.getRoles() != null) {
+            Set<User.Role> roleSet = new HashSet<>();
+            for (String roleStr : userTable.getRoles()) {
+                try {
+                    roleSet.add(User.Role.valueOf(roleStr));
+                } catch (IllegalArgumentException e) {
+                    // Skip invalid role values
+                    logger.warn("Invalid role value in user data: {}", roleStr);
+                }
+            }
+            user.setRoles(roleSet);
+        }
+        
+        // Convert Instant to LocalDateTime
+        if (userTable.getCreatedAt() != null) {
+            user.setCreatedAt(java.time.LocalDateTime.ofInstant(
+                    userTable.getCreatedAt(), java.time.ZoneId.systemDefault()));
+        }
+        if (userTable.getUpdatedAt() != null) {
+            user.setUpdatedAt(java.time.LocalDateTime.ofInstant(
+                    userTable.getUpdatedAt(), java.time.ZoneId.systemDefault()));
+        }
+        if (userTable.getLastLoginAt() != null) {
+            user.setLastLoginAt(java.time.LocalDateTime.ofInstant(
+                    userTable.getLastLoginAt(), java.time.ZoneId.systemDefault()));
+        }
+        if (userTable.getPasswordChangedAt() != null) {
+            user.setPasswordChangedAt(java.time.LocalDateTime.ofInstant(
+                    userTable.getPasswordChangedAt(), java.time.ZoneId.systemDefault()));
+        }
+        
+        return user;
     }
 
     private com.budgetbuddy.model.Account convertAccountTable(com.budgetbuddy.model.dynamodb.AccountTable accountTable) {
