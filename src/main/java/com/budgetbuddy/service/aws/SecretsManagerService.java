@@ -20,7 +20,7 @@ public class SecretsManagerService {
 
     private final SecretsManagerClient secretsManagerClient;
 
-    public SecretsManagerService(SecretsManagerClient secretsManagerClient) {
+    public SecretsManagerService(final SecretsManagerClient secretsManagerClient) {
         this.secretsManagerClient = secretsManagerClient;
     }
 
@@ -28,7 +28,7 @@ public class SecretsManagerService {
      * Get secret value with caching to reduce API calls
      */
     @Cacheable(value = "secrets", key = "#secretName")
-    public String getSecret(String secretName) {
+    public String getSecret((final String secretName) {
         try {
             GetSecretValueRequest request = GetSecretValueRequest.builder()
                     .secretId(secretName)

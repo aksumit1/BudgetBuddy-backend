@@ -105,7 +105,7 @@ class BudgetControllerTest {
     }
 
     // Helper methods
-    private BudgetTable createBudget(String id) {
+    private BudgetTable createBudget((final String id) {
         BudgetTable budget = new BudgetTable();
         budget.setBudgetId(id);
         budget.setUserId("user-123");

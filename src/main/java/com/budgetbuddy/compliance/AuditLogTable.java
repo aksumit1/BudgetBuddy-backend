@@ -30,7 +30,7 @@ public class AuditLogTable {
         return auditLogId;
     }
 
-    public void setAuditLogId(String auditLogId) {
+    public void setAuditLogId(final String auditLogId) {
         this.auditLogId = auditLogId;
     }
 
@@ -40,7 +40,7 @@ public class AuditLogTable {
         return userId;
     }
 
-    public void setUserId(String userId) {
+    public void setUserId(final String userId) {
         this.userId = userId;
     }
 
@@ -50,7 +50,7 @@ public class AuditLogTable {
         return createdAt;
     }
 
-    public void setCreatedAt(Long createdAt) {
+    public void setCreatedAt(final Long createdAt) {
         this.createdAt = createdAt;
     }
 
@@ -59,7 +59,7 @@ public class AuditLogTable {
         return action;
     }
 
-    public void setAction(String action) {
+    public void setAction(final String action) {
         this.action = action;
     }
 
@@ -68,7 +68,7 @@ public class AuditLogTable {
         return resourceType;
     }
 
-    public void setResourceType(String resourceType) {
+    public void setResourceType(final String resourceType) {
         this.resourceType = resourceType;
     }
 
@@ -77,7 +77,7 @@ public class AuditLogTable {
         return resourceId;
     }
 
-    public void setResourceId(String resourceId) {
+    public void setResourceId(final String resourceId) {
         this.resourceId = resourceId;
     }
 
@@ -86,7 +86,7 @@ public class AuditLogTable {
         return details;
     }
 
-    public void setDetails(String details) {
+    public void setDetails(final String details) {
         this.details = details;
     }
 
@@ -95,7 +95,7 @@ public class AuditLogTable {
         return ipAddress;
     }
 
-    public void setIpAddress(String ipAddress) {
+    public void setIpAddress(final String ipAddress) {
         this.ipAddress = ipAddress;
     }
 
@@ -104,7 +104,7 @@ public class AuditLogTable {
         return userAgent;
     }
 
-    public void setUserAgent(String userAgent) {
+    public void setUserAgent(final String userAgent) {
         this.userAgent = userAgent;
     }
 }

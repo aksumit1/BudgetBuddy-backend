@@ -26,26 +26,32 @@ public class AccountRepository {
     private final DynamoDbIndex<AccountTable> plaidAccountIdIndex;
     private static final String TABLE_NAME = "BudgetBuddy-Accounts";
 
-    public AccountRepository(DynamoDbEnhancedClient enhancedClient) {
-        this.accountTable = enhancedClient.table(TABLE_NAME, TableSchema.fromBean(AccountTable.class));
+    public AccountRepository(final DynamoDbEnhancedClient enhancedClient) {
+        this.accountTable = enhancedClient.table(TABLE_NAME,
+                TableSchema.fromBean(AccountTable.class));
         this.userIdIndex = accountTable.index("UserIdIndex");
-        this.plaidAccountIdIndex = accountTable.index("PlaidAccountIdIndex");
+        this.plaidAccountIdIndex =
+                accountTable.index("PlaidAccountIdIndex");
     }
 
-    public void save(AccountTable account) {
+    public void save((final AccountTable account) {
         accountTable.putItem(account);
     }
 
     public Optional<AccountTable> findById(String accountId) {
-        AccountTable account = accountTable.getItem(Key.builder().partitionValue(accountId).build());
+        AccountTable account = accountTable.getItem(
+                Key.builder().partitionValue(accountId).build());
         return Optional.ofNullable(account);
     }
 
     public List<AccountTable> findByUserId(String userId) {
         List<AccountTable> results = new ArrayList<>();
-        SdkIterable<software.amazon.awssdk.enhanced.dynamodb.model.Page<AccountTable>> pages = 
-                userIdIndex.query(QueryConditional.keyEqualTo(Key.builder().partitionValue(userId).build()));
-        for (software.amazon.awssdk.enhanced.dynamodb.model.Page<AccountTable> page : pages) {
+        SdkIterable<software.amazon.awssdk.enhanced.dynamodb.model.Page<AccountTable>>
+                pages = userIdIndex.query(
+                        QueryConditional.keyEqualTo(
+                                Key.builder().partitionValue(userId).build()));
+        for (software.amazon.awssdk.enhanced.dynamodb.model.Page<AccountTable>
+                page : pages) {
             for (AccountTable account : page.items()) {
                 if (account.getActive() != null && account.getActive()) {
                     results.add(account);
@@ -56,9 +62,14 @@ public class AccountRepository {
     }
 
     public Optional<AccountTable> findByPlaidAccountId(String plaidAccountId) {
-        SdkIterable<software.amazon.awssdk.enhanced.dynamodb.model.Page<AccountTable>> pages = 
-                plaidAccountIdIndex.query(QueryConditional.keyEqualTo(Key.builder().partitionValue(plaidAccountId).build()));
-        for (software.amazon.awssdk.enhanced.dynamodb.model.Page<AccountTable> page : pages) {
+        SdkIterable<software.amazon.awssdk.enhanced.dynamodb.model.Page<AccountTable>>
+                pages = plaidAccountIdIndex.query(
+                        QueryConditional.keyEqualTo(
+                                Key.builder()
+                                        .partitionValue(plaidAccountId)
+                                        .build()));
+        for (software.amazon.awssdk.enhanced.dynamodb.model.Page<AccountTable>
+                page : pages) {
             for (AccountTable item : page.items()) {
                 return Optional.of(item);
             }

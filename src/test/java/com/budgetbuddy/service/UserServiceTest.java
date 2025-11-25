@@ -49,7 +49,7 @@ class UserServiceTest {
     @Test
     void testCreateUserSecure_WithValidData_CreatesUser() {
         // Given
-        PasswordHashingService.PasswordHashResult serverHash = 
+        PasswordHashingService.PasswordHashResult serverHash =
                 new PasswordHashingService.PasswordHashResult("server-hash", "server-salt");
         when(passwordHashingService.hashClientPassword(anyString(), anyString(), isNull()))
                 .thenReturn(serverHash);
@@ -152,7 +152,7 @@ class UserServiceTest {
     void testChangePasswordSecure_WithValidData_UpdatesPassword() {
         // Given
         UserTable user = createTestUser();
-        PasswordHashingService.PasswordHashResult newHash = 
+        PasswordHashingService.PasswordHashResult newHash =
                 new PasswordHashingService.PasswordHashResult("new-hash", "new-salt");
         when(userRepository.findById("user-123")).thenReturn(Optional.of(user));
         when(passwordHashingService.hashClientPassword(anyString(), anyString(), isNull()))

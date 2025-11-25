@@ -74,7 +74,7 @@ public class AWSMonitoringController {
         }
 
         String lookupUserId = userId != null ? userId : user.getUserId();
-        List<software.amazon.awssdk.services.cloudtrail.model.Event> events = 
+        List<software.amazon.awssdk.services.cloudtrail.model.Event> events =
                 cloudTrailService.lookupEvents(lookupUserId, startTime, endTime);
         return ResponseEntity.ok(events);
     }
@@ -92,7 +92,7 @@ public class AWSMonitoringController {
             return ResponseEntity.status(403).build();
         }
 
-        List<software.amazon.awssdk.services.cloudformation.model.StackSummary> stacks = 
+        List<software.amazon.awssdk.services.cloudformation.model.StackSummary> stacks =
                 cloudFormationService.listStacks();
         return ResponseEntity.ok(stacks);
     }
@@ -115,8 +115,8 @@ public class AWSMonitoringController {
         return ResponseEntity.ok(Map.of("pipelineName", pipelineName, "status", status));
     }
 
-    private boolean hasMonitoringAccess(com.budgetbuddy.model.dynamodb.UserTable user) {
-        return user.getRoles() != null && 
+    private boolean hasMonitoringAccess((final com.budgetbuddy.model.dynamodb.UserTable user) {
+        return user.getRoles() != null &&
                (user.getRoles().contains("ADMIN") || user.getRoles().contains("MONITORING"));
     }
 }

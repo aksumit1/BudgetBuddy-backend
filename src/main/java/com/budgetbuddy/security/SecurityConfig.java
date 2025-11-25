@@ -37,10 +37,7 @@ public class SecurityConfig {
     @Value("${app.security.cors.allowed-origins}")
     private String[] allowedOrigins;
 
-    public SecurityConfig(
-            UserDetailsService userDetailsService,
-            JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint,
-            JwtTokenProvider tokenProvider) {
+    public SecurityConfig(final UserDetailsService userDetailsService, final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint, final JwtTokenProvider tokenProvider) {
         this.userDetailsService = userDetailsService;
         this.jwtAuthenticationEntryPoint = jwtAuthenticationEntryPoint;
         this.tokenProvider = tokenProvider;
@@ -65,12 +62,12 @@ public class SecurityConfig {
     }
 
     @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration authConfig) throws Exception {
+    public AuthenticationManager authenticationManager((final AuthenticationConfiguration authConfig) throws Exception {
         return authConfig.getAuthenticationManager();
     }
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain filterChain((final HttpSecurity http) throws Exception {
         http
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .csrf(csrf -> csrf.disable())

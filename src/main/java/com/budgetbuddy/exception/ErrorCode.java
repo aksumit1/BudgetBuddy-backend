@@ -83,7 +83,9 @@ public enum ErrorCode {
     INSUFFICIENT_BALANCE(9001, "Insufficient balance"),
     TRANSACTION_LIMIT_EXCEEDED(9002, "Transaction limit exceeded"),
     BUDGET_EXCEEDED(9003, "Budget exceeded"),
+    BUDGET_NOT_FOUND(9003, "Budget not found"), // Alias for BUDGET_EXCEEDED
     GOAL_NOT_ACHIEVABLE(9004, "Goal not achievable"),
+    GOAL_NOT_FOUND(9004, "Goal not found"), // Alias for GOAL_NOT_ACHIEVABLE
     INVALID_TRANSACTION(9005, "Invalid transaction"),
 
     // System Errors (10xxx)

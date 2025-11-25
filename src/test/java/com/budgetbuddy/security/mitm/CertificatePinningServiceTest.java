@@ -29,7 +29,7 @@ class CertificatePinningServiceTest {
     void testCertificatePinning_WhenEnabled_ValidatesCertificates() {
         // Given
         assertTrue(service != null);
-        
+
         // When/Then - Service should be initialized
         assertNotNull(service);
     }

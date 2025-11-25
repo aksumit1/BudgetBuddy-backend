@@ -20,7 +20,7 @@ import java.util.Map;
 /**
  * Global Exception Handler
  * Provides comprehensive error handling and user-friendly error responses
- * 
+ *
  * Features:
  * - Centralized exception handling
  * - Audit logging
@@ -33,7 +33,7 @@ public class GlobalExceptionHandler {
     private static final Logger logger = LoggerFactory.getLogger(GlobalExceptionHandler.class);
     private final AuditLogService auditLogService;
 
-    public GlobalExceptionHandler(AuditLogService auditLogService) {
+    public GlobalExceptionHandler(final AuditLogService auditLogService) {
         this.auditLogService = auditLogService;
     }
 
@@ -84,8 +84,9 @@ public class GlobalExceptionHandler {
             MethodArgumentNotValidException ex, WebRequest request) {
         Map<String, String> errors = new HashMap<>();
         ex.getBindingResult().getAllErrors().forEach(error -> {
-            if (error instanceof FieldError) {
-                String fieldName = ((FieldError) error).getField();
+            // JDK 25: Enhanced pattern matching for instanceof
+            if (error instanceof FieldError fieldError) {
+                String fieldName = fieldError.getField();
                 String errorMessage = error.getDefaultMessage();
                 errors.put(fieldName, errorMessage != null ? errorMessage : "Invalid value");
             } else {
@@ -193,7 +194,7 @@ public class GlobalExceptionHandler {
     /**
      * Extract user ID from request
      */
-    private String getUserIdFromRequest(WebRequest request) {
+    private String getUserIdFromRequest((final WebRequest request) {
         // Extract user ID from request (e.g., from JWT token in SecurityContext)
         // This is a simplified version - in production, extract from SecurityContext
         try {
@@ -208,7 +209,7 @@ public class GlobalExceptionHandler {
     /**
      * Extract client IP from request
      */
-    private String getClientIp(WebRequest request) {
+    private String getClientIp((final WebRequest request) {
         String ip = request.getHeader("X-Forwarded-For");
         if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
             ip = request.getHeader("X-Real-IP");
@@ -222,7 +223,7 @@ public class GlobalExceptionHandler {
     /**
      * Extract correlation ID from request
      */
-    private String getCorrelationId(WebRequest request) {
+    private String getCorrelationId((final WebRequest request) {
         String correlationId = request.getHeader("X-Correlation-ID");
         return correlationId != null && !correlationId.isEmpty() ? correlationId : null;
     }
@@ -240,8 +241,7 @@ public class GlobalExceptionHandler {
         private final String requestId;
         private final String correlationId;
 
-        public ErrorResponse(ErrorCode errorCode, String userMessage, String technicalMessage,
-                           Instant timestamp, Map<String, Object> context, String path, String correlationId) {
+        public ErrorResponse(final ErrorCode errorCode, final String userMessage, final String technicalMessage, final Instant timestamp, final Map<String, Object> context, final String path, final String correlationId) {
             this.errorCode = errorCode;
             this.userMessage = userMessage;
             this.technicalMessage = technicalMessage;

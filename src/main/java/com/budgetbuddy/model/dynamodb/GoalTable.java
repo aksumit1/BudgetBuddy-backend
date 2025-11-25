@@ -34,7 +34,7 @@ public class GoalTable {
         return goalId;
     }
 
-    public void setGoalId(String goalId) {
+    public void setGoalId(final String goalId) {
         this.goalId = goalId;
     }
 
@@ -44,7 +44,7 @@ public class GoalTable {
         return userId;
     }
 
-    public void setUserId(String userId) {
+    public void setUserId(final String userId) {
         this.userId = userId;
     }
 
@@ -53,7 +53,7 @@ public class GoalTable {
         return name;
     }
 
-    public void setName(String name) {
+    public void setName(final String name) {
         this.name = name;
     }
 
@@ -62,7 +62,7 @@ public class GoalTable {
         return description;
     }
 
-    public void setDescription(String description) {
+    public void setDescription(final String description) {
         this.description = description;
     }
 
@@ -71,7 +71,7 @@ public class GoalTable {
         return targetAmount;
     }
 
-    public void setTargetAmount(BigDecimal targetAmount) {
+    public void setTargetAmount(final BigDecimal targetAmount) {
         this.targetAmount = targetAmount;
     }
 
@@ -80,7 +80,7 @@ public class GoalTable {
         return currentAmount;
     }
 
-    public void setCurrentAmount(BigDecimal currentAmount) {
+    public void setCurrentAmount(final BigDecimal currentAmount) {
         this.currentAmount = currentAmount;
     }
 
@@ -89,7 +89,7 @@ public class GoalTable {
         return targetDate;
     }
 
-    public void setTargetDate(String targetDate) {
+    public void setTargetDate(final String targetDate) {
         this.targetDate = targetDate;
     }
 
@@ -98,7 +98,7 @@ public class GoalTable {
         return monthlyContribution;
     }
 
-    public void setMonthlyContribution(BigDecimal monthlyContribution) {
+    public void setMonthlyContribution(final BigDecimal monthlyContribution) {
         this.monthlyContribution = monthlyContribution;
     }
 
@@ -107,7 +107,7 @@ public class GoalTable {
         return goalType;
     }
 
-    public void setGoalType(String goalType) {
+    public void setGoalType(final String goalType) {
         this.goalType = goalType;
     }
 
@@ -116,7 +116,7 @@ public class GoalTable {
         return currencyCode;
     }
 
-    public void setCurrencyCode(String currencyCode) {
+    public void setCurrencyCode(final String currencyCode) {
         this.currencyCode = currencyCode;
     }
 
@@ -125,7 +125,7 @@ public class GoalTable {
         return active;
     }
 
-    public void setActive(Boolean active) {
+    public void setActive(final Boolean active) {
         this.active = active;
     }
 
@@ -134,7 +134,7 @@ public class GoalTable {
         return createdAt;
     }
 
-    public void setCreatedAt(Instant createdAt) {
+    public void setCreatedAt(final Instant createdAt) {
         this.createdAt = createdAt;
     }
 
@@ -143,7 +143,7 @@ public class GoalTable {
         return updatedAt;
     }
 
-    public void setUpdatedAt(Instant updatedAt) {
+    public void setUpdatedAt(final Instant updatedAt) {
         this.updatedAt = updatedAt;
     }
 }

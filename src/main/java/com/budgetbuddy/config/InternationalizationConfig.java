@@ -28,7 +28,7 @@ public class InternationalizationConfig {
                 Locale.FRANCE,  // French
                 Locale.GERMANY, // German
                 Locale.ITALY,   // Italian
-                Locale.SPAIN,   // Spanish
+                Locale.forLanguageTag("es-ES"),   // Spanish
                 Locale.JAPAN,   // Japanese
                 Locale.CHINA,   // Chinese (Simplified)
                 Locale.KOREA,   // Korean

@@ -36,7 +36,7 @@ public class TransactionTable {
         return transactionId;
     }
 
-    public void setTransactionId(String transactionId) {
+    public void setTransactionId(final String transactionId) {
         this.transactionId = transactionId;
     }
 
@@ -46,7 +46,7 @@ public class TransactionTable {
         return userId;
     }
 
-    public void setUserId(String userId) {
+    public void setUserId(final String userId) {
         this.userId = userId;
     }
 
@@ -56,7 +56,7 @@ public class TransactionTable {
         return transactionDate;
     }
 
-    public void setTransactionDate(String transactionDate) {
+    public void setTransactionDate(final String transactionDate) {
         this.transactionDate = transactionDate;
     }
 
@@ -65,7 +65,7 @@ public class TransactionTable {
         return accountId;
     }
 
-    public void setAccountId(String accountId) {
+    public void setAccountId(final String accountId) {
         this.accountId = accountId;
     }
 
@@ -74,7 +74,7 @@ public class TransactionTable {
         return amount;
     }
 
-    public void setAmount(BigDecimal amount) {
+    public void setAmount(final BigDecimal amount) {
         this.amount = amount;
     }
 
@@ -83,7 +83,7 @@ public class TransactionTable {
         return description;
     }
 
-    public void setDescription(String description) {
+    public void setDescription(final String description) {
         this.description = description;
     }
 
@@ -92,7 +92,7 @@ public class TransactionTable {
         return merchantName;
     }
 
-    public void setMerchantName(String merchantName) {
+    public void setMerchantName(final String merchantName) {
         this.merchantName = merchantName;
     }
 
@@ -101,7 +101,7 @@ public class TransactionTable {
         return category;
     }
 
-    public void setCategory(String category) {
+    public void setCategory(final String category) {
         this.category = category;
     }
 
@@ -110,7 +110,7 @@ public class TransactionTable {
         return currencyCode;
     }
 
-    public void setCurrencyCode(String currencyCode) {
+    public void setCurrencyCode(final String currencyCode) {
         this.currencyCode = currencyCode;
     }
 
@@ -120,7 +120,7 @@ public class TransactionTable {
         return plaidTransactionId;
     }
 
-    public void setPlaidTransactionId(String plaidTransactionId) {
+    public void setPlaidTransactionId(final String plaidTransactionId) {
         this.plaidTransactionId = plaidTransactionId;
     }
 
@@ -129,7 +129,7 @@ public class TransactionTable {
         return pending;
     }
 
-    public void setPending(Boolean pending) {
+    public void setPending(final Boolean pending) {
         this.pending = pending;
     }
 
@@ -138,7 +138,7 @@ public class TransactionTable {
         return createdAt;
     }
 
-    public void setCreatedAt(Instant createdAt) {
+    public void setCreatedAt(final Instant createdAt) {
         this.createdAt = createdAt;
     }
 
@@ -147,7 +147,7 @@ public class TransactionTable {
         return updatedAt;
     }
 
-    public void setUpdatedAt(Instant updatedAt) {
+    public void setUpdatedAt(final Instant updatedAt) {
         this.updatedAt = updatedAt;
     }
 }

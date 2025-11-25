@@ -42,7 +42,7 @@ class NotificationServiceTest {
     void setUp() {
         ReflectionTestUtils.setField(notificationService, "snsTopicArn", "arn:aws:sns:us-east-1:123456789:test-topic");
         ReflectionTestUtils.setField(notificationService, "notificationsEnabled", true);
-        
+
         testRequest = new NotificationRequest();
         testRequest.setUserId("user-123");
         testRequest.setTitle("Test Notification");

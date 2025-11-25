@@ -18,7 +18,7 @@ import java.util.concurrent.CompletableFuture;
 /**
  * Transaction Sync Service
  * Handles real-time and scheduled transaction synchronization
- * 
+ *
  * Features:
  * - Full and incremental sync
  * - Async processing
@@ -45,7 +45,7 @@ public class TransactionSyncService {
     @Async
     public CompletableFuture<SyncResult> syncTransactions(String userId, String accessToken) {
         if (userId == null || userId.isEmpty() || accessToken == null || accessToken.isEmpty()) {
-            logger.error("Invalid parameters for transaction sync: userId={}, accessToken={}", 
+            logger.error("Invalid parameters for transaction sync: userId={}, accessToken={}",
                     userId != null ? "present" : "null", accessToken != null ? "present" : "null");
             SyncResult errorResult = new SyncResult();
             errorResult.setErrorCount(1);
@@ -58,7 +58,7 @@ public class TransactionSyncService {
             // Get transactions from last 30 days
             LocalDate endDate = LocalDate.now();
             LocalDate startDate = endDate.minusDays(DEFAULT_SYNC_DAYS);
-            
+
             var plaidResponse = plaidService.getTransactions(
                     accessToken,
                     startDate.format(DATE_FORMATTER),
@@ -112,7 +112,7 @@ public class TransactionSyncService {
             result.setErrorCount(errorCount);
             result.setTotalProcessed(newCount + updatedCount + errorCount);
 
-            logger.info("Transaction sync completed for user: {} - New: {}, Updated: {}, Errors: {}", 
+            logger.info("Transaction sync completed for user: {} - New: {}, Updated: {}, Errors: {}",
                     userId, newCount, updatedCount, errorCount);
 
             return CompletableFuture.completedFuture(result);
@@ -129,7 +129,7 @@ public class TransactionSyncService {
      * Sync transactions incrementally (only new/updated)
      */
     @Async
-    public CompletableFuture<SyncResult> syncIncremental(String userId, String accessToken, 
+    public CompletableFuture<SyncResult> syncIncremental(String userId, String accessToken,
                                                          LocalDate sinceDate) {
         if (userId == null || userId.isEmpty() || accessToken == null || accessToken.isEmpty()) {
             logger.error("Invalid parameters for incremental sync");
@@ -146,7 +146,7 @@ public class TransactionSyncService {
             logger.info("Starting incremental transaction sync for user: {} since: {}", userId, sinceDate);
 
             LocalDate endDate = LocalDate.now();
-            
+
             var plaidResponse = plaidService.getTransactions(
                     accessToken,
                     sinceDate.format(DATE_FORMATTER),
@@ -205,7 +205,7 @@ public class TransactionSyncService {
     /**
      * Extract Plaid transaction ID from Plaid transaction object
      */
-    private String extractPlaidTransactionId(Object plaidTransaction) {
+    private String extractPlaidTransactionId((final Object plaidTransaction) {
         // In production, properly extract transaction ID from Plaid transaction object
         // This is a placeholder - actual implementation depends on Plaid SDK structure
         try {
@@ -220,7 +220,7 @@ public class TransactionSyncService {
     /**
      * Create TransactionTable from Plaid transaction
      */
-    private TransactionTable createTransactionFromPlaid(String userId, Object plaidTransaction) {
+    private TransactionTable createTransactionFromPlaid((final String userId, final Object plaidTransaction) {
         TransactionTable transaction = new TransactionTable();
         transaction.setTransactionId(java.util.UUID.randomUUID().toString());
         transaction.setUserId(userId);
@@ -234,7 +234,7 @@ public class TransactionSyncService {
     /**
      * Update TransactionTable from Plaid transaction
      */
-    private void updateTransactionFromPlaid(TransactionTable transaction, Object plaidTransaction) {
+    private void updateTransactionFromPlaid((final TransactionTable transaction, final Object plaidTransaction) {
         // Update transaction fields from Plaid
         // In production, properly map all fields from Plaid transaction
         transaction.setUpdatedAt(java.time.Instant.now());
@@ -251,14 +251,14 @@ public class TransactionSyncService {
         private String errorMessage;
 
         public int getNewCount() { return newCount; }
-        public void setNewCount(int newCount) { this.newCount = newCount; }
+        public void setNewCount(final int newCount) { this.newCount = newCount; }
         public int getUpdatedCount() { return updatedCount; }
-        public void setUpdatedCount(int updatedCount) { this.updatedCount = updatedCount; }
+        public void setUpdatedCount(final int updatedCount) { this.updatedCount = updatedCount; }
         public int getErrorCount() { return errorCount; }
-        public void setErrorCount(int errorCount) { this.errorCount = errorCount; }
+        public void setErrorCount(final int errorCount) { this.errorCount = errorCount; }
         public int getTotalProcessed() { return totalProcessed; }
-        public void setTotalProcessed(int totalProcessed) { this.totalProcessed = totalProcessed; }
+        public void setTotalProcessed(final int totalProcessed) { this.totalProcessed = totalProcessed; }
         public String getErrorMessage() { return errorMessage; }
-        public void setErrorMessage(String errorMessage) { this.errorMessage = errorMessage; }
+        public void setErrorMessage(final String errorMessage) { this.errorMessage = errorMessage; }
     }
 }

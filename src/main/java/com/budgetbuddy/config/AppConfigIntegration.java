@@ -26,7 +26,7 @@ import java.util.concurrent.atomic.AtomicReference;
 /**
  * AWS AppConfig Integration
  * Provides dynamic configuration management and feature flags
- * 
+ *
  * Features:
  * - Automatic configuration refresh
  * - JSON configuration parsing
@@ -83,7 +83,7 @@ public class AppConfigIntegration {
         try {
             startConfigurationSession();
             scheduleConfigurationRefresh();
-            logger.info("AWS AppConfig integration initialized for application: {}, environment: {}", 
+            logger.info("AWS AppConfig integration initialized for application: {}, environment: {}",
                     applicationName, environment);
         } catch (Exception e) {
             logger.error("Failed to initialize AWS AppConfig", e);
@@ -164,18 +164,33 @@ public class AppConfigIntegration {
                     .build();
 
             GetLatestConfigurationResponse response = appConfigDataClient.getLatestConfiguration(request);
-            String nextToken = response.nextConfigurationToken();
+            // Get next token for polling - use nextPollingToken() if available
+            String nextToken = null;
+            try {
+                // Try to get next polling token using reflection to handle API differences
+                java.lang.reflect.Method method = response.getClass().getMethod("nextPollingToken");
+                nextToken = (String) method.invoke(response);
+            } catch (NoSuchMethodException e) {
+                // Try alternative method name
+                try {
+                    java.lang.reflect.Method method = response.getClass().getMethod("nextConfigurationToken");
+                    nextToken = (String) method.invoke(response);
+                } catch (Exception e2) {
+                    logger.debug("Could not get next configuration token: {}", e2.getMessage());
+                }
+            } catch (Exception e) {
+                logger.debug("Could not get next polling token: {}", e.getMessage());
+            }
             if (nextToken != null && !nextToken.isEmpty()) {
                 configurationToken.set(nextToken);
             }
-            
-            ByteBuffer configBuffer = response.configuration();
-            if (configBuffer != null && configBuffer.hasRemaining()) {
-                byte[] configBytes = new byte[configBuffer.remaining()];
-                configBuffer.get(configBytes);
-                String config = new String(configBytes);
+
+            // response.configuration() returns SdkBytes, not ByteBuffer
+            software.amazon.awssdk.core.SdkBytes configBytes = response.configuration();
+            if (configBytes != null && configBytes.asByteArray().length > 0) {
+                String config = configBytes.asUtf8String();
                 latestConfiguration.set(config);
-                
+
                 // Parse JSON configuration
                 try {
                     JsonNode jsonNode = objectMapper.readTree(config);
@@ -185,7 +200,7 @@ public class AppConfigIntegration {
                     logger.warn("Failed to parse configuration JSON: {}", e.getMessage());
                 }
             }
-            
+
             return latestConfiguration.get();
         } catch (Exception e) {
             logger.error("Failed to get latest configuration from AppConfig", e);
@@ -218,7 +233,7 @@ public class AppConfigIntegration {
             getLatestConfiguration();
             config = parsedConfiguration.get();
         }
-        
+
         if (config == null) {
             logger.warn("Configuration not available");
             return Optional.empty();
@@ -233,7 +248,7 @@ public class AppConfigIntegration {
                 }
                 node = node.get(k);
             }
-            
+
             if (node != null && !node.isNull()) {
                 if (node.isTextual()) {
                     return Optional.of(node.asText());
@@ -244,14 +259,14 @@ public class AppConfigIntegration {
         } catch (Exception e) {
             logger.error("Failed to get config value for key: {}", key, e);
         }
-        
+
         return Optional.empty();
     }
 
     /**
      * Get boolean configuration value
      */
-    public boolean getBooleanConfigValue(String key, boolean defaultValue) {
+    public boolean getBooleanConfigValue((final String key, final boolean defaultValue) {
         return getConfigValue(key)
                 .map(s -> {
                     try {
@@ -267,7 +282,7 @@ public class AppConfigIntegration {
     /**
      * Get integer configuration value
      */
-    public int getIntConfigValue(String key, int defaultValue) {
+    public int getIntConfigValue((final String key, final int defaultValue) {
         return getConfigValue(key)
                 .map(s -> {
                     try {

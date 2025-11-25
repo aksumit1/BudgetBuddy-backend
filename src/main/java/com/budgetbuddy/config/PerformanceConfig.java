@@ -17,7 +17,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * Performance Configuration
  * Optimizes thread pools and async processing for enterprise performance
- * 
+ *
  * Features:
  * - Proper thread pool management
  * - Graceful shutdown
@@ -48,11 +48,11 @@ public class PerformanceConfig {
         executor.setAwaitTerminationSeconds(SHUTDOWN_TIMEOUT_SECONDS);
         executor.setRejectedExecutionHandler(new java.util.concurrent.ThreadPoolExecutor.CallerRunsPolicy());
         executor.initialize();
-        
+
         synchronized (executors) {
             executors.add(executor);
         }
-        
+
         return executor;
     }
 
@@ -70,11 +70,11 @@ public class PerformanceConfig {
         executor.setAwaitTerminationSeconds(SHUTDOWN_TIMEOUT_SECONDS);
         executor.setRejectedExecutionHandler(new java.util.concurrent.ThreadPoolExecutor.CallerRunsPolicy());
         executor.initialize();
-        
+
         synchronized (executors) {
             executors.add(executor);
         }
-        
+
         return executor;
     }
 
@@ -85,17 +85,17 @@ public class PerformanceConfig {
     public void cleanup() {
         logger.info("Shutting down thread pools...");
         List<ThreadPoolTaskExecutor> executorsToShutdown;
-        
+
         synchronized (executors) {
             executorsToShutdown = new ArrayList<>(executors);
         }
-        
+
         for (ThreadPoolTaskExecutor executor : executorsToShutdown) {
             shutdownExecutor(executor, executor.getThreadNamePrefix());
         }
     }
 
-    private void shutdownExecutor(ThreadPoolTaskExecutor executor, String name) {
+    private void shutdownExecutor((final ThreadPoolTaskExecutor executor, final String name) {
         if (executor == null) {
             return;
         }
@@ -103,14 +103,14 @@ public class PerformanceConfig {
         try {
             logger.info("Shutting down {}...", name);
             ExecutorService threadPoolExecutor = executor.getThreadPoolExecutor();
-            
+
             if (threadPoolExecutor != null) {
                 threadPoolExecutor.shutdown();
-                
+
                 if (!threadPoolExecutor.awaitTermination(SHUTDOWN_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
                     logger.warn("{} did not terminate within {} seconds, forcing shutdown", name, SHUTDOWN_TIMEOUT_SECONDS);
                     threadPoolExecutor.shutdownNow();
-                    
+
                     if (!threadPoolExecutor.awaitTermination(SHUTDOWN_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
                         logger.error("{} did not terminate after forced shutdown", name);
                     }

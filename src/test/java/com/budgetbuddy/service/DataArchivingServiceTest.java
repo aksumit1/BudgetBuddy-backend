@@ -102,7 +102,7 @@ class DataArchivingServiceTest {
     }
 
     // Helper methods
-    private TransactionTable createTransaction(String id, BigDecimal amount) {
+    private TransactionTable createTransaction((final String id, final BigDecimal amount) {
         TransactionTable transaction = new TransactionTable();
         transaction.setTransactionId(id);
         transaction.setUserId(UUID.randomUUID().toString());

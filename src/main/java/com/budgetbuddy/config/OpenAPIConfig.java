@@ -32,7 +32,7 @@ public class OpenAPIConfig {
                         .title("BudgetBuddy Backend API")
                         .description("""
                                 Enterprise-ready financial management API with comprehensive features:
-                                
+
                                 ## Features
                                 - **Authentication & Authorization**: JWT-based authentication with OAuth2 support
                                 - **Financial Data**: Plaid and Stripe integrations
@@ -41,13 +41,13 @@ public class OpenAPIConfig {
                                 - **Goals**: Financial goal planning and tracking
                                 - **Analytics**: Comprehensive financial analytics
                                 - **Compliance**: PCI-DSS, SOC2, HIPAA, ISO27001 compliant
-                                
+
                                 ## Security
                                 - All endpoints require authentication (except health check)
                                 - Rate limiting: 100 requests/minute per user
                                 - DDoS protection enabled
                                 - Certificate pinning for MITM protection
-                                
+
                                 ## Compliance
                                 - PCI-DSS compliant card data handling
                                 - GDPR data export and deletion

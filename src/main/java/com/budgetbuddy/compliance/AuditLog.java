@@ -28,22 +28,22 @@ public class AuditLog {
 
     // Getters and setters
     public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
+    public void setId(final Long id) { this.id = id; }
     public Long getUserId() { return userId; }
-    public void setUserId(Long userId) { this.userId = userId; }
+    public void setUserId(final Long userId) { this.userId = userId; }
     public String getAction() { return action; }
-    public void setAction(String action) { this.action = action; }
+    public void setAction(final String action) { this.action = action; }
     public String getResourceType() { return resourceType; }
-    public void setResourceType(String resourceType) { this.resourceType = resourceType; }
+    public void setResourceType(final String resourceType) { this.resourceType = resourceType; }
     public String getResourceId() { return resourceId; }
-    public void setResourceId(String resourceId) { this.resourceId = resourceId; }
+    public void setResourceId(final String resourceId) { this.resourceId = resourceId; }
     public String getDetails() { return details; }
-    public void setDetails(String details) { this.details = details; }
+    public void setDetails(final String details) { this.details = details; }
     public String getIpAddress() { return ipAddress; }
-    public void setIpAddress(String ipAddress) { this.ipAddress = ipAddress; }
+    public void setIpAddress(final String ipAddress) { this.ipAddress = ipAddress; }
     public String getUserAgent() { return userAgent; }
-    public void setUserAgent(String userAgent) { this.userAgent = userAgent; }
+    public void setUserAgent(final String userAgent) { this.userAgent = userAgent; }
     public LocalDateTime getCreatedAt() { return createdAt; }
-    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+    public void setCreatedAt(final LocalDateTime createdAt) { this.createdAt = createdAt; }
 }
 

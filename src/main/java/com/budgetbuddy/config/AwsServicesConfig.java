@@ -3,6 +3,7 @@ package com.budgetbuddy.config;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.InstanceProfileCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
@@ -25,7 +26,7 @@ public class AwsServicesConfig {
     /**
      * Credentials provider that uses IAM role in ECS/EKS
      */
-    private DefaultCredentialsProvider getCredentialsProvider() {
+    private AwsCredentialsProvider getCredentialsProvider() {
         try {
             return InstanceProfileCredentialsProvider.create();
         } catch (Exception e) {

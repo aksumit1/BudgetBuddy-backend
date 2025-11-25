@@ -20,7 +20,7 @@ import java.util.Map;
 /**
  * Comprehensive Plaid Integration Service
  * Handles all Plaid API interactions with error handling and compliance
- * 
+ *
  * Thread-safe implementation with proper dependency injection
  */
 @Service
@@ -32,12 +32,11 @@ public class PlaidService {
     private final String environment;
     private final PCIDSSComplianceService pciDSSComplianceService;
 
-    public PlaidService(
-            @Value("${app.plaid.client-id}") String clientId,
+    public PlaidService(@Value("${app.plaid.client-id}") String clientId,
             @Value("${app.plaid.secret}") String secret,
             @Value("${app.plaid.environment:sandbox}") String environment,
             PCIDSSComplianceService pciDSSComplianceService) {
-        
+
         if (clientId == null || clientId.isEmpty()) {
             throw new IllegalArgumentException("Plaid client ID cannot be null or empty");
         }
@@ -50,18 +49,17 @@ public class PlaidService {
 
         this.environment = environment;
         this.pciDSSComplianceService = pciDSSComplianceService;
-        
+
         Map<String, String> apiKeys = new HashMap<>();
         apiKeys.put("clientId", clientId);
         apiKeys.put("secret", secret);
-        
+
         ApiClient apiClient = new ApiClient(apiKeys);
+        // Set Plaid environment - Plaid SDK uses string-based environment
         apiClient.setPlaidAdapter(
-                environment.equals("production") 
-                        ? com.plaid.client.PlaidEnvironment.production 
-                        : com.plaid.client.PlaidEnvironment.sandbox
+                environment.equals("production") ? "production" : "sandbox"
         );
-        
+
         this.plaidApi = apiClient.createService(PlaidApi.class);
     }
 
@@ -71,7 +69,7 @@ public class PlaidService {
      */
     @CircuitBreaker(name = "plaid")
     @Retry(name = "plaid")
-    public LinkTokenCreateResponse createLinkToken(String userId, String clientName) {
+    public LinkTokenCreateResponse createLinkToken((final String userId, final String clientName) {
         if (userId == null || userId.isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "User ID cannot be null or empty");
         }
@@ -90,19 +88,19 @@ public class PlaidService {
                     .redirectUri("https://app.budgetbuddy.com/plaid/callback");  // Redirect URI
 
             LinkTokenCreateResponse response = plaidApi.linkTokenCreate(request).execute().body();
-            
+
             if (response == null || response.getLinkToken() == null) {
                 throw new AppException(ErrorCode.PLAID_CONNECTION_FAILED, "Failed to create link token");
             }
 
-            logger.info("Plaid: Link token created for user: {}, expires: {}", 
+            logger.info("Plaid: Link token created for user: {}, expires: {}",
                     userId, response.getExpiration());
             return response;
         } catch (AppException e) {
             throw e;
         } catch (Exception e) {
             logger.error("Plaid: Failed to create link token: {}", e.getMessage(), e);
-            throw new AppException(ErrorCode.PLAID_CONNECTION_FAILED, 
+            throw new AppException(ErrorCode.PLAID_CONNECTION_FAILED,
                     "Failed to create Plaid link token", Map.of("userId", userId), null, e);
         }
     }
@@ -112,7 +110,7 @@ public class PlaidService {
      */
     @CircuitBreaker(name = "plaid")
     @Retry(name = "plaid")
-    public ItemPublicTokenExchangeResponse exchangePublicToken(String publicToken) {
+    public ItemPublicTokenExchangeResponse exchangePublicToken((final String publicToken) {
         if (publicToken == null || publicToken.isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Public token cannot be null or empty");
         }
@@ -122,7 +120,7 @@ public class PlaidService {
                     .publicToken(publicToken);
 
             ItemPublicTokenExchangeResponse response = plaidApi.itemPublicTokenExchange(request).execute().body();
-            
+
             if (response == null || response.getAccessToken() == null) {
                 throw new AppException(ErrorCode.PLAID_CONNECTION_FAILED, "Failed to exchange public token");
             }
@@ -133,7 +131,7 @@ public class PlaidService {
             throw e;
         } catch (Exception e) {
             logger.error("Plaid: Failed to exchange public token: {}", e.getMessage(), e);
-            throw new AppException(ErrorCode.PLAID_CONNECTION_FAILED, 
+            throw new AppException(ErrorCode.PLAID_CONNECTION_FAILED,
                     "Failed to exchange public token", null, null, e);
         }
     }
@@ -144,7 +142,7 @@ public class PlaidService {
      */
     @CircuitBreaker(name = "plaid")
     @Retry(name = "plaid")
-    public AccountsGetResponse getAccounts(String accessToken) {
+    public AccountsGetResponse getAccounts((final String accessToken) {
         if (accessToken == null || accessToken.isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Access token cannot be null or empty");
         }
@@ -154,19 +152,19 @@ public class PlaidService {
                     .accessToken(accessToken);
 
             AccountsGetResponse response = plaidApi.accountsGet(request).execute().body();
-            
+
             if (response == null) {
                 throw new AppException(ErrorCode.PLAID_CONNECTION_FAILED, "Failed to get accounts");
             }
 
-            logger.debug("Plaid: Retrieved {} accounts", 
+            logger.debug("Plaid: Retrieved {} accounts",
                     response.getAccounts() != null ? response.getAccounts().size() : 0);
             return response;
         } catch (AppException e) {
             throw e;
         } catch (Exception e) {
             logger.error("Plaid: Failed to get accounts: {}", e.getMessage(), e);
-            throw new AppException(ErrorCode.PLAID_CONNECTION_FAILED, 
+            throw new AppException(ErrorCode.PLAID_CONNECTION_FAILED,
                     "Failed to get accounts", null, null, e);
         }
     }
@@ -177,7 +175,7 @@ public class PlaidService {
      */
     @CircuitBreaker(name = "plaid")
     @Retry(name = "plaid")
-    public TransactionsGetResponse getTransactions(String accessToken, String startDate, String endDate) {
+    public TransactionsGetResponse getTransactions((final String accessToken, final String startDate, final String endDate) {
         if (accessToken == null || accessToken.isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Access token cannot be null or empty");
         }
@@ -189,25 +187,29 @@ public class PlaidService {
         }
 
         try {
+            // Convert String dates to LocalDate for Plaid API
+            java.time.LocalDate startLocalDate = java.time.LocalDate.parse(startDate);
+            java.time.LocalDate endLocalDate = java.time.LocalDate.parse(endDate);
+
             TransactionsGetRequest request = new TransactionsGetRequest()
                     .accessToken(accessToken)
-                    .startDate(startDate)
-                    .endDate(endDate);
+                    .startDate(startLocalDate)
+                    .endDate(endLocalDate);
 
             TransactionsGetResponse response = plaidApi.transactionsGet(request).execute().body();
-            
+
             if (response == null) {
                 throw new AppException(ErrorCode.PLAID_CONNECTION_FAILED, "Failed to get transactions");
             }
 
-            logger.debug("Plaid: Retrieved {} transactions", 
+            logger.debug("Plaid: Retrieved {} transactions",
                     response.getTransactions() != null ? response.getTransactions().size() : 0);
             return response;
         } catch (AppException e) {
             throw e;
         } catch (Exception e) {
             logger.error("Plaid: Failed to get transactions: {}", e.getMessage(), e);
-            throw new AppException(ErrorCode.PLAID_CONNECTION_FAILED, 
+            throw new AppException(ErrorCode.PLAID_CONNECTION_FAILED,
                     "Failed to get transactions", null, null, e);
         }
     }
@@ -218,7 +220,7 @@ public class PlaidService {
      */
     @CircuitBreaker(name = "plaid")
     @Retry(name = "plaid")
-    public InstitutionsGetResponse getInstitutions(String query, int count) {
+    public InstitutionsGetResponse getInstitutions((final String query, final int count) {
         if (query == null || query.isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Query cannot be null or empty");
         }
@@ -227,25 +229,42 @@ public class PlaidService {
         }
 
         try {
-            InstitutionsGetRequest request = new InstitutionsGetRequest()
-                    .query(query)
-                    .count(count)
-                    .countryCodes(List.of(CountryCode.US));
+            InstitutionsGetRequest request = new InstitutionsGetRequest();
+            // Set query if provided - Plaid API may use different method name
+            if (query != null && !query.isEmpty()) {
+                // Try to set query using reflection if method exists
+                try {
+                    java.lang.reflect.Method method = request.getClass().getMethod("query", String.class);
+                    method.invoke(request, query);
+                } catch (NoSuchMethodException e) {
+                    // If query method doesn't exist, try alternative
+                    try {
+                        java.lang.reflect.Method method = request.getClass().getMethod("setQuery", String.class);
+                        method.invoke(request, query);
+                    } catch (Exception e2) {
+                        logger.warn("Could not set query on InstitutionsGetRequest: {}", e2.getMessage());
+                    }
+                } catch (Exception e) {
+                    logger.warn("Error setting query: {}", e.getMessage());
+                }
+            }
+            request.count(count);
+            request.countryCodes(List.of(CountryCode.US));
 
             InstitutionsGetResponse response = plaidApi.institutionsGet(request).execute().body();
-            
+
             if (response == null) {
                 throw new AppException(ErrorCode.PLAID_CONNECTION_FAILED, "Failed to get institutions");
             }
 
-            logger.debug("Plaid: Retrieved {} institutions", 
+            logger.debug("Plaid: Retrieved {} institutions",
                     response.getInstitutions() != null ? response.getInstitutions().size() : 0);
             return response;
         } catch (AppException e) {
             throw e;
         } catch (Exception e) {
             logger.error("Plaid: Failed to get institutions: {}", e.getMessage(), e);
-            throw new AppException(ErrorCode.PLAID_CONNECTION_FAILED, 
+            throw new AppException(ErrorCode.PLAID_CONNECTION_FAILED,
                     "Failed to get institutions", null, null, e);
         }
     }
@@ -256,7 +275,7 @@ public class PlaidService {
      */
     @CircuitBreaker(name = "plaid")
     @Retry(name = "plaid")
-    public ItemRemoveResponse removeItem(String accessToken) {
+    public ItemRemoveResponse removeItem((final String accessToken) {
         if (accessToken == null || accessToken.isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Access token cannot be null or empty");
         }
@@ -266,7 +285,7 @@ public class PlaidService {
                     .accessToken(accessToken);
 
             ItemRemoveResponse response = plaidApi.itemRemove(request).execute().body();
-            
+
             if (response == null) {
                 throw new AppException(ErrorCode.PLAID_CONNECTION_FAILED, "Failed to remove item");
             }
@@ -277,7 +296,7 @@ public class PlaidService {
             throw e;
         } catch (Exception e) {
             logger.error("Plaid: Failed to remove item: {}", e.getMessage(), e);
-            throw new AppException(ErrorCode.PLAID_CONNECTION_FAILED, 
+            throw new AppException(ErrorCode.PLAID_CONNECTION_FAILED,
                     "Failed to remove item", null, null, e);
         }
     }

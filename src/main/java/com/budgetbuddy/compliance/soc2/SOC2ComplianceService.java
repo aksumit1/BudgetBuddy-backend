@@ -17,7 +17,7 @@ import java.util.Map;
 
 /**
  * SOC 2 Type II Compliance Service
- * 
+ *
  * SOC 2 Trust Service Criteria:
  * 1. Security - Protection against unauthorized access
  * 2. Availability - System is available for operation
@@ -42,9 +42,9 @@ public class SOC2ComplianceService {
      * CC1.1 - Control Environment
      * Log control activities
      */
-    public void logControlActivity(String controlId, String activity, String userId) {
+    public void logControlActivity((final String controlId, final String activity, final String userId) {
         auditLogService.logControlActivity(controlId, activity, userId);
-        
+
         // Send metric to CloudWatch
         putMetric("ControlActivity", 1.0, Map.of(
                 "ControlId", controlId,
@@ -56,7 +56,7 @@ public class SOC2ComplianceService {
      * CC2.1 - Communication and Information
      * Log information system changes
      */
-    public void logSystemChange(String changeType, String description, String userId) {
+    public void logSystemChange((final String changeType, final String description, final String userId) {
         auditLogService.logSystemChange(changeType, description, userId);
         putMetric("SystemChange", 1.0, Map.of("ChangeType", changeType));
     }
@@ -65,22 +65,22 @@ public class SOC2ComplianceService {
      * CC3.1 - Risk Assessment
      * Assess and log risks
      */
-    public RiskAssessment assessRisk(String resource, String action, String userId) {
+    public RiskAssessment assessRisk((final String resource, final String action, final String userId) {
         RiskAssessment assessment = new RiskAssessment();
         assessment.setResource(resource);
         assessment.setAction(action);
         assessment.setUserId(userId);
         assessment.setTimestamp(Instant.now());
-        
+
         // Calculate risk score
         int riskScore = calculateRiskScore(resource, action);
         assessment.setRiskScore(riskScore);
         assessment.setRiskLevel(riskScore > 70 ? "HIGH" : riskScore > 40 ? "MEDIUM" : "LOW");
-        
+
         // Log risk assessment
         auditLogService.logRiskAssessment(assessment);
         putMetric("RiskAssessment", (double) riskScore, Map.of("RiskLevel", assessment.getRiskLevel()));
-        
+
         return assessment;
     }
 
@@ -88,13 +88,13 @@ public class SOC2ComplianceService {
      * CC4.1 - Monitoring Activities
      * Monitor system activities for anomalies
      */
-    public void monitorActivity(String activityType, String details) {
+    public void monitorActivity((final String activityType, final String details) {
         // Check for anomalies
         if (isAnomalous(activityType, details)) {
             logger.warn("SOC2: Anomalous activity detected: {} - {}", activityType, details);
             putMetric("AnomalousActivity", 1.0, Map.of("ActivityType", activityType));
         }
-        
+
         putMetric("Activity", 1.0, Map.of("ActivityType", activityType));
     }
 
@@ -102,7 +102,7 @@ public class SOC2ComplianceService {
      * CC5.1 - Control Activities
      * Log control activities with status
      */
-    public void logControlActivityWithStatus(String controlId, String status, String details) {
+    public void logControlActivityWithStatus((final String controlId, final String status, final String details) {
         auditLogService.logControlActivity(controlId, status, details);
         putMetric("ControlActivity", status.equals("PASS") ? 1.0 : 0.0, Map.of("ControlId", controlId));
     }
@@ -111,7 +111,7 @@ public class SOC2ComplianceService {
      * CC6.1 - Logical and Physical Access Controls
      * Log access control activities
      */
-    public void logAccessControl(String resource, String action, String userId, boolean allowed) {
+    public void logAccessControl((final String resource, final String action, final String userId, final boolean allowed) {
         auditLogService.logAccessControl(resource, action, userId, allowed);
         putMetric("AccessControl", allowed ? 1.0 : 0.0, Map.of(
                 "Resource", resource,
@@ -129,11 +129,11 @@ public class SOC2ComplianceService {
         health.setAvailability(calculateAvailability());
         health.setPerformance(calculatePerformance());
         health.setErrorRate(calculateErrorRate());
-        
+
         // Log health check
         auditLogService.logSystemHealth(health);
         putMetric("SystemHealth", health.getAvailability(), Map.of());
-        
+
         return health;
     }
 
@@ -141,12 +141,12 @@ public class SOC2ComplianceService {
      * CC8.1 - Change Management
      * Log system changes
      */
-    public void logChangeManagement(String changeId, String changeType, String description, String userId) {
+    public void logChangeManagement((final String changeId, final String changeType, final String description, final String userId) {
         auditLogService.logChangeManagement(changeId, changeType, description, userId);
         putMetric("ChangeManagement", 1.0, Map.of("ChangeType", changeType));
     }
 
-    private int calculateRiskScore(String resource, String action) {
+    private int calculateRiskScore((final String resource, final String action) {
         // Simplified risk calculation
         int score = 0;
         if (resource.contains("/admin") || resource.contains("/compliance")) {
@@ -158,7 +158,7 @@ public class SOC2ComplianceService {
         return score;
     }
 
-    private boolean isAnomalous(String activityType, String details) {
+    private boolean isAnomalous((final String activityType, final String details) {
         // Simplified anomaly detection
         return details.contains("unauthorized") || details.contains("failed") || details.contains("error");
     }
@@ -179,7 +179,7 @@ public class SOC2ComplianceService {
         return 0.1; // Placeholder
     }
 
-    private void putMetric(String metricName, double value, Map<String, String> dimensions) {
+    private void putMetric((final String metricName, final double value, Map<String, final String> dimensions) {
         try {
             List<Dimension> dims = dimensions.entrySet().stream()
                     .map(e -> Dimension.builder()
@@ -215,17 +215,17 @@ public class SOC2ComplianceService {
 
         // Getters and setters
         public String getResource() { return resource; }
-        public void setResource(String resource) { this.resource = resource; }
+        public void setResource(final String resource) { this.resource = resource; }
         public String getAction() { return action; }
-        public void setAction(String action) { this.action = action; }
+        public void setAction(final String action) { this.action = action; }
         public String getUserId() { return userId; }
-        public void setUserId(String userId) { this.userId = userId; }
+        public void setUserId(final String userId) { this.userId = userId; }
         public Instant getTimestamp() { return timestamp; }
-        public void setTimestamp(Instant timestamp) { this.timestamp = timestamp; }
+        public void setTimestamp(final Instant timestamp) { this.timestamp = timestamp; }
         public int getRiskScore() { return riskScore; }
-        public void setRiskScore(int riskScore) { this.riskScore = riskScore; }
+        public void setRiskScore(final int riskScore) { this.riskScore = riskScore; }
         public String getRiskLevel() { return riskLevel; }
-        public void setRiskLevel(String riskLevel) { this.riskLevel = riskLevel; }
+        public void setRiskLevel(final String riskLevel) { this.riskLevel = riskLevel; }
     }
 
     /**
@@ -239,13 +239,13 @@ public class SOC2ComplianceService {
 
         // Getters and setters
         public Instant getTimestamp() { return timestamp; }
-        public void setTimestamp(Instant timestamp) { this.timestamp = timestamp; }
+        public void setTimestamp(final Instant timestamp) { this.timestamp = timestamp; }
         public double getAvailability() { return availability; }
-        public void setAvailability(double availability) { this.availability = availability; }
+        public void setAvailability(final double availability) { this.availability = availability; }
         public double getPerformance() { return performance; }
-        public void setPerformance(double performance) { this.performance = performance; }
+        public void setPerformance(final double performance) { this.performance = performance; }
         public double getErrorRate() { return errorRate; }
-        public void setErrorRate(double errorRate) { this.errorRate = errorRate; }
+        public void setErrorRate(final double errorRate) { this.errorRate = errorRate; }
     }
 }
 

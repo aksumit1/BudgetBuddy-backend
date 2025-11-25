@@ -9,7 +9,7 @@ import org.springframework.stereotype.Service;
 /**
  * Digital Markets Act (DMA) Compliance Service
  * Implements DMA requirements for data portability and interoperability
- * 
+ *
  * DMA Requirements:
  * - Data portability (Article 6)
  * - Interoperability (Article 7)
@@ -27,7 +27,7 @@ public class DMAComplianceService {
      * Article 6: Data Portability
      * Provide data in standardized, machine-readable format
      */
-    public String exportDataPortable(String userId, String format) {
+    public String exportDataPortable((final String userId, final String format) {
         logger.info("DMA: Exporting data in format: {} for user: {}", format, userId);
 
         // Use GDPR service for data export (DMA extends GDPR requirements)
@@ -44,7 +44,7 @@ public class DMAComplianceService {
      * Article 7: Interoperability
      * Provide API access for data interoperability
      */
-    public String getInteroperabilityEndpoint(String userId) {
+    public String getInteroperabilityEndpoint((final String userId) {
         // Return endpoint for third-party access (with proper authentication)
         return "/api/dma/interoperability/" + userId;
     }
@@ -52,7 +52,7 @@ public class DMAComplianceService {
     /**
      * Export data as CSV
      */
-    private String exportAsCSV(String userId) {
+    private String exportAsCSV((final String userId) {
         // Convert JSON export to CSV format
         String json = gdprComplianceService.exportDataPortable(userId);
         // In production, use a proper JSON to CSV converter

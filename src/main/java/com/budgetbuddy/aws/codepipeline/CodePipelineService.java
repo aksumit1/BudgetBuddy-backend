@@ -20,14 +20,14 @@ public class CodePipelineService {
 
     private final CodePipelineClient codePipelineClient;
 
-    public CodePipelineService(CodePipelineClient codePipelineClient) {
+    public CodePipelineService(final CodePipelineClient codePipelineClient) {
         this.codePipelineClient = codePipelineClient;
     }
 
     /**
      * Get pipeline status
      */
-    public String getPipelineStatus(String pipelineName) {
+    public String getPipelineStatus((final String pipelineName) {
         try {
             GetPipelineStateResponse response = codePipelineClient.getPipelineState(
                     GetPipelineStateRequest.builder()
@@ -82,7 +82,7 @@ public class CodePipelineService {
     /**
      * Start pipeline execution
      */
-    public String startPipelineExecution(String pipelineName) {
+    public String startPipelineExecution((final String pipelineName) {
         try {
             StartPipelineExecutionResponse response = codePipelineClient.startPipelineExecution(
                     StartPipelineExecutionRequest.builder()

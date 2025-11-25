@@ -24,18 +24,18 @@ public class AuditLogRepository {
     private final DynamoDbIndex<AuditLogTable> userIdCreatedAtIndex;
     private static final String TABLE_NAME = "BudgetBuddy-AuditLogs";
 
-    public AuditLogRepository(DynamoDbEnhancedClient enhancedClient) {
+    public AuditLogRepository(final DynamoDbEnhancedClient enhancedClient) {
         this.auditLogTable = enhancedClient.table(TABLE_NAME, TableSchema.fromBean(AuditLogTable.class));
         this.userIdCreatedAtIndex = auditLogTable.index("UserIdCreatedAtIndex");
     }
 
-    public void save(AuditLogTable auditLog) {
+    public void save((final AuditLogTable auditLog) {
         auditLogTable.putItem(auditLog);
     }
 
     public List<AuditLogTable> findByUserIdAndDateRange(String userId, Long startTimestamp, Long endTimestamp) {
         List<AuditLogTable> results = new ArrayList<>();
-        SdkIterable<software.amazon.awssdk.enhanced.dynamodb.model.Page<AuditLogTable>> pages = 
+        SdkIterable<software.amazon.awssdk.enhanced.dynamodb.model.Page<AuditLogTable>> pages =
                 userIdCreatedAtIndex.query(QueryConditional.keyEqualTo(Key.builder().partitionValue(userId).build()));
         for (software.amazon.awssdk.enhanced.dynamodb.model.Page<AuditLogTable> page : pages) {
             for (AuditLogTable log : page.items()) {

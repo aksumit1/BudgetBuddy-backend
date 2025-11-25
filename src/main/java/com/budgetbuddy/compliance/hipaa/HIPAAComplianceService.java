@@ -14,7 +14,7 @@ import java.util.Map;
 
 /**
  * HIPAA Compliance Service
- * 
+ *
  * HIPAA Requirements:
  * - Administrative Safeguards (164.308)
  * - Physical Safeguards (164.310)
@@ -38,9 +38,9 @@ public class HIPAAComplianceService {
      * §164.312(a)(1) - Access Control
      * Unique user identification and access controls
      */
-    public void logPHIAccess(String userId, String phiType, String action, boolean authorized) {
+    public void logPHIAccess((final String userId, final String phiType, final String action, final boolean authorized) {
         auditLogService.logPHIAccess(userId, phiType, action, authorized);
-        
+
         if (!authorized) {
             logger.warn("HIPAA: Unauthorized PHI access attempt: User={}, Type={}, Action={}", userId, phiType, action);
             putMetric("UnauthorizedPHIAccess", 1.0, Map.of("PHIType", phiType));
@@ -53,7 +53,7 @@ public class HIPAAComplianceService {
      * §164.312(b) - Audit Controls
      * Log all PHI access and modifications
      */
-    public void auditPHIActivity(String userId, String phiId, String activity, String details) {
+    public void auditPHIActivity((final String userId, final String phiId, final String activity, final String details) {
         auditLogService.auditPHIActivity(userId, phiId, activity, details);
         putMetric("PHIActivity", 1.0, Map.of("Activity", activity));
     }
@@ -62,7 +62,7 @@ public class HIPAAComplianceService {
      * §164.312(c)(1) - Integrity
      * Ensure PHI is not improperly altered or destroyed
      */
-    public void logPHIModification(String userId, String phiId, String modificationType, String beforeValue, String afterValue) {
+    public void logPHIModification((final String userId, final String phiId, final String modificationType, final String beforeValue, final String afterValue) {
         auditLogService.logPHIModification(userId, phiId, modificationType, beforeValue, afterValue);
         putMetric("PHIModification", 1.0, Map.of("ModificationType", modificationType));
     }
@@ -71,7 +71,7 @@ public class HIPAAComplianceService {
      * §164.312(e)(1) - Transmission Security
      * Encrypt PHI during transmission
      */
-    public void logPHITransmission(String userId, String destination, boolean encrypted) {
+    public void logPHITransmission((final String userId, final String destination, final boolean encrypted) {
         if (!encrypted) {
             logger.error("HIPAA VIOLATION: PHI transmitted without encryption: User={}, Destination={}", userId, destination);
             putMetric("UnencryptedPHITransmission", 1.0, Map.of());
@@ -84,7 +84,7 @@ public class HIPAAComplianceService {
      * §164.312(a)(2)(iv) - Automatic Logoff
      * Implement automatic logoff after inactivity
      */
-    public void checkSessionTimeout(String userId, long lastActivityTime) {
+    public void checkSessionTimeout((final String userId, final long lastActivityTime) {
         long inactivityMinutes = (Instant.now().getEpochSecond() - lastActivityTime) / 60;
         if (inactivityMinutes > 15) { // 15 minute timeout
             logger.warn("HIPAA: Session timeout exceeded: User={}, Inactivity={} minutes", userId, inactivityMinutes);
@@ -96,7 +96,7 @@ public class HIPAAComplianceService {
      * §164.400-414 - Breach Notification
      * Detect and report PHI breaches
      */
-    public void reportBreach(String userId, String phiId, String breachType, String details) {
+    public void reportBreach((final String userId, final String phiId, final String breachType, final String details) {
         BreachReport report = new BreachReport();
         report.setUserId(userId);
         report.setPhiId(phiId);
@@ -120,7 +120,7 @@ public class HIPAAComplianceService {
      * §164.308(a)(3) - Workforce Security
      * Ensure workforce members have appropriate access
      */
-    public void logWorkforceAccess(String userId, String role, String resource, boolean granted) {
+    public void logWorkforceAccess((final String userId, final String role, final String resource, final boolean granted) {
         auditLogService.logWorkforceAccess(userId, role, resource, granted);
         putMetric("WorkforceAccess", granted ? 1.0 : 0.0, Map.of("Role", role));
     }
@@ -129,11 +129,11 @@ public class HIPAAComplianceService {
      * §164.308(a)(4) - Information Access Management
      * Implement policies for access to PHI
      */
-    public boolean checkPHIAccessPolicy(String userId, String phiType) {
+    public boolean checkPHIAccessPolicy((final String userId, final String phiType) {
         // Check if user has access to specific PHI type
         // In production, this would check role-based access policies
         boolean hasAccess = true; // Placeholder
-        
+
         logPHIAccess(userId, phiType, "READ", hasAccess);
         return hasAccess;
     }
@@ -142,16 +142,16 @@ public class HIPAAComplianceService {
      * §164.312(d) - Person or Entity Authentication
      * Implement procedures to verify identity
      */
-    public void logAuthentication(String userId, String method, boolean success) {
+    public void logAuthentication((final String userId, final String method, final boolean success) {
         auditLogService.logAuthentication(userId, method, success);
         putMetric("Authentication", success ? 1.0 : 0.0, Map.of("Method", method));
-        
+
         if (!success) {
             logger.warn("HIPAA: Authentication failed: User={}, Method={}", userId, method);
         }
     }
 
-    private void putMetric(String metricName, double value, Map<String, String> dimensions) {
+    private void putMetric((final String metricName, final double value, Map<String, final String> dimensions) {
         try {
             List<Dimension> dims = dimensions.entrySet().stream()
                     .map(e -> Dimension.builder()
@@ -187,17 +187,17 @@ public class HIPAAComplianceService {
 
         // Getters and setters
         public String getUserId() { return userId; }
-        public void setUserId(String userId) { this.userId = userId; }
+        public void setUserId(final String userId) { this.userId = userId; }
         public String getPhiId() { return phiId; }
-        public void setPhiId(String phiId) { this.phiId = phiId; }
+        public void setPhiId(final String phiId) { this.phiId = phiId; }
         public String getBreachType() { return breachType; }
-        public void setBreachType(String breachType) { this.breachType = breachType; }
+        public void setBreachType(final String breachType) { this.breachType = breachType; }
         public String getDetails() { return details; }
-        public void setDetails(String details) { this.details = details; }
+        public void setDetails(final String details) { this.details = details; }
         public Instant getTimestamp() { return timestamp; }
-        public void setTimestamp(Instant timestamp) { this.timestamp = timestamp; }
+        public void setTimestamp(final Instant timestamp) { this.timestamp = timestamp; }
         public boolean isReported() { return reported; }
-        public void setReported(boolean reported) { this.reported = reported; }
+        public void setReported(final boolean reported) { this.reported = reported; }
     }
 }
 

@@ -16,30 +16,30 @@ import java.util.Base64;
  * Password Hashing Service
  * Implements PBKDF2 with SHA-256 for secure password hashing
  * Supports both client-side hashed passwords (defense in depth) and legacy plaintext
- * 
+ *
  * Security: Performs server-side hashing on client-side hashed passwords for additional security
  */
 @Service
 public class PasswordHashingService {
 
     private static final Logger logger = LoggerFactory.getLogger(PasswordHashingService.class);
-    
+
     private static final String ALGORITHM = "PBKDF2WithHmacSHA256";
     private static final int ITERATIONS = 100_000; // Match client-side iterations
     private static final int KEY_LENGTH = 256; // 32 bytes = 256 bits
     private static final int SALT_LENGTH = 16; // 16 bytes = 128 bits
-    
+
     private final SecureRandom secureRandom = new SecureRandom();
 
     /**
      * Hash a client-side hashed password with server salt (defense in depth)
-     * 
+     *
      * @param clientHash Base64-encoded client-side PBKDF2 hash
      * @param clientSalt Base64-encoded client-side salt
      * @param serverSalt Server-side salt (will be generated if null)
      * @return Server-side hash and salt
      */
-    public PasswordHashResult hashClientPassword(String clientHash, String clientSalt, byte[] serverSalt) {
+    public PasswordHashResult hashClientPassword((final String clientHash, final String clientSalt, final byte[] serverSalt) {
         if (clientHash == null || clientHash.isEmpty()) {
             throw new IllegalArgumentException("Client hash cannot be null or empty");
         }
@@ -85,12 +85,12 @@ public class PasswordHashingService {
 
     /**
      * Hash a plaintext password (legacy support)
-     * 
+     *
      * @param plaintextPassword Plaintext password
      * @param salt Salt (will be generated if null)
      * @return Hash and salt
      */
-    public PasswordHashResult hashPlaintextPassword(String plaintextPassword, byte[] salt) {
+    public PasswordHashResult hashPlaintextPassword((final String plaintextPassword, final byte[] salt) {
         if (plaintextPassword == null || plaintextPassword.isEmpty()) {
             throw new IllegalArgumentException("Password cannot be null or empty");
         }
@@ -124,16 +124,15 @@ public class PasswordHashingService {
 
     /**
      * Verify a client-side hashed password against stored server hash
-     * 
+     *
      * @param clientHash Base64-encoded client-side hash
      * @param clientSalt Base64-encoded client-side salt
      * @param serverHash Base64-encoded stored server hash
      * @param serverSalt Base64-encoded stored server salt
      * @return true if password matches
      */
-    public boolean verifyClientPassword(String clientHash, String clientSalt, 
-                                        String serverHash, String serverSalt) {
-        if (clientHash == null || clientHash.isEmpty() || 
+    public boolean verifyClientPassword((final String clientHash, final String clientSalt, final String serverHash, final String serverSalt) {
+        if (clientHash == null || clientHash.isEmpty() ||
             clientSalt == null || clientSalt.isEmpty() ||
             serverHash == null || serverHash.isEmpty() ||
             serverSalt == null || serverSalt.isEmpty()) {
@@ -155,13 +154,13 @@ public class PasswordHashingService {
 
     /**
      * Verify a plaintext password against stored hash (legacy support)
-     * 
+     *
      * @param plaintextPassword Plaintext password
      * @param storedHash Base64-encoded stored hash
      * @param storedSalt Base64-encoded stored salt
      * @return true if password matches
      */
-    public boolean verifyPlaintextPassword(String plaintextPassword, String storedHash, String storedSalt) {
+    public boolean verifyPlaintextPassword((final String plaintextPassword, final String storedHash, final String storedSalt) {
         if (plaintextPassword == null || plaintextPassword.isEmpty() ||
             storedHash == null || storedHash.isEmpty() ||
             storedSalt == null || storedSalt.isEmpty()) {
@@ -192,7 +191,7 @@ public class PasswordHashingService {
     /**
      * Constant-time string comparison to prevent timing attacks
      */
-    private boolean constantTimeEquals(String a, String b) {
+    private boolean constantTimeEquals((final String a, final String b) {
         if (a == null || b == null) {
             return false;
         }
@@ -214,7 +213,7 @@ public class PasswordHashingService {
         private final String hash;
         private final String salt;
 
-        public PasswordHashResult(String hash, String salt) {
+        public PasswordHashResult(final String hash, final String salt) {
             this.hash = hash;
             this.salt = salt;
         }

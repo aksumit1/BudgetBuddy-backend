@@ -17,7 +17,7 @@ import java.util.stream.Collectors;
 /**
  * Account REST Controller
  * Migrated to DynamoDB
- * 
+ *
  * Thread-safe with proper error handling
  */
 @RestController
@@ -27,7 +27,7 @@ public class AccountController {
     private final AccountRepository accountRepository;
     private final UserService userService;
 
-    public AccountController(AccountRepository accountRepository, UserService userService) {
+    public AccountController(final AccountRepository accountRepository, final UserService userService) {
         this.accountRepository = accountRepository;
         this.userService = userService;
     }
@@ -68,7 +68,7 @@ public class AccountController {
                 .orElseThrow(() -> new AppException(ErrorCode.ACCOUNT_NOT_FOUND, "Account not found"));
 
         if (account.getUserId() == null || !account.getUserId().equals(user.getUserId())) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "Access to account denied", org.springframework.http.HttpStatus.FORBIDDEN);
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "Access to account denied", null, null, null);
         }
 
         return ResponseEntity.ok(account);

@@ -25,7 +25,7 @@ public class IdentityVerificationService {
     /**
      * Verify user identity
      */
-    public boolean verifyIdentity(String userId) {
+    public boolean verifyIdentity((final String userId) {
         return userRepository.findById(userId)
                 .map(user -> {
                     // Check if user is enabled
@@ -48,7 +48,7 @@ public class IdentityVerificationService {
     /**
      * Check if user has permission for resource and action
      */
-    public boolean hasPermission(String userId, String resource, String action) {
+    public boolean hasPermission((final String userId, final String resource, final String action) {
         return userRepository.findById(userId)
                 .map(user -> {
                     Set<String> roles = user.getRoles();

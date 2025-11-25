@@ -11,7 +11,7 @@ import java.util.Set;
 /**
  * DynamoDB table for Users
  * Optimized for cost: on-demand billing, GSI for email lookup
- * 
+ *
  * Security: Stores server-side hashed passwords with server salt
  */
 @DynamoDbBean
@@ -42,7 +42,7 @@ public class UserTable {
         return userId;
     }
 
-    public void setUserId(String userId) {
+    public void setUserId(final String userId) {
         this.userId = userId;
     }
 
@@ -52,7 +52,7 @@ public class UserTable {
         return email;
     }
 
-    public void setEmail(String email) {
+    public void setEmail(final String email) {
         this.email = email;
     }
 
@@ -61,7 +61,7 @@ public class UserTable {
         return passwordHash;
     }
 
-    public void setPasswordHash(String passwordHash) {
+    public void setPasswordHash(final String passwordHash) {
         this.passwordHash = passwordHash;
     }
 
@@ -70,7 +70,7 @@ public class UserTable {
         return serverSalt;
     }
 
-    public void setServerSalt(String serverSalt) {
+    public void setServerSalt(final String serverSalt) {
         this.serverSalt = serverSalt;
     }
 
@@ -79,7 +79,7 @@ public class UserTable {
         return clientSalt;
     }
 
-    public void setClientSalt(String clientSalt) {
+    public void setClientSalt(final String clientSalt) {
         this.clientSalt = clientSalt;
     }
 
@@ -88,7 +88,7 @@ public class UserTable {
         return firstName;
     }
 
-    public void setFirstName(String firstName) {
+    public void setFirstName(final String firstName) {
         this.firstName = firstName;
     }
 
@@ -97,7 +97,7 @@ public class UserTable {
         return lastName;
     }
 
-    public void setLastName(String lastName) {
+    public void setLastName(final String lastName) {
         this.lastName = lastName;
     }
 
@@ -106,7 +106,7 @@ public class UserTable {
         return phoneNumber;
     }
 
-    public void setPhoneNumber(String phoneNumber) {
+    public void setPhoneNumber(final String phoneNumber) {
         this.phoneNumber = phoneNumber;
     }
 
@@ -115,7 +115,7 @@ public class UserTable {
         return enabled;
     }
 
-    public void setEnabled(Boolean enabled) {
+    public void setEnabled(final Boolean enabled) {
         this.enabled = enabled;
     }
 
@@ -124,7 +124,7 @@ public class UserTable {
         return emailVerified;
     }
 
-    public void setEmailVerified(Boolean emailVerified) {
+    public void setEmailVerified(final Boolean emailVerified) {
         this.emailVerified = emailVerified;
     }
 
@@ -133,7 +133,7 @@ public class UserTable {
         return twoFactorEnabled;
     }
 
-    public void setTwoFactorEnabled(Boolean twoFactorEnabled) {
+    public void setTwoFactorEnabled(final Boolean twoFactorEnabled) {
         this.twoFactorEnabled = twoFactorEnabled;
     }
 
@@ -142,7 +142,7 @@ public class UserTable {
         return preferredCurrency;
     }
 
-    public void setPreferredCurrency(String preferredCurrency) {
+    public void setPreferredCurrency(final String preferredCurrency) {
         this.preferredCurrency = preferredCurrency;
     }
 
@@ -151,7 +151,7 @@ public class UserTable {
         return timezone;
     }
 
-    public void setTimezone(String timezone) {
+    public void setTimezone(final String timezone) {
         this.timezone = timezone;
     }
 
@@ -160,7 +160,7 @@ public class UserTable {
         return roles;
     }
 
-    public void setRoles(Set<String> roles) {
+    public void setRoles((final Set<String> roles) {
         this.roles = roles;
     }
 
@@ -169,7 +169,7 @@ public class UserTable {
         return createdAt;
     }
 
-    public void setCreatedAt(Instant createdAt) {
+    public void setCreatedAt(final Instant createdAt) {
         this.createdAt = createdAt;
     }
 
@@ -178,7 +178,7 @@ public class UserTable {
         return updatedAt;
     }
 
-    public void setUpdatedAt(Instant updatedAt) {
+    public void setUpdatedAt(final Instant updatedAt) {
         this.updatedAt = updatedAt;
     }
 
@@ -187,7 +187,7 @@ public class UserTable {
         return lastLoginAt;
     }
 
-    public void setLastLoginAt(Instant lastLoginAt) {
+    public void setLastLoginAt(final Instant lastLoginAt) {
         this.lastLoginAt = lastLoginAt;
     }
 
@@ -196,7 +196,7 @@ public class UserTable {
         return passwordChangedAt;
     }
 
-    public void setPasswordChangedAt(Instant passwordChangedAt) {
+    public void setPasswordChangedAt(final Instant passwordChangedAt) {
         this.passwordChangedAt = passwordChangedAt;
     }
 }

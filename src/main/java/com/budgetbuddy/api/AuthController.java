@@ -28,7 +28,7 @@ public class AuthController {
     private final AuthService authService;
     private final UserService userService;
 
-    public AuthController(AuthService authService, UserService userService) {
+    public AuthController(final AuthService authService, final UserService userService) {
         this.authService = authService;
         this.userService = userService;
     }
@@ -41,14 +41,14 @@ public class AuthController {
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody AuthRequest loginRequest) {
         // Validate request format
         if (!loginRequest.isSecureFormat() && !loginRequest.isLegacyFormat()) {
-            throw new AppException(ErrorCode.INVALID_INPUT, 
+            throw new AppException(ErrorCode.INVALID_INPUT,
                     "Either password_hash+salt (secure) or password (legacy) must be provided");
         }
 
         // Reject legacy format in production (security best practice)
         if (loginRequest.isLegacyFormat()) {
             logger.warn("Legacy password format rejected for security. User should use password_hash format.");
-            throw new AppException(ErrorCode.INVALID_INPUT, 
+            throw new AppException(ErrorCode.INVALID_INPUT,
                     "Legacy password format not supported. Please use password_hash and salt.");
         }
 
@@ -74,7 +74,7 @@ public class AuthController {
     public ResponseEntity<AuthResponse> register(@Valid @RequestBody AuthRequest signUpRequest) {
         // Validate secure format
         if (!signUpRequest.isSecureFormat()) {
-            throw new AppException(ErrorCode.INVALID_INPUT, 
+            throw new AppException(ErrorCode.INVALID_INPUT,
                     "Registration requires password_hash and salt. Legacy password format not supported.");
         }
 
@@ -89,8 +89,8 @@ public class AuthController {
 
         // Authenticate and return tokens
         AuthRequest authRequest = new AuthRequest(
-                signUpRequest.getEmail(), 
-                signUpRequest.getPasswordHash(), 
+                signUpRequest.getEmail(),
+                signUpRequest.getPasswordHash(),
                 signUpRequest.getSalt());
         AuthResponse response = authService.authenticate(authRequest);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
@@ -127,7 +127,7 @@ public class AuthController {
             return refreshToken;
         }
 
-        public void setRefreshToken(String refreshToken) {
+        public void setRefreshToken(final String refreshToken) {
             this.refreshToken = refreshToken;
         }
     }

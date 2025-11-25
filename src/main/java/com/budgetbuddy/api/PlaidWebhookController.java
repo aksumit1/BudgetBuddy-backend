@@ -18,13 +18,13 @@ import java.util.Map;
 /**
  * Plaid Webhook Controller
  * Handles webhook events from Plaid
- * 
+ *
  * Webhook Events:
  * - TRANSACTIONS: Transaction updates
  * - ITEM: Item status changes
  * - AUTH: Authentication events
  * - INCOME: Income verification
- * 
+ *
  * Security:
  * - Webhook signature verification
  * - Rate limiting (handled by WAF)
@@ -40,16 +40,14 @@ public class PlaidWebhookController {
     private final PlaidWebhookService webhookService;
     private final AuditLogService auditLogService;
 
-    public PlaidWebhookController(
-            PlaidWebhookService webhookService,
-            AuditLogService auditLogService) {
+    public PlaidWebhookController(final PlaidWebhookService webhookService, final AuditLogService auditLogService) {
         this.webhookService = webhookService;
         this.auditLogService = auditLogService;
     }
 
     /**
      * Handle Plaid webhook events
-     * 
+     *
      * @param payload Webhook payload from Plaid
      * @param verificationHeader Webhook verification header
      * @return HTTP 200 if successful
@@ -62,7 +60,7 @@ public class PlaidWebhookController {
     public ResponseEntity<Map<String, String>> handleWebhook(
             @RequestBody Map<String, Object> payload,
             @RequestHeader(value = "Plaid-Verification", required = false) String verificationHeader) {
-        
+
         if (payload == null || payload.isEmpty()) {
             logger.warn("Received empty webhook payload");
             return ResponseEntity.badRequest()
@@ -86,7 +84,7 @@ public class PlaidWebhookController {
                 throw new AppException(ErrorCode.PLAID_WEBHOOK_ERROR, "Invalid webhook signature");
             }
 
-            logger.info("Received Plaid webhook: type={}, code={}, itemId={}", 
+            logger.info("Received Plaid webhook: type={}, code={}, itemId={}",
                     webhookType, webhookCode, itemId);
 
             // Process webhook based on type
@@ -115,7 +113,7 @@ public class PlaidWebhookController {
             throw e;
         } catch (Exception e) {
             logger.error("Failed to process Plaid webhook: {}", e.getMessage(), e);
-            throw new AppException(ErrorCode.PLAID_WEBHOOK_ERROR, 
+            throw new AppException(ErrorCode.PLAID_WEBHOOK_ERROR,
                     "Failed to process webhook", null, null, e);
         }
     }
@@ -123,7 +121,7 @@ public class PlaidWebhookController {
     /**
      * Process webhook based on type
      */
-    private void processWebhook(String webhookType, Map<String, Object> payload) {
+    private void processWebhook((final String webhookType, Map<String, final Object> payload) {
         switch (webhookType) {
             case "TRANSACTIONS":
                 webhookService.handleTransactionWebhook(payload);
@@ -145,7 +143,7 @@ public class PlaidWebhookController {
     /**
      * Extract string value from payload
      */
-    private String extractString(Map<String, Object> payload, String key) {
+    private String extractString((Map<String, final Object> payload, final String key) {
         Object value = payload.get(key);
         return value != null ? value.toString() : null;
     }

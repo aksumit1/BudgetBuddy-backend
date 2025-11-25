@@ -16,9 +16,9 @@ import java.io.IOException;
 /**
  * Rate Limit Header Filter
  * Adds rate limit headers to all responses
- * 
+ *
  * Fixed: Returns actual remaining requests from RateLimitService
- * 
+ *
  * Headers added:
  * - X-RateLimit-Limit: Maximum number of requests allowed
  * - X-RateLimit-Remaining: Number of requests remaining
@@ -32,12 +32,12 @@ public class RateLimitHeaderFilter extends OncePerRequestFilter {
 
     private final RateLimitService rateLimitService;
 
-    public RateLimitHeaderFilter(RateLimitService rateLimitService) {
+    public RateLimitHeaderFilter(final RateLimitService rateLimitService) {
         this.rateLimitService = rateLimitService;
     }
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
+    protected void doFilterInternal((final HttpServletRequest request, final HttpServletResponse response, final FilterChain filterChain)
             throws ServletException, IOException {
 
         filterChain.doFilter(request, response);
@@ -68,47 +68,50 @@ public class RateLimitHeaderFilter extends OncePerRequestFilter {
         }
     }
 
-    private void setDefaultRateLimitHeaders(HttpServletResponse response, String endpoint) {
+    private void setDefaultRateLimitHeaders((final HttpServletResponse response, final String endpoint) {
         int limit = getRateLimitForEndpoint(endpoint);
         response.setHeader("X-RateLimit-Limit", String.valueOf(limit));
         response.setHeader("X-RateLimit-Remaining", String.valueOf(limit - 1)); // Approximate
         response.setHeader("X-RateLimit-Reset", String.valueOf(System.currentTimeMillis() / 1000 + 60)); // 1 minute
     }
 
-    private String getUserId(HttpServletRequest request) {
+    private String getUserId((final HttpServletRequest request) {
         // Try to get user ID from security context or request attribute
         // This would be set by authentication filter
         Object userId = request.getAttribute("userId");
         if (userId != null) {
             return userId.toString();
         }
-        
+
         // Try to get from SecurityContext if available
         try {
-            org.springframework.security.core.Authentication auth = 
+            org.springframework.security.core.Authentication auth =
                     org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
-            if (auth != null && auth.isAuthenticated() && auth.getPrincipal() instanceof org.springframework.security.core.userdetails.UserDetails) {
+            // JDK 25: Enhanced pattern matching
+            if (auth != null && auth.isAuthenticated()
+                    && auth.getPrincipal()
+                    instanceof org.springframework.security.core.userdetails.UserDetails userDetails) {
                 return auth.getName(); // Username (email) - would need to convert to userId
             }
         } catch (Exception e) {
             logger.debug("Could not extract user ID from SecurityContext: {}", e.getMessage());
         }
-        
+
         return null;
     }
 
-    private RateLimitInfo getRateLimitInfo(String userId, String endpoint) {
+    private RateLimitInfo getRateLimitInfo((final String userId, final String endpoint) {
         try {
             // Get rate limit configuration for endpoint
             int limit = getRateLimitForEndpoint(endpoint);
-            
+
             // Check if user is allowed (this will consume a token if allowed)
             // Note: We check after the request, so we need to account for the request that just completed
             boolean isAllowed = rateLimitService.isAllowed(userId, endpoint);
-            
+
             // Get retry-after to calculate reset time
             int retryAfter = rateLimitService.getRetryAfter(userId, endpoint);
-            
+
             // Calculate remaining requests
             // Since we can't get exact remaining without modifying RateLimitService,
             // we estimate based on retry-after: if retryAfter > 0, user is rate limited (remaining = 0)
@@ -121,7 +124,7 @@ public class RateLimitHeaderFilter extends OncePerRequestFilter {
                 // This is approximate - for exact count, RateLimitService would need to expose remaining tokens
                 remaining = Math.max(0, limit - 1); // Conservative estimate
             }
-            
+
             long reset = System.currentTimeMillis() / 1000;
             if (retryAfter > 0) {
                 reset += retryAfter;
@@ -137,11 +140,11 @@ public class RateLimitHeaderFilter extends OncePerRequestFilter {
         }
     }
 
-    private int getRateLimitForEndpoint(String endpoint) {
+    private int getRateLimitForEndpoint((final String endpoint) {
         if (endpoint == null) {
             return 50; // Default
         }
-        
+
         // Map endpoint to rate limit (matches RateLimitService configuration)
         if (endpoint.contains("/auth/login")) {
             return 5; // 5 requests per minute
@@ -162,7 +165,7 @@ public class RateLimitHeaderFilter extends OncePerRequestFilter {
         private final int remaining;
         private final long reset;
 
-        public RateLimitInfo(int limit, int remaining, long reset) {
+        public RateLimitInfo(final int limit, final int remaining, final long reset) {
             this.limit = limit;
             this.remaining = remaining;
             this.reset = reset;

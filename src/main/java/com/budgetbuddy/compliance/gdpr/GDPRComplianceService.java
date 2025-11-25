@@ -55,7 +55,7 @@ public class GDPRComplianceService {
      * Article 15: Right to access
      * Provide user with all their personal data
      */
-    public GDPRDataExport exportUserData(String userId) {
+    public GDPRDataExport exportUserData((final String userId) {
         logger.info("GDPR: Exporting data for user: {}", userId);
 
         GDPRDataExport export = new GDPRDataExport();
@@ -67,7 +67,7 @@ public class GDPRComplianceService {
         userRepository.findById(userId).ifPresent(export::setUserData);
 
         // Export transactions
-        List<com.budgetbuddy.model.dynamodb.TransactionTable> transactions = 
+        List<com.budgetbuddy.model.dynamodb.TransactionTable> transactions =
                 transactionRepository.findByUserId(userId, 0, 10000); // Get all transactions
         export.setTransactions(transactions);
 
@@ -86,7 +86,7 @@ public class GDPRComplianceService {
         // Export audit logs
         long startTimestamp = Instant.now().minusSeconds(31536000).getEpochSecond(); // Last year
         long endTimestamp = Instant.now().getEpochSecond();
-        List<com.budgetbuddy.compliance.AuditLogTable> auditLogs = 
+        List<com.budgetbuddy.compliance.AuditLogTable> auditLogs =
                 auditLogRepository.findByUserIdAndDateRange(userId, startTimestamp, endTimestamp);
         export.setAuditLogs(auditLogs);
 
@@ -100,11 +100,11 @@ public class GDPRComplianceService {
      * Article 17: Right to erasure / Right to be forgotten
      * Delete all user data
      */
-    public void deleteUserData(String userId) {
+    public void deleteUserData((final String userId) {
         logger.info("GDPR: Deleting all data for user: {}", userId);
 
         // Delete transactions
-        List<com.budgetbuddy.model.dynamodb.TransactionTable> transactions = 
+        List<com.budgetbuddy.model.dynamodb.TransactionTable> transactions =
                 transactionRepository.findByUserId(userId, 0, 10000);
         transactions.forEach(t -> transactionRepository.delete(t.getTransactionId()));
 
@@ -144,9 +144,9 @@ public class GDPRComplianceService {
      * Article 20: Right to data portability
      * Export user data in machine-readable format (JSON)
      */
-    public String exportDataPortable(String userId) {
+    public String exportDataPortable((final String userId) {
         GDPRDataExport export = exportUserData(userId);
-        
+
         // Convert to JSON
         try {
             com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
@@ -161,7 +161,7 @@ public class GDPRComplianceService {
      * Article 16: Right to rectification
      * Update user data
      */
-    public void updateUserData(String userId, UserTable updatedData) {
+    public void updateUserData((final String userId, final UserTable updatedData) {
         logger.info("GDPR: Updating data for user: {}", userId);
 
         userRepository.findById(userId).ifPresent(user -> {
@@ -186,7 +186,7 @@ public class GDPRComplianceService {
         });
     }
 
-    private void deleteFromS3(String userId, String accountId) {
+    private void deleteFromS3((final String userId, final String accountId) {
         try {
             String key = "users/" + userId + "/accounts/" + accountId + "/";
             // List and delete all objects with this prefix
@@ -213,23 +213,23 @@ public class GDPRComplianceService {
 
         // Getters and setters
         public String getExportId() { return exportId; }
-        public void setExportId(String exportId) { this.exportId = exportId; }
+        public void setExportId(final String exportId) { this.exportId = exportId; }
         public String getUserId() { return userId; }
-        public void setUserId(String userId) { this.userId = userId; }
+        public void setUserId(final String userId) { this.userId = userId; }
         public Instant getExportDate() { return exportDate; }
-        public void setExportDate(Instant exportDate) { this.exportDate = exportDate; }
+        public void setExportDate(final Instant exportDate) { this.exportDate = exportDate; }
         public UserTable getUserData() { return userData; }
-        public void setUserData(UserTable userData) { this.userData = userData; }
+        public void setUserData(final UserTable userData) { this.userData = userData; }
         public List<com.budgetbuddy.model.dynamodb.TransactionTable> getTransactions() { return transactions; }
-        public void setTransactions(List<com.budgetbuddy.model.dynamodb.TransactionTable> transactions) { this.transactions = transactions; }
+        public void setTransactions((final List<com.budgetbuddy.model.dynamodb.TransactionTable> transactions) { this.transactions = transactions; }
         public List<com.budgetbuddy.model.dynamodb.AccountTable> getAccounts() { return accounts; }
-        public void setAccounts(List<com.budgetbuddy.model.dynamodb.AccountTable> accounts) { this.accounts = accounts; }
+        public void setAccounts((final List<com.budgetbuddy.model.dynamodb.AccountTable> accounts) { this.accounts = accounts; }
         public List<com.budgetbuddy.model.dynamodb.BudgetTable> getBudgets() { return budgets; }
-        public void setBudgets(List<com.budgetbuddy.model.dynamodb.BudgetTable> budgets) { this.budgets = budgets; }
+        public void setBudgets((final List<com.budgetbuddy.model.dynamodb.BudgetTable> budgets) { this.budgets = budgets; }
         public List<com.budgetbuddy.model.dynamodb.GoalTable> getGoals() { return goals; }
-        public void setGoals(List<com.budgetbuddy.model.dynamodb.GoalTable> goals) { this.goals = goals; }
+        public void setGoals((final List<com.budgetbuddy.model.dynamodb.GoalTable> goals) { this.goals = goals; }
         public List<com.budgetbuddy.compliance.AuditLogTable> getAuditLogs() { return auditLogs; }
-        public void setAuditLogs(List<com.budgetbuddy.compliance.AuditLogTable> auditLogs) { this.auditLogs = auditLogs; }
+        public void setAuditLogs((final List<com.budgetbuddy.compliance.AuditLogTable> auditLogs) { this.auditLogs = auditLogs; }
     }
 }
 

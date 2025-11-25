@@ -14,20 +14,19 @@ public class AppException extends RuntimeException {
     private final String technicalMessage;
     private final Throwable rootCause;
 
-    public AppException(ErrorCode errorCode) {
+    public AppException(final ErrorCode errorCode) {
         this(errorCode, errorCode.getMessage(), null, null, null);
     }
 
-    public AppException(ErrorCode errorCode, String message) {
+    public AppException(final ErrorCode errorCode, final String message) {
         this(errorCode, message, null, null, null);
     }
 
-    public AppException(ErrorCode errorCode, String message, Throwable cause) {
+    public AppException(final ErrorCode errorCode, final String message, final Throwable cause) {
         this(errorCode, message, null, null, cause);
     }
 
-    public AppException(ErrorCode errorCode, String message, Map<String, Object> context, 
-                       String userMessage, Throwable cause) {
+    public AppException(final ErrorCode errorCode, final String message, final Map<String, Object> context, final String userMessage, final Throwable cause) {
         super(message, cause);
         this.errorCode = errorCode;
         this.timestamp = Instant.now();

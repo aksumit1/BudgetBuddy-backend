@@ -48,9 +48,9 @@ class AuthIntegrationTest {
     void setUp() {
         testEmail = "test-" + UUID.randomUUID() + "@example.com";
         testClientSalt = UUID.randomUUID().toString();
-        
+
         // Create client-side hashed password
-        PasswordHashingService.PasswordHashResult clientHash = 
+        PasswordHashingService.PasswordHashResult clientHash =
                 passwordHashingService.hashClientPassword("testPassword123", testClientSalt, null);
         testPasswordHash = clientHash.getHash();
     }

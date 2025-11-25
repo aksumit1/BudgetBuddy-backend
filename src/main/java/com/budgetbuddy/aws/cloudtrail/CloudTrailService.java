@@ -21,7 +21,7 @@ public class CloudTrailService {
 
     private final CloudTrailClient cloudTrailClient;
 
-    public CloudTrailService(CloudTrailClient cloudTrailClient) {
+    public CloudTrailService(final CloudTrailClient cloudTrailClient) {
         this.cloudTrailClient = cloudTrailClient;
     }
 
@@ -30,7 +30,7 @@ public class CloudTrailService {
      * Note: CloudTrail automatically logs AWS API calls
      * This method logs application-level activities
      */
-    public void logApplicationActivity(String userId, String action, String resource, String result) {
+    public void logApplicationActivity((final String userId, final String action, final String resource, final String result) {
         // CloudTrail automatically logs AWS API calls
         // For application-level logging, we use CloudWatch Logs
         logger.info("CloudTrail: User={}, Action={}, Resource={}, Result={}", userId, action, resource, result);
@@ -63,7 +63,7 @@ public class CloudTrailService {
     /**
      * Get trail status
      */
-    public GetTrailStatusResponse getTrailStatus(String trailName) {
+    public GetTrailStatusResponse getTrailStatus((final String trailName) {
         try {
             return cloudTrailClient.getTrailStatus(GetTrailStatusRequest.builder()
                     .name(trailName)

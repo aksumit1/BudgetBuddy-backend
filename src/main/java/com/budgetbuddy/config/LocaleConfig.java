@@ -20,7 +20,7 @@ public class LocaleConfig {
     @Bean
     public LocaleResolver localeResolver() {
         AcceptHeaderLocaleResolver resolver = new AcceptHeaderLocaleResolver();
-        
+
         // Set supported locales
         List<Locale> supportedLocales = Arrays.asList(
                 Locale.US,      // en_US
@@ -37,12 +37,12 @@ public class LocaleConfig {
                 new Locale("ar", "SA"), // ar_SA
                 new Locale("hi", "IN")  // hi_IN
         );
-        
+
         resolver.setSupportedLocales(supportedLocales);
-        
+
         // Set default locale
         resolver.setDefaultLocale(Locale.US);
-        
+
         return resolver;
     }
 }

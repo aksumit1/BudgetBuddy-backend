@@ -54,11 +54,11 @@ class SecretsManagerServiceTest {
         // Given
         String secretName = "test-secret";
         String secretValue = "secret-value";
-        
+
         GetSecretValueResponse response = GetSecretValueResponse.builder()
                 .secretString(secretValue)
                 .build();
-        
+
         when(secretsManagerClient.getSecretValue(any(GetSecretValueRequest.class)))
                 .thenReturn(response);
 
@@ -97,11 +97,11 @@ class SecretsManagerServiceTest {
         // Given
         String secretName = "test-secret";
         String newSecretValue = "new-secret-value";
-        
+
         GetSecretValueResponse response = GetSecretValueResponse.builder()
                 .secretString(newSecretValue)
                 .build();
-        
+
         when(secretsManagerClient.getSecretValue(any(GetSecretValueRequest.class)))
                 .thenReturn(response);
 

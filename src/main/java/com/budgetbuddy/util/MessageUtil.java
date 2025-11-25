@@ -9,7 +9,7 @@ import java.util.Locale;
 /**
  * Message Utility for Internationalization
  * Provides localized messages based on user locale
- * 
+ *
  * Features:
  * - Locale-aware message retrieval
  * - Error message formatting
@@ -21,21 +21,21 @@ public class MessageUtil {
 
     private final MessageSource messageSource;
 
-    public MessageUtil(MessageSource messageSource) {
+    public MessageUtil(final MessageSource messageSource) {
         this.messageSource = messageSource;
     }
 
     /**
      * Get localized message
      */
-    public String getMessage(String code) {
+    public String getMessage((final String code) {
         return getMessage(code, null);
     }
 
     /**
      * Get localized message with arguments
      */
-    public String getMessage(String code, Object[] args) {
+    public String getMessage((final String code, final Object[] args) {
         Locale locale = LocaleContextHolder.getLocale();
         return getMessage(code, args, locale);
     }
@@ -43,7 +43,7 @@ public class MessageUtil {
     /**
      * Get localized message with specific locale
      */
-    public String getMessage(String code, Object[] args, Locale locale) {
+    public String getMessage((final String code, final Object[] args, final Locale locale) {
         try {
             return messageSource.getMessage(code, args, code, locale);
         } catch (Exception e) {
@@ -55,7 +55,7 @@ public class MessageUtil {
     /**
      * Get error message
      */
-    public String getErrorMessage(String errorCode) {
+    public String getErrorMessage((final String errorCode) {
         String messageKey = "error." + errorCode.toLowerCase().replace("_", ".");
         return getMessage(messageKey);
     }
@@ -63,7 +63,7 @@ public class MessageUtil {
     /**
      * Get success message
      */
-    public String getSuccessMessage(String successCode) {
+    public String getSuccessMessage((final String successCode) {
         String messageKey = "success." + successCode.toLowerCase().replace("_", ".");
         return getMessage(messageKey);
     }
@@ -71,7 +71,7 @@ public class MessageUtil {
     /**
      * Get validation message
      */
-    public String getValidationMessage(String validationCode) {
+    public String getValidationMessage((final String validationCode) {
         String messageKey = "validation." + validationCode.toLowerCase().replace("_", ".");
         return getMessage(messageKey);
     }

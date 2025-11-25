@@ -7,6 +7,8 @@ import org.springframework.stereotype.Service;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.*;
+import software.amazon.awssdk.services.s3.presigner.S3Presigner;
+import software.amazon.awssdk.services.s3.presigner.model.PresignedGetObjectRequest;
 
 import java.io.InputStream;
 import java.time.Instant;
@@ -22,10 +24,12 @@ public class S3Service {
     private static final Logger logger = LoggerFactory.getLogger(S3Service.class);
 
     private final S3Client s3Client;
+    private final S3Presigner s3Presigner;
     private final String bucketName;
 
-    public S3Service(S3Client s3Client, @Value("${aws.s3.bucket-name:budgetbuddy-storage}") String bucketName) {
+    public S3Service(final S3Client s3Client, final S3Presigner s3Presigner, @Value("${aws.s3.bucket-name:budgetbuddy-storage}") String bucketName) {
         this.s3Client = s3Client;
+        this.s3Presigner = s3Presigner;
         this.bucketName = bucketName;
     }
 
@@ -33,7 +37,7 @@ public class S3Service {
      * Upload file to S3 with cost optimization
      * Uses Standard storage class for frequently accessed files
      */
-    public String uploadFile(String key, InputStream inputStream, long contentLength, String contentType) {
+    public String uploadFile((final String key, final InputStream inputStream, final long contentLength, final String contentType) {
         try {
             PutObjectRequest putObjectRequest = PutObjectRequest.builder()
                     .bucket(bucketName)
@@ -54,13 +58,13 @@ public class S3Service {
     /**
      * Upload file with Standard-IA storage class for cost savings on infrequent access
      */
-    public String uploadFileInfrequentAccess(String key, InputStream inputStream, long contentLength, String contentType) {
+    public String uploadFileInfrequentAccess((final String key, final InputStream inputStream, final long contentLength, final String contentType) {
         try {
             PutObjectRequest putObjectRequest = PutObjectRequest.builder()
                     .bucket(bucketName)
                     .key(key)
                     .contentType(contentType)
-                    .storageClass(StorageClass.STANDARD_INFREQUENT_ACCESS) // 50% cost savings
+                    .storageClass(StorageClass.STANDARD_IA) // 50% cost savings
                     .build();
 
             s3Client.putObject(putObjectRequest, RequestBody.fromInputStream(inputStream, contentLength));
@@ -75,7 +79,7 @@ public class S3Service {
     /**
      * Move file to Glacier for long-term archival (90% cost savings)
      */
-    public void archiveFile(String key) {
+    public void archiveFile((final String key) {
         try {
             CopyObjectRequest copyRequest = CopyObjectRequest.builder()
                     .sourceBucket(bucketName)
@@ -86,14 +90,14 @@ public class S3Service {
                     .build();
 
             s3Client.copyObject(copyRequest);
-            
+
             // Delete original
             DeleteObjectRequest deleteRequest = DeleteObjectRequest.builder()
                     .bucket(bucketName)
                     .key(key)
                     .build();
             s3Client.deleteObject(deleteRequest);
-            
+
             logger.info("File archived to Glacier: {}", key);
         } catch (Exception e) {
             logger.error("Error archiving file: {}", e.getMessage());
@@ -104,7 +108,7 @@ public class S3Service {
     /**
      * Delete file from S3
      */
-    public void deleteFile(String key) {
+    public void deleteFile((final String key) {
         try {
             DeleteObjectRequest deleteRequest = DeleteObjectRequest.builder()
                     .bucket(bucketName)
@@ -121,17 +125,18 @@ public class S3Service {
     /**
      * Get presigned URL for file access (cost-effective for direct client access)
      */
-    public String getPresignedUrl(String key, int expirationMinutes) {
+    public String getPresignedUrl((final String key, final int expirationMinutes) {
         try {
-            GetObjectPresignRequest presignRequest = GetObjectPresignRequest.builder()
-                    .signatureDuration(java.time.Duration.ofMinutes(expirationMinutes))
-                    .getObjectRequest(GetObjectRequest.builder()
-                            .bucket(bucketName)
-                            .key(key)
-                            .build())
+            GetObjectRequest getObjectRequest = GetObjectRequest.builder()
+                    .bucket(bucketName)
+                    .key(key)
                     .build();
 
-            return s3Client.utilities().getPresigner().presignGetObject(presignRequest).url().toString();
+            PresignedGetObjectRequest presignedRequest = s3Presigner.presignGetObject(r -> r
+                    .signatureDuration(java.time.Duration.ofMinutes(expirationMinutes))
+                    .getObjectRequest(getObjectRequest));
+
+            return presignedRequest.url().toString();
         } catch (Exception e) {
             logger.error("Error generating presigned URL: {}", e.getMessage());
             throw new RuntimeException("Failed to generate presigned URL", e);

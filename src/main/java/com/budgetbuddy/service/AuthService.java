@@ -36,11 +36,7 @@ public class AuthService {
     private final PasswordHashingService passwordHashingService;
     private final UserRepository userRepository;
 
-    public AuthService(
-            JwtTokenProvider tokenProvider,
-            UserService userService,
-            PasswordHashingService passwordHashingService,
-            UserRepository userRepository) {
+    public AuthService(final JwtTokenProvider tokenProvider, final UserService userService, final PasswordHashingService passwordHashingService, final UserRepository userRepository) {
         this.tokenProvider = tokenProvider;
         this.userService = userService;
         this.passwordHashingService = passwordHashingService;
@@ -50,7 +46,7 @@ public class AuthService {
     /**
      * Authenticate user with secure format (password_hash + salt) or legacy format (password)
      */
-    public AuthResponse authenticate(AuthRequest request) {
+    public AuthResponse authenticate((final AuthRequest request) {
         if (request == null || request.getEmail() == null || request.getEmail().isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Email is required");
         }
@@ -65,7 +61,7 @@ public class AuthService {
 
         // Authenticate based on format
         boolean authenticated = false;
-        
+
         if (request.isSecureFormat()) {
             // Secure format: client-side hashed password
             if (user.getPasswordHash() == null || user.getPasswordHash().isEmpty()) {
@@ -89,14 +85,14 @@ public class AuthService {
         } else if (request.isLegacyFormat()) {
             // Legacy format: plaintext password (for backward compatibility)
             logger.warn("Legacy password format used for user: {}. User should update password.", request.getEmail());
-            
+
             // For legacy, we need to check if user has BCrypt hash (old format)
             // This would require checking against the old User model
             // For now, reject legacy format and require password reset
-            throw new AppException(ErrorCode.INVALID_CREDENTIALS, 
+            throw new AppException(ErrorCode.INVALID_CREDENTIALS,
                     "Legacy password format not supported. Please reset your password.");
         } else {
-            throw new AppException(ErrorCode.INVALID_INPUT, 
+            throw new AppException(ErrorCode.INVALID_INPUT,
                     "Either password_hash+salt or password must be provided");
         }
 
@@ -116,7 +112,7 @@ public class AuthService {
         } else {
             authorities = Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER"));
         }
-        
+
         Authentication authentication = new UsernamePasswordAuthenticationToken(
                 user.getEmail(),
                 null,
@@ -154,7 +150,7 @@ public class AuthService {
         return new AuthResponse(accessToken, refreshToken, expiresAt, userInfo);
     }
 
-    public AuthResponse refreshToken(String refreshToken) {
+    public AuthResponse refreshToken((final String refreshToken) {
         if (refreshToken == null || refreshToken.isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Refresh token is required");
         }
@@ -167,7 +163,7 @@ public class AuthService {
         if (email == null || email.isEmpty()) {
             throw new AppException(ErrorCode.TOKEN_INVALID, "Invalid refresh token: no email found");
         }
-        
+
         UserTable user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
 
@@ -185,7 +181,7 @@ public class AuthService {
         } else {
             authorities = Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER"));
         }
-        
+
         // Generate new tokens
         Authentication authentication = new UsernamePasswordAuthenticationToken(
                 user.getEmail(), null, authorities);

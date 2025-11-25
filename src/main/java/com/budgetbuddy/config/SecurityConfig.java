@@ -25,7 +25,7 @@ import java.util.List;
 /**
  * Security Configuration
  * Supports both JWT and OAuth2 authentication
- * 
+ *
  * Production-ready with proper CORS restrictions
  */
 @Configuration
@@ -56,11 +56,11 @@ public class SecurityConfig {
     }
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain((final HttpSecurity http) throws Exception {
         http
             .csrf(csrf -> csrf.disable())
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-            .sessionManagement(session -> 
+            .sessionManagement(session ->
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/actuator/health", "/actuator/info").permitAll()
@@ -89,10 +89,10 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        
+
         // Configure allowed origins based on environment
         boolean isProduction = activeProfile != null && activeProfile.contains("prod");
-        
+
         if (allowedOrigins != null && !allowedOrigins.isEmpty() && !allowedOrigins.equals("*")) {
             List<String> origins = Arrays.asList(allowedOrigins.split(","));
             configuration.setAllowedOrigins(origins);
@@ -106,13 +106,13 @@ public class SecurityConfig {
             configuration.setAllowedOrigins(List.of("*"));
             logger.info("CORS configured to allow all origins (non-production environment)");
         }
-        
+
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setExposedHeaders(Arrays.asList(
-                "Authorization", 
-                "X-Request-ID", 
-                "X-Rate-Limit-Remaining", 
+                "Authorization",
+                "X-Request-ID",
+                "X-Rate-Limit-Remaining",
                 "X-Rate-Limit-Reset",
                 "X-Rate-Limit-Limit",
                 "X-API-Version"

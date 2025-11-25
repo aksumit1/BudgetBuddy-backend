@@ -23,8 +23,7 @@ public class CertificatePinningService {
 
     private final Set<String> pinnedCertificates;
 
-    public CertificatePinningService(
-            @Value("${app.security.certificate-pinning.enabled:true}") boolean enabled,
+    public CertificatePinningService(@Value("${app.security.certificate-pinning.enabled:true}") boolean enabled,
             @Value("${app.security.certificate-pinning.certificates:}") String certificates) {
         if (enabled && certificates != null && !certificates.isEmpty()) {
             this.pinnedCertificates = Set.of(certificates.split(","));
@@ -39,7 +38,7 @@ public class CertificatePinningService {
      * Validate certificate against pinned certificates
      * Returns true if certificate is trusted
      */
-    public boolean validateCertificate(X509Certificate certificate) {
+    public boolean validateCertificate((final X509Certificate certificate) {
         if (pinnedCertificates.isEmpty()) {
             logger.warn("Certificate pinning not configured - allowing all certificates");
             return true; // Allow if not configured (for development)
@@ -69,12 +68,12 @@ public class CertificatePinningService {
     public X509TrustManager createPinningTrustManager() {
         return new X509TrustManager() {
             @Override
-            public void checkClientTrusted(X509Certificate[] chain, String authType) {
+            public void checkClientTrusted((final X509Certificate[] chain, final String authType) {
                 // Not used for server-side
             }
 
             @Override
-            public void checkServerTrusted(X509Certificate[] chain, String authType) {
+            public void checkServerTrusted((final X509Certificate[] chain, final String authType) {
                 if (chain == null || chain.length == 0) {
                     throw new IllegalArgumentException("Certificate chain is empty");
                 }
@@ -97,7 +96,7 @@ public class CertificatePinningService {
     /**
      * Get SHA-256 hash of certificate's public key
      */
-    private String getCertificateHash(X509Certificate certificate) throws Exception {
+    private String getCertificateHash((final X509Certificate certificate) throws Exception {
         byte[] publicKeyBytes = certificate.getPublicKey().getEncoded();
         java.security.MessageDigest digest = java.security.MessageDigest.getInstance("SHA-256");
         byte[] hash = digest.digest(publicKeyBytes);

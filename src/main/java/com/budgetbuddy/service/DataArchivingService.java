@@ -32,7 +32,7 @@ public class DataArchivingService {
     private final TransactionRepository transactionRepository;
     private final S3Service s3Service;
 
-    public DataArchivingService(TransactionRepository transactionRepository, S3Service s3Service) {
+    public DataArchivingService(final TransactionRepository transactionRepository, final S3Service s3Service) {
         this.transactionRepository = transactionRepository;
         this.s3Service = s3Service;
     }
@@ -58,7 +58,7 @@ public class DataArchivingService {
         // 1. Use DynamoDB TTL to automatically expire old items
         // 2. Use DynamoDB Streams to capture deletions and archive to S3
         // 3. Or maintain a separate archive table with TTL
-        
+
         // For now, this method is a placeholder - actual implementation would require
         // DynamoDB Streams or a scheduled job that processes items with TTL
         logger.info("Transaction archiving requires DynamoDB Streams or TTL implementation");
@@ -67,7 +67,7 @@ public class DataArchivingService {
     /**
      * Archive specific transactions (called from DynamoDB Streams handler)
      */
-    public void archiveTransactions(List<TransactionTable> transactions) {
+    public void archiveTransactions((final List<TransactionTable> transactions) {
         if (transactions == null || transactions.isEmpty()) {
             logger.info("No transactions to archive");
             return;
@@ -78,14 +78,14 @@ public class DataArchivingService {
             byte[] compressedData = compressTransactions(transactions);
             String dateStr = LocalDate.now().format(DATE_FORMATTER);
             String s3Key = "archive/transactions/" + dateStr + ".gz";
-            
+
             s3Service.uploadFileInfrequentAccess(
                     s3Key,
                     new ByteArrayInputStream(compressedData),
                     compressedData.length,
                     "application/gzip"
             );
-            
+
             logger.info("Archived {} transactions to S3", transactions.size());
         } catch (Exception e) {
             logger.error("Error archiving transactions: {}", e.getMessage());

@@ -25,7 +25,7 @@ import java.util.Map;
 /**
  * Plaid Integration REST Controller
  * Provides endpoints for Plaid Link integration
- * 
+ *
  * Features:
  * - Link token generation
  * - Public token exchange
@@ -38,15 +38,12 @@ import java.util.Map;
 public class PlaidController {
 
     private static final Logger logger = LoggerFactory.getLogger(PlaidController.class);
-    
+
     private final PlaidService plaidService;
     private final PlaidSyncService plaidSyncService;
     private final UserService userService;
 
-    public PlaidController(
-            PlaidService plaidService,
-            PlaidSyncService plaidSyncService,
-            UserService userService) {
+    public PlaidController(final PlaidService plaidService, final PlaidSyncService plaidSyncService, final UserService userService) {
         this.plaidService = plaidService;
         this.plaidSyncService = plaidSyncService;
         this.userService = userService;
@@ -77,18 +74,18 @@ public class PlaidController {
 
         try {
             var response = plaidService.createLinkToken(user.getUserId(), "BudgetBuddy");
-            
+
             LinkTokenResponse linkTokenResponse = new LinkTokenResponse();
             linkTokenResponse.setLinkToken(response.getLinkToken());
             if (response.getExpiration() != null) {
                 linkTokenResponse.setExpiration(response.getExpiration().toString());
             }
-            
+
             logger.info("Link token created for user: {}", user.getUserId());
             return ResponseEntity.ok(linkTokenResponse);
         } catch (Exception e) {
             logger.error("Failed to create link token for user {}: {}", user.getUserId(), e.getMessage(), e);
-            throw new AppException(ErrorCode.PLAID_CONNECTION_FAILED, 
+            throw new AppException(ErrorCode.PLAID_CONNECTION_FAILED,
                     "Failed to create link token", null, null, e);
         }
     }
@@ -132,14 +129,14 @@ public class PlaidController {
             ExchangeTokenResponse tokenResponse = new ExchangeTokenResponse();
             tokenResponse.setAccessToken(accessToken);
             tokenResponse.setItemId(response.getItemId());
-            
+
             logger.info("Token exchanged and data synced for user: {}", user.getUserId());
             return ResponseEntity.ok(tokenResponse);
         } catch (AppException e) {
             throw e;
         } catch (Exception e) {
             logger.error("Failed to exchange token for user {}: {}", user.getUserId(), e.getMessage(), e);
-            throw new AppException(ErrorCode.PLAID_CONNECTION_FAILED, 
+            throw new AppException(ErrorCode.PLAID_CONNECTION_FAILED,
                     "Failed to exchange token", null, null, e);
         }
     }
@@ -169,17 +166,20 @@ public class PlaidController {
 
         try {
             var response = plaidService.getAccounts(accessToken);
-            
+
             AccountsResponse accountsResponse = new AccountsResponse();
-            accountsResponse.setAccounts(response.getAccounts());
+            // Convert List<AccountBase> to List<Object> for AccountsResponse
+            if (response.getAccounts() != null) {
+                accountsResponse.setAccounts(new java.util.ArrayList<>(response.getAccounts()));
+            }
             accountsResponse.setItem(response.getItem());
-            
+
             return ResponseEntity.ok(accountsResponse);
         } catch (AppException e) {
             throw e;
         } catch (Exception e) {
             logger.error("Failed to get accounts for user {}: {}", user.getUserId(), e.getMessage(), e);
-            throw new AppException(ErrorCode.PLAID_CONNECTION_FAILED, 
+            throw new AppException(ErrorCode.PLAID_CONNECTION_FAILED,
                     "Failed to retrieve accounts", null, null, e);
         }
     }
@@ -215,7 +215,7 @@ public class PlaidController {
             return ResponseEntity.ok(Map.of("status", "success", "message", "Data synchronized successfully"));
         } catch (Exception e) {
             logger.error("Failed to sync data for user {}: {}", user.getUserId(), e.getMessage(), e);
-            throw new AppException(ErrorCode.PLAID_CONNECTION_FAILED, 
+            throw new AppException(ErrorCode.PLAID_CONNECTION_FAILED,
                     "Failed to sync data", null, null, e);
         }
     }
@@ -226,9 +226,9 @@ public class PlaidController {
         private String expiration;
 
         public String getLinkToken() { return linkToken; }
-        public void setLinkToken(String linkToken) { this.linkToken = linkToken; }
+        public void setLinkToken(final String linkToken) { this.linkToken = linkToken; }
         public String getExpiration() { return expiration; }
-        public void setExpiration(String expiration) { this.expiration = expiration; }
+        public void setExpiration(final String expiration) { this.expiration = expiration; }
     }
 
     public static class ExchangeTokenRequest {
@@ -236,7 +236,7 @@ public class PlaidController {
         private String publicToken;
 
         public String getPublicToken() { return publicToken; }
-        public void setPublicToken(String publicToken) { this.publicToken = publicToken; }
+        public void setPublicToken(final String publicToken) { this.publicToken = publicToken; }
     }
 
     public static class ExchangeTokenResponse {
@@ -244,9 +244,9 @@ public class PlaidController {
         private String itemId;
 
         public String getAccessToken() { return accessToken; }
-        public void setAccessToken(String accessToken) { this.accessToken = accessToken; }
+        public void setAccessToken(final String accessToken) { this.accessToken = accessToken; }
         public String getItemId() { return itemId; }
-        public void setItemId(String itemId) { this.itemId = itemId; }
+        public void setItemId(final String itemId) { this.itemId = itemId; }
     }
 
     public static class AccountsResponse {
@@ -254,9 +254,9 @@ public class PlaidController {
         private Object item;
 
         public java.util.List<Object> getAccounts() { return accounts; }
-        public void setAccounts(java.util.List<Object> accounts) { this.accounts = accounts; }
+        public void setAccounts((final java.util.List<Object> accounts) { this.accounts = accounts; }
         public Object getItem() { return item; }
-        public void setItem(Object item) { this.item = item; }
+        public void setItem(final Object item) { this.item = item; }
     }
 
     public static class SyncRequest {
@@ -264,6 +264,6 @@ public class PlaidController {
         private String accessToken;
 
         public String getAccessToken() { return accessToken; }
-        public void setAccessToken(String accessToken) { this.accessToken = accessToken; }
+        public void setAccessToken(final String accessToken) { this.accessToken = accessToken; }
     }
 }

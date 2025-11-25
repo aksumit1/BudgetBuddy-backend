@@ -50,7 +50,7 @@ public class Transaction {
     public Transaction() {
     }
 
-    public Transaction(User user, Account account, BigDecimal amount, LocalDate transactionDate) {
+    public Transaction(final User user, final Account account, final BigDecimal amount, final LocalDate transactionDate) {
         this.user = user;
         this.account = account;
         this.amount = amount;
@@ -62,7 +62,7 @@ public class Transaction {
         return id;
     }
 
-    public void setId(Long id) {
+    public void setId(final Long id) {
         this.id = id;
     }
 
@@ -70,7 +70,7 @@ public class Transaction {
         return user;
     }
 
-    public void setUser(User user) {
+    public void setUser(final User user) {
         this.user = user;
     }
 
@@ -78,7 +78,7 @@ public class Transaction {
         return account;
     }
 
-    public void setAccount(Account account) {
+    public void setAccount(final Account account) {
         this.account = account;
     }
 
@@ -86,7 +86,7 @@ public class Transaction {
         return amount;
     }
 
-    public void setAmount(BigDecimal amount) {
+    public void setAmount(final BigDecimal amount) {
         this.amount = amount;
     }
 
@@ -94,7 +94,7 @@ public class Transaction {
         return description;
     }
 
-    public void setDescription(String description) {
+    public void setDescription(final String description) {
         this.description = description;
     }
 
@@ -102,7 +102,7 @@ public class Transaction {
         return merchantName;
     }
 
-    public void setMerchantName(String merchantName) {
+    public void setMerchantName(final String merchantName) {
         this.merchantName = merchantName;
     }
 
@@ -110,7 +110,7 @@ public class Transaction {
         return category;
     }
 
-    public void setCategory(TransactionCategory category) {
+    public void setCategory(final TransactionCategory category) {
         this.category = category;
     }
 
@@ -118,7 +118,7 @@ public class Transaction {
         return transactionDate;
     }
 
-    public void setTransactionDate(LocalDate transactionDate) {
+    public void setTransactionDate(final LocalDate transactionDate) {
         this.transactionDate = transactionDate;
     }
 
@@ -126,7 +126,7 @@ public class Transaction {
         return currencyCode;
     }
 
-    public void setCurrencyCode(String currencyCode) {
+    public void setCurrencyCode(final String currencyCode) {
         this.currencyCode = currencyCode;
     }
 
@@ -134,7 +134,7 @@ public class Transaction {
         return plaidTransactionId;
     }
 
-    public void setPlaidTransactionId(String plaidTransactionId) {
+    public void setPlaidTransactionId(final String plaidTransactionId) {
         this.plaidTransactionId = plaidTransactionId;
     }
 
@@ -142,7 +142,7 @@ public class Transaction {
         return pending;
     }
 
-    public void setPending(Boolean pending) {
+    public void setPending(final Boolean pending) {
         this.pending = pending;
     }
 
@@ -150,7 +150,7 @@ public class Transaction {
         return location;
     }
 
-    public void setLocation(String location) {
+    public void setLocation(final String location) {
         this.location = location;
     }
 
@@ -158,7 +158,7 @@ public class Transaction {
         return paymentChannel;
     }
 
-    public void setPaymentChannel(String paymentChannel) {
+    public void setPaymentChannel(final String paymentChannel) {
         this.paymentChannel = paymentChannel;
     }
 
@@ -166,7 +166,7 @@ public class Transaction {
         return authorizedDate;
     }
 
-    public void setAuthorizedDate(String authorizedDate) {
+    public void setAuthorizedDate(final String authorizedDate) {
         this.authorizedDate = authorizedDate;
     }
 
@@ -174,7 +174,7 @@ public class Transaction {
         return createdAt;
     }
 
-    public void setCreatedAt(LocalDateTime createdAt) {
+    public void setCreatedAt(final LocalDateTime createdAt) {
         this.createdAt = createdAt;
     }
 
@@ -182,7 +182,7 @@ public class Transaction {
         return updatedAt;
     }
 
-    public void setUpdatedAt(LocalDateTime updatedAt) {
+    public void setUpdatedAt(final LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
     }
 

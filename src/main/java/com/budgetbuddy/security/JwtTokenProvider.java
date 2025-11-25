@@ -40,7 +40,7 @@ public class JwtTokenProvider {
     @Value("${app.jwt.refresh-expiration}")
     private long refreshExpiration;
 
-    public JwtTokenProvider(SecretsManagerService secretsManagerService) {
+    public JwtTokenProvider(final SecretsManagerService secretsManagerService) {
         this.secretsManagerService = secretsManagerService;
     }
 
@@ -59,19 +59,19 @@ public class JwtTokenProvider {
         } catch (Exception e) {
             logger.warn("Failed to fetch JWT secret from Secrets Manager, using fallback: {}", e.getMessage());
         }
-        
+
         // Fallback to environment variable or configuration
         if (jwtSecretFallback != null && !jwtSecretFallback.isEmpty()) {
             return jwtSecretFallback;
         }
-        
+
         throw new IllegalStateException("JWT secret not configured. Set app.jwt.secret or configure AWS Secrets Manager.");
     }
 
     /**
      * Generate JWT token for user
      */
-    public String generateToken(Authentication authentication) {
+    public String generateToken((final Authentication authentication) {
         UserDetails userPrincipal = (UserDetails) authentication.getPrincipal();
         Map<String, Object> claims = new HashMap<>();
         return createToken(claims, userPrincipal.getUsername(), jwtExpiration);
@@ -80,7 +80,7 @@ public class JwtTokenProvider {
     /**
      * Generate refresh token
      */
-    public String generateRefreshToken(String username) {
+    public String generateRefreshToken((final String username) {
         Map<String, Object> claims = new HashMap<>();
         return createToken(claims, username, refreshExpiration);
     }
@@ -88,7 +88,7 @@ public class JwtTokenProvider {
     /**
      * Create JWT token
      */
-    private String createToken(Map<String, Object> claims, String subject, long expiration) {
+    private String createToken((Map<String, final Object> claims, final String subject, final long expiration) {
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + expiration);
 
@@ -104,14 +104,14 @@ public class JwtTokenProvider {
     /**
      * Get username from token
      */
-    public String getUsernameFromToken(String token) {
+    public String getUsernameFromToken((final String token) {
         return getClaimFromToken(token, Claims::getSubject);
     }
 
     /**
      * Get expiration date from token
      */
-    public Date getExpirationDateFromToken(String token) {
+    public Date getExpirationDateFromToken((final String token) {
         return getClaimFromToken(token, Claims::getExpiration);
     }
 
@@ -126,7 +126,7 @@ public class JwtTokenProvider {
     /**
      * Get all claims from token
      */
-    private Claims getAllClaimsFromToken(String token) {
+    private Claims getAllClaimsFromToken((final String token) {
         return Jwts.parser()
                 .verifyWith(getSigningKey())
                 .build()
@@ -137,7 +137,7 @@ public class JwtTokenProvider {
     /**
      * Check if token is expired
      */
-    private Boolean isTokenExpired(String token) {
+    private Boolean isTokenExpired((final String token) {
         final Date expiration = getExpirationDateFromToken(token);
         return expiration.before(new Date());
     }
@@ -145,7 +145,7 @@ public class JwtTokenProvider {
     /**
      * Validate token
      */
-    public Boolean validateToken(String token, UserDetails userDetails) {
+    public Boolean validateToken((final String token, final UserDetails userDetails) {
         try {
             final String username = getUsernameFromToken(token);
             return (username.equals(userDetails.getUsername()) && !isTokenExpired(token));
@@ -158,7 +158,7 @@ public class JwtTokenProvider {
     /**
      * Validate token without user details
      */
-    public Boolean validateToken(String token) {
+    public Boolean validateToken((final String token) {
         try {
             Jwts.parser()
                     .verifyWith(getSigningKey())

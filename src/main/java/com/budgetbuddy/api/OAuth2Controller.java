@@ -17,7 +17,7 @@ import java.util.Map;
 /**
  * OAuth2 Controller
  * Provides OAuth2 authentication endpoints
- * 
+ *
  * Features:
  * - OAuth2 configuration
  * - User info endpoint
@@ -71,7 +71,7 @@ public class OAuth2Controller {
     )
     public ResponseEntity<Map<String, Object>> getUserInfo(
             @AuthenticationPrincipal Jwt jwt) {
-        
+
         if (jwt == null) {
             throw new AppException(ErrorCode.UNAUTHORIZED, "JWT token is missing");
         }
@@ -80,7 +80,7 @@ public class OAuth2Controller {
                 "sub", jwt.getSubject() != null ? jwt.getSubject() : "unknown",
                 "email", jwt.getClaimAsString("email") != null ? jwt.getClaimAsString("email") : "",
                 "name", jwt.getClaimAsString("name") != null ? jwt.getClaimAsString("name") : "",
-                "preferred_username", jwt.getClaimAsString("preferred_username") != null ? 
+                "preferred_username", jwt.getClaimAsString("preferred_username") != null ?
                         jwt.getClaimAsString("preferred_username") : ""
         );
 
@@ -98,14 +98,14 @@ public class OAuth2Controller {
         private java.util.List<String> scopes;
 
         public String getAuthorizationEndpoint() { return authorizationEndpoint; }
-        public void setAuthorizationEndpoint(String authorizationEndpoint) { this.authorizationEndpoint = authorizationEndpoint; }
+        public void setAuthorizationEndpoint(final String authorizationEndpoint) { this.authorizationEndpoint = authorizationEndpoint; }
         public String getTokenEndpoint() { return tokenEndpoint; }
-        public void setTokenEndpoint(String tokenEndpoint) { this.tokenEndpoint = tokenEndpoint; }
+        public void setTokenEndpoint(final String tokenEndpoint) { this.tokenEndpoint = tokenEndpoint; }
         public String getUserInfoEndpoint() { return userInfoEndpoint; }
-        public void setUserInfoEndpoint(String userInfoEndpoint) { this.userInfoEndpoint = userInfoEndpoint; }
+        public void setUserInfoEndpoint(final String userInfoEndpoint) { this.userInfoEndpoint = userInfoEndpoint; }
         public String getClientId() { return clientId; }
-        public void setClientId(String clientId) { this.clientId = clientId; }
+        public void setClientId(final String clientId) { this.clientId = clientId; }
         public java.util.List<String> getScopes() { return scopes; }
-        public void setScopes(java.util.List<String> scopes) { this.scopes = scopes; }
+        public void setScopes((final java.util.List<String> scopes) { this.scopes = scopes; }
     }
 }

@@ -50,7 +50,7 @@ class LoadTest {
         System.out.println("Total Requests: " + (CONCURRENT_USERS * REQUESTS_PER_USER));
         System.out.println("Successful: " + successCount.get());
         System.out.println("Failed: " + failureCount.get());
-        System.out.println("Success Rate: " + 
+        System.out.println("Success Rate: " +
                 (successCount.get() * 100.0 / (CONCURRENT_USERS * REQUESTS_PER_USER)) + "%");
     }
 

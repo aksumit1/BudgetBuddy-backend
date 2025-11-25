@@ -25,12 +25,12 @@ public class BudgetRepository {
     private final DynamoDbIndex<BudgetTable> userIdIndex;
     private static final String TABLE_NAME = "BudgetBuddy-Budgets";
 
-    public BudgetRepository(DynamoDbEnhancedClient enhancedClient) {
+    public BudgetRepository(final DynamoDbEnhancedClient enhancedClient) {
         this.budgetTable = enhancedClient.table(TABLE_NAME, TableSchema.fromBean(BudgetTable.class));
         this.userIdIndex = budgetTable.index("UserIdIndex");
     }
 
-    public void save(BudgetTable budget) {
+    public void save((final BudgetTable budget) {
         budgetTable.putItem(budget);
     }
 
@@ -41,7 +41,7 @@ public class BudgetRepository {
 
     public List<BudgetTable> findByUserId(String userId) {
         List<BudgetTable> results = new ArrayList<>();
-        SdkIterable<software.amazon.awssdk.enhanced.dynamodb.model.Page<BudgetTable>> pages = 
+        SdkIterable<software.amazon.awssdk.enhanced.dynamodb.model.Page<BudgetTable>> pages =
                 userIdIndex.query(QueryConditional.keyEqualTo(Key.builder().partitionValue(userId).build()));
         for (software.amazon.awssdk.enhanced.dynamodb.model.Page<BudgetTable> page : pages) {
             for (BudgetTable item : page.items()) {
@@ -57,7 +57,7 @@ public class BudgetRepository {
                 .findFirst();
     }
 
-    public void delete(String budgetId) {
+    public void delete((final String budgetId) {
         budgetTable.deleteItem(Key.builder().partitionValue(budgetId).build());
     }
 }

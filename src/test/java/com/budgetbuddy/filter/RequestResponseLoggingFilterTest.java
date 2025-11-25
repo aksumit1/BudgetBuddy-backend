@@ -42,7 +42,7 @@ class RequestResponseLoggingFilterTest {
         when(request.getRequestURI()).thenReturn("/api/test");
         when(request.getMethod()).thenReturn("GET");
         when(request.getRemoteAddr()).thenReturn("127.0.0.1");
-        
+
         StringWriter stringWriter = new StringWriter();
         PrintWriter printWriter = new PrintWriter(stringWriter);
         when(response.getWriter()).thenReturn(printWriter);

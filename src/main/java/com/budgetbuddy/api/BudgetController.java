@@ -19,7 +19,7 @@ import java.util.List;
 /**
  * Budget REST Controller
  * Migrated to DynamoDB
- * 
+ *
  * Thread-safe with proper error handling
  */
 @RestController
@@ -29,7 +29,7 @@ public class BudgetController {
     private final BudgetService budgetService;
     private final UserService userService;
 
-    public BudgetController(BudgetService budgetService, UserService userService) {
+    public BudgetController(final BudgetService budgetService, final UserService userService) {
         this.budgetService = budgetService;
         this.userService = userService;
     }
@@ -98,8 +98,8 @@ public class BudgetController {
         private BigDecimal monthlyLimit;
 
         public String getCategory() { return category; }
-        public void setCategory(String category) { this.category = category; }
+        public void setCategory(final String category) { this.category = category; }
         public BigDecimal getMonthlyLimit() { return monthlyLimit; }
-        public void setMonthlyLimit(BigDecimal monthlyLimit) { this.monthlyLimit = monthlyLimit; }
+        public void setMonthlyLimit(final BigDecimal monthlyLimit) { this.monthlyLimit = monthlyLimit; }
     }
 }

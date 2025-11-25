@@ -5,6 +5,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 import software.amazon.awssdk.services.dynamodb.model.*;
+import software.amazon.awssdk.services.dynamodb.model.UpdateTimeToLiveRequest;
 
 import java.time.Instant;
 import java.util.Map;
@@ -17,7 +18,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * DDoS Protection Service
  * Uses DynamoDB for distributed rate limiting across multiple instances
  * Implements sliding window algorithm for accurate rate limiting
- * 
+ *
  * Thread-safe implementation with proper synchronization
  */
 @Service
@@ -39,7 +40,7 @@ public class DDoSProtectionService {
     private static final long CACHE_TTL_MS = 60000; // 1 minute
     private volatile long lastCacheCleanup = System.currentTimeMillis();
 
-    public DDoSProtectionService(DynamoDbClient dynamoDbClient) {
+    public DDoSProtectionService(final DynamoDbClient dynamoDbClient) {
         if (dynamoDbClient == null) {
             throw new IllegalArgumentException("DynamoDbClient cannot be null");
         }
@@ -51,7 +52,7 @@ public class DDoSProtectionService {
      * Check if IP is allowed to make requests
      * Thread-safe implementation
      */
-    public boolean isAllowed(String ipAddress) {
+    public boolean isAllowed((final String ipAddress) {
         if (ipAddress == null || ipAddress.isEmpty()) {
             logger.warn("IP address is null or empty");
             return false;
@@ -88,14 +89,14 @@ public class DDoSProtectionService {
         // Create new counter (thread-safe)
         counter = new RequestCounter();
         counter.increment();
-        
+
         // Prevent cache from growing too large
         if (inMemoryCache.size() >= MAX_CACHE_SIZE) {
             // Remove oldest entries (simple FIFO - in production, use LRU)
             String firstKey = inMemoryCache.keySet().iterator().next();
             inMemoryCache.remove(firstKey);
         }
-        
+
         inMemoryCache.put(ipAddress, counter);
         return true;
     }
@@ -103,7 +104,7 @@ public class DDoSProtectionService {
     /**
      * Record a request for monitoring and analysis
      */
-    public void recordRequest(String ipAddress, String userId) {
+    public void recordRequest((final String ipAddress, final String userId) {
         if (ipAddress == null || ipAddress.isEmpty()) {
             return;
         }
@@ -159,11 +160,20 @@ public class DDoSProtectionService {
                                     .attributeName("ipAddress")
                                     .keyType(KeyType.HASH)
                                     .build())
-                    .timeToLiveSpecification(TimeToLiveSpecification.builder()
-                            .enabled(true)
-                            .attributeName("ttl")
-                            .build())
                     .build());
+
+            // Configure TTL separately
+            try {
+                dynamoDbClient.updateTimeToLive(UpdateTimeToLiveRequest.builder()
+                        .tableName("BudgetBuddy-DDoSProtection")
+                        .timeToLiveSpecification(TimeToLiveSpecification.builder()
+                                .enabled(true)
+                                .attributeName("ttl")
+                                .build())
+                        .build());
+            } catch (Exception e) {
+                logger.warn("Failed to configure TTL for DDoS protection table: {}", e.getMessage());
+            }
             logger.info("DDoS protection table created");
         } catch (ResourceInUseException e) {
             logger.debug("DDoS protection table already exists");
@@ -172,7 +182,7 @@ public class DDoSProtectionService {
         }
     }
 
-    private boolean isBlockedInDynamoDB(String ipAddress) {
+    private boolean isBlockedInDynamoDB((final String ipAddress) {
         if (ipAddress == null || ipAddress.isEmpty()) {
             return false;
         }
@@ -200,7 +210,7 @@ public class DDoSProtectionService {
         return false;
     }
 
-    private void blockIpInDynamoDB(String ipAddress) {
+    private void blockIpInDynamoDB((final String ipAddress) {
         if (ipAddress == null || ipAddress.isEmpty()) {
             return;
         }
@@ -225,7 +235,7 @@ public class DDoSProtectionService {
     /**
      * Async block IP to avoid blocking the request thread
      */
-    private void blockIpInDynamoDBAsync(String ipAddress) {
+    private void blockIpInDynamoDBAsync((final String ipAddress) {
         // Use a separate thread to avoid blocking
         new Thread(() -> blockIpInDynamoDB(ipAddress), "ddos-block-async").start();
     }
@@ -241,7 +251,7 @@ public class DDoSProtectionService {
         public void increment() {
             long now = System.currentTimeMillis();
             long start = windowStart.get();
-            
+
             if (now - start > CACHE_TTL_MS) {
                 // Reset window atomically
                 if (windowStart.compareAndSet(start, now)) {
@@ -263,7 +273,7 @@ public class DDoSProtectionService {
             return blocked.get();
         }
 
-        public void setBlocked(boolean blocked) {
+        public void setBlocked(final boolean blocked) {
             this.blocked.set(blocked);
         }
 

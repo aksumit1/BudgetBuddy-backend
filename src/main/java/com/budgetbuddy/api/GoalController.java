@@ -21,7 +21,7 @@ import java.util.List;
 /**
  * Goal REST Controller
  * Migrated to DynamoDB
- * 
+ *
  * Thread-safe with proper error handling
  */
 @RestController
@@ -31,7 +31,7 @@ public class GoalController {
     private final GoalService goalService;
     private final UserService userService;
 
-    public GoalController(GoalService goalService, UserService userService) {
+    public GoalController(final GoalService goalService, final UserService userService) {
         this.goalService = goalService;
         this.userService = userService;
     }
@@ -145,21 +145,21 @@ public class GoalController {
 
         // Getters and setters
         public String getName() { return name; }
-        public void setName(String name) { this.name = name; }
+        public void setName(final String name) { this.name = name; }
         public String getDescription() { return description; }
-        public void setDescription(String description) { this.description = description; }
+        public void setDescription(final String description) { this.description = description; }
         public BigDecimal getTargetAmount() { return targetAmount; }
-        public void setTargetAmount(BigDecimal targetAmount) { this.targetAmount = targetAmount; }
+        public void setTargetAmount(final BigDecimal targetAmount) { this.targetAmount = targetAmount; }
         public LocalDate getTargetDate() { return targetDate; }
-        public void setTargetDate(LocalDate targetDate) { this.targetDate = targetDate; }
+        public void setTargetDate(final LocalDate targetDate) { this.targetDate = targetDate; }
         public String getGoalType() { return goalType; }
-        public void setGoalType(String goalType) { this.goalType = goalType; }
+        public void setGoalType(final String goalType) { this.goalType = goalType; }
     }
 
     public static class UpdateProgressRequest {
         private BigDecimal amount;
 
         public BigDecimal getAmount() { return amount; }
-        public void setAmount(BigDecimal amount) { this.amount = amount; }
+        public void setAmount(final BigDecimal amount) { this.amount = amount; }
     }
 }

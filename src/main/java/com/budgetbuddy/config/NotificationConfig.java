@@ -2,6 +2,7 @@ package com.budgetbuddy.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.InstanceProfileCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
@@ -14,7 +15,7 @@ import software.amazon.awssdk.services.sns.SnsClient;
 @Configuration
 public class NotificationConfig {
 
-    private DefaultCredentialsProvider getCredentialsProvider() {
+    private AwsCredentialsProvider getCredentialsProvider() {
         try {
             return InstanceProfileCredentialsProvider.create();
         } catch (Exception e) {
@@ -23,7 +24,7 @@ public class NotificationConfig {
     }
 
     @Bean
-    public SnsClient snsClient(@org.springframework.beans.factory.annotation.Value("${app.aws.region:us-east-1}") String region) {
+    public SnsClient snsClient((@org.springframework.beans.factory.annotation.Value("${app.aws.region:us-east-1}") String region) {
         return SnsClient.builder()
                 .region(Region.of(region))
                 .credentialsProvider(getCredentialsProvider())
@@ -31,7 +32,7 @@ public class NotificationConfig {
     }
 
     @Bean
-    public SesClient sesClient(@org.springframework.beans.factory.annotation.Value("${app.aws.region:us-east-1}") String region) {
+    public SesClient sesClient((@org.springframework.beans.factory.annotation.Value("${app.aws.region:us-east-1}") String region) {
         return SesClient.builder()
                 .region(Region.of(region))
                 .credentialsProvider(getCredentialsProvider())

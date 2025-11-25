@@ -115,9 +115,9 @@ public class ComplianceReportingController {
         return ResponseEntity.ok(report);
     }
 
-    private boolean hasComplianceAccess(com.budgetbuddy.model.dynamodb.UserTable user) {
+    private boolean hasComplianceAccess((final com.budgetbuddy.model.dynamodb.UserTable user) {
         // Check if user has compliance/admin role
-        return user.getRoles() != null && 
+        return user.getRoles() != null &&
                (user.getRoles().contains("ADMIN") || user.getRoles().contains("COMPLIANCE"));
     }
 
@@ -132,13 +132,13 @@ public class ComplianceReportingController {
 
         // Getters and setters
         public Instant getStartDate() { return startDate; }
-        public void setStartDate(Instant startDate) { this.startDate = startDate; }
+        public void setStartDate(final Instant startDate) { this.startDate = startDate; }
         public Instant getEndDate() { return endDate; }
-        public void setEndDate(Instant endDate) { this.endDate = endDate; }
+        public void setEndDate(final Instant endDate) { this.endDate = endDate; }
         public boolean isCompliant() { return compliant; }
-        public void setCompliant(boolean compliant) { this.compliant = compliant; }
+        public void setCompliant(final boolean compliant) { this.compliant = compliant; }
         public Instant getTimestamp() { return timestamp; }
-        public void setTimestamp(Instant timestamp) { this.timestamp = timestamp; }
+        public void setTimestamp(final Instant timestamp) { this.timestamp = timestamp; }
     }
 }
 

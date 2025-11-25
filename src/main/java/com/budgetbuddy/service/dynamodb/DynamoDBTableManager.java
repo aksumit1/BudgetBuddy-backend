@@ -22,9 +22,7 @@ public class DynamoDBTableManager {
     private final DynamoDbClient dynamoDbClient;
     private final String tablePrefix;
 
-    public DynamoDBTableManager(
-            DynamoDbClient dynamoDbClient,
-            @Value("${app.aws.dynamodb.table-prefix:BudgetBuddy}") String tablePrefix) {
+    public DynamoDBTableManager(final DynamoDbClient dynamoDbClient, @Value("${app.aws.dynamodb.table-prefix:BudgetBuddy}") String tablePrefix) {
         this.dynamoDbClient = dynamoDbClient;
         this.tablePrefix = tablePrefix;
     }

@@ -59,7 +59,7 @@ class PlaidControllerTest {
         when(plaidService.createLinkToken(anyString(), anyString())).thenReturn(mockResponse);
 
         // When
-        ResponseEntity<LinkTokenCreateResponse> response = 
+        ResponseEntity<LinkTokenCreateResponse> response =
                 plaidController.createLinkToken(userDetails);
 
         // Then

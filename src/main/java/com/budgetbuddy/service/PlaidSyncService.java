@@ -22,13 +22,13 @@ import java.util.Optional;
 /**
  * Service for syncing data from Plaid
  * Optimized to sync only changed data and use date ranges
- * 
+ *
  * Features:
  * - Account synchronization
  * - Transaction synchronization
  * - Scheduled sync
  * - Error handling
- * 
+ *
  * Note: DynamoDB doesn't use Spring's @Transactional. Use DynamoDB TransactWriteItems for transactions.
  */
 @Service
@@ -42,10 +42,7 @@ public class PlaidSyncService {
     private final AccountRepository accountRepository;
     private final TransactionRepository transactionRepository;
 
-    public PlaidSyncService(
-            PlaidService plaidService,
-            AccountRepository accountRepository,
-            TransactionRepository transactionRepository) {
+    public PlaidSyncService(final PlaidService plaidService, final AccountRepository accountRepository, final TransactionRepository transactionRepository) {
         this.plaidService = plaidService;
         this.accountRepository = accountRepository;
         this.transactionRepository = transactionRepository;
@@ -54,7 +51,7 @@ public class PlaidSyncService {
     /**
      * Sync accounts for a user
      */
-    public void syncAccounts(UserTable user, String accessToken) {
+    public void syncAccounts((final UserTable user, final String accessToken) {
         if (user == null) {
             throw new AppException(ErrorCode.INVALID_INPUT, "User cannot be null");
         }
@@ -64,17 +61,17 @@ public class PlaidSyncService {
 
         try {
             logger.info("Starting account sync for user: {}", user.getUserId());
-            
+
             var accountsResponse = plaidService.getAccounts(accessToken);
-            
+
             if (accountsResponse == null || accountsResponse.getAccounts() == null) {
                 logger.warn("No accounts returned from Plaid for user: {}", user.getUserId());
                 return;
             }
-            
+
             int syncedCount = 0;
             int errorCount = 0;
-            
+
             for (var plaidAccount : accountsResponse.getAccounts()) {
                 try {
                     String accountId = extractAccountId(plaidAccount);
@@ -85,7 +82,7 @@ public class PlaidSyncService {
                     }
 
                     Optional<AccountTable> existingAccount = accountRepository.findByPlaidAccountId(accountId);
-                    
+
                     AccountTable account;
                     if (existingAccount.isPresent()) {
                         account = existingAccount.get();
@@ -107,14 +104,14 @@ public class PlaidSyncService {
                     errorCount++;
                 }
             }
-            
-            logger.info("Account sync completed for user: {} - Synced: {}, Errors: {}", 
+
+            logger.info("Account sync completed for user: {} - Synced: {}, Errors: {}",
                     user.getUserId(), syncedCount, errorCount);
         } catch (AppException e) {
             throw e;
         } catch (Exception e) {
             logger.error("Error syncing accounts for user {}: {}", user.getUserId(), e.getMessage(), e);
-            throw new AppException(ErrorCode.PLAID_CONNECTION_FAILED, 
+            throw new AppException(ErrorCode.PLAID_CONNECTION_FAILED,
                     "Failed to sync accounts", null, null, e);
         }
     }
@@ -122,7 +119,7 @@ public class PlaidSyncService {
     /**
      * Sync transactions for a user
      */
-    public void syncTransactions(UserTable user, String accessToken) {
+    public void syncTransactions((final UserTable user, final String accessToken) {
         if (user == null) {
             throw new AppException(ErrorCode.INVALID_INPUT, "User cannot be null");
         }
@@ -132,24 +129,24 @@ public class PlaidSyncService {
 
         try {
             logger.info("Starting transaction sync for user: {}", user.getUserId());
-            
+
             LocalDate endDate = LocalDate.now();
             LocalDate startDate = endDate.minusDays(DEFAULT_SYNC_DAYS);
-            
+
             var transactionsResponse = plaidService.getTransactions(
                     accessToken,
                     startDate.format(DATE_FORMATTER),
                     endDate.format(DATE_FORMATTER)
             );
-            
+
             if (transactionsResponse == null || transactionsResponse.getTransactions() == null) {
                 logger.warn("No transactions returned from Plaid for user: {}", user.getUserId());
                 return;
             }
-            
+
             int syncedCount = 0;
             int errorCount = 0;
-            
+
             for (var plaidTransaction : transactionsResponse.getTransactions()) {
                 try {
                     String transactionId = extractTransactionId(plaidTransaction);
@@ -160,7 +157,7 @@ public class PlaidSyncService {
                     }
 
                     Optional<TransactionTable> existing = transactionRepository.findByPlaidTransactionId(transactionId);
-                    
+
                     TransactionTable transaction;
                     if (existing.isPresent()) {
                         transaction = existing.get();
@@ -168,7 +165,7 @@ public class PlaidSyncService {
                     } else {
                         transaction = createTransactionFromPlaid(user.getUserId(), plaidTransaction);
                     }
-                    
+
                     transactionRepository.save(transaction);
                     syncedCount++;
                 } catch (Exception e) {
@@ -176,14 +173,14 @@ public class PlaidSyncService {
                     errorCount++;
                 }
             }
-            
-            logger.info("Transaction sync completed for user: {} - Synced: {}, Errors: {}", 
+
+            logger.info("Transaction sync completed for user: {} - Synced: {}, Errors: {}",
                     user.getUserId(), syncedCount, errorCount);
         } catch (AppException e) {
             throw e;
         } catch (Exception e) {
             logger.error("Error syncing transactions for user {}: {}", user.getUserId(), e.getMessage(), e);
-            throw new AppException(ErrorCode.PLAID_CONNECTION_FAILED, 
+            throw new AppException(ErrorCode.PLAID_CONNECTION_FAILED,
                     "Failed to sync transactions", null, null, e);
         }
     }
@@ -201,7 +198,7 @@ public class PlaidSyncService {
     /**
      * Extract account ID from Plaid account
      */
-    private String extractAccountId(Object plaidAccount) {
+    private String extractAccountId((final Object plaidAccount) {
         // In production, properly extract account ID from Plaid account object
         // This is a placeholder - actual implementation depends on Plaid SDK structure
         try {
@@ -216,7 +213,7 @@ public class PlaidSyncService {
     /**
      * Extract transaction ID from Plaid transaction
      */
-    private String extractTransactionId(Object plaidTransaction) {
+    private String extractTransactionId((final Object plaidTransaction) {
         // In production, properly extract transaction ID from Plaid transaction object
         try {
             // Use reflection or proper Plaid SDK methods to get transaction ID
@@ -230,7 +227,7 @@ public class PlaidSyncService {
     /**
      * Update account from Plaid account data
      */
-    private void updateAccountFromPlaid(AccountTable account, Object plaidAccount) {
+    private void updateAccountFromPlaid((final AccountTable account, final Object plaidAccount) {
         // In production, properly map all fields from Plaid account
         // This is a placeholder
         account.setUpdatedAt(java.time.Instant.now());
@@ -239,7 +236,7 @@ public class PlaidSyncService {
     /**
      * Create transaction from Plaid transaction data
      */
-    private TransactionTable createTransactionFromPlaid(String userId, Object plaidTransaction) {
+    private TransactionTable createTransactionFromPlaid((final String userId, final Object plaidTransaction) {
         TransactionTable transaction = new TransactionTable();
         transaction.setTransactionId(java.util.UUID.randomUUID().toString());
         transaction.setUserId(userId);
@@ -252,7 +249,7 @@ public class PlaidSyncService {
     /**
      * Update transaction from Plaid transaction data
      */
-    private void updateTransactionFromPlaid(TransactionTable transaction, Object plaidTransaction) {
+    private void updateTransactionFromPlaid((final TransactionTable transaction, final Object plaidTransaction) {
         // Update transaction fields from Plaid
         transaction.setUpdatedAt(java.time.Instant.now());
     }

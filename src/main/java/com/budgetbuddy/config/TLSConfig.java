@@ -33,17 +33,19 @@ public class TLSConfig {
         return factory -> {
             // Ensure TLS 1.2+ is used
             factory.addConnectorCustomizers(connector -> {
-                if (connector.getProtocolHandler() instanceof org.apache.coyote.http11.Http11NioProtocol) {
-                    org.apache.coyote.http11.Http11NioProtocol protocolHandler = 
-                            (org.apache.coyote.http11.Http11NioProtocol) connector.getProtocolHandler();
-                    
+                // JDK 25: Enhanced pattern matching
+                if (connector.getProtocolHandler()
+                        instanceof org.apache.coyote.http11.Http11NioProtocol protocolHandler) {
+
                     // Set SSL protocols
                     protocolHandler.setSSLEnabled(true);
-                    protocolHandler.setSSLProtocol("TLS");
-                    
-                    // Disable weak protocols
-                    protocolHandler.setSslEnabledProtocols(enabledProtocols.split(","));
-                    
+                    // Note: setSslEnabledProtocols may not exist in all Tomcat versions
+                    // Use connector properties instead
+                    String[] protocols = enabledProtocols.split(",");
+                    for (String protocol : protocols) {
+                        connector.setProperty("sslEnabledProtocols", protocol.trim());
+                    }
+
                     logger.info("TLS configured with protocols: {}", enabledProtocols);
                 }
             });

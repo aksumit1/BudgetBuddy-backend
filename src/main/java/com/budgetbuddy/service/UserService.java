@@ -32,9 +32,9 @@ public class UserService {
     private final PasswordHashingService passwordHashingService; // New PBKDF2 service
 
     public UserService(
-            com.budgetbuddy.repository.dynamodb.UserRepository dynamoDBUserRepository,
-            PasswordEncoder passwordEncoder,
-            PasswordHashingService passwordHashingService) {
+            final com.budgetbuddy.repository.dynamodb.UserRepository dynamoDBUserRepository,
+            final PasswordEncoder passwordEncoder,
+            final PasswordHashingService passwordHashingService) {
         this.dynamoDBUserRepository = dynamoDBUserRepository;
         this.passwordEncoder = passwordEncoder;
         this.passwordHashingService = passwordHashingService;
@@ -43,8 +43,7 @@ public class UserService {
     /**
      * Create user with secure format (password_hash + salt)
      */
-    public UserTable createUserSecure(String email, String passwordHash, String clientSalt, 
-                                      String firstName, String lastName) {
+    public UserTable createUserSecure((final String email, final String passwordHash, final String clientSalt, final String firstName, final String lastName) {
         if (email == null || email.isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Email is required");
         }
@@ -90,7 +89,7 @@ public class UserService {
      * @deprecated Use createUserSecure instead - Legacy JPA method removed, migration complete
      */
     @Deprecated
-    public void createUser(String email, String password, String firstName, String lastName) {
+    public void createUser((final String email, final String password, final String firstName, final String lastName) {
         logger.warn("Legacy createUser method called - use createUserSecure instead");
         throw new UnsupportedOperationException("Legacy JPA method no longer supported. Use createUserSecure instead.");
     }
@@ -150,7 +149,7 @@ public class UserService {
     /**
      * Update user
      */
-    public UserTable updateUser(UserTable user) {
+    public UserTable updateUser((final UserTable user) {
         if (user == null) {
             throw new AppException(ErrorCode.INVALID_INPUT, "User cannot be null");
         }
@@ -165,7 +164,7 @@ public class UserService {
     /**
      * Update last login
      */
-    public void updateLastLogin(String userId) {
+    public void updateLastLogin((final String userId) {
         if (userId == null || userId.isEmpty()) {
             logger.warn("Attempted to update last login with null or empty user ID");
             return;
@@ -179,7 +178,7 @@ public class UserService {
     /**
      * Change password (secure format)
      */
-    public void changePasswordSecure(String userId, String passwordHash, String clientSalt) {
+    public void changePasswordSecure((final String userId, final String passwordHash, final String clientSalt) {
         if (userId == null || userId.isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "User ID is required");
         }
@@ -192,17 +191,17 @@ public class UserService {
 
         UserTable user = dynamoDBUserRepository.findById(userId)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
-        
+
         // Perform server-side hashing
         PasswordHashingService.PasswordHashResult result = passwordHashingService.hashClientPassword(
                 passwordHash, clientSalt, null);
-        
+
         user.setPasswordHash(result.getHash());
         user.setServerSalt(result.getSalt());
         user.setClientSalt(clientSalt);
         user.setPasswordChangedAt(Instant.now());
         user.setUpdatedAt(Instant.now());
-        
+
         dynamoDBUserRepository.save(user);
         logger.info("Password changed for user: {}", user.getEmail());
     }
@@ -212,7 +211,7 @@ public class UserService {
      * @deprecated Use changePasswordSecure instead - Legacy JPA method removed
      */
     @Deprecated
-    public void changePassword(String userId, String newPassword) {
+    public void changePassword((final String userId, final String newPassword) {
         logger.warn("Legacy changePassword method called - use changePasswordSecure instead");
         throw new UnsupportedOperationException("Legacy JPA method no longer supported. Use changePasswordSecure instead.");
     }
@@ -220,7 +219,7 @@ public class UserService {
     /**
      * Verify email
      */
-    public void verifyEmail(String userId) {
+    public void verifyEmail((final String userId) {
         if (userId == null || userId.isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "User ID is required");
         }
@@ -246,7 +245,7 @@ public class UserService {
     /**
      * Update Plaid access token
      */
-    public void updatePlaidAccessToken(String userId, String accessToken, String itemId) {
+    public void updatePlaidAccessToken((final String userId, final String accessToken, final String itemId) {
         dynamoDBUserRepository.findById(userId).ifPresent(user -> {
             // Store Plaid tokens securely (would need additional fields in UserTable)
             user.setUpdatedAt(Instant.now());

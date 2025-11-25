@@ -20,7 +20,7 @@ import java.util.Objects;
 /**
  * Deployment Safety Service
  * Ensures safe deployments with health checks, smoke tests, and rollback capabilities
- * 
+ *
  * Features:
  * - Configurable health check timeouts
  * - Smoke test execution
@@ -48,7 +48,7 @@ public class DeploymentSafetyService {
     private final RestTemplate restTemplate;
 
     @Autowired
-    public DeploymentSafetyService(RestTemplateBuilder restTemplateBuilder) {
+    public DeploymentSafetyService(final RestTemplateBuilder restTemplateBuilder) {
         this.restTemplate = restTemplateBuilder
                 .setConnectTimeout(Duration.ofSeconds(5))
                 .setReadTimeout(Duration.ofSeconds(10))
@@ -58,7 +58,7 @@ public class DeploymentSafetyService {
     /**
      * Validate deployment health
      */
-    public DeploymentValidationResult validateDeployment(String baseUrl) {
+    public DeploymentValidationResult validateDeployment((final String baseUrl) {
         if (baseUrl == null || baseUrl.isEmpty()) {
             logger.error("Base URL is null or empty");
             DeploymentValidationResult result = new DeploymentValidationResult();
@@ -69,7 +69,7 @@ public class DeploymentSafetyService {
         }
 
         logger.info("Starting deployment validation for: {}", baseUrl);
-        
+
         Instant startTime = Instant.now();
         boolean isHealthy = false;
         String errorMessage = null;
@@ -77,7 +77,7 @@ public class DeploymentSafetyService {
         for (int attempt = 1; attempt <= maxHealthCheckAttempts; attempt++) {
             try {
                 logger.debug("Health check attempt {}/{}", attempt, maxHealthCheckAttempts);
-                
+
                 if (performHealthCheck(baseUrl)) {
                     isHealthy = true;
                     logger.info("Deployment health check passed after {} attempts", attempt);
@@ -100,7 +100,7 @@ public class DeploymentSafetyService {
         }
 
         Duration duration = Duration.between(startTime, Instant.now());
-        
+
         DeploymentValidationResult result = new DeploymentValidationResult();
         result.setHealthy(isHealthy);
         result.setDuration(duration);
@@ -113,16 +113,16 @@ public class DeploymentSafetyService {
     /**
      * Perform health check
      */
-    private boolean performHealthCheck(String baseUrl) {
+    private boolean performHealthCheck((final String baseUrl) {
         try {
             String healthUrl = baseUrl + "/actuator/health";
             ResponseEntity<String> response = restTemplate.getForEntity(healthUrl, String.class);
-            
+
             if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
                 String body = response.getBody();
                 return body.contains("\"status\":\"UP\"") || body.contains("\"status\":\"up\"");
             }
-            
+
             return false;
         } catch (RestClientException e) {
             logger.debug("Health check failed: {}", e.getMessage());
@@ -133,7 +133,7 @@ public class DeploymentSafetyService {
     /**
      * Run smoke tests
      */
-    public SmokeTestResult runSmokeTests(String baseUrl) {
+    public SmokeTestResult runSmokeTests((final String baseUrl) {
         if (baseUrl == null || baseUrl.isEmpty()) {
             logger.error("Base URL is null or empty for smoke tests");
             SmokeTestResult result = new SmokeTestResult();
@@ -145,7 +145,7 @@ public class DeploymentSafetyService {
         }
 
         logger.info("Running smoke tests for: {}", baseUrl);
-        
+
         SmokeTestResult result = new SmokeTestResult();
         result.setBaseUrl(baseUrl);
         result.setStartTime(Instant.now());
@@ -164,11 +164,11 @@ public class DeploymentSafetyService {
             if (endpoint == null || endpoint.isEmpty()) {
                 continue;
             }
-            
+
             try {
                 String url = baseUrl + endpoint;
                 ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
-                
+
                 if (response.getStatusCode().is2xxSuccessful()) {
                     passed++;
                     logger.debug("Smoke test passed: {}", endpoint);
@@ -194,23 +194,23 @@ public class DeploymentSafetyService {
     /**
      * Validate deployment readiness
      */
-    public boolean isDeploymentReady(String baseUrl) {
+    public boolean isDeploymentReady((final String baseUrl) {
         if (baseUrl == null || baseUrl.isEmpty()) {
             logger.error("Base URL is null or empty");
             return false;
         }
 
         DeploymentValidationResult healthResult = validateDeployment(baseUrl);
-        
+
         if (!healthResult.isHealthy()) {
             logger.error("Deployment health check failed: {}", healthResult.getErrorMessage());
             return false;
         }
 
         SmokeTestResult smokeTestResult = runSmokeTests(baseUrl);
-        
+
         if (!smokeTestResult.isPassed()) {
-            logger.error("Smoke tests failed: {} passed, {} failed", 
+            logger.error("Smoke tests failed: {} passed, {} failed",
                     smokeTestResult.getPassedTests(), smokeTestResult.getFailedTests());
             return false;
         }
@@ -230,13 +230,13 @@ public class DeploymentSafetyService {
 
         // Getters and setters
         public boolean isHealthy() { return healthy; }
-        public void setHealthy(boolean healthy) { this.healthy = healthy; }
+        public void setHealthy(final boolean healthy) { this.healthy = healthy; }
         public Duration getDuration() { return duration; }
-        public void setDuration(Duration duration) { this.duration = duration; }
+        public void setDuration(final Duration duration) { this.duration = duration; }
         public String getErrorMessage() { return errorMessage; }
-        public void setErrorMessage(String errorMessage) { this.errorMessage = errorMessage; }
+        public void setErrorMessage(final String errorMessage) { this.errorMessage = errorMessage; }
         public Instant getTimestamp() { return timestamp; }
-        public void setTimestamp(Instant timestamp) { this.timestamp = timestamp; }
+        public void setTimestamp(final Instant timestamp) { this.timestamp = timestamp; }
     }
 
     /**
@@ -252,16 +252,16 @@ public class DeploymentSafetyService {
 
         // Getters and setters
         public String getBaseUrl() { return baseUrl; }
-        public void setBaseUrl(String baseUrl) { this.baseUrl = baseUrl; }
+        public void setBaseUrl(final String baseUrl) { this.baseUrl = baseUrl; }
         public boolean isPassed() { return passed; }
-        public void setPassed(boolean passed) { this.passed = passed; }
+        public void setPassed(final boolean passed) { this.passed = passed; }
         public int getPassedTests() { return passedTests; }
-        public void setPassedTests(int passedTests) { this.passedTests = passedTests; }
+        public void setPassedTests(final int passedTests) { this.passedTests = passedTests; }
         public int getFailedTests() { return failedTests; }
-        public void setFailedTests(int failedTests) { this.failedTests = failedTests; }
+        public void setFailedTests(final int failedTests) { this.failedTests = failedTests; }
         public Instant getStartTime() { return startTime; }
-        public void setStartTime(Instant startTime) { this.startTime = startTime; }
+        public void setStartTime(final Instant startTime) { this.startTime = startTime; }
         public Instant getEndTime() { return endTime; }
-        public void setEndTime(Instant endTime) { this.endTime = endTime; }
+        public void setEndTime(final Instant endTime) { this.endTime = endTime; }
     }
 }

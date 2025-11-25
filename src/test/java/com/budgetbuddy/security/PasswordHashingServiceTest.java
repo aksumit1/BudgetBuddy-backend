@@ -29,18 +29,18 @@ class PasswordHashingServiceTest {
         byte[] testSalt = new byte[16];
         testSalt[0] = 1; // Non-zero for testing
         testClientSalt = Base64.getEncoder().encodeToString(testSalt);
-        
+
         byte[] testHash = new byte[32];
         testHash[0] = 1; // Non-zero for testing
         testClientHash = Base64.getEncoder().encodeToString(testHash);
-        
+
         testPlaintextPassword = "TestPassword123!";
     }
 
     @Test
     void testHashClientPassword_WithValidInput_ReturnsHash() {
         // When
-        PasswordHashingService.PasswordHashResult result = 
+        PasswordHashingService.PasswordHashResult result =
                 passwordHashingService.hashClientPassword(testClientHash, testClientSalt, null);
 
         // Then
@@ -83,7 +83,7 @@ class PasswordHashingServiceTest {
         String providedSaltBase64 = Base64.getEncoder().encodeToString(providedSalt);
 
         // When
-        PasswordHashingService.PasswordHashResult result = 
+        PasswordHashingService.PasswordHashResult result =
                 passwordHashingService.hashClientPassword(testClientHash, testClientSalt, providedSalt);
 
         // Then
@@ -93,7 +93,7 @@ class PasswordHashingServiceTest {
     @Test
     void testHashPlaintextPassword_WithValidPassword_ReturnsHash() {
         // When
-        PasswordHashingService.PasswordHashResult result = 
+        PasswordHashingService.PasswordHashResult result =
                 passwordHashingService.hashPlaintextPassword(testPlaintextPassword, null);
 
         // Then
@@ -121,7 +121,7 @@ class PasswordHashingServiceTest {
     @Test
     void testVerifyClientPassword_WithValidPassword_ReturnsTrue() {
         // Given
-        PasswordHashingService.PasswordHashResult stored = 
+        PasswordHashingService.PasswordHashResult stored =
                 passwordHashingService.hashClientPassword(testClientHash, testClientSalt, null);
 
         // When
@@ -135,7 +135,7 @@ class PasswordHashingServiceTest {
     @Test
     void testVerifyClientPassword_WithInvalidPassword_ReturnsFalse() {
         // Given
-        PasswordHashingService.PasswordHashResult stored = 
+        PasswordHashingService.PasswordHashResult stored =
                 passwordHashingService.hashClientPassword(testClientHash, testClientSalt, null);
         String wrongClientHash = Base64.getEncoder().encodeToString(new byte[32]);
 
@@ -159,7 +159,7 @@ class PasswordHashingServiceTest {
     @Test
     void testVerifyPlaintextPassword_WithValidPassword_ReturnsTrue() {
         // Given
-        PasswordHashingService.PasswordHashResult stored = 
+        PasswordHashingService.PasswordHashResult stored =
                 passwordHashingService.hashPlaintextPassword(testPlaintextPassword, null);
 
         // When
@@ -173,7 +173,7 @@ class PasswordHashingServiceTest {
     @Test
     void testVerifyPlaintextPassword_WithInvalidPassword_ReturnsFalse() {
         // Given
-        PasswordHashingService.PasswordHashResult stored = 
+        PasswordHashingService.PasswordHashResult stored =
                 passwordHashingService.hashPlaintextPassword(testPlaintextPassword, null);
 
         // When
@@ -202,9 +202,9 @@ class PasswordHashingServiceTest {
     @Test
     void testHashClientPassword_WithSameInput_ProducesDifferentHashes() {
         // Given - Same client hash and salt, but different server salts
-        PasswordHashingService.PasswordHashResult result1 = 
+        PasswordHashingService.PasswordHashResult result1 =
                 passwordHashingService.hashClientPassword(testClientHash, testClientSalt, null);
-        PasswordHashingService.PasswordHashResult result2 = 
+        PasswordHashingService.PasswordHashResult result2 =
                 passwordHashingService.hashClientPassword(testClientHash, testClientSalt, null);
 
         // Then - Should produce different hashes (due to different server salts)

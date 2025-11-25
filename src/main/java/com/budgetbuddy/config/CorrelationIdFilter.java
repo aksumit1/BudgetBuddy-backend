@@ -24,18 +24,16 @@ public class CorrelationIdFilter extends OncePerRequestFilter {
     private static final String CORRELATION_ID_MDC_KEY = "correlationId";
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request, 
-                                   HttpServletResponse response, 
-                                   FilterChain filterChain) throws ServletException, IOException {
+    protected void doFilterInternal((final HttpServletRequest request, final HttpServletResponse response, final FilterChain filterChain) throws ServletException, IOException {
         String correlationId = request.getHeader(CORRELATION_ID_HEADER);
-        
+
         if (correlationId == null || correlationId.isEmpty()) {
             correlationId = UUID.randomUUID().toString();
         }
 
         // Add to MDC for logging
         MDC.put(CORRELATION_ID_MDC_KEY, correlationId);
-        
+
         // Add to response header
         response.setHeader(CORRELATION_ID_HEADER, correlationId);
 

@@ -21,9 +21,7 @@ public class EmailNotificationService {
     private final SesClient sesClient;
     private final String fromEmail;
 
-    public EmailNotificationService(
-            SesClient sesClient,
-            @Value("${app.notifications.email.from:noreply@budgetbuddy.com}") String fromEmail) {
+    public EmailNotificationService(final SesClient sesClient, @Value("${app.notifications.email.from:noreply@budgetbuddy.com}") String fromEmail) {
         this.sesClient = sesClient;
         this.fromEmail = fromEmail;
     }
@@ -31,8 +29,7 @@ public class EmailNotificationService {
     /**
      * Send email notification
      */
-    public boolean sendEmail(String userId, String toEmail, String subject, String body, 
-                            String templateId, Map<String, Object> templateData) {
+    public boolean sendEmail((final String userId, final String toEmail, final String subject, final String body, final String templateId, Map<String, final Object> templateData) {
         try {
             // If template is provided, use template
             if (templateId != null && !templateId.isEmpty()) {
@@ -60,7 +57,7 @@ public class EmailNotificationService {
                     .build();
 
             SendEmailResponse response = sesClient.sendEmail(request);
-            
+
             logger.info("Email sent - MessageId: {}, To: {}", response.messageId(), toEmail);
             return true;
         } catch (Exception e) {
@@ -72,7 +69,7 @@ public class EmailNotificationService {
     /**
      * Send templated email
      */
-    private boolean sendTemplatedEmail(String toEmail, String templateId, Map<String, Object> templateData) {
+    private boolean sendTemplatedEmail((final String toEmail, final String templateId, Map<String, final Object> templateData) {
         try {
             // Convert template data to JSON string
             String templateDataJson = com.fasterxml.jackson.databind.ObjectMapper.class.newInstance()
@@ -88,8 +85,8 @@ public class EmailNotificationService {
                     .build();
 
             SendTemplatedEmailResponse response = sesClient.sendTemplatedEmail(request);
-            
-            logger.info("Templated email sent - MessageId: {}, Template: {}, To: {}", 
+
+            logger.info("Templated email sent - MessageId: {}, Template: {}, To: {}",
                     response.messageId(), templateId, toEmail);
             return true;
         } catch (Exception e) {

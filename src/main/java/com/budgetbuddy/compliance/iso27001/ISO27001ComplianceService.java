@@ -14,7 +14,7 @@ import java.util.Map;
 
 /**
  * ISO/IEC 27001 Compliance Service
- * 
+ *
  * ISO 27001 Controls:
  * - A.5 Information Security Policies
  * - A.6 Organization of Information Security
@@ -48,7 +48,7 @@ public class ISO27001ComplianceService {
      * A.9.2.1 - User Registration and De-registration
      * Log user registration and de-registration
      */
-    public void logUserRegistration(String userId, String registrationType) {
+    public void logUserRegistration((final String userId, final String registrationType) {
         auditLogService.logUserRegistration(userId, registrationType);
         putMetric("UserRegistration", 1.0, Map.of("Type", registrationType));
     }
@@ -57,7 +57,7 @@ public class ISO27001ComplianceService {
      * A.9.2.2 - User Access Provisioning
      * Log access provisioning
      */
-    public void logAccessProvisioning(String userId, String resource, String accessLevel) {
+    public void logAccessProvisioning((final String userId, final String resource, final String accessLevel) {
         auditLogService.logAccessProvisioning(userId, resource, accessLevel);
         putMetric("AccessProvisioning", 1.0, Map.of("AccessLevel", accessLevel));
     }
@@ -66,7 +66,7 @@ public class ISO27001ComplianceService {
      * A.9.2.3 - Management of Privileged Access Rights
      * Log privileged access
      */
-    public void logPrivilegedAccess(String userId, String privilege, String resource) {
+    public void logPrivilegedAccess((final String userId, final String privilege, final String resource) {
         auditLogService.logPrivilegedAccess(userId, privilege, resource);
         putMetric("PrivilegedAccess", 1.0, Map.of("Privilege", privilege));
     }
@@ -75,7 +75,7 @@ public class ISO27001ComplianceService {
      * A.9.2.4 - Management of Secret Authentication Information
      * Log authentication credential changes
      */
-    public void logCredentialChange(String userId, String changeType) {
+    public void logCredentialChange((final String userId, final String changeType) {
         auditLogService.logCredentialChange(userId, changeType);
         putMetric("CredentialChange", 1.0, Map.of("ChangeType", changeType));
     }
@@ -84,12 +84,12 @@ public class ISO27001ComplianceService {
      * A.9.2.5 - Review of User Access Rights
      * Review and log user access rights
      */
-    public void reviewUserAccessRights(String userId) {
+    public void reviewUserAccessRights((final String userId) {
         AccessReview review = new AccessReview();
         review.setUserId(userId);
         review.setTimestamp(Instant.now());
         review.setStatus("PENDING");
-        
+
         auditLogService.logAccessReview(review);
         putMetric("AccessReview", 1.0, Map.of());
     }
@@ -98,7 +98,7 @@ public class ISO27001ComplianceService {
      * A.9.2.6 - Removal or Adjustment of Access Rights
      * Log access rights removal
      */
-    public void logAccessRemoval(String userId, String resource, String reason) {
+    public void logAccessRemoval((final String userId, final String resource, final String reason) {
         auditLogService.logAccessRemoval(userId, resource, reason);
         putMetric("AccessRemoval", 1.0, Map.of());
     }
@@ -107,7 +107,7 @@ public class ISO27001ComplianceService {
      * A.9.4.2 - Secure Log-on Procedures
      * Log secure log-on procedures
      */
-    public void logSecureLogon(String userId, String method, boolean success) {
+    public void logSecureLogon((final String userId, final String method, final boolean success) {
         auditLogService.logSecureLogon(userId, method, success);
         putMetric("SecureLogon", success ? 1.0 : 0.0, Map.of("Method", method));
     }
@@ -116,7 +116,7 @@ public class ISO27001ComplianceService {
      * A.9.4.3 - Password Management System
      * Log password management activities
      */
-    public void logPasswordManagement(String userId, String activity) {
+    public void logPasswordManagement((final String userId, final String activity) {
         auditLogService.logPasswordManagement(userId, activity);
         putMetric("PasswordManagement", 1.0, Map.of("Activity", activity));
     }
@@ -125,7 +125,7 @@ public class ISO27001ComplianceService {
      * A.12.4.1 - Event Logging
      * Log security events
      */
-    public void logSecurityEvent(String eventType, String severity, String details) {
+    public void logSecurityEvent((final String eventType, final String severity, final String details) {
         auditLogService.logSecurityEvent(eventType, severity, details);
         putMetric("SecurityEvent", 1.0, Map.of("EventType", eventType, "Severity", severity));
     }
@@ -134,7 +134,7 @@ public class ISO27001ComplianceService {
      * A.12.4.2 - Protection of Log Information
      * Ensure log information is protected
      */
-    public void protectLogInformation(String logId) {
+    public void protectLogInformation((final String logId) {
         // In production, this would encrypt and backup logs
         auditLogService.protectLogInformation(logId);
         putMetric("LogProtection", 1.0, Map.of());
@@ -144,7 +144,7 @@ public class ISO27001ComplianceService {
      * A.12.4.3 - Administrator and Operator Logs
      * Log administrator activities
      */
-    public void logAdministratorActivity(String adminId, String activity, String resource) {
+    public void logAdministratorActivity((final String adminId, final String activity, final String resource) {
         auditLogService.logAdministratorActivity(adminId, activity, resource);
         putMetric("AdministratorActivity", 1.0, Map.of("Activity", activity));
     }
@@ -164,17 +164,17 @@ public class ISO27001ComplianceService {
      * A.16.1.2 - Reporting Information Security Events
      * Report security incidents
      */
-    public void reportSecurityIncident(String incidentType, String severity, String details) {
+    public void reportSecurityIncident((final String incidentType, final String severity, final String details) {
         SecurityIncident incident = new SecurityIncident();
         incident.setIncidentType(incidentType);
         incident.setSeverity(severity);
         incident.setDetails(details);
         incident.setTimestamp(Instant.now());
         incident.setStatus("OPEN");
-        
+
         auditLogService.logSecurityIncident(incident);
         putMetric("SecurityIncident", 1.0, Map.of("IncidentType", incidentType, "Severity", severity));
-        
+
         if ("CRITICAL".equals(severity)) {
             logger.error("ISO27001: Critical security incident: Type={}, Details={}", incidentType, details);
         }
@@ -184,16 +184,16 @@ public class ISO27001ComplianceService {
      * A.18.1.1 - Identification of Applicable Legislation
      * Log compliance with applicable legislation
      */
-    public void logComplianceCheck(String legislation, boolean compliant) {
+    public void logComplianceCheck((final String legislation, final boolean compliant) {
         auditLogService.logComplianceCheck(legislation, compliant);
         putMetric("ComplianceCheck", compliant ? 1.0 : 0.0, Map.of("Legislation", legislation));
-        
+
         if (!compliant) {
             logger.warn("ISO27001: Non-compliance detected: Legislation={}", legislation);
         }
     }
 
-    private void putMetric(String metricName, double value, Map<String, String> dimensions) {
+    private void putMetric((final String metricName, final double value, Map<String, final String> dimensions) {
         try {
             List<Dimension> dims = dimensions.entrySet().stream()
                     .map(e -> Dimension.builder()
@@ -226,11 +226,11 @@ public class ISO27001ComplianceService {
 
         // Getters and setters
         public String getUserId() { return userId; }
-        public void setUserId(String userId) { this.userId = userId; }
+        public void setUserId(final String userId) { this.userId = userId; }
         public Instant getTimestamp() { return timestamp; }
-        public void setTimestamp(Instant timestamp) { this.timestamp = timestamp; }
+        public void setTimestamp(final Instant timestamp) { this.timestamp = timestamp; }
         public String getStatus() { return status; }
-        public void setStatus(String status) { this.status = status; }
+        public void setStatus(final String status) { this.status = status; }
     }
 
     /**
@@ -245,15 +245,15 @@ public class ISO27001ComplianceService {
 
         // Getters and setters
         public String getIncidentType() { return incidentType; }
-        public void setIncidentType(String incidentType) { this.incidentType = incidentType; }
+        public void setIncidentType(final String incidentType) { this.incidentType = incidentType; }
         public String getSeverity() { return severity; }
-        public void setSeverity(String severity) { this.severity = severity; }
+        public void setSeverity(final String severity) { this.severity = severity; }
         public String getDetails() { return details; }
-        public void setDetails(String details) { this.details = details; }
+        public void setDetails(final String details) { this.details = details; }
         public Instant getTimestamp() { return timestamp; }
-        public void setTimestamp(Instant timestamp) { this.timestamp = timestamp; }
+        public void setTimestamp(final Instant timestamp) { this.timestamp = timestamp; }
         public String getStatus() { return status; }
-        public void setStatus(String status) { this.status = status; }
+        public void setStatus(final String status) { this.status = status; }
     }
 }
 

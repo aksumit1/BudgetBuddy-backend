@@ -24,14 +24,14 @@ public class CloudWatchService {
     private final List<MetricDatum> metricBuffer = new ArrayList<>();
     private static final int BATCH_SIZE = 20; // CloudWatch allows up to 20 metrics per request
 
-    public CloudWatchService(CloudWatchClient cloudWatchClient) {
+    public CloudWatchService(final CloudWatchClient cloudWatchClient) {
         this.cloudWatchClient = cloudWatchClient;
     }
 
     /**
      * Put metric with batching to reduce API calls
      */
-    public void putMetric(String metricName, double value, String unit) {
+    public void putMetric((final String metricName, final double value, final String unit) {
         MetricDatum datum = MetricDatum.builder()
                 .metricName(metricName)
                 .value(value)
@@ -74,7 +74,7 @@ public class CloudWatchService {
     /**
      * Put custom metric with dimensions
      */
-    public void putMetricWithDimensions(String metricName, double value, String unit, List<Dimension> dimensions) {
+    public void putMetricWithDimensions((final String metricName, final double value, final String unit, final List<Dimension> dimensions) {
         MetricDatum datum = MetricDatum.builder()
                 .metricName(metricName)
                 .value(value)

@@ -43,7 +43,7 @@ public class Goal {
     public Goal() {
     }
 
-    public Goal(User user, String name, BigDecimal targetAmount, LocalDate targetDate) {
+    public Goal(final User user, final String name, final BigDecimal targetAmount, final LocalDate targetDate) {
         this.user = user;
         this.name = name;
         this.targetAmount = targetAmount;
@@ -55,7 +55,7 @@ public class Goal {
         return id;
     }
 
-    public void setId(Long id) {
+    public void setId(final Long id) {
         this.id = id;
     }
 
@@ -63,7 +63,7 @@ public class Goal {
         return user;
     }
 
-    public void setUser(User user) {
+    public void setUser(final User user) {
         this.user = user;
     }
 
@@ -71,7 +71,7 @@ public class Goal {
         return name;
     }
 
-    public void setName(String name) {
+    public void setName(final String name) {
         this.name = name;
     }
 
@@ -79,7 +79,7 @@ public class Goal {
         return description;
     }
 
-    public void setDescription(String description) {
+    public void setDescription(final String description) {
         this.description = description;
     }
 
@@ -87,7 +87,7 @@ public class Goal {
         return targetAmount;
     }
 
-    public void setTargetAmount(BigDecimal targetAmount) {
+    public void setTargetAmount(final BigDecimal targetAmount) {
         this.targetAmount = targetAmount;
     }
 
@@ -95,7 +95,7 @@ public class Goal {
         return currentAmount;
     }
 
-    public void setCurrentAmount(BigDecimal currentAmount) {
+    public void setCurrentAmount(final BigDecimal currentAmount) {
         this.currentAmount = currentAmount;
     }
 
@@ -103,7 +103,7 @@ public class Goal {
         return targetDate;
     }
 
-    public void setTargetDate(LocalDate targetDate) {
+    public void setTargetDate(final LocalDate targetDate) {
         this.targetDate = targetDate;
     }
 
@@ -111,7 +111,7 @@ public class Goal {
         return monthlyContribution;
     }
 
-    public void setMonthlyContribution(BigDecimal monthlyContribution) {
+    public void setMonthlyContribution(final BigDecimal monthlyContribution) {
         this.monthlyContribution = monthlyContribution;
     }
 
@@ -119,7 +119,7 @@ public class Goal {
         return goalType;
     }
 
-    public void setGoalType(GoalType goalType) {
+    public void setGoalType(final GoalType goalType) {
         this.goalType = goalType;
     }
 
@@ -127,7 +127,7 @@ public class Goal {
         return currencyCode;
     }
 
-    public void setCurrencyCode(String currencyCode) {
+    public void setCurrencyCode(final String currencyCode) {
         this.currencyCode = currencyCode;
     }
 
@@ -135,7 +135,7 @@ public class Goal {
         return active;
     }
 
-    public void setActive(Boolean active) {
+    public void setActive(final Boolean active) {
         this.active = active;
     }
 
@@ -143,7 +143,7 @@ public class Goal {
         return createdAt;
     }
 
-    public void setCreatedAt(LocalDateTime createdAt) {
+    public void setCreatedAt(final LocalDateTime createdAt) {
         this.createdAt = createdAt;
     }
 
@@ -151,7 +151,7 @@ public class Goal {
         return updatedAt;
     }
 
-    public void setUpdatedAt(LocalDateTime updatedAt) {
+    public void setUpdatedAt(final LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
     }
 

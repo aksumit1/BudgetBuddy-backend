@@ -8,7 +8,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 
 /**
  * Main entry point for BudgetBuddy Backend Server
- * 
+ *
  * Enterprise-ready backend for BudgetBuddy iOS application
  * Features:
  * - Plaid Integration

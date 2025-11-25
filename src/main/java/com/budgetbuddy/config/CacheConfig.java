@@ -29,8 +29,7 @@ public class CacheConfig {
                 .maximumSize(10_000)
                 .expireAfterWrite(30, TimeUnit.MINUTES)
                 .expireAfterAccess(15, TimeUnit.MINUTES)
-                .recordStats()
-                .build());
+                .recordStats());
         return cacheManager;
     }
 
@@ -44,8 +43,7 @@ public class CacheConfig {
                 .maximumSize(5_000)
                 .expireAfterWrite(1, TimeUnit.HOURS)
                 .expireAfterAccess(30, TimeUnit.MINUTES)
-                .recordStats()
-                .build());
+                .recordStats());
         return cacheManager;
     }
 
@@ -59,8 +57,7 @@ public class CacheConfig {
                 .maximumSize(50_000)
                 .expireAfterWrite(5, TimeUnit.MINUTES)
                 .expireAfterAccess(2, TimeUnit.MINUTES)
-                .recordStats()
-                .build());
+                .recordStats());
         return cacheManager;
     }
 
@@ -74,8 +71,7 @@ public class CacheConfig {
                 .maximumSize(10_000)
                 .expireAfterWrite(15, TimeUnit.MINUTES)
                 .expireAfterAccess(10, TimeUnit.MINUTES)
-                .recordStats()
-                .build());
+                .recordStats());
         return cacheManager;
     }
 }

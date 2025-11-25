@@ -20,7 +20,7 @@ import java.io.IOException;
  * - Per-customer throttling
  * - Request size limits
  * - Connection limits
- * 
+ *
  * Thread-safe implementation with proper dependency injection
  */
 @Component
@@ -35,9 +35,7 @@ public class DDoSProtectionFilter extends OncePerRequestFilter {
     private final RateLimitService rateLimitService;
     private final DDoSProtectionService ddosProtectionService;
 
-    public DDoSProtectionFilter(
-            RateLimitService rateLimitService,
-            DDoSProtectionService ddosProtectionService) {
+    public DDoSProtectionFilter(final RateLimitService rateLimitService, final DDoSProtectionService ddosProtectionService) {
         if (rateLimitService == null) {
             throw new IllegalArgumentException("RateLimitService cannot be null");
         }
@@ -49,16 +47,15 @@ public class DDoSProtectionFilter extends OncePerRequestFilter {
     }
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, 
-                                   FilterChain filterChain) throws ServletException, IOException {
-        
+    protected void doFilterInternal((final HttpServletRequest request, final HttpServletResponse response, final FilterChain filterChain) throws ServletException, IOException {
+
         String clientIp = getClientIpAddress(request);
         String userId = getUserIdFromRequest(request);
 
         // Layer 1: IP-based rate limiting (DDoS protection)
         if (clientIp != null && !ddosProtectionService.isAllowed(clientIp)) {
             logger.warn("DDoS protection: Blocked request from IP: {}", clientIp);
-            response.setStatus(HttpServletResponse.SC_TOO_MANY_REQUESTS);
+            response.setStatus(429); // SC_TOO_MANY_REQUESTS
             response.setHeader("Retry-After", String.valueOf(60));
             response.setContentType("application/json");
             response.getWriter().write("{\"error\":\"Rate limit exceeded. Please try again later.\"}");
@@ -68,7 +65,7 @@ public class DDoSProtectionFilter extends OncePerRequestFilter {
         // Layer 2: Per-customer throttling
         if (userId != null && !rateLimitService.isAllowed(userId, request.getRequestURI())) {
             logger.warn("Rate limit: Blocked request from user: {} for endpoint: {}", userId, request.getRequestURI());
-            response.setStatus(HttpServletResponse.SC_TOO_MANY_REQUESTS);
+            response.setStatus(429); // SC_TOO_MANY_REQUESTS
             response.setHeader("Retry-After", String.valueOf(rateLimitService.getRetryAfter(userId, request.getRequestURI())));
             response.setContentType("application/json");
             response.getWriter().write("{\"error\":\"Rate limit exceeded for your account. Please try again later.\"}");
@@ -79,7 +76,7 @@ public class DDoSProtectionFilter extends OncePerRequestFilter {
         long contentLength = request.getContentLengthLong();
         if (contentLength > MAX_REQUEST_SIZE) {
             logger.warn("Request too large: {} bytes from IP: {}", contentLength, clientIp);
-            response.setStatus(HttpServletResponse.SC_REQUEST_ENTITY_TOO_LARGE);
+            response.setStatus(413); // SC_REQUEST_ENTITY_TOO_LARGE
             response.setContentType("application/json");
             response.getWriter().write("{\"error\":\"Request payload too large\"}");
             return;
@@ -88,7 +85,7 @@ public class DDoSProtectionFilter extends OncePerRequestFilter {
         // Layer 4: Header size validation
         if (getTotalHeaderSize(request) > MAX_HEADER_SIZE) {
             logger.warn("Headers too large from IP: {}", clientIp);
-            response.setStatus(HttpServletResponse.SC_REQUEST_HEADER_FIELDS_TOO_LARGE);
+            response.setStatus(431); // SC_REQUEST_HEADER_FIELDS_TOO_LARGE
             response.setContentType("application/json");
             response.getWriter().write("{\"error\":\"Request headers too large\"}");
             return;
@@ -98,7 +95,7 @@ public class DDoSProtectionFilter extends OncePerRequestFilter {
         if (clientIp != null) {
             ddosProtectionService.recordRequest(clientIp, userId);
         }
-        
+
         filterChain.doFilter(request, response);
     }
 
@@ -106,7 +103,7 @@ public class DDoSProtectionFilter extends OncePerRequestFilter {
      * Extract client IP address from request
      * Handles X-Forwarded-For with multiple IPs safely
      */
-    private String getClientIpAddress(HttpServletRequest request) {
+    private String getClientIpAddress((final HttpServletRequest request) {
         if (request == null) {
             return null;
         }
@@ -118,7 +115,7 @@ public class DDoSProtectionFilter extends OncePerRequestFilter {
         if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
             ip = request.getRemoteAddr();
         }
-        
+
         // Handle multiple IPs (X-Forwarded-For can contain multiple IPs)
         if (ip != null && ip.contains(",")) {
             String[] ips = ip.split(",");
@@ -128,11 +125,11 @@ public class DDoSProtectionFilter extends OncePerRequestFilter {
                 ip = request.getRemoteAddr();
             }
         }
-        
+
         return ip != null && !ip.isEmpty() ? ip : request.getRemoteAddr();
     }
 
-    private String getUserIdFromRequest(HttpServletRequest request) {
+    private String getUserIdFromRequest((final HttpServletRequest request) {
         if (request == null) {
             return null;
         }
@@ -151,21 +148,22 @@ public class DDoSProtectionFilter extends OncePerRequestFilter {
      * Calculate total header size
      * Thread-safe and handles null values
      */
-    private int getTotalHeaderSize(HttpServletRequest request) {
+    private int getTotalHeaderSize((final HttpServletRequest request) {
         if (request == null) {
             return 0;
         }
 
         try {
-            return request.getHeaderNames().asIterator()
-                    .mapToInt(headerName -> {
-                        if (headerName == null) {
-                            return 0;
-                        }
-                        String headerValue = request.getHeader(headerName);
-                        return headerName.length() + (headerValue != null ? headerValue.length() : 0);
-                    })
-                    .sum();
+            int totalSize = 0;
+            java.util.Enumeration<String> headerNames = request.getHeaderNames();
+            while (headerNames.hasMoreElements()) {
+                String headerName = headerNames.nextElement();
+                if (headerName != null) {
+                    String headerValue = request.getHeader(headerName);
+                    totalSize += headerName.length() + (headerValue != null ? headerValue.length() : 0);
+                }
+            }
+            return totalSize;
         } catch (Exception e) {
             logger.warn("Failed to calculate header size: {}", e.getMessage());
             return 0;

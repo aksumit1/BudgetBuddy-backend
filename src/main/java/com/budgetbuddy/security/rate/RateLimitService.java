@@ -5,6 +5,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 import software.amazon.awssdk.services.dynamodb.model.*;
+import software.amazon.awssdk.services.dynamodb.model.UpdateTimeToLiveRequest;
 
 import java.time.Instant;
 import java.util.Map;
@@ -16,7 +17,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * Per-Customer Rate Limiting Service
  * Implements token bucket algorithm for fair rate limiting
  * Uses DynamoDB for distributed rate limiting across instances
- * 
+ *
  * Thread-safe implementation with proper synchronization
  */
 @Service
@@ -45,7 +46,7 @@ public class RateLimitService {
     private static final long CACHE_TTL_MS = 60000; // 1 minute
     private volatile long lastCacheCleanup = System.currentTimeMillis();
 
-    public RateLimitService(DynamoDbClient dynamoDbClient) {
+    public RateLimitService(final DynamoDbClient dynamoDbClient) {
         if (dynamoDbClient == null) {
             throw new IllegalArgumentException("DynamoDbClient cannot be null");
         }
@@ -57,7 +58,7 @@ public class RateLimitService {
      * Check if user is allowed to make request to endpoint
      * Thread-safe implementation
      */
-    public boolean isAllowed(String userId, String endpoint) {
+    public boolean isAllowed((final String userId, final String endpoint) {
         if (userId == null || userId.isEmpty()) {
             logger.warn("User ID is null or empty");
             return false;
@@ -87,14 +88,14 @@ public class RateLimitService {
 
         // Load from DynamoDB or create new bucket
         bucket = loadOrCreateBucket(key, config);
-        
+
         // Prevent cache from growing too large
         if (inMemoryCache.size() >= MAX_CACHE_SIZE) {
             // Remove oldest entries (simple FIFO - in production, use LRU)
             String firstKey = inMemoryCache.keySet().iterator().next();
             inMemoryCache.remove(firstKey);
         }
-        
+
         inMemoryCache.put(key, bucket);
 
         return bucket.tryConsume();
@@ -103,14 +104,14 @@ public class RateLimitService {
     /**
      * Get retry-after seconds for rate-limited user
      */
-    public int getRetryAfter(String userId, String endpoint) {
+    public int getRetryAfter((final String userId, final String endpoint) {
         if (userId == null || endpoint == null) {
             return 60;
         }
 
         String key = userId + ":" + endpoint;
         TokenBucket bucket = inMemoryCache.get(key);
-        
+
         if (bucket != null && !bucket.isExpired()) {
             RateLimitConfig config = getRateLimitConfig(endpoint);
             long now = System.currentTimeMillis();
@@ -118,7 +119,7 @@ public class RateLimitService {
             long secondsUntilRefill = (nextRefill - now) / 1000;
             return Math.max(1, (int) secondsUntilRefill);
         }
-        
+
         return 60; // Default 1 minute
     }
 
@@ -138,7 +139,7 @@ public class RateLimitService {
         }
     }
 
-    private RateLimitConfig getRateLimitConfig(String endpoint) {
+    private RateLimitConfig getRateLimitConfig((final String endpoint) {
         if (endpoint == null) {
             return ENDPOINT_LIMITS.get("default");
         }
@@ -150,7 +151,7 @@ public class RateLimitService {
                 .orElse(ENDPOINT_LIMITS.get("default"));
     }
 
-    private TokenBucket loadOrCreateBucket(String key, RateLimitConfig config) {
+    private TokenBucket loadOrCreateBucket((final String key, final RateLimitConfig config) {
         if (key == null || config == null) {
             return new TokenBucket(ENDPOINT_LIMITS.get("default"));
         }
@@ -164,8 +165,8 @@ public class RateLimitService {
             if (response.item() != null && response.item().containsKey("tokens") && response.item().containsKey("lastRefill")) {
                 AttributeValue tokensAttr = response.item().get("tokens");
                 AttributeValue lastRefillAttr = response.item().get("lastRefill");
-                
-                if (tokensAttr != null && tokensAttr.n() != null && 
+
+                if (tokensAttr != null && tokensAttr.n() != null &&
                     lastRefillAttr != null && lastRefillAttr.n() != null) {
                     try {
                         int tokens = Integer.parseInt(tokensAttr.n());
@@ -183,7 +184,7 @@ public class RateLimitService {
         return new TokenBucket(config);
     }
 
-    private void updateDynamoDB(String key, TokenBucket bucket) {
+    private void updateDynamoDB((final String key, final TokenBucket bucket) {
         if (key == null || bucket == null) {
             return;
         }
@@ -206,7 +207,7 @@ public class RateLimitService {
     /**
      * Async update to avoid blocking the request thread
      */
-    private void updateDynamoDBAsync(String key, TokenBucket bucket) {
+    private void updateDynamoDBAsync((final String key, final TokenBucket bucket) {
         new Thread(() -> updateDynamoDB(key, bucket), "ratelimit-update-async").start();
     }
 
@@ -225,11 +226,20 @@ public class RateLimitService {
                                     .attributeName("key")
                                     .keyType(KeyType.HASH)
                                     .build())
-                    .timeToLiveSpecification(TimeToLiveSpecification.builder()
-                            .enabled(true)
-                            .attributeName("ttl")
-                            .build())
                     .build());
+
+            // Configure TTL separately
+            try {
+                dynamoDbClient.updateTimeToLive(UpdateTimeToLiveRequest.builder()
+                        .tableName("BudgetBuddy-RateLimits")
+                        .timeToLiveSpecification(TimeToLiveSpecification.builder()
+                                .enabled(true)
+                                .attributeName("ttl")
+                                .build())
+                        .build());
+            } catch (Exception e) {
+                logger.warn("Failed to configure TTL for rate limit table: {}", e.getMessage());
+            }
             logger.info("Rate limit table created");
         } catch (ResourceInUseException e) {
             logger.debug("Rate limit table already exists");
@@ -246,7 +256,7 @@ public class RateLimitService {
         private final AtomicInteger tokens;
         private final AtomicLong lastRefill;
 
-        public TokenBucket(RateLimitConfig config) {
+        public TokenBucket(final RateLimitConfig config) {
             if (config == null) {
                 throw new IllegalArgumentException("RateLimitConfig cannot be null");
             }
@@ -255,7 +265,7 @@ public class RateLimitService {
             this.lastRefill = new AtomicLong(System.currentTimeMillis());
         }
 
-        public TokenBucket(RateLimitConfig config, int tokens, long lastRefill) {
+        public TokenBucket(final RateLimitConfig config, final int tokens, final long lastRefill) {
             if (config == null) {
                 throw new IllegalArgumentException("RateLimitConfig cannot be null");
             }

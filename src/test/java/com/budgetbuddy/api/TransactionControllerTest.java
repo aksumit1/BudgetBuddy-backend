@@ -83,12 +83,12 @@ class TransactionControllerTest {
         LocalDate startDate = LocalDate.now().minusDays(7);
         LocalDate endDate = LocalDate.now();
         List<TransactionTable> mockTransactions = Arrays.asList(createTransaction("tx-1"));
-        
+
         when(userService.findByEmail("test@example.com")).thenReturn(java.util.Optional.of(testUser));
         when(transactionService.getTransactionsInRange(testUser, startDate, endDate)).thenReturn(mockTransactions);
 
         // When
-        ResponseEntity<List<TransactionTable>> response = 
+        ResponseEntity<List<TransactionTable>> response =
                 transactionController.getTransactionsInRange(userDetails, startDate, endDate);
 
         // Then
@@ -120,7 +120,7 @@ class TransactionControllerTest {
     }
 
     // Helper methods
-    private TransactionTable createTransaction(String id) {
+    private TransactionTable createTransaction((final String id) {
         TransactionTable transaction = new TransactionTable();
         transaction.setTransactionId(id);
         transaction.setUserId("user-123");

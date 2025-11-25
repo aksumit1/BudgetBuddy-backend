@@ -32,7 +32,8 @@ public class Budget {
     public Budget() {
     }
 
-    public Budget(User user, Transaction.TransactionCategory category, BigDecimal monthlyLimit) {
+    public Budget(final User user, final Transaction.TransactionCategory category,
+                  final BigDecimal monthlyLimit) {
         this.user = user;
         this.category = category;
         this.monthlyLimit = monthlyLimit;
@@ -43,7 +44,7 @@ public class Budget {
         return id;
     }
 
-    public void setId(Long id) {
+    public void setId(final Long id) {
         this.id = id;
     }
 
@@ -51,7 +52,7 @@ public class Budget {
         return user;
     }
 
-    public void setUser(User user) {
+    public void setUser(final User user) {
         this.user = user;
     }
 
@@ -59,7 +60,7 @@ public class Budget {
         return category;
     }
 
-    public void setCategory(Transaction.TransactionCategory category) {
+    public void setCategory(final Transaction.TransactionCategory category) {
         this.category = category;
     }
 
@@ -67,7 +68,7 @@ public class Budget {
         return monthlyLimit;
     }
 
-    public void setMonthlyLimit(BigDecimal monthlyLimit) {
+    public void setMonthlyLimit(final BigDecimal monthlyLimit) {
         this.monthlyLimit = monthlyLimit;
     }
 
@@ -75,7 +76,7 @@ public class Budget {
         return currentSpent;
     }
 
-    public void setCurrentSpent(BigDecimal currentSpent) {
+    public void setCurrentSpent(final BigDecimal currentSpent) {
         this.currentSpent = currentSpent;
     }
 
@@ -83,7 +84,7 @@ public class Budget {
         return currencyCode;
     }
 
-    public void setCurrencyCode(String currencyCode) {
+    public void setCurrencyCode(final String currencyCode) {
         this.currencyCode = currencyCode;
     }
 
@@ -91,7 +92,7 @@ public class Budget {
         return createdAt;
     }
 
-    public void setCreatedAt(LocalDateTime createdAt) {
+    public void setCreatedAt(final LocalDateTime createdAt) {
         this.createdAt = createdAt;
     }
 
@@ -99,7 +100,7 @@ public class Budget {
         return updatedAt;
     }
 
-    public void setUpdatedAt(LocalDateTime updatedAt) {
+    public void setUpdatedAt(final LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
     }
 }

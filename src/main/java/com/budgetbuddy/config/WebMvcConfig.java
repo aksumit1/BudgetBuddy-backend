@@ -15,12 +15,12 @@ public class WebMvcConfig implements WebMvcConfigurer {
     private final ApiVersioningInterceptor apiVersioningInterceptor;
 
     @Autowired
-    public WebMvcConfig(ApiVersioningInterceptor apiVersioningInterceptor) {
+    public WebMvcConfig(final ApiVersioningInterceptor apiVersioningInterceptor) {
         this.apiVersioningInterceptor = apiVersioningInterceptor;
     }
 
     @Override
-    public void addInterceptors(InterceptorRegistry registry) {
+    public void addInterceptors((final InterceptorRegistry registry) {
         registry.addInterceptor(apiVersioningInterceptor)
                 .addPathPatterns("/api/**")
                 .excludePathPatterns("/actuator/**", "/swagger-ui/**", "/v3/api-docs/**");

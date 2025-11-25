@@ -74,7 +74,7 @@ class TransactionServiceTest {
     @Test
     void testGetTransactions_WithNullUser_ThrowsException() {
         // When/Then
-        AppException exception = assertThrows(AppException.class, 
+        AppException exception = assertThrows(AppException.class,
                 () -> transactionService.getTransactions(null, 0, 50));
         assertEquals(ErrorCode.INVALID_INPUT, exception.getErrorCode());
     }
@@ -251,7 +251,7 @@ class TransactionServiceTest {
     }
 
     // Helper methods
-    private TransactionTable createTransaction(String id, String userId, BigDecimal amount) {
+    private TransactionTable createTransaction((final String id, final String userId, final BigDecimal amount) {
         TransactionTable transaction = new TransactionTable();
         transaction.setTransactionId(id);
         transaction.setUserId(userId);

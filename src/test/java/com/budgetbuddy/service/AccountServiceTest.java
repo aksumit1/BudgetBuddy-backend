@@ -74,7 +74,7 @@ class AccountServiceTest {
         inactiveAccount.setAccountId(UUID.randomUUID().toString());
         inactiveAccount.setUserId("user-123");
         inactiveAccount.setActive(false);
-        
+
         List<AccountTable> accounts = List.of(testAccount, inactiveAccount);
         when(accountRepository.findByUserId("user-123")).thenReturn(accounts);
 

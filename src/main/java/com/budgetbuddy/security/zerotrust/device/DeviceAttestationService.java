@@ -5,6 +5,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 import software.amazon.awssdk.services.dynamodb.model.*;
+import software.amazon.awssdk.services.dynamodb.model.UpdateTimeToLiveRequest;
 
 import java.time.Instant;
 import java.util.Map;
@@ -23,7 +24,7 @@ public class DeviceAttestationService {
     private final DynamoDbClient dynamoDbClient;
     private final String tableName = "BudgetBuddy-DeviceAttestations";
 
-    public DeviceAttestationService(DynamoDbClient dynamoDbClient) {
+    public DeviceAttestationService(final DynamoDbClient dynamoDbClient) {
         this.dynamoDbClient = dynamoDbClient;
         initializeTable();
     }
@@ -31,7 +32,7 @@ public class DeviceAttestationService {
     /**
      * Verify device and register if new
      */
-    public boolean verifyDevice(String deviceId, String userId) {
+    public boolean verifyDevice((final String deviceId, final String userId) {
         try {
             // Check if device is registered and trusted
             GetItemResponse response = dynamoDbClient.getItem(GetItemRequest.builder()
@@ -70,7 +71,7 @@ public class DeviceAttestationService {
     /**
      * Register new device (requires additional verification)
      */
-    private boolean registerNewDevice(String deviceId, String userId) {
+    private boolean registerNewDevice((final String deviceId, final String userId) {
         // In production, this would require:
         // 1. Email verification
         // 2. SMS verification
@@ -102,7 +103,7 @@ public class DeviceAttestationService {
     /**
      * Get device trust level
      */
-    public DeviceTrustLevel getDeviceTrustLevel(String deviceId) {
+    public DeviceTrustLevel getDeviceTrustLevel((final String deviceId) {
         // Simplified trust level calculation
         // In production, this would consider:
         // - Device age
@@ -114,7 +115,7 @@ public class DeviceAttestationService {
         return DeviceTrustLevel.MEDIUM; // Default to medium trust
     }
 
-    private void updateLastVerified(String deviceId, String userId) {
+    private void updateLastVerified((final String deviceId, final String userId) {
         try {
             dynamoDbClient.updateItem(UpdateItemRequest.builder()
                     .tableName(tableName)
@@ -155,11 +156,20 @@ public class DeviceAttestationService {
                                     .attributeName("userId")
                                     .keyType(KeyType.RANGE)
                                     .build())
-                    .timeToLiveSpecification(TimeToLiveSpecification.builder()
-                            .enabled(true)
-                            .attributeName("ttl")
-                            .build())
                     .build());
+
+            // Configure TTL separately
+            try {
+                dynamoDbClient.updateTimeToLive(UpdateTimeToLiveRequest.builder()
+                        .tableName(tableName)
+                        .timeToLiveSpecification(TimeToLiveSpecification.builder()
+                                .enabled(true)
+                                .attributeName("ttl")
+                                .build())
+                        .build());
+            } catch (Exception e) {
+                logger.warn("Failed to configure TTL for device attestation table: {}", e.getMessage());
+            }
             logger.info("Device attestation table created");
         } catch (ResourceInUseException e) {
             logger.debug("Device attestation table already exists");

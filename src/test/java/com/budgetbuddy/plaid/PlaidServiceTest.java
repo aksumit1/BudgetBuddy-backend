@@ -42,7 +42,7 @@ class PlaidServiceTest {
     void setUp() {
         testUserId = UUID.randomUUID().toString();
         testClientName = "Test Client";
-        
+
         // Use reflection to set private fields for testing
         // Note: In real scenario, PlaidService would be constructed with mocked PlaidApi
     }

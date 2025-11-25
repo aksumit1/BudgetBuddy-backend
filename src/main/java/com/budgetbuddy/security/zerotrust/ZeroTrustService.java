@@ -12,7 +12,7 @@ import java.util.Map;
 /**
  * Zero Trust Security Service
  * Implements continuous verification and never trust, always verify principle
- * 
+ *
  * Zero Trust Principles:
  * 1. Verify explicitly - Always authenticate and authorize
  * 2. Use least privilege access - Limit user access
@@ -31,14 +31,14 @@ public class ZeroTrustService {
 
     /**
      * Verify access request with zero trust principles
-     * 
+     *
      * @param userId User ID
      * @param deviceId Device ID
      * @param resource Resource being accessed
      * @param action Action being performed
      * @return ZeroTrustResult with verification status
      */
-    public ZeroTrustResult verifyAccess(String userId, String deviceId, String resource, String action) {
+    public ZeroTrustResult verifyAccess((final String userId, final String deviceId, final String resource, final String action) {
         ZeroTrustResult result = new ZeroTrustResult();
 
         // Principle 1: Verify explicitly
@@ -84,11 +84,12 @@ public class ZeroTrustService {
     /**
      * Calculate risk score based on multiple factors
      */
-    private RiskScore calculateRiskScore(String userId, String deviceId, String resource, String action) {
+    private RiskScore calculateRiskScore((final String userId, final String deviceId, final String resource, final String action) {
         RiskScore riskScore = new RiskScore();
 
         // Factor 1: Device trust
-        DeviceTrustLevel deviceTrust = deviceAttestationService.getDeviceTrustLevel(deviceId);
+        com.budgetbuddy.security.zerotrust.device.DeviceAttestationService.DeviceTrustLevel deviceTrust =
+                deviceAttestationService.getDeviceTrustLevel(deviceId);
         riskScore.addFactor("deviceTrust", deviceTrust.getScore());
 
         // Factor 2: Location anomaly (if available)
@@ -106,13 +107,13 @@ public class ZeroTrustService {
         return riskScore;
     }
 
-    private int checkTimeAnomaly(String userId, String action) {
+    private int checkTimeAnomaly((final String userId, final String action) {
         // Check if action is performed at unusual time
         // For now, return low risk
         return 10;
     }
 
-    private int getResourceSensitivity(String resource) {
+    private int getResourceSensitivity((final String resource) {
         // Classify resource sensitivity
         if (resource.contains("/admin") || resource.contains("/compliance")) {
             return 80; // High sensitivity
@@ -123,7 +124,7 @@ public class ZeroTrustService {
         }
     }
 
-    private int getActionSensitivity(String action) {
+    private int getActionSensitivity((final String action) {
         // Classify action sensitivity
         if ("DELETE".equals(action) || "UPDATE".equals(action)) {
             return 60; // High sensitivity
@@ -146,7 +147,7 @@ public class ZeroTrustService {
             return allowed;
         }
 
-        public void setAllowed(boolean allowed) {
+        public void setAllowed(final boolean allowed) {
             this.allowed = allowed;
         }
 
@@ -154,7 +155,7 @@ public class ZeroTrustService {
             return reason;
         }
 
-        public void setReason(String reason) {
+        public void setReason(final String reason) {
             this.reason = reason;
         }
 
@@ -162,7 +163,7 @@ public class ZeroTrustService {
             return riskScore;
         }
 
-        public void setRiskScore(RiskScore riskScore) {
+        public void setRiskScore(final RiskScore riskScore) {
             this.riskScore = riskScore;
         }
     }
@@ -174,7 +175,7 @@ public class ZeroTrustService {
         private final Map<String, Integer> factors = new java.util.HashMap<>();
         private int score = 0;
 
-        public void addFactor(String name, int value) {
+        public void addFactor((final String name, final int value) {
             factors.put(name, value);
             recalculate();
         }

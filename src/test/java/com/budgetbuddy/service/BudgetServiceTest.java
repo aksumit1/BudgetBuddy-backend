@@ -153,7 +153,7 @@ class BudgetServiceTest {
     }
 
     // Helper methods
-    private BudgetTable createBudget(String id, String category) {
+    private BudgetTable createBudget((final String id, final String category) {
         BudgetTable budget = new BudgetTable();
         budget.setBudgetId(id);
         budget.setUserId("user-123");

@@ -33,9 +33,7 @@ public class AnalyticsService {
     private final TransactionService transactionService;
     private final CloudWatchService cloudWatchService;
 
-    public AnalyticsService(TransactionRepository transactionRepository, 
-                           TransactionService transactionService,
-                           CloudWatchService cloudWatchService) {
+    public AnalyticsService(final TransactionRepository transactionRepository, final TransactionService transactionService, final CloudWatchService cloudWatchService) {
         this.transactionRepository = transactionRepository;
         this.transactionService = transactionService;
         this.cloudWatchService = cloudWatchService;
@@ -45,7 +43,7 @@ public class AnalyticsService {
      * Get spending summary for a user (cached to reduce database load)
      */
     @Cacheable(value = "analytics", key = "#user.userId + '_spending_' + #startDate + '_' + #endDate")
-    public SpendingSummary getSpendingSummary(UserTable user, LocalDate startDate, LocalDate endDate) {
+    public SpendingSummary getSpendingSummary((final UserTable user, final LocalDate startDate, final LocalDate endDate) {
         // Use TransactionService which handles DynamoDB queries
         BigDecimal totalSpending = transactionService.getTotalSpending(user, startDate, endDate);
         List<TransactionTable> transactions = transactionService.getTransactionsInRange(user, startDate, endDate);
@@ -67,7 +65,7 @@ public class AnalyticsService {
     @Cacheable(value = "analytics", key = "#user.userId + '_category_' + #startDate + '_' + #endDate")
     public Map<String, BigDecimal> getSpendingByCategory(UserTable user, LocalDate startDate, LocalDate endDate) {
         List<TransactionTable> transactions = transactionService.getTransactionsInRange(user, startDate, endDate);
-        
+
         Map<String, BigDecimal> categorySpending = new HashMap<>();
         transactions.forEach(transaction -> {
             String category = transaction.getCategory();
@@ -89,7 +87,7 @@ public class AnalyticsService {
         private final BigDecimal totalSpending;
         private final long transactionCount;
 
-        public SpendingSummary(BigDecimal totalSpending, long transactionCount) {
+        public SpendingSummary(final BigDecimal totalSpending, final long transactionCount) {
             this.totalSpending = totalSpending;
             this.transactionCount = transactionCount;
         }

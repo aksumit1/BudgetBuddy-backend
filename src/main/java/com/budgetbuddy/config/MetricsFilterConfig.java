@@ -39,13 +39,14 @@ public class MetricsFilterConfig {
         }
 
         // Filter out unnecessary metrics to reduce CloudWatch costs
-        return MeterFilter.denyNameStartsWith(
-                "jvm.memory.pool",  // Detailed memory pool metrics
-                "jvm.gc.pause",     // GC pause details (keep summary)
-                "process.files",    // File descriptor metrics
-                "system.cpu.load",  // System CPU load (keep process CPU)
-                "http.server.requests.tag"  // Detailed HTTP tag metrics
-        ).and(MeterFilter.accept());
+        return MeterFilter.deny(id -> {
+            String name = id.getName();
+            return name.startsWith("jvm.memory.pool") ||  // Detailed memory pool metrics
+                   name.startsWith("jvm.gc.pause") ||     // GC pause details (keep summary)
+                   name.startsWith("process.files") ||    // File descriptor metrics
+                   name.startsWith("system.cpu.load") ||  // System CPU load (keep process CPU)
+                   name.startsWith("http.server.requests.tag");  // Detailed HTTP tag metrics
+        });
     }
 }
 

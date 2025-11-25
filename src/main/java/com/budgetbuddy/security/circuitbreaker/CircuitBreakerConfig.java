@@ -1,7 +1,6 @@
 package com.budgetbuddy.security.circuitbreaker;
 
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
-import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -18,7 +17,7 @@ public class CircuitBreakerConfig {
 
     @Bean
     public CircuitBreakerRegistry circuitBreakerRegistry() {
-        CircuitBreakerConfig config = CircuitBreakerConfig.custom()
+        io.github.resilience4j.circuitbreaker.CircuitBreakerConfig config = io.github.resilience4j.circuitbreaker.CircuitBreakerConfig.custom()
                 .failureRateThreshold(50) // Open circuit if 50% of requests fail
                 .waitDurationInOpenState(Duration.ofSeconds(30)) // Wait 30s before half-open
                 .slidingWindowSize(10) // Last 10 requests
@@ -37,8 +36,8 @@ public class CircuitBreakerConfig {
     }
 
     @Bean
-    public CircuitBreaker plaidCircuitBreaker(CircuitBreakerRegistry registry) {
-        return registry.circuitBreaker("plaid", CircuitBreakerConfig.custom()
+    public CircuitBreaker plaidCircuitBreaker((final CircuitBreakerRegistry registry) {
+        return registry.circuitBreaker("plaid", io.github.resilience4j.circuitbreaker.CircuitBreakerConfig.custom()
                 .failureRateThreshold(60) // Higher threshold for external service
                 .waitDurationInOpenState(Duration.ofMinutes(1))
                 .slidingWindowSize(20)
@@ -47,8 +46,8 @@ public class CircuitBreakerConfig {
     }
 
     @Bean
-    public CircuitBreaker dynamoDbCircuitBreaker(CircuitBreakerRegistry registry) {
-        return registry.circuitBreaker("dynamodb", CircuitBreakerConfig.custom()
+    public CircuitBreaker dynamoDbCircuitBreaker((final CircuitBreakerRegistry registry) {
+        return registry.circuitBreaker("dynamodb", io.github.resilience4j.circuitbreaker.CircuitBreakerConfig.custom()
                 .failureRateThreshold(40) // Lower threshold for critical service
                 .waitDurationInOpenState(Duration.ofSeconds(15))
                 .slidingWindowSize(15)
@@ -57,8 +56,8 @@ public class CircuitBreakerConfig {
     }
 
     @Bean
-    public CircuitBreaker s3CircuitBreaker(CircuitBreakerRegistry registry) {
-        return registry.circuitBreaker("s3", CircuitBreakerConfig.custom()
+    public CircuitBreaker s3CircuitBreaker((final CircuitBreakerRegistry registry) {
+        return registry.circuitBreaker("s3", io.github.resilience4j.circuitbreaker.CircuitBreakerConfig.custom()
                 .failureRateThreshold(50)
                 .waitDurationInOpenState(Duration.ofSeconds(30))
                 .slidingWindowSize(10)

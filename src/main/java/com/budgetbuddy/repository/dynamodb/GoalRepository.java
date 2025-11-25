@@ -25,12 +25,12 @@ public class GoalRepository {
     private final DynamoDbIndex<GoalTable> userIdIndex;
     private static final String TABLE_NAME = "BudgetBuddy-Goals";
 
-    public GoalRepository(DynamoDbEnhancedClient enhancedClient) {
+    public GoalRepository(final DynamoDbEnhancedClient enhancedClient) {
         this.goalTable = enhancedClient.table(TABLE_NAME, TableSchema.fromBean(GoalTable.class));
         this.userIdIndex = goalTable.index("UserIdIndex");
     }
 
-    public void save(GoalTable goal) {
+    public void save((final GoalTable goal) {
         goalTable.putItem(goal);
     }
 
@@ -41,7 +41,7 @@ public class GoalRepository {
 
     public List<GoalTable> findByUserId(String userId) {
         List<GoalTable> results = new ArrayList<>();
-        SdkIterable<software.amazon.awssdk.enhanced.dynamodb.model.Page<GoalTable>> pages = 
+        SdkIterable<software.amazon.awssdk.enhanced.dynamodb.model.Page<GoalTable>> pages =
                 userIdIndex.query(QueryConditional.keyEqualTo(Key.builder().partitionValue(userId).build()));
         for (software.amazon.awssdk.enhanced.dynamodb.model.Page<GoalTable> page : pages) {
             for (GoalTable goal : page.items()) {
@@ -54,7 +54,7 @@ public class GoalRepository {
         return results;
     }
 
-    public void delete(String goalId) {
+    public void delete((final String goalId) {
         goalTable.deleteItem(Key.builder().partitionValue(goalId).build());
     }
 }

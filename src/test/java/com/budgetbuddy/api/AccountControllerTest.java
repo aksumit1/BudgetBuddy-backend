@@ -108,7 +108,7 @@ class AccountControllerTest {
         AccountTable otherUserAccount = new AccountTable();
         otherUserAccount.setAccountId("account-456");
         otherUserAccount.setUserId("other-user");
-        
+
         when(userService.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
         when(accountRepository.findById("account-456")).thenReturn(Optional.of(otherUserAccount));
 

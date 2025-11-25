@@ -44,7 +44,7 @@ class ChaosTest {
         System.out.println("Chaos Test - Random Failures:");
         System.out.println("Successful: " + successCount.get());
         System.out.println("Failed: " + failureCount.get());
-        System.out.println("System handled failures gracefully: " + 
+        System.out.println("System handled failures gracefully: " +
                 (failureCount.get() > 0 && successCount.get() > 0));
     }
 

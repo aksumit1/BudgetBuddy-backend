@@ -13,7 +13,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * Performance Metrics Service
  * Tracks and records performance metrics for monitoring
- * 
+ *
  * Metrics tracked:
  * - Request count by endpoint
  * - Response time by endpoint
@@ -24,17 +24,20 @@ import java.util.concurrent.TimeUnit;
 @Service
 public class PerformanceMetricsService {
 
-    private static final Logger logger = LoggerFactory.getLogger(PerformanceMetricsService.class);
+    private static final Logger logger =
+            LoggerFactory.getLogger(PerformanceMetricsService.class);
 
     private final MeterRegistry meterRegistry;
-    private final ConcurrentHashMap<String, Timer.Sample> activeRequests = new ConcurrentHashMap<>();
+    // JDK 25: Using ConcurrentHashMap for thread-safe operations
+    private final ConcurrentHashMap<String, Timer.Sample> activeRequests =
+            new ConcurrentHashMap<>();
 
     // Counters
     private final Counter totalRequests;
     private final Counter totalErrors;
     private final Counter totalSuccess;
 
-    public PerformanceMetricsService(MeterRegistry meterRegistry) {
+    public PerformanceMetricsService(final MeterRegistry meterRegistry) {
         this.meterRegistry = meterRegistry;
 
         // Initialize counters
@@ -54,7 +57,8 @@ public class PerformanceMetricsService {
     /**
      * Start timing a request
      */
-    public void startRequest(String correlationId, String endpoint, String method) {
+    public void startRequest(final String correlationId, final String endpoint,
+                             final String method) {
         Timer.Sample sample = Timer.start(meterRegistry);
         activeRequests.put(correlationId, sample);
 
@@ -73,27 +77,32 @@ public class PerformanceMetricsService {
     /**
      * End timing a request and record metrics
      */
-    public void endRequest(String correlationId, String endpoint, String method, int statusCode, boolean isError) {
+    public void endRequest(final String correlationId, final String endpoint,
+                           final String method, final int statusCode,
+                           final boolean isError) {
         Timer.Sample sample = activeRequests.remove(correlationId);
         if (sample != null) {
             Timer timer = Timer.builder("http.request.duration")
                     .tag("endpoint", sanitizeEndpoint(endpoint))
                     .tag("method", method)
                     .tag("status", String.valueOf(statusCode))
-                    .description("Request duration by endpoint, method, and status")
+                    .description("Request duration by endpoint, "
+                            + "method, and status")
                     .register(meterRegistry);
 
             sample.stop(timer);
         }
 
         // Record success or error
-        if (isError || statusCode >= 400) {
+        final int errorThreshold = 400;
+        if (isError || statusCode >= errorThreshold) {
             totalErrors.increment();
             Counter.builder("http.errors")
                     .tag("endpoint", sanitizeEndpoint(endpoint))
                     .tag("method", method)
                     .tag("status", String.valueOf(statusCode))
-                    .description("Number of errors by endpoint, method, and status")
+                    .description("Number of errors by endpoint, "
+                            + "method, and status")
                     .register(meterRegistry)
                     .increment();
         } else {
@@ -104,23 +113,28 @@ public class PerformanceMetricsService {
     /**
      * Record throughput (requests per second)
      */
-    public void recordThroughput(String endpoint, double requestsPerSecond) {
-        meterRegistry.gauge("http.throughput", 
-                "endpoint", sanitizeEndpoint(endpoint),
-                requestsPerSecond);
+    public void recordThroughput(final String endpoint,
+                                 final double requestsPerSecond) {
+        io.micrometer.core.instrument.Gauge.builder("http.throughput",
+                        () -> requestsPerSecond)
+                .tag("endpoint", sanitizeEndpoint(endpoint))
+                .register(meterRegistry);
     }
 
     /**
      * Record active connections
      */
-    public void recordActiveConnections(int count) {
-        meterRegistry.gauge("http.connections.active", count);
+    public void recordActiveConnections(final int count) {
+        io.micrometer.core.instrument.Gauge.builder("http.connections.active",
+                        () -> count)
+                .register(meterRegistry);
     }
 
     /**
      * Record database query time
      */
-    public void recordDatabaseQuery(String operation, long durationMs) {
+    public void recordDatabaseQuery(final String operation,
+                                     final long durationMs) {
         Timer.builder("database.query.duration")
                 .tag("operation", operation)
                 .description("Database query duration by operation")
@@ -131,7 +145,10 @@ public class PerformanceMetricsService {
     /**
      * Record external API call time
      */
-    public void recordExternalApiCall(String service, String endpoint, long durationMs, boolean success) {
+    public void recordExternalApiCall(final String service,
+                                      final String endpoint,
+                                      final long durationMs,
+                                      final boolean success) {
         Timer.builder("external.api.duration")
                 .tag("service", service)
                 .tag("endpoint", sanitizeEndpoint(endpoint))
@@ -151,7 +168,8 @@ public class PerformanceMetricsService {
     /**
      * Record cache hit/miss
      */
-    public void recordCacheOperation(String cacheName, boolean hit) {
+    public void recordCacheOperation(final String cacheName,
+                                     final boolean hit) {
         Counter.builder("cache.operations")
                 .tag("cache", cacheName)
                 .tag("result", hit ? "hit" : "miss")
@@ -163,30 +181,33 @@ public class PerformanceMetricsService {
     /**
      * Record queue size
      */
-    public void recordQueueSize(String queueName, int size) {
-        meterRegistry.gauge("queue.size",
-                "queue", queueName,
-                size);
+    public void recordQueueSize(final String queueName, final int size) {
+        io.micrometer.core.instrument.Gauge.builder("queue.size", () -> size)
+                .tag("queue", queueName)
+                .register(meterRegistry);
     }
 
     /**
      * Sanitize endpoint for metrics (remove IDs, etc.)
      */
-    private String sanitizeEndpoint(String endpoint) {
+    private String sanitizeEndpoint(final String endpoint) {
         if (endpoint == null) {
             return "unknown";
         }
 
         // Replace UUIDs and IDs with placeholders
-        endpoint = endpoint.replaceAll("/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}", "/{id}");
-        endpoint = endpoint.replaceAll("/\\d+", "/{id}");
+        String sanitized = endpoint.replaceAll(
+                "/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}",
+                "/{id}");
+        sanitized = sanitized.replaceAll("/\\d+", "/{id}");
 
         // Limit length
-        if (endpoint.length() > 100) {
-            endpoint = endpoint.substring(0, 100);
+        final int maxEndpointLength = 100;
+        if (sanitized.length() > maxEndpointLength) {
+            sanitized = sanitized.substring(0, maxEndpointLength);
         }
 
-        return endpoint;
+        return sanitized;
     }
 }
 

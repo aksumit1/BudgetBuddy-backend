@@ -37,7 +37,7 @@ public class FinancialComplianceService {
      * PCI DSS Requirement 3.4 - Render PAN unreadable
      * Ensure card numbers are encrypted
      */
-    public void logCardDataAccess(String userId, String cardLast4, boolean encrypted) {
+    public void logCardDataAccess((final String userId, final String cardLast4, final boolean encrypted) {
         if (!encrypted) {
             logger.error("PCI DSS VIOLATION: Card data accessed without encryption: User={}, Card={}", userId, cardLast4);
             putMetric("UnencryptedCardData", 1.0, Map.of());
@@ -51,10 +51,10 @@ public class FinancialComplianceService {
      * PCI DSS Requirement 7 - Restrict Access to Cardholder Data
      * Log access to cardholder data
      */
-    public void logCardholderDataAccess(String userId, String resource, boolean authorized) {
+    public void logCardholderDataAccess((final String userId, final String resource, final boolean authorized) {
         auditLogService.logCardholderDataAccess(userId, resource, authorized);
         putMetric("CardholderDataAccess", authorized ? 1.0 : 0.0, Map.of());
-        
+
         if (!authorized) {
             logger.warn("PCI DSS: Unauthorized cardholder data access: User={}, Resource={}", userId, resource);
         }
@@ -64,7 +64,7 @@ public class FinancialComplianceService {
      * GLBA - Safeguards Rule
      * Protect customer financial information
      */
-    public void logFinancialDataAccess(String userId, String dataType, String action) {
+    public void logFinancialDataAccess((final String userId, final String dataType, final String action) {
         auditLogService.logFinancialDataAccess(userId, dataType, action);
         putMetric("FinancialDataAccess", 1.0, Map.of("DataType", dataType, "Action", action));
     }
@@ -73,10 +73,10 @@ public class FinancialComplianceService {
      * SOX Section 302 - Corporate Responsibility for Financial Reports
      * Log financial data modifications
      */
-    public void logFinancialDataModification(String userId, String dataType, String beforeValue, String afterValue) {
+    public void logFinancialDataModification((final String userId, final String dataType, final String beforeValue, final String afterValue) {
         auditLogService.logFinancialDataModification(userId, dataType, beforeValue, afterValue);
         putMetric("FinancialDataModification", 1.0, Map.of("DataType", dataType));
-        
+
         // Alert on significant changes
         if (isSignificantChange(dataType, beforeValue, afterValue)) {
             logger.warn("SOX: Significant financial data modification: User={}, Type={}", userId, dataType);
@@ -88,10 +88,10 @@ public class FinancialComplianceService {
      * SOX Section 404 - Management Assessment of Internal Controls
      * Log internal control activities
      */
-    public void logInternalControl(String controlId, String activity, boolean effective) {
+    public void logInternalControl((final String controlId, final String activity, final boolean effective) {
         auditLogService.logInternalControl(controlId, activity, effective);
         putMetric("InternalControl", effective ? 1.0 : 0.0, Map.of("ControlId", controlId));
-        
+
         if (!effective) {
             logger.warn("SOX: Ineffective internal control: Control={}, Activity={}", controlId, activity);
         }
@@ -101,7 +101,7 @@ public class FinancialComplianceService {
      * FFIEC - Information Security
      * Log security controls for financial institutions
      */
-    public void logSecurityControl(String controlId, String status) {
+    public void logSecurityControl((final String controlId, final String status) {
         auditLogService.logSecurityControl(controlId, status);
         putMetric("SecurityControl", "PASS".equals(status) ? 1.0 : 0.0, Map.of("ControlId", controlId));
     }
@@ -110,7 +110,7 @@ public class FinancialComplianceService {
      * FINRA - Customer Protection Rule
      * Ensure customer assets are protected
      */
-    public void logCustomerAssetAccess(String userId, String customerId, String assetType, String action) {
+    public void logCustomerAssetAccess((final String userId, final String customerId, final String assetType, final String action) {
         auditLogService.logCustomerAssetAccess(userId, customerId, assetType, action);
         putMetric("CustomerAssetAccess", 1.0, Map.of("AssetType", assetType, "Action", action));
     }
@@ -119,9 +119,9 @@ public class FinancialComplianceService {
      * Transaction Monitoring
      * Monitor transactions for suspicious activity
      */
-    public void monitorTransaction(String transactionId, double amount, String userId) {
+    public void monitorTransaction((final String transactionId, final double amount, final String userId) {
         if (isSuspiciousTransaction(amount, userId)) {
-            logger.warn("Financial Compliance: Suspicious transaction detected: ID={}, Amount={}, User={}", 
+            logger.warn("Financial Compliance: Suspicious transaction detected: ID={}, Amount={}, User={}",
                     transactionId, amount, userId);
             putMetric("SuspiciousTransaction", 1.0, Map.of());
             auditLogService.logSuspiciousTransaction(transactionId, amount, userId);
@@ -134,23 +134,23 @@ public class FinancialComplianceService {
      * Data Retention Compliance
      * Ensure data is retained according to regulations
      */
-    public void logDataRetention(String dataType, Instant retentionUntil) {
+    public void logDataRetention((final String dataType, final Instant retentionUntil) {
         auditLogService.logDataRetention(dataType, retentionUntil);
         putMetric("DataRetention", 1.0, Map.of("DataType", dataType));
     }
 
-    private boolean isSignificantChange(String dataType, String beforeValue, String afterValue) {
+    private boolean isSignificantChange((final String dataType, final String beforeValue, final String afterValue) {
         // Simplified check - in production, would compare actual values
-        return !beforeValue.equals(afterValue) && 
+        return !beforeValue.equals(afterValue) &&
                (dataType.contains("balance") || dataType.contains("amount"));
     }
 
-    private boolean isSuspiciousTransaction(double amount, String userId) {
+    private boolean isSuspiciousTransaction((final double amount, final String userId) {
         // Simplified check - in production, would use ML models
         return amount > 10000; // Flag transactions over $10,000
     }
 
-    private void putMetric(String metricName, double value, Map<String, String> dimensions) {
+    private void putMetric((final String metricName, final double value, Map<String, final String> dimensions) {
         try {
             List<Dimension> dims = dimensions.entrySet().stream()
                     .map(e -> Dimension.builder()

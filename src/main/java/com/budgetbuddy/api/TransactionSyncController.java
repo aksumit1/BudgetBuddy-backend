@@ -25,7 +25,7 @@ import java.util.concurrent.CompletableFuture;
 /**
  * Transaction Sync REST Controller
  * Handles real-time and scheduled transaction synchronization
- * 
+ *
  * Features:
  * - Full transaction sync
  * - Incremental transaction sync
@@ -42,9 +42,7 @@ public class TransactionSyncController {
     private final TransactionSyncService transactionSyncService;
     private final UserService userService;
 
-    public TransactionSyncController(
-            TransactionSyncService transactionSyncService,
-            UserService userService) {
+    public TransactionSyncController(final TransactionSyncService transactionSyncService, final UserService userService) {
         this.transactionSyncService = transactionSyncService;
         this.userService = userService;
     }
@@ -61,7 +59,7 @@ public class TransactionSyncController {
     public ResponseEntity<Map<String, Object>> syncTransactions(
             @AuthenticationPrincipal UserDetails userDetails,
             @RequestParam @NotBlank @Parameter(description = "Plaid access token") String accessToken) {
-        
+
         if (userDetails == null || userDetails.getUsername() == null) {
             throw new AppException(ErrorCode.UNAUTHORIZED, "User not authenticated");
         }
@@ -74,20 +72,20 @@ public class TransactionSyncController {
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
 
         try {
-            CompletableFuture<TransactionSyncService.SyncResult> future = 
+            CompletableFuture<TransactionSyncService.SyncResult> future =
                     transactionSyncService.syncTransactions(user.getUserId(), accessToken);
 
             logger.info("Transaction sync started for user: {}", user.getUserId());
-            
+
             return ResponseEntity.accepted().body(Map.of(
                     "status", "accepted",
                     "message", "Transaction sync started",
                     "userId", user.getUserId()
             ));
         } catch (Exception e) {
-            logger.error("Failed to start transaction sync for user {}: {}", 
+            logger.error("Failed to start transaction sync for user {}: {}",
                     user.getUserId(), e.getMessage(), e);
-            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, 
+            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR,
                     "Failed to start transaction sync", null, null, e);
         }
     }
@@ -104,9 +102,9 @@ public class TransactionSyncController {
     public ResponseEntity<TransactionSyncService.SyncResult> syncIncremental(
             @AuthenticationPrincipal UserDetails userDetails,
             @RequestParam @NotBlank @Parameter(description = "Plaid access token") String accessToken,
-            @RequestParam @Parameter(description = "Sync transactions since this date") 
+            @RequestParam @Parameter(description = "Sync transactions since this date")
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate sinceDate) {
-        
+
         if (userDetails == null || userDetails.getUsername() == null) {
             throw new AppException(ErrorCode.UNAUTHORIZED, "User not authenticated");
         }
@@ -123,29 +121,29 @@ public class TransactionSyncController {
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
 
         try {
-            CompletableFuture<TransactionSyncService.SyncResult> future = 
+            CompletableFuture<TransactionSyncService.SyncResult> future =
                     transactionSyncService.syncIncremental(user.getUserId(), accessToken, sinceDate);
 
             TransactionSyncService.SyncResult result = future.get();
-            logger.info("Incremental sync completed for user: {} - New: {}, Updated: {}", 
+            logger.info("Incremental sync completed for user: {} - New: {}, Updated: {}",
                     user.getUserId(), result.getNewCount(), result.getUpdatedCount());
-            
+
             return ResponseEntity.ok(result);
         } catch (java.util.concurrent.ExecutionException e) {
-            logger.error("Incremental sync execution failed for user {}: {}", 
+            logger.error("Incremental sync execution failed for user {}: {}",
                     user.getUserId(), e.getMessage(), e);
-            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, 
+            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR,
                     "Failed to sync transactions", null, null, e.getCause());
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            logger.error("Incremental sync interrupted for user {}: {}", 
+            logger.error("Incremental sync interrupted for user {}: {}",
                     user.getUserId(), e.getMessage());
-            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, 
+            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR,
                     "Sync operation interrupted", null, null, e);
         } catch (Exception e) {
-            logger.error("Failed to sync transactions for user {}: {}", 
+            logger.error("Failed to sync transactions for user {}: {}",
                     user.getUserId(), e.getMessage(), e);
-            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, 
+            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR,
                     "Failed to sync transactions", null, null, e);
         }
     }
@@ -161,7 +159,7 @@ public class TransactionSyncController {
     )
     public ResponseEntity<Map<String, Object>> getSyncStatus(
             @AuthenticationPrincipal UserDetails userDetails) {
-        
+
         if (userDetails == null || userDetails.getUsername() == null) {
             throw new AppException(ErrorCode.UNAUTHORIZED, "User not authenticated");
         }

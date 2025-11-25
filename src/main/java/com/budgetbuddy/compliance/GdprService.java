@@ -15,7 +15,7 @@ import java.util.zip.GZIPOutputStream;
 /**
  * GDPR Compliance Service
  * Handles data export and deletion requests
- * 
+ *
  * Note: DynamoDB doesn't use Spring's @Transactional. Use DynamoDB TransactWriteItems for transactions.
  */
 @Service
@@ -32,13 +32,13 @@ public class GdprService {
     private final S3Service s3Service;
 
     public GdprService(
-            com.budgetbuddy.repository.dynamodb.UserRepository userRepository,
-            com.budgetbuddy.repository.dynamodb.AccountRepository accountRepository,
-            com.budgetbuddy.repository.dynamodb.TransactionRepository transactionRepository,
-            com.budgetbuddy.repository.dynamodb.BudgetRepository budgetRepository,
-            com.budgetbuddy.repository.dynamodb.GoalRepository goalRepository,
-            com.budgetbuddy.repository.dynamodb.AuditLogRepository auditLogRepository,
-            S3Service s3Service) {
+            final com.budgetbuddy.repository.dynamodb.UserRepository userRepository,
+            final com.budgetbuddy.repository.dynamodb.AccountRepository accountRepository,
+            final com.budgetbuddy.repository.dynamodb.TransactionRepository transactionRepository,
+            final com.budgetbuddy.repository.dynamodb.BudgetRepository budgetRepository,
+            final com.budgetbuddy.repository.dynamodb.GoalRepository goalRepository,
+            final com.budgetbuddy.repository.dynamodb.AuditLogRepository auditLogRepository,
+            final S3Service s3Service) {
         this.userRepository = userRepository;
         this.accountRepository = accountRepository;
         this.transactionRepository = transactionRepository;
@@ -51,10 +51,10 @@ public class GdprService {
     /**
      * Export all user data (GDPR right to data portability)
      * Exports to S3 and returns download URL
-     * 
+     *
      * TODO: Refactor for DynamoDB - needs conversion from domain models to table models
      */
-    public String exportUserData(String userId) {
+    public String exportUserData((final String userId) {
         var userTable = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
@@ -70,7 +70,7 @@ public class GdprService {
                     .map(this::convertBudgetTable).collect(java.util.stream.Collectors.toList()));
             export.setGoals(goalRepository.findByUserId(userId).stream()
                     .map(this::convertGoalTable).collect(java.util.stream.Collectors.toList()));
-            
+
             // Get audit logs for last 7 years
             long sevenYearsAgo = java.time.Instant.now().minusSeconds(7L * 365 * 24 * 60 * 60).getEpochSecond() * 1000;
             long now = System.currentTimeMillis();
@@ -80,7 +80,7 @@ public class GdprService {
             // Compress and upload to S3
             byte[] compressedData = compressData(export);
             String s3Key = "exports/user_" + userId + "_" + System.currentTimeMillis() + ".gz";
-            
+
             s3Service.uploadFileInfrequentAccess(
                     s3Key,
                     new ByteArrayInputStream(compressedData),
@@ -90,7 +90,7 @@ public class GdprService {
 
             // Generate presigned URL (valid for 7 days)
             String downloadUrl = s3Service.getPresignedUrl(s3Key, 7 * 24 * 60);
-            
+
             logger.info("Exported user data for user: {}", userId);
             return downloadUrl;
         } catch (Exception e) {
@@ -102,10 +102,10 @@ public class GdprService {
     /**
      * Delete all user data (GDPR right to erasure)
      * Archives data to S3 before deletion for compliance
-     * 
+     *
      * TODO: Refactor for DynamoDB
      */
-    public void deleteUserData(String userId) {
+    public void deleteUserData((final String userId) {
         try {
             // Archive data before deletion
             String archiveUrl = exportUserData(userId);
@@ -115,13 +115,13 @@ public class GdprService {
             transactionRepository.findByUserId(userId, 0, Integer.MAX_VALUE)
                     .forEach(t -> transactionRepository.delete(t.getTransactionId()));
             accountRepository.findByUserId(userId)
-                    .forEach(a -> accountRepository.findById(a.getAccountId()).ifPresent(acc -> 
+                    .forEach(a -> accountRepository.findById(a.getAccountId()).ifPresent(acc ->
                             accountRepository.save(acc))); // Mark as inactive instead of delete
             budgetRepository.findByUserId(userId)
                     .forEach(b -> budgetRepository.delete(b.getBudgetId()));
             goalRepository.findByUserId(userId)
                     .forEach(g -> goalRepository.delete(g.getGoalId()));
-            
+
             // Anonymize audit logs (keep for compliance, but remove PII)
             long sevenYearsAgo = java.time.Instant.now().minusSeconds(7L * 365 * 24 * 60 * 60).getEpochSecond() * 1000;
             long now = System.currentTimeMillis();
@@ -135,7 +135,7 @@ public class GdprService {
 
             // Delete user account
             userRepository.delete(userId);
-            
+
             logger.info("Deleted all data for user: {}", userId);
         } catch (Exception e) {
             logger.error("Error deleting user data: {}", e.getMessage());
@@ -144,7 +144,7 @@ public class GdprService {
     }
 
     // Helper methods to convert table models to domain models (stubs for now)
-    private User convertUserTable(com.budgetbuddy.model.dynamodb.UserTable userTable) {
+    private User convertUserTable((final com.budgetbuddy.model.dynamodb.UserTable userTable) {
         // TODO: Implement conversion
         return new User();
     }
@@ -169,7 +169,7 @@ public class GdprService {
         return new com.budgetbuddy.model.Goal();
     }
 
-    private AuditLog convertAuditLogTable(com.budgetbuddy.compliance.AuditLogTable auditLogTable) {
+    private AuditLog convertAuditLogTable((final com.budgetbuddy.compliance.AuditLogTable auditLogTable) {
         // TODO: Implement conversion
         return new AuditLog();
     }
@@ -199,17 +199,17 @@ public class GdprService {
 
         // Getters and setters
         public User getUser() { return user; }
-        public void setUser(User user) { this.user = user; }
+        public void setUser(final User user) { this.user = user; }
         public java.util.List<com.budgetbuddy.model.Account> getAccounts() { return accounts; }
-        public void setAccounts(java.util.List<com.budgetbuddy.model.Account> accounts) { this.accounts = accounts; }
+        public void setAccounts((final java.util.List<com.budgetbuddy.model.Account> accounts) { this.accounts = accounts; }
         public java.util.List<com.budgetbuddy.model.Transaction> getTransactions() { return transactions; }
-        public void setTransactions(java.util.List<com.budgetbuddy.model.Transaction> transactions) { this.transactions = transactions; }
+        public void setTransactions((final java.util.List<com.budgetbuddy.model.Transaction> transactions) { this.transactions = transactions; }
         public java.util.List<com.budgetbuddy.model.Budget> getBudgets() { return budgets; }
-        public void setBudgets(java.util.List<com.budgetbuddy.model.Budget> budgets) { this.budgets = budgets; }
+        public void setBudgets((final java.util.List<com.budgetbuddy.model.Budget> budgets) { this.budgets = budgets; }
         public java.util.List<com.budgetbuddy.model.Goal> getGoals() { return goals; }
-        public void setGoals(java.util.List<com.budgetbuddy.model.Goal> goals) { this.goals = goals; }
+        public void setGoals((final java.util.List<com.budgetbuddy.model.Goal> goals) { this.goals = goals; }
         public java.util.List<AuditLog> getAuditLogs() { return auditLogs; }
-        public void setAuditLogs(java.util.List<AuditLog> auditLogs) { this.auditLogs = auditLogs; }
+        public void setAuditLogs((final java.util.List<AuditLog> auditLogs) { this.auditLogs = auditLogs; }
     }
 }
 

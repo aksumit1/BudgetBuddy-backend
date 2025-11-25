@@ -10,7 +10,7 @@ import software.amazon.awssdk.services.cognitoidentityprovider.model.*;
 /**
  * AWS Cognito Integration Service
  * Provides CloudAuth support using AWS Cognito
- * 
+ *
  * Features:
  * - User authentication
  * - User registration
@@ -26,9 +26,7 @@ public class CloudAuthService {
     private final String userPoolId;
     private final String clientId;
 
-    public CloudAuthService(
-            CognitoIdentityProviderClient cognitoClient,
-            @Value("${app.aws.cognito.user-pool-id:}") String userPoolId,
+    public CloudAuthService(final CognitoIdentityProviderClient cognitoClient, @Value("${app.aws.cognito.user-pool-id:}") String userPoolId,
             @Value("${app.aws.cognito.client-id:}") String clientId) {
         this.cognitoClient = cognitoClient;
         this.userPoolId = userPoolId;
@@ -38,7 +36,7 @@ public class CloudAuthService {
     /**
      * Authenticate user with Cognito
      */
-    public CloudAuthResult authenticate(String username, String password) {
+    public CloudAuthResult authenticate((final String username, final String password) {
         try {
             AdminInitiateAuthResponse response = cognitoClient.adminInitiateAuth(
                     AdminInitiateAuthRequest.builder()
@@ -78,7 +76,7 @@ public class CloudAuthService {
     /**
      * Register new user with Cognito
      */
-    public CloudAuthResult register(String email, String password, String firstName, String lastName) {
+    public CloudAuthResult register((final String email, final String password, final String firstName, final String lastName) {
         try {
             AdminCreateUserResponse response = cognitoClient.adminCreateUser(
                     AdminCreateUserRequest.builder()
@@ -138,7 +136,7 @@ public class CloudAuthService {
     /**
      * Verify token with Cognito
      */
-    public boolean verifyToken(String token) {
+    public boolean verifyToken((final String token) {
         try {
             GetUserRequest request = GetUserRequest.builder()
                     .accessToken(token)
@@ -165,19 +163,19 @@ public class CloudAuthService {
 
         // Getters and setters
         public boolean isSuccess() { return success; }
-        public void setSuccess(boolean success) { this.success = success; }
+        public void setSuccess(final boolean success) { this.success = success; }
         public String getUserId() { return userId; }
-        public void setUserId(String userId) { this.userId = userId; }
+        public void setUserId(final String userId) { this.userId = userId; }
         public String getAccessToken() { return accessToken; }
-        public void setAccessToken(String accessToken) { this.accessToken = accessToken; }
+        public void setAccessToken(final String accessToken) { this.accessToken = accessToken; }
         public String getIdToken() { return idToken; }
-        public void setIdToken(String idToken) { this.idToken = idToken; }
+        public void setIdToken(final String idToken) { this.idToken = idToken; }
         public String getRefreshToken() { return refreshToken; }
-        public void setRefreshToken(String refreshToken) { this.refreshToken = refreshToken; }
+        public void setRefreshToken(final String refreshToken) { this.refreshToken = refreshToken; }
         public Integer getExpiresIn() { return expiresIn; }
-        public void setExpiresIn(Integer expiresIn) { this.expiresIn = expiresIn; }
+        public void setExpiresIn(final Integer expiresIn) { this.expiresIn = expiresIn; }
         public String getError() { return error; }
-        public void setError(String error) { this.error = error; }
+        public void setError(final String error) { this.error = error; }
     }
 }
 

@@ -20,19 +20,19 @@ public class ApiVersioningInterceptor implements HandlerInterceptor {
     private String apiBaseUrl;
 
     @Override
-    public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
+    public boolean preHandle((final HttpServletRequest request, final HttpServletResponse response, final Object handler) {
         // Add API version header
         response.setHeader("X-API-Version", apiVersion);
-        
+
         // Add API base URL if configured
         if (apiBaseUrl != null && !apiBaseUrl.isEmpty()) {
             response.setHeader("X-API-Base-URL", apiBaseUrl);
         }
-        
+
         // Add deprecation notice if needed (can be configured per endpoint)
         // response.setHeader("X-API-Deprecated", "true");
         // response.setHeader("X-API-Sunset", "2024-12-31");
-        
+
         return true;
     }
 }

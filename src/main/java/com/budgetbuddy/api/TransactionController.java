@@ -21,7 +21,7 @@ import java.util.List;
  * Transaction REST Controller
  * Migrated to DynamoDB
  * Optimized with pagination to minimize data transfer
- * 
+ *
  * Thread-safe with proper error handling
  */
 @RestController
@@ -31,7 +31,7 @@ public class TransactionController {
     private final TransactionService transactionService;
     private final UserService userService;
 
-    public TransactionController(TransactionService transactionService, UserService userService) {
+    public TransactionController(final TransactionService transactionService, final UserService userService) {
         this.transactionService = transactionService;
         this.userService = userService;
     }
@@ -176,25 +176,25 @@ public class TransactionController {
 
         // Getters and setters
         public String getAccountId() { return accountId; }
-        public void setAccountId(String accountId) { this.accountId = accountId; }
+        public void setAccountId(final String accountId) { this.accountId = accountId; }
         public BigDecimal getAmount() { return amount; }
-        public void setAmount(BigDecimal amount) { this.amount = amount; }
+        public void setAmount(final BigDecimal amount) { this.amount = amount; }
         public LocalDate getTransactionDate() { return transactionDate; }
-        public void setTransactionDate(LocalDate transactionDate) { this.transactionDate = transactionDate; }
+        public void setTransactionDate(final LocalDate transactionDate) { this.transactionDate = transactionDate; }
         public String getDescription() { return description; }
-        public void setDescription(String description) { this.description = description; }
+        public void setDescription(final String description) { this.description = description; }
         public String getCategory() { return category; }
-        public void setCategory(String category) { this.category = category; }
+        public void setCategory(final String category) { this.category = category; }
     }
 
     public static class TotalSpendingResponse {
         private BigDecimal total;
 
-        public TotalSpendingResponse(BigDecimal total) {
+        public TotalSpendingResponse(final BigDecimal total) {
             this.total = total;
         }
 
         public BigDecimal getTotal() { return total; }
-        public void setTotal(BigDecimal total) { this.total = total; }
+        public void setTotal(final BigDecimal total) { this.total = total; }
     }
 }

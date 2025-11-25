@@ -29,7 +29,7 @@ public class BudgetTable {
         return budgetId;
     }
 
-    public void setBudgetId(String budgetId) {
+    public void setBudgetId(final String budgetId) {
         this.budgetId = budgetId;
     }
 
@@ -39,7 +39,7 @@ public class BudgetTable {
         return userId;
     }
 
-    public void setUserId(String userId) {
+    public void setUserId(final String userId) {
         this.userId = userId;
     }
 
@@ -48,7 +48,7 @@ public class BudgetTable {
         return category;
     }
 
-    public void setCategory(String category) {
+    public void setCategory(final String category) {
         this.category = category;
     }
 
@@ -57,7 +57,7 @@ public class BudgetTable {
         return monthlyLimit;
     }
 
-    public void setMonthlyLimit(BigDecimal monthlyLimit) {
+    public void setMonthlyLimit(final BigDecimal monthlyLimit) {
         this.monthlyLimit = monthlyLimit;
     }
 
@@ -66,7 +66,7 @@ public class BudgetTable {
         return currentSpent;
     }
 
-    public void setCurrentSpent(BigDecimal currentSpent) {
+    public void setCurrentSpent(final BigDecimal currentSpent) {
         this.currentSpent = currentSpent;
     }
 
@@ -75,7 +75,7 @@ public class BudgetTable {
         return currencyCode;
     }
 
-    public void setCurrencyCode(String currencyCode) {
+    public void setCurrencyCode(final String currencyCode) {
         this.currencyCode = currencyCode;
     }
 
@@ -84,7 +84,7 @@ public class BudgetTable {
         return createdAt;
     }
 
-    public void setCreatedAt(Instant createdAt) {
+    public void setCreatedAt(final Instant createdAt) {
         this.createdAt = createdAt;
     }
 
@@ -93,7 +93,7 @@ public class BudgetTable {
         return updatedAt;
     }
 
-    public void setUpdatedAt(Instant updatedAt) {
+    public void setUpdatedAt(final Instant updatedAt) {
         this.updatedAt = updatedAt;
     }
 }

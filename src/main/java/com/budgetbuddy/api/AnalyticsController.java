@@ -1,7 +1,6 @@
 package com.budgetbuddy.api;
 
 import com.budgetbuddy.analytics.AnalyticsService;
-import com.budgetbuddy.model.User;
 import com.budgetbuddy.service.UserService;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
@@ -22,7 +21,7 @@ public class AnalyticsController {
     private final AnalyticsService analyticsService;
     private final UserService userService;
 
-    public AnalyticsController(AnalyticsService analyticsService, UserService userService) {
+    public AnalyticsController(final AnalyticsService analyticsService, final UserService userService) {
         this.analyticsService = analyticsService;
         this.userService = userService;
     }
@@ -32,10 +31,10 @@ public class AnalyticsController {
             @AuthenticationPrincipal UserDetails userDetails,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
-        User user = userService.findByEmail(userDetails.getUsername())
+        com.budgetbuddy.model.dynamodb.UserTable userTable = userService.findByEmail(userDetails.getUsername())
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        AnalyticsService.SpendingSummary summary = analyticsService.getSpendingSummary(user, startDate, endDate);
+        AnalyticsService.SpendingSummary summary = analyticsService.getSpendingSummary(userTable, startDate, endDate);
         return ResponseEntity.ok(summary);
     }
 
@@ -44,11 +43,11 @@ public class AnalyticsController {
             @AuthenticationPrincipal UserDetails userDetails,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
-        User user = userService.findByEmail(userDetails.getUsername())
+        com.budgetbuddy.model.dynamodb.UserTable userTable = userService.findByEmail(userDetails.getUsername())
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        Map<String, java.math.BigDecimal> categorySpending = 
-                analyticsService.getSpendingByCategory(user, startDate, endDate);
+        Map<String, java.math.BigDecimal> categorySpending =
+                analyticsService.getSpendingByCategory(userTable, startDate, endDate);
         return ResponseEntity.ok(categorySpending);
     }
 }

@@ -17,7 +17,7 @@ import java.util.UUID;
  * Enhanced Audit Log Service for compliance
  * Supports SOC2, HIPAA, ISO27001, and financial compliance requirements
  * Uses DynamoDB for storage
- * 
+ *
  * Thread-safe implementation with proper dependency injection
  */
 @Service
@@ -28,7 +28,7 @@ public class AuditLogService {
     private final AuditLogRepository auditLogRepository;
     private final ObjectMapper objectMapper;
 
-    public AuditLogService(AuditLogRepository auditLogRepository, ObjectMapper objectMapper) {
+    public AuditLogService(final AuditLogRepository auditLogRepository, final ObjectMapper objectMapper) {
         if (auditLogRepository == null) {
             throw new IllegalArgumentException("AuditLogRepository cannot be null");
         }
@@ -40,8 +40,7 @@ public class AuditLogService {
     }
 
     // Standard audit logging
-    public void logAction(String userId, String action, String resourceType, String resourceId, 
-                         Map<String, Object> details, String ipAddress, String userAgent) {
+    public void logAction((final String userId, final String action, final String resourceType, final String resourceId, Map<String, final Object> details, final String ipAddress, final String userAgent) {
         if (action == null || action.isEmpty()) {
             logger.warn("Audit log action is null or empty, skipping");
             return;
@@ -67,230 +66,230 @@ public class AuditLogService {
     }
 
     // SOC2 Compliance Methods
-    public void logControlActivity(String controlId, String activity, String userId) {
-        logAction(userId, "CONTROL_ACTIVITY", "CONTROL", controlId, 
-                Map.of("activity", activity != null ? activity : "", "controlId", controlId != null ? controlId : ""), 
+    public void logControlActivity((final String controlId, final String activity, final String userId) {
+        logAction(userId, "CONTROL_ACTIVITY", "CONTROL", controlId,
+                Map.of("activity", activity != null ? activity : "", "controlId", controlId != null ? controlId : ""),
                 null, null);
     }
 
-    public void logSystemChange(String changeType, String description, String userId) {
-        logAction(userId, "SYSTEM_CHANGE", "SYSTEM", null, 
-                Map.of("changeType", changeType != null ? changeType : "", 
+    public void logSystemChange((final String changeType, final String description, final String userId) {
+        logAction(userId, "SYSTEM_CHANGE", "SYSTEM", null,
+                Map.of("changeType", changeType != null ? changeType : "",
                        "description", description != null ? description : ""), null, null);
     }
 
-    public void logRiskAssessment(com.budgetbuddy.compliance.soc2.SOC2ComplianceService.RiskAssessment assessment) {
+    public void logRiskAssessment((final com.budgetbuddy.compliance.soc2.SOC2ComplianceService.RiskAssessment assessment) {
         if (assessment == null) {
             return;
         }
-        logAction(assessment.getUserId(), "RISK_ASSESSMENT", "RISK", assessment.getResource(), 
-                Map.of("riskScore", assessment.getRiskScore(), "riskLevel", assessment.getRiskLevel() != null ? assessment.getRiskLevel() : ""), 
+        logAction(assessment.getUserId(), "RISK_ASSESSMENT", "RISK", assessment.getResource(),
+                Map.of("riskScore", assessment.getRiskScore(), "riskLevel", assessment.getRiskLevel() != null ? assessment.getRiskLevel() : ""),
                 null, null);
     }
 
-    public void logAccessControl(String resource, String action, String userId, boolean allowed) {
-        logAction(userId, "ACCESS_CONTROL", resource != null ? resource : "UNKNOWN", null, 
+    public void logAccessControl((final String resource, final String action, final String userId, final boolean allowed) {
+        logAction(userId, "ACCESS_CONTROL", resource != null ? resource : "UNKNOWN", null,
                 Map.of("action", action != null ? action : "", "allowed", allowed), null, null);
     }
 
-    public void logSystemHealth(com.budgetbuddy.compliance.soc2.SOC2ComplianceService.SystemHealth health) {
+    public void logSystemHealth((final com.budgetbuddy.compliance.soc2.SOC2ComplianceService.SystemHealth health) {
         if (health == null) {
             return;
         }
-        logAction("SYSTEM", "HEALTH_CHECK", "SYSTEM", null, 
-                Map.of("availability", health.getAvailability(), 
-                       "performance", health.getPerformance(), 
+        logAction("SYSTEM", "HEALTH_CHECK", "SYSTEM", null,
+                Map.of("availability", health.getAvailability(),
+                       "performance", health.getPerformance(),
                        "errorRate", health.getErrorRate()), null, null);
     }
 
-    public void logChangeManagement(String changeId, String changeType, String description, String userId) {
-        logAction(userId, "CHANGE_MANAGEMENT", "CHANGE", changeId, 
-                Map.of("changeType", changeType != null ? changeType : "", 
+    public void logChangeManagement((final String changeId, final String changeType, final String description, final String userId) {
+        logAction(userId, "CHANGE_MANAGEMENT", "CHANGE", changeId,
+                Map.of("changeType", changeType != null ? changeType : "",
                        "description", description != null ? description : ""), null, null);
     }
 
     // HIPAA Compliance Methods
-    public void logPHIAccess(String userId, String phiType, String action, boolean authorized) {
-        logAction(userId, "PHI_ACCESS", phiType != null ? phiType : "UNKNOWN", null, 
+    public void logPHIAccess((final String userId, final String phiType, final String action, final boolean authorized) {
+        logAction(userId, "PHI_ACCESS", phiType != null ? phiType : "UNKNOWN", null,
                 Map.of("action", action != null ? action : "", "authorized", authorized), null, null);
     }
 
-    public void auditPHIActivity(String userId, String phiId, String activity, String details) {
-        logAction(userId, "PHI_ACTIVITY", "PHI", phiId, 
-                Map.of("activity", activity != null ? activity : "", 
+    public void auditPHIActivity((final String userId, final String phiId, final String activity, final String details) {
+        logAction(userId, "PHI_ACTIVITY", "PHI", phiId,
+                Map.of("activity", activity != null ? activity : "",
                        "details", details != null ? details : ""), null, null);
     }
 
-    public void logPHIModification(String userId, String phiId, String modificationType, String beforeValue, String afterValue) {
-        logAction(userId, "PHI_MODIFICATION", "PHI", phiId, 
-                Map.of("modificationType", modificationType != null ? modificationType : "", 
-                       "before", beforeValue != null ? beforeValue : "", 
+    public void logPHIModification((final String userId, final String phiId, final String modificationType, final String beforeValue, final String afterValue) {
+        logAction(userId, "PHI_MODIFICATION", "PHI", phiId,
+                Map.of("modificationType", modificationType != null ? modificationType : "",
+                       "before", beforeValue != null ? beforeValue : "",
                        "after", afterValue != null ? afterValue : ""), null, null);
     }
 
-    public void logBreach(com.budgetbuddy.compliance.hipaa.HIPAAComplianceService.BreachReport report) {
+    public void logBreach((final com.budgetbuddy.compliance.hipaa.HIPAAComplianceService.BreachReport report) {
         if (report == null) {
             return;
         }
-        logAction(report.getUserId(), "PHI_BREACH", "PHI", report.getPhiId(), 
-                Map.of("breachType", report.getBreachType() != null ? report.getBreachType() : "", 
+        logAction(report.getUserId(), "PHI_BREACH", "PHI", report.getPhiId(),
+                Map.of("breachType", report.getBreachType() != null ? report.getBreachType() : "",
                        "details", report.getDetails() != null ? report.getDetails() : ""), null, null);
     }
 
-    public void logWorkforceAccess(String userId, String role, String resource, boolean granted) {
-        logAction(userId, "WORKFORCE_ACCESS", resource != null ? resource : "UNKNOWN", null, 
+    public void logWorkforceAccess((final String userId, final String role, final String resource, final boolean granted) {
+        logAction(userId, "WORKFORCE_ACCESS", resource != null ? resource : "UNKNOWN", null,
                 Map.of("role", role != null ? role : "", "granted", granted), null, null);
     }
 
-    public void logAuthentication(String userId, String method, boolean success) {
-        logAction(userId, "AUTHENTICATION", "AUTH", null, 
+    public void logAuthentication((final String userId, final String method, final boolean success) {
+        logAction(userId, "AUTHENTICATION", "AUTH", null,
                 Map.of("method", method != null ? method : "", "success", success), null, null);
     }
 
     // ISO27001 Compliance Methods
-    public void logUserRegistration(String userId, String registrationType) {
-        logAction(userId, "USER_REGISTRATION", "USER", userId, 
+    public void logUserRegistration((final String userId, final String registrationType) {
+        logAction(userId, "USER_REGISTRATION", "USER", userId,
                 Map.of("registrationType", registrationType != null ? registrationType : ""), null, null);
     }
 
-    public void logAccessProvisioning(String userId, String resource, String accessLevel) {
-        logAction(userId, "ACCESS_PROVISIONING", resource != null ? resource : "UNKNOWN", null, 
+    public void logAccessProvisioning((final String userId, final String resource, final String accessLevel) {
+        logAction(userId, "ACCESS_PROVISIONING", resource != null ? resource : "UNKNOWN", null,
                 Map.of("accessLevel", accessLevel != null ? accessLevel : ""), null, null);
     }
 
-    public void logPrivilegedAccess(String userId, String privilege, String resource) {
-        logAction(userId, "PRIVILEGED_ACCESS", resource != null ? resource : "UNKNOWN", null, 
+    public void logPrivilegedAccess((final String userId, final String privilege, final String resource) {
+        logAction(userId, "PRIVILEGED_ACCESS", resource != null ? resource : "UNKNOWN", null,
                 Map.of("privilege", privilege != null ? privilege : ""), null, null);
     }
 
-    public void logCredentialChange(String userId, String changeType) {
-        logAction(userId, "CREDENTIAL_CHANGE", "CREDENTIAL", null, 
+    public void logCredentialChange((final String userId, final String changeType) {
+        logAction(userId, "CREDENTIAL_CHANGE", "CREDENTIAL", null,
                 Map.of("changeType", changeType != null ? changeType : ""), null, null);
     }
 
-    public void logAccessReview(com.budgetbuddy.compliance.iso27001.ISO27001ComplianceService.AccessReview review) {
+    public void logAccessReview((final com.budgetbuddy.compliance.iso27001.ISO27001ComplianceService.AccessReview review) {
         if (review == null) {
             return;
         }
-        logAction(review.getUserId(), "ACCESS_REVIEW", "ACCESS", null, 
+        logAction(review.getUserId(), "ACCESS_REVIEW", "ACCESS", null,
                 Map.of("status", review.getStatus() != null ? review.getStatus() : ""), null, null);
     }
 
-    public void logAccessRemoval(String userId, String resource, String reason) {
-        logAction(userId, "ACCESS_REMOVAL", resource != null ? resource : "UNKNOWN", null, 
+    public void logAccessRemoval((final String userId, final String resource, final String reason) {
+        logAction(userId, "ACCESS_REMOVAL", resource != null ? resource : "UNKNOWN", null,
                 Map.of("reason", reason != null ? reason : ""), null, null);
     }
 
-    public void logSecureLogon(String userId, String method, boolean success) {
-        logAction(userId, "SECURE_LOGON", "AUTH", null, 
+    public void logSecureLogon((final String userId, final String method, final boolean success) {
+        logAction(userId, "SECURE_LOGON", "AUTH", null,
                 Map.of("method", method != null ? method : "", "success", success), null, null);
     }
 
-    public void logPasswordManagement(String userId, String activity) {
-        logAction(userId, "PASSWORD_MANAGEMENT", "CREDENTIAL", null, 
+    public void logPasswordManagement((final String userId, final String activity) {
+        logAction(userId, "PASSWORD_MANAGEMENT", "CREDENTIAL", null,
                 Map.of("activity", activity != null ? activity : ""), null, null);
     }
 
-    public void logSecurityEvent(String eventType, String severity, String details) {
-        logAction("SYSTEM", "SECURITY_EVENT", "SECURITY", null, 
-                Map.of("eventType", eventType != null ? eventType : "", 
-                       "severity", severity != null ? severity : "", 
+    public void logSecurityEvent((final String eventType, final String severity, final String details) {
+        logAction("SYSTEM", "SECURITY_EVENT", "SECURITY", null,
+                Map.of("eventType", eventType != null ? eventType : "",
+                       "severity", severity != null ? severity : "",
                        "details", details != null ? details : ""), null, null);
     }
 
-    public void protectLogInformation(String logId) {
-        logAction("SYSTEM", "LOG_PROTECTION", "LOG", logId != null ? logId : "UNKNOWN", 
+    public void protectLogInformation((final String logId) {
+        logAction("SYSTEM", "LOG_PROTECTION", "LOG", logId != null ? logId : "UNKNOWN",
                 Map.of("action", "protect"), null, null);
     }
 
-    public void logAdministratorActivity(String adminId, String activity, String resource) {
-        logAction(adminId, "ADMINISTRATOR_ACTIVITY", resource != null ? resource : "UNKNOWN", null, 
+    public void logAdministratorActivity((final String adminId, final String activity, final String resource) {
+        logAction(adminId, "ADMINISTRATOR_ACTIVITY", resource != null ? resource : "UNKNOWN", null,
                 Map.of("activity", activity != null ? activity : ""), null, null);
     }
 
-    public void logClockSynchronization(long systemTime) {
-        logAction("SYSTEM", "CLOCK_SYNCHRONIZATION", "SYSTEM", null, 
+    public void logClockSynchronization((final long systemTime) {
+        logAction("SYSTEM", "CLOCK_SYNCHRONIZATION", "SYSTEM", null,
                 Map.of("systemTime", systemTime), null, null);
     }
 
-    public void logSecurityIncident(com.budgetbuddy.compliance.iso27001.ISO27001ComplianceService.SecurityIncident incident) {
+    public void logSecurityIncident((final com.budgetbuddy.compliance.iso27001.ISO27001ComplianceService.SecurityIncident incident) {
         if (incident == null) {
             return;
         }
-        logAction("SYSTEM", "SECURITY_INCIDENT", "SECURITY", null, 
-                Map.of("incidentType", incident.getIncidentType() != null ? incident.getIncidentType() : "", 
-                       "severity", incident.getSeverity() != null ? incident.getSeverity() : "", 
-                       "details", incident.getDetails() != null ? incident.getDetails() : "", 
+        logAction("SYSTEM", "SECURITY_INCIDENT", "SECURITY", null,
+                Map.of("incidentType", incident.getIncidentType() != null ? incident.getIncidentType() : "",
+                       "severity", incident.getSeverity() != null ? incident.getSeverity() : "",
+                       "details", incident.getDetails() != null ? incident.getDetails() : "",
                        "status", incident.getStatus() != null ? incident.getStatus() : ""), null, null);
     }
 
-    public void logComplianceCheck(String legislation, boolean compliant) {
-        logAction("SYSTEM", "COMPLIANCE_CHECK", "COMPLIANCE", null, 
+    public void logComplianceCheck((final String legislation, final boolean compliant) {
+        logAction("SYSTEM", "COMPLIANCE_CHECK", "COMPLIANCE", null,
                 Map.of("legislation", legislation != null ? legislation : "", "compliant", compliant), null, null);
     }
 
     // Financial Compliance Methods
-    public void logCardDataAccess(String userId, String cardLast4, boolean encrypted) {
-        logAction(userId, "CARD_DATA_ACCESS", "CARD", cardLast4 != null ? cardLast4 : "UNKNOWN", 
+    public void logCardDataAccess((final String userId, final String cardLast4, final boolean encrypted) {
+        logAction(userId, "CARD_DATA_ACCESS", "CARD", cardLast4 != null ? cardLast4 : "UNKNOWN",
                 Map.of("encrypted", encrypted), null, null);
     }
 
-    public void logCardholderDataAccess(String userId, String resource, boolean authorized) {
-        logAction(userId, "CARDHOLDER_DATA_ACCESS", resource != null ? resource : "UNKNOWN", null, 
+    public void logCardholderDataAccess((final String userId, final String resource, final boolean authorized) {
+        logAction(userId, "CARDHOLDER_DATA_ACCESS", resource != null ? resource : "UNKNOWN", null,
                 Map.of("authorized", authorized), null, null);
     }
 
-    public void logFinancialDataAccess(String userId, String dataType, String action) {
-        logAction(userId, "FINANCIAL_DATA_ACCESS", dataType != null ? dataType : "UNKNOWN", null, 
+    public void logFinancialDataAccess((final String userId, final String dataType, final String action) {
+        logAction(userId, "FINANCIAL_DATA_ACCESS", dataType != null ? dataType : "UNKNOWN", null,
                 Map.of("action", action != null ? action : ""), null, null);
     }
 
-    public void logFinancialDataModification(String userId, String dataType, String beforeValue, String afterValue) {
-        logAction(userId, "FINANCIAL_DATA_MODIFICATION", dataType != null ? dataType : "UNKNOWN", null, 
-                Map.of("before", beforeValue != null ? beforeValue : "", 
+    public void logFinancialDataModification((final String userId, final String dataType, final String beforeValue, final String afterValue) {
+        logAction(userId, "FINANCIAL_DATA_MODIFICATION", dataType != null ? dataType : "UNKNOWN", null,
+                Map.of("before", beforeValue != null ? beforeValue : "",
                        "after", afterValue != null ? afterValue : ""), null, null);
     }
 
-    public void logInternalControl(String controlId, String activity, boolean effective) {
-        logAction("SYSTEM", "INTERNAL_CONTROL", "CONTROL", controlId != null ? controlId : "UNKNOWN", 
+    public void logInternalControl((final String controlId, final String activity, final boolean effective) {
+        logAction("SYSTEM", "INTERNAL_CONTROL", "CONTROL", controlId != null ? controlId : "UNKNOWN",
                 Map.of("activity", activity != null ? activity : "", "effective", effective), null, null);
     }
 
-    public void logSecurityControl(String controlId, String status) {
-        logAction("SYSTEM", "SECURITY_CONTROL", "CONTROL", controlId != null ? controlId : "UNKNOWN", 
+    public void logSecurityControl((final String controlId, final String status) {
+        logAction("SYSTEM", "SECURITY_CONTROL", "CONTROL", controlId != null ? controlId : "UNKNOWN",
                 Map.of("status", status != null ? status : ""), null, null);
     }
 
-    public void logCustomerAssetAccess(String userId, String customerId, String assetType, String action) {
-        logAction(userId, "CUSTOMER_ASSET_ACCESS", assetType != null ? assetType : "UNKNOWN", customerId, 
+    public void logCustomerAssetAccess((final String userId, final String customerId, final String assetType, final String action) {
+        logAction(userId, "CUSTOMER_ASSET_ACCESS", assetType != null ? assetType : "UNKNOWN", customerId,
                 Map.of("action", action != null ? action : ""), null, null);
     }
 
-    public void logSuspiciousTransaction(String transactionId, double amount, String userId) {
-        logAction(userId, "SUSPICIOUS_TRANSACTION", "TRANSACTION", transactionId != null ? transactionId : "UNKNOWN", 
+    public void logSuspiciousTransaction((final String transactionId, final double amount, final String userId) {
+        logAction(userId, "SUSPICIOUS_TRANSACTION", "TRANSACTION", transactionId != null ? transactionId : "UNKNOWN",
                 Map.of("amount", amount), null, null);
     }
 
-    public void logDataRetention(String dataType, Instant retentionUntil) {
-        logAction("SYSTEM", "DATA_RETENTION", "DATA", dataType != null ? dataType : "UNKNOWN", 
+    public void logDataRetention((final String dataType, final Instant retentionUntil) {
+        logAction("SYSTEM", "DATA_RETENTION", "DATA", dataType != null ? dataType : "UNKNOWN",
                 Map.of("retentionUntil", retentionUntil != null ? retentionUntil.toString() : ""), null, null);
     }
 
     // GDPR Compliance Methods
-    public void logDataExport(String userId, String exportId) {
-        logAction(userId, "DATA_EXPORT", "DATA", exportId != null ? exportId : "UNKNOWN", 
+    public void logDataExport((final String userId, final String exportId) {
+        logAction(userId, "DATA_EXPORT", "DATA", exportId != null ? exportId : "UNKNOWN",
                 Map.of("exportId", exportId != null ? exportId : ""), null, null);
     }
 
-    public void logDataDeletion(String userId) {
+    public void logDataDeletion((final String userId) {
         logAction(userId, "DATA_DELETION", "DATA", userId, Collections.emptyMap(), null, null);
     }
 
-    public void logDataUpdate(String userId) {
+    public void logDataUpdate((final String userId) {
         logAction(userId, "DATA_UPDATE", "DATA", userId, Collections.emptyMap(), null, null);
     }
 
-    private String convertToJson(Map<String, Object> details) {
+    private String convertToJson((Map<String, final Object> details) {
         try {
             if (details == null || details.isEmpty()) {
                 return "{}";

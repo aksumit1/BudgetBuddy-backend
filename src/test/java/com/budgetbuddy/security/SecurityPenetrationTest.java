@@ -29,7 +29,7 @@ class SecurityPenetrationTest {
     void testSQLInjection_EmailField_IsPrevented() throws Exception {
         // Given - SQL injection attempt
         String maliciousEmail = "test@example.com' OR '1'='1";
-        
+
         // When/Then - Should be rejected by validation
         mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -41,7 +41,7 @@ class SecurityPenetrationTest {
     void testXSS_InputSanitization_IsApplied() throws Exception {
         // Given - XSS attempt
         String xssPayload = "<script>alert('XSS')</script>";
-        
+
         // When/Then - Should be sanitized
         // Note: Actual sanitization depends on implementation
         mockMvc.perform(post("/api/auth/register")
@@ -66,7 +66,7 @@ class SecurityPenetrationTest {
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content("{\"email\":\"test@example.com\",\"passwordHash\":\"wrong\",\"salt\":\"salt\"}"))
                         .andExpect(status().is4xxClientError() || status().is5xxServerError());
-                
+
                 if (i >= 5) {
                     // After 5 attempts, should be rate limited
                     blockedCount++;
@@ -96,7 +96,7 @@ class SecurityPenetrationTest {
     void testAuthorization_UnauthorizedAccess_IsRejected() throws Exception {
         // Given - Valid token but accessing another user's resource
         // Note: This requires a valid token setup
-        
+
         // When/Then - Should be rejected
         // Implementation depends on actual authorization setup
         assertTrue(true); // Placeholder
@@ -132,7 +132,7 @@ class SecurityPenetrationTest {
     void testCSRF_WithMissingToken_IsHandled() throws Exception {
         // Given - Request without CSRF token
         // Note: CSRF may be disabled for stateless API
-        
+
         // When/Then - Should be handled appropriately
         mockMvc.perform(post("/api/transactions")
                         .contentType(MediaType.APPLICATION_JSON)

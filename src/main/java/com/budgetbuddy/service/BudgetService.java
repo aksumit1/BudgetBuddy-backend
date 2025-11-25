@@ -6,6 +6,8 @@ import com.budgetbuddy.model.dynamodb.BudgetTable;
 import com.budgetbuddy.model.dynamodb.TransactionTable;
 import com.budgetbuddy.model.dynamodb.UserTable;
 import com.budgetbuddy.repository.dynamodb.BudgetRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -18,22 +20,25 @@ import java.util.stream.Collectors;
 
 /**
  * Budget Service
- * Migrated to DynamoDB
  */
 @Service
 public class BudgetService {
 
-    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ISO_LOCAL_DATE;
+    private static final Logger logger = LoggerFactory.getLogger(BudgetService.class);
 
     private final BudgetRepository budgetRepository;
-    private final TransactionService transactionService;
+    private final com.budgetbuddy.repository.dynamodb.TransactionRepository transactionRepository;
 
-    public BudgetService(BudgetRepository budgetRepository, TransactionService transactionService) {
+    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ISO_LOCAL_DATE;
+
+    public BudgetService(
+            final BudgetRepository budgetRepository,
+            final com.budgetbuddy.repository.dynamodb.TransactionRepository transactionRepository) {
         this.budgetRepository = budgetRepository;
-        this.transactionService = transactionService;
+        this.transactionRepository = transactionRepository;
     }
 
-    public BudgetTable createOrUpdateBudget(UserTable user, String category, BigDecimal monthlyLimit) {
+    public BudgetTable createOrUpdateBudget((final UserTable user, final String category, final BigDecimal monthlyLimit) {
         if (user == null || user.getUserId() == null || user.getUserId().isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "User is required");
         }
@@ -43,9 +48,9 @@ public class BudgetService {
         if (monthlyLimit == null || monthlyLimit.compareTo(BigDecimal.ZERO) <= 0) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Monthly limit must be positive");
         }
-        
+
         Optional<BudgetTable> existing = budgetRepository.findByUserIdAndCategory(user.getUserId(), category);
-        
+
         BudgetTable budget;
         if (existing.isPresent()) {
             budget = existing.get();
@@ -64,21 +69,23 @@ public class BudgetService {
         // Update current spent for current month
         try {
             LocalDate startOfMonth = LocalDate.now().withDayOfMonth(1);
-            List<TransactionTable> transactions = transactionService.getTransactionsByCategory(
-                    user, category, startOfMonth);
-            
+            String startDateStr = startOfMonth.format(DATE_FORMATTER);
+            String endDateStr = LocalDate.now().format(DATE_FORMATTER);
+            List<TransactionTable> transactions = transactionRepository.findByUserIdAndDateRange(
+                    user.getUserId(), startDateStr, endDateStr);
+
             BigDecimal currentSpent = transactions.stream()
-                    .filter(t -> t != null)
+                    .filter(t -> t != null && category.equals(t.getCategory()))
                     .map(TransactionTable::getAmount)
                     .filter(amount -> amount != null)
                     .reduce(BigDecimal.ZERO, BigDecimal::add);
-            
+
             budget.setCurrentSpent(currentSpent);
         } catch (Exception e) {
             logger.warn("Failed to calculate current spent for budget: {}", e.getMessage());
             // Continue with existing currentSpent value
         }
-        
+
         budgetRepository.save(budget);
         return budget;
     }
@@ -90,14 +97,14 @@ public class BudgetService {
         return budgetRepository.findByUserId(user.getUserId());
     }
 
-    public BudgetTable getBudget(UserTable user, String budgetId) {
+    public BudgetTable getBudget((final UserTable user, final String budgetId) {
         if (user == null || user.getUserId() == null || user.getUserId().isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "User is required");
         }
         if (budgetId == null || budgetId.isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Budget ID is required");
         }
-        
+
         BudgetTable budget = budgetRepository.findById(budgetId)
                 .orElseThrow(() -> new AppException(ErrorCode.BUDGET_NOT_FOUND, "Budget not found"));
 
@@ -108,14 +115,14 @@ public class BudgetService {
         return budget;
     }
 
-    public void deleteBudget(UserTable user, String budgetId) {
+    public void deleteBudget((final UserTable user, final String budgetId) {
         if (user == null || user.getUserId() == null || user.getUserId().isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "User is required");
         }
         if (budgetId == null || budgetId.isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Budget ID is required");
         }
-        
+
         BudgetTable budget = budgetRepository.findById(budgetId)
                 .orElseThrow(() -> new AppException(ErrorCode.BUDGET_NOT_FOUND, "Budget not found"));
 

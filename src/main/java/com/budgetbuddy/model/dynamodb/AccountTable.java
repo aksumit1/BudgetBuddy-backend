@@ -35,7 +35,7 @@ public class AccountTable {
         return accountId;
     }
 
-    public void setAccountId(String accountId) {
+    public void setAccountId(final String accountId) {
         this.accountId = accountId;
     }
 
@@ -45,7 +45,7 @@ public class AccountTable {
         return userId;
     }
 
-    public void setUserId(String userId) {
+    public void setUserId(final String userId) {
         this.userId = userId;
     }
 
@@ -55,7 +55,7 @@ public class AccountTable {
         return plaidAccountId;
     }
 
-    public void setPlaidAccountId(String plaidAccountId) {
+    public void setPlaidAccountId(final String plaidAccountId) {
         this.plaidAccountId = plaidAccountId;
     }
 
@@ -64,7 +64,7 @@ public class AccountTable {
         return accountName;
     }
 
-    public void setAccountName(String accountName) {
+    public void setAccountName(final String accountName) {
         this.accountName = accountName;
     }
 
@@ -73,7 +73,7 @@ public class AccountTable {
         return institutionName;
     }
 
-    public void setInstitutionName(String institutionName) {
+    public void setInstitutionName(final String institutionName) {
         this.institutionName = institutionName;
     }
 
@@ -82,7 +82,7 @@ public class AccountTable {
         return accountType;
     }
 
-    public void setAccountType(String accountType) {
+    public void setAccountType(final String accountType) {
         this.accountType = accountType;
     }
 
@@ -91,7 +91,7 @@ public class AccountTable {
         return accountSubtype;
     }
 
-    public void setAccountSubtype(String accountSubtype) {
+    public void setAccountSubtype(final String accountSubtype) {
         this.accountSubtype = accountSubtype;
     }
 
@@ -100,7 +100,7 @@ public class AccountTable {
         return balance;
     }
 
-    public void setBalance(BigDecimal balance) {
+    public void setBalance(final BigDecimal balance) {
         this.balance = balance;
     }
 
@@ -109,7 +109,7 @@ public class AccountTable {
         return currencyCode;
     }
 
-    public void setCurrencyCode(String currencyCode) {
+    public void setCurrencyCode(final String currencyCode) {
         this.currencyCode = currencyCode;
     }
 
@@ -118,7 +118,7 @@ public class AccountTable {
         return plaidItemId;
     }
 
-    public void setPlaidItemId(String plaidItemId) {
+    public void setPlaidItemId(final String plaidItemId) {
         this.plaidItemId = plaidItemId;
     }
 
@@ -127,7 +127,7 @@ public class AccountTable {
         return active;
     }
 
-    public void setActive(Boolean active) {
+    public void setActive(final Boolean active) {
         this.active = active;
     }
 
@@ -136,7 +136,7 @@ public class AccountTable {
         return lastSyncedAt;
     }
 
-    public void setLastSyncedAt(Instant lastSyncedAt) {
+    public void setLastSyncedAt(final Instant lastSyncedAt) {
         this.lastSyncedAt = lastSyncedAt;
     }
 
@@ -145,7 +145,7 @@ public class AccountTable {
         return createdAt;
     }
 
-    public void setCreatedAt(Instant createdAt) {
+    public void setCreatedAt(final Instant createdAt) {
         this.createdAt = createdAt;
     }
 
@@ -154,7 +154,7 @@ public class AccountTable {
         return updatedAt;
     }
 
-    public void setUpdatedAt(Instant updatedAt) {
+    public void setUpdatedAt(final Instant updatedAt) {
         this.updatedAt = updatedAt;
     }
 }

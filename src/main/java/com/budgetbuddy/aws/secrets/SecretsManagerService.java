@@ -44,7 +44,7 @@ public class SecretsManagerService {
     @Value("${app.aws.region:us-east-1}")
     private String awsRegion;
 
-    public SecretsManagerService(SecretsManagerClient secretsManagerClient) {
+    public SecretsManagerService(final SecretsManagerClient secretsManagerClient) {
         this.secretsManagerClient = secretsManagerClient;
     }
 
@@ -84,7 +84,7 @@ public class SecretsManagerService {
      * Get secret value from AWS Secrets Manager or cache
      * Falls back to environment variable if Secrets Manager is disabled
      */
-    public String getSecret(String secretName, String envVarFallback) {
+    public String getSecret((final String secretName, final String envVarFallback) {
         if (!secretsManagerEnabled) {
             // Fallback to environment variable
             String envValue = System.getenv(envVarFallback);
@@ -130,7 +130,7 @@ public class SecretsManagerService {
     /**
      * Get JSON secret and parse specific key
      */
-    public String getSecretKey(String secretName, String key, String envVarFallback) {
+    public String getSecretKey((final String secretName, final String key, final String envVarFallback) {
         String secretJson = getSecret(secretName, envVarFallback);
         if (secretJson == null) {
             return null;
@@ -171,7 +171,7 @@ public class SecretsManagerService {
     /**
      * Invalidate specific secret from cache
      */
-    public void invalidateSecret(String secretName) {
+    public void invalidateSecret((final String secretName) {
         secretCache.remove(secretName);
         logger.debug("Invalidated secret {} from cache", secretName);
     }

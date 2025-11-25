@@ -33,7 +33,7 @@ public class TransactionService {
     private final TransactionRepository transactionRepository;
     private final AccountRepository accountRepository;
 
-    public TransactionService(TransactionRepository transactionRepository, AccountRepository accountRepository) {
+    public TransactionService(final TransactionRepository transactionRepository, final AccountRepository accountRepository) {
         this.transactionRepository = transactionRepository;
         this.accountRepository = accountRepository;
     }
@@ -48,7 +48,7 @@ public class TransactionService {
         }
         if (skip < 0) skip = 0;
         if (limit <= 0 || limit > 100) limit = 50; // Default limit, max 100
-        
+
         return transactionRepository.findByUserId(user.getUserId(), skip, limit);
     }
 
@@ -65,7 +65,7 @@ public class TransactionService {
         if (startDate.isAfter(endDate)) {
             throw new AppException(ErrorCode.INVALID_DATE_RANGE, "Start date must be before or equal to end date");
         }
-        
+
         String startDateStr = startDate.format(DATE_FORMATTER);
         String endDateStr = endDate.format(DATE_FORMATTER);
         return transactionRepository.findByUserIdAndDateRange(user.getUserId(), startDateStr, endDateStr);
@@ -85,12 +85,12 @@ public class TransactionService {
         if (since == null) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Since date is required");
         }
-        
+
         String sinceStr = since.format(DATE_FORMATTER);
         String nowStr = LocalDate.now().format(DATE_FORMATTER);
         List<TransactionTable> transactions = transactionRepository.findByUserIdAndDateRange(
                 user.getUserId(), sinceStr, nowStr);
-        
+
         return transactions.stream()
                 .filter(t -> t != null && category.equals(t.getCategory()))
                 .collect(Collectors.toList());
@@ -100,14 +100,14 @@ public class TransactionService {
      * Calculate total spending in date range (aggregated query to minimize data transfer)
      * Note: DynamoDB doesn't support aggregation, so we calculate in application
      */
-    public BigDecimal getTotalSpending(UserTable user, LocalDate startDate, LocalDate endDate) {
+    public BigDecimal getTotalSpending((final UserTable user, final LocalDate startDate, final LocalDate endDate) {
         if (user == null || user.getUserId() == null || user.getUserId().isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "User is required");
         }
         if (startDate == null || endDate == null) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Start date and end date are required");
         }
-        
+
         List<TransactionTable> transactions = getTransactionsInRange(user, startDate, endDate);
         return transactions.stream()
                 .filter(t -> t != null)
@@ -119,7 +119,7 @@ public class TransactionService {
     /**
      * Save transaction (from Plaid sync)
      */
-    public TransactionTable saveTransaction(TransactionTable transaction) {
+    public TransactionTable saveTransaction((final TransactionTable transaction) {
         if (transaction == null) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Transaction cannot be null");
         }
@@ -143,9 +143,7 @@ public class TransactionService {
     /**
      * Create manual transaction
      */
-    public TransactionTable createTransaction(UserTable user, String accountId, BigDecimal amount, 
-                                        LocalDate transactionDate, String description, 
-                                        String category) {
+    public TransactionTable createTransaction((final UserTable user, final String accountId, final BigDecimal amount, final LocalDate transactionDate, final String description, final String category) {
         if (user == null || user.getUserId() == null || user.getUserId().isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "User is required");
         }
@@ -161,7 +159,7 @@ public class TransactionService {
         if (category == null || category.isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Category is required");
         }
-        
+
         AccountTable account = accountRepository.findById(accountId)
                 .orElseThrow(() -> new AppException(ErrorCode.ACCOUNT_NOT_FOUND, "Account not found"));
 
@@ -177,7 +175,7 @@ public class TransactionService {
         transaction.setTransactionDate(transactionDate.format(DATE_FORMATTER));
         transaction.setDescription(description != null ? description : "");
         transaction.setCategory(category);
-        transaction.setCurrencyCode(user.getPreferredCurrency() != null && !user.getPreferredCurrency().isEmpty() 
+        transaction.setCurrencyCode(user.getPreferredCurrency() != null && !user.getPreferredCurrency().isEmpty()
                 ? user.getPreferredCurrency() : "USD");
 
         transactionRepository.save(transaction);
@@ -188,14 +186,14 @@ public class TransactionService {
     /**
      * Delete transaction
      */
-    public void deleteTransaction(UserTable user, String transactionId) {
+    public void deleteTransaction((final UserTable user, final String transactionId) {
         if (user == null || user.getUserId() == null || user.getUserId().isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "User is required");
         }
         if (transactionId == null || transactionId.isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Transaction ID is required");
         }
-        
+
         TransactionTable transaction = transactionRepository.findById(transactionId)
                 .orElseThrow(() -> new AppException(ErrorCode.TRANSACTION_NOT_FOUND, "Transaction not found"));
 

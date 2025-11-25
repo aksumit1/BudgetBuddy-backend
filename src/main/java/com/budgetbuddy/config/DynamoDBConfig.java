@@ -28,7 +28,7 @@ public class DynamoDBConfig {
 
     @Bean
     public DynamoDbClient dynamoDbClient() {
-        DynamoDbClient.Builder builder = DynamoDbClient.builder()
+        var builder = DynamoDbClient.builder()
                 .region(Region.of(awsRegion))
                 .credentialsProvider(DefaultCredentialsProvider.create()) // Uses IAM role in ECS/EKS
                 .overrideConfiguration(ClientOverrideConfiguration.builder()
@@ -46,7 +46,7 @@ public class DynamoDBConfig {
     }
 
     @Bean
-    public DynamoDbEnhancedClient dynamoDbEnhancedClient(DynamoDbClient dynamoDbClient) {
+    public DynamoDbEnhancedClient dynamoDbEnhancedClient((final DynamoDbClient dynamoDbClient) {
         return DynamoDbEnhancedClient.builder()
                 .dynamoDbClient(dynamoDbClient)
                 .build();

@@ -14,7 +14,7 @@ import java.util.Map;
 /**
  * Plaid Webhook Service
  * Handles webhook events from Plaid
- * 
+ *
  * Features:
  * - Webhook signature verification
  * - Event type handling
@@ -36,14 +36,14 @@ public class PlaidWebhookService {
      * Verify webhook signature
      * In production, verify against Plaid's public key
      */
-    public boolean verifyWebhookSignature(Map<String, Object> payload, String verificationHeader) {
+    public boolean verifyWebhookSignature((Map<String, final Object> payload, final String verificationHeader) {
         // In production, implement proper signature verification using Plaid's webhook verification
         // For now, return true (implement actual verification)
         if (verificationHeader == null || verificationHeader.isEmpty()) {
             logger.warn("Webhook verification header is missing");
             return false;
         }
-        
+
         // TODO: Implement actual Plaid webhook signature verification
         // See: https://plaid.com/docs/api/webhooks/#webhook-verification
         return true;
@@ -53,10 +53,10 @@ public class PlaidWebhookService {
      * Handle TRANSACTIONS webhook
      * Processes transaction updates from Plaid
      */
-    public void handleTransactionWebhook(Map<String, Object> payload) {
+    public void handleTransactionWebhook((Map<String, final Object> payload) {
         String webhookCode = extractString(payload, "webhook_code");
         String itemId = extractString(payload, "item_id");
-        
+
         if (itemId == null || itemId.isEmpty()) {
             logger.error("Item ID is missing in TRANSACTIONS webhook");
             return;
@@ -90,10 +90,10 @@ public class PlaidWebhookService {
      * Handle ITEM webhook
      * Processes item status changes
      */
-    public void handleItemWebhook(Map<String, Object> payload) {
+    public void handleItemWebhook((Map<String, final Object> payload) {
         String webhookCode = extractString(payload, "webhook_code");
         String itemId = extractString(payload, "item_id");
-        
+
         if (itemId == null || itemId.isEmpty()) {
             logger.error("Item ID is missing in ITEM webhook");
             return;
@@ -123,10 +123,10 @@ public class PlaidWebhookService {
      * Handle AUTH webhook
      * Processes authentication events
      */
-    public void handleAuthWebhook(Map<String, Object> payload) {
+    public void handleAuthWebhook((Map<String, final Object> payload) {
         String webhookCode = extractString(payload, "webhook_code");
         String itemId = extractString(payload, "item_id");
-        
+
         logger.info("Processing AUTH webhook: code={}, itemId={}", webhookCode, itemId);
         // Handle authentication events
     }
@@ -135,10 +135,10 @@ public class PlaidWebhookService {
      * Handle INCOME webhook
      * Processes income verification events
      */
-    public void handleIncomeWebhook(Map<String, Object> payload) {
+    public void handleIncomeWebhook((Map<String, final Object> payload) {
         String webhookCode = extractString(payload, "webhook_code");
         String itemId = extractString(payload, "item_id");
-        
+
         logger.info("Processing INCOME webhook: code={}, itemId={}", webhookCode, itemId);
         // Handle income verification events
     }
@@ -146,7 +146,7 @@ public class PlaidWebhookService {
     /**
      * Extract string value from payload
      */
-    private String extractString(Map<String, Object> payload, String key) {
+    private String extractString((Map<String, final Object> payload, final String key) {
         Object value = payload.get(key);
         return value != null ? value.toString() : null;
     }
@@ -163,20 +163,20 @@ public class PlaidWebhookService {
         return null;
     }
 
-    private void syncTransactionsForItem(String itemId) {
+    private void syncTransactionsForItem((final String itemId) {
         // Find user by item ID and sync all transactions
         // In production, maintain itemId -> userId mapping
         logger.debug("Syncing all transactions for item: {}", itemId);
         // TODO: Implement actual sync logic
     }
 
-    private void syncNewTransactionsForItem(String itemId) {
+    private void syncNewTransactionsForItem((final String itemId) {
         // Sync only new transactions since last sync
         logger.debug("Syncing new transactions for item: {}", itemId);
         // TODO: Implement actual sync logic
     }
 
-    private void handleTransactionsRemoved(Map<String, Object> payload) {
+    private void handleTransactionsRemoved((Map<String, final Object> payload) {
         List<String> removedTransactionIds = extractList(payload, "removed_transactions");
         if (removedTransactionIds != null) {
             logger.info("Removing {} transactions", removedTransactionIds.size());
@@ -186,19 +186,19 @@ public class PlaidWebhookService {
         }
     }
 
-    private void handleItemError(Map<String, Object> payload) {
+    private void handleItemError((Map<String, final Object> payload) {
         String errorCode = extractString(payload, "error_code");
         String errorMessage = extractString(payload, "error_message");
         logger.error("Item error: code={}, message={}", errorCode, errorMessage);
         // TODO: Notify user and handle error
     }
 
-    private void handlePendingExpiration(Map<String, Object> payload) {
+    private void handlePendingExpiration((Map<String, final Object> payload) {
         logger.warn("Credentials expiring soon - user action required");
         // TODO: Notify user to reconnect
     }
 
-    private void handlePermissionRevoked(Map<String, Object> payload) {
+    private void handlePermissionRevoked((Map<String, final Object> payload) {
         logger.info("User revoked permissions - disconnecting item");
         // TODO: Disconnect item and notify user
     }

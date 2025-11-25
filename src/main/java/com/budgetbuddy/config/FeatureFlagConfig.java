@@ -43,11 +43,11 @@ public class FeatureFlagConfig {
     public static class FeatureFlags {
         private final Map<String, Boolean> flags;
 
-        public FeatureFlags(Map<String, Boolean> flags) {
+        public FeatureFlags(final Map<String, Boolean> flags) {
             this.flags = flags;
         }
 
-        public boolean isEnabled(String feature) {
+        public boolean isEnabled((final String feature) {
             return flags.getOrDefault(feature, false);
         }
 

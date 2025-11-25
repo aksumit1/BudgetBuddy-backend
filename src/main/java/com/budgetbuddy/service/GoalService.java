@@ -24,12 +24,11 @@ public class GoalService {
 
     private final GoalRepository goalRepository;
 
-    public GoalService(GoalRepository goalRepository) {
+    public GoalService(final GoalRepository goalRepository) {
         this.goalRepository = goalRepository;
     }
 
-    public GoalTable createGoal(UserTable user, String name, String description, BigDecimal targetAmount, 
-                           LocalDate targetDate, String goalType) {
+    public GoalTable createGoal((final UserTable user, final String name, final String description, final BigDecimal targetAmount, final LocalDate targetDate, final String goalType) {
         if (user == null || user.getUserId() == null || user.getUserId().isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "User is required");
         }
@@ -45,7 +44,7 @@ public class GoalService {
         if (goalType == null || goalType.isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Goal type is required");
         }
-        
+
         GoalTable goal = new GoalTable();
         goal.setGoalId(UUID.randomUUID().toString());
         goal.setUserId(user.getUserId());
@@ -70,14 +69,14 @@ public class GoalService {
         return goalRepository.findByUserId(user.getUserId());
     }
 
-    public GoalTable getGoal(UserTable user, String goalId) {
+    public GoalTable getGoal((final UserTable user, final String goalId) {
         if (user == null || user.getUserId() == null || user.getUserId().isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "User is required");
         }
         if (goalId == null || goalId.isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Goal ID is required");
         }
-        
+
         GoalTable goal = goalRepository.findById(goalId)
                 .orElseThrow(() -> new AppException(ErrorCode.GOAL_NOT_FOUND, "Goal not found"));
 
@@ -88,7 +87,7 @@ public class GoalService {
         return goal;
     }
 
-    public GoalTable updateGoalProgress(UserTable user, String goalId, BigDecimal additionalAmount) {
+    public GoalTable updateGoalProgress((final UserTable user, final String goalId, final BigDecimal additionalAmount) {
         if (user == null || user.getUserId() == null || user.getUserId().isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "User is required");
         }
@@ -98,7 +97,7 @@ public class GoalService {
         if (additionalAmount == null) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Additional amount is required");
         }
-        
+
         GoalTable goal = goalRepository.findById(goalId)
                 .orElseThrow(() -> new AppException(ErrorCode.GOAL_NOT_FOUND, "Goal not found"));
 
@@ -112,14 +111,14 @@ public class GoalService {
         return goal;
     }
 
-    public void deleteGoal(UserTable user, String goalId) {
+    public void deleteGoal((final UserTable user, final String goalId) {
         if (user == null || user.getUserId() == null || user.getUserId().isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "User is required");
         }
         if (goalId == null || goalId.isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Goal ID is required");
         }
-        
+
         GoalTable goal = goalRepository.findById(goalId)
                 .orElseThrow(() -> new AppException(ErrorCode.GOAL_NOT_FOUND, "Goal not found"));
 

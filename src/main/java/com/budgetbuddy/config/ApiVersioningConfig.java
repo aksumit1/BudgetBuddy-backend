@@ -14,7 +14,7 @@ public class ApiVersioningConfig implements WebMvcConfigurer {
     // 1. URL path: /api/v1/, /api/v2/
     // 2. Header: X-API-Version
     // 3. Query parameter: ?version=1
-    
+
     // Controllers should use @RequestMapping("/api/v1/...") for versioning
 }
 

@@ -54,7 +54,7 @@ public class User {
     public User() {
     }
 
-    public User(String email, String password) {
+    public User(final String email, final String password) {
         this.email = email;
         this.password = password;
         this.roles.add(Role.USER);
@@ -65,7 +65,7 @@ public class User {
         return id;
     }
 
-    public void setId(Long id) {
+    public void setId(final Long id) {
         this.id = id;
     }
 
@@ -73,7 +73,7 @@ public class User {
         return email;
     }
 
-    public void setEmail(String email) {
+    public void setEmail(final String email) {
         this.email = email;
     }
 
@@ -81,7 +81,7 @@ public class User {
         return password;
     }
 
-    public void setPassword(String password) {
+    public void setPassword(final String password) {
         this.password = password;
     }
 
@@ -89,7 +89,7 @@ public class User {
         return firstName;
     }
 
-    public void setFirstName(String firstName) {
+    public void setFirstName(final String firstName) {
         this.firstName = firstName;
     }
 
@@ -97,7 +97,7 @@ public class User {
         return lastName;
     }
 
-    public void setLastName(String lastName) {
+    public void setLastName(final String lastName) {
         this.lastName = lastName;
     }
 
@@ -105,7 +105,7 @@ public class User {
         return phoneNumber;
     }
 
-    public void setPhoneNumber(String phoneNumber) {
+    public void setPhoneNumber(final String phoneNumber) {
         this.phoneNumber = phoneNumber;
     }
 
@@ -113,7 +113,7 @@ public class User {
         return enabled;
     }
 
-    public void setEnabled(Boolean enabled) {
+    public void setEnabled(final Boolean enabled) {
         this.enabled = enabled;
     }
 
@@ -121,7 +121,7 @@ public class User {
         return emailVerified;
     }
 
-    public void setEmailVerified(Boolean emailVerified) {
+    public void setEmailVerified(final Boolean emailVerified) {
         this.emailVerified = emailVerified;
     }
 
@@ -129,7 +129,7 @@ public class User {
         return twoFactorEnabled;
     }
 
-    public void setTwoFactorEnabled(Boolean twoFactorEnabled) {
+    public void setTwoFactorEnabled(final Boolean twoFactorEnabled) {
         this.twoFactorEnabled = twoFactorEnabled;
     }
 
@@ -137,7 +137,7 @@ public class User {
         return preferredCurrency;
     }
 
-    public void setPreferredCurrency(String preferredCurrency) {
+    public void setPreferredCurrency(final String preferredCurrency) {
         this.preferredCurrency = preferredCurrency;
     }
 
@@ -145,7 +145,7 @@ public class User {
         return timezone;
     }
 
-    public void setTimezone(String timezone) {
+    public void setTimezone(final String timezone) {
         this.timezone = timezone;
     }
 
@@ -153,7 +153,7 @@ public class User {
         return roles;
     }
 
-    public void setRoles(Set<Role> roles) {
+    public void setRoles((final Set<Role> roles) {
         this.roles = roles;
     }
 
@@ -161,7 +161,7 @@ public class User {
         return createdAt;
     }
 
-    public void setCreatedAt(LocalDateTime createdAt) {
+    public void setCreatedAt(final LocalDateTime createdAt) {
         this.createdAt = createdAt;
     }
 
@@ -169,7 +169,7 @@ public class User {
         return updatedAt;
     }
 
-    public void setUpdatedAt(LocalDateTime updatedAt) {
+    public void setUpdatedAt(final LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
     }
 
@@ -177,7 +177,7 @@ public class User {
         return lastLoginAt;
     }
 
-    public void setLastLoginAt(LocalDateTime lastLoginAt) {
+    public void setLastLoginAt(final LocalDateTime lastLoginAt) {
         this.lastLoginAt = lastLoginAt;
     }
 
@@ -185,7 +185,7 @@ public class User {
         return passwordChangedAt;
     }
 
-    public void setPasswordChangedAt(LocalDateTime passwordChangedAt) {
+    public void setPasswordChangedAt(final LocalDateTime passwordChangedAt) {
         this.passwordChangedAt = passwordChangedAt;
     }
 

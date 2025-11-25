@@ -18,7 +18,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * Graceful Shutdown Configuration
  * Ensures clean shutdown of the application without dropping requests
- * 
+ *
  * Features:
  * - Graceful thread pool shutdown
  * - Configurable timeout
@@ -31,7 +31,7 @@ public class GracefulShutdownConfig {
     private static final int TIMEOUT_SECONDS = 30;
 
     @Bean
-    public ServletWebServerFactory servletContainer(GracefulShutdown gracefulShutdown) {
+    public ServletWebServerFactory servletContainer((final GracefulShutdown gracefulShutdown) {
         TomcatServletWebServerFactory factory = new TomcatServletWebServerFactory();
         factory.addConnectorCustomizers(gracefulShutdown);
         return factory;
@@ -49,23 +49,24 @@ public class GracefulShutdownConfig {
         private volatile Connector connector;
 
         @Override
-        public void customize(Connector connector) {
+        public void customize((final Connector connector) {
             this.connector = connector;
         }
 
         @Override
-        public void onApplicationEvent(ContextClosedEvent event) {
+        public void onApplicationEvent((final ContextClosedEvent event) {
             if (this.connector == null) {
                 log.debug("Connector is null, skipping graceful shutdown");
                 return;
             }
-            
+
             log.info("Starting graceful shutdown...");
             this.connector.pause();
             Executor executor = this.connector.getProtocolHandler().getExecutor();
-            
-            if (executor instanceof ThreadPoolExecutor) {
-                shutdownThreadPool((ThreadPoolExecutor) executor);
+
+            // JDK 25: Enhanced pattern matching
+            if (executor instanceof ThreadPoolExecutor threadPoolExecutor) {
+                shutdownThreadPool(threadPoolExecutor);
             } else {
                 log.warn("Executor is not a ThreadPoolExecutor, cannot perform graceful shutdown");
             }
@@ -74,16 +75,16 @@ public class GracefulShutdownConfig {
         /**
          * Shutdown thread pool gracefully
          */
-        private void shutdownThreadPool(ThreadPoolExecutor threadPoolExecutor) {
+        private void shutdownThreadPool((final ThreadPoolExecutor threadPoolExecutor) {
             try {
                 log.info("Shutting down thread pool gracefully...");
                 threadPoolExecutor.shutdown();
-                
+
                 if (!threadPoolExecutor.awaitTermination(TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
-                    log.warn("Thread pool did not shut down gracefully within {} seconds. Proceeding with forceful shutdown", 
+                    log.warn("Thread pool did not shut down gracefully within {} seconds. Proceeding with forceful shutdown",
                             TIMEOUT_SECONDS);
                     threadPoolExecutor.shutdownNow();
-                    
+
                     if (!threadPoolExecutor.awaitTermination(TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
                         log.error("Thread pool did not terminate after forceful shutdown");
                     } else {

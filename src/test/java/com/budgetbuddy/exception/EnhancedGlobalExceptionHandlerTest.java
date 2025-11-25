@@ -66,7 +66,7 @@ class EnhancedGlobalExceptionHandlerTest {
         MethodArgumentNotValidException ex = mock(MethodArgumentNotValidException.class);
         org.springframework.validation.BindingResult bindingResult = mock(org.springframework.validation.BindingResult.class);
         FieldError fieldError = new FieldError("user", "email", "Invalid email");
-        
+
         when(ex.getBindingResult()).thenReturn(bindingResult);
         when(bindingResult.getAllErrors()).thenReturn(java.util.Collections.singletonList(fieldError));
 

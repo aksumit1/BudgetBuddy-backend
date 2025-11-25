@@ -18,7 +18,7 @@ import java.util.Set;
  * Advanced Notification Service
  * Supports multiple notification channels: Email, SMS, Push, In-App
  * Uses AWS SNS for delivery
- * 
+ *
  * Thread-safe implementation with proper dependency injection
  */
 @Service
@@ -32,11 +32,7 @@ public class NotificationService {
     private final String snsTopicArn;
     private final boolean notificationsEnabled;
 
-    public NotificationService(
-            SnsClient snsClient,
-            EmailNotificationService emailService,
-            PushNotificationService pushService,
-            @Value("${app.notifications.sns.topic-arn:}") String snsTopicArn,
+    public NotificationService(final SnsClient snsClient, final EmailNotificationService emailService, final PushNotificationService pushService, @Value("${app.notifications.sns.topic-arn:}") String snsTopicArn,
             @Value("${app.notifications.enabled:true}") boolean notificationsEnabled) {
         if (snsClient == null) {
             throw new IllegalArgumentException("SnsClient cannot be null");
@@ -57,7 +53,7 @@ public class NotificationService {
     /**
      * Send notification via multiple channels
      */
-    public NotificationResult sendNotification(NotificationRequest request) {
+    public NotificationResult sendNotification((final NotificationRequest request) {
         if (request == null) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Notification request cannot be null");
         }
@@ -107,7 +103,7 @@ public class NotificationService {
         result.setSuccess(overallSuccess);
         result.setChannelResults(channelResults);
 
-        logger.info("Notification sent - User: {}, Type: {}, Channels: {}, Success: {}", 
+        logger.info("Notification sent - User: {}, Type: {}, Channels: {}, Success: {}",
                 request.getUserId(), request.getType(), channels, overallSuccess);
 
         return result;
@@ -116,7 +112,7 @@ public class NotificationService {
     /**
      * Send email notification
      */
-    private boolean sendEmail(NotificationRequest request) {
+    private boolean sendEmail((final NotificationRequest request) {
         if (request.getRecipientEmail() == null || request.getRecipientEmail().isEmpty()) {
             logger.warn("Email notification skipped: No email address provided");
             return false;
@@ -140,7 +136,7 @@ public class NotificationService {
     /**
      * Send SMS notification via SNS
      */
-    private boolean sendSMS(NotificationRequest request) {
+    private boolean sendSMS((final NotificationRequest request) {
         if (request.getRecipientPhone() == null || request.getRecipientPhone().isEmpty()) {
             logger.warn("SMS notification skipped: No phone number provided");
             return false;
@@ -159,8 +155,8 @@ public class NotificationService {
                     .build();
 
             PublishResponse response = snsClient.publish(snsRequest);
-            
-            logger.info("SMS notification sent - MessageId: {}, Phone: {}", 
+
+            logger.info("SMS notification sent - MessageId: {}, Phone: {}",
                     response.messageId(), maskPhoneNumber(request.getRecipientPhone()));
             return true;
         } catch (Exception e) {
@@ -172,7 +168,7 @@ public class NotificationService {
     /**
      * Send push notification
      */
-    private boolean sendPush(NotificationRequest request) {
+    private boolean sendPush((final NotificationRequest request) {
         try {
             return pushService.sendPushNotification(
                     request.getUserId(),
@@ -189,7 +185,7 @@ public class NotificationService {
     /**
      * Send in-app notification
      */
-    private boolean sendInApp(NotificationRequest request) {
+    private boolean sendInApp((final NotificationRequest request) {
         try {
             // Store in-app notification in database
             // In production, this would use a notification repository
@@ -204,7 +200,7 @@ public class NotificationService {
     /**
      * Send notification to SNS topic
      */
-    public boolean publishToTopic(NotificationRequest request) {
+    public boolean publishToTopic((final NotificationRequest request) {
         if (request == null) {
             return false;
         }
@@ -238,7 +234,7 @@ public class NotificationService {
                     .build();
 
             PublishResponse response = snsClient.publish(snsRequest);
-            
+
             logger.info("Notification published to SNS topic - MessageId: {}", response.messageId());
             return true;
         } catch (Exception e) {
@@ -247,7 +243,7 @@ public class NotificationService {
         }
     }
 
-    private String maskPhoneNumber(String phone) {
+    private String maskPhoneNumber((final String phone) {
         if (phone == null || phone.length() < 4) {
             return "****";
         }
@@ -272,27 +268,27 @@ public class NotificationService {
 
         // Getters and setters
         public String getUserId() { return userId; }
-        public void setUserId(String userId) { this.userId = userId; }
+        public void setUserId(final String userId) { this.userId = userId; }
         public NotificationType getType() { return type; }
-        public void setType(NotificationType type) { this.type = type; }
+        public void setType(final NotificationType type) { this.type = type; }
         public String getTitle() { return title; }
-        public void setTitle(String title) { this.title = title; }
+        public void setTitle(final String title) { this.title = title; }
         public String getSubject() { return subject; }
-        public void setSubject(String subject) { this.subject = subject; }
+        public void setSubject(final String subject) { this.subject = subject; }
         public String getBody() { return body; }
-        public void setBody(String body) { this.body = body; }
+        public void setBody(final String body) { this.body = body; }
         public String getRecipientEmail() { return recipientEmail; }
-        public void setRecipientEmail(String recipientEmail) { this.recipientEmail = recipientEmail; }
+        public void setRecipientEmail(final String recipientEmail) { this.recipientEmail = recipientEmail; }
         public String getRecipientPhone() { return recipientPhone; }
-        public void setRecipientPhone(String recipientPhone) { this.recipientPhone = recipientPhone; }
+        public void setRecipientPhone(final String recipientPhone) { this.recipientPhone = recipientPhone; }
         public Set<NotificationChannel> getChannels() { return channels; }
-        public void setChannels(Set<NotificationChannel> channels) { this.channels = channels; }
+        public void setChannels((final Set<NotificationChannel> channels) { this.channels = channels; }
         public String getTemplateId() { return templateId; }
-        public void setTemplateId(String templateId) { this.templateId = templateId; }
+        public void setTemplateId(final String templateId) { this.templateId = templateId; }
         public Map<String, Object> getTemplateData() { return templateData; }
-        public void setTemplateData(Map<String, Object> templateData) { this.templateData = templateData; }
+        public void setTemplateData((Map<String, final Object> templateData) { this.templateData = templateData; }
         public Map<String, Object> getData() { return data; }
-        public void setData(Map<String, Object> data) { this.data = data; }
+        public void setData((Map<String, final Object> data) { this.data = data; }
     }
 
     /**
@@ -311,7 +307,7 @@ public class NotificationService {
             this.channelResults = new HashMap<>();
         }
 
-        public NotificationResult(boolean success, String message) {
+        public NotificationResult(final boolean success, final String message) {
             this.success = success;
             this.message = message;
             this.channelResults = new HashMap<>();
@@ -319,19 +315,19 @@ public class NotificationService {
 
         // Getters and setters
         public boolean isSuccess() { return success; }
-        public void setSuccess(boolean success) { this.success = success; }
+        public void setSuccess(final boolean success) { this.success = success; }
         public String getMessage() { return message; }
-        public void setMessage(String message) { this.message = message; }
+        public void setMessage(final String message) { this.message = message; }
         public boolean isEmailSent() { return emailSent; }
-        public void setEmailSent(boolean emailSent) { this.emailSent = emailSent; }
+        public void setEmailSent(final boolean emailSent) { this.emailSent = emailSent; }
         public boolean isSmsSent() { return smsSent; }
-        public void setSmsSent(boolean smsSent) { this.smsSent = smsSent; }
+        public void setSmsSent(final boolean smsSent) { this.smsSent = smsSent; }
         public boolean isPushSent() { return pushSent; }
-        public void setPushSent(boolean pushSent) { this.pushSent = pushSent; }
+        public void setPushSent(final boolean pushSent) { this.pushSent = pushSent; }
         public boolean isInAppSent() { return inAppSent; }
-        public void setInAppSent(boolean inAppSent) { this.inAppSent = inAppSent; }
+        public void setInAppSent(final boolean inAppSent) { this.inAppSent = inAppSent; }
         public Map<String, Boolean> getChannelResults() { return channelResults; }
-        public void setChannelResults(Map<String, Boolean> channelResults) { this.channelResults = channelResults; }
+        public void setChannelResults((Map<String, final Boolean> channelResults) { this.channelResults = channelResults; }
     }
 
     /**
