@@ -1,0 +1,5 @@
+docker-compose down --rmi all          
+docker-compose build backend
+docker-compose up -d backend
+docker-compose logs backend -f
+
