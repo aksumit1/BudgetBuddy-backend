@@ -332,10 +332,39 @@ public class PlaidSyncService {
      * Extract transaction ID from Plaid transaction
      */
     private String extractTransactionId(final Object plaidTransaction) {
-        // In production, properly extract transaction ID from Plaid transaction object
         try {
-            // Use reflection or proper Plaid SDK methods to get transaction ID
-            return plaidTransaction.toString(); // Placeholder
+            String className = plaidTransaction.getClass().getName();
+            logger.debug("Extracting transaction ID from type: {}", className);
+            
+            // Try instanceof check first
+            if (plaidTransaction instanceof com.plaid.client.model.Transaction) {
+                com.plaid.client.model.Transaction transaction = (com.plaid.client.model.Transaction) plaidTransaction;
+                String transactionId = transaction.getTransactionId();
+                if (transactionId != null && !transactionId.isEmpty()) {
+                    logger.debug("Extracted transaction ID via instanceof: {}", transactionId);
+                    return transactionId;
+                }
+            }
+            
+            // Fallback: try reflection
+            try {
+                java.lang.reflect.Method getTransactionId = plaidTransaction.getClass().getMethod("getTransactionId");
+                Object idObj = getTransactionId.invoke(plaidTransaction);
+                if (idObj != null) {
+                    String idStr = idObj.toString();
+                    if (!idStr.contains("class Transaction") && !idStr.contains("\n")) {
+                        logger.debug("Extracted transaction ID via reflection: {}", idStr);
+                        return idStr;
+                    }
+                }
+            } catch (Exception e) {
+                logger.warn("Could not extract transaction ID via reflection: {}", e.getMessage());
+            }
+            
+            logger.error("Failed to extract transaction ID. Type: {}, toString: {}", 
+                    className, plaidTransaction.toString().length() > 200 ? 
+                    plaidTransaction.toString().substring(0, 200) : plaidTransaction.toString());
+            return null;
         } catch (Exception e) {
             logger.error("Failed to extract transaction ID", e);
             return null;
@@ -503,9 +532,12 @@ public class PlaidSyncService {
         TransactionTable transaction = new TransactionTable();
         transaction.setTransactionId(java.util.UUID.randomUUID().toString());
         transaction.setUserId(userId);
-        // Map other fields from plaidTransaction
         transaction.setCreatedAt(java.time.Instant.now());
         transaction.setUpdatedAt(java.time.Instant.now());
+        
+        // Update fields from Plaid
+        updateTransactionFromPlaid(transaction, plaidTransaction);
+        
         return transaction;
     }
 
@@ -513,7 +545,155 @@ public class PlaidSyncService {
      * Update transaction from Plaid transaction data
      */
     private void updateTransactionFromPlaid(final TransactionTable transaction, final Object plaidTransaction) {
-        // Update transaction fields from Plaid
-        transaction.setUpdatedAt(java.time.Instant.now());
+        try {
+            java.time.Instant now = java.time.Instant.now();
+            transaction.setUpdatedAt(now);
+            
+            String className = plaidTransaction.getClass().getName();
+            logger.debug("Updating transaction from Plaid object, type: {}", className);
+            
+            // Try instanceof check first
+            com.plaid.client.model.Transaction plaidTx = null;
+            if (plaidTransaction instanceof com.plaid.client.model.Transaction) {
+                plaidTx = (com.plaid.client.model.Transaction) plaidTransaction;
+            } else {
+                // Try reflection fallback
+                try {
+                    Class<?> transactionClass = Class.forName("com.plaid.client.model.Transaction");
+                    if (transactionClass.isInstance(plaidTransaction)) {
+                        plaidTx = (com.plaid.client.model.Transaction) plaidTransaction;
+                    }
+                } catch (Exception e) {
+                    logger.warn("Could not cast to Transaction via reflection: {}", e.getMessage());
+                }
+            }
+            
+            if (plaidTx != null) {
+                // Extract amount
+                if (plaidTx.getAmount() != null) {
+                    transaction.setAmount(java.math.BigDecimal.valueOf(plaidTx.getAmount()));
+                }
+                
+                // Extract merchant name first (used for description fallback)
+                String merchantName = plaidTx.getMerchantName();
+                if (merchantName != null && !merchantName.isEmpty()) {
+                    transaction.setMerchantName(merchantName);
+                }
+                
+                // Extract description/name
+                String name = plaidTx.getName();
+                if (name != null && !name.isEmpty()) {
+                    transaction.setDescription(name);
+                } else if (merchantName != null && !merchantName.isEmpty()) {
+                    transaction.setDescription(merchantName);
+                } else {
+                    transaction.setDescription("Transaction");
+                }
+                
+                // Extract category
+                java.util.List<String> categoryList = plaidTx.getCategory();
+                if (categoryList != null && !categoryList.isEmpty()) {
+                    transaction.setCategory(String.join(", ", categoryList));
+                }
+                
+                // Extract date - CRITICAL for date range queries
+                if (plaidTx.getDate() != null) {
+                    // Plaid returns LocalDate, convert to YYYY-MM-DD string
+                    transaction.setTransactionDate(plaidTx.getDate().format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE));
+                    logger.debug("Set transaction date: {}", transaction.getTransactionDate());
+                } else {
+                    // Default to today if date is missing
+                    transaction.setTransactionDate(java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE));
+                    logger.warn("Transaction date is null, using today's date");
+                }
+                
+                // Extract currency code
+                if (plaidTx.getIsoCurrencyCode() != null) {
+                    transaction.setCurrencyCode(plaidTx.getIsoCurrencyCode());
+                } else if (plaidTx.getUnofficialCurrencyCode() != null) {
+                    transaction.setCurrencyCode(plaidTx.getUnofficialCurrencyCode());
+                } else {
+                    transaction.setCurrencyCode("USD");
+                }
+                
+                // Extract pending status
+                if (plaidTx.getPending() != null) {
+                    transaction.setPending(plaidTx.getPending());
+                }
+                
+                // Extract account ID
+                if (plaidTx.getAccountId() != null) {
+                    // Find account by Plaid account ID
+                    Optional<AccountTable> account = accountRepository.findByPlaidAccountId(plaidTx.getAccountId());
+                    if (account.isPresent()) {
+                        transaction.setAccountId(account.get().getAccountId());
+                    }
+                }
+                
+                logger.debug("Updated transaction from Plaid: {} (date: {}, amount: {}, description: {})", 
+                        transaction.getPlaidTransactionId(), transaction.getTransactionDate(), 
+                        transaction.getAmount(), transaction.getDescription());
+            } else {
+                // Fallback: use reflection
+                logger.warn("Plaid transaction is not Transaction instance, using reflection. Type: {}", className);
+                try {
+                    // Try to extract key fields via reflection
+                    java.lang.reflect.Method getAmount = plaidTransaction.getClass().getMethod("getAmount");
+                    Object amount = getAmount.invoke(plaidTransaction);
+                    if (amount != null && amount instanceof Number) {
+                        transaction.setAmount(java.math.BigDecimal.valueOf(((Number) amount).doubleValue()));
+                    }
+                    
+                    java.lang.reflect.Method getName = plaidTransaction.getClass().getMethod("getName");
+                    Object name = getName.invoke(plaidTransaction);
+                    if (name != null) {
+                        transaction.setDescription(name.toString());
+                    }
+                    
+                    java.lang.reflect.Method getDate = plaidTransaction.getClass().getMethod("getDate");
+                    Object date = getDate.invoke(plaidTransaction);
+                    if (date != null) {
+                        if (date instanceof java.time.LocalDate) {
+                            transaction.setTransactionDate(((java.time.LocalDate) date).format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE));
+                        } else {
+                            transaction.setTransactionDate(java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE));
+                        }
+                    } else {
+                        transaction.setTransactionDate(java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE));
+                    }
+                } catch (Exception e) {
+                    logger.error("Could not extract transaction fields via reflection: {}", e.getMessage());
+                }
+                
+                // Set defaults
+                if (transaction.getDescription() == null || transaction.getDescription().isEmpty()) {
+                    transaction.setDescription("Transaction");
+                }
+                if (transaction.getTransactionDate() == null || transaction.getTransactionDate().isEmpty()) {
+                    transaction.setTransactionDate(java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE));
+                }
+                if (transaction.getAmount() == null) {
+                    transaction.setAmount(java.math.BigDecimal.ZERO);
+                }
+                if (transaction.getCurrencyCode() == null || transaction.getCurrencyCode().isEmpty()) {
+                    transaction.setCurrencyCode("USD");
+                }
+            }
+        } catch (Exception e) {
+            logger.error("Error updating transaction from Plaid data: {}", e.getMessage(), e);
+            // Set defaults even on error
+            if (transaction.getTransactionDate() == null || transaction.getTransactionDate().isEmpty()) {
+                transaction.setTransactionDate(java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE));
+            }
+            if (transaction.getDescription() == null || transaction.getDescription().isEmpty()) {
+                transaction.setDescription("Transaction");
+            }
+            if (transaction.getAmount() == null) {
+                transaction.setAmount(java.math.BigDecimal.ZERO);
+            }
+            if (transaction.getCurrencyCode() == null || transaction.getCurrencyCode().isEmpty()) {
+                transaction.setCurrencyCode("USD");
+            }
+        }
     }
 }

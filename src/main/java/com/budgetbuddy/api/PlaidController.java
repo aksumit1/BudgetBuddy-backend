@@ -264,8 +264,12 @@ public class PlaidController {
             // Get transactions from database (synced transactions)
             var dbTransactions = transactionService.getTransactionsInRange(user, startDate, endDate);
             
-            logger.debug("Retrieved {} transactions from database for user: {}", 
-                    dbTransactions != null ? dbTransactions.size() : 0, user.getUserId());
+            logger.info("Retrieved {} transactions from database for user: {} (date range: {} to {})", 
+                    dbTransactions != null ? dbTransactions.size() : 0, user.getUserId(), startDate, endDate);
+            if (dbTransactions == null || dbTransactions.isEmpty()) {
+                logger.warn("No transactions found for user {} in date range {} to {}. Check if transactions were synced and have correct transactionDate.", 
+                        user.getUserId(), startDate, endDate);
+            }
             return ResponseEntity.ok(dbTransactions);
         } catch (AppException e) {
             throw e;
