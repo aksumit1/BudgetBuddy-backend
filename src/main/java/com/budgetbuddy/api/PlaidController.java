@@ -43,13 +43,16 @@ public class PlaidController {
     private final PlaidSyncService plaidSyncService;
     private final UserService userService;
     private final com.budgetbuddy.repository.dynamodb.AccountRepository accountRepository;
+    private final com.budgetbuddy.service.TransactionService transactionService;
 
     public PlaidController(final PlaidService plaidService, final PlaidSyncService plaidSyncService, 
-            final UserService userService, final com.budgetbuddy.repository.dynamodb.AccountRepository accountRepository) {
+            final UserService userService, final com.budgetbuddy.repository.dynamodb.AccountRepository accountRepository,
+            final com.budgetbuddy.service.TransactionService transactionService) {
         this.plaidService = plaidService;
         this.plaidSyncService = plaidSyncService;
         this.userService = userService;
         this.accountRepository = accountRepository;
+        this.transactionService = transactionService;
     }
 
     /**
@@ -203,12 +206,19 @@ public class PlaidController {
                 // Convert AccountTable to response format
                 if (accounts != null && !accounts.isEmpty()) {
                     accountsResponse.setAccounts(new java.util.ArrayList<>(accounts));
+                    logger.info("Retrieved {} accounts from database for user: {}", accounts.size(), user.getUserId());
+                    // Log account details for debugging
+                    for (var account : accounts) {
+                        logger.debug("Account: {} (ID: {}, Active: {}, PlaidID: {})", 
+                                account.getAccountName(), account.getAccountId(), 
+                                account.getActive(), account.getPlaidAccountId());
+                    }
                 } else {
                     accountsResponse.setAccounts(new java.util.ArrayList<>());
+                    logger.warn("No accounts found in database for user: {} (this may indicate accounts weren't saved or active flag is false)", 
+                            user.getUserId());
                 }
                 accountsResponse.setItem(null); // No item info when fetching from DB
-                logger.debug("Retrieved {} accounts from database for user: {}", 
-                        accounts != null ? accounts.size() : 0, user.getUserId());
             }
 
             return ResponseEntity.ok(accountsResponse);
@@ -218,6 +228,54 @@ public class PlaidController {
             logger.error("Failed to get accounts for user {}: {}", user.getUserId(), e.getMessage(), e);
             throw new AppException(ErrorCode.PLAID_CONNECTION_FAILED,
                     "Failed to retrieve accounts", null, null, e);
+        }
+    }
+
+    /**
+     * Get Transactions
+     * Retrieves transactions for a date range from database (synced from Plaid)
+     */
+    @GetMapping("/transactions")
+    @Operation(
+        summary = "Get Transactions",
+        description = "Retrieves transactions from database for the authenticated user within a date range. Transactions are synced from Plaid."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Transactions retrieved successfully"),
+        @ApiResponse(responseCode = "400", description = "Invalid request parameters"),
+        @ApiResponse(responseCode = "500", description = "Internal server error")
+    })
+    public ResponseEntity<java.util.List<com.budgetbuddy.model.dynamodb.TransactionTable>> getTransactions(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestParam(required = false) @Parameter(description = "Start date (YYYY-MM-DD)") String start,
+            @RequestParam(required = false) @Parameter(description = "End date (YYYY-MM-DD)") String end) {
+        if (userDetails == null || userDetails.getUsername() == null) {
+            throw new AppException(ErrorCode.UNAUTHORIZED, "User not authenticated");
+        }
+
+        UserTable user = userService.findByEmail(userDetails.getUsername())
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+
+        try {
+            // Default to last 30 days if dates not provided
+            java.time.LocalDate endDate = end != null ? java.time.LocalDate.parse(end) : java.time.LocalDate.now();
+            java.time.LocalDate startDate = start != null ? java.time.LocalDate.parse(start) : endDate.minusDays(30);
+            
+            // Get transactions from database (synced transactions)
+            var dbTransactions = transactionService.getTransactionsInRange(user, startDate, endDate);
+            
+            logger.debug("Retrieved {} transactions from database for user: {}", 
+                    dbTransactions != null ? dbTransactions.size() : 0, user.getUserId());
+            return ResponseEntity.ok(dbTransactions);
+        } catch (AppException e) {
+            throw e;
+        } catch (java.time.format.DateTimeParseException e) {
+            logger.error("Invalid date format for user {}: {}", user.getUserId(), e.getMessage());
+            throw new AppException(ErrorCode.INVALID_INPUT, "Invalid date format. Use YYYY-MM-DD");
+        } catch (Exception e) {
+            logger.error("Failed to get transactions for user {}: {}", user.getUserId(), e.getMessage(), e);
+            throw new AppException(ErrorCode.PLAID_CONNECTION_FAILED,
+                    "Failed to retrieve transactions", null, null, e);
         }
     }
 

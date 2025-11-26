@@ -60,6 +60,11 @@ public class AccountRepository {
 
     public List<AccountTable> findByUserId(String userId) {
         List<AccountTable> results = new ArrayList<>();
+        int totalFound = 0;
+        int activeCount = 0;
+        int inactiveCount = 0;
+        int nullActiveCount = 0;
+        
         SdkIterable<software.amazon.awssdk.enhanced.dynamodb.model.Page<AccountTable>>
                 pages = userIdIndex.query(
                         QueryConditional.keyEqualTo(
@@ -67,11 +72,27 @@ public class AccountRepository {
         for (software.amazon.awssdk.enhanced.dynamodb.model.Page<AccountTable>
                 page : pages) {
             for (AccountTable account : page.items()) {
-                if (account.getActive() != null && account.getActive()) {
+                totalFound++;
+                if (account.getActive() == null) {
+                    nullActiveCount++;
+                    // Include accounts with null active (treat as active for backward compatibility)
                     results.add(account);
+                } else if (account.getActive()) {
+                    activeCount++;
+                    results.add(account);
+                } else {
+                    inactiveCount++;
                 }
             }
         }
+        
+        // Log for debugging
+        if (totalFound > 0) {
+            org.slf4j.LoggerFactory.getLogger(AccountRepository.class)
+                    .debug("findByUserId({}): Found {} total accounts ({} active, {} inactive, {} null active). Returning {} accounts.",
+                            userId, totalFound, activeCount, inactiveCount, nullActiveCount, results.size());
+        }
+        
         return results;
     }
 
@@ -212,4 +233,5 @@ public class AccountRepository {
         }
     }
 }
+
 

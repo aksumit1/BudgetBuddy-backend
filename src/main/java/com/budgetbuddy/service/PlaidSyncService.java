@@ -13,10 +13,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.List;
 import java.util.Optional;
 
 /**
@@ -74,12 +72,35 @@ public class PlaidSyncService {
 
             for (var plaidAccount : accountsResponse.getAccounts()) {
                 try {
+                    // Log the actual type for debugging
+                    logger.debug("Processing Plaid account, type: {}", plaidAccount.getClass().getName());
+                    
+                    // Extract account ID - try multiple methods
                     String accountId = extractAccountId(plaidAccount);
                     if (accountId == null || accountId.isEmpty()) {
-                        logger.warn("Account ID is null or empty, skipping");
-                        errorCount++;
-                        continue;
+                        // Try direct method call if instanceof failed
+                        try {
+                            if (plaidAccount.getClass().getName().contains("AccountBase")) {
+                                java.lang.reflect.Method getAccountIdMethod = plaidAccount.getClass().getMethod("getAccountId");
+                                Object idObj = getAccountIdMethod.invoke(plaidAccount);
+                                if (idObj != null) {
+                                    accountId = idObj.toString();
+                                    logger.debug("Extracted account ID via reflection: {}", accountId);
+                                }
+                            }
+                        } catch (Exception e) {
+                            logger.warn("Could not extract account ID via reflection: {}", e.getMessage());
+                        }
+                        
+                        if (accountId == null || accountId.isEmpty()) {
+                            logger.error("Account ID is null or empty, skipping. Account type: {}, toString: {}", 
+                                    plaidAccount.getClass().getName(), plaidAccount.toString());
+                            errorCount++;
+                            continue;
+                        }
                     }
+                    
+                    logger.debug("Extracted account ID: {}", accountId);
 
                     // Check if account exists
                     Optional<AccountTable> existingAccount = accountRepository.findByPlaidAccountId(accountId);
@@ -90,21 +111,51 @@ public class PlaidSyncService {
                         logger.debug("Updating existing account: {}", accountId);
                         // Update account details
                         updateAccountFromPlaid(account, plaidAccount);
+                        // Ensure active is set to true
+                        account.setActive(true);
+                        // Verify required fields are set
+                        if (account.getAccountName() == null || account.getAccountName().isEmpty()) {
+                            logger.warn("Account name is null after update, setting default");
+                            account.setAccountName("Unknown Account");
+                        }
+                        if (account.getBalance() == null) {
+                            account.setBalance(java.math.BigDecimal.ZERO);
+                        }
+                        if (account.getCurrencyCode() == null || account.getCurrencyCode().isEmpty()) {
+                            account.setCurrencyCode("USD");
+                        }
                         accountRepository.save(account);
+                        logger.debug("Updated account: {} (name: {}, balance: {})", 
+                                account.getAccountId(), account.getAccountName(), account.getBalance());
                     } else {
                         // Create new account
                         account = new AccountTable();
                         account.setAccountId(java.util.UUID.randomUUID().toString());
                         account.setUserId(user.getUserId());
                         account.setPlaidAccountId(accountId);
-                        logger.debug("Creating new account: {}", accountId);
-                        // Update account details
+                        account.setActive(true); // Set active to true for new accounts
+                        account.setCreatedAt(java.time.Instant.now());
+                        logger.debug("Creating new account with Plaid ID: {}", accountId);
+                        // Update account details (this should populate name, type, balance, etc.)
                         updateAccountFromPlaid(account, plaidAccount);
+                        // Verify account has required fields before saving
+                        if (account.getAccountName() == null || account.getAccountName().isEmpty()) {
+                            logger.warn("Account name is null after updateAccountFromPlaid, setting default");
+                            account.setAccountName("Unknown Account");
+                        }
+                        if (account.getBalance() == null) {
+                            account.setBalance(java.math.BigDecimal.ZERO);
+                        }
+                        if (account.getCurrencyCode() == null || account.getCurrencyCode().isEmpty()) {
+                            account.setCurrencyCode("USD");
+                        }
                         // Use conditional write to prevent race conditions
                         if (!accountRepository.saveIfNotExists(account)) {
                             logger.warn("Account with ID {} already exists, skipping", account.getAccountId());
                             continue;
                         }
+                        logger.debug("Created account: {} (name: {}, balance: {})", 
+                                account.getAccountId(), account.getAccountName(), account.getBalance());
                     }
                     syncedCount++;
                 } catch (Exception e) {
@@ -230,11 +281,47 @@ public class PlaidSyncService {
      * Extract account ID from Plaid account
      */
     private String extractAccountId(final Object plaidAccount) {
-        // In production, properly extract account ID from Plaid account object
-        // This is a placeholder - actual implementation depends on Plaid SDK structure
         try {
-            // Use reflection or proper Plaid SDK methods to get account ID
-            return plaidAccount.toString(); // Placeholder
+            String className = plaidAccount.getClass().getName();
+            logger.debug("Extracting account ID from type: {}", className);
+            
+            // Try instanceof check first
+            if (plaidAccount instanceof com.plaid.client.model.AccountBase) {
+                com.plaid.client.model.AccountBase accountBase = (com.plaid.client.model.AccountBase) plaidAccount;
+                String accountId = accountBase.getAccountId();
+                if (accountId != null && !accountId.isEmpty()) {
+                    logger.debug("Extracted account ID via instanceof: {}", accountId);
+                    return accountId;
+                } else {
+                    logger.warn("AccountBase.getAccountId() returned null or empty");
+                }
+            }
+            
+            // Fallback: try reflection - this is more reliable across different classloaders
+            try {
+                java.lang.reflect.Method getAccountId = plaidAccount.getClass().getMethod("getAccountId");
+                Object accountId = getAccountId.invoke(plaidAccount);
+                if (accountId != null) {
+                    String accountIdStr = accountId.toString();
+                    // Validate it's not the entire object string
+                    if (!accountIdStr.contains("class AccountBase") && !accountIdStr.contains("\n")) {
+                        logger.debug("Extracted account ID via reflection: {}", accountIdStr);
+                        return accountIdStr;
+                    } else {
+                        logger.warn("getAccountId() returned object string instead of ID: {}", accountIdStr.substring(0, Math.min(100, accountIdStr.length())));
+                    }
+                }
+            } catch (NoSuchMethodException e) {
+                logger.warn("getAccountId method not found on {}", className);
+            } catch (Exception e) {
+                logger.warn("Could not extract account ID using reflection: {}", e.getMessage());
+            }
+            
+            // Last resort: log the object type for debugging
+            String toString = plaidAccount.toString();
+            logger.error("Failed to extract account ID from Plaid account. Type: {}, toString (first 200 chars): {}", 
+                    className, toString.length() > 200 ? toString.substring(0, 200) : toString);
+            return null;
         } catch (Exception e) {
             logger.error("Failed to extract account ID", e);
             return null;
@@ -259,9 +346,152 @@ public class PlaidSyncService {
      * Update account from Plaid account data
      */
     private void updateAccountFromPlaid(final AccountTable account, final Object plaidAccount) {
-        // In production, properly map all fields from Plaid account
-        // This is a placeholder
-        account.setUpdatedAt(java.time.Instant.now());
+        try {
+            java.time.Instant now = java.time.Instant.now();
+            account.setUpdatedAt(now);
+            account.setLastSyncedAt(now);
+            
+            String className = plaidAccount.getClass().getName();
+            logger.debug("Updating account from Plaid object, type: {}", className);
+            
+            // Plaid SDK returns AccountBase objects
+            // Try instanceof check first
+            com.plaid.client.model.AccountBase accountBase = null;
+            if (plaidAccount instanceof com.plaid.client.model.AccountBase) {
+                accountBase = (com.plaid.client.model.AccountBase) plaidAccount;
+            } else {
+                // Try to cast using reflection if instanceof fails (classloader issue)
+                logger.warn("instanceof check failed for AccountBase, trying reflection. Type: {}", className);
+                try {
+                    // Try to get the AccountBase interface/class
+                    Class<?> accountBaseClass = Class.forName("com.plaid.client.model.AccountBase");
+                    if (accountBaseClass.isInstance(plaidAccount)) {
+                        accountBase = (com.plaid.client.model.AccountBase) plaidAccount;
+                        logger.debug("Successfully cast to AccountBase via Class.forName");
+                    }
+                } catch (ClassNotFoundException e) {
+                    logger.warn("AccountBase class not found: {}", e.getMessage());
+                }
+            }
+            
+            if (accountBase != null) {
+                com.plaid.client.model.AccountBase accountBase = (com.plaid.client.model.AccountBase) plaidAccount;
+                
+                // Extract account name - prefer official name, then name, then mask
+                String officialName = accountBase.getOfficialName();
+                if (officialName != null && !officialName.isEmpty()) {
+                    account.setAccountName(officialName);
+                } else {
+                    String name = accountBase.getName();
+                    if (name != null && !name.isEmpty()) {
+                        account.setAccountName(name);
+                    } else {
+                        String mask = accountBase.getMask();
+                        if (mask != null && !mask.isEmpty()) {
+                            account.setAccountName("Account " + mask);
+                        } else {
+                            account.setAccountName("Unknown Account");
+                        }
+                    }
+                }
+                
+                // Extract account type and subtype
+                if (accountBase.getType() != null) {
+                    account.setAccountType(accountBase.getType().toString());
+                }
+                com.plaid.client.model.AccountSubtype subtype = accountBase.getSubtype();
+                if (subtype != null) {
+                    account.setAccountSubtype(subtype.toString());
+                }
+                
+                // Extract balance - prefer available, then current
+                if (accountBase.getBalances() != null) {
+                    com.plaid.client.model.AccountBalance balances = accountBase.getBalances();
+                    Double available = balances.getAvailable();
+                    Double current = balances.getCurrent();
+                    if (available != null) {
+                        account.setBalance(java.math.BigDecimal.valueOf(available));
+                    } else if (current != null) {
+                        account.setBalance(java.math.BigDecimal.valueOf(current));
+                    } else {
+                        account.setBalance(java.math.BigDecimal.ZERO);
+                    }
+                    
+                    // Extract currency code if available
+                    if (balances.getIsoCurrencyCode() != null) {
+                        account.setCurrencyCode(balances.getIsoCurrencyCode());
+                    } else if (balances.getUnofficialCurrencyCode() != null) {
+                        account.setCurrencyCode(balances.getUnofficialCurrencyCode());
+                    } else {
+                        account.setCurrencyCode("USD"); // Default
+                    }
+                } else {
+                    account.setBalance(java.math.BigDecimal.ZERO);
+                    account.setCurrencyCode("USD");
+                }
+                
+                // Ensure active is set
+                if (account.getActive() == null) {
+                    account.setActive(true);
+                }
+                
+                logger.debug("Updated account from Plaid: {} (name: {}, balance: {}, type: {})", 
+                        account.getPlaidAccountId(), account.getAccountName(), account.getBalance(), account.getAccountType());
+            } else {
+                // Fallback: try reflection for other Plaid SDK versions
+                logger.warn("Plaid account is not AccountBase instance, type: {}", plaidAccount.getClass().getName());
+                try {
+                    java.lang.reflect.Method getName = plaidAccount.getClass().getMethod("getName");
+                    Object name = getName.invoke(plaidAccount);
+                    if (name != null) {
+                        account.setAccountName(name.toString());
+                    }
+                    
+                    java.lang.reflect.Method getAccountId = plaidAccount.getClass().getMethod("getAccountId");
+                    Object accountId = getAccountId.invoke(plaidAccount);
+                    if (accountId != null && account.getPlaidAccountId() == null) {
+                        account.setPlaidAccountId(accountId.toString());
+                    }
+                } catch (Exception e) {
+                    logger.warn("Could not extract account fields using reflection: {}", e.getMessage());
+                }
+                
+                // Ensure active is set even if we can't extract other fields
+                if (account.getActive() == null) {
+                    account.setActive(true);
+                }
+                
+                // Set defaults if fields are still null
+                if (account.getAccountName() == null) {
+                    account.setAccountName("Unknown Account");
+                }
+                if (account.getBalance() == null) {
+                    account.setBalance(java.math.BigDecimal.ZERO);
+                }
+                if (account.getCurrencyCode() == null) {
+                    account.setCurrencyCode("USD");
+                }
+            }
+        } catch (Exception e) {
+            logger.error("Error updating account from Plaid data: {}", e.getMessage(), e);
+            logger.error("Plaid account type: {}, toString: {}", 
+                    plaidAccount.getClass().getName(), plaidAccount.toString());
+            // Still set updatedAt and active even if mapping fails
+            account.setUpdatedAt(java.time.Instant.now());
+            if (account.getActive() == null) {
+                account.setActive(true);
+            }
+            // Set defaults
+            if (account.getAccountName() == null) {
+                account.setAccountName("Unknown Account");
+            }
+            if (account.getBalance() == null) {
+                account.setBalance(java.math.BigDecimal.ZERO);
+            }
+            if (account.getCurrencyCode() == null) {
+                account.setCurrencyCode("USD");
+            }
+        }
     }
 
     /**
