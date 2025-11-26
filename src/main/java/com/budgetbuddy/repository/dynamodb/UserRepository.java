@@ -46,14 +46,14 @@ public class UserRepository {
         userTable.putItem(user);
     }
 
-    @Cacheable(value = "users", key = "#userId", unless = "#result == null || !#result.isPresent()")
-    public Optional<UserTable> findById(String userId) {
+    @Cacheable(value = "users", key = "#userId", unless = "#result == null")
+    public Optional<UserTable> findById(final String userId) {
         UserTable user = userTable.getItem(Key.builder().partitionValue(userId).build());
         return Optional.ofNullable(user);
     }
 
-    @Cacheable(value = "users", key = "'email:' + #email", unless = "#result == null || !#result.isPresent()")
-    public Optional<UserTable> findByEmail(String email) {
+    @Cacheable(value = "users", key = "'email:' + #email", unless = "#result == null")
+    public Optional<UserTable> findByEmail(final String email) {
         // Query GSI for email lookup
         SdkIterable<software.amazon.awssdk.enhanced.dynamodb.model.Page<UserTable>> pages =
                 userTable.index(EMAIL_INDEX).query(QueryConditional.keyEqualTo(Key.builder().partitionValue(email).build()));
