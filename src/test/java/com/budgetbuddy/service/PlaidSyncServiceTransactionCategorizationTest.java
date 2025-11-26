@@ -1,8 +1,10 @@
 package com.budgetbuddy.service;
 
+import com.budgetbuddy.model.dynamodb.AccountTable;
 import com.budgetbuddy.model.dynamodb.TransactionTable;
 import com.budgetbuddy.model.dynamodb.UserTable;
 import com.budgetbuddy.plaid.PlaidService;
+import com.budgetbuddy.repository.dynamodb.AccountRepository;
 import com.budgetbuddy.repository.dynamodb.TransactionRepository;
 import com.plaid.client.model.*;
 import org.junit.jupiter.api.BeforeEach;
@@ -34,18 +36,28 @@ class PlaidSyncServiceTransactionCategorizationTest {
     private PlaidService plaidService;
 
     @Mock
+    private AccountRepository accountRepository;
+
+    @Mock
     private TransactionRepository transactionRepository;
 
     @InjectMocks
     private PlaidSyncService plaidSyncService;
 
     private UserTable testUser;
+    private AccountTable testAccount;
 
     @BeforeEach
     void setUp() {
         testUser = new UserTable();
         testUser.setUserId(UUID.randomUUID().toString());
         testUser.setEmail("test@example.com");
+        
+        testAccount = new AccountTable();
+        testAccount.setAccountId(UUID.randomUUID().toString());
+        testAccount.setUserId(testUser.getUserId());
+        testAccount.setPlaidAccountId("plaid-account-1");
+        testAccount.setLastSyncedAt(null); // First sync
     }
 
     @Test
@@ -63,6 +75,8 @@ class PlaidSyncServiceTransactionCategorizationTest {
         mockResponse.setTransactions(Arrays.asList(plaidTransaction));
         mockResponse.setTotalTransactions(1);
 
+        when(accountRepository.findByUserId(testUser.getUserId()))
+                .thenReturn(Collections.singletonList(testAccount));
         when(plaidService.getTransactions(anyString(), anyString(), anyString()))
                 .thenReturn(mockResponse);
         when(transactionRepository.findByPlaidTransactionId(anyString()))
@@ -99,6 +113,8 @@ class PlaidSyncServiceTransactionCategorizationTest {
         mockResponse.setTransactions(Arrays.asList(plaidTransaction));
         mockResponse.setTotalTransactions(1);
 
+        when(accountRepository.findByUserId(testUser.getUserId()))
+                .thenReturn(Collections.singletonList(testAccount));
         when(plaidService.getTransactions(anyString(), anyString(), anyString()))
                 .thenReturn(mockResponse);
         when(transactionRepository.findByPlaidTransactionId(anyString()))
@@ -137,6 +153,8 @@ class PlaidSyncServiceTransactionCategorizationTest {
         mockResponse.setTransactions(Arrays.asList(plaidTransaction));
         mockResponse.setTotalTransactions(1);
 
+        when(accountRepository.findByUserId(testUser.getUserId()))
+                .thenReturn(Collections.singletonList(testAccount));
         when(plaidService.getTransactions(anyString(), anyString(), anyString()))
                 .thenReturn(mockResponse);
         when(transactionRepository.findByPlaidTransactionId(anyString()))
@@ -171,6 +189,8 @@ class PlaidSyncServiceTransactionCategorizationTest {
         mockResponse.setTransactions(Arrays.asList(plaidTransaction));
         mockResponse.setTotalTransactions(1);
 
+        when(accountRepository.findByUserId(testUser.getUserId()))
+                .thenReturn(Collections.singletonList(testAccount));
         when(plaidService.getTransactions(anyString(), anyString(), anyString()))
                 .thenReturn(mockResponse);
         when(transactionRepository.findByPlaidTransactionId(anyString()))

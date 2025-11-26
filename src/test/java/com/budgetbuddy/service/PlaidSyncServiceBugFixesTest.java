@@ -111,6 +111,13 @@ class PlaidSyncServiceBugFixesTest {
     @Test
     void testSyncTransactions_SetsCorrectDateFormat_YYYYMMDD() {
         // Given - Transaction with date
+        // First, create a test account (required for per-account sync)
+        AccountTable testAccount = new AccountTable();
+        testAccount.setAccountId(UUID.randomUUID().toString());
+        testAccount.setUserId(testUserId);
+        testAccount.setPlaidAccountId("plaid-account-1");
+        testAccount.setLastSyncedAt(null); // First sync
+        
         Transaction plaidTransaction = createMockPlaidTransaction(
                 "plaid-tx-1",
                 "Test Transaction",
@@ -122,6 +129,7 @@ class PlaidSyncServiceBugFixesTest {
         transactionsResponse.setTransactions(Collections.singletonList(plaidTransaction));
         transactionsResponse.setTotalTransactions(1);
 
+        when(accountRepository.findByUserId(testUserId)).thenReturn(Collections.singletonList(testAccount));
         when(plaidService.getTransactions(eq(testAccessToken), anyString(), anyString()))
                 .thenReturn(transactionsResponse);
         when(transactionRepository.findByPlaidTransactionId("plaid-tx-1")).thenReturn(Optional.empty());
@@ -141,6 +149,13 @@ class PlaidSyncServiceBugFixesTest {
     @Test
     void testSyncTransactions_HandlesNullCategory_DefaultsToOther() {
         // Given - Transaction with null category (BUG FIX: This was causing iOS app failures)
+        // First, create a test account (required for per-account sync)
+        AccountTable testAccount = new AccountTable();
+        testAccount.setAccountId(UUID.randomUUID().toString());
+        testAccount.setUserId(testUserId);
+        testAccount.setPlaidAccountId("plaid-account-1");
+        testAccount.setLastSyncedAt(null); // First sync
+        
         Transaction plaidTransaction = createMockPlaidTransaction(
                 "plaid-tx-1",
                 "Uber 072515 SF**POOL**",
@@ -152,6 +167,7 @@ class PlaidSyncServiceBugFixesTest {
         transactionsResponse.setTransactions(Collections.singletonList(plaidTransaction));
         transactionsResponse.setTotalTransactions(1);
 
+        when(accountRepository.findByUserId(testUserId)).thenReturn(Collections.singletonList(testAccount));
         when(plaidService.getTransactions(eq(testAccessToken), anyString(), anyString()))
                 .thenReturn(transactionsResponse);
         when(transactionRepository.findByPlaidTransactionId("plaid-tx-1")).thenReturn(Optional.empty());
@@ -172,6 +188,13 @@ class PlaidSyncServiceBugFixesTest {
     @Test
     void testSyncTransactions_HandlesPartialFailures_Gracefully() {
         // Given - Multiple transactions, one with invalid data
+        // First, create a test account (required for per-account sync)
+        AccountTable testAccount = new AccountTable();
+        testAccount.setAccountId(UUID.randomUUID().toString());
+        testAccount.setUserId(testUserId);
+        testAccount.setPlaidAccountId("plaid-account-1");
+        testAccount.setLastSyncedAt(null); // First sync
+        
         Transaction validTransaction = createMockPlaidTransaction(
                 "plaid-tx-1",
                 "Valid Transaction",
@@ -190,6 +213,7 @@ class PlaidSyncServiceBugFixesTest {
         transactionsResponse.setTransactions(Arrays.asList(validTransaction, invalidTransaction));
         transactionsResponse.setTotalTransactions(2);
 
+        when(accountRepository.findByUserId(testUserId)).thenReturn(Collections.singletonList(testAccount));
         when(plaidService.getTransactions(eq(testAccessToken), anyString(), anyString()))
                 .thenReturn(transactionsResponse);
         when(transactionRepository.findByPlaidTransactionId("plaid-tx-1")).thenReturn(Optional.empty());

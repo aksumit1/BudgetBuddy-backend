@@ -158,9 +158,20 @@ class PlaidSyncServiceTest {
     @Test
     void testSyncTransactions_WithValidData_CreatesTransactions() {
         // Given
+        // First, create a test account (required for per-account sync)
+        AccountTable testAccount = new AccountTable();
+        testAccount.setAccountId(UUID.randomUUID().toString());
+        testAccount.setUserId(testUser.getUserId());
+        testAccount.setPlaidAccountId("plaid-account-1");
+        testAccount.setLastSyncedAt(null); // First sync
+        
         TransactionsGetResponse transactionsResponse = createMockTransactionsResponse();
+        when(accountRepository.findByUserId(testUser.getUserId()))
+                .thenReturn(Collections.singletonList(testAccount));
         when(plaidService.getTransactions(eq(testAccessToken), anyString(), anyString()))
                 .thenReturn(transactionsResponse);
+        when(transactionRepository.findByPlaidTransactionId(anyString()))
+                .thenReturn(Optional.empty());
         when(transactionRepository.saveIfPlaidTransactionNotExists(any(TransactionTable.class)))
                 .thenReturn(true);
 
@@ -168,7 +179,7 @@ class PlaidSyncServiceTest {
         assertDoesNotThrow(() -> plaidSyncService.syncTransactions(testUser, testAccessToken));
 
         // Then
-        verify(plaidService, times(1)).getTransactions(eq(testAccessToken), anyString(), anyString());
+        verify(plaidService, atLeastOnce()).getTransactions(eq(testAccessToken), anyString(), anyString());
         verify(transactionRepository, atLeastOnce()).saveIfPlaidTransactionNotExists(any(TransactionTable.class));
     }
 

@@ -106,10 +106,17 @@ public class AuthService {
         }
 
         // Create UserDetails object for JWT token generation
+        // Ensure passwordHash is not null (use empty string as fallback for UserDetails)
+        String passwordHash = user.getPasswordHash();
+        if (passwordHash == null || passwordHash.isEmpty()) {
+            logger.error("User {} has no password hash during authentication. This should not happen.", request.getEmail());
+            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "User account configuration error");
+        }
+        
         org.springframework.security.core.userdetails.UserDetails userDetails = 
                 org.springframework.security.core.userdetails.User.builder()
                         .username(user.getEmail())
-                        .password(user.getPasswordHash())
+                        .password(passwordHash)
                         .authorities(authorities)
                         .accountExpired(false)
                         .accountLocked(!Boolean.TRUE.equals(user.getEnabled()))
@@ -187,8 +194,27 @@ public class AuthService {
         }
 
         // Generate new tokens
+        // Create UserDetails object for token generation (same as in authenticate method)
+        // Ensure passwordHash is not null (use empty string as fallback for UserDetails)
+        String passwordHash = user.getPasswordHash();
+        if (passwordHash == null || passwordHash.isEmpty()) {
+            logger.warn("User {} has no password hash during token refresh. Using empty string.", email);
+            passwordHash = ""; // UserDetails requires non-null password
+        }
+        
+        org.springframework.security.core.userdetails.UserDetails userDetails = 
+                org.springframework.security.core.userdetails.User.builder()
+                        .username(user.getEmail())
+                        .password(passwordHash)
+                        .authorities(authorities)
+                        .accountExpired(false)
+                        .accountLocked(!Boolean.TRUE.equals(user.getEnabled()))
+                        .credentialsExpired(false)
+                        .disabled(!Boolean.TRUE.equals(user.getEnabled()))
+                        .build();
+
         Authentication authentication = new UsernamePasswordAuthenticationToken(
-                user.getEmail(), null, authorities);
+                userDetails, null, authorities);
         String newAccessToken = tokenProvider.generateToken(authentication);
         String newRefreshToken = tokenProvider.generateRefreshToken(email);
 
