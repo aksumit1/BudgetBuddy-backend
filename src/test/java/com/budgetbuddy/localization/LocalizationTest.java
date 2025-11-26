@@ -56,7 +56,7 @@ class LocalizationTest {
     @Test
     void testGetMessage_WithSpanishLocale() {
         // Given - Spanish locale
-        LocaleContextHolder.setLocale(new Locale("es", "ES"));
+        LocaleContextHolder.setLocale(Locale.forLanguageTag("es-ES"));
 
         // When
         String message = messageUtil.getMessage("error.user.not.found");
@@ -92,7 +92,7 @@ class LocalizationTest {
     @Test
     void testGetMessage_WithUnsupportedLocale_FallsBackToDefault() {
         // Given - Unsupported locale
-        LocaleContextHolder.setLocale(new Locale("xx", "XX"));
+        LocaleContextHolder.setLocale(Locale.forLanguageTag("xx-XX"));
 
         // When
         String message = messageUtil.getMessage("error.user.not.found");

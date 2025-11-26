@@ -22,6 +22,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
+import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -99,10 +100,15 @@ class PlaidControllerIntegrationTest {
     void testGetAccounts_WithAccessToken_ReturnsAccountsFromPlaid() throws Exception {
         // When/Then - Should attempt to fetch from Plaid API when accessToken is provided
         // Note: This will fail if Plaid API is not configured, but should not throw MissingServletRequestParameterException
-        mockMvc.perform(get("/api/plaid/accounts")
+        // Accept either 200 OK (if Plaid works) or 5xx (if not configured) - both are valid outcomes
+        var result = mockMvc.perform(get("/api/plaid/accounts")
                         .param("accessToken", "test-access-token")
                         .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk().or(status().is5xxServerError())); // OK if Plaid works, 5xx if not configured
+                .andReturn();
+        
+        int status = result.getResponse().getStatus();
+        assertTrue(status == 200 || status >= 500, 
+                "Should return 200 OK or 5xx error, not MissingServletRequestParameterException");
     }
 
     @Test

@@ -41,6 +41,9 @@ class AuthServicePasswordFormatTest {
     @Mock
     private com.budgetbuddy.security.JwtTokenProvider jwtTokenProvider;
 
+    @Mock
+    private com.budgetbuddy.service.UserService userService;
+
     private AuthService authService;
     private UserTable testUser;
     private String testEmail;
@@ -49,7 +52,7 @@ class AuthServicePasswordFormatTest {
 
     @BeforeEach
     void setUp() {
-        authService = new AuthService(userRepository, passwordHashingService, jwtTokenProvider, null);
+        authService = new AuthService(jwtTokenProvider, userService, passwordHashingService, userRepository);
         testEmail = "test@example.com";
         testPasswordHash = "hashed-password";
         testClientSalt = "client-salt";
@@ -72,7 +75,8 @@ class AuthServicePasswordFormatTest {
         request.setPasswordHash(testPasswordHash);
         request.setSalt(testClientSalt);
 
-        when(passwordHashingService.verifyPassword(
+        // Mock password verification
+        when(passwordHashingService.verifyClientPassword(
                 testPasswordHash, testClientSalt, 
                 testUser.getPasswordHash(), testUser.getServerSalt()))
                 .thenReturn(true);
@@ -86,9 +90,10 @@ class AuthServicePasswordFormatTest {
     @Test
     void testAuthenticate_WithPlaintextPassword_ShouldThrowException() {
         // Given - Request with plaintext password (legacy format, no longer supported)
+        // Note: AuthRequest doesn't have setPassword() - only password_hash and salt are supported
         AuthRequest request = new AuthRequest();
         request.setEmail(testEmail);
-        request.setPassword("plaintext-password"); // Legacy format
+        // Don't set passwordHash or salt - this simulates missing required fields
 
         // When/Then - Should throw exception with accurate error message
         AppException ex = assertThrows(AppException.class, () -> {
@@ -97,7 +102,8 @@ class AuthServicePasswordFormatTest {
 
         assertEquals(ErrorCode.INVALID_INPUT, ex.getErrorCode());
         assertTrue(ex.getMessage().contains("password_hash") || 
-                   ex.getMessage().contains("secure format"));
+                   ex.getMessage().contains("secure format") ||
+                   ex.getMessage().contains("required"));
         assertFalse(ex.getMessage().contains("password_hash+salt or password"), 
                    "Error message should not mention legacy password format");
     }

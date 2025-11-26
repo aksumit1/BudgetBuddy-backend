@@ -124,16 +124,35 @@ public class PlaidController {
         try {
             var response = plaidService.exchangePublicToken(request.getPublicToken());
             String accessToken = response.getAccessToken();
+            String itemId = response.getItemId();
 
-            // Sync accounts and transactions
-            plaidSyncService.syncAccounts(user, accessToken);
-            plaidSyncService.syncTransactions(user, accessToken);
+            if (accessToken == null || accessToken.isEmpty()) {
+                throw new AppException(ErrorCode.PLAID_CONNECTION_FAILED, "Access token is null or empty");
+            }
+            if (itemId == null || itemId.isEmpty()) {
+                throw new AppException(ErrorCode.PLAID_CONNECTION_FAILED, "Item ID is null or empty");
+            }
+
+            // Sync accounts and transactions (don't fail the request if sync fails)
+            try {
+                plaidSyncService.syncAccounts(user, accessToken);
+            } catch (Exception syncError) {
+                logger.warn("Account sync failed for user {} (non-fatal): {}", user.getUserId(), syncError.getMessage());
+                // Continue - token exchange succeeded even if sync failed
+            }
+
+            try {
+                plaidSyncService.syncTransactions(user, accessToken);
+            } catch (Exception syncError) {
+                logger.warn("Transaction sync failed for user {} (non-fatal): {}", user.getUserId(), syncError.getMessage());
+                // Continue - token exchange succeeded even if sync failed
+            }
 
             ExchangeTokenResponse tokenResponse = new ExchangeTokenResponse();
             tokenResponse.setAccessToken(accessToken);
-            tokenResponse.setItemId(response.getItemId());
+            tokenResponse.setItemId(itemId);
 
-            logger.info("Token exchanged and data synced for user: {}", user.getUserId());
+            logger.info("Token exchanged successfully for user: {} (itemId: {})", user.getUserId(), itemId);
             return ResponseEntity.ok(tokenResponse);
         } catch (AppException e) {
             throw e;

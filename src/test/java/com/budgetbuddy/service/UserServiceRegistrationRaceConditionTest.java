@@ -4,6 +4,7 @@ import com.budgetbuddy.exception.AppException;
 import com.budgetbuddy.exception.ErrorCode;
 import com.budgetbuddy.model.dynamodb.UserTable;
 import com.budgetbuddy.repository.dynamodb.UserRepository;
+import com.budgetbuddy.security.PasswordHashingService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -39,6 +40,9 @@ class UserServiceRegistrationRaceConditionTest {
     private UserRepository userRepository;
 
     @Mock
+    private org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
+
+    @Mock
     private PasswordHashingService passwordHashingService;
 
     private UserService userService;
@@ -48,7 +52,7 @@ class UserServiceRegistrationRaceConditionTest {
 
     @BeforeEach
     void setUp() {
-        userService = new UserService(userRepository, passwordHashingService, null, null);
+        userService = new UserService(userRepository, passwordEncoder, passwordHashingService);
         testEmail = "test-" + UUID.randomUUID() + "@example.com";
         testPasswordHash = "hashed-password";
         testClientSalt = "client-salt";
