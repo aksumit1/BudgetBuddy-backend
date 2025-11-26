@@ -222,6 +222,7 @@ public class PlaidController {
 
     // DTOs
     public static class LinkTokenResponse {
+        @com.fasterxml.jackson.annotation.JsonProperty("link_token")
         private String linkToken;
         private String expiration;
 
@@ -233,6 +234,7 @@ public class PlaidController {
 
     public static class ExchangeTokenRequest {
         @NotBlank(message = "Public token is required")
+        @com.fasterxml.jackson.annotation.JsonProperty("public_token")
         private String publicToken;
 
         public String getPublicToken() { return publicToken; }
@@ -240,7 +242,9 @@ public class PlaidController {
     }
 
     public static class ExchangeTokenResponse {
+        @com.fasterxml.jackson.annotation.JsonProperty("access_token")
         private String accessToken;
+        @com.fasterxml.jackson.annotation.JsonProperty("plaid_item_id")
         private String itemId;
 
         public String getAccessToken() { return accessToken; }
@@ -261,6 +265,7 @@ public class PlaidController {
 
     public static class SyncRequest {
         @NotBlank(message = "Access token is required")
+        @com.fasterxml.jackson.annotation.JsonProperty("access_token")
         private String accessToken;
 
         public String getAccessToken() { return accessToken; }
