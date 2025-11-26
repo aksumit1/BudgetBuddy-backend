@@ -103,14 +103,35 @@ public class PlaidService {
         }
 
         try {
+            // Build products list based on environment
+            // AUTH product requires OAuth which is not supported in sandbox
+            List<Products> productsList = new java.util.ArrayList<>();
+            productsList.add(Products.TRANSACTIONS);
+            productsList.add(Products.IDENTITY);
+            
+            // Only include AUTH in production/development (not sandbox)
+            if (!"sandbox".equalsIgnoreCase(environment)) {
+                productsList.add(Products.AUTH);
+                logger.debug("Including AUTH product for environment: {}", environment);
+            } else {
+                logger.debug("Skipping AUTH product for sandbox environment (OAuth not supported)");
+            }
+            
             LinkTokenCreateRequest request = new LinkTokenCreateRequest()
                     .user(new LinkTokenCreateRequestUser().clientUserId(userId))
                     .clientName(clientName)
-                    .products(List.of(Products.TRANSACTIONS, Products.AUTH, Products.IDENTITY))
+                    .products(productsList)
                     .countryCodes(List.of(CountryCode.US))
-                    .language("en")
-                    .webhook("https://api.budgetbuddy.com/api/plaid/webhooks")  // Webhook URL
-                    .redirectUri("https://app.budgetbuddy.com/plaid/callback");  // Redirect URI
+                    .language("en");
+            
+            // Only set webhook and redirect URI if not sandbox (or if configured)
+            // For sandbox, these are optional and may cause issues if not configured in dashboard
+            if (!"sandbox".equalsIgnoreCase(environment)) {
+                request.webhook("https://api.budgetbuddy.com/api/plaid/webhooks");
+                request.redirectUri("https://app.budgetbuddy.com/plaid/callback");
+            } else {
+                logger.debug("Skipping webhook and redirect URI for sandbox environment");
+            }
 
             var callResponse = plaidApi.linkTokenCreate(request).execute();
             
