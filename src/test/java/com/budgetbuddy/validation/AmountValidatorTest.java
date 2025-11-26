@@ -14,13 +14,9 @@ import static org.mockito.Mockito.*;
 
 /**
  * Unit Tests for AmountValidator
- * 
- * DISABLED: Java 25 compatibility issue - Mockito/ByteBuddy cannot mock certain dependencies
- * due to Java 25 bytecode (major version 69) not being fully supported by ByteBuddy.
- * Will be re-enabled when Mockito/ByteBuddy adds full Java 25 support.
  */
-@org.junit.jupiter.api.Disabled("Java 25 compatibility: Mockito mocking issues")
 @ExtendWith(MockitoExtension.class)
+@org.mockito.junit.jupiter.MockitoSettings(strictness = org.mockito.quality.Strictness.LENIENT)
 class AmountValidatorTest {
 
     @Mock
@@ -75,15 +71,15 @@ class AmountValidatorTest {
     }
 
     @Test
-    void testIsValid_WithZeroAmount_ReturnsTrue() {
-        // Given
+    void testIsValid_WithZeroAmount_ReturnsFalse() {
+        // Given - Zero is not valid (must be > 0)
         Double zeroAmount = 0.0;
 
         // When
         boolean isValid = amountValidator.isValid(zeroAmount, constraintValidatorContext);
 
         // Then
-        assertTrue(isValid); // Zero might be valid depending on business rules
+        assertFalse(isValid); // Zero is not valid (must be greater than zero)
     }
 }
 

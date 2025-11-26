@@ -594,6 +594,9 @@ public class PlaidSyncService {
                 java.util.List<String> categoryList = plaidTx.getCategory();
                 if (categoryList != null && !categoryList.isEmpty()) {
                     transaction.setCategory(String.join(", ", categoryList));
+                } else {
+                    // Default to "Other" if category is null or empty
+                    transaction.setCategory("Other");
                 }
                 
                 // Extract date - CRITICAL for date range queries

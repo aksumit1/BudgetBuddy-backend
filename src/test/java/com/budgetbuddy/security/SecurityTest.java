@@ -1,5 +1,6 @@
 package com.budgetbuddy.security;
 
+import com.budgetbuddy.AWSTestConfiguration;
 import com.budgetbuddy.api.AuthController;
 import com.budgetbuddy.dto.AuthRequest;
 import com.budgetbuddy.exception.AppException;
@@ -7,6 +8,7 @@ import com.budgetbuddy.exception.ErrorCode;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -15,13 +17,10 @@ import static org.junit.jupiter.api.Assertions.*;
  * Security Tests
  * Tests security vulnerabilities and protections
  * 
- * DISABLED: Java 25 compatibility issue - Spring Boot context fails to load
- * due to Java 25 class format (major version 69) incompatibility with Spring Boot 3.4.1.
- * Will be re-enabled when Spring Boot fully supports Java 25.
  */
-@org.junit.jupiter.api.Disabled("Java 25 compatibility: Spring Boot context loading fails")
 @SpringBootTest(classes = com.budgetbuddy.BudgetBuddyApplication.class)
 @ActiveProfiles("test")
+@Import(AWSTestConfiguration.class)
 class SecurityTest {
 
     @Autowired
@@ -36,9 +35,10 @@ class SecurityTest {
         request.setSalt("salt");
 
         // When/Then - Should not execute SQL, should fail validation
+        // The email validation should catch this or authentication should fail
         assertThrows(Exception.class, () -> {
-            // This should be caught by validation or fail safely
-        });
+            authController.login(request);
+        }, "SQL injection attempt should be rejected");
     }
 
     @Test
@@ -108,8 +108,8 @@ class SecurityTest {
 
         // When/Then - Should fail validation
         assertThrows(Exception.class, () -> {
-            // Validation should catch null values
-        });
+            authController.login(request);
+        }, "Null values should be rejected by validation");
     }
 
     @Test

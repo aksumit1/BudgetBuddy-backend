@@ -35,6 +35,10 @@ import java.util.concurrent.atomic.AtomicReference;
  * - Deadlock prevention
  */
 @Configuration
+@org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(
+        name = "app.aws.appconfig.enabled", 
+        havingValue = "true", 
+        matchIfMissing = true)
 public class AppConfigIntegration {
 
     private static final Logger logger = LoggerFactory.getLogger(AppConfigIntegration.class);
@@ -54,7 +58,7 @@ public class AppConfigIntegration {
     @Value("${app.aws.appconfig.enabled:true}")
     private boolean enabled;
 
-    private final AppConfigDataClient appConfigDataClient;
+    private AppConfigDataClient appConfigDataClient;
     private final AtomicReference<String> configurationToken = new AtomicReference<>();
     private final AtomicReference<String> latestConfiguration = new AtomicReference<>();
     private final AtomicReference<JsonNode> parsedConfiguration = new AtomicReference<>();
@@ -68,16 +72,35 @@ public class AppConfigIntegration {
     private final Object sessionLock = new Object(); // Prevent deadlocks
 
     public AppConfigIntegration() {
-        this.appConfigDataClient = AppConfigDataClient.builder().build();
+        // Client will be created lazily in @PostConstruct if enabled
     }
 
     @Bean
+    @org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(
+            name = "app.aws.appconfig.enabled", 
+            havingValue = "true", 
+            matchIfMissing = true)
     public AppConfigClient appConfigClient() {
-        return AppConfigClient.builder().build();
+        if (!enabled) {
+            return null;
+        }
+        try {
+            return AppConfigClient.builder().build();
+        } catch (Exception e) {
+            logger.warn("Failed to create AppConfigClient (this is expected in tests without AWS credentials): {}", e.getMessage());
+            return null;
+        }
     }
 
     @Bean
+    @org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(
+            name = "app.aws.appconfig.enabled", 
+            havingValue = "true", 
+            matchIfMissing = true)
     public AppConfigDataClient appConfigDataClient() {
+        if (!enabled || this.appConfigDataClient == null) {
+            return null;
+        }
         return this.appConfigDataClient;
     }
 
@@ -89,6 +112,8 @@ public class AppConfigIntegration {
         }
         
         try {
+            // Create client lazily here after @Value injection
+            this.appConfigDataClient = AppConfigDataClient.builder().build();
             startConfigurationSession();
             scheduleConfigurationRefresh();
             logger.info("AWS AppConfig integration initialized for application: {}, environment: {}",
@@ -96,6 +121,8 @@ public class AppConfigIntegration {
         } catch (Exception e) {
             logger.warn("Failed to initialize AWS AppConfig (this is expected in local development without AWS credentials): {}", e.getMessage());
             logger.debug("AppConfig initialization error details", e);
+            // Set to null to prevent NPE
+            this.appConfigDataClient = null;
         }
     }
 
@@ -128,7 +155,7 @@ public class AppConfigIntegration {
      * Synchronized to prevent concurrent session creation
      */
     private void startConfigurationSession() {
-        if (!enabled) {
+        if (!enabled || appConfigDataClient == null) {
             return;
         }
         
@@ -161,6 +188,10 @@ public class AppConfigIntegration {
      * Thread-safe implementation
      */
     public String getLatestConfiguration() {
+        if (!enabled || appConfigDataClient == null) {
+            return latestConfiguration.get();
+        }
+        
         String token = configurationToken.get();
         if (token == null || token.isEmpty()) {
             startConfigurationSession();

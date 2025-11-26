@@ -2,6 +2,10 @@ spring:
   application:
     name: budgetbuddy-backend-test
   
+  # Enable bean definition overriding for tests
+  main:
+    allow-bean-definition-overriding: true
+  
   # Test Database Configuration
   dynamodb:
     endpoint: http://localhost:4566 # LocalStack endpoint for testing
@@ -21,6 +25,8 @@ app:
       bucket-name: test-budgetbuddy-storage
     cloudwatch:
       enabled: false # Disable CloudWatch in tests
+    appconfig:
+      enabled: false # Disable AppConfig in tests to avoid AWS region requirement
   
   jwt:
     secret: test-jwt-secret-key-for-testing-only

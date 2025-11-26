@@ -23,11 +23,7 @@ import static org.mockito.Mockito.*;
 /**
  * Unit Tests for AuthController
  * 
- * DISABLED: Java 25 compatibility issue - Mockito/ByteBuddy cannot mock certain dependencies
- * due to Java 25 bytecode (major version 69) not being fully supported by ByteBuddy.
- * Will be re-enabled when Mockito/ByteBuddy adds full Java 25 support.
  */
-@org.junit.jupiter.api.Disabled("Java 25 compatibility: Mockito mocking issues")
 @ExtendWith(MockitoExtension.class)
 @org.mockito.junit.jupiter.MockitoSettings(strictness = org.mockito.quality.Strictness.LENIENT)
 class AuthControllerTest {
@@ -70,16 +66,18 @@ class AuthControllerTest {
         when(authService.authenticate(any(AuthRequest.class))).thenReturn(testAuthResponse);
         com.budgetbuddy.model.dynamodb.UserTable testUserTable = new com.budgetbuddy.model.dynamodb.UserTable();
         testUserTable.setUserId(UUID.randomUUID().toString());
-        when(userService.createUserSecure(anyString(), anyString(), anyString(), anyString(), anyString()))
+        // AuthController.register calls createUserSecure with null for firstName and lastName
+        when(userService.createUserSecure(anyString(), anyString(), anyString(), isNull(), isNull()))
                 .thenReturn(testUserTable);
 
         // When
         ResponseEntity<AuthResponse> response = authController.register(testAuthRequest);
 
         // Then
-        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(HttpStatus.CREATED, response.getStatusCode()); // register returns CREATED, not OK
         assertNotNull(response.getBody());
-        verify(userService, times(1)).createUserSecure(anyString(), anyString(), anyString(), anyString(), anyString());
+        verify(userService, times(1)).createUserSecure(anyString(), anyString(), anyString(), isNull(), isNull());
+        verify(authService, times(1)).authenticate(any(AuthRequest.class));
     }
 
     @Test

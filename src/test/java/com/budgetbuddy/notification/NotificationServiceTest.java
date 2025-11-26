@@ -21,11 +21,7 @@ import static org.mockito.Mockito.*;
 /**
  * Unit Tests for NotificationService
  * 
- * DISABLED: Java 25 compatibility issue - Mockito/ByteBuddy cannot mock SnsClient
- * due to Java 25 bytecode (major version 69) not being fully supported by ByteBuddy.
- * Will be re-enabled when Mockito/ByteBuddy adds full Java 25 support.
  */
-@org.junit.jupiter.api.Disabled("Java 25 compatibility: Mockito cannot mock SnsClient")
 @ExtendWith(MockitoExtension.class)
 @org.mockito.junit.jupiter.MockitoSettings(strictness = org.mockito.quality.Strictness.LENIENT)
 class NotificationServiceTest {
@@ -39,7 +35,6 @@ class NotificationServiceTest {
     @Mock
     private PushNotificationService pushService;
 
-    @InjectMocks
     private NotificationService notificationService;
 
     private NotificationService.NotificationRequest testRequest;
@@ -47,8 +42,14 @@ class NotificationServiceTest {
 
     @BeforeEach
     void setUp() {
-        ReflectionTestUtils.setField(notificationService, "snsTopicArn", "arn:aws:sns:us-east-1:123456789:test-topic");
-        ReflectionTestUtils.setField(notificationService, "notificationsEnabled", true);
+        // Manually construct NotificationService since it has no default constructor
+        notificationService = new NotificationService(
+                snsClient,
+                emailService,
+                pushService,
+                "arn:aws:sns:us-east-1:123456789:test-topic",
+                true
+        );
 
         testRequest = new NotificationService.NotificationRequest();
         testRequest.setUserId("user-123");

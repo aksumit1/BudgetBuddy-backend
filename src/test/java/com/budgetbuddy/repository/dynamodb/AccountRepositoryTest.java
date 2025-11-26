@@ -45,7 +45,6 @@ class AccountRepositoryTest {
     @Mock
     private DynamoDbIndex<AccountTable> plaidAccountIdIndex;
 
-    @InjectMocks
     private AccountRepository accountRepository;
 
     private String testUserId;
@@ -62,10 +61,14 @@ class AccountRepositoryTest {
         inactiveAccount = createAccount("account-2", testUserId, false);
         nullActiveAccount = createAccount("account-3", testUserId, null);
 
-        // Setup mocks - Note: AccountRepository constructor needs to be called properly
-        // For unit tests, we'll test the logic without full DynamoDB setup
+        // Setup mocks - AccountRepository constructor requires enhancedClient and dynamoDbClient
+        when(enhancedClient.table(anyString(), any(software.amazon.awssdk.enhanced.dynamodb.TableSchema.class)))
+                .thenReturn(accountTable);
         when(accountTable.index("UserIdIndex")).thenReturn(userIdIndex);
         when(accountTable.index("PlaidAccountIdIndex")).thenReturn(plaidAccountIdIndex);
+        
+        // Construct repository with mocks
+        accountRepository = new AccountRepository(enhancedClient, dynamoDbClient);
     }
 
     @Test

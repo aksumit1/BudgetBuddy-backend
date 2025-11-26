@@ -19,13 +19,13 @@
     <description>Enterprise-ready backend server for BudgetBuddy iOS app</description>
 
     <properties>
-        <java.version>25</java.version>
-        <maven.compiler.source>25</maven.compiler.source>
-        <maven.compiler.target>25</maven.compiler.target>
+        <java.version>21</java.version>
+        <maven.compiler.source>21</maven.compiler.source>
+        <maven.compiler.target>21</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <spring-cloud.version>2024.0.0</spring-cloud.version>
         <plaid.version>17.0.0</plaid.version>
-        <jwt.version>0.12.5</jwt.version>
+        <jwt.version>0.12.6</jwt.version>
         <springdoc.version>2.6.0</springdoc.version>
         <aws.sdk.version>2.28.15</aws.sdk.version>
         <resilience4j.version>2.2.0</resilience4j.version>
@@ -218,23 +218,6 @@
             <version>${bucket4j.version}</version>
         </dependency>
         
-        <!-- ASM 9.7.1 for Java 25 support (overrides Spring Boot's older ASM) -->
-        <dependency>
-            <groupId>org.ow2.asm</groupId>
-            <artifactId>asm</artifactId>
-            <version>9.7.1</version>
-        </dependency>
-        <dependency>
-            <groupId>org.ow2.asm</groupId>
-            <artifactId>asm-commons</artifactId>
-            <version>9.7.1</version>
-        </dependency>
-        <dependency>
-            <groupId>org.ow2.asm</groupId>
-            <artifactId>asm-tree</artifactId>
-            <version>9.7.1</version>
-        </dependency>
-        
         <!-- AWS KMS for encryption (native AWS) -->
         <dependency>
             <groupId>software.amazon.awssdk</groupId>
@@ -331,12 +314,13 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>${maven.compiler.plugin.version}</version>
                 <configuration>
-                    <source>25</source>
-                    <target>25</target>
-                    <release>25</release>
+                    <source>21</source>
+                    <target>21</target>
+                    <release>21</release>
                     <parameters>true</parameters>
                     <compilerArgs>
                         <arg>-Xlint:deprecation</arg>
+                        <arg>-Xlint:unchecked</arg>
                     </compilerArgs>
                     <showWarnings>true</showWarnings>
                     <showDeprecation>true</showDeprecation>
@@ -359,29 +343,7 @@
                             <artifactId>lombok</artifactId>
                         </exclude>
                     </excludes>
-                    <!-- Skip repackage due to Spring Boot 3.4.1 ASM limitation with Java 25 -->
-                    <!-- Classes compile successfully to Java 25 (major version 69) -->
-                    <!-- Repackage will work when Spring Boot fully supports Java 25 -->
-                    <skip>true</skip>
                 </configuration>
-                <dependencies>
-                    <!-- ASM 9.7.1 for future Java 25 support in Spring Boot -->
-                    <dependency>
-                        <groupId>org.ow2.asm</groupId>
-                        <artifactId>asm</artifactId>
-                        <version>9.7.1</version>
-                    </dependency>
-                    <dependency>
-                        <groupId>org.ow2.asm</groupId>
-                        <artifactId>asm-commons</artifactId>
-                        <version>9.7.1</version>
-                    </dependency>
-                    <dependency>
-                        <groupId>org.ow2.asm</groupId>
-                        <artifactId>asm-tree</artifactId>
-                        <version>9.7.1</version>
-                    </dependency>
-                </dependencies>
             </plugin>
             <!-- Surefire Plugin for Unit Tests -->
                 <plugin>
@@ -395,12 +357,6 @@
                     <excludes>
                         <exclude>**/*IntegrationTest.java</exclude>
                     </excludes>
-                    <!-- Java 25 compatibility: Ignore class format issues -->
-                    <systemPropertyVariables>
-                        <spring.classformat.ignore>true</spring.classformat.ignore>
-                    </systemPropertyVariables>
-                    <!-- Allow build to succeed even if tests fail (due to Java 25 compatibility issues) -->
-                    <testFailureIgnore>true</testFailureIgnore>
                 </configuration>
                 </plugin>
             <!-- Failsafe Plugin for Integration Tests -->
@@ -412,12 +368,6 @@
                     <includes>
                         <include>**/*IntegrationTest.java</include>
                     </includes>
-                    <!-- Java 25 compatibility: Ignore class format issues -->
-                    <systemPropertyVariables>
-                        <spring.classformat.ignore>true</spring.classformat.ignore>
-                    </systemPropertyVariables>
-                    <!-- Allow build to succeed even if integration tests fail -->
-                    <testFailureIgnore>true</testFailureIgnore>
                 </configuration>
                 <executions>
                     <execution>
@@ -441,12 +391,42 @@
                     <groupId>org.jacoco</groupId>
                     <artifactId>jacoco-maven-plugin</artifactId>
                     <version>${jacoco.version}</version>
-                    <configuration>
-                        <!-- Disable JaCoCo completely for Java 25 until JaCoCo supports it -->
-                        <skip>true</skip>
-                    </configuration>
                     <executions>
-                        <!-- Disabled for Java 25 compatibility -->
+                        <execution>
+                            <id>prepare-agent</id>
+                            <goals>
+                                <goal>prepare-agent</goal>
+                            </goals>
+                        </execution>
+                        <execution>
+                            <id>report</id>
+                            <phase>test</phase>
+                            <goals>
+                                <goal>report</goal>
+                            </goals>
+                        </execution>
+                        <execution>
+                            <id>jacoco-check</id>
+                            <goals>
+                                <goal>check</goal>
+                            </goals>
+                            <configuration>
+                                <skip>false</skip>
+                                <!-- Re-enabled for JDK 21 -->
+                                <rules>
+                                    <rule>
+                                        <element>PACKAGE</element>
+                                        <limits>
+                                            <limit>
+                                                <counter>LINE</counter>
+                                                <value>COVEREDRATIO</value>
+                                                <minimum>0.50</minimum>
+                                            </limit>
+                                        </limits>
+                                    </rule>
+                                </rules>
+                            </configuration>
+                        </execution>
                     </executions>
                 </plugin>
         </plugins>

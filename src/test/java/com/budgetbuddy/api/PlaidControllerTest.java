@@ -3,6 +3,7 @@ package com.budgetbuddy.api;
 import com.budgetbuddy.model.dynamodb.UserTable;
 import com.budgetbuddy.plaid.PlaidService;
 import com.budgetbuddy.service.UserService;
+import com.plaid.client.model.ItemPublicTokenExchangeResponse;
 import com.plaid.client.model.LinkTokenCreateResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -24,12 +25,9 @@ import static org.mockito.Mockito.*;
 /**
  * Unit Tests for PlaidController
  * 
- * DISABLED: Java 25 compatibility issue - Mockito/ByteBuddy cannot mock certain dependencies
- * due to Java 25 bytecode (major version 69) not being fully supported by ByteBuddy.
- * Will be re-enabled when Mockito/ByteBuddy adds full Java 25 support.
  */
-@org.junit.jupiter.api.Disabled("Java 25 compatibility: Mockito mocking issues")
 @ExtendWith(MockitoExtension.class)
+@org.mockito.junit.jupiter.MockitoSettings(strictness = org.mockito.quality.Strictness.LENIENT)
 class PlaidControllerTest {
 
     @Mock
@@ -87,7 +85,10 @@ class PlaidControllerTest {
         String publicToken = "public-token-123";
         PlaidController.ExchangeTokenRequest request = new PlaidController.ExchangeTokenRequest();
         request.setPublicToken(publicToken);
-        doNothing().when(plaidService).exchangePublicToken(anyString());
+        ItemPublicTokenExchangeResponse mockResponse = new ItemPublicTokenExchangeResponse();
+        mockResponse.setAccessToken("access-token-123");
+        mockResponse.setItemId("item-id-123");
+        when(plaidService.exchangePublicToken(anyString())).thenReturn(mockResponse);
 
         // When
         ResponseEntity<?> response = plaidController.exchangePublicToken(userDetails, request);

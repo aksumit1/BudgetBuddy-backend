@@ -15,6 +15,7 @@ import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient;
  * Optimized for cost: uses regional endpoints, connection pooling, and minimal resources
  */
 @Configuration
+@org.springframework.context.annotation.Profile("!test") // Don't load in tests - use AWSTestConfiguration instead
 public class AwsConfig {
 
     @Value("${aws.region:us-east-1}")

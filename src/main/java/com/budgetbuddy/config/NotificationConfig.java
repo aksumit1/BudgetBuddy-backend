@@ -13,6 +13,7 @@ import software.amazon.awssdk.services.sns.SnsClient;
  * Notification Services Configuration
  */
 @Configuration
+@org.springframework.context.annotation.Profile("!test") // Don't load in tests - use AWSTestConfiguration instead
 public class NotificationConfig {
 
     private AwsCredentialsProvider getCredentialsProvider() {

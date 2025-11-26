@@ -23,7 +23,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
-@org.junit.jupiter.api.Disabled("Java 25 compatibility: Mockito mocking issues")
 @ExtendWith(MockitoExtension.class)
 class AuthServiceTest {
 

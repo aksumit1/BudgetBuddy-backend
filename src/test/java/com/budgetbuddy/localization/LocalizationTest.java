@@ -1,11 +1,13 @@
 package com.budgetbuddy.localization;
 
+import com.budgetbuddy.AWSTestConfiguration;
 import com.budgetbuddy.exception.AppException;
 import com.budgetbuddy.exception.ErrorCode;
 import com.budgetbuddy.util.MessageUtil;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.test.context.ActiveProfiles;
 
@@ -17,13 +19,10 @@ import static org.junit.jupiter.api.Assertions.*;
  * Localization Tests
  * Tests internationalization and localization features
  * 
- * DISABLED: Java 25 compatibility issue - Spring Boot context fails to load
- * due to Java 25 class format (major version 69) incompatibility with Spring Boot 3.4.1.
- * Will be re-enabled when Spring Boot fully supports Java 25.
  */
-@org.junit.jupiter.api.Disabled("Java 25 compatibility: Spring Boot context loading fails")
 @SpringBootTest(classes = com.budgetbuddy.BudgetBuddyApplication.class)
 @ActiveProfiles("test")
+@Import(AWSTestConfiguration.class)
 class LocalizationTest {
 
     @Autowired
@@ -136,4 +135,3 @@ class LocalizationTest {
         assertNotNull(currentLocale);
     }
 }
-

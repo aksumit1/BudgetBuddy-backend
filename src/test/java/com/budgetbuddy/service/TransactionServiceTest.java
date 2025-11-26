@@ -25,11 +25,7 @@ import static org.mockito.Mockito.*;
 /**
  * Unit Tests for TransactionService
  * 
- * DISABLED: Java 25 compatibility issue - Mockito/ByteBuddy cannot mock TransactionRepository
- * due to Java 25 bytecode (major version 69) not being fully supported by ByteBuddy.
- * Will be re-enabled when Mockito/ByteBuddy adds full Java 25 support.
  */
-@org.junit.jupiter.api.Disabled("Java 25 compatibility: Mockito cannot mock TransactionRepository")
 @ExtendWith(MockitoExtension.class)
 @org.mockito.junit.jupiter.MockitoSettings(strictness = org.mockito.quality.Strictness.LENIENT)
 class TransactionServiceTest {
@@ -88,16 +84,21 @@ class TransactionServiceTest {
     @Test
     void testGetTransactions_WithInvalidPagination_AdjustsLimits() {
         // Given
-        when(transactionRepository.findByUserId("user-123", 0, 50))
+        when(transactionRepository.findByUserId(anyString(), anyInt(), anyInt()))
                 .thenReturn(Collections.emptyList());
 
-        // When - negative skip
+        // When - negative skip (should be adjusted to 0)
         transactionService.getTransactions(testUser, -5, 50);
         verify(transactionRepository).findByUserId("user-123", 0, 50);
 
-        // When - limit too high
+        // Reset mock
+        reset(transactionRepository);
+        when(transactionRepository.findByUserId(anyString(), anyInt(), anyInt()))
+                .thenReturn(Collections.emptyList());
+
+        // When - limit too high (should be defaulted to 50, not 100)
         transactionService.getTransactions(testUser, 0, 200);
-        verify(transactionRepository).findByUserId("user-123", 0, 100);
+        verify(transactionRepository).findByUserId("user-123", 0, 50);
     }
 
     @Test

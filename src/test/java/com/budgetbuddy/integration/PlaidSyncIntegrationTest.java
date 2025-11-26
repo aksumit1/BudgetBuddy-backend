@@ -25,10 +25,10 @@ import static org.junit.jupiter.api.Assertions.*;
  * Integration Tests for PlaidSyncService
  * Tests the full flow of syncing accounts and transactions from Plaid
  * 
- * Note: These tests require a running LocalStack instance and may be disabled
- * if Plaid API is not configured. They test the actual database operations.
+ * Note: These tests require a running LocalStack instance.
+ * They test the actual database operations.
+ * 
  */
-@org.junit.jupiter.api.Disabled("Java 25 compatibility: Spring Boot context loading fails")
 @SpringBootTest(classes = com.budgetbuddy.BudgetBuddyApplication.class)
 @ActiveProfiles("test")
 class PlaidSyncIntegrationTest {

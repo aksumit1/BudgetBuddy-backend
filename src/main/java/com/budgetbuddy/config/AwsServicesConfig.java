@@ -19,6 +19,7 @@ import software.amazon.awssdk.services.kms.KmsClient;
  * Configures all AWS service clients with IAM role authentication
  */
 @Configuration
+@org.springframework.context.annotation.Profile("!test") // Don't load in tests - use AWSTestConfiguration instead
 public class AwsServicesConfig {
 
     @Value("${app.aws.region:us-east-1}")

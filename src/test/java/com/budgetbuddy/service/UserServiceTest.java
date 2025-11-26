@@ -23,7 +23,6 @@ import static org.mockito.Mockito.*;
 /**
  * Unit Tests for UserService
  */
-@org.junit.jupiter.api.Disabled("Java 25 compatibility: Mockito mocking issues")
 @ExtendWith(MockitoExtension.class)
 class UserServiceTest {
 
@@ -54,8 +53,8 @@ class UserServiceTest {
                 new PasswordHashingService.PasswordHashResult("server-hash", "server-salt");
         when(passwordHashingService.hashClientPassword(anyString(), anyString(), isNull()))
                 .thenReturn(serverHash);
-        when(userRepository.existsByEmail(testEmail)).thenReturn(false);
-        doNothing().when(userRepository).save(any(UserTable.class));
+        when(userRepository.saveIfNotExists(any(UserTable.class))).thenReturn(true);
+        when(userRepository.findAllByEmail(testEmail)).thenReturn(java.util.Collections.emptyList());
 
         // When
         UserTable result = userService.createUserSecure(
@@ -70,13 +69,26 @@ class UserServiceTest {
         assertNotNull(result);
         assertNotNull(result.getUserId());
         assertEquals(testEmail, result.getEmail());
-        verify(userRepository).save(any(UserTable.class));
+        verify(userRepository).saveIfNotExists(any(UserTable.class));
     }
 
     @Test
     void testCreateUserSecure_WithExistingEmail_ThrowsException() {
-        // Given
-        when(userRepository.existsByEmail(testEmail)).thenReturn(true);
+        // Given - Simulate duplicate email detected after save
+        PasswordHashingService.PasswordHashResult serverHash =
+                new PasswordHashingService.PasswordHashResult("server-hash", "server-salt");
+        when(passwordHashingService.hashClientPassword(anyString(), anyString(), isNull()))
+                .thenReturn(serverHash);
+        when(userRepository.saveIfNotExists(any(UserTable.class))).thenReturn(true);
+        // Simulate finding 2 users with same email (race condition detected)
+        UserTable existingUser = new UserTable();
+        existingUser.setUserId(UUID.randomUUID().toString());
+        existingUser.setEmail(testEmail);
+        UserTable newUser = new UserTable();
+        newUser.setUserId(UUID.randomUUID().toString());
+        newUser.setEmail(testEmail);
+        when(userRepository.findAllByEmail(testEmail)).thenReturn(java.util.Arrays.asList(existingUser, newUser));
+        doNothing().when(userRepository).delete(anyString());
 
         // When/Then
         AppException exception = assertThrows(AppException.class,

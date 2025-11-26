@@ -1,6 +1,8 @@
 package com.budgetbuddy.service;
 
 import com.budgetbuddy.dto.AuthRequest;
+import com.budgetbuddy.exception.AppException;
+import com.budgetbuddy.exception.ErrorCode;
 import com.budgetbuddy.model.dynamodb.UserTable;
 import com.budgetbuddy.repository.dynamodb.UserRepository;
 import com.budgetbuddy.security.JwtTokenProvider;
@@ -29,11 +31,7 @@ import static org.mockito.Mockito.*;
  * Tests the fix for ClassCastException where AuthService was passing a String (email)
  * instead of UserDetails to JwtTokenProvider.generateToken()
  * 
- * DISABLED: Java 25 compatibility issue - Mockito/ByteBuddy cannot mock UserRepository
- * due to Java 25 bytecode (major version 69) not being fully supported by ByteBuddy.
- * Will be re-enabled when Mockito/ByteBuddy adds full Java 25 support.
  */
-@org.junit.jupiter.api.Disabled("Java 25 compatibility: Mockito cannot mock UserRepository")
 @ExtendWith(MockitoExtension.class)
 @org.mockito.junit.jupiter.MockitoSettings(strictness = org.mockito.quality.Strictness.LENIENT)
 class AuthServiceUserDetailsTest {
@@ -146,7 +144,7 @@ class AuthServiceUserDetailsTest {
 
     @Test
     void testAuthenticate_UserDetailsReflectsUserEnabledStatus() {
-        // Arrange - Test with disabled user
+        // Arrange - Test with disabled user (should throw exception, not authenticate)
         testUser.setEnabled(false);
         AuthRequest request = new AuthRequest();
         request.setEmail("test@example.com");
@@ -156,22 +154,16 @@ class AuthServiceUserDetailsTest {
         when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(testUser));
         when(passwordHashingService.verifyClientPassword(anyString(), anyString(), anyString(), anyString()))
                 .thenReturn(true);
-        when(tokenProvider.generateToken(any(Authentication.class))).thenReturn("access-token");
-        when(tokenProvider.generateRefreshToken(anyString())).thenReturn("refresh-token");
-        when(tokenProvider.getExpirationDateFromToken(anyString())).thenReturn(new java.util.Date());
-        doNothing().when(userRepository).save(any(UserTable.class));
 
-        ArgumentCaptor<Authentication> authCaptor = ArgumentCaptor.forClass(Authentication.class);
-
-        // Act
-        authService.authenticate(request);
-
-        // Assert
-        verify(tokenProvider).generateToken(authCaptor.capture());
-        UserDetails userDetails = (UserDetails) authCaptor.getValue().getPrincipal();
+        // Act & Assert - Disabled users should not be able to authenticate
+        AppException exception = assertThrows(AppException.class, () -> {
+            authService.authenticate(request);
+        }, "Disabled users should not be able to authenticate");
         
-        assertFalse(userDetails.isEnabled(), "UserDetails should reflect disabled user");
-        assertTrue(userDetails.isAccountNonLocked(), "Account should not be locked");
+        assertEquals(ErrorCode.ACCOUNT_DISABLED, exception.getErrorCode());
+        
+        // Verify token generation was NOT called for disabled user
+        verify(tokenProvider, never()).generateToken(any(Authentication.class));
     }
 
     @Test

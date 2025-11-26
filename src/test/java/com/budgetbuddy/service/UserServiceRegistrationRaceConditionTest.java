@@ -27,11 +27,7 @@ import static org.mockito.Mockito.*;
  * Unit Tests for User Registration Race Condition
  * Tests the fix for concurrent registration attempts causing duplicate users
  * 
- * DISABLED: Java 25 compatibility issue - Mockito/ByteBuddy cannot mock UserRepository
- * due to Java 25 bytecode (major version 69) not being fully supported by ByteBuddy.
- * Will be re-enabled when Mockito/ByteBuddy adds full Java 25 support.
  */
-@org.junit.jupiter.api.Disabled("Java 25 compatibility: Mockito cannot mock UserRepository")
 @ExtendWith(MockitoExtension.class)
 @org.mockito.junit.jupiter.MockitoSettings(strictness = org.mockito.quality.Strictness.LENIENT)
 class UserServiceRegistrationRaceConditionTest {
@@ -61,11 +57,18 @@ class UserServiceRegistrationRaceConditionTest {
     @Test
     void testConcurrentRegistration_ShouldPreventDuplicates() throws Exception {
         // Given - Multiple threads trying to register the same email simultaneously
-        when(userRepository.findByEmail(testEmail)).thenReturn(java.util.Optional.empty());
+        PasswordHashingService.PasswordHashResult serverHash =
+                new PasswordHashingService.PasswordHashResult("server-hash", "server-salt");
+        when(passwordHashingService.hashClientPassword(anyString(), anyString(), isNull()))
+                .thenReturn(serverHash);
         when(userRepository.saveIfNotExists(any(UserTable.class))).thenReturn(true);
         
-        // Simulate race condition: first save succeeds, second fails
-        when(userRepository.findAllByEmail(testEmail)).thenReturn(createUserList(1));
+        // Simulate race condition: After first save, findAllByEmail returns 1 user (the one just created)
+        // After second save, findAllByEmail returns 2 users (duplicate detected)
+        when(userRepository.findAllByEmail(testEmail))
+                .thenReturn(createUserList(1))  // First call: only the new user
+                .thenReturn(createUserList(2));  // Second call: duplicate detected
+        doNothing().when(userRepository).delete(anyString());
 
         // When - Multiple concurrent registration attempts
         ExecutorService executor = Executors.newFixedThreadPool(10);
@@ -111,6 +114,10 @@ class UserServiceRegistrationRaceConditionTest {
     @Test
     void testRegistration_WithDuplicateEmail_ThrowsException() {
         // Given - User already exists
+        PasswordHashingService.PasswordHashResult serverHash =
+                new PasswordHashingService.PasswordHashResult("server-hash", "server-salt");
+        when(passwordHashingService.hashClientPassword(anyString(), anyString(), isNull()))
+                .thenReturn(serverHash);
         when(userRepository.findByEmail(testEmail)).thenReturn(java.util.Optional.empty());
         when(userRepository.saveIfNotExists(any(UserTable.class))).thenReturn(true);
         when(userRepository.findAllByEmail(testEmail)).thenReturn(createUserList(2)); // Duplicate found

@@ -34,7 +34,6 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
-@org.junit.jupiter.api.Disabled("Disabled due to Java 25 compatibility issues with Spring Boot test context loading")
 class UserRegistrationIntegrationTest {
 
     @LocalServerPort

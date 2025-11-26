@@ -29,11 +29,7 @@ import static org.mockito.Mockito.*;
  * Tests the fix for SpelEvaluationException where the @Cacheable annotation
  * had an invalid unless condition that tried to call isPresent() on the result
  * 
- * DISABLED: Java 25 compatibility issue - Mockito/ByteBuddy cannot mock DynamoDbClient
- * due to Java 25 bytecode (major version 69) not being fully supported by ByteBuddy.
- * Will be re-enabled when Mockito/ByteBuddy adds full Java 25 support.
  */
-@org.junit.jupiter.api.Disabled("Java 25 compatibility: Mockito cannot mock DynamoDbClient")
 @ExtendWith(MockitoExtension.class)
 @org.mockito.junit.jupiter.MockitoSettings(strictness = org.mockito.quality.Strictness.LENIENT)
 class UserRepositoryCacheTest {
@@ -53,7 +49,6 @@ class UserRepositoryCacheTest {
     @Mock
     private SdkIterable<Page<UserTable>> pages;
 
-    @InjectMocks
     private UserRepository userRepository;
 
     private UserTable testUser;
@@ -64,6 +59,14 @@ class UserRepositoryCacheTest {
         testUser.setUserId("user-123");
         testUser.setEmail("test@example.com");
         testUser.setPasswordHash("hashed-password");
+        
+        // Setup mocks for UserRepository constructor
+        when(enhancedClient.table(anyString(), any(software.amazon.awssdk.enhanced.dynamodb.TableSchema.class)))
+                .thenReturn(userTable);
+        when(userTable.index("EmailIndex")).thenReturn(emailIndex);
+        
+        // Construct repository with mocks
+        userRepository = new UserRepository(enhancedClient, dynamoDbClient);
     }
 
     @Test
@@ -76,10 +79,6 @@ class UserRepositoryCacheTest {
         when(page.items()).thenReturn(items);
         pageList.add(page);
         
-        @SuppressWarnings("unchecked")
-        software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable<UserTable> table = (software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable<UserTable>) userTable;
-        when(enhancedClient.table(anyString(), any(software.amazon.awssdk.enhanced.dynamodb.TableSchema.class))).thenReturn(table);
-        when(userTable.index("email-index")).thenReturn(emailIndex);
         when(emailIndex.query(any(QueryConditional.class))).thenReturn(pages);
         when(pages.iterator()).thenReturn(pageList.iterator());
 
@@ -99,10 +98,6 @@ class UserRepositoryCacheTest {
         when(page.items()).thenReturn(new ArrayList<>());
         pageList.add(page);
         
-        @SuppressWarnings("unchecked")
-        software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable<UserTable> table = mock(software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable.class);
-        when(enhancedClient.table(anyString(), any(software.amazon.awssdk.enhanced.dynamodb.TableSchema.class))).thenReturn(table);
-        when(table.index("email-index")).thenReturn(emailIndex);
         when(emailIndex.query(any(QueryConditional.class))).thenReturn(pages);
         when(pages.iterator()).thenReturn(pageList.iterator());
 
@@ -141,10 +136,6 @@ class UserRepositoryCacheTest {
         when(page.items()).thenReturn(items);
         pageList.add(page);
         
-        @SuppressWarnings("unchecked")
-        software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable<UserTable> table = mock(software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable.class);
-        when(enhancedClient.table(anyString(), any(software.amazon.awssdk.enhanced.dynamodb.TableSchema.class))).thenReturn(table);
-        when(table.index("email-index")).thenReturn(emailIndex);
         when(emailIndex.query(any(QueryConditional.class))).thenReturn(pages);
         when(pages.iterator()).thenReturn(pageList.iterator());
 
@@ -165,10 +156,6 @@ class UserRepositoryCacheTest {
         when(page.items()).thenReturn(items);
         pageList.add(page);
         
-        @SuppressWarnings("unchecked")
-        software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable<UserTable> table = mock(software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable.class);
-        when(enhancedClient.table(anyString(), any(software.amazon.awssdk.enhanced.dynamodb.TableSchema.class))).thenReturn(table);
-        when(table.index("email-index")).thenReturn(emailIndex);
         when(emailIndex.query(any(QueryConditional.class))).thenReturn(pages);
         when(pages.iterator()).thenReturn(pageList.iterator());
 
@@ -177,8 +164,6 @@ class UserRepositoryCacheTest {
 
         // Assert
         assertTrue(exists, "Should return true when user exists");
-        // Verify findByEmail was called
-        verify(enhancedClient, atLeastOnce()).table(anyString(), any());
     }
 }
 

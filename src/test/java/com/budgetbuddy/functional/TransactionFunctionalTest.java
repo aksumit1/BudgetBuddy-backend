@@ -1,5 +1,6 @@
 package com.budgetbuddy.functional;
 
+import com.budgetbuddy.AWSTestConfiguration;
 import com.budgetbuddy.api.TransactionController;
 import com.budgetbuddy.model.dynamodb.TransactionTable;
 import com.budgetbuddy.model.dynamodb.UserTable;
@@ -10,6 +11,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
@@ -27,14 +29,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * Functional Tests for Transaction API
  * Tests complete user workflows
  * 
- * DISABLED: Java 25 compatibility issue - Spring Boot context fails to load
- * due to Java 25 class format (major version 69) incompatibility with Spring Boot 3.4.1.
- * Will be re-enabled when Spring Boot fully supports Java 25.
  */
-@org.junit.jupiter.api.Disabled("Java 25 compatibility: Spring Boot context loading fails")
 @SpringBootTest(classes = com.budgetbuddy.BudgetBuddyApplication.class)
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
+@Import(AWSTestConfiguration.class)
 class TransactionFunctionalTest {
 
     @Autowired

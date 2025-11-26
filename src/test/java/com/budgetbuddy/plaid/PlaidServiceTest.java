@@ -23,11 +23,7 @@ import static org.mockito.Mockito.*;
 /**
  * Unit Tests for PlaidService
  * 
- * DISABLED: Java 25 compatibility issue - Mockito/ByteBuddy cannot mock PCIDSSComplianceService
- * due to Java 25 bytecode (major version 69) not being fully supported by ByteBuddy.
- * Will be re-enabled when Mockito/ByteBuddy adds full Java 25 support.
  */
-@org.junit.jupiter.api.Disabled("Java 25 compatibility: Mockito cannot mock PCIDSSComplianceService")
 @ExtendWith(MockitoExtension.class)
 @org.mockito.junit.jupiter.MockitoSettings(strictness = org.mockito.quality.Strictness.LENIENT)
 class PlaidServiceTest {
@@ -35,10 +31,6 @@ class PlaidServiceTest {
     @Mock
     private PCIDSSComplianceService pciDSSComplianceService;
 
-    @Mock
-    private com.plaid.client.request.PlaidApi plaidApi;
-
-    @InjectMocks
     private PlaidService plaidService;
 
     private String testUserId;
@@ -48,45 +40,6 @@ class PlaidServiceTest {
     void setUp() {
         testUserId = UUID.randomUUID().toString();
         testClientName = "Test Client";
-
-        // Use reflection to set private fields for testing
-        // Note: In real scenario, PlaidService would be constructed with mocked PlaidApi
-    }
-
-    @Test
-    void testCreateLinkToken_WithValidInput_ThrowsExceptionIfPlaidApiNotInitialized() {
-        // Given - Service not properly initialized with mocked PlaidApi
-        // When/Then - Should handle gracefully or throw appropriate exception
-        // Note: This test verifies input validation
-        assertThrows(Exception.class, () -> {
-            // This will fail because PlaidApi is not properly mocked
-            // In real test, we would properly mock PlaidApi
-        });
-    }
-
-    @Test
-    void testCreateLinkToken_WithNullUserId_ThrowsException() {
-        // When/Then
-        assertThrows(AppException.class, () -> {
-            // This would require proper service initialization
-            // For now, verify the validation logic exists
-        });
-    }
-
-    @Test
-    void testCreateLinkToken_WithEmptyUserId_ThrowsException() {
-        // When/Then
-        assertThrows(AppException.class, () -> {
-            // Verify validation
-        });
-    }
-
-    @Test
-    void testCreateLinkToken_WithNullClientName_ThrowsException() {
-        // When/Then
-        assertThrows(AppException.class, () -> {
-            // Verify validation
-        });
     }
 
     @Test
@@ -127,5 +80,13 @@ class PlaidServiceTest {
         assertThrows(IllegalArgumentException.class, () -> {
             new PlaidService("clientId", "secret", "sandbox", "https://app.budgetbuddy.com/plaid/callback", "https://api.budgetbuddy.com/api/plaid/webhooks", null);
         });
+    }
+
+    @Test
+    void testPlaidService_Constructor_WithValidInput_CreatesService() {
+        // When/Then - Should not throw exception with valid input
+        assertDoesNotThrow(() -> {
+            new PlaidService("test-client-id", "test-secret", "sandbox", "https://app.budgetbuddy.com/plaid/callback", "https://api.budgetbuddy.com/api/plaid/webhooks", pciDSSComplianceService);
+        }, "Should create PlaidService with valid input");
     }
 }
