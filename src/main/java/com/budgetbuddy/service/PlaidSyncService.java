@@ -102,17 +102,21 @@ public class PlaidSyncService {
                     
                     logger.debug("Extracted account ID: {}", accountId);
 
-                    // Check if account exists
+                    // CRITICAL: Check if account exists by plaidAccountId first (primary deduplication key)
                     Optional<AccountTable> existingAccount = accountRepository.findByPlaidAccountId(accountId);
 
                     AccountTable account;
                     if (existingAccount.isPresent()) {
                         account = existingAccount.get();
-                        logger.debug("Updating existing account: {}", accountId);
+                        logger.debug("Updating existing account: {} (accountId: {})", accountId, account.getAccountId());
                         // Update account details
                         updateAccountFromPlaid(account, plaidAccount);
                         // Ensure active is set to true
                         account.setActive(true);
+                        // Ensure plaidAccountId is set (in case it was missing)
+                        if (account.getPlaidAccountId() == null || account.getPlaidAccountId().isEmpty()) {
+                            account.setPlaidAccountId(accountId);
+                        }
                         // Verify required fields are set
                         if (account.getAccountName() == null || account.getAccountName().isEmpty()) {
                             logger.warn("Account name is null after update, setting default");
@@ -149,13 +153,32 @@ public class PlaidSyncService {
                         if (account.getCurrencyCode() == null || account.getCurrencyCode().isEmpty()) {
                             account.setCurrencyCode("USD");
                         }
-                        // Use conditional write to prevent race conditions
+                        // CRITICAL: Use conditional write to prevent race conditions and duplicates
+                        // This checks if accountId already exists (prevents duplicate accountIds)
+                        // We already checked plaidAccountId above, so this prevents race conditions
                         if (!accountRepository.saveIfNotExists(account)) {
-                            logger.warn("Account with ID {} already exists, skipping", account.getAccountId());
-                            continue;
+                            // Account with same accountId already exists (race condition)
+                            // Try to find it and update it instead
+                            Optional<AccountTable> raceConditionAccount = accountRepository.findById(account.getAccountId());
+                            if (raceConditionAccount.isPresent()) {
+                                account = raceConditionAccount.get();
+                                // Update the existing account
+                                updateAccountFromPlaid(account, plaidAccount);
+                                account.setActive(true);
+                                if (account.getPlaidAccountId() == null || account.getPlaidAccountId().isEmpty()) {
+                                    account.setPlaidAccountId(accountId);
+                                }
+                                accountRepository.save(account);
+                                logger.debug("Updated account after race condition: {} (name: {}, balance: {})", 
+                                        account.getAccountId(), account.getAccountName(), account.getBalance());
+                            } else {
+                                logger.warn("Account with ID {} already exists but could not be retrieved, skipping", account.getAccountId());
+                                continue;
+                            }
+                        } else {
+                            logger.debug("Created account: {} (name: {}, balance: {})", 
+                                    account.getAccountId(), account.getAccountName(), account.getBalance());
                         }
-                        logger.debug("Created account: {} (name: {}, balance: {})", 
-                                account.getAccountId(), account.getAccountName(), account.getBalance());
                     }
                     syncedCount++;
                 } catch (Exception e) {

@@ -94,8 +94,12 @@ public class TransactionRepository {
         }
 
         List<TransactionTable> results = new ArrayList<>();
-        // Use Set to deduplicate by transactionId to prevent duplicates
+        // CRITICAL: Deduplicate by both transactionId and plaidTransactionId
+        // Use Set to track seen transactionIds and plaidTransactionIds to prevent duplicates
         java.util.Set<String> seenTransactionIds = new java.util.HashSet<>();
+        java.util.Set<String> seenPlaidTransactionIds = new java.util.HashSet<>();
+        int duplicateCount = 0;
+        
         SdkIterable<software.amazon.awssdk.enhanced.dynamodb.model.Page<TransactionTable>>
                 pages = userIdDateIndex.query(
                         QueryConditional.keyEqualTo(
@@ -105,23 +109,53 @@ public class TransactionRepository {
                 page : pages) {
             for (TransactionTable item : page.items()) {
                 if (count >= adjustedSkip) {
-                    // Deduplicate by transactionId to prevent duplicates
+                    // Check for duplicates by transactionId
                     String transactionId = item.getTransactionId();
-                    if (transactionId != null && !seenTransactionIds.contains(transactionId)) {
-                        seenTransactionIds.add(transactionId);
-                        results.add(item);
-                        if (results.size() >= adjustedLimit) {
-                            return results;
-                        }
-                    } else if (transactionId != null) {
-                        // Log duplicate transaction detected
+                    if (transactionId != null && seenTransactionIds.contains(transactionId)) {
+                        duplicateCount++;
                         org.slf4j.LoggerFactory.getLogger(TransactionRepository.class)
-                                .warn("Duplicate transaction detected and filtered: transactionId={}, description={}", 
-                                        transactionId, item.getDescription());
+                                .warn("Duplicate transaction detected by transactionId and filtered: transactionId={}, plaidTransactionId={}, description={}", 
+                                        transactionId, item.getPlaidTransactionId(), item.getDescription());
+                        count++;
+                        continue;
+                    }
+                    
+                    // Check for duplicates by plaidTransactionId (if present)
+                    String plaidTransactionId = item.getPlaidTransactionId();
+                    if (plaidTransactionId != null && !plaidTransactionId.isEmpty()) {
+                        if (seenPlaidTransactionIds.contains(plaidTransactionId)) {
+                            duplicateCount++;
+                            org.slf4j.LoggerFactory.getLogger(TransactionRepository.class)
+                                    .warn("Duplicate transaction detected by plaidTransactionId and filtered: transactionId={}, plaidTransactionId={}, description={}", 
+                                            transactionId, plaidTransactionId, item.getDescription());
+                            count++;
+                            continue;
+                        }
+                        seenPlaidTransactionIds.add(plaidTransactionId);
+                    }
+                    
+                    // Transaction is unique, add to results
+                    if (transactionId != null) {
+                        seenTransactionIds.add(transactionId);
+                    }
+                    results.add(item);
+                    if (results.size() >= adjustedLimit) {
+                        if (duplicateCount > 0) {
+                            org.slf4j.LoggerFactory.getLogger(TransactionRepository.class)
+                                    .info("findByUserId({}): Filtered {} duplicate transactions, returning {} unique transactions",
+                                            userId, duplicateCount, results.size());
+                        }
+                        return results;
                     }
                 }
                 count++;
             }
+        }
+        
+        if (duplicateCount > 0) {
+            org.slf4j.LoggerFactory.getLogger(TransactionRepository.class)
+                    .info("findByUserId({}): Filtered {} duplicate transactions, returning {} unique transactions",
+                            userId, duplicateCount, results.size());
         }
         return results;
     }
@@ -152,8 +186,12 @@ public class TransactionRepository {
         // Note: For very large datasets, consider using DynamoDB Streams
         // or separate date-based partitions
         List<TransactionTable> results = new ArrayList<>();
-        // Use Set to deduplicate by transactionId to prevent duplicates
+        // CRITICAL: Deduplicate by both transactionId and plaidTransactionId
+        // Use Set to track seen transactionIds and plaidTransactionIds to prevent duplicates
         Set<String> seenTransactionIds = new HashSet<>();
+        Set<String> seenPlaidTransactionIds = new HashSet<>();
+        int duplicateCount = 0;
+        
         SdkIterable<software.amazon.awssdk.enhanced.dynamodb.model.Page<TransactionTable>>
                 pages = userIdDateIndex.query(
                         QueryConditional.keyEqualTo(
@@ -167,24 +205,51 @@ public class TransactionRepository {
                     // lexicographic comparison)
                     if (txDate.compareTo(startDate) >= 0
                             && txDate.compareTo(endDate) <= 0) {
-                        // Deduplicate by transactionId to prevent duplicates
+                        // Check for duplicates by transactionId
                         String transactionId = t.getTransactionId();
-                        if (transactionId != null && !seenTransactionIds.contains(transactionId)) {
-                            seenTransactionIds.add(transactionId);
-                            results.add(t);
-                        } else if (transactionId != null) {
-                            // Log duplicate transaction detected
+                        if (transactionId != null && seenTransactionIds.contains(transactionId)) {
+                            duplicateCount++;
                             org.slf4j.LoggerFactory.getLogger(TransactionRepository.class)
-                                    .warn("Duplicate transaction detected and filtered: transactionId={}, date={}, description={}", 
-                                            transactionId, txDate, t.getDescription());
+                                    .warn("Duplicate transaction detected by transactionId and filtered: transactionId={}, plaidTransactionId={}, date={}, description={}", 
+                                            transactionId, t.getPlaidTransactionId(), txDate, t.getDescription());
+                            continue;
                         }
+                        
+                        // Check for duplicates by plaidTransactionId (if present)
+                        String plaidTransactionId = t.getPlaidTransactionId();
+                        if (plaidTransactionId != null && !plaidTransactionId.isEmpty()) {
+                            if (seenPlaidTransactionIds.contains(plaidTransactionId)) {
+                                duplicateCount++;
+                                org.slf4j.LoggerFactory.getLogger(TransactionRepository.class)
+                                        .warn("Duplicate transaction detected by plaidTransactionId and filtered: transactionId={}, plaidTransactionId={}, date={}, description={}", 
+                                                transactionId, plaidTransactionId, txDate, t.getDescription());
+                                continue;
+                            }
+                            seenPlaidTransactionIds.add(plaidTransactionId);
+                        }
+                        
+                        // Transaction is unique, add to results
+                        if (transactionId != null) {
+                            seenTransactionIds.add(transactionId);
+                        }
+                        results.add(t);
+                        
                         final int safetyLimit = 1000;
                         if (results.size() >= safetyLimit) {
+                            org.slf4j.LoggerFactory.getLogger(TransactionRepository.class)
+                                    .warn("Reached safety limit of {} transactions for user {} in date range {} to {} ({} duplicates filtered)",
+                                            safetyLimit, userId, startDate, endDate, duplicateCount);
                             return results;
                         }
                     }
                 }
             }
+        }
+        
+        if (duplicateCount > 0) {
+            org.slf4j.LoggerFactory.getLogger(TransactionRepository.class)
+                    .info("findByUserIdAndDateRange({}, {} to {}): Filtered {} duplicate transactions, returning {} unique transactions",
+                            userId, startDate, endDate, duplicateCount, results.size());
         }
         return results;
     }

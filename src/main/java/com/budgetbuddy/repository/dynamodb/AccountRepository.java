@@ -64,6 +64,12 @@ public class AccountRepository {
         int activeCount = 0;
         int inactiveCount = 0;
         int nullActiveCount = 0;
+        int duplicateCount = 0;
+        
+        // CRITICAL: Deduplicate accounts by both accountId and plaidAccountId
+        // Use Set to track seen accountIds and plaidAccountIds to prevent duplicates
+        java.util.Set<String> seenAccountIds = new java.util.HashSet<>();
+        java.util.Set<String> seenPlaidAccountIds = new java.util.HashSet<>();
         
         SdkIterable<software.amazon.awssdk.enhanced.dynamodb.model.Page<AccountTable>>
                 pages = userIdIndex.query(
@@ -73,6 +79,35 @@ public class AccountRepository {
                 page : pages) {
             for (AccountTable account : page.items()) {
                 totalFound++;
+                
+                // Check for duplicates by accountId
+                String accountId = account.getAccountId();
+                if (accountId != null && seenAccountIds.contains(accountId)) {
+                    duplicateCount++;
+                    org.slf4j.LoggerFactory.getLogger(AccountRepository.class)
+                            .warn("Duplicate account detected by accountId and filtered: accountId={}, plaidAccountId={}, name={}",
+                                    accountId, account.getPlaidAccountId(), account.getAccountName());
+                    continue;
+                }
+                
+                // Check for duplicates by plaidAccountId (if present)
+                String plaidAccountId = account.getPlaidAccountId();
+                if (plaidAccountId != null && !plaidAccountId.isEmpty()) {
+                    if (seenPlaidAccountIds.contains(plaidAccountId)) {
+                        duplicateCount++;
+                        org.slf4j.LoggerFactory.getLogger(AccountRepository.class)
+                                .warn("Duplicate account detected by plaidAccountId and filtered: accountId={}, plaidAccountId={}, name={}",
+                                        accountId, plaidAccountId, account.getAccountName());
+                        continue;
+                    }
+                    seenPlaidAccountIds.add(plaidAccountId);
+                }
+                
+                // Account is unique, add to results
+                if (accountId != null) {
+                    seenAccountIds.add(accountId);
+                }
+                
                 if (account.getActive() == null) {
                     nullActiveCount++;
                     // Include accounts with null active (treat as active for backward compatibility)
@@ -89,8 +124,8 @@ public class AccountRepository {
         // Log for debugging
         if (totalFound > 0) {
             org.slf4j.LoggerFactory.getLogger(AccountRepository.class)
-                    .debug("findByUserId({}): Found {} total accounts ({} active, {} inactive, {} null active). Returning {} accounts.",
-                            userId, totalFound, activeCount, inactiveCount, nullActiveCount, results.size());
+                    .info("findByUserId({}): Found {} total accounts ({} active, {} inactive, {} null active, {} duplicates filtered). Returning {} unique accounts.",
+                            userId, totalFound, activeCount, inactiveCount, nullActiveCount, duplicateCount, results.size());
         }
         
         return results;
