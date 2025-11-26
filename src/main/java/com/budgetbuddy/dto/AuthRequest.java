@@ -1,5 +1,7 @@
 package com.budgetbuddy.dto;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 
@@ -18,6 +20,9 @@ public final class AuthRequest {
     private String email;
 
     // Secure fields - client-side hashed password
+    // Accept both camelCase (passwordHash) and snake_case (password_hash) for compatibility
+    @JsonProperty("passwordHash")
+    @JsonAlias("password_hash")
     private String passwordHash;
     private String salt;
 

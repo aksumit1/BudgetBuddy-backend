@@ -150,10 +150,6 @@ public class DDoSProtectionService {
                             AttributeDefinition.builder()
                                     .attributeName("ipAddress")
                                     .attributeType(ScalarAttributeType.S)
-                                    .build(),
-                            AttributeDefinition.builder()
-                                    .attributeName("timestamp")
-                                    .attributeType(ScalarAttributeType.N)
                                     .build())
                     .keySchema(
                             KeySchemaElement.builder()

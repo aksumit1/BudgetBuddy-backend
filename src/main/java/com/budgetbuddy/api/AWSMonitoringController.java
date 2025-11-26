@@ -2,7 +2,7 @@ package com.budgetbuddy.api;
 
 import com.budgetbuddy.aws.cloudformation.CloudFormationService;
 import com.budgetbuddy.aws.cloudtrail.CloudTrailService;
-import com.budgetbuddy.aws.cloudwatch.CloudWatchService;
+import com.budgetbuddy.service.aws.CloudWatchService;
 import com.budgetbuddy.aws.codepipeline.CodePipelineService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;

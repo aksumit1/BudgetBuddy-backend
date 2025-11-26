@@ -30,7 +30,11 @@ public class CertificatePinningService {
             logger.info("Certificate pinning enabled with {} certificates", pinnedCertificates.size());
         } else {
             this.pinnedCertificates = Set.of();
-            logger.warn("Certificate pinning is DISABLED - MITM protection not active!");
+            if (enabled) {
+                logger.debug("Certificate pinning is disabled - no certificates configured (expected in local development)");
+            } else {
+                logger.debug("Certificate pinning is disabled via configuration");
+            }
         }
     }
 

@@ -8,7 +8,7 @@ import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient;
-import software.amazon.awssdk.services.cloudwatch.CloudWatchClient;
+// CloudWatchClient import removed - defined in AwsServicesConfig
 
 /**
  * AWS Configuration
@@ -36,13 +36,7 @@ public class AwsConfig {
                 .build();
     }
 
-    @Bean
-    public CloudWatchClient cloudWatchClient() {
-        return CloudWatchClient.builder()
-                .region(Region.of(awsRegion))
-                .credentialsProvider(DefaultCredentialsProvider.create())
-                .build();
-    }
+    // CloudWatchClient is defined in AwsServicesConfig to avoid duplicate bean definition
 
     @Bean
     public S3Presigner s3Presigner() {

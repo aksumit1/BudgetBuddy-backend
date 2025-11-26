@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # LocalStack for local DynamoDB development
   localstack:
@@ -9,20 +7,38 @@ services:
       - "4566:4566"
     environment:
       - SERVICES=dynamodb,s3,secretsmanager,cloudwatch,iam,sts
-      - DEBUG=1
-      - DATA_DIR=/tmp/localstack/data
+      - DEBUG=0
+      - PERSISTENCE=1
+      - DOCKER_HOST=unix:///var/run/docker.sock
     volumes:
-      - localstack_data:/tmp/localstack
+      - localstack_data:/var/lib/localstack
+      - /var/run/docker.sock:/var/run/docker.sock
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:4566/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:4566/_localstack/health"]
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 10s
+
+  redis:
+    image: redis:7-alpine
+    container_name: budgetbuddy-redis
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
 
   backend:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.local
       platforms:
         - linux/arm64
     container_name: budgetbuddy-backend
@@ -35,11 +51,19 @@ services:
       DYNAMODB_ENDPOINT: http://localstack:4566
       AWS_S3_BUCKET: budgetbuddy-storage
       JWT_SECRET: test-secret-change-in-production
-      PLAID_CLIENT_ID: ${PLAID_CLIENT_ID}
-      PLAID_SECRET: ${PLAID_SECRET}
-      PLAID_ENVIRONMENT: ${PLAID_ENVIRONMENT:-sandbox}
+      PLAID_CLIENT_ID: 69262b89a1808400220732ed
+      PLAID_SECRET: 1fd73c16bc49a1a0f81c86c67127d3
+      PLAID_ENVIRONMENT: sandbox
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-sk_test_placeholder}
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      APP_CONFIG_ENABLED: ${APP_CONFIG_ENABLED:-false}
+      SERVER_SSL_ENABLED: ${SERVER_SSL_ENABLED:-false}
+      MANAGEMENT_TRACING_ENABLED: 'false'
     depends_on:
       localstack:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/actuator/health"]
@@ -50,3 +74,4 @@ services:
 
 volumes:
   localstack_data:
+  redis_data:

@@ -7,6 +7,7 @@ import org.slf4j.MDC;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -75,6 +76,28 @@ public class EnhancedGlobalExceptionHandler {
         return ResponseEntity.status(status).body(errorResponse);
     }
 
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<ErrorResponse> handleMethodNotSupportedException(
+            HttpRequestMethodNotSupportedException ex, WebRequest request) {
+        String correlationId = MDC.get("correlationId");
+
+        ErrorResponse errorResponse = ErrorResponse.builder()
+                .errorCode("METHOD_NOT_ALLOWED")
+                .message("Request method '" + ex.getMethod() + "' is not supported for this endpoint. Supported methods: " + 
+                        String.join(", ", ex.getSupportedHttpMethods().stream()
+                                .map(method -> method.name())
+                                .toList()))
+                .correlationId(correlationId)
+                .timestamp(Instant.now())
+                .path(request.getDescription(false).replace("uri=", ""))
+                .build();
+
+        logger.warn("Method not supported: {} for path {} | CorrelationId: {}", 
+                ex.getMethod(), request.getDescription(false), correlationId);
+
+        return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED).body(errorResponse);
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleValidationException(
             MethodArgumentNotValidException ex, WebRequest request) {
@@ -119,6 +142,11 @@ public class EnhancedGlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGenericException(Exception ex, WebRequest request) {
         String correlationId = MDC.get("correlationId");
+
+        // Check if this is a method not supported exception that wasn't caught by the specific handler
+        if (ex instanceof HttpRequestMethodNotSupportedException methodEx) {
+            return handleMethodNotSupportedException(methodEx, request);
+        }
 
         // Sanitize error message - never expose internal details
         String sanitizedMessage = messageUtil.getErrorMessage("internal.server.error");

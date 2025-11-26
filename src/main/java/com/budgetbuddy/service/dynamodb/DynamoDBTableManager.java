@@ -1,5 +1,6 @@
 package com.budgetbuddy.service.dynamodb;
 
+import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -28,9 +29,10 @@ public class DynamoDBTableManager {
     }
 
     /**
-     * Initialize all DynamoDB tables
-     * Called on application startup
+     * Initialize all DynamoDB tables on application startup
+     * Called automatically via @PostConstruct
      */
+    @PostConstruct
     public void initializeTables() {
         createUsersTable();
         createAccountsTable();

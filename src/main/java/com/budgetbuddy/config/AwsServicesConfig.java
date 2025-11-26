@@ -12,6 +12,7 @@ import software.amazon.awssdk.services.cloudtrail.CloudTrailClient;
 import software.amazon.awssdk.services.cloudwatch.CloudWatchClient;
 import software.amazon.awssdk.services.codepipeline.CodePipelineClient;
 import software.amazon.awssdk.services.cognitoidentityprovider.CognitoIdentityProviderClient;
+import software.amazon.awssdk.services.kms.KmsClient;
 
 /**
  * AWS Services Configuration
@@ -69,6 +70,14 @@ public class AwsServicesConfig {
     @Bean
     public CognitoIdentityProviderClient cognitoIdentityProviderClient() {
         return CognitoIdentityProviderClient.builder()
+                .region(Region.of(awsRegion))
+                .credentialsProvider(getCredentialsProvider())
+                .build();
+    }
+
+    @Bean
+    public KmsClient kmsClient() {
+        return KmsClient.builder()
                 .region(Region.of(awsRegion))
                 .credentialsProvider(getCredentialsProvider())
                 .build();

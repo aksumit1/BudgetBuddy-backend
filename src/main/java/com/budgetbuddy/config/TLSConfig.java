@@ -29,24 +29,29 @@ public class TLSConfig {
 
     @Bean
     @Profile("!test")
-    public WebServerFactoryCustomizer<TomcatServletWebServerFactory> tlsCustomizer() {
+    public WebServerFactoryCustomizer<TomcatServletWebServerFactory> tlsCustomizer(
+            @Value("${server.ssl.enabled:false}") boolean sslEnabled) {
         return factory -> {
-            // Ensure TLS 1.2+ is used
+            // Only configure TLS if SSL is actually enabled
+            // For local development without SSL certificates, skip TLS configuration
+            // TLS will be handled by ALB/load balancer in production
+            if (!sslEnabled) {
+                logger.debug("SSL is disabled, skipping TLS connector configuration (using HTTP only)");
+                return;
+            }
+            
+            // Ensure TLS 1.2+ is used when SSL is configured
             factory.addConnectorCustomizers(connector -> {
                 // JDK 25: Enhanced pattern matching
                 if (connector.getProtocolHandler()
                         instanceof org.apache.coyote.http11.Http11NioProtocol protocolHandler) {
 
                     // Set SSL protocols
-                    protocolHandler.setSSLEnabled(true);
-                    // Note: setSslEnabledProtocols may not exist in all Tomcat versions
-                    // Use connector properties instead
                     String[] protocols = enabledProtocols.split(",");
                     for (String protocol : protocols) {
                         connector.setProperty("sslEnabledProtocols", protocol.trim());
                     }
-
-                    logger.info("TLS configured with protocols: {}", enabledProtocols);
+                    logger.info("TLS configured with protocols: {} (SSL enabled)", enabledProtocols);
                 }
             });
         };

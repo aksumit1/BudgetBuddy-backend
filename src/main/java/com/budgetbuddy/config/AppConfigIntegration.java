@@ -51,6 +51,9 @@ public class AppConfigIntegration {
     @Value("${app.aws.appconfig.refresh-interval:60}")
     private long refreshIntervalSeconds;
 
+    @Value("${app.aws.appconfig.enabled:true}")
+    private boolean enabled;
+
     private final AppConfigDataClient appConfigDataClient;
     private final AtomicReference<String> configurationToken = new AtomicReference<>();
     private final AtomicReference<String> latestConfiguration = new AtomicReference<>();
@@ -80,13 +83,19 @@ public class AppConfigIntegration {
 
     @jakarta.annotation.PostConstruct
     public void initialize() {
+        if (!enabled) {
+            logger.info("AWS AppConfig integration is disabled (app.aws.appconfig.enabled=false)");
+            return;
+        }
+        
         try {
             startConfigurationSession();
             scheduleConfigurationRefresh();
             logger.info("AWS AppConfig integration initialized for application: {}, environment: {}",
                     applicationName, environment);
         } catch (Exception e) {
-            logger.error("Failed to initialize AWS AppConfig", e);
+            logger.warn("Failed to initialize AWS AppConfig (this is expected in local development without AWS credentials): {}", e.getMessage());
+            logger.debug("AppConfig initialization error details", e);
         }
     }
 
@@ -119,6 +128,10 @@ public class AppConfigIntegration {
      * Synchronized to prevent concurrent session creation
      */
     private void startConfigurationSession() {
+        if (!enabled) {
+            return;
+        }
+        
         synchronized (sessionLock) {
             try {
                 StartConfigurationSessionRequest request = StartConfigurationSessionRequest.builder()
@@ -136,8 +149,9 @@ public class AppConfigIntegration {
                     logger.warn("Configuration session started but token is null or empty");
                 }
             } catch (Exception e) {
-                logger.error("Failed to start configuration session", e);
-                throw new RuntimeException("Failed to start AppConfig session", e);
+                logger.warn("Failed to start configuration session (this is expected in local development): {}", e.getMessage());
+                logger.debug("AppConfig session error details", e);
+                // Don't throw exception - allow application to continue without AppConfig
             }
         }
     }
@@ -212,6 +226,10 @@ public class AppConfigIntegration {
      * Schedule periodic configuration refresh
      */
     private void scheduleConfigurationRefresh() {
+        if (!enabled) {
+            return;
+        }
+        
         scheduler.scheduleAtFixedRate(
                 this::getLatestConfiguration,
                 refreshIntervalSeconds,

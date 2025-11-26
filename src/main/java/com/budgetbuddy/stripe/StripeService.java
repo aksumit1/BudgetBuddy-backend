@@ -30,7 +30,7 @@ public class StripeService {
     private final PCIDSSComplianceService pciDSSComplianceService;
 
     public StripeService(
-            @Value("${app.stripe.secret-key}") final String secretKey,
+            @Value("${app.stripe.secret-key:sk_test_placeholder}") final String secretKey,
             final PCIDSSComplianceService pciDSSComplianceService) {
         Stripe.apiKey = secretKey;
         this.pciDSSComplianceService = pciDSSComplianceService;

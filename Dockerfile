@@ -1,8 +1,9 @@
 # Multi-stage build for BudgetBuddy Backend
 # Optimized for AWS Graviton2 (ARM64) processors - 20% cost savings
 
-# Build stage - Use ARM64 base image with JDK 21
-FROM --platform=linux/arm64 maven:3.9-eclipse-temurin-21 AS build
+# Build stage - Use ARM64 base image with JDK 25
+# Note: For local development, if Java 25 image is not available, use JDK 21
+FROM --platform=linux/arm64 maven:3.9-eclipse-temurin-25 AS build
 
 WORKDIR /app
 
@@ -14,8 +15,9 @@ RUN mvn dependency:go-offline -B
 COPY src ./src
 RUN mvn clean package -DskipTests
 
-# Runtime stage - Use ARM64/Graviton2 base image with JDK 21
-FROM --platform=linux/arm64 eclipse-temurin:21-jre-alpine
+# Runtime stage - Use ARM64/Graviton2 base image with JDK 25
+# Note: For local development, if Java 25 image is not available, use JDK 21
+FROM --platform=linux/arm64 eclipse-temurin:25-jre-alpine
 
 WORKDIR /app
 
