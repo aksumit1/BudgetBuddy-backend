@@ -49,8 +49,11 @@ public class AnalyticsService {
         List<TransactionTable> transactions = transactionService.getTransactionsInRange(user, startDate, endDate);
         long transactionCount = transactions.size();
 
+        // Handle null totalSpending
+        BigDecimal safeTotalSpending = totalSpending != null ? totalSpending : BigDecimal.ZERO;
+
         // Send metrics to CloudWatch
-        cloudWatchService.putMetric("user.spending.total", totalSpending.doubleValue(), "Count");
+        cloudWatchService.putMetric("user.spending.total", safeTotalSpending.doubleValue(), "Count");
         cloudWatchService.putMetric("user.transactions.count", transactionCount, "Count");
 
         return new SpendingSummary(

@@ -29,7 +29,8 @@ app:
       enabled: false # Disable AppConfig in tests to avoid AWS region requirement
   
   jwt:
-    secret: test-jwt-secret-key-for-testing-only
+    # JWT secret must be at least 64 characters (512 bits) for HS512 algorithm
+    secret: test-jwt-secret-key-for-testing-only-must-be-at-least-64-characters-long-for-hs512-algorithm
     expiration: 3600000 # 1 hour for tests
     refresh-expiration: 86400000 # 1 day for tests
   
