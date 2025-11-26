@@ -359,6 +359,7 @@ public class PlaidSyncService {
             com.plaid.client.model.AccountBase accountBase = null;
             if (plaidAccount instanceof com.plaid.client.model.AccountBase) {
                 accountBase = (com.plaid.client.model.AccountBase) plaidAccount;
+                logger.debug("Successfully cast to AccountBase via instanceof");
             } else {
                 // Try to cast using reflection if instanceof fails (classloader issue)
                 logger.warn("instanceof check failed for AccountBase, trying reflection. Type: {}", className);
@@ -371,11 +372,12 @@ public class PlaidSyncService {
                     }
                 } catch (ClassNotFoundException e) {
                     logger.warn("AccountBase class not found: {}", e.getMessage());
+                } catch (ClassCastException e) {
+                    logger.warn("Could not cast to AccountBase: {}", e.getMessage());
                 }
             }
             
             if (accountBase != null) {
-                com.plaid.client.model.AccountBase accountBase = (com.plaid.client.model.AccountBase) plaidAccount;
                 
                 // Extract account name - prefer official name, then name, then mask
                 String officialName = accountBase.getOfficialName();
