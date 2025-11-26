@@ -190,15 +190,36 @@ public class PlaidController {
         try {
             AccountsResponse accountsResponse = new AccountsResponse();
 
-            // If accessToken is provided, fetch from Plaid API
+            // If accessToken is provided, try to fetch from Plaid API
+            // If Plaid fails, fall back to database
             if (accessToken != null && !accessToken.isEmpty()) {
-                var response = plaidService.getAccounts(accessToken);
-                // Convert List<AccountBase> to List<Object> for AccountsResponse
-                if (response.getAccounts() != null) {
-                    accountsResponse.setAccounts(new java.util.ArrayList<>(response.getAccounts()));
+                try {
+                    var response = plaidService.getAccounts(accessToken);
+                    // Convert List<AccountBase> to List<Object> for AccountsResponse
+                    if (response.getAccounts() != null) {
+                        accountsResponse.setAccounts(new java.util.ArrayList<>(response.getAccounts()));
+                    }
+                    accountsResponse.setItem(response.getItem());
+                    logger.debug("Retrieved accounts from Plaid API for user: {}", user.getUserId());
+                } catch (Exception plaidError) {
+                    // CRITICAL: If Plaid fails, fall back to database instead of throwing error
+                    // This ensures users can still see their data even if Plaid has issues
+                    logger.warn("Plaid API failed for user {}: {} - falling back to database", 
+                            user.getUserId(), plaidError.getMessage());
+                    
+                    // Fall back to database
+                    var accounts = accountRepository.findByUserId(user.getUserId());
+                    if (accounts != null && !accounts.isEmpty()) {
+                        accountsResponse.setAccounts(new java.util.ArrayList<>(accounts));
+                        logger.info("Retrieved {} accounts from database (Plaid fallback) for user: {}", 
+                                accounts.size(), user.getUserId());
+                    } else {
+                        accountsResponse.setAccounts(new java.util.ArrayList<>());
+                        logger.warn("No accounts found in database for user: {} (Plaid also failed)", 
+                                user.getUserId());
+                    }
+                    accountsResponse.setItem(null); // No item info when fetching from DB
                 }
-                accountsResponse.setItem(response.getItem());
-                logger.debug("Retrieved accounts from Plaid API for user: {}", user.getUserId());
             } else {
                 // If no accessToken, return accounts from database
                 var accounts = accountRepository.findByUserId(user.getUserId());
@@ -226,6 +247,20 @@ public class PlaidController {
             throw e;
         } catch (Exception e) {
             logger.error("Failed to get accounts for user {}: {}", user.getUserId(), e.getMessage(), e);
+            // CRITICAL: Even if there's an unexpected error, try to return data from database
+            // This ensures users can still see their data
+            try {
+                var accounts = accountRepository.findByUserId(user.getUserId());
+                AccountsResponse accountsResponse = new AccountsResponse();
+                if (accounts != null && !accounts.isEmpty()) {
+                    accountsResponse.setAccounts(new java.util.ArrayList<>(accounts));
+                    logger.info("Retrieved {} accounts from database (error fallback) for user: {}", 
+                            accounts.size(), user.getUserId());
+                    return ResponseEntity.ok(accountsResponse);
+                }
+            } catch (Exception dbError) {
+                logger.error("Failed to fall back to database for user {}: {}", user.getUserId(), dbError.getMessage());
+            }
             throw new AppException(ErrorCode.PLAID_CONNECTION_FAILED,
                     "Failed to retrieve accounts", null, null, e);
         }

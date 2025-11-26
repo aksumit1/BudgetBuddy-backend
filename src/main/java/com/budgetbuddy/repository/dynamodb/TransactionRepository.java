@@ -18,17 +18,17 @@ import software.amazon.awssdk.services.dynamodb.model.BatchWriteItemResponse;
 import software.amazon.awssdk.services.dynamodb.model.ConditionalCheckFailedException;
 import software.amazon.awssdk.services.dynamodb.model.KeysAndAttributes;
 import software.amazon.awssdk.services.dynamodb.model.PutRequest;
-import software.amazon.awssdk.services.dynamodb.model.UpdateItemRequest;
 import software.amazon.awssdk.services.dynamodb.model.WriteRequest;
 import software.amazon.awssdk.core.pagination.sync.SdkIterable;
 
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -94,6 +94,8 @@ public class TransactionRepository {
         }
 
         List<TransactionTable> results = new ArrayList<>();
+        // Use Set to deduplicate by transactionId to prevent duplicates
+        java.util.Set<String> seenTransactionIds = new java.util.HashSet<>();
         SdkIterable<software.amazon.awssdk.enhanced.dynamodb.model.Page<TransactionTable>>
                 pages = userIdDateIndex.query(
                         QueryConditional.keyEqualTo(
@@ -103,9 +105,19 @@ public class TransactionRepository {
                 page : pages) {
             for (TransactionTable item : page.items()) {
                 if (count >= adjustedSkip) {
-                    results.add(item);
-                    if (results.size() >= adjustedLimit) {
-                        return results;
+                    // Deduplicate by transactionId to prevent duplicates
+                    String transactionId = item.getTransactionId();
+                    if (transactionId != null && !seenTransactionIds.contains(transactionId)) {
+                        seenTransactionIds.add(transactionId);
+                        results.add(item);
+                        if (results.size() >= adjustedLimit) {
+                            return results;
+                        }
+                    } else if (transactionId != null) {
+                        // Log duplicate transaction detected
+                        org.slf4j.LoggerFactory.getLogger(TransactionRepository.class)
+                                .warn("Duplicate transaction detected and filtered: transactionId={}, description={}", 
+                                        transactionId, item.getDescription());
                     }
                 }
                 count++;
@@ -140,6 +152,8 @@ public class TransactionRepository {
         // Note: For very large datasets, consider using DynamoDB Streams
         // or separate date-based partitions
         List<TransactionTable> results = new ArrayList<>();
+        // Use Set to deduplicate by transactionId to prevent duplicates
+        Set<String> seenTransactionIds = new HashSet<>();
         SdkIterable<software.amazon.awssdk.enhanced.dynamodb.model.Page<TransactionTable>>
                 pages = userIdDateIndex.query(
                         QueryConditional.keyEqualTo(
@@ -153,7 +167,17 @@ public class TransactionRepository {
                     // lexicographic comparison)
                     if (txDate.compareTo(startDate) >= 0
                             && txDate.compareTo(endDate) <= 0) {
-                        results.add(t);
+                        // Deduplicate by transactionId to prevent duplicates
+                        String transactionId = t.getTransactionId();
+                        if (transactionId != null && !seenTransactionIds.contains(transactionId)) {
+                            seenTransactionIds.add(transactionId);
+                            results.add(t);
+                        } else if (transactionId != null) {
+                            // Log duplicate transaction detected
+                            org.slf4j.LoggerFactory.getLogger(TransactionRepository.class)
+                                    .warn("Duplicate transaction detected and filtered: transactionId={}, date={}, description={}", 
+                                            transactionId, txDate, t.getDescription());
+                        }
                         final int safetyLimit = 1000;
                         if (results.size() >= safetyLimit) {
                             return results;
