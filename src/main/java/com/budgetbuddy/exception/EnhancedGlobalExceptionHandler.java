@@ -145,6 +145,25 @@ public class EnhancedGlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
     }
 
+    @ExceptionHandler(org.springframework.web.bind.MissingServletRequestParameterException.class)
+    public ResponseEntity<ErrorResponse> handleMissingServletRequestParameterException(
+            org.springframework.web.bind.MissingServletRequestParameterException ex, WebRequest request) {
+        String correlationId = MDC.get("correlationId");
+
+        ErrorResponse errorResponse = ErrorResponse.builder()
+                .errorCode("MISSING_REQUIRED_FIELD")
+                .message("Required request parameter '" + ex.getParameterName() + "' is missing")
+                .validationErrors(Map.of(ex.getParameterName(), "Required parameter '" + ex.getParameterName() + "' is missing"))
+                .correlationId(correlationId)
+                .timestamp(Instant.now())
+                .path(request.getDescription(false).replace("uri=", ""))
+                .build();
+
+        logger.warn("Missing request parameter: {} | CorrelationId: {}", ex.getParameterName(), correlationId);
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGenericException(Exception ex, WebRequest request) {
         String correlationId = MDC.get("correlationId");

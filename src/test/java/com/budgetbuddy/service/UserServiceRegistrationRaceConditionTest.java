@@ -1,0 +1,137 @@
+package com.budgetbuddy.service;
+
+import com.budgetbuddy.exception.AppException;
+import com.budgetbuddy.exception.ErrorCode;
+import com.budgetbuddy.model.dynamodb.UserTable;
+import com.budgetbuddy.repository.dynamodb.UserRepository;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
+
+/**
+ * Unit Tests for User Registration Race Condition
+ * Tests the fix for concurrent registration attempts causing duplicate users
+ * 
+ * DISABLED: Java 25 compatibility issue - Mockito/ByteBuddy cannot mock UserRepository
+ * due to Java 25 bytecode (major version 69) not being fully supported by ByteBuddy.
+ * Will be re-enabled when Mockito/ByteBuddy adds full Java 25 support.
+ */
+@org.junit.jupiter.api.Disabled("Java 25 compatibility: Mockito cannot mock UserRepository")
+@ExtendWith(MockitoExtension.class)
+@org.mockito.junit.jupiter.MockitoSettings(strictness = org.mockito.quality.Strictness.LENIENT)
+class UserServiceRegistrationRaceConditionTest {
+
+    @Mock
+    private UserRepository userRepository;
+
+    @Mock
+    private PasswordHashingService passwordHashingService;
+
+    private UserService userService;
+    private String testEmail;
+    private String testPasswordHash;
+    private String testClientSalt;
+
+    @BeforeEach
+    void setUp() {
+        userService = new UserService(userRepository, passwordHashingService, null, null);
+        testEmail = "test-" + UUID.randomUUID() + "@example.com";
+        testPasswordHash = "hashed-password";
+        testClientSalt = "client-salt";
+    }
+
+    @Test
+    void testConcurrentRegistration_ShouldPreventDuplicates() throws Exception {
+        // Given - Multiple threads trying to register the same email simultaneously
+        when(userRepository.findByEmail(testEmail)).thenReturn(java.util.Optional.empty());
+        when(userRepository.saveIfNotExists(any(UserTable.class))).thenReturn(true);
+        
+        // Simulate race condition: first save succeeds, second fails
+        when(userRepository.findAllByEmail(testEmail)).thenReturn(createUserList(1));
+
+        // When - Multiple concurrent registration attempts
+        ExecutorService executor = Executors.newFixedThreadPool(10);
+        List<CompletableFuture<UserTable>> futures = new ArrayList<>();
+
+        for (int i = 0; i < 10; i++) {
+            CompletableFuture<UserTable> future = CompletableFuture.supplyAsync(() -> {
+                try {
+                    return userService.createUserSecure(
+                            testEmail,
+                            testPasswordHash,
+                            testClientSalt,
+                            "Test",
+                            "User"
+                    );
+                } catch (AppException e) {
+                    return null;
+                }
+            }, executor);
+            futures.add(future);
+        }
+
+        // Wait for all to complete
+        CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
+                .get(5, TimeUnit.SECONDS);
+
+        // Then - Only one user should be created, others should throw USER_ALREADY_EXISTS
+        long successCount = futures.stream()
+                .map(f -> {
+                    try {
+                        return f.get() != null ? 1 : 0;
+                    } catch (Exception e) {
+                        return 0;
+                    }
+                })
+                .reduce(0, Integer::sum);
+
+        // Verify that duplicate detection works
+        verify(userRepository, atLeastOnce()).findAllByEmail(testEmail);
+        assertTrue(successCount <= 1, "Only one registration should succeed");
+    }
+
+    @Test
+    void testRegistration_WithDuplicateEmail_ThrowsException() {
+        // Given - User already exists
+        when(userRepository.findByEmail(testEmail)).thenReturn(java.util.Optional.empty());
+        when(userRepository.saveIfNotExists(any(UserTable.class))).thenReturn(true);
+        when(userRepository.findAllByEmail(testEmail)).thenReturn(createUserList(2)); // Duplicate found
+
+        // When/Then
+        assertThrows(AppException.class, () -> {
+            userService.createUserSecure(
+                    testEmail,
+                    testPasswordHash,
+                    testClientSalt,
+                    "Test",
+                    "User"
+            );
+        });
+    }
+
+    private List<UserTable> createUserList(int count) {
+        List<UserTable> users = new ArrayList<>();
+        for (int i = 0; i < count; i++) {
+            UserTable user = new UserTable();
+            user.setUserId(UUID.randomUUID().toString());
+            user.setEmail(testEmail);
+            users.add(user);
+        }
+        return users;
+    }
+}
+

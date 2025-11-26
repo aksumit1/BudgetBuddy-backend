@@ -1,0 +1,175 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'S3 Bucket for hosting static assets including apple-app-site-association file'
+
+Parameters:
+  Environment:
+    Type: String
+    Default: production
+    AllowedValues:
+      - staging
+      - production
+    Description: Environment name (staging or production)
+  
+  AppleTeamId:
+    Type: String
+    Description: Apple Developer Team ID (e.g., ABC123DEF4)
+    Default: TEAM_ID
+  
+  BundleId:
+    Type: String
+    Default: com.budgetbuddy.app
+    Description: iOS App Bundle Identifier
+
+Resources:
+  # S3 Bucket for static assets
+  StaticAssetsBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub 'budgetbuddy-static-assets-${Environment}'
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: false
+        BlockPublicPolicy: false
+        IgnorePublicAcls: false
+        RestrictPublicBuckets: false
+      WebsiteConfiguration:
+        IndexDocument: index.html
+        ErrorDocument: error.html
+      VersioningConfiguration:
+        Status: Enabled
+      LifecycleConfiguration:
+        Rules:
+          - Id: DeleteOldVersions
+            Status: Enabled
+            NoncurrentVersionExpirationInDays: 30
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Name
+          Value: !Sub 'budgetbuddy-static-assets-${Environment}'
+        - Key: ManagedBy
+          Value: CloudFormation
+
+  # Bucket Policy to allow public read access to well-known files
+  StaticAssetsBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref StaticAssetsBucket
+      PolicyDocument:
+        Statement:
+          - Sid: PublicReadGetObject
+            Effect: Allow
+            Principal: '*'
+            Action: 's3:GetObject'
+            Resource: !Sub '${StaticAssetsBucket}/*'
+            Condition:
+              StringEquals:
+                's3:ExistingObjectTag/Public': 'true'
+          - Sid: PublicReadWellKnown
+            Effect: Allow
+            Principal: '*'
+            Action: 's3:GetObject'
+            Resource: !Sub '${StaticAssetsBucket}/.well-known/*'
+
+  # CloudFront Origin Access Identity (OAI) for secure access
+  CloudFrontOAI:
+    Type: AWS::CloudFront::OriginAccessIdentity
+    Properties:
+      OriginAccessIdentityConfig:
+        Comment: !Sub 'OAI for budgetbuddy-static-assets-${Environment}'
+
+  # CloudFront Distribution for serving static assets
+  StaticAssetsDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        Comment: !Sub 'CloudFront distribution for BudgetBuddy static assets (${Environment})'
+        DefaultRootObject: index.html
+        PriceClass: PriceClass_100 # Use only North America and Europe
+        Origins:
+          - Id: S3Origin
+            DomainName: !GetAtt StaticAssetsBucket.RegionalDomainName
+            S3OriginConfig:
+              OriginAccessIdentity: !Sub 'origin-access-identity/cloudfront/${CloudFrontOAI}'
+        DefaultCacheBehavior:
+          TargetOriginId: S3Origin
+          ViewerProtocolPolicy: redirect-to-https
+          AllowedMethods:
+            - GET
+            - HEAD
+            - OPTIONS
+          CachedMethods:
+            - GET
+            - HEAD
+          Compress: true
+          CachePolicyId: 4135ea2d-6df8-44a3-9df3-4b5a84be39ad # Managed-CachingOptimized
+          ResponseHeadersPolicyId: 67f7725c-6f97-4210-82d7-5512b07e9b11 # Managed-SecurityHeadersPolicy
+        CustomErrorResponses:
+          - ErrorCode: 404
+            ResponseCode: 404
+            ResponsePagePath: /error.html
+            ErrorCachingMinTTL: 300
+        ViewerCertificate:
+          CloudFrontDefaultCertificate: true
+        Tags:
+          - Key: Environment
+            Value: !Ref Environment
+          - Key: Name
+            Value: !Sub 'budgetbuddy-static-assets-${Environment}'
+
+  # IAM Role for Lambda to update apple-app-site-association file
+  StaticAssetsUpdateRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: 'sts:AssumeRole'
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: S3PutObjectPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 's3:PutObject'
+                  - 's3:PutObjectTagging'
+                  - 's3:GetObject'
+                Resource: !Sub '${StaticAssetsBucket}/*'
+
+Outputs:
+  BucketName:
+    Description: Name of the S3 bucket for static assets
+    Value: !Ref StaticAssetsBucket
+    Export:
+      Name: !Sub '${AWS::StackName}-BucketName'
+  
+  BucketArn:
+    Description: ARN of the S3 bucket
+    Value: !GetAtt StaticAssetsBucket.Arn
+    Export:
+      Name: !Sub '${AWS::StackName}-BucketArn'
+  
+  DistributionId:
+    Description: CloudFront Distribution ID
+    Value: !Ref StaticAssetsDistribution
+    Export:
+      Name: !Sub '${AWS::StackName}-DistributionId'
+  
+  DistributionDomainName:
+    Description: CloudFront Distribution Domain Name
+    Value: !GetAtt StaticAssetsDistribution.DomainName
+    Export:
+      Name: !Sub '${AWS::StackName}-DistributionDomainName'
+  
+  UpdateRoleArn:
+    Description: IAM Role ARN for updating static assets
+    Value: !GetAtt StaticAssetsUpdateRole.Arn
+    Export:
+      Name: !Sub '${AWS::StackName}-UpdateRoleArn'
+

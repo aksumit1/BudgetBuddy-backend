@@ -110,6 +110,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/api/public/**").permitAll()
                 .requestMatchers("/api/plaid/webhooks").permitAll()
+                .requestMatchers("/.well-known/**").permitAll() // Allow well-known files (apple-app-site-association, etc.)
                 .anyRequest().authenticated()
             );
 

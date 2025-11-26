@@ -86,6 +86,13 @@ app:
     secret: ${PLAID_SECRET:}
     environment: ${PLAID_ENVIRONMENT:sandbox} # sandbox, development, production
     webhook-verification-key: ${PLAID_WEBHOOK_VERIFICATION_KEY:}
+    redirect-uri: ${PLAID_REDIRECT_URI:https://app.budgetbuddy.com/plaid/callback} # OAuth redirect URI
+    webhook-url: ${PLAID_WEBHOOK_URL:https://api.budgetbuddy.com/api/plaid/webhooks} # Webhook endpoint
+  
+  # Apple Configuration (for Universal Links)
+  apple:
+    team-id: ${APPLE_TEAM_ID:TEAM_ID} # Replace with your Apple Developer Team ID
+    bundle-id: ${APPLE_BUNDLE_ID:com.budgetbuddy.app}
   
   # Stripe Configuration
   stripe:

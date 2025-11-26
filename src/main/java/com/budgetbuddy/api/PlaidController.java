@@ -42,11 +42,14 @@ public class PlaidController {
     private final PlaidService plaidService;
     private final PlaidSyncService plaidSyncService;
     private final UserService userService;
+    private final com.budgetbuddy.repository.dynamodb.AccountRepository accountRepository;
 
-    public PlaidController(final PlaidService plaidService, final PlaidSyncService plaidSyncService, final UserService userService) {
+    public PlaidController(final PlaidService plaidService, final PlaidSyncService plaidSyncService, 
+            final UserService userService, final com.budgetbuddy.repository.dynamodb.AccountRepository accountRepository) {
         this.plaidService = plaidService;
         this.plaidSyncService = plaidSyncService;
         this.userService = userService;
+        this.accountRepository = accountRepository;
     }
 
     /**
@@ -144,35 +147,50 @@ public class PlaidController {
     /**
      * Get Accounts
      * Retrieves accounts for the authenticated user
+     * If accessToken is provided, fetches from Plaid API
+     * If accessToken is not provided, returns accounts from database
      */
     @GetMapping("/accounts")
     @Operation(
         summary = "Get Accounts",
-        description = "Retrieves all linked financial accounts for the authenticated user"
+        description = "Retrieves all linked financial accounts for the authenticated user. If accessToken is provided, fetches from Plaid API. Otherwise, returns accounts from database."
     )
     public ResponseEntity<AccountsResponse> getAccounts(
             @AuthenticationPrincipal UserDetails userDetails,
-            @RequestParam @NotBlank @Parameter(description = "Plaid access token") String accessToken) {
+            @RequestParam(required = false) @Parameter(description = "Plaid access token (optional)") String accessToken) {
         if (userDetails == null || userDetails.getUsername() == null) {
             throw new AppException(ErrorCode.UNAUTHORIZED, "User not authenticated");
-        }
-
-        if (accessToken == null || accessToken.isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "Access token is required");
         }
 
         UserTable user = userService.findByEmail(userDetails.getUsername())
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
 
         try {
-            var response = plaidService.getAccounts(accessToken);
-
             AccountsResponse accountsResponse = new AccountsResponse();
-            // Convert List<AccountBase> to List<Object> for AccountsResponse
-            if (response.getAccounts() != null) {
-                accountsResponse.setAccounts(new java.util.ArrayList<>(response.getAccounts()));
+
+            // If accessToken is provided, fetch from Plaid API
+            if (accessToken != null && !accessToken.isEmpty()) {
+                var response = plaidService.getAccounts(accessToken);
+                // Convert List<AccountBase> to List<Object> for AccountsResponse
+                if (response.getAccounts() != null) {
+                    accountsResponse.setAccounts(new java.util.ArrayList<>(response.getAccounts()));
+                }
+                accountsResponse.setItem(response.getItem());
+                logger.debug("Retrieved accounts from Plaid API for user: {}", user.getUserId());
+            } else {
+                // If no accessToken, return accounts from database
+                var accounts = accountRepository.findByUserId(user.getUserId());
+                
+                // Convert AccountTable to response format
+                if (accounts != null && !accounts.isEmpty()) {
+                    accountsResponse.setAccounts(new java.util.ArrayList<>(accounts));
+                } else {
+                    accountsResponse.setAccounts(new java.util.ArrayList<>());
+                }
+                accountsResponse.setItem(null); // No item info when fetching from DB
+                logger.debug("Retrieved {} accounts from database for user: {}", 
+                        accounts != null ? accounts.size() : 0, user.getUserId());
             }
-            accountsResponse.setItem(response.getItem());
 
             return ResponseEntity.ok(accountsResponse);
         } catch (AppException e) {

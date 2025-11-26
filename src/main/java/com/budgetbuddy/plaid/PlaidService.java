@@ -31,10 +31,14 @@ public class PlaidService {
     private final PlaidApi plaidApi;
     private final String environment;
     private final PCIDSSComplianceService pciDSSComplianceService;
+    private final String redirectUri;
+    private final String webhookUrl;
 
     public PlaidService(@Value("${app.plaid.client-id}") String clientId,
             @Value("${app.plaid.secret}") String secret,
             @Value("${app.plaid.environment:sandbox}") String environment,
+            @Value("${app.plaid.redirect-uri:}") String redirectUri,
+            @Value("${app.plaid.webhook-url:}") String webhookUrl,
             PCIDSSComplianceService pciDSSComplianceService) {
 
         if (clientId == null || clientId.isEmpty()) {
@@ -49,6 +53,8 @@ public class PlaidService {
 
         this.environment = environment;
         this.pciDSSComplianceService = pciDSSComplianceService;
+        this.redirectUri = redirectUri;
+        this.webhookUrl = webhookUrl;
 
         Map<String, String> apiKeys = new HashMap<>();
         apiKeys.put("clientId", clientId);
@@ -124,13 +130,48 @@ public class PlaidService {
                     .countryCodes(List.of(CountryCode.US))
                     .language("en");
             
-            // Only set webhook and redirect URI if not sandbox (or if configured)
-            // For sandbox, these are optional and may cause issues if not configured in dashboard
-            if (!"sandbox".equalsIgnoreCase(environment)) {
-                request.webhook("https://api.budgetbuddy.com/api/plaid/webhooks");
-                request.redirectUri("https://app.budgetbuddy.com/plaid/callback");
+            // Set redirect URI - Plaid requires this for OAuth flows
+            // Use configured value or default based on environment
+            String finalRedirectUri = redirectUri;
+            if (finalRedirectUri == null || finalRedirectUri.isEmpty()) {
+                // Default redirect URI based on environment
+                if ("production".equalsIgnoreCase(environment)) {
+                    finalRedirectUri = "https://app.budgetbuddy.com/plaid/callback";
+                } else if ("development".equalsIgnoreCase(environment)) {
+                    finalRedirectUri = "https://dev.budgetbuddy.com/plaid/callback";
+                } else {
+                    // For sandbox, use a localhost or configured redirect URI
+                    // Note: Sandbox may require redirect URI to be configured in Plaid dashboard
+                    finalRedirectUri = "https://app.budgetbuddy.com/plaid/callback";
+                }
+            }
+            
+            // Always set redirect URI - Plaid requires this even in sandbox
+            // The redirect URI must be set for OAuth flows to work
+            if (finalRedirectUri == null || finalRedirectUri.isEmpty()) {
+                logger.error("Redirect URI is null or empty - Plaid will reject this request!");
+                throw new AppException(ErrorCode.INVALID_INPUT, 
+                        "Redirect URI must be configured for Plaid OAuth integration");
+            }
+            
+            // Set redirect URI on the request
+            request.redirectUri(finalRedirectUri);
+            logger.info("✅ Setting redirect URI for Plaid Link token: {}", finalRedirectUri);
+            
+            // Set webhook URL if configured (optional, but recommended)
+            String finalWebhookUrl = webhookUrl;
+            if (finalWebhookUrl == null || finalWebhookUrl.isEmpty()) {
+                // Default webhook URL based on environment
+                if (!"sandbox".equalsIgnoreCase(environment)) {
+                    finalWebhookUrl = "https://api.budgetbuddy.com/api/plaid/webhooks";
+                    request.webhook(finalWebhookUrl);
+                    logger.debug("Setting webhook URL: {}", finalWebhookUrl);
+                } else {
+                    logger.debug("Skipping webhook URL for sandbox environment (optional)");
+                }
             } else {
-                logger.debug("Skipping webhook and redirect URI for sandbox environment");
+                request.webhook(finalWebhookUrl);
+                logger.debug("Setting webhook URL: {}", finalWebhookUrl);
             }
 
             var callResponse = plaidApi.linkTokenCreate(request).execute();

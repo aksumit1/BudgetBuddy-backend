@@ -54,12 +54,15 @@ services:
       PLAID_CLIENT_ID: 69262b89a1808400220732ed
       PLAID_SECRET: 1fd73c16bc49a1a0f81c86c67127d3
       PLAID_ENVIRONMENT: sandbox
+      PLAID_REDIRECT_URI: ${PLAID_REDIRECT_URI:-https://app.budgetbuddy.com/plaid/callback}
       STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-sk_test_placeholder}
       SPRING_DATA_REDIS_HOST: redis
       SPRING_DATA_REDIS_PORT: 6379
       APP_CONFIG_ENABLED: ${APP_CONFIG_ENABLED:-false}
       SERVER_SSL_ENABLED: ${SERVER_SSL_ENABLED:-false}
       MANAGEMENT_TRACING_ENABLED: 'false'
+      APPLE_TEAM_ID: ${APPLE_TEAM_ID:-TEAM_ID}
+      APPLE_BUNDLE_ID: ${APPLE_BUNDLE_ID:-com.budgetbuddy.app}
     depends_on:
       localstack:
         condition: service_healthy

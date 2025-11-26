@@ -93,7 +93,7 @@ class PlaidServiceTest {
     void testPlaidService_Constructor_WithNullClientId_ThrowsException() {
         // When/Then
         assertThrows(IllegalArgumentException.class, () -> {
-            new PlaidService(null, "secret", "sandbox", pciDSSComplianceService);
+            new PlaidService(null, "secret", "sandbox", "https://app.budgetbuddy.com/plaid/callback", "https://api.budgetbuddy.com/api/plaid/webhooks", pciDSSComplianceService);
         });
     }
 
@@ -101,7 +101,7 @@ class PlaidServiceTest {
     void testPlaidService_Constructor_WithEmptyClientId_ThrowsException() {
         // When/Then
         assertThrows(IllegalArgumentException.class, () -> {
-            new PlaidService("", "secret", "sandbox", pciDSSComplianceService);
+            new PlaidService("", "secret", "sandbox", "https://app.budgetbuddy.com/plaid/callback", "https://api.budgetbuddy.com/api/plaid/webhooks", pciDSSComplianceService);
         });
     }
 
@@ -109,7 +109,7 @@ class PlaidServiceTest {
     void testPlaidService_Constructor_WithNullSecret_ThrowsException() {
         // When/Then
         assertThrows(IllegalArgumentException.class, () -> {
-            new PlaidService("clientId", null, "sandbox", pciDSSComplianceService);
+            new PlaidService("clientId", null, "sandbox", "https://app.budgetbuddy.com/plaid/callback", "https://api.budgetbuddy.com/api/plaid/webhooks", pciDSSComplianceService);
         });
     }
 
@@ -117,7 +117,7 @@ class PlaidServiceTest {
     void testPlaidService_Constructor_WithEmptySecret_ThrowsException() {
         // When/Then
         assertThrows(IllegalArgumentException.class, () -> {
-            new PlaidService("clientId", "", "sandbox", pciDSSComplianceService);
+            new PlaidService("clientId", "", "sandbox", "https://app.budgetbuddy.com/plaid/callback", "https://api.budgetbuddy.com/api/plaid/webhooks", pciDSSComplianceService);
         });
     }
 
@@ -125,7 +125,7 @@ class PlaidServiceTest {
     void testPlaidService_Constructor_WithNullPCIDSSService_ThrowsException() {
         // When/Then
         assertThrows(IllegalArgumentException.class, () -> {
-            new PlaidService("clientId", "secret", "sandbox", null);
+            new PlaidService("clientId", "secret", "sandbox", "https://app.budgetbuddy.com/plaid/callback", "https://api.budgetbuddy.com/api/plaid/webhooks", null);
         });
     }
 }
