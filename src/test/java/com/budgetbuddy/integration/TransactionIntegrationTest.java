@@ -137,7 +137,7 @@ class TransactionIntegrationTest {
         );
 
         // Then
-        assertEquals(BigDecimal.valueOf(150.00), total);
+        assertEquals(0, BigDecimal.valueOf(150.00).compareTo(total));
     }
 }
 

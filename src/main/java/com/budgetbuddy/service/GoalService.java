@@ -8,6 +8,7 @@ import com.budgetbuddy.repository.dynamodb.GoalRepository;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -57,6 +58,11 @@ public class GoalService {
         goal.setCurrentAmount(BigDecimal.ZERO);
         goal.setCurrencyCode(user.getPreferredCurrency() != null && !user.getPreferredCurrency().isEmpty()
                 ? user.getPreferredCurrency() : "USD");
+        
+        // Set timestamps
+        Instant now = Instant.now();
+        goal.setCreatedAt(now);
+        goal.setUpdatedAt(now);
 
         goalRepository.save(goal);
         return goal;

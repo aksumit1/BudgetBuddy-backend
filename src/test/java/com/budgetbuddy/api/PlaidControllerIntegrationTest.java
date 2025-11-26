@@ -1,5 +1,6 @@
 package com.budgetbuddy.api;
 
+import com.budgetbuddy.AWSTestConfiguration;
 import com.budgetbuddy.model.dynamodb.AccountTable;
 import com.budgetbuddy.model.dynamodb.UserTable;
 import com.budgetbuddy.repository.dynamodb.AccountRepository;
@@ -9,6 +10,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
@@ -30,6 +32,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest(classes = com.budgetbuddy.BudgetBuddyApplication.class)
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
+@Import(AWSTestConfiguration.class)
 class PlaidControllerIntegrationTest {
 
     @Autowired
@@ -49,11 +52,13 @@ class PlaidControllerIntegrationTest {
     void setUp() {
         testEmail = "test-" + UUID.randomUUID() + "@example.com";
         
-        // Create test user
+        // Create test user with proper base64-encoded strings
+        String base64PasswordHash = java.util.Base64.getEncoder().encodeToString("hashed-password".getBytes());
+        String base64ClientSalt = java.util.Base64.getEncoder().encodeToString("client-salt".getBytes());
         testUser = userService.createUserSecure(
                 testEmail,
-                "hashed-password",
-                "client-salt",
+                base64PasswordHash,
+                base64ClientSalt,
                 "Test",
                 "User"
         );
