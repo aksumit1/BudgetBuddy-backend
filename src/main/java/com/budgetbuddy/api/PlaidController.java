@@ -397,6 +397,59 @@ public class PlaidController {
         public void setItem(final Object item) { this.item = item; }
     }
 
+    /**
+     * Update Account Sync Settings
+     * Updates lastSyncedAt for accounts after successful sync
+     * This ensures sync settings are maintained in backend even if app is deleted
+     */
+    @PutMapping("/accounts/sync-settings")
+    @Operation(
+        summary = "Update Account Sync Settings",
+        description = "Updates lastSyncedAt for accounts after successful sync. Ensures sync settings persist in backend."
+    )
+    public ResponseEntity<Map<String, String>> updateAccountSyncSettings(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestBody Map<String, Object> request) {
+        if (userDetails == null || userDetails.getUsername() == null) {
+            throw new AppException(ErrorCode.UNAUTHORIZED, "User not authenticated");
+        }
+
+        UserTable user = userService.findByEmail(userDetails.getUsername())
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+
+        try {
+            // Get all user accounts
+            var userAccounts = accountRepository.findByUserId(user.getUserId());
+            
+            if (userAccounts.isEmpty()) {
+                logger.warn("No accounts found for user: {}", user.getUserId());
+                return ResponseEntity.ok(Map.of("status", "success", "message", "No accounts to update"));
+            }
+            
+            // Update lastSyncedAt for all accounts
+            java.time.Instant now = java.time.Instant.now();
+            int updatedCount = 0;
+            
+            for (var account : userAccounts) {
+                account.setLastSyncedAt(now);
+                accountRepository.save(account);
+                updatedCount++;
+            }
+            
+            logger.info("Updated lastSyncedAt for {} accounts for user: {}", updatedCount, user.getUserId());
+            return ResponseEntity.ok(Map.of(
+                    "status", "success",
+                    "message", "Sync settings updated",
+                    "accountsUpdated", String.valueOf(updatedCount)
+            ));
+        } catch (Exception e) {
+            logger.error("Failed to update account sync settings for user {}: {}", 
+                    user.getUserId(), e.getMessage(), e);
+            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR,
+                    "Failed to update sync settings", null, null, e);
+        }
+    }
+
     public static class SyncRequest {
         @NotBlank(message = "Access token is required")
         @com.fasterxml.jackson.annotation.JsonProperty("access_token")

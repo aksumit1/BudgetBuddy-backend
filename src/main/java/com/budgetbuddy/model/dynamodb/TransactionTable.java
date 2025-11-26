@@ -27,6 +27,7 @@ public class TransactionTable {
     private String currencyCode;
     private String plaidTransactionId; // GSI for deduplication
     private Boolean pending;
+    private String paymentChannel; // online, in_store, ach, etc.
     private Instant createdAt;
     private Instant updatedAt;
 
@@ -131,6 +132,15 @@ public class TransactionTable {
 
     public void setPending(final Boolean pending) {
         this.pending = pending;
+    }
+
+    @DynamoDbAttribute("paymentChannel")
+    public String getPaymentChannel() {
+        return paymentChannel;
+    }
+
+    public void setPaymentChannel(final String paymentChannel) {
+        this.paymentChannel = paymentChannel;
     }
 
     @DynamoDbAttribute("createdAt")

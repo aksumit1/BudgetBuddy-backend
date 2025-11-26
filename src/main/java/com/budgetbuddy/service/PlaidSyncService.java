@@ -35,6 +35,7 @@ public class PlaidSyncService {
     private static final Logger logger = LoggerFactory.getLogger(PlaidSyncService.class);
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ISO_LOCAL_DATE;
     private static final int DEFAULT_SYNC_DAYS = 30;
+    private static final int FIRST_SYNC_MONTHS = 18; // Fetch 18 months on first sync
 
     private final PlaidService plaidService;
     private final AccountRepository accountRepository;
@@ -200,6 +201,8 @@ public class PlaidSyncService {
 
     /**
      * Sync transactions for a user
+     * Uses per-account incremental sync: fetches transactions per account based on account-specific lastSyncedAt
+     * For first sync (no lastSyncedAt), fetches 18 months of data
      */
     public void syncTransactions(final UserTable user, final String accessToken) {
         if (user == null) {
@@ -213,23 +216,93 @@ public class PlaidSyncService {
             logger.info("Starting transaction sync for user: {}", user.getUserId());
 
             LocalDate endDate = LocalDate.now();
-            LocalDate startDate = endDate.minusDays(DEFAULT_SYNC_DAYS);
-
-            var transactionsResponse = plaidService.getTransactions(
-                    accessToken,
-                    startDate.format(DATE_FORMATTER),
-                    endDate.format(DATE_FORMATTER)
-            );
-
-            if (transactionsResponse == null || transactionsResponse.getTransactions() == null) {
-                logger.warn("No transactions returned from Plaid for user: {}", user.getUserId());
+            
+            // Get all user accounts to sync per account
+            var userAccounts = accountRepository.findByUserId(user.getUserId());
+            
+            if (userAccounts.isEmpty()) {
+                logger.warn("No accounts found for user: {}", user.getUserId());
                 return;
             }
+            
+            // Sync transactions per account with account-specific lastSyncedAt
+            for (var account : userAccounts) {
+                try {
+                    syncTransactionsForAccount(user, accessToken, account, endDate);
+                } catch (Exception e) {
+                    logger.error("Failed to sync transactions for account {}: {}", 
+                            account.getAccountId(), e.getMessage(), e);
+                    // Continue with other accounts
+                }
+            }
+            
+            // Update lastSyncedAt for all accounts after successful sync
+            java.time.Instant now = java.time.Instant.now();
+            for (var account : userAccounts) {
+                account.setLastSyncedAt(now);
+                accountRepository.save(account);
+            }
+            logger.debug("Updated lastSyncedAt for {} accounts", userAccounts.size());
+            
+        } catch (Exception e) {
+            logger.error("Error syncing transactions for user {}: {}", user.getUserId(), e.getMessage(), e);
+            throw new AppException(ErrorCode.PLAID_CONNECTION_FAILED,
+                    "Failed to sync transactions", null, null, e);
+        }
+    }
+    
+    /**
+     * Sync transactions for a specific account
+     * Uses account-specific lastSyncedAt for incremental sync
+     * For first sync (no lastSyncedAt), fetches 18 months of data
+     */
+    private void syncTransactionsForAccount(
+            final UserTable user,
+            final String accessToken,
+            final AccountTable account,
+            final LocalDate endDate) {
+        
+        LocalDate startDate;
+        boolean isFirstSync = false;
+        
+        if (account.getLastSyncedAt() == null) {
+            // First sync: fetch 18 months of data (or whatever is available)
+            startDate = endDate.minusMonths(FIRST_SYNC_MONTHS);
+            isFirstSync = true;
+            logger.info("First sync for account {} - fetching {} months of data (since {})", 
+                    account.getAccountId(), FIRST_SYNC_MONTHS, startDate);
+        } else {
+            // Incremental sync: fetch since last sync date
+            startDate = account.getLastSyncedAt().atZone(java.time.ZoneId.of("UTC")).toLocalDate();
+            // Fetch from 1 day before last sync to catch any transactions that might have been missed
+            startDate = startDate.minusDays(1);
+            logger.info("Incremental sync for account {} - fetching since {} (last sync: {})", 
+                    account.getAccountId(), startDate, account.getLastSyncedAt());
+        }
 
-            int syncedCount = 0;
-            int errorCount = 0;
+        var transactionsResponse = plaidService.getTransactions(
+                accessToken,
+                startDate.format(DATE_FORMATTER),
+                endDate.format(DATE_FORMATTER)
+        );
 
-            for (var plaidTransaction : transactionsResponse.getTransactions()) {
+        if (transactionsResponse == null || transactionsResponse.getTransactions() == null) {
+            logger.warn("No transactions returned from Plaid for account: {}", account.getAccountId());
+            return;
+        }
+
+        int syncedCount = 0;
+        int errorCount = 0;
+        int duplicateCount = 0;
+
+        // CRITICAL: On first sync, deduplicate all transactions before saving
+        // This ensures we don't create duplicates if sync runs multiple times
+        if (isFirstSync) {
+            logger.info("First sync detected - deduplicating {} transactions before saving", 
+                    transactionsResponse.getTransactions().size());
+        }
+
+        for (var plaidTransaction : transactionsResponse.getTransactions()) {
                 try {
                     String transactionId = extractTransactionId(plaidTransaction);
                     if (transactionId == null || transactionId.isEmpty()) {
@@ -238,16 +311,19 @@ public class PlaidSyncService {
                         continue;
                     }
 
-                    // Use conditional write to prevent duplicates and race conditions
-                    // First check if transaction already exists
+                    // CRITICAL: Always check if transaction already exists to prevent duplicates
+                    // This is especially important on first sync when refetching everything
                     Optional<TransactionTable> existing = transactionRepository.findByPlaidTransactionId(transactionId);
                     
                     if (existing.isPresent()) {
-                        // Update existing transaction
+                        // Transaction already exists - update it (don't create duplicate)
                         TransactionTable transaction = existing.get();
                         updateTransactionFromPlaid(transaction, plaidTransaction);
                         transactionRepository.save(transaction);
                         syncedCount++;
+                        duplicateCount++;
+                        logger.debug("Updated existing transaction (deduplicated): plaidTransactionId={}, transactionId={}", 
+                                transactionId, transaction.getTransactionId());
                     } else {
                         // Create new transaction
                         TransactionTable transaction = createTransactionFromPlaid(user.getUserId(), plaidTransaction);
@@ -258,17 +334,22 @@ public class PlaidSyncService {
                         boolean saved = transactionRepository.saveIfPlaidTransactionNotExists(transaction);
                         if (saved) {
                             syncedCount++;
+                            logger.debug("Created new transaction: plaidTransactionId={}, transactionId={}", 
+                                    transactionId, transaction.getTransactionId());
                         } else {
                             // Race condition: transaction was inserted between check and save
-                            // Fetch and update it
+                            // Fetch and update it instead of creating duplicate
                             Optional<TransactionTable> raceConditionExisting = transactionRepository.findByPlaidTransactionId(transactionId);
                             if (raceConditionExisting.isPresent()) {
                                 transaction = raceConditionExisting.get();
                                 updateTransactionFromPlaid(transaction, plaidTransaction);
                                 transactionRepository.save(transaction);
                                 syncedCount++;
+                                duplicateCount++;
+                                logger.debug("Updated transaction after race condition (deduplicated): plaidTransactionId={}, transactionId={}", 
+                                        transactionId, transaction.getTransactionId());
                             } else {
-                                logger.warn("Transaction with Plaid ID {} could not be saved or retrieved", transactionId);
+                                logger.warn("Transaction with Plaid ID {} could not be saved or retrieved (possible duplicate)", transactionId);
                                 errorCount++;
                             }
                         }
@@ -279,15 +360,8 @@ public class PlaidSyncService {
                 }
             }
 
-            logger.info("Transaction sync completed for user: {} - Synced: {}, Errors: {}",
-                    user.getUserId(), syncedCount, errorCount);
-        } catch (AppException e) {
-            throw e;
-        } catch (Exception e) {
-            logger.error("Error syncing transactions for user {}: {}", user.getUserId(), e.getMessage(), e);
-            throw new AppException(ErrorCode.PLAID_CONNECTION_FAILED,
-                    "Failed to sync transactions", null, null, e);
-        }
+        logger.info("Transaction sync completed for account {} - Synced: {}, Duplicates: {}, Errors: {}",
+                account.getAccountId(), syncedCount, duplicateCount, errorCount);
     }
 
     /**
@@ -645,6 +719,11 @@ public class PlaidSyncService {
                 // Extract pending status
                 if (plaidTx.getPending() != null) {
                     transaction.setPending(plaidTx.getPending());
+                }
+                
+                // Extract payment channel (for ACH detection)
+                if (plaidTx.getPaymentChannel() != null) {
+                    transaction.setPaymentChannel(plaidTx.getPaymentChannel().toString());
                 }
                 
                 // Extract account ID
