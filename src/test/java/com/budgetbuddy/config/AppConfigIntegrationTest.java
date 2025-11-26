@@ -44,7 +44,9 @@ class AppConfigIntegrationTest {
     void testGetConfigValue_WithValidKey_ReturnsValue() {
         // Given
         String testConfig = "{\"testKey\":\"testValue\"}";
-        ReflectionTestUtils.setField(appConfigIntegration, "latestConfiguration", testConfig);
+        java.util.concurrent.atomic.AtomicReference<String> latestConfig = 
+            (java.util.concurrent.atomic.AtomicReference<String>) ReflectionTestUtils.getField(appConfigIntegration, "latestConfiguration");
+        latestConfig.set(testConfig);
 
         // When
         Optional<String> value = appConfigIntegration.getConfigValue("testKey");
@@ -58,7 +60,9 @@ class AppConfigIntegrationTest {
     void testGetConfigValue_WithInvalidKey_ReturnsEmpty() {
         // Given
         String testConfig = "{\"testKey\":\"testValue\"}";
-        ReflectionTestUtils.setField(appConfigIntegration, "latestConfiguration", testConfig);
+        java.util.concurrent.atomic.AtomicReference<String> latestConfig = 
+            (java.util.concurrent.atomic.AtomicReference<String>) ReflectionTestUtils.getField(appConfigIntegration, "latestConfiguration");
+        latestConfig.set(testConfig);
 
         // When
         Optional<String> value = appConfigIntegration.getConfigValue("nonExistentKey");
@@ -71,7 +75,9 @@ class AppConfigIntegrationTest {
     void testGetConfigValueAsBoolean_WithBooleanValue_ReturnsBoolean() {
         // Given
         String testConfig = "{\"featureEnabled\":true}";
-        ReflectionTestUtils.setField(appConfigIntegration, "latestConfiguration", testConfig);
+        java.util.concurrent.atomic.AtomicReference<String> latestConfig = 
+            (java.util.concurrent.atomic.AtomicReference<String>) ReflectionTestUtils.getField(appConfigIntegration, "latestConfiguration");
+        latestConfig.set(testConfig);
 
         // When
         boolean value = appConfigIntegration.getBooleanConfigValue("featureEnabled", false);
@@ -84,7 +90,9 @@ class AppConfigIntegrationTest {
     void testGetConfigValueAsInt_WithIntValue_ReturnsInt() {
         // Given
         String testConfig = "{\"maxRetries\":5}";
-        ReflectionTestUtils.setField(appConfigIntegration, "latestConfiguration", testConfig);
+        java.util.concurrent.atomic.AtomicReference<String> latestConfig = 
+            (java.util.concurrent.atomic.AtomicReference<String>) ReflectionTestUtils.getField(appConfigIntegration, "latestConfiguration");
+        latestConfig.set(testConfig);
 
         // When
         int value = appConfigIntegration.getIntConfigValue("maxRetries", 3);

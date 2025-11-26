@@ -41,10 +41,12 @@ class UserControllerIntegrationTest {
     void setUp() {
         // Create a test user
         String email = "test-" + UUID.randomUUID() + "@example.com";
+        // Use base64-encoded salt (16 bytes = 24 base64 characters)
+        String base64Salt = java.util.Base64.getEncoder().encodeToString("test-salt-12345".getBytes());
         testUser = userService.createUserSecure(
                 email,
                 "hashed-password",
-                "salt",
+                base64Salt,
                 "Test",
                 "User"
         );

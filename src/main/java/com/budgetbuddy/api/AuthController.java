@@ -6,7 +6,11 @@ import com.budgetbuddy.exception.AppException;
 import com.budgetbuddy.exception.ErrorCode;
 import com.budgetbuddy.service.AuthService;
 import com.budgetbuddy.service.UserService;
+import com.fasterxml.jackson.annotation.JsonAlias;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -94,6 +98,29 @@ public class AuthController {
         return ResponseEntity.ok(response);
     }
 
+    /**
+     * Password reset endpoint
+     * Accepts secure format (password_hash + salt)
+     */
+    @PostMapping("/reset-password")
+    public ResponseEntity<PasswordResetResponse> resetPassword(@Valid @RequestBody PasswordResetRequest request) {
+        // Validate secure format
+        if (!request.isSecureFormat()) {
+            throw new AppException(ErrorCode.INVALID_INPUT,
+                    "Password reset requires password_hash and salt. Legacy password format not supported.");
+        }
+
+        // Reset password
+        userService.resetPasswordByEmail(
+                request.getEmail(),
+                request.getPasswordHash(),
+                request.getSalt()
+        );
+
+        logger.info("Password reset successful for email: {}", request.getEmail());
+        return ResponseEntity.ok(new PasswordResetResponse(true, "Password reset successful"));
+    }
+
     // Inner class for refresh token request
     public static class RefreshTokenRequest {
         private String refreshToken;
@@ -104,6 +131,80 @@ public class AuthController {
 
         public void setRefreshToken(final String refreshToken) {
             this.refreshToken = refreshToken;
+        }
+    }
+
+    // Inner class for password reset request
+    public static class PasswordResetRequest {
+        @NotBlank(message = "Email is required")
+        @Email(message = "Email should be valid")
+        private String email;
+
+        @JsonProperty("passwordHash")
+        @JsonAlias("password_hash")
+        private String passwordHash;
+        private String salt;
+
+        public String getEmail() {
+            return email;
+        }
+
+        public void setEmail(final String email) {
+            this.email = email;
+        }
+
+        public String getPasswordHash() {
+            return passwordHash;
+        }
+
+        public void setPasswordHash(final String passwordHash) {
+            this.passwordHash = passwordHash;
+        }
+
+        public String getSalt() {
+            return salt;
+        }
+
+        public void setSalt(final String salt) {
+            this.salt = salt;
+        }
+
+        /**
+         * Check if request uses secure format (password_hash + salt)
+         */
+        public boolean isSecureFormat() {
+            return passwordHash != null && !passwordHash.isEmpty()
+                   && salt != null && !salt.isEmpty();
+        }
+    }
+
+    // Inner class for password reset response
+    public static class PasswordResetResponse {
+        private boolean success;
+        private String message;
+
+        public PasswordResetResponse() {
+        }
+
+        public PasswordResetResponse(final boolean success, final String message) {
+            this.success = success;
+            this.message = message;
+        }
+
+        public boolean isSuccess() {
+            return success;
+        }
+
+        public void setSuccess(final boolean success) {
+            this.success = success;
+        }
+
+        public String getMessage() {
+            return message;
+        }
+
+        public void setMessage(final String message) {
+            this.message = message;
         }
     }
 }

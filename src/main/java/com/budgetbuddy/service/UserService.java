@@ -222,6 +222,30 @@ public class UserService {
         logger.info("Password changed for user: {}", user.getEmail());
     }
 
+    /**
+     * Reset password by email (secure format)
+     * Used for password reset flow when user has forgotten their password
+     */
+    public void resetPasswordByEmail(final String email, final String passwordHash, final String clientSalt) {
+        if (email == null || email.isEmpty()) {
+            throw new AppException(ErrorCode.INVALID_INPUT, "Email is required");
+        }
+        if (passwordHash == null || passwordHash.isEmpty()) {
+            throw new AppException(ErrorCode.INVALID_INPUT, "Password hash is required");
+        }
+        if (clientSalt == null || clientSalt.isEmpty()) {
+            throw new AppException(ErrorCode.INVALID_INPUT, "Salt is required");
+        }
+
+        // Find user by email
+        UserTable user = dynamoDBUserRepository.findByEmail(email)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+
+        // Use existing changePasswordSecure method
+        changePasswordSecure(user.getUserId(), passwordHash, clientSalt);
+        logger.info("Password reset for user: {}", email);
+    }
+
 
     /**
      * Verify email (cost-optimized: uses UpdateItem instead of read-before-write)
