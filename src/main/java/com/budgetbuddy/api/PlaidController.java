@@ -53,7 +53,7 @@ public class PlaidController {
      * Create Link Token
      * Generates a link token for Plaid Link initialization
      */
-    @PostMapping("/link/token")
+    @PostMapping(value = "/link-token", produces = "application/json")
     @Operation(
         summary = "Create Plaid Link Token",
         description = "Generates a link token required to initialize Plaid Link. The token is used to securely connect a user's bank account."

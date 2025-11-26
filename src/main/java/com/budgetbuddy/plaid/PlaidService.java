@@ -112,10 +112,27 @@ public class PlaidService {
                     .webhook("https://api.budgetbuddy.com/api/plaid/webhooks")  // Webhook URL
                     .redirectUri("https://app.budgetbuddy.com/plaid/callback");  // Redirect URI
 
-            LinkTokenCreateResponse response = plaidApi.linkTokenCreate(request).execute().body();
+            var callResponse = plaidApi.linkTokenCreate(request).execute();
+            
+            if (!callResponse.isSuccessful()) {
+                String errorBody = "No error body";
+                try {
+                    if (callResponse.errorBody() != null) {
+                        errorBody = callResponse.errorBody().string();
+                    }
+                } catch (Exception e) {
+                    logger.debug("Failed to read error body: {}", e.getMessage());
+                }
+                logger.error("Plaid API error: HTTP {} - {}", callResponse.code(), errorBody);
+                throw new AppException(ErrorCode.PLAID_CONNECTION_FAILED,
+                        "Plaid API returned error: " + callResponse.code() + " - " + errorBody);
+            }
+
+            LinkTokenCreateResponse response = callResponse.body();
 
             if (response == null || response.getLinkToken() == null) {
-                throw new AppException(ErrorCode.PLAID_CONNECTION_FAILED, "Failed to create link token");
+                logger.error("Plaid API returned null response or null link token");
+                throw new AppException(ErrorCode.PLAID_CONNECTION_FAILED, "Failed to create link token: null response");
             }
 
             logger.info("Plaid: Link token created for user: {}, expires: {}",
@@ -126,7 +143,7 @@ public class PlaidService {
         } catch (Exception e) {
             logger.error("Plaid: Failed to create link token: {}", e.getMessage(), e);
             throw new AppException(ErrorCode.PLAID_CONNECTION_FAILED,
-                    "Failed to create Plaid link token", Map.of("userId", userId), null, e);
+                    "Failed to create Plaid link token: " + e.getMessage(), Map.of("userId", userId), null, e);
         }
     }
 
