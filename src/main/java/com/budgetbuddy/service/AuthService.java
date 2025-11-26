@@ -93,7 +93,7 @@ public class AuthService {
             throw new AppException(ErrorCode.INVALID_CREDENTIALS, "Invalid email or password");
         }
 
-        // Create authentication object
+        // Create UserDetails object for token generation
         // Get user roles from UserTable
         java.util.Set<String> roles = user.getRoles();
         java.util.Collection<org.springframework.security.core.GrantedAuthority> authorities;
@@ -105,8 +105,20 @@ public class AuthService {
             authorities = Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER"));
         }
 
+        // Create UserDetails object for JWT token generation
+        org.springframework.security.core.userdetails.UserDetails userDetails = 
+                org.springframework.security.core.userdetails.User.builder()
+                        .username(user.getEmail())
+                        .password(user.getPasswordHash())
+                        .authorities(authorities)
+                        .accountExpired(false)
+                        .accountLocked(!Boolean.TRUE.equals(user.getEnabled()))
+                        .credentialsExpired(false)
+                        .disabled(!Boolean.TRUE.equals(user.getEnabled()))
+                        .build();
+
         Authentication authentication = new UsernamePasswordAuthenticationToken(
-                user.getEmail(),
+                userDetails,
                 null,
                 authorities
         );

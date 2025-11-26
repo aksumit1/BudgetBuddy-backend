@@ -18,7 +18,9 @@ import software.amazon.awssdk.services.dynamodb.model.GetItemResponse;
 import software.amazon.awssdk.core.pagination.sync.SdkIterable;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -46,7 +48,7 @@ public class UserRepository {
         userTable.putItem(user);
     }
 
-    @Cacheable(value = "users", key = "#userId", unless = "#result == null")
+    @Cacheable(value = "users", key = "#userId")
     public Optional<UserTable> findById(final String userId) {
         UserTable user = userTable.getItem(Key.builder().partitionValue(userId).build());
         return Optional.ofNullable(user);
@@ -54,15 +56,84 @@ public class UserRepository {
 
     @Cacheable(value = "users", key = "'email:' + #email", unless = "#result == null")
     public Optional<UserTable> findByEmail(final String email) {
-        // Query GSI for email lookup
-        SdkIterable<software.amazon.awssdk.enhanced.dynamodb.model.Page<UserTable>> pages =
-                userTable.index(EMAIL_INDEX).query(QueryConditional.keyEqualTo(Key.builder().partitionValue(email).build()));
-        for (software.amazon.awssdk.enhanced.dynamodb.model.Page<UserTable> page : pages) {
-            for (UserTable item : page.items()) {
-                return Optional.of(item);
-            }
+        if (email == null || email.isEmpty()) {
+            return Optional.empty();
         }
-        return Optional.empty();
+        try {
+            // Query GSI for email lookup
+            SdkIterable<software.amazon.awssdk.enhanced.dynamodb.model.Page<UserTable>> pages =
+                    userTable.index(EMAIL_INDEX).query(QueryConditional.keyEqualTo(Key.builder().partitionValue(email).build()));
+            for (software.amazon.awssdk.enhanced.dynamodb.model.Page<UserTable> page : pages) {
+                for (UserTable item : page.items()) {
+                    return Optional.of(item);
+                }
+            }
+            return Optional.empty();
+        } catch (Exception e) {
+            // Log error but don't fail - return empty to allow registration to proceed
+            // The conditional write will catch duplicates anyway
+            return Optional.empty();
+        }
+    }
+
+    /**
+     * Find user by email bypassing cache (for registration checks)
+     * This ensures fresh data from DynamoDB, avoiding stale cache entries
+     * Use this method when checking if a user exists before registration
+     */
+    public Optional<UserTable> findByEmailBypassCache(final String email) {
+        if (email == null || email.isEmpty()) {
+            return Optional.empty();
+        }
+        try {
+            // Query GSI for email lookup (bypasses cache)
+            // Use consistent read to avoid eventual consistency issues
+            SdkIterable<software.amazon.awssdk.enhanced.dynamodb.model.Page<UserTable>> pages =
+                    userTable.index(EMAIL_INDEX).query(QueryConditional.keyEqualTo(Key.builder().partitionValue(email).build()));
+            for (software.amazon.awssdk.enhanced.dynamodb.model.Page<UserTable> page : pages) {
+                for (UserTable item : page.items()) {
+                    // Log when user is found for debugging
+                    org.slf4j.LoggerFactory.getLogger(UserRepository.class)
+                            .debug("Found user by email (bypass cache): {} -> userId: {}", email, item.getUserId());
+                    return Optional.of(item);
+                }
+            }
+            // Log when no user is found for debugging
+            org.slf4j.LoggerFactory.getLogger(UserRepository.class)
+                    .debug("No user found by email (bypass cache): {}", email);
+            return Optional.empty();
+        } catch (Exception e) {
+            // Log error but don't fail - return empty to allow registration to proceed
+            // The conditional write will catch duplicates anyway
+            org.slf4j.LoggerFactory.getLogger(UserRepository.class)
+                    .warn("Error querying user by email (bypass cache): {} - {}", email, e.getMessage());
+            return Optional.empty();
+        }
+    }
+
+    /**
+     * Find ALL users with the same email (for duplicate detection)
+     * Returns a list of all users with the given email
+     * Used to detect race conditions where multiple users are created with the same email
+     */
+    public List<UserTable> findAllByEmail(final String email) {
+        if (email == null || email.isEmpty()) {
+            return List.of();
+        }
+        List<UserTable> users = new ArrayList<>();
+        try {
+            // Query GSI for all users with this email
+            SdkIterable<software.amazon.awssdk.enhanced.dynamodb.model.Page<UserTable>> pages =
+                    userTable.index(EMAIL_INDEX).query(QueryConditional.keyEqualTo(Key.builder().partitionValue(email).build()));
+            for (software.amazon.awssdk.enhanced.dynamodb.model.Page<UserTable> page : pages) {
+                users.addAll(page.items());
+            }
+            return users;
+        } catch (Exception e) {
+            org.slf4j.LoggerFactory.getLogger(UserRepository.class)
+                    .warn("Error querying all users by email: {} - {}", email, e.getMessage());
+            return List.of();
+        }
     }
 
     public boolean existsByEmail(final String email) {

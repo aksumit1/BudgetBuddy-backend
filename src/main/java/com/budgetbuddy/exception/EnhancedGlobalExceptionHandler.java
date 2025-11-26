@@ -69,9 +69,15 @@ public class EnhancedGlobalExceptionHandler {
 
         HttpStatus status = mapErrorCodeToHttpStatus(ex.getErrorCode());
 
-        // Log full details internally, but return sanitized message
-        logger.error("Application error: {} - {} | CorrelationId: {}",
-                ex.getErrorCode(), ex.getMessage(), correlationId, ex);
+        // Log based on error severity - business logic errors (like USER_ALREADY_EXISTS) should be WARN, not ERROR
+        if (isBusinessLogicError(ex.getErrorCode())) {
+            logger.warn("Business logic error: {} - {} | CorrelationId: {}",
+                    ex.getErrorCode(), ex.getMessage(), correlationId);
+        } else {
+            // System errors, unexpected errors should be logged as ERROR
+            logger.error("Application error: {} - {} | CorrelationId: {}",
+                    ex.getErrorCode(), ex.getMessage(), correlationId, ex);
+        }
 
         return ResponseEntity.status(status).body(errorResponse);
     }
@@ -227,10 +233,27 @@ public class EnhancedGlobalExceptionHandler {
                  BUDGET_NOT_FOUND, GOAL_NOT_FOUND -> HttpStatus.NOT_FOUND;
             case INVALID_CREDENTIALS, UNAUTHORIZED, UNAUTHORIZED_ACCESS -> HttpStatus.UNAUTHORIZED;
             case INSUFFICIENT_PERMISSIONS -> HttpStatus.FORBIDDEN;
-            case USER_ALREADY_EXISTS, INVALID_INPUT, MISSING_REQUIRED_FIELD, INVALID_FORMAT -> HttpStatus.BAD_REQUEST;
+            case USER_ALREADY_EXISTS, EMAIL_ALREADY_REGISTERED, INVALID_INPUT, MISSING_REQUIRED_FIELD, INVALID_FORMAT -> HttpStatus.BAD_REQUEST;
             case RATE_LIMIT_EXCEEDED -> HttpStatus.TOO_MANY_REQUESTS;
             case SERVICE_UNAVAILABLE -> HttpStatus.SERVICE_UNAVAILABLE;
             default -> HttpStatus.INTERNAL_SERVER_ERROR;
+        };
+    }
+
+    /**
+     * Determines if an error code represents a business logic error (expected) vs system error (unexpected)
+     * Business logic errors should be logged at WARN level, system errors at ERROR level
+     */
+    private boolean isBusinessLogicError(final ErrorCode errorCode) {
+        return switch (errorCode) {
+            // Business logic errors - expected in normal operation
+            case USER_ALREADY_EXISTS, EMAIL_ALREADY_REGISTERED, INVALID_CREDENTIALS, INVALID_INPUT,
+                 MISSING_REQUIRED_FIELD, INVALID_FORMAT, RECORD_ALREADY_EXISTS, USER_NOT_FOUND,
+                 RECORD_NOT_FOUND, ACCOUNT_NOT_FOUND, TRANSACTION_NOT_FOUND, BUDGET_NOT_FOUND,
+                 GOAL_NOT_FOUND, INSUFFICIENT_BALANCE, BUDGET_EXCEEDED, TRANSACTION_LIMIT_EXCEEDED,
+                 PASSWORD_TOO_WEAK, INVALID_EMAIL_FORMAT, RATE_LIMIT_EXCEEDED -> true;
+            // System errors - unexpected, should be logged as ERROR
+            default -> false;
         };
     }
 

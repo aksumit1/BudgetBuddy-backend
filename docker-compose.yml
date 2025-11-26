@@ -50,7 +50,7 @@ services:
       AWS_SECRET_ACCESS_KEY: test
       DYNAMODB_ENDPOINT: http://localstack:4566
       AWS_S3_BUCKET: budgetbuddy-storage
-      JWT_SECRET: test-secret-change-in-production
+      JWT_SECRET: test-secret-change-in-production-this-must-be-at-least-64-characters-long-for-hs512-algorithm-to-work-properly
       PLAID_CLIENT_ID: 69262b89a1808400220732ed
       PLAID_SECRET: 1fd73c16bc49a1a0f81c86c67127d3
       PLAID_ENVIRONMENT: sandbox

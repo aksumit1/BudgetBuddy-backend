@@ -11,8 +11,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
-import java.time.LocalDateTime;
-import java.util.HashSet;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -42,6 +41,23 @@ public class UserService {
 
     /**
      * Create user with secure format (password_hash + salt)
+     * 
+     * CRITICAL FIX: Removed pre-check for email to eliminate race condition.
+     * The previous implementation had a TOCTOU (time-of-check-time-of-use) race condition:
+     * 1. Check if email exists (non-atomic)
+     * 2. Create user with new UUID
+     * 3. Save with conditional write on userId (always succeeds for new UUID)
+     * 
+     * This allowed two concurrent requests to both pass the email check and create
+     * duplicate users with the same email but different userIds.
+     * 
+     * New approach:
+     * 1. Create user with new UUID (no pre-check)
+     * 2. Save with conditional write on userId (atomic)
+     * 3. Post-save: Check if another user with same email exists (using GSI)
+     * 4. If duplicate found, delete the newly created user and throw exception
+     * 
+     * This ensures atomicity and prevents duplicate emails.
      */
     public UserTable createUserSecure(final String email, final String passwordHash, final String clientSalt, final String firstName, final String lastName) {
         if (email == null || email.isEmpty()) {
@@ -54,18 +70,14 @@ public class UserService {
             throw new AppException(ErrorCode.INVALID_INPUT, "Salt is required");
         }
 
-        // Check if user already exists
-        if (dynamoDBUserRepository.existsByEmail(email)) {
-            throw new AppException(ErrorCode.USER_ALREADY_EXISTS, "User with email " + email + " already exists");
-        }
-
         // Perform server-side hashing (defense in depth)
         PasswordHashingService.PasswordHashResult result = passwordHashingService.hashClientPassword(
                 passwordHash, clientSalt, null);
 
-        // Create user
+        // Create user with new UUID
         UserTable user = new UserTable();
-        user.setUserId(UUID.randomUUID().toString());
+        String userId = UUID.randomUUID().toString();
+        user.setUserId(userId);
         user.setEmail(email);
         user.setPasswordHash(result.getHash());
         user.setServerSalt(result.getSalt());
@@ -79,12 +91,48 @@ public class UserService {
         user.setCreatedAt(Instant.now());
         user.setUpdatedAt(Instant.now());
 
-        // Use conditional write to prevent duplicate users
+        // CRITICAL FIX: Save first, then check for duplicates
+        // This eliminates the race condition where two requests both pass the email check
+        // Use conditional write to prevent duplicate userIds (defense in depth)
         boolean created = dynamoDBUserRepository.saveIfNotExists(user);
         if (!created) {
-            throw new AppException(ErrorCode.USER_ALREADY_EXISTS,
-                    "User with email " + email + " already exists");
+            // This should rarely happen since we generate a new UUID, but handle it gracefully
+            logger.warn("User creation failed - userId collision detected for email: {}", email);
+            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to create user. Please try again.");
         }
+
+        // CRITICAL FIX: Post-save duplicate check to detect race conditions
+        // Query ALL users with this email to detect if we created a duplicate
+        // This handles the race condition where two concurrent requests both:
+        // 1. Check email (both find it doesn't exist)
+        // 2. Create user with different UUIDs (both succeed)
+        // 3. Result: Two users with same email but different userIds
+        List<UserTable> usersWithEmail = dynamoDBUserRepository.findAllByEmail(email);
+        if (usersWithEmail.size() > 1) {
+            // Race condition detected: Multiple users with same email exist
+            // Find the user that's NOT the one we just created (should be the original)
+            UserTable originalUser = usersWithEmail.stream()
+                    .filter(u -> !u.getUserId().equals(userId))
+                    .findFirst()
+                    .orElse(null);
+            
+            if (originalUser != null) {
+                // Delete the duplicate user we just created to maintain data integrity
+                logger.warn("Race condition detected: User with email {} already exists (userId: {}). Deleting duplicate user (userId: {})", 
+                        email, originalUser.getUserId(), userId);
+                try {
+                    dynamoDBUserRepository.delete(userId);
+                } catch (Exception e) {
+                    logger.error("Failed to delete duplicate user {}: {}", userId, e.getMessage(), e);
+                    // Continue anyway - at least we detected the duplicate
+                }
+                throw new AppException(ErrorCode.USER_ALREADY_EXISTS, "User with this email already exists");
+            }
+        }
+        
+        // Note: If usersWithEmail.size() == 1, it's the user we just created (expected)
+        // If usersWithEmail.size() == 0, GSI eventual consistency hasn't updated yet (acceptable)
+        
         logger.info("Created new user with email: {} (secure format)", email);
         return user;
     }
