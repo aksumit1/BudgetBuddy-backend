@@ -446,7 +446,7 @@ public class TransactionRepository {
                     .requestItems(requestItems)
                     .build();
 
-            BatchWriteItemResponse response = com.budgetbuddy.util.RetryHelper.executeWithRetry(() -> {
+            com.budgetbuddy.util.RetryHelper.executeWithRetry(() -> {
                 BatchWriteItemResponse resp = dynamoDbClient.batchWriteItem(batchRequest);
                 
                 // Retry if there are unprocessed items

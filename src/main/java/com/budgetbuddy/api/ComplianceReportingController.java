@@ -4,7 +4,6 @@ import com.budgetbuddy.compliance.financial.FinancialComplianceService;
 import com.budgetbuddy.compliance.hipaa.HIPAAComplianceService;
 import com.budgetbuddy.compliance.iso27001.ISO27001ComplianceService;
 import com.budgetbuddy.compliance.soc2.SOC2ComplianceService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -21,8 +20,11 @@ import java.time.Instant;
 public class ComplianceReportingController {
 
     private final SOC2ComplianceService soc2ComplianceService;
+    @SuppressWarnings("unused") // Reserved for future HIPAA reporting
     private final HIPAAComplianceService hipaaComplianceService;
+    @SuppressWarnings("unused") // Reserved for future ISO27001 reporting
     private final ISO27001ComplianceService iso27001ComplianceService;
+    @SuppressWarnings("unused") // Reserved for future financial reporting
     private final FinancialComplianceService financialComplianceService;
     private final com.budgetbuddy.service.UserService userService;
 

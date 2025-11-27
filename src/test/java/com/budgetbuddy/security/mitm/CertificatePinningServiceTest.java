@@ -4,7 +4,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import javax.net.ssl.X509TrustManager;
-import java.security.cert.X509Certificate;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -14,7 +13,6 @@ import static org.junit.jupiter.api.Assertions.*;
 class CertificatePinningServiceTest {
 
     private CertificatePinningService service;
-    private X509Certificate mockCertificate;
 
     @BeforeEach
     void setUp() throws Exception {

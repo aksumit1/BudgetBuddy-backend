@@ -3,7 +3,6 @@ package com.budgetbuddy.compliance.pcidss;
 import com.budgetbuddy.compliance.AuditLogService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import software.amazon.awssdk.services.cloudwatch.CloudWatchClient;
 import software.amazon.awssdk.services.cloudwatch.model.*;
@@ -37,6 +36,7 @@ public class PCIDSSComplianceService {
     private static final Logger logger = LoggerFactory.getLogger(PCIDSSComplianceService.class);
 
     // PCI-DSS compliant PAN masking pattern
+    @SuppressWarnings("unused") // Reserved for future PAN validation
     private static final Pattern PAN_PATTERN = Pattern.compile("\\b(?:4[0-9]{12}(?:[0-9]{3})?|5[1-5][0-9]{14}|3[47][0-9]{13}|3[0-9]{13}|6(?:011|5[0-9]{2})[0-9]{12})\\b");
     private static final int MIN_PAN_LENGTH = 13;
     private static final int MAX_PAN_LENGTH = 19;
@@ -44,6 +44,7 @@ public class PCIDSSComplianceService {
 
     private final AuditLogService auditLogService;
     private final CloudWatchClient cloudWatchClient;
+    @SuppressWarnings("unused") // Reserved for future encryption features
     private final KmsClient kmsClient;
 
     public PCIDSSComplianceService(

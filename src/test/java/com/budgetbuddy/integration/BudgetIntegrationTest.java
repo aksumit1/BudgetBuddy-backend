@@ -3,10 +3,8 @@ package com.budgetbuddy.integration;
 import com.budgetbuddy.AWSTestConfiguration;
 import com.budgetbuddy.model.dynamodb.BudgetTable;
 import com.budgetbuddy.model.dynamodb.UserTable;
-import com.budgetbuddy.repository.dynamodb.BudgetRepository;
 import com.budgetbuddy.repository.dynamodb.UserRepository;
 import com.budgetbuddy.service.BudgetService;
-import com.budgetbuddy.service.TransactionService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,13 +31,7 @@ class BudgetIntegrationTest {
     private BudgetService budgetService;
 
     @Autowired
-    private BudgetRepository budgetRepository;
-
-    @Autowired
     private UserRepository userRepository;
-
-    @Autowired
-    private TransactionService transactionService;
 
     private UserTable testUser;
 

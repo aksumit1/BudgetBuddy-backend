@@ -4,10 +4,8 @@ import com.budgetbuddy.model.dynamodb.UserTable;
 import com.budgetbuddy.repository.dynamodb.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import software.amazon.awssdk.services.s3.S3Client;
-import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 
 import java.time.Instant;
 import java.util.List;
@@ -33,6 +31,7 @@ public class GDPRComplianceService {
     private final BudgetRepository budgetRepository;
     private final GoalRepository goalRepository;
     private final AuditLogRepository auditLogRepository;
+    @SuppressWarnings("unused") // Reserved for future S3 operations
     private final S3Client s3Client;
     private final com.budgetbuddy.compliance.AuditLogService auditLogService;
 
@@ -192,7 +191,6 @@ public class GDPRComplianceService {
 
     private void deleteFromS3(final String userId, final String accountId) {
         try {
-            String key = "users/" + userId + "/accounts/" + accountId + "/";
             // List and delete all objects with this prefix
             // Implementation depends on S3 bucket structure
             logger.debug("Deleting S3 objects for user: {} account: {}", userId, accountId);

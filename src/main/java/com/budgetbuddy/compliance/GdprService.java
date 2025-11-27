@@ -1,7 +1,6 @@
 package com.budgetbuddy.compliance;
 
 import com.budgetbuddy.model.User;
-import com.budgetbuddy.repository.dynamodb.*;
 import com.budgetbuddy.service.aws.S3Service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

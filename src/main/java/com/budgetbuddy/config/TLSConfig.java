@@ -44,7 +44,7 @@ public class TLSConfig {
             factory.addConnectorCustomizers(connector -> {
                 // JDK 25: Enhanced pattern matching
                 if (connector.getProtocolHandler()
-                        instanceof org.apache.coyote.http11.Http11NioProtocol protocolHandler) {
+                        instanceof org.apache.coyote.http11.Http11NioProtocol) {
 
                     // Set SSL protocols
                     String[] protocols = enabledProtocols.split(",");

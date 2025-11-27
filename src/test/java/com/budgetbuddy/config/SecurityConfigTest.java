@@ -1,7 +1,6 @@
 package com.budgetbuddy.config;
 
 import com.budgetbuddy.AWSTestConfiguration;
-import com.budgetbuddy.security.SecurityConfig;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -22,9 +21,6 @@ class SecurityConfigTest {
 
     @Autowired
     private PasswordEncoder passwordEncoder;
-
-    @Autowired
-    private SecurityConfig securityConfig;
 
     @Test
     void testPasswordEncoder_EncodesPassword() {

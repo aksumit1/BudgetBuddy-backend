@@ -11,7 +11,6 @@ import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -155,7 +154,7 @@ public class StripeService {
             PaymentMethod paymentMethod = PaymentMethod.create(params);
 
             // PCI-DSS: Mask and validate card number
-            String maskedCard = pciDSSComplianceService.maskPAN(
+            pciDSSComplianceService.maskPAN(
                     (String) cardDetails.get("number"));
             // Note: logCardDataAccess is on auditLogService, not pciDSSComplianceService
 

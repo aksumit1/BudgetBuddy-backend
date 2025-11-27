@@ -3,7 +3,6 @@ package com.budgetbuddy.integration;
 import com.budgetbuddy.AWSTestConfiguration;
 import com.budgetbuddy.model.dynamodb.GoalTable;
 import com.budgetbuddy.model.dynamodb.UserTable;
-import com.budgetbuddy.repository.dynamodb.GoalRepository;
 import com.budgetbuddy.repository.dynamodb.UserRepository;
 import com.budgetbuddy.service.GoalService;
 import org.junit.jupiter.api.BeforeEach;
@@ -31,9 +30,6 @@ class GoalIntegrationTest {
 
     @Autowired
     private GoalService goalService;
-
-    @Autowired
-    private GoalRepository goalRepository;
 
     @Autowired
     private UserRepository userRepository;

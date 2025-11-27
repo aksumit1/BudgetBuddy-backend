@@ -1,7 +1,6 @@
 package com.budgetbuddy.security;
 
 import com.budgetbuddy.AWSTestConfiguration;
-import com.budgetbuddy.api.AuthController;
 import com.budgetbuddy.dto.AuthRequest;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

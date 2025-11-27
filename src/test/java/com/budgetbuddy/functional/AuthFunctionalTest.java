@@ -1,7 +1,6 @@
 package com.budgetbuddy.functional;
 
 import com.budgetbuddy.AWSTestConfiguration;
-import com.budgetbuddy.api.AuthController;
 import com.budgetbuddy.dto.AuthRequest;
 import com.budgetbuddy.dto.AuthResponse;
 import com.budgetbuddy.service.AuthService;

@@ -27,6 +27,7 @@ public class DDoSProtectionService {
     private static final Logger logger = LoggerFactory.getLogger(DDoSProtectionService.class);
 
     private static final int MAX_REQUESTS_PER_MINUTE = 100; // Per IP
+    @SuppressWarnings("unused") // Reserved for future implementation
     private static final int MAX_REQUESTS_PER_HOUR = 1000; // Per IP
     private static final int BLOCK_DURATION_SECONDS = 3600; // 1 hour block
     private static final int MAX_CACHE_SIZE = 10000; // Prevent unbounded growth

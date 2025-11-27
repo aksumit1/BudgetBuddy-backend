@@ -60,7 +60,6 @@ class ChaosTest {
 
         // Simulate cascading failure scenario
         for (int i = 0; i < 10; i++) {
-            final int taskId = i;
             executor.submit(() -> {
                 try {
                     cascadeLatch.await(); // Wait for cascade trigger

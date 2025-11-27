@@ -30,6 +30,7 @@ public class PlaidService {
 
     private final PlaidApi plaidApi;
     private final String environment;
+    @SuppressWarnings("unused") // Reserved for future PCI-DSS compliance logging
     private final PCIDSSComplianceService pciDSSComplianceService;
     private final String redirectUri;
     private final String webhookUrl;
@@ -179,8 +180,9 @@ public class PlaidService {
             if (!callResponse.isSuccessful()) {
                 String errorBody = "No error body";
                 try {
-                    if (callResponse.errorBody() != null) {
-                        errorBody = callResponse.errorBody().string();
+                    final okhttp3.ResponseBody errorBodyResponse = callResponse.errorBody();
+                    if (errorBodyResponse != null) {
+                        errorBody = errorBodyResponse.string();
                     }
                 } catch (Exception e) {
                     logger.debug("Failed to read error body: {}", e.getMessage());

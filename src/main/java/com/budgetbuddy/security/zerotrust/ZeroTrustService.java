@@ -4,7 +4,6 @@ import com.budgetbuddy.security.zerotrust.device.DeviceAttestationService;
 import com.budgetbuddy.security.zerotrust.identity.IdentityVerificationService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.Map;

@@ -1,8 +1,6 @@
 package com.budgetbuddy.compliance;
 
-import com.budgetbuddy.model.dynamodb.UserTable;
 import com.budgetbuddy.repository.dynamodb.AuditLogRepository;
-import com.budgetbuddy.compliance.AuditLogTable;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

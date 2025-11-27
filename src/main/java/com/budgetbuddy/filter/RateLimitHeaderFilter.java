@@ -90,7 +90,7 @@ public class RateLimitHeaderFilter extends OncePerRequestFilter {
             // JDK 25: Enhanced pattern matching
             if (auth != null && auth.isAuthenticated()
                     && auth.getPrincipal()
-                    instanceof org.springframework.security.core.userdetails.UserDetails userDetails) {
+                    instanceof org.springframework.security.core.userdetails.UserDetails) {
                 return auth.getName(); // Username (email) - would need to convert to userId
             }
         } catch (Exception e) {
@@ -107,7 +107,7 @@ public class RateLimitHeaderFilter extends OncePerRequestFilter {
 
             // Check if user is allowed (this will consume a token if allowed)
             // Note: We check after the request, so we need to account for the request that just completed
-            boolean isAllowed = rateLimitService.isAllowed(userId, endpoint);
+            rateLimitService.isAllowed(userId, endpoint); // Check rate limit
 
             // Get retry-after to calculate reset time
             int retryAfter = rateLimitService.getRetryAfter(userId, endpoint);

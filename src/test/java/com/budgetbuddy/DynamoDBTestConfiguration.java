@@ -1,10 +1,8 @@
 package com.budgetbuddy;
 
-import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
-import software.amazon.awssdk.services.dynamodb.model.*;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
 
 import java.net.URI;

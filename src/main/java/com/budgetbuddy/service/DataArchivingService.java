@@ -14,7 +14,6 @@ import java.io.ObjectOutputStream;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
-import java.util.stream.Collectors;
 import java.util.zip.GZIPOutputStream;
 
 /**
@@ -29,6 +28,7 @@ public class DataArchivingService {
     private static final int ARCHIVE_DAYS = 365; // Archive data older than 1 year
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ISO_LOCAL_DATE;
 
+    @SuppressWarnings("unused") // Reserved for future transaction archiving
     private final TransactionRepository transactionRepository;
     private final S3Service s3Service;
 
@@ -45,7 +45,6 @@ public class DataArchivingService {
     @Scheduled(cron = "0 0 2 1 * ?") // First day of month at 2 AM
     public void archiveOldTransactions() {
         LocalDate cutoffDate = LocalDate.now().minusDays(ARCHIVE_DAYS);
-        String cutoffDateStr = cutoffDate.format(DATE_FORMATTER);
         logger.info("Starting transaction archiving for data before {}", cutoffDate);
 
         // Note: DynamoDB scan is expensive, consider using DynamoDB Streams or TTL for automatic archiving

@@ -109,10 +109,9 @@ class SecretsManagerServiceTest {
     @Test
     void testRefreshAllSecrets_RefreshesCache() {
         // Given
-        String secretName = "test-secret";
         String newSecretValue = "new-secret-value";
 
-        GetSecretValueResponse response = GetSecretValueResponse.builder()
+        GetSecretValueResponse.builder()
                 .secretString(newSecretValue)
                 .build();
 

@@ -1,10 +1,7 @@
 package com.budgetbuddy.functional;
 
 import com.budgetbuddy.AWSTestConfiguration;
-import com.budgetbuddy.api.TransactionController;
-import com.budgetbuddy.model.dynamodb.TransactionTable;
 import com.budgetbuddy.model.dynamodb.UserTable;
-import com.budgetbuddy.service.TransactionService;
 import com.budgetbuddy.service.UserService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -17,7 +14,6 @@ import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.UUID;
 
@@ -38,9 +34,6 @@ class TransactionFunctionalTest {
 
     @Autowired
     private MockMvc mockMvc;
-
-    @Autowired
-    private TransactionService transactionService;
 
     @Autowired
     private UserService userService;

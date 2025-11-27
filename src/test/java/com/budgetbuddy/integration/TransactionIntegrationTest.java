@@ -5,7 +5,6 @@ import com.budgetbuddy.model.dynamodb.AccountTable;
 import com.budgetbuddy.model.dynamodb.TransactionTable;
 import com.budgetbuddy.model.dynamodb.UserTable;
 import com.budgetbuddy.repository.dynamodb.AccountRepository;
-import com.budgetbuddy.repository.dynamodb.TransactionRepository;
 import com.budgetbuddy.repository.dynamodb.UserRepository;
 import com.budgetbuddy.service.TransactionService;
 import org.junit.jupiter.api.BeforeEach;
@@ -34,9 +33,6 @@ class TransactionIntegrationTest {
 
     @Autowired
     private TransactionService transactionService;
-
-    @Autowired
-    private TransactionRepository transactionRepository;
 
     @Autowired
     private AccountRepository accountRepository;

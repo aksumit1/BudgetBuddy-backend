@@ -2,7 +2,6 @@ package com.budgetbuddy.api;
 
 import com.budgetbuddy.compliance.dma.DMAComplianceService;
 import com.budgetbuddy.compliance.gdpr.GDPRComplianceService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;

@@ -24,6 +24,7 @@ import java.util.concurrent.TimeUnit;
 @Service
 public class PerformanceMetricsService {
 
+    @SuppressWarnings("unused") // Reserved for future logging
     private static final Logger logger =
             LoggerFactory.getLogger(PerformanceMetricsService.class);
 

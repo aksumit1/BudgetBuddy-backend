@@ -8,7 +8,6 @@ import com.budgetbuddy.model.dynamodb.UserTable;
 import com.budgetbuddy.repository.dynamodb.AccountRepository;
 import com.budgetbuddy.service.AuthService;
 import com.budgetbuddy.service.UserService;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -51,20 +50,10 @@ class PlaidControllerIntegrationTest {
     @Autowired
     private AuthService authService;
 
-    @Autowired
-    private ObjectMapper objectMapper;
-
     private UserTable testUser;
     private String testEmail;
     private AccountTable testAccount;
     private String accessToken;
-
-    /**
-     * Helper method to add JWT token to request
-     */
-    private org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder withAuth(org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder builder) {
-        return builder.header("Authorization", "Bearer " + accessToken);
-    }
 
     @BeforeEach
     void setUp() {

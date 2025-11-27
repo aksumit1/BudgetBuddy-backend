@@ -1,6 +1,5 @@
 package com.budgetbuddy.plaid;
 
-import com.budgetbuddy.model.dynamodb.UserTable;
 import com.budgetbuddy.repository.dynamodb.UserRepository;
 import com.budgetbuddy.service.PlaidSyncService;
 import com.budgetbuddy.aws.secrets.SecretsManagerService;
@@ -35,7 +34,9 @@ public class PlaidWebhookService {
     private static final String HMAC_SHA256_ALGORITHM = "HmacSHA256";
     private static final String WEBHOOK_SECRET_KEY = "plaid/webhook_secret";
 
+    @SuppressWarnings("unused") // Reserved for future implementation
     private final PlaidSyncService plaidSyncService;
+    @SuppressWarnings("unused") // Reserved for future implementation
     private final UserRepository userRepository;
     private final SecretsManagerService secretsManagerService;
     private final ObjectMapper objectMapper;

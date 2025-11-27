@@ -32,6 +32,7 @@ public class AuthService {
     private static final Logger logger = LoggerFactory.getLogger(AuthService.class);
 
     private final JwtTokenProvider tokenProvider;
+    @SuppressWarnings("unused") // Reserved for future use
     private final UserService userService;
     private final PasswordHashingService passwordHashingService;
     private final UserRepository userRepository;

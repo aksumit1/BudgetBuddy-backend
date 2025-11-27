@@ -2,11 +2,8 @@ package com.budgetbuddy.integration;
 
 import com.budgetbuddy.AWSTestConfiguration;
 import com.budgetbuddy.model.dynamodb.AccountTable;
-import com.budgetbuddy.model.dynamodb.TransactionTable;
 import com.budgetbuddy.model.dynamodb.UserTable;
 import com.budgetbuddy.repository.dynamodb.AccountRepository;
-import com.budgetbuddy.repository.dynamodb.TransactionRepository;
-import com.budgetbuddy.service.PlaidSyncService;
 import com.budgetbuddy.service.UserService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -37,13 +34,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class PlaidSyncIntegrationTest {
 
     @Autowired
-    private PlaidSyncService plaidSyncService;
-
-    @Autowired
     private AccountRepository accountRepository;
-
-    @Autowired
-    private TransactionRepository transactionRepository;
 
     @Autowired
     private UserService userService;

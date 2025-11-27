@@ -43,6 +43,8 @@ public class EnhancedGlobalExceptionHandler {
     @ExceptionHandler(AppException.class)
     public ResponseEntity<ErrorResponse> handleAppException(AppException ex, WebRequest request) {
         String correlationId = MDC.get("correlationId");
+        // Locale retrieved but not currently used - kept for potential future localization
+        @SuppressWarnings("unused")
         Locale locale = request.getLocale();
 
         String localizedMessage = messageUtil.getErrorMessage(ex.getErrorCode().name());
@@ -108,6 +110,8 @@ public class EnhancedGlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleValidationException(
             MethodArgumentNotValidException ex, WebRequest request) {
         String correlationId = MDC.get("correlationId");
+        // Locale retrieved but not currently used - kept for potential future localization
+        @SuppressWarnings("unused")
         Locale locale = request.getLocale();
 
         Map<String, String> validationErrors = new HashMap<>();

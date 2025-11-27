@@ -25,9 +25,12 @@ import java.util.Map;
 @Service
 public class AnalyticsService {
 
+    @SuppressWarnings("unused") // Reserved for future logging
     private static final Logger logger = LoggerFactory.getLogger(AnalyticsService.class);
+    @SuppressWarnings("unused") // Reserved for future date formatting
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ISO_LOCAL_DATE;
 
+    @SuppressWarnings("unused") // Reserved for future direct repository access
     private final TransactionRepository transactionRepository;
     private final TransactionService transactionService;
     private final CloudWatchService cloudWatchService;

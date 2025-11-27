@@ -4,7 +4,6 @@ import com.budgetbuddy.AWSTestConfiguration;
 import com.budgetbuddy.dto.AuthRequest;
 import com.budgetbuddy.dto.AuthResponse;
 import com.budgetbuddy.model.dynamodb.UserTable;
-import com.budgetbuddy.repository.dynamodb.UserRepository;
 import com.budgetbuddy.security.PasswordHashingService;
 import com.budgetbuddy.service.AuthService;
 import com.budgetbuddy.service.UserService;
@@ -14,10 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -37,9 +33,6 @@ class AuthIntegrationTest {
 
     @Autowired
     private UserService userService;
-
-    @Autowired
-    private UserRepository userRepository;
 
     @Autowired
     private PasswordHashingService passwordHashingService;
@@ -104,7 +97,7 @@ class AuthIntegrationTest {
     @Test
     void testRefreshToken_WithValidToken_ReturnsNewTokens() {
         // Given - Register and authenticate
-        UserTable user = userService.createUserSecure(
+        userService.createUserSecure(
                 testEmail,
                 testPasswordHash,
                 testClientSalt,

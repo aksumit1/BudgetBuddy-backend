@@ -34,7 +34,9 @@ public class PlaidSyncService {
 
     private static final Logger logger = LoggerFactory.getLogger(PlaidSyncService.class);
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ISO_LOCAL_DATE;
+    @SuppressWarnings("unused") // Reserved for future sync configuration
     private static final int DEFAULT_SYNC_DAYS = 30;
+    @SuppressWarnings("unused") // Reserved for future first sync configuration
     private static final int FIRST_SYNC_MONTHS = 18; // Fetch 18 months on first sync
 
     private final PlaidService plaidService;

@@ -28,6 +28,7 @@ import java.util.Map;
 @Tag(name = "OAuth2", description = "OAuth2 authentication and authorization")
 public class OAuth2Controller {
 
+    @SuppressWarnings("unused") // Reserved for future logging
     private static final Logger logger = LoggerFactory.getLogger(OAuth2Controller.class);
 
     private final boolean oauth2Enabled;

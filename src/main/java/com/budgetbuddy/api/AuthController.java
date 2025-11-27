@@ -72,7 +72,7 @@ public class AuthController {
         }
 
         // Create user with secure format
-        com.budgetbuddy.model.dynamodb.UserTable user = userService.createUserSecure(
+        userService.createUserSecure(
                 signUpRequest.getEmail(),
                 signUpRequest.getPasswordHash(),
                 signUpRequest.getSalt(),

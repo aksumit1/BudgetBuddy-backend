@@ -2,12 +2,10 @@ package com.budgetbuddy.service;
 
 import com.budgetbuddy.exception.AppException;
 import com.budgetbuddy.exception.ErrorCode;
-import com.budgetbuddy.model.User;
 import com.budgetbuddy.model.dynamodb.UserTable;
 import com.budgetbuddy.security.PasswordHashingService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -27,15 +25,12 @@ public class UserService {
     private static final Logger logger = LoggerFactory.getLogger(UserService.class);
 
     private final com.budgetbuddy.repository.dynamodb.UserRepository dynamoDBUserRepository; // DynamoDB repository
-    private final PasswordEncoder passwordEncoder; // Legacy BCrypt encoder (kept for backward compatibility)
     private final PasswordHashingService passwordHashingService; // New PBKDF2 service
 
     public UserService(
             final com.budgetbuddy.repository.dynamodb.UserRepository dynamoDBUserRepository,
-            final PasswordEncoder passwordEncoder,
             final PasswordHashingService passwordHashingService) {
         this.dynamoDBUserRepository = dynamoDBUserRepository;
-        this.passwordEncoder = passwordEncoder;
         this.passwordHashingService = passwordHashingService;
     }
 

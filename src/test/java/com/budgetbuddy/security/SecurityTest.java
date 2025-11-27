@@ -3,8 +3,6 @@ package com.budgetbuddy.security;
 import com.budgetbuddy.AWSTestConfiguration;
 import com.budgetbuddy.api.AuthController;
 import com.budgetbuddy.dto.AuthRequest;
-import com.budgetbuddy.exception.AppException;
-import com.budgetbuddy.exception.ErrorCode;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;

@@ -1,7 +1,6 @@
 package com.budgetbuddy.service;
 
 import com.budgetbuddy.exception.AppException;
-import com.budgetbuddy.exception.ErrorCode;
 import com.budgetbuddy.model.dynamodb.UserTable;
 import com.budgetbuddy.repository.dynamodb.UserRepository;
 import com.budgetbuddy.security.PasswordHashingService;
@@ -48,7 +47,7 @@ class UserServiceRegistrationRaceConditionTest {
 
     @BeforeEach
     void setUp() {
-        userService = new UserService(userRepository, passwordEncoder, passwordHashingService);
+        userService = new UserService(userRepository, passwordHashingService);
         testEmail = "test-" + UUID.randomUUID() + "@example.com";
         testPasswordHash = "hashed-password";
         testClientSalt = "client-salt";

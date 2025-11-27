@@ -1,7 +1,6 @@
 package com.budgetbuddy.localization;
 
 import com.budgetbuddy.AWSTestConfiguration;
-import com.budgetbuddy.exception.AppException;
 import com.budgetbuddy.exception.ErrorCode;
 import com.budgetbuddy.util.MessageUtil;
 import org.junit.jupiter.api.Test;

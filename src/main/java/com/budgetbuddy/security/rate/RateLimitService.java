@@ -43,6 +43,7 @@ public class RateLimitService {
 
     // In-memory cache for hot paths
     private final Map<String, TokenBucket> inMemoryCache = new ConcurrentHashMap<>();
+    @SuppressWarnings("unused") // Reserved for future cache TTL implementation
     private static final long CACHE_TTL_MS = 60000; // 1 minute
     private volatile long lastCacheCleanup = System.currentTimeMillis();
 

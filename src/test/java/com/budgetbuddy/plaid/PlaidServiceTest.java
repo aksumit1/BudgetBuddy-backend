@@ -1,24 +1,12 @@
 package com.budgetbuddy.plaid;
 
 import com.budgetbuddy.compliance.pcidss.PCIDSSComplianceService;
-import com.budgetbuddy.exception.AppException;
-import com.budgetbuddy.exception.ErrorCode;
-import com.plaid.client.model.*;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.test.util.ReflectionTestUtils;
-import retrofit2.Call;
-import retrofit2.Response;
-
-import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
 
 /**
  * Unit Tests for PlaidService
@@ -30,17 +18,6 @@ class PlaidServiceTest {
 
     @Mock
     private PCIDSSComplianceService pciDSSComplianceService;
-
-    private PlaidService plaidService;
-
-    private String testUserId;
-    private String testClientName;
-
-    @BeforeEach
-    void setUp() {
-        testUserId = UUID.randomUUID().toString();
-        testClientName = "Test Client";
-    }
 
     @Test
     void testPlaidService_Constructor_WithNullClientId_ThrowsException() {
