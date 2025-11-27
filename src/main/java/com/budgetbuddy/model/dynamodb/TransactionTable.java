@@ -28,6 +28,7 @@ public class TransactionTable {
     private String plaidTransactionId; // GSI for deduplication
     private Boolean pending;
     private String paymentChannel; // online, in_store, ach, etc.
+    private String notes; // User notes for the transaction
     private Instant createdAt;
     private Instant updatedAt;
 
@@ -141,6 +142,15 @@ public class TransactionTable {
 
     public void setPaymentChannel(final String paymentChannel) {
         this.paymentChannel = paymentChannel;
+    }
+
+    @DynamoDbAttribute("notes")
+    public String getNotes() {
+        return notes;
+    }
+
+    public void setNotes(final String notes) {
+        this.notes = notes;
     }
 
     @DynamoDbAttribute("createdAt")
