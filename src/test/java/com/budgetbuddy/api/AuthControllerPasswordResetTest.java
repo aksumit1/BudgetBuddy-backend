@@ -3,6 +3,7 @@ package com.budgetbuddy.api;
 import com.budgetbuddy.service.AuthService;
 import com.budgetbuddy.service.PasswordResetService;
 import com.budgetbuddy.service.UserService;
+import com.budgetbuddy.util.MessageUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -13,6 +14,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -35,6 +37,9 @@ class AuthControllerPasswordResetTest {
     @MockBean
     private PasswordResetService passwordResetService;
 
+    @MockBean
+    private MessageUtil messageUtil;
+
     private String testEmail;
     private String testCode;
 
@@ -42,6 +47,11 @@ class AuthControllerPasswordResetTest {
     void setUp() {
         testEmail = "test@example.com";
         testCode = "123456";
+        // Mock MessageUtil to return the key if not found (for exception handler)
+        when(messageUtil.getErrorMessage(anyString())).thenAnswer(invocation -> {
+            String key = invocation.getArgument(0);
+            return "error." + key.toLowerCase().replace("_", ".");
+        });
     }
 
     @Test
@@ -75,6 +85,26 @@ class AuthControllerPasswordResetTest {
                 .andExpect(status().isBadRequest());
 
         verify(passwordResetService, never()).requestPasswordReset(anyString());
+    }
+
+    @Test
+    void testForgotPassword_EmailServiceFailure() throws Exception {
+        // Given
+        doThrow(new com.budgetbuddy.exception.AppException(
+                com.budgetbuddy.exception.ErrorCode.INTERNAL_SERVER_ERROR,
+                "Failed to send verification email. Please try again later."))
+                .when(passwordResetService).requestPasswordReset(testEmail);
+        
+        AuthController.ForgotPasswordRequest request = new AuthController.ForgotPasswordRequest();
+        request.setEmail(testEmail);
+
+        // When/Then
+        mockMvc.perform(post("/api/auth/forgot-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isInternalServerError());
+
+        verify(passwordResetService).requestPasswordReset(testEmail);
     }
 
     @Test

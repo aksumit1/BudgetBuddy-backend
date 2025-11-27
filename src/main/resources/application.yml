@@ -146,6 +146,21 @@ app:
     enable-oauth2: ${FEATURE_OAUTH2_ENABLED:false}
     enable-advanced-analytics: ${FEATURE_ADVANCED_ANALYTICS_ENABLED:false}
     enable-notifications: ${FEATURE_NOTIFICATIONS_ENABLED:true}
+  
+  # Email Notification Configuration
+  notifications:
+    enabled: ${APP_NOTIFICATIONS_ENABLED:true}
+    email:
+      from: ${APP_NOTIFICATIONS_EMAIL_FROM:noreply@budgetbuddy.com}
+      # AWS SES Configuration
+      # The SES client is configured in NotificationConfig.java
+      # For production, ensure:
+      # 1. AWS SES is configured in the target region
+      # 2. The sender email is verified in SES
+      # 3. IAM role has SES permissions (SendEmail, SendTemplatedEmail)
+    sns:
+      topic-arn: ${APP_NOTIFICATIONS_SNS_TOPIC_ARN:}
+      # SNS topic ARN for multi-channel notifications (optional)
 
 # Actuator Configuration (Minimal - only essential endpoints)
 management:

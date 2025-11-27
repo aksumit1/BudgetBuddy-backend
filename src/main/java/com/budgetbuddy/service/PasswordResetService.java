@@ -75,21 +75,35 @@ public class PasswordResetService {
                 code, CODE_EXPIRY_MINUTES
         );
 
-        boolean emailSent = emailService.sendEmail(
-                user.getUserId(),
-                email,
-                subject,
-                body,
-                null,
-                Map.of("code", code, "expiresIn", CODE_EXPIRY_MINUTES)
-        );
+        try {
+            // Get userId safely - use email if userId is null
+            String userId = (user.getUserId() != null && !user.getUserId().isEmpty()) 
+                    ? user.getUserId() 
+                    : email;
 
-        if (!emailSent) {
-            logger.error("Failed to send password reset email to: {}", email);
-            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to send verification email");
+            boolean emailSent = emailService.sendEmail(
+                    userId,
+                    email,
+                    subject,
+                    body,
+                    null,
+                    Map.of("code", code, "expiresIn", CODE_EXPIRY_MINUTES)
+            );
+
+            if (!emailSent) {
+                logger.error("Failed to send password reset email to: {}. Email service returned false.", email);
+                throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to send verification email. Please try again later.");
+            }
+
+            logger.info("Password reset code sent successfully to: {}", email);
+        } catch (AppException e) {
+            // Re-throw AppException as-is
+            throw e;
+        } catch (Exception e) {
+            logger.error("Exception while sending password reset email to: {}", email, e);
+            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, 
+                    "Failed to send verification email. Please try again later.");
         }
-
-        logger.info("Password reset code sent to: {}", email);
     }
 
     /**

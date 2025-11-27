@@ -64,7 +64,7 @@ public class EmailNotificationService {
             logger.info("Email sent - MessageId: {}, To: {}", response.messageId(), toEmail);
             return true;
         } catch (Exception e) {
-            logger.error("Failed to send email: {}", e.getMessage());
+            logger.error("Failed to send email to: {}. Error: {}", toEmail, e.getMessage(), e);
             return false;
         }
     }
@@ -92,7 +92,8 @@ public class EmailNotificationService {
                     response.messageId(), templateId, toEmail);
             return true;
         } catch (Exception e) {
-            logger.error("Failed to send templated email: {}", e.getMessage());
+            logger.error("Failed to send templated email to: {}, Template: {}. Error: {}", 
+                    toEmail, templateId, e.getMessage(), e);
             return false;
         }
     }
