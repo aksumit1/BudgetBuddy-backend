@@ -254,7 +254,8 @@ public class PlaidSyncService {
     /**
      * Sync transactions for a specific account
      * Uses account-specific lastSyncedAt for incremental sync
-     * For first sync (no lastSyncedAt), fetches 18 months of data
+     * For first sync (no lastSyncedAt), fetches ALL available transactions (no date limit)
+     * For subsequent syncs, uses exact lastSyncedAt timestamp (date + time)
      */
     private void syncTransactionsForAccount(
             final UserTable user,
@@ -266,43 +267,62 @@ public class PlaidSyncService {
         boolean isFirstSync = false;
         
         if (account.getLastSyncedAt() == null) {
-            // First sync: fetch 18 months of data (or whatever is available)
-            startDate = endDate.minusMonths(FIRST_SYNC_MONTHS);
+            // First sync: fetch ALL available transactions (Plaid allows up to 2 years)
+            // Use maximum allowed range to get all historical data
+            // CRITICAL FIX: Use minusYears(2) for Plaid's maximum, not minusDays(2)
+            // Don't use time component - just use date for first fetch
+            startDate = endDate.minusYears(2); // Plaid maximum is 2 years
             isFirstSync = true;
-            logger.info("First sync for account {} - fetching {} months of data (since {})", 
-                    account.getAccountId(), FIRST_SYNC_MONTHS, startDate);
+            logger.info("First sync for account {} - fetching ALL available transactions (up to 2 years, since {})", 
+                    account.getAccountId(), startDate);
         } else {
-            // Incremental sync: fetch since last sync date
-            startDate = account.getLastSyncedAt().atZone(java.time.ZoneId.of("UTC")).toLocalDate();
-            // Fetch from 1 day before last sync to catch any transactions that might have been missed
-            startDate = startDate.minusDays(1);
-            logger.info("Incremental sync for account {} - fetching since {} (last sync: {})", 
+            // Incremental sync: fetch since last sync date/time
+            // CRITICAL FIX: Use the exact lastSyncedAt date (no time component, no day subtraction)
+            // Convert Instant to LocalDate in UTC timezone
+            // This ensures we get all transactions from the last sync date onwards
+            java.time.ZonedDateTime lastSyncedZoned = account.getLastSyncedAt().atZone(java.time.ZoneId.of("UTC"));
+            startDate = lastSyncedZoned.toLocalDate();
+            // Don't subtract days - use exact date from last sync
+            // Plaid API only accepts dates, not timestamps, so we use the date component
+            logger.info("Incremental sync for account {} - fetching since {} (last sync timestamp: {})", 
                     account.getAccountId(), startDate, account.getLastSyncedAt());
         }
 
-        var transactionsResponse = plaidService.getTransactions(
-                accessToken,
-                startDate.format(DATE_FORMATTER),
-                endDate.format(DATE_FORMATTER)
-        );
+        try {
+            var transactionsResponse = plaidService.getTransactions(
+                    accessToken,
+                    startDate.format(DATE_FORMATTER),
+                    endDate.format(DATE_FORMATTER)
+            );
 
-        if (transactionsResponse == null || transactionsResponse.getTransactions() == null) {
-            logger.warn("No transactions returned from Plaid for account: {}", account.getAccountId());
-            return;
-        }
+            if (transactionsResponse == null || transactionsResponse.getTransactions() == null) {
+                logger.warn("No transactions returned from Plaid for account: {}", account.getAccountId());
+                return;
+            }
 
-        int syncedCount = 0;
-        int errorCount = 0;
-        int duplicateCount = 0;
+            int totalTransactions = transactionsResponse.getTransactions().size();
+            logger.info("Plaid returned {} transactions for account {} (date range: {} to {})", 
+                    totalTransactions, account.getAccountId(), startDate, endDate);
+            
+            if (totalTransactions == 0) {
+                logger.warn("Plaid returned 0 transactions for account {} in date range {} to {}. " +
+                        "This may indicate no transactions exist in this range or Plaid API issue.", 
+                        account.getAccountId(), startDate, endDate);
+                return;
+            }
 
-        // CRITICAL: On first sync, deduplicate all transactions before saving
-        // This ensures we don't create duplicates if sync runs multiple times
-        if (isFirstSync) {
-            logger.info("First sync detected - deduplicating {} transactions before saving", 
-                    transactionsResponse.getTransactions().size());
-        }
+            int syncedCount = 0;
+            int errorCount = 0;
+            int duplicateCount = 0;
 
-        for (var plaidTransaction : transactionsResponse.getTransactions()) {
+            // CRITICAL: On first sync, deduplicate all transactions before saving
+            // This ensures we don't create duplicates if sync runs multiple times
+            if (isFirstSync) {
+                logger.info("First sync detected - deduplicating {} transactions before saving", 
+                        transactionsResponse.getTransactions().size());
+            }
+
+            for (var plaidTransaction : transactionsResponse.getTransactions()) {
                 try {
                     String transactionId = extractTransactionId(plaidTransaction);
                     if (transactionId == null || transactionId.isEmpty()) {
@@ -360,8 +380,18 @@ public class PlaidSyncService {
                 }
             }
 
-        logger.info("Transaction sync completed for account {} - Synced: {}, Duplicates: {}, Errors: {}",
-                account.getAccountId(), syncedCount, duplicateCount, errorCount);
+            logger.info("Transaction sync completed for account {} - Synced: {}, Duplicates: {}, Errors: {}",
+                    account.getAccountId(), syncedCount, duplicateCount, errorCount);
+        } catch (com.budgetbuddy.exception.AppException e) {
+            // Re-throw AppException as-is
+            logger.error("AppException during transaction sync for account {}: {}", 
+                    account.getAccountId(), e.getMessage());
+            throw e;
+        } catch (Exception e) {
+            logger.error("Error syncing transactions for account {}: {}", account.getAccountId(), e.getMessage(), e);
+            throw new AppException(ErrorCode.PLAID_CONNECTION_FAILED,
+                    "Failed to sync transactions for account: " + e.getMessage(), null, null, e);
+        }
     }
 
     /**
@@ -470,12 +500,17 @@ public class PlaidSyncService {
 
     /**
      * Update account from Plaid account data
+     * CRITICAL: Does NOT set lastSyncedAt - that should only be set after successful transaction sync
+     * Setting lastSyncedAt here would cause first transaction sync to be treated as incremental sync
      */
     private void updateAccountFromPlaid(final AccountTable account, final Object plaidAccount) {
         try {
             java.time.Instant now = java.time.Instant.now();
             account.setUpdatedAt(now);
-            account.setLastSyncedAt(now);
+            // CRITICAL FIX: Do NOT set lastSyncedAt here
+            // lastSyncedAt should only be set after successful transaction sync
+            // Setting it here would cause new accounts to skip first transaction sync
+            // account.setLastSyncedAt(now); // REMOVED - causes first sync to be skipped
             
             String className = plaidAccount.getClass().getName();
             logger.debug("Updating account from Plaid object, type: {}", className);

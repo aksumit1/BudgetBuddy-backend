@@ -43,10 +43,19 @@ class GoalIntegrationTest {
     @BeforeEach
     void setUp() {
         String email = "test-" + UUID.randomUUID() + "@example.com";
+        // Use proper base64-encoded strings
+        String base64PasswordHash = java.util.Base64.getEncoder().encodeToString("hashed-password".getBytes());
+        String base64ClientSalt = java.util.Base64.getEncoder().encodeToString("client-salt".getBytes());
+        String base64ServerSalt = java.util.Base64.getEncoder().encodeToString("server-salt".getBytes());
+        
         testUser = new UserTable();
         testUser.setUserId(UUID.randomUUID().toString());
         testUser.setEmail(email);
+        testUser.setPasswordHash(base64PasswordHash);
+        testUser.setClientSalt(base64ClientSalt);
+        testUser.setServerSalt(base64ServerSalt);
         testUser.setPreferredCurrency("USD");
+        testUser.setEnabled(true);
         userRepository.save(testUser);
     }
 

@@ -2,6 +2,7 @@ package com.budgetbuddy.api;
 
 import com.budgetbuddy.exception.AppException;
 import com.budgetbuddy.exception.ErrorCode;
+import com.budgetbuddy.model.dynamodb.AccountTable;
 import com.budgetbuddy.model.dynamodb.UserTable;
 import com.budgetbuddy.plaid.PlaidService;
 import com.budgetbuddy.service.PlaidSyncService;
@@ -20,7 +21,9 @@ import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * Plaid Integration REST Controller
@@ -296,6 +299,14 @@ public class PlaidController {
             java.time.LocalDate endDate = end != null ? java.time.LocalDate.parse(end) : java.time.LocalDate.now();
             java.time.LocalDate startDate = start != null ? java.time.LocalDate.parse(start) : endDate.minusDays(30);
             
+            // Validate date range
+            if (startDate.isAfter(endDate)) {
+                logger.warn("Invalid date range for user {}: start date {} is after end date {}", 
+                        user.getUserId(), startDate, endDate);
+                throw new AppException(ErrorCode.INVALID_INPUT, 
+                        "Start date must be before or equal to end date");
+            }
+            
             // Get transactions from database (synced transactions)
             var dbTransactions = transactionService.getTransactionsInRange(user, startDate, endDate);
             
@@ -401,15 +412,17 @@ public class PlaidController {
      * Update Account Sync Settings
      * Updates lastSyncedAt for accounts after successful sync
      * This ensures sync settings are maintained in backend even if app is deleted
+     * Accepts an array of account sync settings: [{"accountId": "...", "lastSyncedAt": epochSeconds}]
+     * If empty array or null, updates all user accounts with current timestamp
      */
     @PutMapping("/accounts/sync-settings")
     @Operation(
         summary = "Update Account Sync Settings",
-        description = "Updates lastSyncedAt for accounts after successful sync. Ensures sync settings persist in backend."
+        description = "Updates lastSyncedAt for specified accounts after successful sync. Ensures sync settings persist in backend."
     )
     public ResponseEntity<Map<String, String>> updateAccountSyncSettings(
             @AuthenticationPrincipal UserDetails userDetails,
-            @RequestBody Map<String, Object> request) {
+            @RequestBody(required = false) List<AccountSyncSettingRequest> requests) {
         if (userDetails == null || userDetails.getUsername() == null) {
             throw new AppException(ErrorCode.UNAUTHORIZED, "User not authenticated");
         }
@@ -418,22 +431,58 @@ public class PlaidController {
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
 
         try {
-            // Get all user accounts
-            var userAccounts = accountRepository.findByUserId(user.getUserId());
-            
-            if (userAccounts.isEmpty()) {
-                logger.warn("No accounts found for user: {}", user.getUserId());
-                return ResponseEntity.ok(Map.of("status", "success", "message", "No accounts to update"));
-            }
-            
-            // Update lastSyncedAt for all accounts
-            java.time.Instant now = java.time.Instant.now();
             int updatedCount = 0;
             
-            for (var account : userAccounts) {
-                account.setLastSyncedAt(now);
-                accountRepository.save(account);
-                updatedCount++;
+            if (requests != null && !requests.isEmpty()) {
+                // Update specific accounts with provided lastSyncedAt values
+                for (AccountSyncSettingRequest request : requests) {
+                    if (request.getAccountId() == null || request.getAccountId().isEmpty()) {
+                        logger.warn("Skipping sync setting update - accountId is null or empty");
+                        continue;
+                    }
+                    
+                    Optional<AccountTable> accountOpt = accountRepository.findById(request.getAccountId());
+                    if (accountOpt.isEmpty()) {
+                        logger.warn("Account not found for sync setting update: {}", request.getAccountId());
+                        continue;
+                    }
+                    
+                    AccountTable account = accountOpt.get();
+                    // Verify the account belongs to the user
+                    if (!account.getUserId().equals(user.getUserId())) {
+                        logger.warn("Account {} does not belong to user {}, skipping sync setting update",
+                                request.getAccountId(), user.getUserId());
+                        continue;
+                    }
+                    
+                    // Convert epoch seconds to Instant
+                    if (request.getLastSyncedAt() != null && request.getLastSyncedAt() > 0) {
+                        account.setLastSyncedAt(java.time.Instant.ofEpochSecond(request.getLastSyncedAt()));
+                    } else {
+                        // If lastSyncedAt is 0 or null, use current time
+                        account.setLastSyncedAt(java.time.Instant.now());
+                    }
+                    
+                    accountRepository.save(account);
+                    updatedCount++;
+                    logger.debug("Updated lastSyncedAt for account {}: {}", 
+                            account.getAccountId(), account.getLastSyncedAt());
+                }
+            } else {
+                // Fallback: If no specific requests, update all user accounts with current timestamp
+                var userAccounts = accountRepository.findByUserId(user.getUserId());
+                
+                if (userAccounts.isEmpty()) {
+                    logger.warn("No accounts found for user: {}", user.getUserId());
+                    return ResponseEntity.ok(Map.of("status", "success", "message", "No accounts to update"));
+                }
+                
+                java.time.Instant now = java.time.Instant.now();
+                for (var account : userAccounts) {
+                    account.setLastSyncedAt(now);
+                    accountRepository.save(account);
+                    updatedCount++;
+                }
             }
             
             logger.info("Updated lastSyncedAt for {} accounts for user: {}", updatedCount, user.getUserId());
@@ -447,6 +496,33 @@ public class PlaidController {
                     user.getUserId(), e.getMessage(), e);
             throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR,
                     "Failed to update sync settings", null, null, e);
+        }
+    }
+    
+    /**
+     * Request DTO for account sync settings
+     */
+    public static class AccountSyncSettingRequest {
+        @com.fasterxml.jackson.annotation.JsonProperty("accountId")
+        private String accountId;
+        
+        @com.fasterxml.jackson.annotation.JsonProperty("lastSyncedAt")
+        private Long lastSyncedAt; // Epoch seconds
+        
+        public String getAccountId() {
+            return accountId;
+        }
+        
+        public void setAccountId(String accountId) {
+            this.accountId = accountId;
+        }
+        
+        public Long getLastSyncedAt() {
+            return lastSyncedAt;
+        }
+        
+        public void setLastSyncedAt(Long lastSyncedAt) {
+            this.lastSyncedAt = lastSyncedAt;
         }
     }
 

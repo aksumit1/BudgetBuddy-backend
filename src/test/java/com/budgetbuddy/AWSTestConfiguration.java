@@ -213,5 +213,6 @@ public class AWSTestConfiguration {
      */
     // Note: We don't provide AppConfigDataClient here because AppConfigIntegration
     // uses @ConditionalOnProperty to prevent bean creation when disabled
+
 }
 

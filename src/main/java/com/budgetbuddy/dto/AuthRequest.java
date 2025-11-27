@@ -69,6 +69,7 @@ public final class AuthRequest {
     /**
      * Check if request uses secure format (password_hash + salt)
      */
+    @com.fasterxml.jackson.annotation.JsonIgnore
     public boolean isSecureFormat() {
         return passwordHash != null && !passwordHash.isEmpty()
                && salt != null && !salt.isEmpty();

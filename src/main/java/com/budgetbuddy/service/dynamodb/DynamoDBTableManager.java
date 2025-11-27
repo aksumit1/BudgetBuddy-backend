@@ -4,11 +4,10 @@ import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 import software.amazon.awssdk.services.dynamodb.model.*;
-
-import java.util.List;
 
 /**
  * DynamoDB Table Manager
@@ -16,6 +15,7 @@ import java.util.List;
  * Uses on-demand billing for cost optimization
  */
 @Service
+@ConditionalOnProperty(name = "app.aws.dynamodb.auto-create-tables", havingValue = "true", matchIfMissing = true)
 public class DynamoDBTableManager {
 
     private static final Logger logger = LoggerFactory.getLogger(DynamoDBTableManager.class);

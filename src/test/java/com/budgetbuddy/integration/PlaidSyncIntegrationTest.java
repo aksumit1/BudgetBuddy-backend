@@ -203,7 +203,7 @@ class PlaidSyncIntegrationTest {
         Optional<AccountTable> retrieved = accountRepository.findByPlaidAccountId(plaidAccountId);
         assertTrue(retrieved.isPresent());
         assertEquals("Updated Name", retrieved.get().getAccountName());
-        assertEquals(new BigDecimal("1500.00"), retrieved.get().getBalance());
+        assertEquals(0, new BigDecimal("1500.00").compareTo(retrieved.get().getBalance()), "Balance should be 1500.00");
         assertTrue(retrieved.get().getActive(), "Active should remain true after update");
     }
 }

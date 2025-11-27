@@ -1,11 +1,14 @@
 package com.budgetbuddy.integration;
 
 import com.budgetbuddy.AWSTestConfiguration;
+import com.budgetbuddy.dto.AuthRequest;
+import com.budgetbuddy.dto.AuthResponse;
 import com.budgetbuddy.model.dynamodb.AccountTable;
 import com.budgetbuddy.model.dynamodb.TransactionTable;
 import com.budgetbuddy.model.dynamodb.UserTable;
 import com.budgetbuddy.repository.dynamodb.AccountRepository;
 import com.budgetbuddy.repository.dynamodb.TransactionRepository;
+import com.budgetbuddy.service.AuthService;
 import com.budgetbuddy.service.UserService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -14,7 +17,6 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
-import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -51,6 +53,9 @@ class IOSAppBackendIntegrationTest {
     private UserService userService;
 
     @Autowired
+    private AuthService authService;
+
+    @Autowired
     private AccountRepository accountRepository;
 
     @Autowired
@@ -60,6 +65,7 @@ class IOSAppBackendIntegrationTest {
     private String testEmail;
     private AccountTable testAccount;
     private TransactionTable testTransaction;
+    private String accessToken;
 
     @BeforeEach
     void setUp() {
@@ -110,13 +116,24 @@ class IOSAppBackendIntegrationTest {
         testTransaction.setCreatedAt(Instant.now());
         testTransaction.setUpdatedAt(Instant.now());
         transactionRepository.save(testTransaction);
+
+        // Authenticate and get JWT token
+        AuthRequest authRequest = new AuthRequest(testEmail, base64PasswordHash, base64ClientSalt);
+        AuthResponse authResponse = authService.authenticate(authRequest);
+        accessToken = authResponse.getAccessToken();
+    }
+
+    /**
+     * Helper method to add JWT token to request
+     */
+    private org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder withAuth(org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder builder) {
+        return builder.header("Authorization", "Bearer " + accessToken);
     }
 
     @Test
-    @WithMockUser(username = "ios-test@example.com")
     void testGetAccounts_ReturnsCompatibleFormat_ForIOSApp() throws Exception {
         // When - iOS app calls GET /api/plaid/accounts
-        mockMvc.perform(get("/api/plaid/accounts")
+        mockMvc.perform(withAuth(get("/api/plaid/accounts"))
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.accounts").isArray())
@@ -134,7 +151,6 @@ class IOSAppBackendIntegrationTest {
     }
 
     @Test
-    @WithMockUser(username = "ios-test@example.com")
     void testGetAccounts_WithNullActiveAccount_IncludesAccount() throws Exception {
         // Given - Account with null active (simulating old data)
         AccountTable nullActiveAccount = new AccountTable();
@@ -151,7 +167,7 @@ class IOSAppBackendIntegrationTest {
         accountRepository.save(nullActiveAccount);
 
         // When - iOS app calls GET /api/plaid/accounts
-        mockMvc.perform(get("/api/plaid/accounts")
+        mockMvc.perform(withAuth(get("/api/plaid/accounts"))
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.accounts").isArray())
@@ -160,10 +176,9 @@ class IOSAppBackendIntegrationTest {
     }
 
     @Test
-    @WithMockUser(username = "ios-test@example.com")
     void testGetTransactions_ReturnsCompatibleFormat_ForIOSApp() throws Exception {
         // When - iOS app calls GET /api/plaid/transactions
-        mockMvc.perform(get("/api/plaid/transactions")
+        mockMvc.perform(withAuth(get("/api/plaid/transactions"))
                         .param("start", LocalDate.now().minusDays(30).toString())
                         .param("end", LocalDate.now().toString())
                         .contentType(MediaType.APPLICATION_JSON))
@@ -181,7 +196,6 @@ class IOSAppBackendIntegrationTest {
     }
 
     @Test
-    @WithMockUser(username = "ios-test@example.com")
     void testGetTransactions_WithNullCategory_ReturnsDefaultCategory() throws Exception {
         // Given - Transaction with null category (simulating bug scenario)
         TransactionTable nullCategoryTransaction = new TransactionTable();
@@ -209,7 +223,6 @@ class IOSAppBackendIntegrationTest {
     }
 
     @Test
-    @WithMockUser(username = "ios-test@example.com")
     void testGetTransactions_DateRange_ReturnsCorrectTransactions() throws Exception {
         // Given - Transaction with specific date
         LocalDate specificDate = LocalDate.now().minusDays(5);
@@ -236,7 +249,6 @@ class IOSAppBackendIntegrationTest {
     }
 
     @Test
-    @WithMockUser(username = "ios-test@example.com")
     void testGetAccounts_ErrorResponse_ProperlyFormatted() throws Exception {
         // When - Request with authentication (simulating iOS app call)
         // Note: This tests successful response format compatibility

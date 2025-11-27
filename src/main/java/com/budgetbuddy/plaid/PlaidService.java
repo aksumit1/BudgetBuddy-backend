@@ -276,6 +276,7 @@ public class PlaidService {
     /**
      * Get Transactions
      * Retrieves transactions for a date range
+     * Handles pagination to fetch ALL transactions
      */
     @CircuitBreaker(name = "plaid")
     @Retry(name = "plaid")
@@ -295,6 +296,7 @@ public class PlaidService {
             java.time.LocalDate startLocalDate = java.time.LocalDate.parse(startDate);
             java.time.LocalDate endLocalDate = java.time.LocalDate.parse(endDate);
 
+            // First request
             TransactionsGetRequest request = new TransactionsGetRequest()
                     .accessToken(accessToken)
                     .startDate(startLocalDate)
@@ -306,8 +308,117 @@ public class PlaidService {
                 throw new AppException(ErrorCode.PLAID_CONNECTION_FAILED, "Failed to get transactions");
             }
 
-            logger.debug("Plaid: Retrieved {} transactions",
-                    response.getTransactions() != null ? response.getTransactions().size() : 0);
+            // Handle pagination - Plaid API may return transactions in pages
+            // Collect all transactions from all pages
+            java.util.List<com.plaid.client.model.Transaction> allTransactions = new java.util.ArrayList<>();
+            if (response.getTransactions() != null) {
+                allTransactions.addAll(response.getTransactions());
+            }
+
+            // Check if there are more pages using reflection (Plaid SDK structure may vary)
+            int pageCount = 1;
+            int maxPages = 100; // Safety limit to prevent infinite loops
+            String nextCursor = null;
+
+            // Try to get nextCursor using reflection (method name may vary)
+            try {
+                java.lang.reflect.Method getNextCursorMethod = response.getClass().getMethod("getNextCursor");
+                Object cursorObj = getNextCursorMethod.invoke(response);
+                if (cursorObj != null) {
+                    nextCursor = cursorObj.toString();
+                }
+            } catch (NoSuchMethodException e) {
+                // Try alternative method names
+                try {
+                    java.lang.reflect.Method getCursorMethod = response.getClass().getMethod("getCursor");
+                    Object cursorObj = getCursorMethod.invoke(response);
+                    if (cursorObj != null) {
+                        nextCursor = cursorObj.toString();
+                    }
+                } catch (Exception e2) {
+                    logger.debug("Plaid API response does not have pagination cursor - assuming single page");
+                }
+            } catch (Exception e) {
+                logger.debug("Could not check for pagination cursor: {}", e.getMessage());
+            }
+
+            // Fetch additional pages if cursor exists
+            while (nextCursor != null && !nextCursor.isEmpty() && pageCount < maxPages) {
+                logger.info("Plaid: Fetching page {} of transactions (cursor: {})", pageCount + 1, nextCursor);
+                
+                try {
+                    // Create request with cursor for next page
+                    TransactionsGetRequestOptions options = new TransactionsGetRequestOptions();
+                    // Try to set cursor using reflection
+                    try {
+                        java.lang.reflect.Method setCursorMethod = options.getClass().getMethod("cursor", String.class);
+                        setCursorMethod.invoke(options, nextCursor);
+                    } catch (NoSuchMethodException e) {
+                        // Try alternative method
+                        java.lang.reflect.Method setCursorMethod2 = options.getClass().getMethod("setCursor", String.class);
+                        setCursorMethod2.invoke(options, nextCursor);
+                    }
+
+                    TransactionsGetRequest nextRequest = new TransactionsGetRequest()
+                            .accessToken(accessToken)
+                            .startDate(startLocalDate)
+                            .endDate(endLocalDate)
+                            .options(options);
+
+                    TransactionsGetResponse nextResponse = plaidApi.transactionsGet(nextRequest).execute().body();
+
+                    if (nextResponse == null || nextResponse.getTransactions() == null || nextResponse.getTransactions().isEmpty()) {
+                        logger.debug("Plaid: No more transactions in page {}", pageCount + 1);
+                        break;
+                    }
+
+                    allTransactions.addAll(nextResponse.getTransactions());
+                    
+                    // Get next cursor for next iteration
+                    nextCursor = null;
+                    try {
+                        java.lang.reflect.Method getNextCursorMethod = nextResponse.getClass().getMethod("getNextCursor");
+                        Object cursorObj = getNextCursorMethod.invoke(nextResponse);
+                        if (cursorObj != null) {
+                            nextCursor = cursorObj.toString();
+                        }
+                    } catch (NoSuchMethodException e) {
+                        try {
+                            java.lang.reflect.Method getCursorMethod = nextResponse.getClass().getMethod("getCursor");
+                            Object cursorObj = getCursorMethod.invoke(nextResponse);
+                            if (cursorObj != null) {
+                                nextCursor = cursorObj.toString();
+                            }
+                        } catch (Exception e2) {
+                            // No more pages
+                            break;
+                        }
+                    } catch (Exception e) {
+                        logger.debug("Could not get next cursor: {}", e.getMessage());
+                        break;
+                    }
+                    
+                    pageCount++;
+                } catch (Exception e) {
+                    logger.warn("Error fetching paginated transactions: {}", e.getMessage());
+                    break;
+                }
+            }
+
+            if (pageCount > 1) {
+                logger.info("Plaid: Retrieved {} transactions across {} pages",
+                        allTransactions.size(), pageCount);
+            } else {
+                logger.info("Plaid: Retrieved {} transactions (single page)",
+                        allTransactions.size());
+            }
+
+            // Update response with all collected transactions
+            if (response.getTransactions() != null) {
+                response.getTransactions().clear();
+                response.getTransactions().addAll(allTransactions);
+            }
+
             return response;
         } catch (AppException e) {
             throw e;

@@ -50,6 +50,7 @@ public class Account {
         this.user = user;
         this.accountName = accountName;
         this.accountType = accountType;
+        this.lastSyncedAt = null;
     }
 
     // Getters and Setters

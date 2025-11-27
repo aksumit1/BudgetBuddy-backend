@@ -77,12 +77,34 @@ public class AuthService {
                 throw new AppException(ErrorCode.INVALID_CREDENTIALS, "Invalid email or password");
             }
 
+            // Validate that client hash and salt are provided
+            if (request.getPasswordHash() == null || request.getPasswordHash().isEmpty()) {
+                logger.warn("Login request for user {} missing password_hash", request.getEmail());
+                throw new AppException(ErrorCode.INVALID_INPUT, "password_hash is required");
+            }
+            if (request.getSalt() == null || request.getSalt().isEmpty()) {
+                logger.warn("Login request for user {} missing salt", request.getEmail());
+                throw new AppException(ErrorCode.INVALID_INPUT, "salt is required");
+            }
+
+            // Log for debugging (redact sensitive data)
+            logger.debug("Authenticating user {}: clientHash length={}, clientSalt length={}, serverHash length={}, serverSalt length={}",
+                    request.getEmail(),
+                    request.getPasswordHash() != null ? request.getPasswordHash().length() : 0,
+                    request.getSalt() != null ? request.getSalt().length() : 0,
+                    user.getPasswordHash() != null ? user.getPasswordHash().length() : 0,
+                    serverSalt != null ? serverSalt.length() : 0);
+
             authenticated = passwordHashingService.verifyClientPassword(
                     request.getPasswordHash(),
                     request.getSalt(),
                     user.getPasswordHash(),
                     serverSalt
             );
+
+            if (!authenticated) {
+                logger.warn("Password verification failed for user {}: hash/salt mismatch", request.getEmail());
+            }
         } else {
             throw new AppException(ErrorCode.INVALID_INPUT,
                     "password_hash and salt must be provided. Only secure format is supported.");

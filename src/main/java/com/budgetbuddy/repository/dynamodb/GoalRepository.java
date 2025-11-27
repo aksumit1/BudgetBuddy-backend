@@ -8,7 +8,6 @@ import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable;
 import software.amazon.awssdk.enhanced.dynamodb.Key;
 import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
 import software.amazon.awssdk.enhanced.dynamodb.model.QueryConditional;
-import software.amazon.awssdk.enhanced.dynamodb.model.UpdateItemEnhancedRequest;
 import software.amazon.awssdk.enhanced.dynamodb.Expression;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
@@ -103,7 +102,8 @@ public class GoalRepository {
 
         Map<String, AttributeValue> expressionAttributeValues = new HashMap<>();
         expressionAttributeValues.put(":amount", AttributeValue.builder().n(amount.toString()).build());
-        expressionAttributeValues.put(":updatedAt", AttributeValue.builder().n(String.valueOf(Instant.now().getEpochSecond())).build());
+        // CRITICAL: Write updatedAt as ISO8601 string (S) to match Enhanced Client's InstantAsStringAttributeConverter
+        expressionAttributeValues.put(":updatedAt", AttributeValue.builder().s(Instant.now().toString()).build());
 
         // Use ADD for atomic increment and SET for updatedAt
         String updateExpression = "ADD #currentAmount :amount SET #updatedAt = :updatedAt";

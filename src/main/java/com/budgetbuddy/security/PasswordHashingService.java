@@ -6,7 +6,6 @@ import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.PBEKeySpec;
-import java.nio.charset.StandardCharsets;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.security.spec.InvalidKeySpecException;
@@ -51,18 +50,28 @@ public class PasswordHashingService {
             // Generate server salt if not provided
             byte[] finalServerSalt = serverSalt != null ? serverSalt : generateSalt();
 
-            // Decode client hash and salt
+            // Decode client hash (client salt is not needed here - it was already used client-side)
             byte[] clientHashBytes = Base64.getDecoder().decode(clientHash);
-            byte[] clientSaltBytes = Base64.getDecoder().decode(clientSalt);
+            
+            // Validate client salt format (must be valid Base64, but we don't use it in hashing)
+            try {
+                Base64.getDecoder().decode(clientSalt);
+            } catch (IllegalArgumentException e) {
+                throw new IllegalArgumentException("Invalid client salt format: " + e.getMessage());
+            }
 
-            // Combine client hash with server salt for additional security
-            byte[] combined = new byte[clientHashBytes.length + finalServerSalt.length];
-            System.arraycopy(clientHashBytes, 0, combined, 0, clientHashBytes.length);
-            System.arraycopy(finalServerSalt, 0, combined, clientHashBytes.length, finalServerSalt.length);
+            // CRITICAL FIX: Combine client hash with server salt using Base64 encoding
+            // This prevents data corruption when converting binary to string
+            // The original code was converting binary data directly to UTF-8 string, which can corrupt data
+            // Convert both to Base64 strings, concatenate, then use as password input
+            String clientHashBase64 = Base64.getEncoder().encodeToString(clientHashBytes);
+            String serverSaltBase64 = Base64.getEncoder().encodeToString(finalServerSalt);
+            String combinedInput = clientHashBase64 + ":" + serverSaltBase64; // Use separator to prevent collisions
 
             // Perform server-side PBKDF2 hashing
+            // Use the combined Base64 string as the password input
             PBEKeySpec spec = new PBEKeySpec(
-                    new String(combined, StandardCharsets.UTF_8).toCharArray(),
+                    combinedInput.toCharArray(),
                     finalServerSalt,
                     ITERATIONS,
                     KEY_LENGTH
@@ -132,18 +141,99 @@ public class PasswordHashingService {
             clientSalt == null || clientSalt.isEmpty() ||
             serverHash == null || serverHash.isEmpty() ||
             serverSalt == null || serverSalt.isEmpty()) {
+            logger.warn("Password verification failed: missing required parameters (clientHash={}, clientSalt={}, serverHash={}, serverSalt={})",
+                    clientHash != null && !clientHash.isEmpty(),
+                    clientSalt != null && !clientSalt.isEmpty(),
+                    serverHash != null && !serverHash.isEmpty(),
+                    serverSalt != null && !serverSalt.isEmpty());
             return false;
         }
 
         try {
-            // Hash the client password with the stored server salt
+            // Validate Base64 encoding before decoding
+            try {
+                Base64.getDecoder().decode(clientHash);
+                Base64.getDecoder().decode(clientSalt);
+                Base64.getDecoder().decode(serverHash);
+                Base64.getDecoder().decode(serverSalt);
+            } catch (IllegalArgumentException e) {
+                logger.error("Invalid Base64 encoding in password verification: {}", e.getMessage());
+                return false;
+            }
+
+            // Hash the client password with the stored server salt (new method)
             byte[] serverSaltBytes = Base64.getDecoder().decode(serverSalt);
             PasswordHashResult result = hashClientPassword(clientHash, clientSalt, serverSaltBytes);
 
             // Constant-time comparison to prevent timing attacks
-            return constantTimeEquals(result.getHash(), serverHash);
+            boolean matches = constantTimeEquals(result.getHash(), serverHash);
+            
+            if (matches) {
+                logger.debug("Password verification succeeded using new hashing method");
+                return true;
+            }
+            
+            // BACKWARD COMPATIBILITY: Try old method if new method fails
+            // This handles users who registered before the fix
+            logger.debug("New method failed, trying backward compatibility method");
+            boolean oldMethodMatches = verifyClientPasswordLegacy(clientHash, clientSalt, serverHash, serverSalt);
+            
+            if (oldMethodMatches) {
+                logger.info("Password verification succeeded using legacy method - user should reset password for security");
+            } else {
+                logger.debug("Password verification failed: computed hash does not match stored hash (both methods)");
+            }
+            
+            return oldMethodMatches;
+        } catch (IllegalArgumentException e) {
+            logger.error("Base64 decoding error during password verification: {}", e.getMessage());
+            return false;
         } catch (Exception e) {
-            logger.error("Failed to verify password", e);
+            logger.error("Failed to verify password: {}", e.getMessage(), e);
+            return false;
+        }
+    }
+    
+    /**
+     * Legacy password verification method (for backward compatibility)
+     * Uses the old binary-to-UTF-8 conversion method
+     * @deprecated This method has a bug (binary to UTF-8 conversion can corrupt data) but is kept for backward compatibility
+     */
+    @Deprecated
+    private boolean verifyClientPasswordLegacy(final String clientHash, final String clientSalt, final String serverHash, final String serverSalt) {
+        try {
+            byte[] clientHashBytes = Base64.getDecoder().decode(clientHash);
+            byte[] serverSaltBytes = Base64.getDecoder().decode(serverSalt);
+            
+            // Old method: Combine binary data directly (can corrupt data if invalid UTF-8)
+            byte[] combined = new byte[clientHashBytes.length + serverSaltBytes.length];
+            System.arraycopy(clientHashBytes, 0, combined, 0, clientHashBytes.length);
+            System.arraycopy(serverSaltBytes, 0, combined, clientHashBytes.length, serverSaltBytes.length);
+            
+            // Convert to string (may corrupt binary data)
+            String combinedString;
+            try {
+                combinedString = new String(combined, java.nio.charset.StandardCharsets.UTF_8);
+            } catch (Exception e) {
+                // If UTF-8 conversion fails, try ISO-8859-1 (preserves all bytes)
+                combinedString = new String(combined, java.nio.charset.StandardCharsets.ISO_8859_1);
+            }
+            
+            // Perform PBKDF2 hashing
+            javax.crypto.spec.PBEKeySpec spec = new javax.crypto.spec.PBEKeySpec(
+                    combinedString.toCharArray(),
+                    serverSaltBytes,
+                    ITERATIONS,
+                    KEY_LENGTH
+            );
+            
+            SecretKeyFactory factory = SecretKeyFactory.getInstance(ALGORITHM);
+            byte[] computedHash = factory.generateSecret(spec).getEncoded();
+            String computedHashBase64 = Base64.getEncoder().encodeToString(computedHash);
+            
+            return constantTimeEquals(computedHashBase64, serverHash);
+        } catch (Exception e) {
+            logger.debug("Legacy password verification failed: {}", e.getMessage());
             return false;
         }
     }

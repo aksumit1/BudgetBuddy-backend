@@ -69,8 +69,9 @@ class ApiCompatibilityIntegrationTest {
     @BeforeEach
     void setUp() {
         testEmail = "compat-test-" + UUID.randomUUID() + "@example.com";
-        testClientSalt = UUID.randomUUID().toString();
-        testPasswordHash = "test-hash-" + UUID.randomUUID().toString();
+        // Use proper base64-encoded strings
+        testClientSalt = java.util.Base64.getEncoder().encodeToString("client-salt".getBytes());
+        testPasswordHash = java.util.Base64.getEncoder().encodeToString("hashed-password".getBytes());
 
         // Create test user
         testUser = userService.createUserSecure(
