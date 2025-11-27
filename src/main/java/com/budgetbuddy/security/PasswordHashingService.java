@@ -169,22 +169,12 @@ public class PasswordHashingService {
             boolean matches = constantTimeEquals(result.getHash(), serverHash);
             
             if (matches) {
-                logger.debug("Password verification succeeded using new hashing method");
-                return true;
-            }
-            
-            // BACKWARD COMPATIBILITY: Try old method if new method fails
-            // This handles users who registered before the fix
-            logger.debug("New method failed, trying backward compatibility method");
-            boolean oldMethodMatches = verifyClientPasswordLegacy(clientHash, clientSalt, serverHash, serverSalt);
-            
-            if (oldMethodMatches) {
-                logger.info("Password verification succeeded using legacy method - user should reset password for security");
+                logger.debug("Password verification succeeded");
             } else {
-                logger.debug("Password verification failed: computed hash does not match stored hash (both methods)");
+                logger.debug("Password verification failed: computed hash does not match stored hash");
             }
             
-            return oldMethodMatches;
+            return matches;
         } catch (IllegalArgumentException e) {
             logger.error("Base64 decoding error during password verification: {}", e.getMessage());
             return false;
@@ -194,49 +184,6 @@ public class PasswordHashingService {
         }
     }
     
-    /**
-     * Legacy password verification method (for backward compatibility)
-     * Uses the old binary-to-UTF-8 conversion method
-     * @deprecated This method has a bug (binary to UTF-8 conversion can corrupt data) but is kept for backward compatibility
-     */
-    @Deprecated
-    private boolean verifyClientPasswordLegacy(final String clientHash, final String clientSalt, final String serverHash, final String serverSalt) {
-        try {
-            byte[] clientHashBytes = Base64.getDecoder().decode(clientHash);
-            byte[] serverSaltBytes = Base64.getDecoder().decode(serverSalt);
-            
-            // Old method: Combine binary data directly (can corrupt data if invalid UTF-8)
-            byte[] combined = new byte[clientHashBytes.length + serverSaltBytes.length];
-            System.arraycopy(clientHashBytes, 0, combined, 0, clientHashBytes.length);
-            System.arraycopy(serverSaltBytes, 0, combined, clientHashBytes.length, serverSaltBytes.length);
-            
-            // Convert to string (may corrupt binary data)
-            String combinedString;
-            try {
-                combinedString = new String(combined, java.nio.charset.StandardCharsets.UTF_8);
-            } catch (Exception e) {
-                // If UTF-8 conversion fails, try ISO-8859-1 (preserves all bytes)
-                combinedString = new String(combined, java.nio.charset.StandardCharsets.ISO_8859_1);
-            }
-            
-            // Perform PBKDF2 hashing
-            javax.crypto.spec.PBEKeySpec spec = new javax.crypto.spec.PBEKeySpec(
-                    combinedString.toCharArray(),
-                    serverSaltBytes,
-                    ITERATIONS,
-                    KEY_LENGTH
-            );
-            
-            SecretKeyFactory factory = SecretKeyFactory.getInstance(ALGORITHM);
-            byte[] computedHash = factory.generateSecret(spec).getEncoded();
-            String computedHashBase64 = Base64.getEncoder().encodeToString(computedHash);
-            
-            return constantTimeEquals(computedHashBase64, serverHash);
-        } catch (Exception e) {
-            logger.debug("Legacy password verification failed: {}", e.getMessage());
-            return false;
-        }
-    }
 
     /**
      * Verify a plaintext password against stored hash (legacy support)

@@ -147,6 +147,45 @@ public class AccountRepository {
         return Optional.empty();
     }
 
+    /**
+     * Find all accounts by Plaid item ID
+     * Used for webhook processing to find all accounts associated with a Plaid item
+     */
+    public List<AccountTable> findByPlaidItemId(String plaidItemId) {
+        if (plaidItemId == null || plaidItemId.isEmpty()) {
+            return List.of();
+        }
+        
+        List<AccountTable> results = new ArrayList<>();
+        try {
+            // Scan table with filter expression for plaidItemId
+            // Note: For production with large datasets, consider adding a GSI on plaidItemId
+            software.amazon.awssdk.enhanced.dynamodb.model.ScanEnhancedRequest scanRequest =
+                    software.amazon.awssdk.enhanced.dynamodb.model.ScanEnhancedRequest.builder()
+                            .filterExpression(
+                                    Expression.builder()
+                                            .expression("plaidItemId = :itemId")
+                                            .putExpressionValue(":itemId",
+                                                    software.amazon.awssdk.services.dynamodb.model.AttributeValue.builder()
+                                                            .s(plaidItemId)
+                                                            .build())
+                                            .build())
+                            .build();
+
+            SdkIterable<software.amazon.awssdk.enhanced.dynamodb.model.Page<AccountTable>> pages =
+                    accountTable.scan(scanRequest);
+
+            for (software.amazon.awssdk.enhanced.dynamodb.model.Page<AccountTable> page : pages) {
+                results.addAll(page.items());
+            }
+        } catch (Exception e) {
+            org.slf4j.LoggerFactory.getLogger(AccountRepository.class)
+                    .error("Error finding accounts by Plaid item ID {}: {}", plaidItemId, e.getMessage(), e);
+        }
+        
+        return results;
+    }
+
     public void delete(final String accountId) {
         if (accountId == null || accountId.isEmpty()) {
             throw new IllegalArgumentException("Account ID cannot be null or empty");

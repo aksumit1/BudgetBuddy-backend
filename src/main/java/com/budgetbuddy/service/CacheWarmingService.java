@@ -44,17 +44,23 @@ public class CacheWarmingService {
     public void warmUserCache() {
         logger.info("Starting user cache warming");
         try {
-            // In production, fetch list of active users from database
-            // For now, this is a placeholder that demonstrates the pattern
-            // TODO: Implement active user list retrieval
+            // Fetch list of active users (logged in within last 30 days)
+            List<String> activeUserIds = userRepository.findActiveUserIds(30, 1000);
+            logger.info("Found {} active users to warm cache", activeUserIds.size());
             
-            // Example: Warm cache for top 1000 active users
-            // List<String> activeUserIds = getActiveUserIds(1000);
-            // for (String userId : activeUserIds) {
-            //     userRepository.findById(userId); // This will cache the result
-            // }
+            int warmedCount = 0;
+            for (String userId : activeUserIds) {
+                try {
+                    userRepository.findById(userId).ifPresent(user -> {
+                        logger.debug("Warmed cache for user: {}", userId);
+                    });
+                    warmedCount++;
+                } catch (Exception e) {
+                    logger.warn("Failed to warm cache for user {}: {}", userId, e.getMessage());
+                }
+            }
             
-            logger.info("User cache warming completed");
+            logger.info("User cache warming completed: {} users warmed", warmedCount);
         } catch (Exception e) {
             logger.error("Error warming user cache: {}", e.getMessage(), e);
         }
@@ -68,11 +74,26 @@ public class CacheWarmingService {
     public void warmAccountCache() {
         logger.info("Starting account cache warming");
         try {
-            // In production, fetch list of users with active accounts
-            // For now, this is a placeholder
-            // TODO: Implement account cache warming logic
+            // Fetch list of active users (logged in within last 7 days)
+            List<String> activeUserIds = userRepository.findActiveUserIds(7, 500);
+            logger.info("Found {} active users for account cache warming", activeUserIds.size());
             
-            logger.info("Account cache warming completed");
+            int warmedCount = 0;
+            int totalAccounts = 0;
+            for (String userId : activeUserIds) {
+                try {
+                    List<com.budgetbuddy.model.dynamodb.AccountTable> accounts = 
+                            accountRepository.findByUserId(userId);
+                    totalAccounts += accounts.size();
+                    warmedCount++;
+                    logger.debug("Warmed cache for {} accounts of user: {}", accounts.size(), userId);
+                } catch (Exception e) {
+                    logger.warn("Failed to warm account cache for user {}: {}", userId, e.getMessage());
+                }
+            }
+            
+            logger.info("Account cache warming completed: {} users, {} accounts warmed", 
+                    warmedCount, totalAccounts);
         } catch (Exception e) {
             logger.error("Error warming account cache: {}", e.getMessage(), e);
         }
@@ -86,11 +107,27 @@ public class CacheWarmingService {
     public void warmTransactionCache() {
         logger.info("Starting transaction cache warming");
         try {
-            // In production, fetch recent transactions for active users
-            // For now, this is a placeholder
-            // TODO: Implement transaction cache warming logic
+            // Fetch list of active users (logged in within last 3 days)
+            List<String> activeUserIds = userRepository.findActiveUserIds(3, 200);
+            logger.info("Found {} active users for transaction cache warming", activeUserIds.size());
             
-            logger.info("Transaction cache warming completed");
+            int warmedCount = 0;
+            int totalTransactions = 0;
+            for (String userId : activeUserIds) {
+                try {
+                    // Warm recent transactions cache (last 100 transactions per user)
+                    List<com.budgetbuddy.model.dynamodb.TransactionTable> transactions = 
+                            transactionRepository.findByUserId(userId, 0, 100);
+                    totalTransactions += transactions.size();
+                    warmedCount++;
+                    logger.debug("Warmed cache for {} transactions of user: {}", transactions.size(), userId);
+                } catch (Exception e) {
+                    logger.warn("Failed to warm transaction cache for user {}: {}", userId, e.getMessage());
+                }
+            }
+            
+            logger.info("Transaction cache warming completed: {} users, {} transactions warmed", 
+                    warmedCount, totalTransactions);
         } catch (Exception e) {
             logger.error("Error warming transaction cache: {}", e.getMessage(), e);
         }

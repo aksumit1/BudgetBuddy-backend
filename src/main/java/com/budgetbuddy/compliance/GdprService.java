@@ -54,7 +54,7 @@ public class GdprService {
      * Export all user data (GDPR right to data portability)
      * Exports to S3 and returns download URL
      *
-     * TODO: Refactor for DynamoDB - needs conversion from domain models to table models
+     * Exports user data using DynamoDB repositories
      */
     public String exportUserData(final String userId) {
         var userTable = userRepository.findById(userId)
@@ -109,7 +109,7 @@ public class GdprService {
      * Delete all user data (GDPR right to erasure)
      * Archives data to S3 before deletion for compliance
      *
-     * TODO: Refactor for DynamoDB
+     * Deletes user data using DynamoDB repositories
      */
     public void deleteUserData(final String userId) {
         try {

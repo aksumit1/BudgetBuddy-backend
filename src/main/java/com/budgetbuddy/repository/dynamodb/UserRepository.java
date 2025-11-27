@@ -365,5 +365,67 @@ public class UserRepository {
 
         return user;
     }
+
+    /**
+     * Find active users (users who logged in within the specified days)
+     * Uses scan with filter expression (cost-optimized for small datasets)
+     * For large datasets, consider adding a GSI on lastLoginAt
+     * 
+     * @param days Number of days to look back (e.g., 30 for users active in last 30 days)
+     * @param limit Maximum number of users to return
+     * @return List of active user IDs
+     */
+    public List<String> findActiveUserIds(final int days, final int limit) {
+        if (days <= 0) {
+            throw new IllegalArgumentException("Days must be positive");
+        }
+        if (limit <= 0) {
+            throw new IllegalArgumentException("Limit must be positive");
+        }
+
+        List<String> activeUserIds = new ArrayList<>();
+        Instant cutoffDate = Instant.now().minusSeconds(days * 24L * 60 * 60);
+        long cutoffTimestamp = cutoffDate.getEpochSecond();
+
+        try {
+            // Scan table with filter expression for active users
+            // Note: For production with large datasets, consider using a GSI on lastLoginAt
+            software.amazon.awssdk.enhanced.dynamodb.model.ScanEnhancedRequest scanRequest =
+                    software.amazon.awssdk.enhanced.dynamodb.model.ScanEnhancedRequest.builder()
+                            .filterExpression(
+                                    software.amazon.awssdk.enhanced.dynamodb.Expression.builder()
+                                            .expression("lastLoginAt >= :cutoff AND enabled = :enabled")
+                                            .putExpressionValue(":cutoff", 
+                                                    software.amazon.awssdk.services.dynamodb.model.AttributeValue.builder()
+                                                            .n(String.valueOf(cutoffTimestamp))
+                                                            .build())
+                                            .putExpressionValue(":enabled",
+                                                    software.amazon.awssdk.services.dynamodb.model.AttributeValue.builder()
+                                                            .bool(true)
+                                                            .build())
+                                            .build())
+                            .limit(limit)
+                            .build();
+
+            SdkIterable<software.amazon.awssdk.enhanced.dynamodb.model.Page<UserTable>> pages =
+                    userTable.scan(scanRequest);
+
+            for (software.amazon.awssdk.enhanced.dynamodb.model.Page<UserTable> page : pages) {
+                for (UserTable user : page.items()) {
+                    if (user.getUserId() != null && !user.getUserId().isEmpty()) {
+                        activeUserIds.add(user.getUserId());
+                        if (activeUserIds.size() >= limit) {
+                            return activeUserIds;
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            org.slf4j.LoggerFactory.getLogger(UserRepository.class)
+                    .error("Error finding active users: {}", e.getMessage(), e);
+        }
+
+        return activeUserIds;
+    }
 }
 
