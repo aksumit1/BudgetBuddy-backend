@@ -211,5 +211,44 @@ public class AWSTestConfiguration {
     // Note: We don't provide AppConfigDataClient here because AppConfigIntegration
     // uses @ConditionalOnProperty to prevent bean creation when disabled
 
+    /**
+     * IAM Client - For testing IAM roles and policies
+     */
+    @Bean
+    @Primary
+    public software.amazon.awssdk.services.iam.IamClient iamClient() {
+        return software.amazon.awssdk.services.iam.IamClient.builder()
+                .endpointOverride(URI.create(LOCALSTACK_ENDPOINT))
+                .region(TEST_REGION)
+                .credentialsProvider(StaticCredentialsProvider.create(TEST_CREDENTIALS))
+                .build();
+    }
+
+    /**
+     * ACM Client - For testing SSL certificates
+     */
+    @Bean
+    @Primary
+    public software.amazon.awssdk.services.acm.AcmClient acmClient() {
+        return software.amazon.awssdk.services.acm.AcmClient.builder()
+                .endpointOverride(URI.create(LOCALSTACK_ENDPOINT))
+                .region(TEST_REGION)
+                .credentialsProvider(StaticCredentialsProvider.create(TEST_CREDENTIALS))
+                .build();
+    }
+
+    /**
+     * CodeBuild Client - For testing CI/CD build projects
+     */
+    @Bean
+    @Primary
+    public software.amazon.awssdk.services.codebuild.CodeBuildClient codeBuildClient() {
+        return software.amazon.awssdk.services.codebuild.CodeBuildClient.builder()
+                .endpointOverride(URI.create(LOCALSTACK_ENDPOINT))
+                .region(TEST_REGION)
+                .credentialsProvider(StaticCredentialsProvider.create(TEST_CREDENTIALS))
+                .build();
+    }
+
 }
 
