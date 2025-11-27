@@ -2,6 +2,7 @@ package com.budgetbuddy.security.ddos;
 
 import com.budgetbuddy.exception.ErrorCode;
 import com.budgetbuddy.exception.EnhancedGlobalExceptionHandler;
+import com.budgetbuddy.security.ddos.DDoSProtectionService;
 import com.budgetbuddy.security.rate.RateLimitService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.FilterChain;
