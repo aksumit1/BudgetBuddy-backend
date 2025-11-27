@@ -39,7 +39,9 @@ public class DynamoDBTableManager {
         createTransactionsTable();
         createBudgetsTable();
         createGoalsTable();
+        createTransactionActionsTable();
         createAuditLogsTable();
+        createNotFoundTrackingTable();
         logger.info("DynamoDB tables initialized");
     }
 
@@ -158,6 +160,10 @@ public class DynamoDBTableManager {
                             AttributeDefinition.builder()
                                     .attributeName("plaidTransactionId")
                                     .attributeType(ScalarAttributeType.S)
+                                    .build(),
+                            AttributeDefinition.builder()
+                                    .attributeName("accountId")
+                                    .attributeType(ScalarAttributeType.S)
                                     .build())
                     .keySchema(
                             KeySchemaElement.builder()
@@ -170,6 +176,21 @@ public class DynamoDBTableManager {
                                     .keySchema(
                                             KeySchemaElement.builder()
                                                     .attributeName("userId")
+                                                    .keyType(KeyType.HASH)
+                                                    .build(),
+                                            KeySchemaElement.builder()
+                                                    .attributeName("transactionDate")
+                                                    .keyType(KeyType.RANGE)
+                                                    .build())
+                                    .projection(Projection.builder()
+                                            .projectionType(ProjectionType.ALL)
+                                            .build())
+                                    .build(),
+                            GlobalSecondaryIndex.builder()
+                                    .indexName("AccountIdTransactionDateIndex")
+                                    .keySchema(
+                                            KeySchemaElement.builder()
+                                                    .attributeName("accountId")
                                                     .keyType(KeyType.HASH)
                                                     .build(),
                                             KeySchemaElement.builder()
@@ -276,6 +297,62 @@ public class DynamoDBTableManager {
         }
     }
 
+    private void createTransactionActionsTable() {
+        String tableName = tablePrefix + "-TransactionActions";
+        try {
+            dynamoDbClient.createTable(CreateTableRequest.builder()
+                    .tableName(tableName)
+                    .billingMode(BillingMode.PAY_PER_REQUEST)
+                    .attributeDefinitions(
+                            AttributeDefinition.builder()
+                                    .attributeName("actionId")
+                                    .attributeType(ScalarAttributeType.S)
+                                    .build(),
+                            AttributeDefinition.builder()
+                                    .attributeName("transactionId")
+                                    .attributeType(ScalarAttributeType.S)
+                                    .build(),
+                            AttributeDefinition.builder()
+                                    .attributeName("userId")
+                                    .attributeType(ScalarAttributeType.S)
+                                    .build())
+                    .keySchema(
+                            KeySchemaElement.builder()
+                                    .attributeName("actionId")
+                                    .keyType(KeyType.HASH)
+                                    .build())
+                    .globalSecondaryIndexes(
+                            GlobalSecondaryIndex.builder()
+                                    .indexName("TransactionIdIndex")
+                                    .keySchema(
+                                            KeySchemaElement.builder()
+                                                    .attributeName("transactionId")
+                                                    .keyType(KeyType.HASH)
+                                                    .build())
+                                    .projection(Projection.builder()
+                                            .projectionType(ProjectionType.ALL)
+                                            .build())
+                                    .build(),
+                            GlobalSecondaryIndex.builder()
+                                    .indexName("UserIdIndex")
+                                    .keySchema(
+                                            KeySchemaElement.builder()
+                                                    .attributeName("userId")
+                                                    .keyType(KeyType.HASH)
+                                                    .build())
+                                    .projection(Projection.builder()
+                                            .projectionType(ProjectionType.ALL)
+                                            .build())
+                                    .build())
+                    .build());
+            logger.info("Created table: {}", tableName);
+        } catch (ResourceInUseException e) {
+            logger.debug("Table {} already exists", tableName);
+        } catch (Exception e) {
+            logger.error("Failed to create table {}: {}", tableName, e.getMessage());
+        }
+    }
+
     private void createAuditLogsTable() {
         String tableName = tablePrefix + "-AuditLogs";
         try {
@@ -320,6 +397,44 @@ public class DynamoDBTableManager {
             logger.info("Created table: {}", tableName);
         } catch (ResourceInUseException e) {
             logger.debug("Table {} already exists", tableName);
+        }
+    }
+
+    private void createNotFoundTrackingTable() {
+        String tableName = tablePrefix + "-NotFoundTracking";
+        try {
+            dynamoDbClient.createTable(CreateTableRequest.builder()
+                    .tableName(tableName)
+                    .billingMode(BillingMode.PAY_PER_REQUEST)
+                    .attributeDefinitions(
+                            AttributeDefinition.builder()
+                                    .attributeName("sourceId")
+                                    .attributeType(ScalarAttributeType.S)
+                                    .build())
+                    .keySchema(
+                            KeySchemaElement.builder()
+                                    .attributeName("sourceId")
+                                    .keyType(KeyType.HASH)
+                                    .build())
+                    .build());
+
+            // Configure TTL separately
+            try {
+                dynamoDbClient.updateTimeToLive(UpdateTimeToLiveRequest.builder()
+                        .tableName(tableName)
+                        .timeToLiveSpecification(TimeToLiveSpecification.builder()
+                                .enabled(true)
+                                .attributeName("ttl")
+                                .build())
+                        .build());
+            } catch (Exception e) {
+                logger.warn("Failed to configure TTL for 404 tracking table: {}", e.getMessage());
+            }
+            logger.info("Created table: {}", tableName);
+        } catch (ResourceInUseException e) {
+            logger.debug("Table {} already exists", tableName);
+        } catch (Exception e) {
+            logger.error("Failed to create table {}: {}", tableName, e.getMessage());
         }
     }
 }

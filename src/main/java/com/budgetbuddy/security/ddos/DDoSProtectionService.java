@@ -40,13 +40,22 @@ public class DDoSProtectionService {
     private final Map<String, RequestCounter> inMemoryCache = new ConcurrentHashMap<>();
     private static final long CACHE_TTL_MS = 60000; // 1 minute
     private volatile long lastCacheCleanup = System.currentTimeMillis();
+    
+    // Track DynamoDB availability - if unavailable, fall back to in-memory only
+    private volatile boolean dynamoDbAvailable = true;
+    private volatile long lastDynamoDbCheck = 0;
+    private static final long DYNAMODB_CHECK_INTERVAL_MS = 60000; // Check every minute
 
     public DDoSProtectionService(final DynamoDbClient dynamoDbClient) {
         if (dynamoDbClient == null) {
             throw new IllegalArgumentException("DynamoDbClient cannot be null");
         }
         this.dynamoDbClient = dynamoDbClient;
-        initializeTable();
+        boolean initialized = initializeTable();
+        if (!initialized) {
+            logger.warn("DDoS protection initialized with in-memory only mode (DynamoDB unavailable). " +
+                    "Blocked IPs will not persist across restarts.");
+        }
     }
 
     /**
@@ -55,12 +64,18 @@ public class DDoSProtectionService {
      */
     public boolean isAllowed(final String ipAddress) {
         if (ipAddress == null || ipAddress.isEmpty()) {
-            logger.warn("IP address is null or empty");
-            return false;
+            logger.warn("IP address is null or empty - allowing request (IP extraction may have failed)");
+            // Allow request if IP extraction failed - better than blocking legitimate users
+            return true;
         }
 
         // Periodic cache cleanup to prevent unbounded growth
         cleanupCacheIfNeeded();
+        
+        // Periodically check DynamoDB availability
+        if (!dynamoDbAvailable) {
+            checkDynamoDbAvailability();
+        }
 
         // Check in-memory cache first
         RequestCounter counter = inMemoryCache.get(ipAddress);
@@ -78,8 +93,8 @@ public class DDoSProtectionService {
             return true;
         }
 
-        // Check DynamoDB for persistent state
-        if (isBlockedInDynamoDB(ipAddress)) {
+        // Check DynamoDB for persistent state (only if available)
+        if (dynamoDbAvailable && isBlockedInDynamoDB(ipAddress)) {
             // Update cache with blocked state
             RequestCounter blockedCounter = new RequestCounter();
             blockedCounter.setBlocked(true);
@@ -109,6 +124,10 @@ public class DDoSProtectionService {
         if (ipAddress == null || ipAddress.isEmpty()) {
             return;
         }
+        
+        if (!dynamoDbAvailable) {
+            return; // Skip recording if DynamoDB is unavailable
+        }
 
         try {
             dynamoDbClient.putItem(PutItemRequest.builder()
@@ -121,7 +140,9 @@ public class DDoSProtectionService {
                     ))
                     .build());
         } catch (Exception e) {
-            logger.error("Failed to record request in DynamoDB: {}", e.getMessage());
+            logger.debug("Failed to record request in DynamoDB: {}. Continuing without recording.", e.getMessage());
+            // Mark DynamoDB as unavailable if we get persistent errors
+            dynamoDbAvailable = false;
             // Don't fail the request if logging fails
         }
     }
@@ -142,7 +163,11 @@ public class DDoSProtectionService {
         }
     }
 
-    private void initializeTable() {
+    /**
+     * Initialize DynamoDB table for DDoS protection
+     * @return true if table was created or already exists, false if DynamoDB is unavailable
+     */
+    private boolean initializeTable() {
         try {
             dynamoDbClient.createTable(CreateTableRequest.builder()
                     .tableName(tableName)
@@ -171,17 +196,67 @@ public class DDoSProtectionService {
             } catch (Exception e) {
                 logger.warn("Failed to configure TTL for DDoS protection table: {}", e.getMessage());
             }
-            logger.info("DDoS protection table created");
+            logger.info("DDoS protection table created successfully");
+            dynamoDbAvailable = true;
+            return true;
         } catch (ResourceInUseException e) {
             logger.debug("DDoS protection table already exists");
+            dynamoDbAvailable = true;
+            return true;
         } catch (Exception e) {
-            logger.error("Failed to create DDoS protection table: {}", e.getMessage());
+            logger.error("Failed to create DDoS protection table: {}. " +
+                    "DDoS protection will work in in-memory only mode. " +
+                    "Blocked IPs will not persist across restarts.", e.getMessage());
+            dynamoDbAvailable = false;
+            return false;
+        }
+    }
+    
+    /**
+     * Check DynamoDB availability periodically and update status
+     */
+    private void checkDynamoDbAvailability() {
+        long now = System.currentTimeMillis();
+        if (now - lastDynamoDbCheck < DYNAMODB_CHECK_INTERVAL_MS) {
+            return;
+        }
+        
+        synchronized (this) {
+            if (now - lastDynamoDbCheck < DYNAMODB_CHECK_INTERVAL_MS) {
+                return;
+            }
+            lastDynamoDbCheck = now;
+            
+            // Try a simple operation to check if DynamoDB is available
+            try {
+                dynamoDbClient.describeTable(DescribeTableRequest.builder()
+                        .tableName(tableName)
+                        .build());
+                if (!dynamoDbAvailable) {
+                    logger.info("DynamoDB is now available for DDoS protection");
+                    dynamoDbAvailable = true;
+                }
+            } catch (ResourceNotFoundException e) {
+                // Table doesn't exist - try to create it
+                if (initializeTable()) {
+                    dynamoDbAvailable = true;
+                } else {
+                    dynamoDbAvailable = false;
+                }
+            } catch (Exception e) {
+                logger.debug("DynamoDB check failed: {}. Continuing with in-memory only mode.", e.getMessage());
+                dynamoDbAvailable = false;
+            }
         }
     }
 
     private boolean isBlockedInDynamoDB(final String ipAddress) {
         if (ipAddress == null || ipAddress.isEmpty()) {
             return false;
+        }
+        
+        if (!dynamoDbAvailable) {
+            return false; // DynamoDB unavailable, rely on in-memory cache only
         }
 
         try {
@@ -202,7 +277,9 @@ public class DDoSProtectionService {
         } catch (NumberFormatException e) {
             logger.error("Invalid blockedUntil value in DynamoDB for IP: {}", ipAddress);
         } catch (Exception e) {
-            logger.error("Failed to check blocked IP in DynamoDB: {}", e.getMessage());
+            logger.debug("Failed to check blocked IP in DynamoDB: {}. Using in-memory cache only.", e.getMessage());
+            // Mark DynamoDB as unavailable if we get persistent errors
+            dynamoDbAvailable = false;
         }
         return false;
     }
@@ -210,6 +287,11 @@ public class DDoSProtectionService {
     private void blockIpInDynamoDB(final String ipAddress) {
         if (ipAddress == null || ipAddress.isEmpty()) {
             return;
+        }
+        
+        if (!dynamoDbAvailable) {
+            logger.debug("DynamoDB unavailable - IP {} blocked in-memory only", ipAddress);
+            return; // DynamoDB unavailable, block is already in in-memory cache
         }
 
         try {
@@ -225,7 +307,9 @@ public class DDoSProtectionService {
                     .build());
             logger.warn("Blocked IP address: {} until {}", ipAddress, Instant.ofEpochSecond(blockedUntil));
         } catch (Exception e) {
-            logger.error("Failed to block IP in DynamoDB: {}", e.getMessage());
+            logger.debug("Failed to block IP in DynamoDB: {}. IP blocked in-memory only.", e.getMessage());
+            // Mark DynamoDB as unavailable if we get persistent errors
+            dynamoDbAvailable = false;
         }
     }
 

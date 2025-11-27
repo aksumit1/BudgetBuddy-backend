@@ -109,7 +109,7 @@ Resources:
         - AttributeName: transactionId
           KeyType: HASH
       GlobalSecondaryIndexes:
-        - IndexName: UserIdTransactionDateIndex
+        - IndexName: UserIdDateIndex
           KeySchema:
             - AttributeName: userId
               KeyType: HASH
@@ -193,12 +193,51 @@ Resources:
         - AttributeName: goalId
           KeyType: HASH
       GlobalSecondaryIndexes:
-        - IndexName: UserIdTargetDateIndex
+        - IndexName: UserIdIndex
           KeySchema:
             - AttributeName: userId
               KeyType: HASH
-            - AttributeName: targetDate
-              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+      StreamSpecification:
+        StreamViewType: NEW_AND_OLD_IMAGES
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Application
+          Value: BudgetBuddy
+        - Key: ManagedBy
+          Value: CloudFormation
+
+  # Transaction Actions Table
+  TransactionActionsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub '${TablePrefix}-TransactionActions'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: actionId
+          AttributeType: S
+        - AttributeName: transactionId
+          AttributeType: S
+        - AttributeName: userId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: actionId
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: TransactionIdIndex
+          KeySchema:
+            - AttributeName: transactionId
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+        - IndexName: UserIdIndex
+          KeySchema:
+            - AttributeName: userId
+              KeyType: HASH
           Projection:
             ProjectionType: ALL
       StreamSpecification:
@@ -225,7 +264,7 @@ Resources:
         - AttributeName: userId
           AttributeType: S
         - AttributeName: createdAt
-          AttributeType: S
+          AttributeType: N
         - AttributeName: action
           AttributeType: S
       KeySchema:
@@ -264,7 +303,7 @@ Resources:
   RateLimitTable:
     Type: AWS::DynamoDB::Table
     Properties:
-      TableName: !Sub '${TablePrefix}-RateLimit'
+      TableName: !Sub '${TablePrefix}-RateLimits'
       BillingMode: PAY_PER_REQUEST
       AttributeDefinitions:
         - AttributeName: key
@@ -320,13 +359,34 @@ Resources:
       KeySchema:
         - AttributeName: deviceId
           KeyType: HASH
-      GlobalSecondaryIndexes:
-        - IndexName: UserIdIndex
-          KeySchema:
-            - AttributeName: userId
-              KeyType: HASH
-          Projection:
-            ProjectionType: ALL
+        - AttributeName: userId
+          KeyType: RANGE
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Application
+          Value: BudgetBuddy
+        - Key: ManagedBy
+          Value: CloudFormation
+
+  # 404 Error Tracking Table
+  NotFoundTrackingTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub '${TablePrefix}-NotFoundTracking'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: sourceId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: sourceId
+          KeyType: HASH
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
       Tags:
         - Key: Environment
           Value: !Ref Environment
@@ -365,6 +425,12 @@ Outputs:
     Value: !Ref GoalsTable
     Export:
       Name: !Sub '${AWS::StackName}-GoalsTable'
+  
+  TransactionActionsTableName:
+    Description: Name of the TransactionActions table
+    Value: !Ref TransactionActionsTable
+    Export:
+      Name: !Sub '${AWS::StackName}-TransactionActionsTable'
   
   AuditLogsTableName:
     Description: Name of the AuditLogs table

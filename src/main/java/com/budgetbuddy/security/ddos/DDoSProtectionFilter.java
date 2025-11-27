@@ -1,17 +1,24 @@
 package com.budgetbuddy.security.ddos;
 
+import com.budgetbuddy.exception.ErrorCode;
+import com.budgetbuddy.exception.EnhancedGlobalExceptionHandler;
 import com.budgetbuddy.security.rate.RateLimitService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.time.Instant;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * DDoS Protection Filter
@@ -34,6 +41,7 @@ public class DDoSProtectionFilter extends OncePerRequestFilter {
 
     private final RateLimitService rateLimitService;
     private final DDoSProtectionService ddosProtectionService;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     public DDoSProtectionFilter(final RateLimitService rateLimitService, final DDoSProtectionService ddosProtectionService) {
         if (rateLimitService == null) {
@@ -54,21 +62,26 @@ public class DDoSProtectionFilter extends OncePerRequestFilter {
 
         // Layer 1: IP-based rate limiting (DDoS protection)
         if (clientIp != null && !ddosProtectionService.isAllowed(clientIp)) {
-            logger.warn("DDoS protection: Blocked request from IP: {}", clientIp);
-            response.setStatus(429); // SC_TOO_MANY_REQUESTS
-            response.setHeader("Retry-After", String.valueOf(60));
-            response.setContentType("application/json");
-            response.getWriter().write("{\"error\":\"Rate limit exceeded. Please try again later.\"}");
+            logger.warn("DDoS protection: Blocked request from IP: {} | CorrelationId: {}", clientIp, MDC.get("correlationId"));
+            String correlationId = MDC.get("correlationId");
+            if (correlationId == null) {
+                correlationId = java.util.UUID.randomUUID().toString();
+                MDC.put("correlationId", correlationId);
+            }
+            sendRateLimitError(response, correlationId, "Rate limit exceeded. Please try again later.", 60, request.getRequestURI());
             return;
         }
 
         // Layer 2: Per-customer throttling
         if (userId != null && !rateLimitService.isAllowed(userId, request.getRequestURI())) {
-            logger.warn("Rate limit: Blocked request from user: {} for endpoint: {}", userId, request.getRequestURI());
-            response.setStatus(429); // SC_TOO_MANY_REQUESTS
-            response.setHeader("Retry-After", String.valueOf(rateLimitService.getRetryAfter(userId, request.getRequestURI())));
-            response.setContentType("application/json");
-            response.getWriter().write("{\"error\":\"Rate limit exceeded for your account. Please try again later.\"}");
+            logger.warn("Rate limit: Blocked request from user: {} for endpoint: {} | CorrelationId: {}", userId, request.getRequestURI(), MDC.get("correlationId"));
+            int retryAfter = rateLimitService.getRetryAfter(userId, request.getRequestURI());
+            String correlationId = MDC.get("correlationId");
+            if (correlationId == null) {
+                correlationId = java.util.UUID.randomUUID().toString();
+                MDC.put("correlationId", correlationId);
+            }
+            sendRateLimitError(response, correlationId, "Rate limit exceeded for your account. Please try again in " + retryAfter + " seconds.", retryAfter, request.getRequestURI());
             return;
         }
 
@@ -168,5 +181,26 @@ public class DDoSProtectionFilter extends OncePerRequestFilter {
             logger.warn("Failed to calculate header size: {}", e.getMessage());
             return 0;
         }
+    }
+
+    /**
+     * Send rate limit error response in standard format
+     * Matches EnhancedGlobalExceptionHandler.ErrorResponse format
+     */
+    private void sendRateLimitError(final HttpServletResponse response, final String correlationId, final String message, final int retryAfter, final String path) throws IOException {
+        EnhancedGlobalExceptionHandler.ErrorResponse errorResponse = EnhancedGlobalExceptionHandler.ErrorResponse.builder()
+                .errorCode(ErrorCode.RATE_LIMIT_EXCEEDED.name())
+                .message(message)
+                .correlationId(correlationId)
+                .timestamp(Instant.now())
+                .path(path != null ? path : "")
+                .build();
+
+        response.setStatus(429); // SC_TOO_MANY_REQUESTS
+        response.setHeader("Retry-After", String.valueOf(retryAfter));
+        response.setContentType("application/json");
+        response.setCharacterEncoding("UTF-8");
+        
+        objectMapper.writeValue(response.getWriter(), errorResponse);
     }
 }
