@@ -193,6 +193,11 @@ public class UserService {
 
     /**
      * Change password (secure format)
+     * 
+     * CRITICAL FIX: Reuse existing server salt instead of generating a new one.
+     * This ensures that password verification works correctly after password reset.
+     * The server salt should only be generated once during registration and then
+     * preserved for all password changes to maintain consistency.
      */
     public void changePasswordSecure(final String userId, final String passwordHash, final String clientSalt) {
         if (userId == null || userId.isEmpty()) {
@@ -208,12 +213,25 @@ public class UserService {
         UserTable user = dynamoDBUserRepository.findById(userId)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
 
-        // Perform server-side hashing
+        // CRITICAL FIX: Reuse existing server salt instead of generating a new one
+        // Decode existing server salt if available, otherwise generate new one (for migration)
+        byte[] existingServerSalt = null;
+        if (user.getServerSalt() != null && !user.getServerSalt().isEmpty()) {
+            try {
+                existingServerSalt = java.util.Base64.getDecoder().decode(user.getServerSalt());
+                logger.debug("Reusing existing server salt for password change for user: {}", user.getEmail());
+            } catch (IllegalArgumentException e) {
+                logger.warn("Existing server salt is invalid Base64 for user: {}, generating new one", user.getEmail());
+                existingServerSalt = null;
+            }
+        }
+
+        // Perform server-side hashing with existing server salt (or generate new if missing)
         PasswordHashingService.PasswordHashResult result = passwordHashingService.hashClientPassword(
-                passwordHash, clientSalt, null);
+                passwordHash, clientSalt, existingServerSalt);
 
         user.setPasswordHash(result.getHash());
-        user.setServerSalt(result.getSalt());
+        user.setServerSalt(result.getSalt()); // This will be the same as existing if reused, or new if generated
         user.setClientSalt(clientSalt);
         user.setPasswordChangedAt(Instant.now());
         user.setUpdatedAt(Instant.now());
