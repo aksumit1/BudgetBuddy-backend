@@ -2,11 +2,13 @@ package com.budgetbuddy.repository.dynamodb;
 
 import com.budgetbuddy.model.dynamodb.TransactionActionTable;
 import org.springframework.stereotype.Repository;
+import software.amazon.awssdk.core.pagination.sync.SdkIterable;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbIndex;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable;
 import software.amazon.awssdk.enhanced.dynamodb.Key;
 import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
+import software.amazon.awssdk.enhanced.dynamodb.model.Page;
 import software.amazon.awssdk.enhanced.dynamodb.model.QueryConditional;
 
 import java.util.ArrayList;
@@ -56,9 +58,12 @@ public class TransactionActionRepository {
             return List.of();
         }
         List<TransactionActionTable> results = new ArrayList<>();
-        transactionIdIndex.query(
+        SdkIterable<Page<TransactionActionTable>> pages = transactionIdIndex.query(
                 QueryConditional.keyEqualTo(Key.builder().partitionValue(transactionId).build())
-        ).items().forEach(results::add);
+        );
+        for (Page<TransactionActionTable> page : pages) {
+            results.addAll(page.items());
+        }
         return results;
     }
 
@@ -70,9 +75,12 @@ public class TransactionActionRepository {
             return List.of();
         }
         List<TransactionActionTable> results = new ArrayList<>();
-        userIdIndex.query(
+        SdkIterable<Page<TransactionActionTable>> pages = userIdIndex.query(
                 QueryConditional.keyEqualTo(Key.builder().partitionValue(userId).build())
-        ).items().forEach(results::add);
+        );
+        for (Page<TransactionActionTable> page : pages) {
+            results.addAll(page.items());
+        }
         return results;
     }
 

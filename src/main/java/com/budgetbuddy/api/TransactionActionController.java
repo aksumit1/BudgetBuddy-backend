@@ -18,7 +18,7 @@ import java.util.List;
  * REST Controller for Transaction Actions/Reminders
  */
 @RestController
-@RequestMapping("/api/transactions/{transactionId}/actions")
+@RequestMapping("/api/transactions")
 public class TransactionActionController {
 
     private final TransactionActionService actionService;
@@ -31,7 +31,7 @@ public class TransactionActionController {
         this.userService = userService;
     }
 
-    @GetMapping
+    @GetMapping("/{transactionId}/actions")
     public ResponseEntity<List<TransactionActionTable>> getActions(
             @AuthenticationPrincipal UserDetails userDetails,
             @PathVariable String transactionId) {
@@ -49,7 +49,7 @@ public class TransactionActionController {
         return ResponseEntity.ok(actions);
     }
 
-    @PostMapping
+    @PostMapping("/{transactionId}/actions")
     public ResponseEntity<TransactionActionTable> createAction(
             @AuthenticationPrincipal UserDetails userDetails,
             @PathVariable String transactionId,
@@ -80,7 +80,7 @@ public class TransactionActionController {
         return ResponseEntity.status(HttpStatus.CREATED).body(action);
     }
 
-    @PutMapping("/{actionId}")
+    @PutMapping("/{transactionId}/actions/{actionId}")
     public ResponseEntity<TransactionActionTable> updateAction(
             @AuthenticationPrincipal UserDetails userDetails,
             @PathVariable String transactionId,
@@ -110,7 +110,7 @@ public class TransactionActionController {
         return ResponseEntity.ok(action);
     }
 
-    @DeleteMapping("/{actionId}")
+    @DeleteMapping("/{transactionId}/actions/{actionId}")
     public ResponseEntity<Void> deleteAction(
             @AuthenticationPrincipal UserDetails userDetails,
             @PathVariable String transactionId,
@@ -127,6 +127,25 @@ public class TransactionActionController {
 
         actionService.deleteAction(user, actionId);
         return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * Get all actions for the authenticated user (for sync)
+     * Endpoint: GET /api/transactions/actions/user
+     * Note: Using /actions/user instead of /user/actions to avoid route conflict with /{transactionId}/actions
+     */
+    @GetMapping("/actions/user")
+    public ResponseEntity<List<TransactionActionTable>> getAllActionsForUser(
+            @AuthenticationPrincipal UserDetails userDetails) {
+        if (userDetails == null || userDetails.getUsername() == null) {
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+        }
+
+        UserTable user = userService.findByEmail(userDetails.getUsername())
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+
+        List<TransactionActionTable> actions = actionService.getActionsByUserId(user);
+        return ResponseEntity.ok(actions);
     }
 
     // DTOs
