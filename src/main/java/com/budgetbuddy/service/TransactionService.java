@@ -204,6 +204,34 @@ public class TransactionService {
     }
 
     /**
+     * Update transaction (e.g., notes)
+     */
+    public TransactionTable updateTransaction(final UserTable user, final String transactionId, final String notes) {
+        if (user == null || user.getUserId() == null || user.getUserId().isEmpty()) {
+            throw new AppException(ErrorCode.INVALID_INPUT, "User is required");
+        }
+        if (transactionId == null || transactionId.isEmpty()) {
+            throw new AppException(ErrorCode.INVALID_INPUT, "Transaction ID is required");
+        }
+
+        TransactionTable transaction = transactionRepository.findById(transactionId)
+                .orElseThrow(() -> new AppException(ErrorCode.TRANSACTION_NOT_FOUND, "Transaction not found"));
+
+        if (transaction.getUserId() == null || !transaction.getUserId().equals(user.getUserId())) {
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "Transaction does not belong to user");
+        }
+
+        if (notes != null) {
+            transaction.setNotes(notes.trim().isEmpty() ? null : notes.trim());
+        }
+        transaction.setUpdatedAt(java.time.Instant.now());
+
+        transactionRepository.save(transaction);
+        logger.info("Updated transaction {} notes for user {}", transactionId, user.getEmail());
+        return transaction;
+    }
+
+    /**
      * Delete transaction
      */
     public void deleteTransaction(final UserTable user, final String transactionId) {

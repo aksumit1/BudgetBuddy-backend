@@ -147,6 +147,33 @@ public class TransactionController {
         return ResponseEntity.status(HttpStatus.CREATED).body(transaction);
     }
 
+    @PutMapping("/{id}")
+    public ResponseEntity<TransactionTable> updateTransaction(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable String id,
+            @RequestBody UpdateTransactionRequest request) {
+        if (userDetails == null || userDetails.getUsername() == null) {
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+        }
+        if (id == null || id.isEmpty()) {
+            throw new AppException(ErrorCode.INVALID_INPUT, "Transaction ID is required");
+        }
+        if (request == null) {
+            throw new AppException(ErrorCode.INVALID_INPUT, "Update request is required");
+        }
+
+        UserTable user = userService.findByEmail(userDetails.getUsername())
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+
+        TransactionTable transaction = transactionService.updateTransaction(
+                user,
+                id,
+                request.getNotes()
+        );
+
+        return ResponseEntity.ok(transaction);
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteTransaction(
             @AuthenticationPrincipal UserDetails userDetails,
@@ -196,5 +223,12 @@ public class TransactionController {
 
         public BigDecimal getTotal() { return total; }
         public void setTotal(final BigDecimal total) { this.total = total; }
+    }
+
+    public static class UpdateTransactionRequest {
+        private String notes;
+
+        public String getNotes() { return notes; }
+        public void setNotes(final String notes) { this.notes = notes; }
     }
 }
