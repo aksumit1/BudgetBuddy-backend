@@ -6,6 +6,7 @@ import com.budgetbuddy.exception.AppException;
 import com.budgetbuddy.exception.ErrorCode;
 import com.budgetbuddy.service.AuthService;
 import com.budgetbuddy.service.UserService;
+import com.budgetbuddy.service.PasswordResetService;
 import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.Valid;
@@ -16,6 +17,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import io.swagger.v3.oas.annotations.Operation;
+import java.util.Map;
 
 /**
  * Authentication REST Controller
@@ -31,10 +34,12 @@ public class AuthController {
 
     private final AuthService authService;
     private final UserService userService;
+    private final PasswordResetService passwordResetService;
 
-    public AuthController(final AuthService authService, final UserService userService) {
+    public AuthController(final AuthService authService, final UserService userService, final PasswordResetService passwordResetService) {
         this.authService = authService;
         this.userService = userService;
+        this.passwordResetService = passwordResetService;
     }
 
     /**
@@ -99,10 +104,37 @@ public class AuthController {
     }
 
     /**
-     * Password reset endpoint
-     * Accepts secure format (password_hash + salt)
+     * Request password reset - sends 6-digit code via email
+     */
+    @PostMapping("/forgot-password")
+    @Operation(summary = "Request Password Reset", description = "Sends a 6-digit verification code to the user's email")
+    public ResponseEntity<Map<String, String>> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+        passwordResetService.requestPasswordReset(request.getEmail());
+        return ResponseEntity.ok(Map.of(
+                "status", "success",
+                "message", "Verification code sent to your email"
+        ));
+    }
+
+    /**
+     * Verify reset code
+     */
+    @PostMapping("/verify-reset-code")
+    @Operation(summary = "Verify Reset Code", description = "Verifies the 6-digit code sent via email")
+    public ResponseEntity<Map<String, String>> verifyResetCode(@Valid @RequestBody VerifyCodeRequest request) {
+        passwordResetService.verifyResetCode(request.getEmail(), request.getCode());
+        return ResponseEntity.ok(Map.of(
+                "status", "success",
+                "message", "Code verified successfully"
+        ));
+    }
+
+    /**
+     * Password reset endpoint with code verification
+     * Accepts secure format (password_hash + salt) and verification code
      */
     @PostMapping("/reset-password")
+    @Operation(summary = "Reset Password", description = "Resets password using verified code")
     public ResponseEntity<PasswordResetResponse> resetPassword(@Valid @RequestBody PasswordResetRequest request) {
         // Validate secure format
         if (!request.isSecureFormat()) {
@@ -110,7 +142,15 @@ public class AuthController {
                     "Password reset requires password_hash and salt. Legacy password format not supported.");
         }
 
-        // Reset password
+        // Verify code and reset password
+        passwordResetService.resetPassword(
+                request.getEmail(),
+                request.getCode(),
+                request.getPasswordHash(),
+                request.getSalt()
+        );
+
+        // Reset password in UserService
         userService.resetPasswordByEmail(
                 request.getEmail(),
                 request.getPasswordHash(),
@@ -134,11 +174,55 @@ public class AuthController {
         }
     }
 
+    // Inner class for forgot password request
+    public static class ForgotPasswordRequest {
+        @NotBlank(message = "Email is required")
+        @Email(message = "Email should be valid")
+        private String email;
+
+        public String getEmail() {
+            return email;
+        }
+
+        public void setEmail(final String email) {
+            this.email = email;
+        }
+    }
+
+    // Inner class for verify code request
+    public static class VerifyCodeRequest {
+        @NotBlank(message = "Email is required")
+        @Email(message = "Email should be valid")
+        private String email;
+
+        @NotBlank(message = "Verification code is required")
+        private String code;
+
+        public String getEmail() {
+            return email;
+        }
+
+        public void setEmail(final String email) {
+            this.email = email;
+        }
+
+        public String getCode() {
+            return code;
+        }
+
+        public void setCode(final String code) {
+            this.code = code;
+        }
+    }
+
     // Inner class for password reset request
     public static class PasswordResetRequest {
         @NotBlank(message = "Email is required")
         @Email(message = "Email should be valid")
         private String email;
+
+        @NotBlank(message = "Verification code is required")
+        private String code;
 
         @JsonProperty("passwordHash")
         @JsonAlias("password_hash")
@@ -151,6 +235,14 @@ public class AuthController {
 
         public void setEmail(final String email) {
             this.email = email;
+        }
+
+        public String getCode() {
+            return code;
+        }
+
+        public void setCode(final String code) {
+            this.code = code;
         }
 
         public String getPasswordHash() {
