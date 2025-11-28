@@ -79,7 +79,7 @@ class BudgetControllerTest {
 
         BudgetTable mockBudget = createBudget("budget-1");
         when(userService.findByEmail("test@example.com")).thenReturn(java.util.Optional.of(testUser));
-        when(budgetService.createOrUpdateBudget(testUser, "FOOD", BigDecimal.valueOf(1000.00)))
+        when(budgetService.createOrUpdateBudget(testUser, "FOOD", BigDecimal.valueOf(1000.00), null))
                 .thenReturn(mockBudget);
 
         // When

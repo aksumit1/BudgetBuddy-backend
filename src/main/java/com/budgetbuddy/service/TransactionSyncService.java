@@ -229,6 +229,7 @@ public class TransactionSyncService {
 
     /**
      * Create TransactionTable from Plaid transaction
+     * Uses Plaid transaction ID as transactionId to ensure consistency between backend and app
      * Sets plaidTransactionId to enable proper Plaid-based deduplication
      */
     private TransactionTable createTransactionFromPlaid(
@@ -236,7 +237,31 @@ public class TransactionSyncService {
             final Object plaidTransaction,
             final String plaidTransactionId) {
         TransactionTable transaction = new TransactionTable();
-        transaction.setTransactionId(java.util.UUID.randomUUID().toString());
+        
+        // Use Plaid transaction ID as transactionId if it's a valid UUID format
+        // Otherwise, generate a deterministic UUID from the Plaid ID (UUID v5)
+        if (plaidTransactionId != null && !plaidTransactionId.isEmpty()) {
+            try {
+                // Try to use Plaid ID directly if it's a valid UUID
+                java.util.UUID.fromString(plaidTransactionId);
+                transaction.setTransactionId(plaidTransactionId);
+                logger.debug("Using Plaid transaction ID as transactionId: {}", plaidTransactionId);
+            } catch (IllegalArgumentException e) {
+                // Plaid ID is not a valid UUID format - generate deterministic UUID v5 from it
+                // Using UUID v5 (SHA-1 based) for deterministic UUID generation
+                java.util.UUID namespaceUUID = java.util.UUID.fromString("6ba7b810-9dad-11d1-80b4-00c04fd430c8"); // DNS namespace
+                transaction.setTransactionId(java.util.UUID.nameUUIDFromBytes(
+                    (namespaceUUID.toString() + plaidTransactionId).getBytes(java.nio.charset.StandardCharsets.UTF_8)
+                ).toString());
+                logger.debug("Generated deterministic UUID from Plaid transaction ID: {} -> {}", 
+                    plaidTransactionId, transaction.getTransactionId());
+            }
+        } else {
+            // Fallback: generate random UUID if Plaid ID is missing
+            transaction.setTransactionId(java.util.UUID.randomUUID().toString());
+            logger.warn("Plaid transaction ID is null or empty, generated random UUID: {}", transaction.getTransactionId());
+        }
+        
         transaction.setUserId(userId);
         transaction.setPlaidTransactionId(plaidTransactionId); // CRITICAL: Set Plaid ID for deduplication
         // Map other fields from plaidTransaction

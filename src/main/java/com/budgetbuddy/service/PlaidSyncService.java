@@ -8,6 +8,7 @@ import com.budgetbuddy.model.dynamodb.UserTable;
 import com.budgetbuddy.plaid.PlaidService;
 import com.budgetbuddy.repository.dynamodb.AccountRepository;
 import com.budgetbuddy.repository.dynamodb.TransactionRepository;
+import com.budgetbuddy.util.IdGenerator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -137,14 +138,33 @@ public class PlaidSyncService {
                     } else {
                         // Create new account
                         account = new AccountTable();
-                        account.setAccountId(java.util.UUID.randomUUID().toString());
                         account.setUserId(user.getUserId());
                         account.setPlaidAccountId(accountId);
                         account.setActive(true); // Set active to true for new accounts
                         account.setCreatedAt(java.time.Instant.now());
                         logger.debug("Creating new account with Plaid ID: {}", accountId);
-                        // Update account details (this should populate name, type, balance, etc.)
+                        // Update account details (this should populate name, type, balance, institutionName, etc.)
                         updateAccountFromPlaid(account, plaidAccount);
+                        
+                        // CRITICAL: Generate account ID using bank name + Plaid account ID for consistency
+                        // This ensures the same account always gets the same ID across app and backend
+                        if (account.getInstitutionName() != null && !account.getInstitutionName().isEmpty()) {
+                            try {
+                                String generatedAccountId = IdGenerator.generateAccountId(
+                                    account.getInstitutionName(),
+                                    accountId
+                                );
+                                account.setAccountId(generatedAccountId);
+                                logger.debug("Generated account ID: {} from institution: {} and Plaid ID: {}", 
+                                    generatedAccountId, account.getInstitutionName(), accountId);
+                            } catch (IllegalArgumentException e) {
+                                logger.warn("Failed to generate account ID, using UUID fallback: {}", e.getMessage());
+                                account.setAccountId(java.util.UUID.randomUUID().toString());
+                            }
+                        } else {
+                            logger.warn("Institution name is missing, using UUID fallback for account ID");
+                            account.setAccountId(java.util.UUID.randomUUID().toString());
+                        }
                         // Verify account has required fields before saving
                         if (account.getAccountName() == null || account.getAccountName().isEmpty()) {
                             logger.warn("Account name is null after updateAccountFromPlaid, setting default");
@@ -348,9 +368,32 @@ public class PlaidSyncService {
                                 transactionId, transaction.getTransactionId());
                     } else {
                         // Create new transaction
-                        TransactionTable transaction = createTransactionFromPlaid(user.getUserId(), plaidTransaction);
-                        // Ensure plaidTransactionId is set
-                        transaction.setPlaidTransactionId(transactionId);
+                        // First, get the account to extract institution name and account ID
+                        // We need these to generate a consistent transaction ID
+                        String accountIdForTransaction = null;
+                        String institutionNameForTransaction = null;
+                        
+                        // Try to find account by Plaid account ID from transaction
+                        String plaidAccountIdFromTransaction = extractAccountIdFromTransaction(plaidTransaction);
+                        if (plaidAccountIdFromTransaction != null && !plaidAccountIdFromTransaction.isEmpty()) {
+                            Optional<AccountTable> accountForTransaction = accountRepository.findByPlaidAccountId(plaidAccountIdFromTransaction);
+                            if (accountForTransaction.isPresent()) {
+                                accountIdForTransaction = accountForTransaction.get().getAccountId();
+                                institutionNameForTransaction = accountForTransaction.get().getInstitutionName();
+                            }
+                        }
+                        
+                        // createTransactionFromPlaid will use Plaid transaction ID or generate deterministic ID
+                        TransactionTable transaction = createTransactionFromPlaid(
+                            user.getUserId(), 
+                            plaidTransaction,
+                            institutionNameForTransaction,
+                            accountIdForTransaction
+                        );
+                        // Ensure plaidTransactionId is set (should already be set in createTransactionFromPlaid)
+                        if (transaction.getPlaidTransactionId() == null || transaction.getPlaidTransactionId().isEmpty()) {
+                            transaction.setPlaidTransactionId(transactionId);
+                        }
                         
                         // Use conditional write to prevent duplicate Plaid transactions
                         boolean saved = transactionRepository.saveIfPlaidTransactionNotExists(transaction);
@@ -705,11 +748,53 @@ public class PlaidSyncService {
 
     /**
      * Create transaction from Plaid transaction data
+     * Uses consistent ID generation: account bank + account id + transaction id
+     * This ensures the same transaction always gets the same ID across app and backend
      */
-    private TransactionTable createTransactionFromPlaid(final String userId, final Object plaidTransaction) {
+    private TransactionTable createTransactionFromPlaid(
+            final String userId, 
+            final Object plaidTransaction,
+            final String institutionName,
+            final String accountId) {
         TransactionTable transaction = new TransactionTable();
-        transaction.setTransactionId(java.util.UUID.randomUUID().toString());
+        
+        // Extract Plaid transaction ID first
+        String plaidTransactionId = extractTransactionId(plaidTransaction);
+        
+        // CRITICAL: Generate transaction ID using: bank name + account id + transaction id
+        // This ensures consistency between app and backend
+        if (plaidTransactionId != null && !plaidTransactionId.isEmpty()) {
+            if (institutionName != null && !institutionName.isEmpty() && 
+                accountId != null && !accountId.isEmpty()) {
+                try {
+                    String generatedTransactionId = IdGenerator.generateTransactionId(
+                        institutionName,
+                        accountId,
+                        plaidTransactionId
+                    );
+                    transaction.setTransactionId(generatedTransactionId);
+                    logger.debug("Generated transaction ID: {} from institution: {}, account: {}, Plaid TX: {}", 
+                        generatedTransactionId, institutionName, accountId, plaidTransactionId);
+                } catch (IllegalArgumentException e) {
+                    logger.warn("Failed to generate transaction ID, using deterministic UUID fallback: {}", e.getMessage());
+                    // Fallback: generate deterministic UUID from Plaid transaction ID
+                    java.util.UUID namespaceUUID = java.util.UUID.fromString("6ba7b810-9dad-11d1-80b4-00c04fd430c8");
+                    transaction.setTransactionId(IdGenerator.generateDeterministicUUID(namespaceUUID, plaidTransactionId));
+                }
+            } else {
+                // Fallback: generate deterministic UUID from Plaid transaction ID if account info is missing
+                logger.warn("Institution name or account ID missing, using deterministic UUID fallback for transaction ID");
+                java.util.UUID namespaceUUID = java.util.UUID.fromString("6ba7b810-9dad-11d1-80b4-00c04fd430c8");
+                transaction.setTransactionId(IdGenerator.generateDeterministicUUID(namespaceUUID, plaidTransactionId));
+            }
+        } else {
+            // Fallback: generate random UUID if Plaid ID is missing
+            transaction.setTransactionId(java.util.UUID.randomUUID().toString());
+            logger.warn("Plaid transaction ID is null or empty, generated random UUID: {}", transaction.getTransactionId());
+        }
+        
         transaction.setUserId(userId);
+        transaction.setPlaidTransactionId(plaidTransactionId); // Also store original Plaid ID for deduplication
         transaction.setCreatedAt(java.time.Instant.now());
         transaction.setUpdatedAt(java.time.Instant.now());
         
@@ -717,6 +802,29 @@ public class PlaidSyncService {
         updateTransactionFromPlaid(transaction, plaidTransaction);
         
         return transaction;
+    }
+    
+    /**
+     * Extract account ID from Plaid transaction
+     * Plaid transactions have an account_id field that references the Plaid account
+     */
+    private String extractAccountIdFromTransaction(final Object plaidTransaction) {
+        try {
+            if (plaidTransaction instanceof com.plaid.client.model.Transaction) {
+                com.plaid.client.model.Transaction transaction = (com.plaid.client.model.Transaction) plaidTransaction;
+                return transaction.getAccountId();
+            }
+            
+            // Fallback: try reflection
+            java.lang.reflect.Method getAccountId = plaidTransaction.getClass().getMethod("getAccountId");
+            Object accountId = getAccountId.invoke(plaidTransaction);
+            if (accountId != null) {
+                return accountId.toString();
+            }
+        } catch (Exception e) {
+            logger.warn("Could not extract account ID from Plaid transaction: {}", e.getMessage());
+        }
+        return null;
     }
 
     /**

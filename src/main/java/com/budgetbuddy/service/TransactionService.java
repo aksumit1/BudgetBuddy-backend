@@ -161,9 +161,18 @@ public class TransactionService {
     }
 
     /**
-     * Create manual transaction
+     * Create manual transaction (backward compatibility - generates new UUID)
      */
     public TransactionTable createTransaction(final UserTable user, final String accountId, final BigDecimal amount, final LocalDate transactionDate, final String description, final String category) {
+        return createTransaction(user, accountId, amount, transactionDate, description, category, null);
+    }
+
+    /**
+     * Create manual transaction
+     * @param transactionId Optional transaction ID from app. If provided and valid, use it to ensure app-backend ID consistency.
+     *                      If not provided or invalid, generate a new UUID.
+     */
+    public TransactionTable createTransaction(final UserTable user, final String accountId, final BigDecimal amount, final LocalDate transactionDate, final String description, final String category, final String transactionId) {
         if (user == null || user.getUserId() == null || user.getUserId().isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "User is required");
         }
@@ -188,7 +197,33 @@ public class TransactionService {
         }
 
         TransactionTable transaction = new TransactionTable();
-        transaction.setTransactionId(UUID.randomUUID().toString());
+        
+        // Use provided transactionId if valid, otherwise generate new UUID
+        // This ensures app and backend use the same transaction ID for consistency
+        if (transactionId != null && !transactionId.trim().isEmpty()) {
+            // Validate UUID format
+            try {
+                UUID.fromString(transactionId); // Validates UUID format
+                // Check if transaction with this ID already exists
+                if (transactionRepository.findById(transactionId).isPresent()) {
+                    // Transaction already exists - this could be a duplicate request
+                    logger.warn("Transaction with ID {} already exists, generating new UUID", transactionId);
+                    transaction.setTransactionId(UUID.randomUUID().toString());
+                } else {
+                    // Use the provided ID
+                    transaction.setTransactionId(transactionId);
+                    logger.info("Using provided transaction ID: {}", transactionId);
+                }
+            } catch (IllegalArgumentException e) {
+                // Invalid UUID format, generate new one
+                logger.warn("Invalid transaction ID format '{}', generating new UUID", transactionId);
+                transaction.setTransactionId(UUID.randomUUID().toString());
+            }
+        } else {
+            // No transactionId provided, generate new UUID
+            transaction.setTransactionId(UUID.randomUUID().toString());
+        }
+        
         transaction.setUserId(user.getUserId());
         transaction.setAccountId(accountId);
         transaction.setAmount(amount);

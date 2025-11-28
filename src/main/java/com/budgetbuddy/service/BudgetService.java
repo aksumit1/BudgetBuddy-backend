@@ -37,7 +37,12 @@ public class BudgetService {
         this.transactionRepository = transactionRepository;
     }
 
-    public BudgetTable createOrUpdateBudget(final UserTable user, final String category, final BigDecimal monthlyLimit) {
+    /**
+     * Create or update budget
+     * @param budgetId Optional budget ID from app. If provided and valid, use it for consistency.
+     *                 If not provided, generate deterministic ID from user + category.
+     */
+    public BudgetTable createOrUpdateBudget(final UserTable user, final String category, final BigDecimal monthlyLimit, final String budgetId) {
         if (user == null || user.getUserId() == null || user.getUserId().isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "User is required");
         }
@@ -56,7 +61,23 @@ public class BudgetService {
             budget.setMonthlyLimit(monthlyLimit);
         } else {
             budget = new BudgetTable();
-            budget.setBudgetId(UUID.randomUUID().toString());
+            
+            // Use provided budgetId if valid, otherwise generate deterministic ID
+            if (budgetId != null && !budgetId.isEmpty() && com.budgetbuddy.util.IdGenerator.isValidUUID(budgetId)) {
+                // Check if budget with this ID already exists
+                Optional<BudgetTable> existingById = budgetRepository.findById(budgetId);
+                if (existingById.isPresent()) {
+                    throw new AppException(ErrorCode.RECORD_ALREADY_EXISTS, "Budget with ID " + budgetId + " already exists");
+                }
+                budget.setBudgetId(budgetId);
+                logger.debug("Using provided budget ID: {}", budgetId);
+            } else {
+                // Generate deterministic ID from user + category
+                budget.setBudgetId(com.budgetbuddy.util.IdGenerator.generateBudgetId(user.getUserId(), category));
+                logger.debug("Generated budget ID: {} from user: {} and category: {}", 
+                    budget.getBudgetId(), user.getUserId(), category);
+            }
+            
             budget.setUserId(user.getUserId());
             budget.setCategory(category);
             budget.setMonthlyLimit(monthlyLimit);
@@ -87,6 +108,13 @@ public class BudgetService {
 
         budgetRepository.save(budget);
         return budget;
+    }
+
+    /**
+     * Create or update budget (backward compatibility - generates deterministic ID)
+     */
+    public BudgetTable createOrUpdateBudget(final UserTable user, final String category, final BigDecimal monthlyLimit) {
+        return createOrUpdateBudget(user, category, monthlyLimit, null);
     }
 
     public List<BudgetTable> getBudgets(UserTable user) {

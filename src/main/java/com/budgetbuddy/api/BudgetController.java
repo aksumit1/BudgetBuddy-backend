@@ -70,7 +70,12 @@ public class BudgetController {
             throw new AppException(ErrorCode.INVALID_INPUT, "Category is required");
         }
 
-        BudgetTable budget = budgetService.createOrUpdateBudget(user, request.getCategory(), request.getMonthlyLimit());
+        BudgetTable budget = budgetService.createOrUpdateBudget(
+            user, 
+            request.getCategory(), 
+            request.getMonthlyLimit(),
+            request.getBudgetId() // Pass optional budget ID from app
+        );
         return ResponseEntity.status(HttpStatus.CREATED).body(budget);
     }
 
@@ -94,9 +99,12 @@ public class BudgetController {
     }
 
     public static class CreateBudgetRequest {
+        private String budgetId; // Optional: ID from app for consistency
         private String category;
         private BigDecimal monthlyLimit;
 
+        public String getBudgetId() { return budgetId; }
+        public void setBudgetId(final String budgetId) { this.budgetId = budgetId; }
         public String getCategory() { return category; }
         public void setCategory(final String category) { this.category = category; }
         public BigDecimal getMonthlyLimit() { return monthlyLimit; }

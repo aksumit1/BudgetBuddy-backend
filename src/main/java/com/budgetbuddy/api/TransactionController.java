@@ -141,7 +141,8 @@ public class TransactionController {
                 request.getAmount(),
                 request.getTransactionDate(),
                 request.getDescription(),
-                request.getCategory()
+                request.getCategory(),
+                request.getTransactionId() // Pass optional transactionId from app
         );
 
         return ResponseEntity.status(HttpStatus.CREATED).body(transaction);
@@ -195,6 +196,7 @@ public class TransactionController {
 
     // DTOs
     public static class CreateTransactionRequest {
+        private String transactionId; // Optional: If provided, use this ID (for app-backend ID consistency)
         private String accountId;
         private BigDecimal amount;
         private LocalDate transactionDate;
@@ -202,6 +204,8 @@ public class TransactionController {
         private String category;
 
         // Getters and setters
+        public String getTransactionId() { return transactionId; }
+        public void setTransactionId(final String transactionId) { this.transactionId = transactionId; }
         public String getAccountId() { return accountId; }
         public void setAccountId(final String accountId) { this.accountId = accountId; }
         public BigDecimal getAmount() { return amount; }

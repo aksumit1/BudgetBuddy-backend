@@ -5,11 +5,16 @@ import com.budgetbuddy.dto.AuthRequest;
 import com.budgetbuddy.dto.AuthResponse;
 import com.budgetbuddy.service.AuthService;
 import com.budgetbuddy.service.UserService;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import com.budgetbuddy.security.ddos.DDoSProtectionService;
+import com.budgetbuddy.security.rate.RateLimitService;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
@@ -17,6 +22,8 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.UUID;
 
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -42,6 +49,12 @@ class AuthFunctionalTest {
     @Autowired
     private UserService userService;
     
+    @MockBean
+    private RateLimitService rateLimitService;
+
+    @MockBean
+    private DDoSProtectionService ddosProtectionService;
+    
     private ObjectMapper getObjectMapper() {
         if (objectMapper == null) {
             objectMapper = new ObjectMapper();
@@ -66,6 +79,9 @@ class AuthFunctionalTest {
         if (mapper.getRegisteredModuleIds().stream().noneMatch(id -> id.toString().contains("JavaTimeModule"))) {
             mapper.registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule());
         }
+        // Mock rate limiting services to allow all requests in tests
+        when(rateLimitService.isAllowed(anyString(), anyString())).thenReturn(true);
+        when(ddosProtectionService.isAllowed(anyString())).thenReturn(true);
     }
 
     @Test

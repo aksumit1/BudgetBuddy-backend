@@ -85,7 +85,7 @@ class GoalControllerTest {
 
         GoalTable mockGoal = createGoal("goal-1");
         when(userService.findByEmail("test@example.com")).thenReturn(java.util.Optional.of(testUser));
-        when(goalService.createGoal(any(), anyString(), anyString(), any(), any(), anyString()))
+        when(goalService.createGoal(any(), anyString(), anyString(), any(), any(), anyString(), any()))
                 .thenReturn(mockGoal);
 
         // When

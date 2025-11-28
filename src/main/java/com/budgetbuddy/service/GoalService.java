@@ -5,6 +5,8 @@ import com.budgetbuddy.exception.ErrorCode;
 import com.budgetbuddy.model.dynamodb.GoalTable;
 import com.budgetbuddy.model.dynamodb.UserTable;
 import com.budgetbuddy.repository.dynamodb.GoalRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -12,6 +14,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -21,6 +24,7 @@ import java.util.UUID;
 @Service
 public class GoalService {
 
+    private static final Logger logger = LoggerFactory.getLogger(GoalService.class);
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ISO_LOCAL_DATE;
 
     private final GoalRepository goalRepository;
@@ -29,7 +33,12 @@ public class GoalService {
         this.goalRepository = goalRepository;
     }
 
-    public GoalTable createGoal(final UserTable user, final String name, final String description, final BigDecimal targetAmount, final LocalDate targetDate, final String goalType) {
+    /**
+     * Create goal
+     * @param goalId Optional goal ID from app. If provided and valid, use it for consistency.
+     *               If not provided, generate deterministic ID from user + goal name.
+     */
+    public GoalTable createGoal(final UserTable user, final String name, final String description, final BigDecimal targetAmount, final LocalDate targetDate, final String goalType, final String goalId) {
         if (user == null || user.getUserId() == null || user.getUserId().isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "User is required");
         }
@@ -47,7 +56,23 @@ public class GoalService {
         }
 
         GoalTable goal = new GoalTable();
-        goal.setGoalId(UUID.randomUUID().toString());
+        
+        // Use provided goalId if valid, otherwise generate deterministic ID
+        if (goalId != null && !goalId.isEmpty() && com.budgetbuddy.util.IdGenerator.isValidUUID(goalId)) {
+            // Check if goal with this ID already exists
+            Optional<GoalTable> existingById = goalRepository.findById(goalId);
+            if (existingById.isPresent()) {
+                throw new AppException(ErrorCode.RECORD_ALREADY_EXISTS, "Goal with ID " + goalId + " already exists");
+            }
+            goal.setGoalId(goalId);
+            logger.debug("Using provided goal ID: {}", goalId);
+        } else {
+            // Generate deterministic ID from user + goal name
+            goal.setGoalId(com.budgetbuddy.util.IdGenerator.generateGoalId(user.getUserId(), name.trim()));
+            logger.debug("Generated goal ID: {} from user: {} and name: {}", 
+                goal.getGoalId(), user.getUserId(), name);
+        }
+        
         goal.setUserId(user.getUserId());
         goal.setName(name.trim());
         goal.setDescription(description != null ? description.trim() : "");
@@ -66,6 +91,13 @@ public class GoalService {
 
         goalRepository.save(goal);
         return goal;
+    }
+
+    /**
+     * Create goal (backward compatibility - generates deterministic ID)
+     */
+    public GoalTable createGoal(final UserTable user, final String name, final String description, final BigDecimal targetAmount, final LocalDate targetDate, final String goalType) {
+        return createGoal(user, name, description, targetAmount, targetDate, goalType, null);
     }
 
     public List<GoalTable> getActiveGoals(UserTable user) {

@@ -86,7 +86,8 @@ public class GoalController {
                 request.getDescription(),
                 request.getTargetAmount(),
                 request.getTargetDate(),
-                request.getGoalType()
+                request.getGoalType(),
+                request.getGoalId() // Pass optional goal ID from app
         );
 
         return ResponseEntity.status(HttpStatus.CREATED).body(goal);
@@ -136,6 +137,7 @@ public class GoalController {
     }
 
     public static class CreateGoalRequest {
+        private String goalId; // Optional: ID from app for consistency
         private String name;
         private String description;
         private BigDecimal targetAmount;
@@ -144,6 +146,8 @@ public class GoalController {
         private String goalType;
 
         // Getters and setters
+        public String getGoalId() { return goalId; }
+        public void setGoalId(final String goalId) { this.goalId = goalId; }
         public String getName() { return name; }
         public void setName(final String name) { this.name = name; }
         public String getDescription() { return description; }
