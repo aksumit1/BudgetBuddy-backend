@@ -143,7 +143,8 @@ public class TransactionController {
                 request.getDescription(),
                 request.getCategory(),
                 request.getTransactionId(), // Pass optional transactionId from app
-                request.getNotes() // Pass optional notes
+                request.getNotes(), // Pass optional notes
+                request.getPlaidAccountId() // Pass optional Plaid account ID for fallback lookup
         );
 
         return ResponseEntity.status(HttpStatus.CREATED).body(transaction);
@@ -205,6 +206,7 @@ public class TransactionController {
         private String description;
         private String category;
         private String notes; // Optional: User notes for the transaction
+        private String plaidAccountId; // Optional: Plaid account ID for fallback lookup if accountId not found
 
         // Getters and setters
         public String getTransactionId() { return transactionId; }
@@ -221,6 +223,9 @@ public class TransactionController {
         public void setCategory(final String category) { this.category = category; }
         public String getNotes() { return notes; }
         public void setNotes(final String notes) { this.notes = notes; }
+        
+        public String getPlaidAccountId() { return plaidAccountId; }
+        public void setPlaidAccountId(final String plaidAccountId) { this.plaidAccountId = plaidAccountId; }
     }
 
     public static class TotalSpendingResponse {

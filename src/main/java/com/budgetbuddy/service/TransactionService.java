@@ -181,6 +181,13 @@ public class TransactionService {
      * @param notes Optional user notes for the transaction
      */
     public TransactionTable createTransaction(final UserTable user, final String accountId, final BigDecimal amount, final LocalDate transactionDate, final String description, final String category, final String transactionId, final String notes) {
+        return createTransaction(user, accountId, amount, transactionDate, description, category, transactionId, notes, null);
+    }
+    
+    /**
+     * Create transaction with optional Plaid account ID for fallback lookup
+     */
+    public TransactionTable createTransaction(final UserTable user, final String accountId, final BigDecimal amount, final LocalDate transactionDate, final String description, final String category, final String transactionId, final String notes, final String plaidAccountId) {
         if (user == null || user.getUserId() == null || user.getUserId().isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "User is required");
         }
@@ -202,11 +209,12 @@ public class TransactionService {
         
         // If not found and plaidAccountId is provided, try lookup by Plaid account ID (fallback)
         // This handles cases where account IDs don't match between app and backend
-        String plaidAccountId = null; // Will be extracted from request if needed
-        if (accountOpt.isEmpty()) {
-            // Note: plaidAccountId parameter would need to be added to createTransaction signature
-            // For now, we'll handle this in the controller
-            logger.debug("Account {} not found by ID, will need Plaid account ID for fallback lookup", accountId);
+        if (accountOpt.isEmpty() && plaidAccountId != null && !plaidAccountId.isEmpty()) {
+            logger.debug("Account {} not found by ID, trying Plaid account ID: {}", accountId, plaidAccountId);
+            accountOpt = accountRepository.findByPlaidAccountId(plaidAccountId);
+            if (accountOpt.isPresent()) {
+                logger.info("Found account by Plaid ID {} (requested accountId: {})", plaidAccountId, accountId);
+            }
         }
         
         AccountTable account = accountOpt

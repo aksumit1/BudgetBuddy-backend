@@ -74,7 +74,8 @@ public class TransactionActionController {
                 request.getDescription(),
                 request.getDueDate(),
                 request.getReminderDate(),
-                request.getPriority()
+                request.getPriority(),
+                request.getActionId() // Pass optional actionId from app for consistency
         );
 
         return ResponseEntity.status(HttpStatus.CREATED).body(action);
@@ -150,12 +151,15 @@ public class TransactionActionController {
 
     // DTOs
     public static class CreateActionRequest {
+        private String actionId; // Optional: If provided, use this ID (for app-backend ID consistency)
         private String title;
         private String description;
         private String dueDate;
         private String reminderDate;
         private String priority;
 
+        public String getActionId() { return actionId; }
+        public void setActionId(final String actionId) { this.actionId = actionId; }
         public String getTitle() { return title; }
         public void setTitle(final String title) { this.title = title; }
         public String getDescription() { return description; }

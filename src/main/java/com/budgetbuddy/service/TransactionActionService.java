@@ -15,6 +15,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import com.budgetbuddy.util.IdGenerator;
 
 /**
  * Service for managing transaction actions/reminders
@@ -36,6 +37,8 @@ public class TransactionActionService {
 
     /**
      * Create a new transaction action
+     * @param actionId Optional action ID from app. If provided and valid, use it for consistency.
+     *                 If not provided, generate a new UUID.
      */
     public TransactionActionTable createAction(
             final UserTable user,
@@ -45,6 +48,21 @@ public class TransactionActionService {
             final String dueDate,
             final String reminderDate,
             final String priority) {
+        return createAction(user, transactionId, title, description, dueDate, reminderDate, priority, null);
+    }
+    
+    /**
+     * Create a new transaction action with optional action ID
+     */
+    public TransactionActionTable createAction(
+            final UserTable user,
+            final String transactionId,
+            final String title,
+            final String description,
+            final String dueDate,
+            final String reminderDate,
+            final String priority,
+            final String actionId) {
         if (user == null || user.getUserId() == null || user.getUserId().isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "User is required");
         }
@@ -65,7 +83,21 @@ public class TransactionActionService {
         }
 
         TransactionActionTable action = new TransactionActionTable();
-        action.setActionId(UUID.randomUUID().toString());
+        
+        // Use provided actionId if valid, otherwise generate new UUID
+        if (actionId != null && !actionId.isEmpty() && IdGenerator.isValidUUID(actionId)) {
+            // Check if action with this ID already exists
+            Optional<TransactionActionTable> existingById = actionRepository.findById(actionId);
+            if (existingById.isPresent()) {
+                throw new AppException(ErrorCode.RECORD_ALREADY_EXISTS, "Action with ID " + actionId + " already exists");
+            }
+            action.setActionId(actionId);
+            logger.debug("Using provided action ID: {}", actionId);
+        } else {
+            // Generate new UUID
+            action.setActionId(UUID.randomUUID().toString());
+            logger.debug("Generated new action ID: {}", action.getActionId());
+        }
         action.setTransactionId(transactionId);
         action.setUserId(user.getUserId());
         action.setTitle(title.trim());
