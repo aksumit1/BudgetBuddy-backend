@@ -253,7 +253,7 @@ public class EnhancedGlobalExceptionHandler {
     private HttpStatus mapErrorCodeToHttpStatus(final ErrorCode errorCode) {
         return switch (errorCode) {
             case USER_NOT_FOUND, TRANSACTION_NOT_FOUND, ACCOUNT_NOT_FOUND,
-                 BUDGET_NOT_FOUND, GOAL_NOT_FOUND -> HttpStatus.NOT_FOUND;
+                 BUDGET_NOT_FOUND, GOAL_NOT_FOUND, RECORD_NOT_FOUND -> HttpStatus.NOT_FOUND;
             case INVALID_CREDENTIALS, UNAUTHORIZED, UNAUTHORIZED_ACCESS -> HttpStatus.UNAUTHORIZED;
             case INSUFFICIENT_PERMISSIONS -> HttpStatus.FORBIDDEN;
             case USER_ALREADY_EXISTS, EMAIL_ALREADY_REGISTERED, INVALID_INPUT, MISSING_REQUIRED_FIELD, INVALID_FORMAT -> HttpStatus.BAD_REQUEST;

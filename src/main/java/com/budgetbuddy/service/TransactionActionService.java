@@ -134,8 +134,12 @@ public class TransactionActionService {
             throw new AppException(ErrorCode.INVALID_INPUT, "Action ID is required");
         }
 
+        logger.debug("Looking up action with ID: {} for user: {}", actionId, user.getEmail());
         TransactionActionTable action = actionRepository.findById(actionId)
-                .orElseThrow(() -> new AppException(ErrorCode.RECORD_NOT_FOUND, "Action not found"));
+                .orElseThrow(() -> {
+                    logger.warn("Action not found: {} for user: {}", actionId, user.getEmail());
+                    return new AppException(ErrorCode.RECORD_NOT_FOUND, "Action not found");
+                });
 
         if (!action.getUserId().equals(user.getUserId())) {
             throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "Action does not belong to user");
