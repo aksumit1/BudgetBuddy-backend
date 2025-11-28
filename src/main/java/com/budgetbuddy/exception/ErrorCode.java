@@ -17,6 +17,7 @@ public enum ErrorCode {
     ACCOUNT_DISABLED(1008, "Account disabled"),
     MFA_REQUIRED(1009, "Multi-factor authentication required"),
     MFA_FAILED(1010, "Multi-factor authentication failed"),
+    TOO_MANY_ATTEMPTS(1011, "Too many failed attempts"),
 
     // User Management (2xxx)
     USER_NOT_FOUND(2001, "User not found"),

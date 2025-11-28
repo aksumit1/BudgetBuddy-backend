@@ -259,4 +259,69 @@ public class AuthService {
 
         return new AuthResponse(newAccessToken, newRefreshToken, expiresAt, userInfo);
     }
+
+    /**
+     * Generate new tokens for a user (used for PIN verification)
+     * This method creates new access and refresh tokens without requiring authentication
+     */
+    public AuthResponse generateTokensForUser(final UserTable user) {
+        if (user == null) {
+            throw new AppException(ErrorCode.INVALID_INPUT, "User is required");
+        }
+
+        if (user.getEnabled() == null || !user.getEnabled()) {
+            throw new AppException(ErrorCode.ACCOUNT_DISABLED, "Account is disabled");
+        }
+
+        // Get user roles from UserTable
+        java.util.Set<String> roles = user.getRoles();
+        java.util.Collection<org.springframework.security.core.GrantedAuthority> authorities;
+        if (roles != null && !roles.isEmpty()) {
+            authorities = roles.stream()
+                    .map((role) -> new SimpleGrantedAuthority("ROLE_" + role.toUpperCase()))
+                    .collect(java.util.stream.Collectors.toList());
+        } else {
+            authorities = Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER"));
+        }
+
+        // Create UserDetails object for token generation
+        String passwordHash = user.getPasswordHash();
+        if (passwordHash == null || passwordHash.isEmpty()) {
+            logger.warn("User {} has no password hash during token generation. Using empty string.", user.getEmail());
+            passwordHash = "";
+        }
+        
+        org.springframework.security.core.userdetails.UserDetails userDetails = 
+                org.springframework.security.core.userdetails.User.builder()
+                        .username(user.getEmail())
+                        .password(passwordHash)
+                        .authorities(authorities)
+                        .accountExpired(false)
+                        .accountLocked(!Boolean.TRUE.equals(user.getEnabled()))
+                        .credentialsExpired(false)
+                        .disabled(!Boolean.TRUE.equals(user.getEnabled()))
+                        .build();
+
+        Authentication authentication = new UsernamePasswordAuthenticationToken(
+                userDetails, null, authorities);
+        String newAccessToken = tokenProvider.generateToken(authentication);
+        String newRefreshToken = tokenProvider.generateRefreshToken(user.getEmail());
+
+        Date expirationDate = tokenProvider.getExpirationDateFromToken(newAccessToken);
+        if (expirationDate == null) {
+            expirationDate = new Date(System.currentTimeMillis() + 86400000L);
+        }
+        LocalDateTime expiresAt = expirationDate.toInstant()
+                .atZone(ZoneId.systemDefault())
+                .toLocalDateTime();
+
+        AuthResponse.UserInfo userInfo = new AuthResponse.UserInfo(
+                user.getUserId(),
+                user.getEmail(),
+                user.getFirstName() != null ? user.getFirstName() : "",
+                user.getLastName() != null ? user.getLastName() : ""
+        );
+
+        return new AuthResponse(newAccessToken, newRefreshToken, expiresAt, userInfo);
+    }
 }

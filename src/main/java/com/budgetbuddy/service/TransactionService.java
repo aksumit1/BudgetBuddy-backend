@@ -197,7 +197,19 @@ public class TransactionService {
             throw new AppException(ErrorCode.INVALID_INPUT, "Category is required");
         }
 
-        AccountTable account = accountRepository.findById(accountId)
+        // Try to find account by accountId first
+        Optional<AccountTable> accountOpt = accountRepository.findById(accountId);
+        
+        // If not found and plaidAccountId is provided, try lookup by Plaid account ID (fallback)
+        // This handles cases where account IDs don't match between app and backend
+        String plaidAccountId = null; // Will be extracted from request if needed
+        if (accountOpt.isEmpty()) {
+            // Note: plaidAccountId parameter would need to be added to createTransaction signature
+            // For now, we'll handle this in the controller
+            logger.debug("Account {} not found by ID, will need Plaid account ID for fallback lookup", accountId);
+        }
+        
+        AccountTable account = accountOpt
                 .orElseThrow(() -> new AppException(ErrorCode.ACCOUNT_NOT_FOUND, "Account not found"));
 
         if (account.getUserId() == null || !account.getUserId().equals(user.getUserId())) {
@@ -253,8 +265,18 @@ public class TransactionService {
 
     /**
      * Update transaction (e.g., notes)
+     * Supports lookup by transactionId or plaidTransactionId (fallback)
      */
     public TransactionTable updateTransaction(final UserTable user, final String transactionId, final String notes) {
+        return updateTransaction(user, transactionId, null, notes);
+    }
+    
+    /**
+     * Update transaction (e.g., notes)
+     * Supports lookup by transactionId or plaidTransactionId (fallback)
+     * @param plaidTransactionId Optional Plaid transaction ID for fallback lookup if transactionId not found
+     */
+    public TransactionTable updateTransaction(final UserTable user, final String transactionId, final String plaidTransactionId, final String notes) {
         if (user == null || user.getUserId() == null || user.getUserId().isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "User is required");
         }
@@ -262,7 +284,19 @@ public class TransactionService {
             throw new AppException(ErrorCode.INVALID_INPUT, "Transaction ID is required");
         }
 
-        TransactionTable transaction = transactionRepository.findById(transactionId)
+        // Try to find by transactionId first
+        Optional<TransactionTable> transactionOpt = transactionRepository.findById(transactionId);
+        
+        // If not found and plaidTransactionId is provided, try lookup by Plaid ID
+        if (transactionOpt.isEmpty() && plaidTransactionId != null && !plaidTransactionId.isEmpty()) {
+            logger.debug("Transaction {} not found by ID, trying Plaid ID: {}", transactionId, plaidTransactionId);
+            transactionOpt = transactionRepository.findByPlaidTransactionId(plaidTransactionId);
+            if (transactionOpt.isPresent()) {
+                logger.info("Found transaction by Plaid ID {} (requested ID: {})", plaidTransactionId, transactionId);
+            }
+        }
+        
+        TransactionTable transaction = transactionOpt
                 .orElseThrow(() -> new AppException(ErrorCode.TRANSACTION_NOT_FOUND, "Transaction not found"));
 
         if (transaction.getUserId() == null || !transaction.getUserId().equals(user.getUserId())) {

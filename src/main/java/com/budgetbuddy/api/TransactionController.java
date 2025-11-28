@@ -170,6 +170,7 @@ public class TransactionController {
         TransactionTable transaction = transactionService.updateTransaction(
                 user,
                 id,
+                request.getPlaidTransactionId(), // Pass Plaid ID for fallback lookup
                 request.getNotes()
         );
 
@@ -235,8 +236,12 @@ public class TransactionController {
 
     public static class UpdateTransactionRequest {
         private String notes;
+        private String plaidTransactionId; // Optional: for fallback lookup if transactionId not found
 
         public String getNotes() { return notes; }
         public void setNotes(final String notes) { this.notes = notes; }
+        
+        public String getPlaidTransactionId() { return plaidTransactionId; }
+        public void setPlaidTransactionId(final String plaidTransactionId) { this.plaidTransactionId = plaidTransactionId; }
     }
 }
