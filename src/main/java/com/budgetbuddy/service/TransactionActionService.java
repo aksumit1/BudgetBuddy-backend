@@ -15,6 +15,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import com.budgetbuddy.util.IdGenerator;
 
 /**
@@ -189,6 +190,8 @@ public class TransactionActionService {
 
     /**
      * Get all actions for a transaction
+     * Note: Returns actions even if transaction doesn't exist yet (transaction may not be synced from Plaid)
+     * This allows actions to be created/updated before the transaction is synced
      */
     public List<TransactionActionTable> getActionsByTransactionId(final UserTable user, final String transactionId) {
         if (user == null || user.getUserId() == null || user.getUserId().isEmpty()) {
@@ -198,16 +201,30 @@ public class TransactionActionService {
             throw new AppException(ErrorCode.INVALID_INPUT, "Transaction ID is required");
         }
 
-        // Verify transaction belongs to user
+        // Get actions for this transaction
+        List<TransactionActionTable> actions = actionRepository.findByTransactionId(transactionId);
+        
+        // Filter to only return actions that belong to the user (security check)
+        // This ensures users can only see their own actions
+        List<TransactionActionTable> userActions = actions.stream()
+                .filter(action -> action.getUserId() != null && action.getUserId().equals(user.getUserId()))
+                .collect(Collectors.toList());
+        
+        // Optional: Verify transaction exists and belongs to user (for logging/debugging)
+        // But don't throw error if transaction doesn't exist - actions can exist before transaction is synced
         Optional<TransactionTable> transaction = transactionRepository.findById(transactionId);
-        if (transaction.isEmpty()) {
-            throw new AppException(ErrorCode.TRANSACTION_NOT_FOUND, "Transaction not found");
-        }
-        if (!transaction.get().getUserId().equals(user.getUserId())) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "Transaction does not belong to user");
+        if (transaction.isPresent()) {
+            // Transaction exists - verify it belongs to user
+            if (!transaction.get().getUserId().equals(user.getUserId())) {
+                throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "Transaction does not belong to user");
+            }
+        } else {
+            // Transaction doesn't exist yet - this is OK, actions can exist before transaction is synced
+            logger.debug("Transaction {} not found in backend, but returning {} actions (transaction may not be synced yet)", 
+                    transactionId, userActions.size());
         }
 
-        return actionRepository.findByTransactionId(transactionId);
+        return userActions;
     }
 
     /**
