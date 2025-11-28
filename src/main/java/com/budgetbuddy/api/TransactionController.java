@@ -107,6 +107,24 @@ public class TransactionController {
         return ResponseEntity.ok(new TotalSpendingResponse(total));
     }
 
+    @GetMapping("/{id}")
+    public ResponseEntity<TransactionTable> getTransaction(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable String id) {
+        if (userDetails == null || userDetails.getUsername() == null) {
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+        }
+        if (id == null || id.isEmpty()) {
+            throw new AppException(ErrorCode.INVALID_INPUT, "Transaction ID is required");
+        }
+
+        UserTable user = userService.findByEmail(userDetails.getUsername())
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+
+        TransactionTable transaction = transactionService.getTransaction(user, id);
+        return ResponseEntity.ok(transaction);
+    }
+
     @PostMapping
     public ResponseEntity<TransactionTable> createTransaction(
             @AuthenticationPrincipal UserDetails userDetails,

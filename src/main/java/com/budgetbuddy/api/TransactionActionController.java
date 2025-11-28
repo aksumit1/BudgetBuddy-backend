@@ -52,7 +52,7 @@ public class TransactionActionController {
     @PostMapping("/{transactionId}/actions")
     public ResponseEntity<TransactionActionTable> createAction(
             @AuthenticationPrincipal UserDetails userDetails,
-            @PathVariable String transactionId,
+            @PathVariable("transactionId") String transactionId,
             @RequestBody CreateActionRequest request) {
         if (userDetails == null || userDetails.getUsername() == null) {
             throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
@@ -75,7 +75,8 @@ public class TransactionActionController {
                 request.getDueDate(),
                 request.getReminderDate(),
                 request.getPriority(),
-                request.getActionId() // Pass optional actionId from app for consistency
+                request.getActionId(), // Pass optional actionId from app for consistency
+                request.getPlaidTransactionId() // Pass optional Plaid transaction ID for fallback lookup
         );
 
         return ResponseEntity.status(HttpStatus.CREATED).body(action);
@@ -157,6 +158,7 @@ public class TransactionActionController {
         private String dueDate;
         private String reminderDate;
         private String priority;
+        private String plaidTransactionId; // Optional: Plaid transaction ID for fallback lookup if transactionId not found
 
         public String getActionId() { return actionId; }
         public void setActionId(final String actionId) { this.actionId = actionId; }
@@ -170,6 +172,8 @@ public class TransactionActionController {
         public void setReminderDate(final String reminderDate) { this.reminderDate = reminderDate; }
         public String getPriority() { return priority; }
         public void setPriority(final String priority) { this.priority = priority; }
+        public String getPlaidTransactionId() { return plaidTransactionId; }
+        public void setPlaidTransactionId(final String plaidTransactionId) { this.plaidTransactionId = plaidTransactionId; }
     }
 
     public static class UpdateActionRequest {

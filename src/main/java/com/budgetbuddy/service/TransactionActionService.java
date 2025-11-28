@@ -49,11 +49,12 @@ public class TransactionActionService {
             final String dueDate,
             final String reminderDate,
             final String priority) {
-        return createAction(user, transactionId, title, description, dueDate, reminderDate, priority, null);
+        return createAction(user, transactionId, title, description, dueDate, reminderDate, priority, null, null);
     }
     
     /**
      * Create a new transaction action with optional action ID
+     * @param plaidTransactionId Optional Plaid transaction ID for fallback lookup if transactionId not found
      */
     public TransactionActionTable createAction(
             final UserTable user,
@@ -63,7 +64,8 @@ public class TransactionActionService {
             final String dueDate,
             final String reminderDate,
             final String priority,
-            final String actionId) {
+            final String actionId,
+            final String plaidTransactionId) {
         if (user == null || user.getUserId() == null || user.getUserId().isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "User is required");
         }
@@ -75,12 +77,49 @@ public class TransactionActionService {
         }
 
         // Verify transaction exists and belongs to user
-        Optional<TransactionTable> transaction = transactionRepository.findById(transactionId);
-        if (transaction.isEmpty()) {
+        // Try to find by transactionId first
+        Optional<TransactionTable> transactionOpt = transactionRepository.findById(transactionId);
+        
+        // If not found and plaidTransactionId is provided, try lookup by Plaid ID
+        if (transactionOpt.isEmpty() && plaidTransactionId != null && !plaidTransactionId.isEmpty()) {
+            logger.debug("Transaction {} not found by ID, trying Plaid ID: {}", transactionId, plaidTransactionId);
+            transactionOpt = transactionRepository.findByPlaidTransactionId(plaidTransactionId);
+            if (transactionOpt.isPresent()) {
+                TransactionTable foundTransaction = transactionOpt.get();
+                String foundTransactionId = foundTransaction.getTransactionId();
+                
+                // CRITICAL: Log if Plaid ID matches but transaction ID doesn't - indicates ID mismatch
+                if (!foundTransactionId.equals(transactionId)) {
+                    logger.warn("⚠️ ID MISMATCH: Transaction found by Plaid ID {} but transaction IDs don't match. " +
+                            "Requested ID: {}, Found ID: {}. This indicates an ID generation mismatch between app and backend. " +
+                            "Using found transaction ID: {}", 
+                            plaidTransactionId, transactionId, foundTransactionId, foundTransactionId);
+                } else {
+                    logger.info("Found transaction by Plaid ID {} (transaction ID matches: {})", plaidTransactionId, transactionId);
+                }
+            }
+        }
+        
+        if (transactionOpt.isEmpty()) {
+            logger.warn("Transaction {} not found by ID or Plaid ID {} for user {} when creating action. Transaction may not be synced yet.", 
+                    transactionId, plaidTransactionId != null ? plaidTransactionId : "N/A", user.getEmail());
             throw new AppException(ErrorCode.TRANSACTION_NOT_FOUND, "Transaction not found");
         }
-        if (!transaction.get().getUserId().equals(user.getUserId())) {
+        
+        TransactionTable transaction = transactionOpt.get();
+        if (!transaction.getUserId().equals(user.getUserId())) {
             throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "Transaction does not belong to user");
+        }
+        
+        // Use the found transaction's ID (which might be different from the requested transactionId)
+        // This ensures the action is linked to the correct transaction in the backend
+        final String actualTransactionId = transaction.getTransactionId();
+        
+        // Log if we're using a different transaction ID than requested
+        if (!actualTransactionId.equals(transactionId)) {
+            logger.info("Using transaction ID {} (different from requested {}) for action creation. " +
+                    "This is expected when Plaid ID lookup finds a transaction with a different generated ID.", 
+                    actualTransactionId, transactionId);
         }
 
         TransactionActionTable action = new TransactionActionTable();
@@ -99,7 +138,8 @@ public class TransactionActionService {
             action.setActionId(UUID.randomUUID().toString());
             logger.debug("Generated new action ID: {}", action.getActionId());
         }
-        action.setTransactionId(transactionId);
+        // Use the actual transaction ID (from the found transaction, which might differ from requested ID)
+        action.setTransactionId(actualTransactionId);
         action.setUserId(user.getUserId());
         action.setTitle(title.trim());
         action.setDescription(description != null && !description.trim().isEmpty() ? description.trim() : null);

@@ -326,6 +326,27 @@ public class TransactionService {
     }
 
     /**
+     * Get a single transaction by ID
+     */
+    public TransactionTable getTransaction(final UserTable user, final String transactionId) {
+        if (user == null || user.getUserId() == null || user.getUserId().isEmpty()) {
+            throw new AppException(ErrorCode.INVALID_INPUT, "User is required");
+        }
+        if (transactionId == null || transactionId.isEmpty()) {
+            throw new AppException(ErrorCode.INVALID_INPUT, "Transaction ID is required");
+        }
+
+        TransactionTable transaction = transactionRepository.findById(transactionId)
+                .orElseThrow(() -> new AppException(ErrorCode.TRANSACTION_NOT_FOUND, "Transaction not found"));
+
+        if (transaction.getUserId() == null || !transaction.getUserId().equals(user.getUserId())) {
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "Transaction does not belong to user");
+        }
+
+        return transaction;
+    }
+
+    /**
      * Delete transaction
      */
     public void deleteTransaction(final UserTable user, final String transactionId) {
