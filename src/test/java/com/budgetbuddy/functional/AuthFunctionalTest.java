@@ -33,11 +33,22 @@ class AuthFunctionalTest {
     @Autowired
     private MockMvc mockMvc;
 
+    @Autowired(required = false)
+    private ObjectMapper objectMapper;
+
     @Autowired
     private AuthService authService;
 
     @Autowired
     private UserService userService;
+    
+    private ObjectMapper getObjectMapper() {
+        if (objectMapper == null) {
+            objectMapper = new ObjectMapper();
+            objectMapper.registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule());
+        }
+        return objectMapper;
+    }
 
     private String testEmail;
     private String testPasswordHash;
@@ -49,6 +60,12 @@ class AuthFunctionalTest {
         // Use base64-encoded values for password hash and salt
         testClientSalt = java.util.Base64.getEncoder().encodeToString((UUID.randomUUID().toString()).getBytes());
         testPasswordHash = java.util.Base64.getEncoder().encodeToString(("hashed-password-" + UUID.randomUUID()).getBytes());
+        
+        // Ensure ObjectMapper has JavaTimeModule for Instant serialization
+        ObjectMapper mapper = getObjectMapper();
+        if (mapper.getRegisteredModuleIds().stream().noneMatch(id -> id.toString().contains("JavaTimeModule"))) {
+            mapper.registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule());
+        }
     }
 
     @Test

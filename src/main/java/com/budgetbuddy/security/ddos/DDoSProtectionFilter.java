@@ -5,6 +5,7 @@ import com.budgetbuddy.exception.EnhancedGlobalExceptionHandler;
 import com.budgetbuddy.security.ddos.DDoSProtectionService;
 import com.budgetbuddy.security.rate.RateLimitService;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -42,7 +43,7 @@ public class DDoSProtectionFilter extends OncePerRequestFilter {
 
     private final RateLimitService rateLimitService;
     private final DDoSProtectionService ddosProtectionService;
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper;
 
     public DDoSProtectionFilter(final RateLimitService rateLimitService, final DDoSProtectionService ddosProtectionService) {
         if (rateLimitService == null) {
@@ -53,6 +54,9 @@ public class DDoSProtectionFilter extends OncePerRequestFilter {
         }
         this.rateLimitService = rateLimitService;
         this.ddosProtectionService = ddosProtectionService;
+        // Initialize ObjectMapper with JavaTimeModule for Instant serialization
+        this.objectMapper = new ObjectMapper();
+        this.objectMapper.registerModule(new JavaTimeModule());
     }
 
     @Override

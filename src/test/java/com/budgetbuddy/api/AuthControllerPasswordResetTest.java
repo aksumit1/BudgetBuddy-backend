@@ -1,16 +1,23 @@
 package com.budgetbuddy.api;
 
+import com.budgetbuddy.AWSTestConfiguration;
 import com.budgetbuddy.service.AuthService;
 import com.budgetbuddy.service.PasswordResetService;
 import com.budgetbuddy.service.UserService;
 import com.budgetbuddy.util.MessageUtil;
+import com.budgetbuddy.security.ddos.DDoSProtectionService;
+import com.budgetbuddy.security.rate.RateLimitService;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.mockito.ArgumentMatchers.anyString;
@@ -18,7 +25,10 @@ import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@WebMvcTest(AuthController.class)
+@SpringBootTest(classes = com.budgetbuddy.BudgetBuddyApplication.class)
+@AutoConfigureMockMvc
+@ActiveProfiles("test")
+@Import(AWSTestConfiguration.class)
 class AuthControllerPasswordResetTest {
 
     @Autowired
@@ -39,6 +49,12 @@ class AuthControllerPasswordResetTest {
     @MockBean
     private MessageUtil messageUtil;
 
+    @MockBean
+    private DDoSProtectionService ddosProtectionService;
+
+    @MockBean
+    private RateLimitService rateLimitService;
+
     private String testEmail;
     private String testCode;
 
@@ -51,6 +67,14 @@ class AuthControllerPasswordResetTest {
             String key = invocation.getArgument(0);
             return "error." + key.toLowerCase().replace("_", ".");
         });
+        // Mock DDoS protection to allow all requests in tests
+        when(ddosProtectionService.isAllowed(anyString())).thenReturn(true);
+        // Mock rate limiting to allow all requests in tests
+        when(rateLimitService.isAllowed(anyString(), anyString())).thenReturn(true);
+        // Ensure ObjectMapper has JavaTimeModule for Instant serialization
+        if (objectMapper.getRegisteredModuleIds().stream().noneMatch(id -> id.toString().contains("JavaTimeModule"))) {
+            objectMapper.registerModule(new JavaTimeModule());
+        }
     }
 
     @Test

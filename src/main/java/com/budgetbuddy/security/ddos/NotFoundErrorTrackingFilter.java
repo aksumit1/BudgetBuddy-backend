@@ -3,6 +3,7 @@ package com.budgetbuddy.security.ddos;
 import com.budgetbuddy.exception.ErrorCode;
 import com.budgetbuddy.exception.EnhancedGlobalExceptionHandler;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -31,7 +32,13 @@ import java.util.UUID;
 public class NotFoundErrorTrackingFilter extends OncePerRequestFilter {
 
     private static final Logger logger = LoggerFactory.getLogger(NotFoundErrorTrackingFilter.class);
-    private static final ObjectMapper objectMapper = new ObjectMapper();
+    private static final ObjectMapper objectMapper;
+    
+    static {
+        // Initialize ObjectMapper with JavaTimeModule for Instant serialization
+        objectMapper = new ObjectMapper();
+        objectMapper.registerModule(new JavaTimeModule());
+    }
 
     private final NotFoundErrorTrackingService notFoundTrackingService;
 

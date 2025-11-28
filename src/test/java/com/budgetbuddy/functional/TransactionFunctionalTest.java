@@ -35,8 +35,19 @@ class TransactionFunctionalTest {
     @Autowired
     private MockMvc mockMvc;
 
+    @Autowired(required = false)
+    private ObjectMapper objectMapper;
+
     @Autowired
     private UserService userService;
+    
+    private ObjectMapper getObjectMapper() {
+        if (objectMapper == null) {
+            objectMapper = new ObjectMapper();
+            objectMapper.registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule());
+        }
+        return objectMapper;
+    }
 
     private UserTable testUser;
 
@@ -53,6 +64,12 @@ class TransactionFunctionalTest {
                 "Test",
                 "User"
         );
+        
+        // Ensure ObjectMapper has JavaTimeModule for Instant serialization
+        ObjectMapper mapper = getObjectMapper();
+        if (mapper.getRegisteredModuleIds().stream().noneMatch(id -> id.toString().contains("JavaTimeModule"))) {
+            mapper.registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule());
+        }
     }
 
     @Test

@@ -41,9 +41,9 @@ app:
     environment: sandbox
   
   rate-limit:
-    enabled: true
-    requests-per-minute: 1000 # Higher limit for tests
-    requests-per-hour: 10000
+    enabled: false # Disabled for tests to avoid rate limiting issues
+    requests-per-minute: 10000 # Very high limit if enabled
+    requests-per-hour: 100000
   
   security:
     cors:
