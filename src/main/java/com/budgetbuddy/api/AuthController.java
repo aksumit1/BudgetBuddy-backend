@@ -263,7 +263,9 @@ public class AuthController {
 
         /**
          * Check if request uses secure format (password_hash + salt)
+         * @JsonIgnore prevents this method from being serialized/deserialized as a JSON property
          */
+        @com.fasterxml.jackson.annotation.JsonIgnore
         public boolean isSecureFormat() {
             return passwordHash != null && !passwordHash.isEmpty()
                    && salt != null && !salt.isEmpty();

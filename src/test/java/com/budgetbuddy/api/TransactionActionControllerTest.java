@@ -108,6 +108,7 @@ class TransactionActionControllerTest {
         request.setDescription("Action description");
         request.setPriority("HIGH");
 
+        // Updated to match the new method signature with actionId and plaidTransactionId
         when(actionService.createAction(
                 eq(testUser),
                 eq(testTransaction.getTransactionId()),
@@ -115,7 +116,9 @@ class TransactionActionControllerTest {
                 eq("Action description"),
                 isNull(),
                 isNull(),
-                eq("HIGH")))
+                eq("HIGH"),
+                isNull(), // actionId
+                isNull())) // plaidTransactionId
                 .thenReturn(testAction);
 
         // When

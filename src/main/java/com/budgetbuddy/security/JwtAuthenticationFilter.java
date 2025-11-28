@@ -127,9 +127,36 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         
         String bearerToken = request.getHeader(AUTHORIZATION_HEADER);
         if (StringUtils.hasText(bearerToken) && bearerToken.startsWith(BEARER_PREFIX)) {
-            return bearerToken.substring(BEARER_PREFIX.length()).trim();
+            String token = bearerToken.substring(BEARER_PREFIX.length()).trim();
+            // Remove control characters (CTRL-CHAR, code 0-31 except whitespace)
+            // This fixes issues with malformed tokens containing control characters
+            token = cleanControlCharacters(token);
+            return token;
         }
         return null;
+    }
+    
+    /**
+     * Remove control characters from token string
+     * Control characters (0-31) except whitespace (\r, \n, \t) are not allowed in JWT tokens
+     */
+    private String cleanControlCharacters(final String token) {
+        if (token == null || token.isEmpty()) {
+            return token;
+        }
+        
+        StringBuilder cleaned = new StringBuilder(token.length());
+        for (char c : token.toCharArray()) {
+            // Keep printable characters and whitespace (\r, \n, \t)
+            // Remove control characters (0-31) except whitespace
+            if (c >= 32 || c == '\r' || c == '\n' || c == '\t') {
+                cleaned.append(c);
+            } else {
+                logger.warn("Removed control character (code {}) from JWT token | CorrelationId: {}", 
+                        (int) c, MDC.get("correlationId"));
+            }
+        }
+        return cleaned.toString();
     }
 }
 

@@ -159,11 +159,22 @@ public class JwtTokenProvider {
      * Validate token without user details
      */
     public Boolean validateToken(final String token) {
+        if (token == null || token.isEmpty()) {
+            logger.error("JWT token is null or empty");
+            return false;
+        }
+        
+        // Clean control characters before validation
+        String cleanedToken = cleanControlCharacters(token);
+        if (!cleanedToken.equals(token)) {
+            logger.warn("JWT token contained control characters, cleaned before validation");
+        }
+        
         try {
             Jwts.parser()
                     .verifyWith(getSigningKey())
                     .build()
-                    .parseSignedClaims(token);
+                    .parseSignedClaims(cleanedToken);
             return true;
         } catch (ExpiredJwtException e) {
             logger.error("JWT token is expired: {}", e.getMessage());
@@ -175,6 +186,26 @@ public class JwtTokenProvider {
             logger.error("JWT claims string is empty: {}", e.getMessage());
         }
         return false;
+    }
+    
+    /**
+     * Remove control characters from token string
+     * Control characters (0-31) except whitespace (\r, \n, \t) are not allowed in JWT tokens
+     */
+    private String cleanControlCharacters(final String token) {
+        if (token == null || token.isEmpty()) {
+            return token;
+        }
+        
+        StringBuilder cleaned = new StringBuilder(token.length());
+        for (char c : token.toCharArray()) {
+            // Keep printable characters and whitespace (\r, \n, \t)
+            // Remove control characters (0-31) except whitespace
+            if (c >= 32 || c == '\r' || c == '\n' || c == '\t') {
+                cleaned.append(c);
+            }
+        }
+        return cleaned.toString();
     }
 }
 

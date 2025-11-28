@@ -234,14 +234,20 @@ class TransactionActionServiceTest {
     }
 
     @Test
-    void testGetActionsByTransactionId_WithNonExistentTransaction_ThrowsException() {
+    void testGetActionsByTransactionId_WithNonExistentTransaction_ReturnsEmptyList() {
         // Given
         when(transactionRepository.findById(testTransaction.getTransactionId()))
                 .thenReturn(Optional.empty());
+        when(actionRepository.findByTransactionId(testTransaction.getTransactionId()))
+                .thenReturn(java.util.Collections.emptyList());
 
-        // When/Then
-        assertThrows(AppException.class, () -> actionService.getActionsByTransactionId(
-                testUser, testTransaction.getTransactionId()));
+        // When
+        List<TransactionActionTable> result = actionService.getActionsByTransactionId(
+                testUser, testTransaction.getTransactionId());
+
+        // Then - Should return empty list (transaction may not be synced yet)
+        assertNotNull(result);
+        assertTrue(result.isEmpty());
     }
 
     @Test

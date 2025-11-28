@@ -110,7 +110,8 @@ class TransactionControllerTest {
 
         TransactionTable mockTransaction = createTransaction("tx-1");
         when(userService.findByEmail("test@example.com")).thenReturn(java.util.Optional.of(testUser));
-        when(transactionService.createTransaction(any(), anyString(), any(), any(), anyString(), anyString()))
+        // Updated to match the new method signature with transactionId, notes, and plaidAccountId
+        when(transactionService.createTransaction(any(), anyString(), any(), any(), anyString(), anyString(), any(), any(), any()))
                 .thenReturn(mockTransaction);
 
         // When
