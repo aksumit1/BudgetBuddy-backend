@@ -110,7 +110,8 @@ public class TransactionController {
     @GetMapping("/{id}")
     public ResponseEntity<TransactionTable> getTransaction(
             @AuthenticationPrincipal UserDetails userDetails,
-            @PathVariable String id) {
+            @PathVariable String id,
+            @RequestParam(required = false) String plaidTransactionId) {
         if (userDetails == null || userDetails.getUsername() == null) {
             throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
         }
@@ -121,7 +122,8 @@ public class TransactionController {
         UserTable user = userService.findByEmail(userDetails.getUsername())
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
 
-        TransactionTable transaction = transactionService.getTransaction(user, id);
+        // Pass plaidTransactionId for fallback lookup if UUID doesn't match
+        TransactionTable transaction = transactionService.getTransaction(user, id, plaidTransactionId);
         return ResponseEntity.ok(transaction);
     }
 
@@ -162,7 +164,8 @@ public class TransactionController {
                 request.getCategory(),
                 request.getTransactionId(), // Pass optional transactionId from app
                 request.getNotes(), // Pass optional notes
-                request.getPlaidAccountId() // Pass optional Plaid account ID for fallback lookup
+                request.getPlaidAccountId(), // Pass optional Plaid account ID for fallback lookup
+                request.getPlaidTransactionId() // Pass optional Plaid transaction ID for fallback lookup and ID consistency
         );
 
         return ResponseEntity.status(HttpStatus.CREATED).body(transaction);
@@ -225,6 +228,7 @@ public class TransactionController {
         private String category;
         private String notes; // Optional: User notes for the transaction
         private String plaidAccountId; // Optional: Plaid account ID for fallback lookup if accountId not found
+        private String plaidTransactionId; // Optional: Plaid transaction ID for fallback lookup and ID consistency
 
         // Getters and setters
         public String getTransactionId() { return transactionId; }
@@ -244,6 +248,9 @@ public class TransactionController {
         
         public String getPlaidAccountId() { return plaidAccountId; }
         public void setPlaidAccountId(final String plaidAccountId) { this.plaidAccountId = plaidAccountId; }
+        
+        public String getPlaidTransactionId() { return plaidTransactionId; }
+        public void setPlaidTransactionId(final String plaidTransactionId) { this.plaidTransactionId = plaidTransactionId; }
     }
 
     public static class TotalSpendingResponse {

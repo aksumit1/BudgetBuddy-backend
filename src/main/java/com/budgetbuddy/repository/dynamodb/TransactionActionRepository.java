@@ -45,8 +45,15 @@ public class TransactionActionRepository {
         if (actionId == null || actionId.isEmpty()) {
             return Optional.empty();
         }
+        // Normalize ID to lowercase for case-insensitive lookup
+        String normalizedId = com.budgetbuddy.util.IdGenerator.normalizeUUID(actionId);
         TransactionActionTable action = actionTable.getItem(
-                Key.builder().partitionValue(actionId).build());
+                Key.builder().partitionValue(normalizedId).build());
+        // If not found with normalized ID, try original (for backward compatibility with mixed-case IDs)
+        if (action == null && !normalizedId.equals(actionId)) {
+            action = actionTable.getItem(
+                    Key.builder().partitionValue(actionId).build());
+        }
         return Optional.ofNullable(action);
     }
 
@@ -57,12 +64,23 @@ public class TransactionActionRepository {
         if (transactionId == null || transactionId.isEmpty()) {
             return List.of();
         }
+        // Normalize ID to lowercase for case-insensitive lookup
+        String normalizedId = com.budgetbuddy.util.IdGenerator.normalizeUUID(transactionId);
         List<TransactionActionTable> results = new ArrayList<>();
         SdkIterable<Page<TransactionActionTable>> pages = transactionIdIndex.query(
-                QueryConditional.keyEqualTo(Key.builder().partitionValue(transactionId).build())
+                QueryConditional.keyEqualTo(Key.builder().partitionValue(normalizedId).build())
         );
         for (Page<TransactionActionTable> page : pages) {
             results.addAll(page.items());
+        }
+        // If no results with normalized ID, try original (for backward compatibility with mixed-case IDs)
+        if (results.isEmpty() && !normalizedId.equals(transactionId)) {
+            SdkIterable<Page<TransactionActionTable>> originalPages = transactionIdIndex.query(
+                    QueryConditional.keyEqualTo(Key.builder().partitionValue(transactionId).build())
+            );
+            for (Page<TransactionActionTable> page : originalPages) {
+                results.addAll(page.items());
+            }
         }
         return results;
     }

@@ -34,7 +34,16 @@ public class BudgetRepository {
     }
 
     public Optional<BudgetTable> findById(String budgetId) {
-        BudgetTable budget = budgetTable.getItem(Key.builder().partitionValue(budgetId).build());
+        if (budgetId == null || budgetId.isEmpty()) {
+            return Optional.empty();
+        }
+        // Normalize ID to lowercase for case-insensitive lookup
+        String normalizedId = com.budgetbuddy.util.IdGenerator.normalizeUUID(budgetId);
+        BudgetTable budget = budgetTable.getItem(Key.builder().partitionValue(normalizedId).build());
+        // If not found with normalized ID, try original (for backward compatibility with mixed-case IDs)
+        if (budget == null && !normalizedId.equals(budgetId)) {
+            budget = budgetTable.getItem(Key.builder().partitionValue(budgetId).build());
+        }
         return Optional.ofNullable(budget);
     }
 

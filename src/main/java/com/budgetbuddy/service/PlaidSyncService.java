@@ -799,11 +799,16 @@ public class PlaidSyncService {
                 // Fallback: generate deterministic UUID from Plaid transaction ID if account info is missing
                 // CRITICAL: Use TRANSACTION_NAMESPACE (6ba7b811) not ACCOUNT_NAMESPACE (6ba7b810)
                 // This ensures consistency with TransactionSyncService and iOS app fallback logic
-                logger.warn("⚠️ Institution name or account ID missing, using deterministic UUID fallback for transaction ID. " +
-                        "This may cause ID mismatch if iOS app generates different ID. Plaid ID: {}", plaidTransactionId);
+                // CRITICAL: Both iOS app and backend use the same deterministic UUID fallback
+                // iOS app's generateTransactionIdFallback(plaidTransactionId:) uses the same logic:
+                // generateDeterministicUUID(TRANSACTION_NAMESPACE, plaidTransactionId)
+                // This ensures ID consistency between app and backend
+                logger.info("Institution name or account ID missing, using deterministic UUID fallback from Plaid ID. " +
+                        "Both iOS app and backend will generate the same ID. Plaid ID: {}", plaidTransactionId);
                 java.util.UUID namespaceUUID = java.util.UUID.fromString("6ba7b811-9dad-11d1-80b4-00c04fd430c8"); // TRANSACTION_NAMESPACE
                 transaction.setTransactionId(IdGenerator.generateDeterministicUUID(namespaceUUID, plaidTransactionId));
-                logger.debug("Generated fallback transaction ID: {} from Plaid ID: {} (missing institution/account)", 
+                logger.debug("Generated fallback transaction ID: {} from Plaid ID: {} (missing institution/account). " +
+                        "This matches iOS app's generateTransactionIdFallback() method.", 
                         transaction.getTransactionId(), plaidTransactionId);
             }
         } else {

@@ -330,10 +330,12 @@ public class TransactionSyncService {
                     }
                 } else {
                     // Account not found - use fallback
-                    // CRITICAL: Use TRANSACTION_NAMESPACE (6ba7b811) not ACCOUNT_NAMESPACE (6ba7b810)
-                    // This matches iOS app's generateTransactionIdFallback(plaidTransactionId:) method
-                    logger.warn("⚠️ Account with Plaid ID {} not found, using deterministic UUID fallback for transaction ID. " +
-                            "This matches iOS app fallback behavior.", plaidAccountId);
+                    // CRITICAL: Both iOS app and backend use the same deterministic UUID fallback
+                    // iOS app's generateTransactionIdFallback(plaidTransactionId:) uses the same logic:
+                    // generateDeterministicUUID(TRANSACTION_NAMESPACE, plaidTransactionId)
+                    // This ensures ID consistency between app and backend
+                    logger.info("Account with Plaid ID {} not found, using deterministic UUID fallback from Plaid ID for transaction ID. " +
+                            "Both iOS app and backend will generate the same ID. Plaid transaction ID: {}", plaidAccountId, plaidTransactionId);
                     java.util.UUID namespaceUUID = java.util.UUID.fromString("6ba7b811-9dad-11d1-80b4-00c04fd430c8"); // TRANSACTION_NAMESPACE
                     transaction.setTransactionId(IdGenerator.generateDeterministicUUID(namespaceUUID, plaidTransactionId));
                     transaction.setAccountId(java.util.UUID.randomUUID().toString()); // Temporary account ID

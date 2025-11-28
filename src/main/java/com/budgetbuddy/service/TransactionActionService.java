@@ -89,7 +89,8 @@ public class TransactionActionService {
                 String foundTransactionId = foundTransaction.getTransactionId();
                 
                 // CRITICAL: Log if Plaid ID matches but transaction ID doesn't - indicates ID mismatch
-                if (!foundTransactionId.equals(transactionId)) {
+                // Use case-insensitive comparison
+                if (!com.budgetbuddy.util.IdGenerator.equalsIgnoreCase(foundTransactionId, transactionId)) {
                     logger.warn("⚠️ ID MISMATCH: Transaction found by Plaid ID {} but transaction IDs don't match. " +
                             "Requested ID: {}, Found ID: {}. This indicates an ID generation mismatch between app and backend. " +
                             "Using found transaction ID: {}", 
@@ -116,7 +117,8 @@ public class TransactionActionService {
         final String actualTransactionId = transaction.getTransactionId();
         
         // Log if we're using a different transaction ID than requested
-        if (!actualTransactionId.equals(transactionId)) {
+        // Use case-insensitive comparison
+        if (!com.budgetbuddy.util.IdGenerator.equalsIgnoreCase(actualTransactionId, transactionId)) {
             logger.info("Using transaction ID {} (different from requested {}) for action creation. " +
                     "This is expected when Plaid ID lookup finds a transaction with a different generated ID.", 
                     actualTransactionId, transactionId);

@@ -48,7 +48,16 @@ public class GoalRepository {
     }
 
     public Optional<GoalTable> findById(final String goalId) {
-        GoalTable goal = goalTable.getItem(Key.builder().partitionValue(goalId).build());
+        if (goalId == null || goalId.isEmpty()) {
+            return Optional.empty();
+        }
+        // Normalize ID to lowercase for case-insensitive lookup
+        String normalizedId = com.budgetbuddy.util.IdGenerator.normalizeUUID(goalId);
+        GoalTable goal = goalTable.getItem(Key.builder().partitionValue(normalizedId).build());
+        // If not found with normalized ID, try original (for backward compatibility with mixed-case IDs)
+        if (goal == null && !normalizedId.equals(goalId)) {
+            goal = goalTable.getItem(Key.builder().partitionValue(goalId).build());
+        }
         return Optional.ofNullable(goal);
     }
 

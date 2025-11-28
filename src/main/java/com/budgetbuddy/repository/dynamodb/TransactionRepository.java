@@ -68,8 +68,15 @@ public class TransactionRepository {
         if (transactionId == null || transactionId.isEmpty()) {
             return Optional.empty();
         }
+        // Normalize ID to lowercase for case-insensitive lookup
+        String normalizedId = com.budgetbuddy.util.IdGenerator.normalizeUUID(transactionId);
         TransactionTable transaction = transactionTable.getItem(
-                Key.builder().partitionValue(transactionId).build());
+                Key.builder().partitionValue(normalizedId).build());
+        // If not found with normalized ID, try original (for backward compatibility with mixed-case IDs)
+        if (transaction == null && !normalizedId.equals(transactionId)) {
+            transaction = transactionTable.getItem(
+                    Key.builder().partitionValue(transactionId).build());
+        }
         return Optional.ofNullable(transaction);
     }
 

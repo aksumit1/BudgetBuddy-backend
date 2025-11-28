@@ -117,7 +117,7 @@ public class IdGenerator {
      * 
      * @param namespace UUID namespace (use a fixed UUID for consistency)
      * @param name String to generate UUID from
-     * @return Deterministic UUID as string
+     * @return Deterministic UUID as string (normalized to lowercase for case-insensitive matching)
      */
     public static String generateDeterministicUUID(final UUID namespace, final String name) {
         if (namespace == null) {
@@ -129,9 +129,10 @@ public class IdGenerator {
         
         // UUID v5 uses SHA-1 hash of namespace + name
         // This ensures deterministic UUIDs that handle special characters robustly
+        // Normalize to lowercase for case-insensitive matching
         return UUID.nameUUIDFromBytes(
             (namespace.toString() + ":" + name).getBytes(StandardCharsets.UTF_8)
-        ).toString();
+        ).toString().toLowerCase();
     }
 
     /**
@@ -157,10 +158,40 @@ public class IdGenerator {
      * For app-generated entities, the app will generate UUID and send to backend
      * This method is for backward compatibility when app doesn't send ID
      * 
-     * @return Random UUID as string
+     * @return Random UUID as string (normalized to lowercase for case-insensitive matching)
      */
     public static String generateManualEntityUUID() {
-        return UUID.randomUUID().toString();
+        return UUID.randomUUID().toString().toLowerCase();
+    }
+    
+    /**
+     * Normalize UUID string to lowercase for case-insensitive comparison
+     * 
+     * @param uuidString UUID string to normalize
+     * @return Lowercase UUID string, or null if input is null
+     */
+    public static String normalizeUUID(final String uuidString) {
+        if (uuidString == null || uuidString.trim().isEmpty()) {
+            return uuidString;
+        }
+        return uuidString.trim().toLowerCase();
+    }
+    
+    /**
+     * Compare two UUID strings case-insensitively
+     * 
+     * @param uuid1 First UUID string
+     * @param uuid2 Second UUID string
+     * @return true if UUIDs match (case-insensitive), false otherwise
+     */
+    public static boolean equalsIgnoreCase(final String uuid1, final String uuid2) {
+        if (uuid1 == null && uuid2 == null) {
+            return true;
+        }
+        if (uuid1 == null || uuid2 == null) {
+            return false;
+        }
+        return normalizeUUID(uuid1).equals(normalizeUUID(uuid2));
     }
 }
 

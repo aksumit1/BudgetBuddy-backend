@@ -53,8 +53,18 @@ public class AccountRepository {
     }
 
     public Optional<AccountTable> findById(String accountId) {
+        if (accountId == null || accountId.isEmpty()) {
+            return Optional.empty();
+        }
+        // Normalize ID to lowercase for case-insensitive lookup
+        String normalizedId = com.budgetbuddy.util.IdGenerator.normalizeUUID(accountId);
         AccountTable account = accountTable.getItem(
-                Key.builder().partitionValue(accountId).build());
+                Key.builder().partitionValue(normalizedId).build());
+        // If not found with normalized ID, try original (for backward compatibility with mixed-case IDs)
+        if (account == null && !normalizedId.equals(accountId)) {
+            account = accountTable.getItem(
+                    Key.builder().partitionValue(accountId).build());
+        }
         return Optional.ofNullable(account);
     }
 
