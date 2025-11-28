@@ -142,7 +142,8 @@ public class TransactionController {
                 request.getTransactionDate(),
                 request.getDescription(),
                 request.getCategory(),
-                request.getTransactionId() // Pass optional transactionId from app
+                request.getTransactionId(), // Pass optional transactionId from app
+                request.getNotes() // Pass optional notes
         );
 
         return ResponseEntity.status(HttpStatus.CREATED).body(transaction);
@@ -202,6 +203,7 @@ public class TransactionController {
         private LocalDate transactionDate;
         private String description;
         private String category;
+        private String notes; // Optional: User notes for the transaction
 
         // Getters and setters
         public String getTransactionId() { return transactionId; }
@@ -216,6 +218,8 @@ public class TransactionController {
         public void setDescription(final String description) { this.description = description; }
         public String getCategory() { return category; }
         public void setCategory(final String category) { this.category = category; }
+        public String getNotes() { return notes; }
+        public void setNotes(final String notes) { this.notes = notes; }
     }
 
     public static class TotalSpendingResponse {

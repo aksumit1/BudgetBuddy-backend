@@ -164,15 +164,23 @@ public class TransactionService {
      * Create manual transaction (backward compatibility - generates new UUID)
      */
     public TransactionTable createTransaction(final UserTable user, final String accountId, final BigDecimal amount, final LocalDate transactionDate, final String description, final String category) {
-        return createTransaction(user, accountId, amount, transactionDate, description, category, null);
+        return createTransaction(user, accountId, amount, transactionDate, description, category, null, null);
+    }
+
+    /**
+     * Create manual transaction (backward compatibility - with transactionId)
+     */
+    public TransactionTable createTransaction(final UserTable user, final String accountId, final BigDecimal amount, final LocalDate transactionDate, final String description, final String category, final String transactionId) {
+        return createTransaction(user, accountId, amount, transactionDate, description, category, transactionId, null);
     }
 
     /**
      * Create manual transaction
      * @param transactionId Optional transaction ID from app. If provided and valid, use it to ensure app-backend ID consistency.
      *                      If not provided or invalid, generate a new UUID.
+     * @param notes Optional user notes for the transaction
      */
-    public TransactionTable createTransaction(final UserTable user, final String accountId, final BigDecimal amount, final LocalDate transactionDate, final String description, final String category, final String transactionId) {
+    public TransactionTable createTransaction(final UserTable user, final String accountId, final BigDecimal amount, final LocalDate transactionDate, final String description, final String category, final String transactionId, final String notes) {
         if (user == null || user.getUserId() == null || user.getUserId().isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "User is required");
         }
@@ -232,9 +240,14 @@ public class TransactionService {
         transaction.setCategory(category);
         transaction.setCurrencyCode(user.getPreferredCurrency() != null && !user.getPreferredCurrency().isEmpty()
                 ? user.getPreferredCurrency() : "USD");
+        
+        // Set notes if provided
+        if (notes != null) {
+            transaction.setNotes(notes.trim().isEmpty() ? null : notes.trim());
+        }
 
         transactionRepository.save(transaction);
-        logger.info("Created transaction {} for user {}", transaction.getTransactionId(), user.getEmail());
+        logger.info("Created transaction {} for user {} with notes: {}", transaction.getTransactionId(), user.getEmail(), notes != null && !notes.trim().isEmpty() ? "yes" : "no");
         return transaction;
     }
 
@@ -256,8 +269,12 @@ public class TransactionService {
             throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "Transaction does not belong to user");
         }
 
+        // Update notes: if notes is null, clear it; if notes is provided, set it (trimming whitespace)
         if (notes != null) {
             transaction.setNotes(notes.trim().isEmpty() ? null : notes.trim());
+        } else {
+            // Explicitly clear notes when null is passed
+            transaction.setNotes(null);
         }
         transaction.setUpdatedAt(java.time.Instant.now());
 
