@@ -163,15 +163,15 @@ public class TransactionService {
     /**
      * Create manual transaction (backward compatibility - generates new UUID)
      */
-    public TransactionTable createTransaction(final UserTable user, final String accountId, final BigDecimal amount, final LocalDate transactionDate, final String description, final String category) {
-        return createTransaction(user, accountId, amount, transactionDate, description, category, null, null);
+    public TransactionTable createTransaction(final UserTable user, final String accountId, final BigDecimal amount, final LocalDate transactionDate, final String description, final String categoryPrimary) {
+        return createTransaction(user, accountId, amount, transactionDate, description, categoryPrimary, null, null, null, null, null);
     }
 
     /**
-     * Create manual transaction (backward compatibility - with transactionId)
+     * Create manual transaction (backward compatibility - with categoryDetailed)
      */
-    public TransactionTable createTransaction(final UserTable user, final String accountId, final BigDecimal amount, final LocalDate transactionDate, final String description, final String category, final String transactionId) {
-        return createTransaction(user, accountId, amount, transactionDate, description, category, transactionId, null);
+    public TransactionTable createTransaction(final UserTable user, final String accountId, final BigDecimal amount, final LocalDate transactionDate, final String description, final String categoryPrimary, final String categoryDetailed) {
+        return createTransaction(user, accountId, amount, transactionDate, description, categoryPrimary, categoryDetailed, null, null, null, null);
     }
 
     /**
@@ -180,22 +180,24 @@ public class TransactionService {
      *                      If not provided or invalid, generate a new UUID.
      * @param notes Optional user notes for the transaction
      */
-    public TransactionTable createTransaction(final UserTable user, final String accountId, final BigDecimal amount, final LocalDate transactionDate, final String description, final String category, final String transactionId, final String notes) {
-        return createTransaction(user, accountId, amount, transactionDate, description, category, transactionId, notes, null);
+    public TransactionTable createTransaction(final UserTable user, final String accountId, final BigDecimal amount, final LocalDate transactionDate, final String description, final String categoryPrimary, final String categoryDetailed, final String transactionId, final String notes) {
+        return createTransaction(user, accountId, amount, transactionDate, description, categoryPrimary, categoryDetailed, transactionId, notes, null, null);
     }
     
     /**
      * Create transaction with optional Plaid account ID and Plaid transaction ID for fallback lookup
      */
-    public TransactionTable createTransaction(final UserTable user, final String accountId, final BigDecimal amount, final LocalDate transactionDate, final String description, final String category, final String transactionId, final String notes, final String plaidAccountId) {
-        return createTransaction(user, accountId, amount, transactionDate, description, category, transactionId, notes, plaidAccountId, null);
+    public TransactionTable createTransaction(final UserTable user, final String accountId, final BigDecimal amount, final LocalDate transactionDate, final String description, final String categoryPrimary, final String categoryDetailed, final String transactionId, final String notes, final String plaidAccountId) {
+        return createTransaction(user, accountId, amount, transactionDate, description, categoryPrimary, categoryDetailed, transactionId, notes, plaidAccountId, null);
     }
     
     /**
      * Create transaction with optional Plaid account ID and Plaid transaction ID for fallback lookup
+     * @param categoryPrimary Primary category (required)
+     * @param categoryDetailed Detailed category (optional, defaults to categoryPrimary if not provided)
      * @param plaidTransactionId Optional Plaid transaction ID for fallback lookup and ID consistency
      */
-    public TransactionTable createTransaction(final UserTable user, final String accountId, final BigDecimal amount, final LocalDate transactionDate, final String description, final String category, final String transactionId, final String notes, final String plaidAccountId, final String plaidTransactionId) {
+    public TransactionTable createTransaction(final UserTable user, final String accountId, final BigDecimal amount, final LocalDate transactionDate, final String description, final String categoryPrimary, final String categoryDetailed, final String transactionId, final String notes, final String plaidAccountId, final String plaidTransactionId) {
         if (user == null || user.getUserId() == null || user.getUserId().isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "User is required");
         }
@@ -208,8 +210,8 @@ public class TransactionService {
         if (transactionDate == null) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Transaction date is required");
         }
-        if (category == null || category.isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "Category is required");
+        if (categoryPrimary == null || categoryPrimary.isEmpty()) {
+            throw new AppException(ErrorCode.INVALID_INPUT, "Category primary is required");
         }
 
         // Try to find account by accountId first
@@ -355,9 +357,13 @@ public class TransactionService {
             throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "Transaction does not belong to user");
         }
 
-        // Update notes: if notes is null, clear it; if notes is provided, set it (trimming whitespace)
-        if (notes != null) {
-            transaction.setNotes(notes.trim().isEmpty() ? null : notes.trim());
+        // Update notes: if notes is null or empty string, clear it; if notes is provided, set it (trimming whitespace)
+        // Note: null explicitly means "clear notes", empty string also means "clear notes"
+        if (notes == null) {
+            transaction.setNotes(null);
+        } else {
+            String trimmedNotes = notes.trim();
+            transaction.setNotes(trimmedNotes.isEmpty() ? null : trimmedNotes);
         }
         
         // Update category override if provided

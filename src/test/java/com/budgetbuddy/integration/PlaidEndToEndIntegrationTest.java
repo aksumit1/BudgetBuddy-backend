@@ -116,7 +116,8 @@ class PlaidEndToEndIntegrationTest {
         transaction.setAmount(new BigDecimal("75.50"));
         transaction.setDescription("Plaid E2E Test Transaction");
         transaction.setMerchantName("Test Merchant");
-        transaction.setCategory("other"); // BUG FIX: Should not be null
+        transaction.setCategoryPrimary("other"); // BUG FIX: Should not be null
+        transaction.setCategoryDetailed("other");
         transaction.setTransactionDate(LocalDate.now().format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE)); // BUG FIX: Must be YYYY-MM-DD
         transaction.setCurrencyCode("USD");
         transaction.setPlaidTransactionId("plaid-e2e-tx-" + UUID.randomUUID());
@@ -139,7 +140,8 @@ class PlaidEndToEndIntegrationTest {
                 .findFirst()
                 .orElse(null);
         assertNotNull(retrievedTransaction, "Transaction should be found");
-        assertNotNull(retrievedTransaction.getCategory(), "Category should not be null");
+        assertNotNull(retrievedTransaction.getCategoryPrimary(), "Category primary should not be null");
+        assertNotNull(retrievedTransaction.getCategoryDetailed(), "Category detailed should not be null");
         assertTrue(retrievedTransaction.getTransactionDate().matches("\\d{4}-\\d{2}-\\d{2}"), 
                 "Transaction date should be in YYYY-MM-DD format");
     }
@@ -178,7 +180,8 @@ class PlaidEndToEndIntegrationTest {
         nullCategoryTransaction.setAccountId(UUID.randomUUID().toString());
         nullCategoryTransaction.setAmount(new BigDecimal("25.00"));
         nullCategoryTransaction.setDescription("Null Category Transaction");
-        nullCategoryTransaction.setCategory(null); // BUG: null category
+        nullCategoryTransaction.setCategoryPrimary(null); // BUG: null category
+        nullCategoryTransaction.setCategoryDetailed(null);
         nullCategoryTransaction.setTransactionDate(LocalDate.now().format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE));
         nullCategoryTransaction.setCreatedAt(Instant.now());
         nullCategoryTransaction.setUpdatedAt(Instant.now());

@@ -1,5 +1,6 @@
 package com.budgetbuddy.model.dynamodb;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbAttribute;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbBean;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbPartitionKey;
@@ -118,6 +119,19 @@ public class TransactionTable {
 
     public void setCategoryDetailed(final String categoryDetailed) {
         this.categoryDetailed = categoryDetailed;
+    }
+    
+    /**
+     * Get category for backward compatibility with iOS app
+     * Returns categoryPrimary if available, otherwise categoryDetailed
+     */
+    @JsonProperty("category")
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    public String getCategory() {
+        if (categoryPrimary != null && !categoryPrimary.isEmpty()) {
+            return categoryPrimary;
+        }
+        return categoryDetailed;
     }
 
     @DynamoDbAttribute("plaidCategoryPrimary")

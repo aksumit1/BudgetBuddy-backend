@@ -41,7 +41,9 @@ public class DevicePinRepository {
             logger.debug("DevicePin table initialized: {}", TABLE_NAME);
         } catch (ResourceNotFoundException e) {
             logger.warn("DevicePin table not found: {}. It will be created on first write.", TABLE_NAME);
-            devicePinTable = enhancedClient.table(TABLE_NAME, TableSchema.fromBean(DevicePinTable.class));
+            // Don't call table() again - it will be created on first write operation
+            // Set to null to indicate table needs to be initialized on first use
+            devicePinTable = null;
         }
     }
 
@@ -52,6 +54,16 @@ public class DevicePinRepository {
     public Optional<DevicePinTable> findByUserIdAndDeviceId(final String userId, final String deviceId) {
         if (userId == null || userId.isEmpty() || deviceId == null || deviceId.isEmpty()) {
             return Optional.empty();
+        }
+
+        // Initialize table if it was null (table not found during construction)
+        if (devicePinTable == null) {
+            try {
+                devicePinTable = enhancedClient.table(TABLE_NAME, TableSchema.fromBean(DevicePinTable.class));
+            } catch (ResourceNotFoundException e) {
+                logger.warn("DevicePin table still not found: {}", TABLE_NAME);
+                return Optional.empty();
+            }
         }
 
         try {
@@ -88,6 +100,16 @@ public class DevicePinRepository {
             throw new IllegalArgumentException("DeviceId is required");
         }
 
+        // Initialize table if it was null (table not found during construction)
+        if (devicePinTable == null) {
+            try {
+                devicePinTable = enhancedClient.table(TABLE_NAME, TableSchema.fromBean(DevicePinTable.class));
+            } catch (ResourceNotFoundException e) {
+                logger.warn("DevicePin table still not found: {}", TABLE_NAME);
+                throw new RuntimeException("DevicePin table not available", e);
+            }
+        }
+
         try {
             devicePinTable.putItem(devicePin);
             logger.debug("Saved device PIN for userId: {}, deviceId: {}", devicePin.getUserId(), devicePin.getDeviceId());
@@ -105,6 +127,16 @@ public class DevicePinRepository {
     public void delete(final String userId, final String deviceId) {
         if (userId == null || userId.isEmpty() || deviceId == null || deviceId.isEmpty()) {
             throw new IllegalArgumentException("UserId and deviceId are required");
+        }
+
+        // Initialize table if it was null (table not found during construction)
+        if (devicePinTable == null) {
+            try {
+                devicePinTable = enhancedClient.table(TABLE_NAME, TableSchema.fromBean(DevicePinTable.class));
+            } catch (ResourceNotFoundException e) {
+                logger.warn("DevicePin table still not found: {}", TABLE_NAME);
+                throw new RuntimeException("DevicePin table not available", e);
+            }
         }
 
         try {

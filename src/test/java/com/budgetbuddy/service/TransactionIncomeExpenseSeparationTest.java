@@ -61,12 +61,14 @@ class TransactionIncomeExpenseSeparationTest {
         creditCardAccount.setAccountName("Chase Credit Card");
         creditCardAccount.setAccountType("creditCard");
         creditCardAccount.setBalance(new BigDecimal("-500.00"));
+        creditCardAccount.setPlaidAccountId("plaid-cc-account-1"); // CRITICAL: Set plaidAccountId for transaction grouping
 
         // Create checking account
         checkingAccount = new AccountTable();
         checkingAccount.setAccountId(UUID.randomUUID().toString());
         checkingAccount.setUserId(testUser.getUserId());
         checkingAccount.setAccountName("Chase Checking");
+        checkingAccount.setPlaidAccountId("plaid-checking-account-1"); // CRITICAL: Set plaidAccountId for transaction grouping
         checkingAccount.setAccountType("checking");
         checkingAccount.setBalance(new BigDecimal("1000.00"));
     }
@@ -81,7 +83,7 @@ class TransactionIncomeExpenseSeparationTest {
                 "Direct Deposit - Salary",
                 new BigDecimal("-5000.00"), // Negative = income in Plaid
                 Arrays.asList("Transfer", "Deposit"),
-                checkingAccount.getAccountId()
+                checkingAccount.getPlaidAccountId() // Use plaidAccountId for grouping
         );
 
         TransactionsGetResponse mockResponse = new TransactionsGetResponse();
@@ -123,7 +125,7 @@ class TransactionIncomeExpenseSeparationTest {
                 "Coffee Purchase",
                 new BigDecimal("5.50"), // Positive = expense in Plaid
                 Arrays.asList("Food and Drink", "Restaurants"),
-                checkingAccount.getAccountId()
+                checkingAccount.getPlaidAccountId() // Use plaidAccountId for grouping
         );
 
         TransactionsGetResponse mockResponse = new TransactionsGetResponse();
@@ -164,7 +166,7 @@ class TransactionIncomeExpenseSeparationTest {
                 "Payment - Credit Card",
                 new BigDecimal("200.00"), // Positive = payment to credit card
                 Arrays.asList("Transfer"),
-                creditCardAccount.getAccountId()
+                creditCardAccount.getPlaidAccountId() // Use plaidAccountId for grouping
         );
 
         TransactionsGetResponse mockResponse = new TransactionsGetResponse();
@@ -206,7 +208,7 @@ class TransactionIncomeExpenseSeparationTest {
                 "Coffee Purchase",
                 new BigDecimal("10.00"), // Positive = expense in Plaid
                 Arrays.asList("Food and Drink", "Restaurants"),
-                creditCardAccount.getAccountId()
+                creditCardAccount.getPlaidAccountId() // Use plaidAccountId for grouping
         );
 
         TransactionsGetResponse mockResponse = new TransactionsGetResponse();
@@ -248,7 +250,7 @@ class TransactionIncomeExpenseSeparationTest {
                 "Salary",
                 new BigDecimal("-5000.00"),
                 Arrays.asList("Transfer", "Deposit"),
-                checkingAccount.getAccountId()
+                checkingAccount.getPlaidAccountId() // Use plaidAccountId for grouping
         );
 
         Transaction expense = createMockPlaidTransaction(
@@ -257,7 +259,7 @@ class TransactionIncomeExpenseSeparationTest {
                 "Groceries",
                 new BigDecimal("100.00"),
                 Arrays.asList("Food and Drink", "Groceries"),
-                checkingAccount.getAccountId()
+                checkingAccount.getPlaidAccountId() // Use plaidAccountId for grouping
         );
 
         Transaction ccPayment = createMockPlaidTransaction(
@@ -266,7 +268,7 @@ class TransactionIncomeExpenseSeparationTest {
                 "Payment - Credit Card",
                 new BigDecimal("200.00"),
                 Arrays.asList("Transfer"),
-                creditCardAccount.getAccountId()
+                creditCardAccount.getPlaidAccountId() // Use plaidAccountId for grouping
         );
 
         Transaction ccExpense = createMockPlaidTransaction(
@@ -275,7 +277,7 @@ class TransactionIncomeExpenseSeparationTest {
                 "Dinner",
                 new BigDecimal("50.00"),
                 Arrays.asList("Food and Drink", "Restaurants"),
-                creditCardAccount.getAccountId()
+                creditCardAccount.getPlaidAccountId() // Use plaidAccountId for grouping
         );
 
         TransactionsGetResponse mockResponse = new TransactionsGetResponse();

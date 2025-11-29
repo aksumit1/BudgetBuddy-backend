@@ -265,11 +265,18 @@ public class GdprService {
         transaction.setAmount(transactionTable.getAmount());
         transaction.setDescription(transactionTable.getDescription());
         transaction.setMerchantName(transactionTable.getMerchantName());
-        if (transactionTable.getCategory() != null) {
+        // Use categoryPrimary as the main category, fallback to categoryDetailed
+        String categoryStr = transactionTable.getCategoryPrimary();
+        if (categoryStr == null || categoryStr.isEmpty()) {
+            categoryStr = transactionTable.getCategoryDetailed();
+        }
+        if (categoryStr != null && !categoryStr.isEmpty()) {
             try {
-                transaction.setCategory(com.budgetbuddy.model.Transaction.TransactionCategory.valueOf(transactionTable.getCategory()));
+                // Map category string to enum (categoryPrimary/detailed are lowercase strings like "dining", "groceries")
+                String categoryUpper = categoryStr.toUpperCase();
+                transaction.setCategory(com.budgetbuddy.model.Transaction.TransactionCategory.valueOf(categoryUpper));
             } catch (IllegalArgumentException e) {
-                logger.warn("Invalid transaction category: {}", transactionTable.getCategory());
+                logger.warn("Invalid transaction category: {}", categoryStr);
             }
         }
         if (transactionTable.getTransactionDate() != null) {

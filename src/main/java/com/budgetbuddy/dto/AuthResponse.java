@@ -1,5 +1,6 @@
 package com.budgetbuddy.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import java.time.LocalDateTime;
 
 /**
@@ -12,6 +13,15 @@ public final class AuthResponse {
     private String tokenType = "Bearer";
     private LocalDateTime expiresAt;
     private UserInfo user;
+    
+    /**
+     * Get token for backward compatibility with iOS app
+     * Returns accessToken
+     */
+    @JsonProperty("token")
+    public String getToken() {
+        return accessToken;
+    }
 
     public AuthResponse() {
     }

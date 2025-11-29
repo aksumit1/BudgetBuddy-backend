@@ -31,8 +31,10 @@ class AuthControllerIntegrationTest {
 
     @Test
     void testRegister_Success() throws Exception {
+        // Use unique email for each test run to avoid conflicts
+        String uniqueEmail = "newuser" + System.currentTimeMillis() + "@example.com";
         AuthRequest request = new AuthRequest();
-        request.setEmail("newuser@example.com");
+        request.setEmail(uniqueEmail);
         // Use proper base64-encoded strings
         request.setPasswordHash(java.util.Base64.getEncoder().encodeToString("hashed-password".getBytes()));
         request.setSalt(java.util.Base64.getEncoder().encodeToString("client-salt".getBytes()));
@@ -61,12 +63,14 @@ class AuthControllerIntegrationTest {
 
     @Test
     void testLogin_Success() throws Exception {
+        // Use unique email for each test run to avoid conflicts
+        String uniqueEmail = "loginuser" + System.currentTimeMillis() + "@example.com";
         // First register a user
         String passwordHash = java.util.Base64.getEncoder().encodeToString("hashed-password".getBytes());
         String clientSalt = java.util.Base64.getEncoder().encodeToString("client-salt".getBytes());
         
         AuthRequest registerRequest = new AuthRequest();
-        registerRequest.setEmail("loginuser@example.com");
+        registerRequest.setEmail(uniqueEmail);
         registerRequest.setPasswordHash(passwordHash);
         registerRequest.setSalt(clientSalt);
 
@@ -77,7 +81,7 @@ class AuthControllerIntegrationTest {
 
         // Then login
         AuthRequest loginRequest = new AuthRequest();
-        loginRequest.setEmail("loginuser@example.com");
+        loginRequest.setEmail(uniqueEmail);
         loginRequest.setPasswordHash(passwordHash);
         loginRequest.setSalt(clientSalt);
 

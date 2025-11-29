@@ -331,7 +331,8 @@ class PlaidDeduplicationIntegrationTest {
         existingTransaction.setPlaidTransactionId(plaidTransactionId);
         existingTransaction.setAmount(new BigDecimal("100.00"));
         existingTransaction.setDescription("Existing Transaction");
-        existingTransaction.setCategory("FOOD");
+        existingTransaction.setCategoryPrimary("dining");
+        existingTransaction.setCategoryDetailed("dining");
         existingTransaction.setTransactionDate(java.time.LocalDate.now().toString());
         existingTransaction.setCurrencyCode("USD");
         existingTransaction.setCreatedAt(Instant.now());
@@ -346,7 +347,8 @@ class PlaidDeduplicationIntegrationTest {
         duplicateTransaction.setPlaidTransactionId(plaidTransactionId); // Same Plaid ID
         duplicateTransaction.setAmount(new BigDecimal("200.00"));
         duplicateTransaction.setDescription("Duplicate Transaction");
-        duplicateTransaction.setCategory("FOOD");
+        duplicateTransaction.setCategoryPrimary("dining");
+        duplicateTransaction.setCategoryDetailed("dining");
         duplicateTransaction.setTransactionDate(java.time.LocalDate.now().toString());
         duplicateTransaction.setCurrencyCode("USD");
         duplicateTransaction.setCreatedAt(Instant.now());
@@ -403,7 +405,8 @@ class PlaidDeduplicationIntegrationTest {
         existingTransaction.setPlaidTransactionId(plaidTransactionId);
         existingTransaction.setAmount(new BigDecimal("100.00"));
         existingTransaction.setDescription("Existing Transaction");
-        existingTransaction.setCategory("FOOD");
+        existingTransaction.setCategoryPrimary("dining");
+        existingTransaction.setCategoryDetailed("dining");
         existingTransaction.setTransactionDate(java.time.LocalDate.now().toString());
         existingTransaction.setCurrencyCode("USD");
         existingTransaction.setCreatedAt(Instant.now());
@@ -504,7 +507,8 @@ class PlaidDeduplicationIntegrationTest {
         existingTransaction.setPlaidTransactionId(plaidTransactionId);
         existingTransaction.setAmount(new BigDecimal("100.00"));
         existingTransaction.setDescription("Existing Transaction");
-        existingTransaction.setCategory("FOOD");
+        existingTransaction.setCategoryPrimary("dining");
+        existingTransaction.setCategoryDetailed("dining");
         existingTransaction.setTransactionDate(java.time.LocalDate.now().toString());
         existingTransaction.setCurrencyCode("USD");
         existingTransaction.setCreatedAt(Instant.now());
@@ -530,7 +534,8 @@ class PlaidDeduplicationIntegrationTest {
                 newTransaction.setPlaidTransactionId(plaidTransactionId);
                 newTransaction.setAmount(new BigDecimal("100.00"));
                 newTransaction.setDescription("New Transaction " + i);
-                newTransaction.setCategory("FOOD");
+                newTransaction.setCategoryPrimary("dining");
+                newTransaction.setCategoryDetailed("dining");
                 newTransaction.setTransactionDate(java.time.LocalDate.now().toString());
                 newTransaction.setCurrencyCode("USD");
                 newTransaction.setCreatedAt(Instant.now());

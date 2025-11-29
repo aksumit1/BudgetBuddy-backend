@@ -19,6 +19,7 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.lenient;
 
 /**
  * Integration Tests for TransactionActionService Reminder Validation
@@ -63,7 +64,7 @@ class TransactionActionReminderValidationTest {
 
         when(transactionRepository.findById("transaction-123"))
                 .thenReturn(Optional.of(testTransaction));
-        when(actionRepository.findById(any())).thenReturn(Optional.empty());
+        lenient().when(actionRepository.findById(any())).thenReturn(Optional.empty());
         doAnswer(invocation -> {
             TransactionActionTable action = invocation.getArgument(0);
             return null;
@@ -94,7 +95,7 @@ class TransactionActionReminderValidationTest {
 
         when(transactionRepository.findById("transaction-123"))
                 .thenReturn(Optional.of(testTransaction));
-        when(actionRepository.findById(any())).thenReturn(Optional.empty());
+        lenient().when(actionRepository.findById(any())).thenReturn(Optional.empty());
         doAnswer(invocation -> {
             TransactionActionTable action = invocation.getArgument(0);
             return null;
@@ -125,7 +126,7 @@ class TransactionActionReminderValidationTest {
 
         when(transactionRepository.findById("transaction-123"))
                 .thenReturn(Optional.of(testTransaction));
-        when(actionRepository.findById(any())).thenReturn(Optional.empty());
+        lenient().when(actionRepository.findById(any())).thenReturn(Optional.empty());
         doAnswer(invocation -> {
             TransactionActionTable action = invocation.getArgument(0);
             return null;

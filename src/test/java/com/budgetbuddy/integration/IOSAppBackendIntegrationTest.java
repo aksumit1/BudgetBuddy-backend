@@ -108,7 +108,8 @@ class IOSAppBackendIntegrationTest {
         testTransaction.setAmount(new BigDecimal("50.00"));
         testTransaction.setDescription("iOS Test Transaction");
         testTransaction.setMerchantName("Test Merchant");
-        testTransaction.setCategory("other"); // BUG FIX: category should not be null
+        testTransaction.setCategoryPrimary("other"); // BUG FIX: category should not be null
+        testTransaction.setCategoryDetailed("other");
         testTransaction.setTransactionDate(LocalDate.now().format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE));
         testTransaction.setCurrencyCode("USD");
         testTransaction.setPlaidTransactionId("plaid-tx-ios-test");
@@ -204,7 +205,8 @@ class IOSAppBackendIntegrationTest {
         nullCategoryTransaction.setAccountId(testAccount.getAccountId());
         nullCategoryTransaction.setAmount(new BigDecimal("25.00"));
         nullCategoryTransaction.setDescription("Null Category Transaction");
-        nullCategoryTransaction.setCategory(null); // BUG: null category
+        nullCategoryTransaction.setCategoryPrimary(null); // BUG: null category
+        nullCategoryTransaction.setCategoryDetailed(null);
         nullCategoryTransaction.setTransactionDate(LocalDate.now().format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE));
         nullCategoryTransaction.setCreatedAt(Instant.now());
         nullCategoryTransaction.setUpdatedAt(Instant.now());
@@ -232,7 +234,8 @@ class IOSAppBackendIntegrationTest {
         datedTransaction.setAccountId(testAccount.getAccountId());
         datedTransaction.setAmount(new BigDecimal("75.00"));
         datedTransaction.setDescription("Dated Transaction");
-        datedTransaction.setCategory("other");
+        datedTransaction.setCategoryPrimary("other");
+        datedTransaction.setCategoryDetailed("other");
         datedTransaction.setTransactionDate(specificDate.format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE));
         datedTransaction.setCreatedAt(Instant.now());
         datedTransaction.setUpdatedAt(Instant.now());

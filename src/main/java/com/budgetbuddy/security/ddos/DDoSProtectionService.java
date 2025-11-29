@@ -2,6 +2,7 @@ package com.budgetbuddy.security.ddos;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 import software.amazon.awssdk.services.dynamodb.model.*;
@@ -25,6 +26,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class DDoSProtectionService {
 
     private static final Logger logger = LoggerFactory.getLogger(DDoSProtectionService.class);
+    
+    @Value("${app.rate-limit.enabled:true}")
+    private boolean rateLimitEnabled;
 
     private static final int MAX_REQUESTS_PER_MINUTE = 100; // Per IP
     @SuppressWarnings("unused") // Reserved for future implementation
@@ -63,6 +67,11 @@ public class DDoSProtectionService {
      * Thread-safe implementation
      */
     public boolean isAllowed(final String ipAddress) {
+        // If rate limiting is disabled, always allow
+        if (!rateLimitEnabled) {
+            return true;
+        }
+        
         if (ipAddress == null || ipAddress.isEmpty()) {
             logger.warn("IP address is null or empty - allowing request (IP extraction may have failed)");
             // Allow request if IP extraction failed - better than blocking legitimate users

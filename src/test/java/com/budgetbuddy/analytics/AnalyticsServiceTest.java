@@ -157,7 +157,8 @@ class AnalyticsServiceTest {
         transaction.setTransactionId(id);
         transaction.setUserId(testUser.getUserId());
         transaction.setAmount(amount);
-        transaction.setCategory(category);
+        transaction.setCategoryPrimary(category);
+        transaction.setCategoryDetailed(category);
         transaction.setTransactionDate(LocalDate.now().format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE));
         return transaction;
     }

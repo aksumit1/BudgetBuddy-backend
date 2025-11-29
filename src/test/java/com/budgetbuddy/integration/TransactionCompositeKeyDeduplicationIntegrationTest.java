@@ -49,13 +49,14 @@ class TransactionCompositeKeyDeduplicationIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        // Create test user
+        // Create test user with unique email to avoid duplicates
+        String uniqueEmail = "test-composite-key-" + UUID.randomUUID() + "@example.com";
         testUser = new UserTable();
         testUser.setUserId(UUID.randomUUID().toString());
         String base64PasswordHash = java.util.Base64.getEncoder().encodeToString("test-hash".getBytes());
         String base64ClientSalt = java.util.Base64.getEncoder().encodeToString("test-salt".getBytes());
         testUser = userService.createUserSecure(
-                "test-composite-key@example.com",
+                uniqueEmail,
                 base64PasswordHash,
                 base64ClientSalt,
                 "Test",
@@ -93,7 +94,8 @@ class TransactionCompositeKeyDeduplicationIntegrationTest {
         existingTransaction.setAmount(amount);
         existingTransaction.setDescription(description);
         existingTransaction.setMerchantName("Test Merchant");
-        existingTransaction.setCategory("FOOD");
+        existingTransaction.setCategoryPrimary("dining");
+        existingTransaction.setCategoryDetailed("dining");
         existingTransaction.setTransactionDate(transactionDate);
         existingTransaction.setCurrencyCode("USD");
         existingTransaction.setCreatedAt(Instant.now());
@@ -131,7 +133,8 @@ class TransactionCompositeKeyDeduplicationIntegrationTest {
         existingTransaction.setAmount(amount);
         existingTransaction.setDescription(description);
         existingTransaction.setMerchantName("Starbucks");
-        existingTransaction.setCategory("FOOD");
+        existingTransaction.setCategoryPrimary("dining");
+        existingTransaction.setCategoryDetailed("dining");
         existingTransaction.setTransactionDate(transactionDate);
         existingTransaction.setCurrencyCode("USD");
         existingTransaction.setCreatedAt(Instant.now());
@@ -172,7 +175,8 @@ class TransactionCompositeKeyDeduplicationIntegrationTest {
         existingTransaction.setAmount(amount);
         existingTransaction.setDescription(""); // Empty description
         existingTransaction.setMerchantName(merchantName); // Use merchantName
-        existingTransaction.setCategory("SHOPPING");
+        existingTransaction.setCategoryPrimary("shopping");
+        existingTransaction.setCategoryDetailed("shopping");
         existingTransaction.setTransactionDate(transactionDate);
         existingTransaction.setCurrencyCode("USD");
         existingTransaction.setCreatedAt(Instant.now());
@@ -206,7 +210,8 @@ class TransactionCompositeKeyDeduplicationIntegrationTest {
         existingTransaction.setPlaidTransactionId("plaid-old-" + UUID.randomUUID());
         existingTransaction.setAmount(existingAmount);
         existingTransaction.setDescription(description);
-        existingTransaction.setCategory("FOOD");
+        existingTransaction.setCategoryPrimary("dining");
+        existingTransaction.setCategoryDetailed("dining");
         existingTransaction.setTransactionDate(transactionDate);
         existingTransaction.setCurrencyCode("USD");
         existingTransaction.setCreatedAt(Instant.now());
@@ -240,7 +245,8 @@ class TransactionCompositeKeyDeduplicationIntegrationTest {
         existingTransaction.setPlaidTransactionId("plaid-old-" + UUID.randomUUID());
         existingTransaction.setAmount(amount);
         existingTransaction.setDescription(description);
-        existingTransaction.setCategory("FOOD");
+        existingTransaction.setCategoryPrimary("dining");
+        existingTransaction.setCategoryDetailed("dining");
         existingTransaction.setTransactionDate(existingDate);
         existingTransaction.setCurrencyCode("USD");
         existingTransaction.setCreatedAt(Instant.now());
@@ -276,7 +282,8 @@ class TransactionCompositeKeyDeduplicationIntegrationTest {
         existingTransaction.setAmount(amount);
         existingTransaction.setDescription(description);
         existingTransaction.setMerchantName("Shell");
-        existingTransaction.setCategory("GAS");
+        existingTransaction.setCategoryPrimary("transportation");
+        existingTransaction.setCategoryDetailed("transportation");
         existingTransaction.setTransactionDate(transactionDate);
         existingTransaction.setCurrencyCode("USD");
         existingTransaction.setCreatedAt(Instant.now());

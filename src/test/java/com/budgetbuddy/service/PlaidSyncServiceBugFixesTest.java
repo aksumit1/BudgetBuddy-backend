@@ -180,9 +180,12 @@ class PlaidSyncServiceBugFixesTest {
         ArgumentCaptor<TransactionTable> transactionCaptor = ArgumentCaptor.forClass(TransactionTable.class);
         verify(transactionRepository).saveIfPlaidTransactionNotExists(transactionCaptor.capture());
         TransactionTable savedTransaction = transactionCaptor.getValue();
-        assertNotNull(savedTransaction.getCategory(), "Category should not be null");
-        assertEquals("Other", savedTransaction.getCategory(), 
-                "Null category should default to 'Other'");
+        assertNotNull(savedTransaction.getCategoryPrimary(), "Category primary should not be null");
+        assertEquals("other", savedTransaction.getCategoryPrimary(), 
+                "Null category should default to 'other'");
+        assertNotNull(savedTransaction.getCategoryDetailed(), "Category detailed should not be null");
+        assertEquals("other", savedTransaction.getCategoryDetailed(), 
+                "Null category detailed should default to 'other'");
     }
 
     @Test
@@ -287,6 +290,8 @@ class PlaidSyncServiceBugFixesTest {
         if (category != null) {
             transaction.category(category);
         }
+        // CRITICAL: Set accountId so transaction can be grouped with account in batched sync
+        transaction.accountId("plaid-account-1");
         transaction.isoCurrencyCode("USD");
         transaction.pending(false);
         return transaction;

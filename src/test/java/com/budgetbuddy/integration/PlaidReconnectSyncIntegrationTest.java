@@ -155,7 +155,8 @@ class PlaidReconnectSyncIntegrationTest {
         transaction1.setAmount(new BigDecimal("-50.00"));
         transaction1.setDescription("Grocery Store");
         transaction1.setMerchantName("Grocery Store");
-        transaction1.setCategory("Groceries");
+        transaction1.setCategoryPrimary("groceries");
+        transaction1.setCategoryDetailed("groceries");
         transaction1.setTransactionDate(java.time.LocalDate.now().toString());
         transaction1.setCurrencyCode("USD");
         transaction1.setCreatedAt(Instant.now());
@@ -169,7 +170,8 @@ class PlaidReconnectSyncIntegrationTest {
         transaction2.setAmount(new BigDecimal("-25.00"));
         transaction2.setDescription("Coffee Shop");
         transaction2.setMerchantName("Coffee Shop");
-        transaction2.setCategory("Food & Drink");
+        transaction2.setCategoryPrimary("dining");
+        transaction2.setCategoryDetailed("dining");
         transaction2.setTransactionDate(java.time.LocalDate.now().toString());
         transaction2.setCurrencyCode("USD");
         transaction2.setCreatedAt(Instant.now());

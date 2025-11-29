@@ -124,8 +124,9 @@ class PlaidSyncServiceAccountNumberTest {
         plaidSyncService.syncAccounts(testUser, "test-access-token", null);
 
         // Then - Should update existing account instead of creating duplicate
+        // Account may be saved multiple times: once for plaidAccountId, once for institutionName, and once for other updates
         verify(accountRepository, never()).saveIfNotExists(any(AccountTable.class));
-        verify(accountRepository).save(argThat(account -> 
+        verify(accountRepository, atLeastOnce()).save(argThat(account -> 
                 account.getAccountId().equals(existingAccount.getAccountId()) &&
                 accountNumber.equals(account.getAccountNumber())
         ));

@@ -242,6 +242,7 @@ class PlaidSyncServiceTest {
 
         Transaction transaction1 = new Transaction();
         transaction1.setTransactionId("plaid-transaction-1");
+        transaction1.setAccountId("plaid-account-1"); // CRITICAL: Set accountId for grouping
         transaction1.setAmount(100.0);
         transaction1.setDate(java.time.LocalDate.now());
         transaction1.setName("Test Transaction 1");
@@ -250,6 +251,7 @@ class PlaidSyncServiceTest {
 
         Transaction transaction2 = new Transaction();
         transaction2.setTransactionId("plaid-transaction-2");
+        transaction2.setAccountId("plaid-account-1"); // CRITICAL: Set accountId for grouping
         transaction2.setAmount(-50.0);
         transaction2.setDate(java.time.LocalDate.now().minusDays(1));
         transaction2.setName("Test Transaction 2");

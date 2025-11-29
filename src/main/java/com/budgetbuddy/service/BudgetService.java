@@ -95,7 +95,7 @@ public class BudgetService {
                     user.getUserId(), startDateStr, endDateStr);
 
             BigDecimal currentSpent = transactions.stream()
-                    .filter(t -> t != null && category.equals(t.getCategory()))
+                    .filter(t -> t != null && (category.equals(t.getCategoryPrimary()) || category.equals(t.getCategoryDetailed())))
                     .map(TransactionTable::getAmount)
                     .filter((amount) -> amount != null)
                     .reduce(BigDecimal.ZERO, BigDecimal::add);

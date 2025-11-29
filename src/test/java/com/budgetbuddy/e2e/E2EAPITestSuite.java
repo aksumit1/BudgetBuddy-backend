@@ -371,7 +371,8 @@ public class E2EAPITestSuite {
         transaction.setAmount(BigDecimal.valueOf(100.00));
         transaction.setTransactionDate(LocalDate.now().toString());
         transaction.setDescription("Test Transaction");
-        transaction.setCategory("food");
+        transaction.setCategoryPrimary("dining");
+        transaction.setCategoryDetailed("dining");
         transactionRepository.save(transaction);
         return transaction;
     }

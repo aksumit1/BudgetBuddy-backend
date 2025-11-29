@@ -2,8 +2,10 @@ package com.budgetbuddy.security.circuitbreaker;
 
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 
 import java.time.Duration;
 
@@ -16,6 +18,8 @@ import java.time.Duration;
 public class CircuitBreakerConfig {
 
     @Bean
+    @Primary
+    @ConditionalOnMissingBean
     public CircuitBreakerRegistry circuitBreakerRegistry() {
         io.github.resilience4j.circuitbreaker.CircuitBreakerConfig config = io.github.resilience4j.circuitbreaker.CircuitBreakerConfig.custom()
                 .failureRateThreshold(50) // Open circuit if 50% of requests fail

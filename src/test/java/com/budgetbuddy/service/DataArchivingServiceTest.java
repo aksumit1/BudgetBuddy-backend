@@ -113,7 +113,8 @@ class DataArchivingServiceTest {
         transaction.setUserId(UUID.randomUUID().toString());
         transaction.setAmount(amount);
         transaction.setTransactionDate(LocalDate.now().format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE));
-        transaction.setCategory("FOOD");
+        transaction.setCategoryPrimary("dining");
+        transaction.setCategoryDetailed("dining");
         return transaction;
     }
 }

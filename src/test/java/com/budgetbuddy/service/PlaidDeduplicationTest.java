@@ -275,7 +275,11 @@ class PlaidDeduplicationTest {
         existingTransaction.setPlaidTransactionId(testPlaidTransactionId);
         existingTransaction.setDescription("Existing Transaction");
 
+        // Mock to return existing transaction for all calls (each sync processes transactions per account)
+        // The sync is called 3 times, and each time it processes transactions, so findByPlaidTransactionId is called once per sync
         when(transactionRepository.findByPlaidTransactionId(testPlaidTransactionId))
+                .thenReturn(Optional.of(existingTransaction))
+                .thenReturn(Optional.of(existingTransaction))
                 .thenReturn(Optional.of(existingTransaction));
 
         // Mock Plaid response
@@ -302,13 +306,22 @@ class PlaidDeduplicationTest {
 
         when(plaidService.getTransactions(anyString(), any(), any())).thenReturn(transactionsResponse);
         
-        // Mock account lookup
+        // Mock account lookup - ensure lastSyncedAt is null initially so sync isn't skipped
         AccountTable account = new AccountTable();
         account.setAccountId(UUID.randomUUID().toString());
         account.setPlaidAccountId(testPlaidAccountId);
+        account.setLastSyncedAt(null); // Ensure first sync isn't skipped
         when(accountRepository.findByPlaidAccountId(testPlaidAccountId))
                 .thenReturn(Optional.of(account));
+        // Reset lastSyncedAt between syncs to avoid skipping due to 5-minute threshold
         when(accountRepository.findByUserId(testUserId)).thenReturn(Collections.singletonList(account));
+        // Mock account save to prevent lastSyncedAt from being updated
+        doAnswer(invocation -> {
+            AccountTable savedAccount = invocation.getArgument(0);
+            // Don't update lastSyncedAt in the mock to allow multiple syncs
+            savedAccount.setLastSyncedAt(null);
+            return null;
+        }).when(accountRepository).save(any(AccountTable.class));
 
         // When - Sync transactions multiple times
         plaidSyncService.syncTransactions(testUser, "test-access-token");
@@ -316,9 +329,15 @@ class PlaidDeduplicationTest {
         plaidSyncService.syncTransactions(testUser, "test-access-token");
 
         // Then - Transaction should only be updated, never duplicated
-        verify(transactionRepository, atLeast(3)).findByPlaidTransactionId(testPlaidTransactionId);
+        // Since findByPlaidTransactionId returns existing transaction, saveIfPlaidTransactionNotExists should never be called
+        // Instead, save() should be called to update the existing transaction
+        // Note: Each sync processes transactions per account, so findByPlaidTransactionId is called once per transaction per sync
+        // Since we have 1 transaction and 1 account, it's called once per sync = 3 times total
+        verify(transactionRepository, times(3)).findByPlaidTransactionId(testPlaidTransactionId);
+        // When transaction exists, we update it directly with save(), not saveIfPlaidTransactionNotExists
         verify(transactionRepository, never()).saveIfPlaidTransactionNotExists(any(TransactionTable.class));
-        verify(transactionRepository, atLeastOnce()).save(any(TransactionTable.class));
+        // save() should be called to update the existing transaction on each sync
+        verify(transactionRepository, atLeast(1)).save(any(TransactionTable.class));
     }
 }
 

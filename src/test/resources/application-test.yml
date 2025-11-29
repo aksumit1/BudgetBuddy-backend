@@ -54,6 +54,26 @@ app:
       min-version: TLSv1.2
       enabled-protocols: TLSv1.2,TLSv1.3
 
+# Resilience4j Circuit Breaker Configuration for Tests
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10s
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        permittedNumberOfCallsInHalfOpenState: 3
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+    instances:
+      plaid:
+        failureRateThreshold: 70
+        waitDurationInOpenState: 30s
+        slidingWindowSize: 30
+        minimumNumberOfCalls: 15
+        permittedNumberOfCallsInHalfOpenState: 5
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+
 # Logging
 logging:
   level:

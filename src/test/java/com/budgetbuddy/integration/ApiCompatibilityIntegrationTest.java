@@ -134,7 +134,8 @@ class ApiCompatibilityIntegrationTest {
         assertTrue(json.contains("\"accountId\""), "JSON must contain 'accountId' field");
         assertTrue(json.contains("\"amount\""), "JSON must contain 'amount' field");
         assertTrue(json.contains("\"transactionDate\""), "JSON must contain 'transactionDate' field");
-        assertTrue(json.contains("\"category\""), "JSON must contain 'category' field");
+        // Note: TransactionTable uses categoryPrimary and categoryDetailed, not a single "category" field
+        assertTrue(json.contains("\"categoryPrimary\""), "JSON must contain 'categoryPrimary' field");
         assertTrue(json.contains("\"description\""), "JSON must contain 'description' field");
 
         // Verify date format is "YYYY-MM-DD"

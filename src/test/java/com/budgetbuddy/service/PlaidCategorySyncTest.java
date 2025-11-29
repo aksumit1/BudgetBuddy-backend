@@ -19,6 +19,7 @@ import java.util.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.lenient;
 
 /**
  * Integration tests for Plaid category sync
@@ -162,8 +163,9 @@ class PlaidCategorySyncTest {
         when(transactionRepository.findByPlaidTransactionId(anyString())).thenReturn(Optional.empty());
         doReturn(true).when(transactionRepository).saveIfPlaidTransactionNotExists(any(TransactionTable.class));
 
+        // Only stub categoryMapper if it's actually used (when category is null, it may not be called)
         PlaidCategoryMapper.CategoryMapping categoryMapping = new PlaidCategoryMapper.CategoryMapping("other", "other", false);
-        when(categoryMapper.mapPlaidCategory(isNull(), isNull(), anyString(), anyString()))
+        lenient().when(categoryMapper.mapPlaidCategory(isNull(), isNull(), anyString(), anyString()))
                 .thenReturn(categoryMapping);
 
         // When

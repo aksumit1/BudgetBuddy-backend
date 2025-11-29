@@ -654,8 +654,28 @@ public class TransactionRepository {
         if (item.containsKey("merchantName")) {
             transaction.setMerchantName(item.get("merchantName").s());
         }
-        if (item.containsKey("category")) {
-            transaction.setCategory(item.get("category").s());
+        // Handle new category structure (categoryPrimary, categoryDetailed)
+        if (item.containsKey("categoryPrimary")) {
+            transaction.setCategoryPrimary(item.get("categoryPrimary").s());
+        }
+        if (item.containsKey("categoryDetailed")) {
+            transaction.setCategoryDetailed(item.get("categoryDetailed").s());
+        }
+        // Handle legacy category field for backward compatibility during migration
+        if (item.containsKey("category") && !item.containsKey("categoryPrimary")) {
+            // If only legacy category exists, use it for both primary and detailed
+            String legacyCategory = item.get("category").s();
+            transaction.setCategoryPrimary(legacyCategory);
+            transaction.setCategoryDetailed(legacyCategory);
+        }
+        if (item.containsKey("plaidCategoryPrimary")) {
+            transaction.setPlaidCategoryPrimary(item.get("plaidCategoryPrimary").s());
+        }
+        if (item.containsKey("plaidCategoryDetailed")) {
+            transaction.setPlaidCategoryDetailed(item.get("plaidCategoryDetailed").s());
+        }
+        if (item.containsKey("categoryOverridden")) {
+            transaction.setCategoryOverridden(item.get("categoryOverridden").bool());
         }
         if (item.containsKey("transactionDate")) {
             transaction.setTransactionDate(item.get("transactionDate").s());

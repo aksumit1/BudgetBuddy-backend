@@ -168,6 +168,42 @@ public class EnhancedGlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
     }
 
+    @ExceptionHandler(org.springframework.http.converter.HttpMessageNotReadableException.class)
+    public ResponseEntity<ErrorResponse> handleHttpMessageNotReadableException(
+            org.springframework.http.converter.HttpMessageNotReadableException ex, WebRequest request) {
+        String correlationId = MDC.get("correlationId");
+
+        ErrorResponse errorResponse = ErrorResponse.builder()
+                .errorCode("INVALID_INPUT")
+                .message("Invalid request body format. Please check your JSON syntax.")
+                .correlationId(correlationId)
+                .timestamp(Instant.now())
+                .path(request.getDescription(false).replace("uri=", ""))
+                .build();
+
+        logger.warn("Invalid request body format | CorrelationId: {}", correlationId);
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+    }
+
+    @ExceptionHandler(com.fasterxml.jackson.core.JsonParseException.class)
+    public ResponseEntity<ErrorResponse> handleJsonParseException(
+            com.fasterxml.jackson.core.JsonParseException ex, WebRequest request) {
+        String correlationId = MDC.get("correlationId");
+
+        ErrorResponse errorResponse = ErrorResponse.builder()
+                .errorCode("INVALID_INPUT")
+                .message("Invalid JSON format. Please check your request body.")
+                .correlationId(correlationId)
+                .timestamp(Instant.now())
+                .path(request.getDescription(false).replace("uri=", ""))
+                .build();
+
+        logger.warn("JSON parse error | CorrelationId: {}", correlationId);
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGenericException(Exception ex, WebRequest request) {
         String correlationId = MDC.get("correlationId");
@@ -175,6 +211,17 @@ public class EnhancedGlobalExceptionHandler {
         // Check if this is a method not supported exception that wasn't caught by the specific handler
         if (ex instanceof HttpRequestMethodNotSupportedException methodEx) {
             return handleMethodNotSupportedException(methodEx, request);
+        }
+
+        // Check if this is an HTTP message not readable exception (malformed JSON)
+        if (ex instanceof org.springframework.http.converter.HttpMessageNotReadableException) {
+            return handleHttpMessageNotReadableException(
+                    (org.springframework.http.converter.HttpMessageNotReadableException) ex, request);
+        }
+
+        // Check if this is a JSON parse exception
+        if (ex instanceof com.fasterxml.jackson.core.JsonParseException) {
+            return handleJsonParseException((com.fasterxml.jackson.core.JsonParseException) ex, request);
         }
 
         // Sanitize error message - never expose internal details

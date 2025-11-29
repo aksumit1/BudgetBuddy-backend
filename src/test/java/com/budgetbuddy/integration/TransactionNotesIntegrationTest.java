@@ -80,7 +80,8 @@ class TransactionNotesIntegrationTest {
                 BigDecimal.valueOf(-50.00),
                 LocalDate.now(),
                 "Test Transaction",
-                "FOOD",
+                "dining",
+                "dining",
                 transactionId,
                 notes
         );
@@ -108,7 +109,8 @@ class TransactionNotesIntegrationTest {
                 BigDecimal.valueOf(-50.00),
                 LocalDate.now(),
                 "Test Transaction",
-                "FOOD",
+                "dining",
+                "dining",
                 transactionId,
                 "" // Empty notes
         );
@@ -135,7 +137,8 @@ class TransactionNotesIntegrationTest {
                 BigDecimal.valueOf(-50.00),
                 LocalDate.now(),
                 "Test Transaction",
-                "FOOD",
+                "dining",
+                "dining",
                 transactionId,
                 null // Null notes
         );
@@ -155,7 +158,8 @@ class TransactionNotesIntegrationTest {
                 BigDecimal.valueOf(-50.00),
                 LocalDate.now(),
                 "Test Transaction",
-                "FOOD",
+                "dining",
+                "dining",
                 transactionId,
                 null
         );
@@ -189,7 +193,8 @@ class TransactionNotesIntegrationTest {
                 BigDecimal.valueOf(-50.00),
                 LocalDate.now(),
                 "Test Transaction",
-                "FOOD",
+                "dining",
+                "dining",
                 transactionId,
                 "Original note"
         );
@@ -222,7 +227,8 @@ class TransactionNotesIntegrationTest {
                 BigDecimal.valueOf(-50.00),
                 LocalDate.now(),
                 "Test Transaction",
-                "FOOD",
+                "dining",
+                "dining",
                 transactionId,
                 "Original note"
         );
@@ -251,7 +257,8 @@ class TransactionNotesIntegrationTest {
                 BigDecimal.valueOf(-50.00),
                 LocalDate.now(),
                 "Test Transaction",
-                "FOOD",
+                "dining",
+                "dining",
                 transactionId,
                 originalNotes
         );
@@ -287,7 +294,8 @@ class TransactionNotesIntegrationTest {
                 BigDecimal.valueOf(-50.00),
                 LocalDate.now(),
                 "Test Transaction",
-                "FOOD",
+                "dining",
+                "dining",
                 transactionId,
                 notesWithWhitespace
         );
@@ -310,7 +318,8 @@ class TransactionNotesIntegrationTest {
                 BigDecimal.valueOf(-50.00),
                 LocalDate.now(),
                 "Test Transaction",
-                "FOOD",
+                "dining",
+                "dining",
                 transactionId,
                 whitespaceOnly
         );

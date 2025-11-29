@@ -2,6 +2,7 @@ package com.budgetbuddy.security.rate;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 import software.amazon.awssdk.services.dynamodb.model.*;
@@ -24,6 +25,9 @@ import java.util.concurrent.atomic.AtomicLong;
 public class RateLimitService {
 
     private static final Logger logger = LoggerFactory.getLogger(RateLimitService.class);
+    
+    @Value("${app.rate-limit.enabled:true}")
+    private boolean rateLimitEnabled;
 
     // Rate limits per endpoint type
     private static final Map<String, RateLimitConfig> ENDPOINT_LIMITS = Map.of(
@@ -60,6 +64,11 @@ public class RateLimitService {
      * Thread-safe implementation
      */
     public boolean isAllowed(final String userId, final String endpoint) {
+        // If rate limiting is disabled, always allow
+        if (!rateLimitEnabled) {
+            return true;
+        }
+        
         if (userId == null || userId.isEmpty()) {
             logger.warn("User ID is null or empty");
             return false;

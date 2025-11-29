@@ -106,12 +106,13 @@ class TransactionControllerTest {
         request.setAmount(BigDecimal.valueOf(100.00));
         request.setTransactionDate(LocalDate.now());
         request.setDescription("Test transaction");
-        request.setCategory("FOOD");
+        request.setCategoryPrimary("dining");
+        request.setCategoryDetailed("dining");
 
         TransactionTable mockTransaction = createTransaction("tx-1");
         when(userService.findByEmail("test@example.com")).thenReturn(java.util.Optional.of(testUser));
         // Updated to match the new method signature with transactionId, notes, plaidAccountId, and plaidTransactionId
-        when(transactionService.createTransaction(any(), anyString(), any(), any(), anyString(), anyString(), any(), any(), any(), any()))
+        when(transactionService.createTransaction(eq(testUser), eq("account-123"), any(), any(), anyString(), anyString(), any(), any(), any(), any(), any()))
                 .thenReturn(mockTransaction);
 
         // When
@@ -119,7 +120,8 @@ class TransactionControllerTest {
 
         // Then
         assertEquals(HttpStatus.CREATED, response.getStatusCode());
-        assertNotNull(response.getBody());
+        assertNotNull(response.getBody(), "Response body should not be null");
+        assertEquals("tx-1", response.getBody().getTransactionId());
     }
 
     // Helper methods

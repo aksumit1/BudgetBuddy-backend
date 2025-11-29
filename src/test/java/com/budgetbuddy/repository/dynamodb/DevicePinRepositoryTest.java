@@ -256,27 +256,26 @@ class DevicePinRepositoryTest {
     @Test
     void testInitializeTable_WhenTableNotFound_LogsWarning() {
         // Given - Create new repository with ResourceNotFoundException
-        // The initializeTable() method calls enhancedClient.table() twice:
-        // 1. First call in try block throws ResourceNotFoundException
-        // 2. Second call in catch block succeeds
+        // The initializeTable() method calls enhancedClient.table() once in try block
+        // If it throws ResourceNotFoundException, we log and set devicePinTable to null
+        // The table will be initialized on first use (lazy initialization)
         ResourceNotFoundException notFoundException = ResourceNotFoundException.builder()
                 .message("Table not found")
                 .build();
         
-        // Clear invocations from setUp() to only count calls from this test
-        clearInvocations(enhancedClient);
+        // Reset the mock to clear previous invocations from setUp()
+        reset(enhancedClient);
         when(enhancedClient.table(eq("BudgetBuddy-DevicePin"), any(TableSchema.class)))
-                .thenThrow(notFoundException)
-                .thenReturn(devicePinTable);
+                .thenThrow(notFoundException);
 
         // When - Repository should handle the exception gracefully
         DevicePinRepository repo = new DevicePinRepository(enhancedClient);
 
-        // Then - Repository should still be initialized (second call succeeds)
-        // Note: The constructor calls initializeTable() which makes 2 calls (try + catch)
-        // After clearInvocations, we should only see the 2 calls from this test's repository creation
+        // Then - Repository should handle exception gracefully
+        // The constructor calls initializeTable() which makes 1 call (in try block)
+        // After reset, we should only see 1 call from this test's repository creation
         assertNotNull(repo);
-        verify(enhancedClient, times(2)).table(eq("BudgetBuddy-DevicePin"), any(TableSchema.class));
+        verify(enhancedClient, times(1)).table(eq("BudgetBuddy-DevicePin"), any(TableSchema.class));
     }
 }
 

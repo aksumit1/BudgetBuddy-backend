@@ -73,7 +73,7 @@ public class AnalyticsService {
 
         Map<String, BigDecimal> categorySpending = new HashMap<>();
         transactions.forEach((transaction) -> {
-            String category = transaction.getCategory();
+            String category = transaction.getCategoryPrimary() != null ? transaction.getCategoryPrimary() : transaction.getCategoryDetailed();
             if (category != null) {
                 BigDecimal amount = transaction.getAmount();
                 if (amount != null) {

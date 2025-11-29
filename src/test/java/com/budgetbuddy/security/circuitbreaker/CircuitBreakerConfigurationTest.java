@@ -1,11 +1,13 @@
 package com.budgetbuddy.security.circuitbreaker;
 
+import com.budgetbuddy.AWSTestConfiguration;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -14,8 +16,12 @@ import static org.junit.jupiter.api.Assertions.*;
  * Tests for Circuit Breaker Configuration
  * Verifies that Plaid circuit breaker has appropriate settings for handling transient failures
  */
-@SpringBootTest
+@SpringBootTest(classes = com.budgetbuddy.BudgetBuddyApplication.class, 
+        properties = {
+            "spring.autoconfigure.exclude=org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration"
+        })
 @ActiveProfiles("test")
+@Import(AWSTestConfiguration.class)
 class CircuitBreakerConfigurationTest {
 
     @Autowired

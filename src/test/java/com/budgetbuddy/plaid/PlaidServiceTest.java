@@ -20,35 +20,36 @@ class PlaidServiceTest {
     private PCIDSSComplianceService pciDSSComplianceService;
 
     @Test
-    void testPlaidService_Constructor_WithNullClientId_ThrowsException() {
-        // When/Then
-        assertThrows(IllegalArgumentException.class, () -> {
+    void testPlaidService_Constructor_WithNullClientId_UsesPlaceholder() {
+        // When/Then - Constructor now allows null/empty and uses placeholders (will fail on actual API calls)
+        // This allows service creation for scripts/analysis without credentials
+        assertDoesNotThrow(() -> {
             new PlaidService(null, "secret", "sandbox", "https://app.budgetbuddy.com/plaid/callback", "https://api.budgetbuddy.com/api/plaid/webhooks", pciDSSComplianceService);
-        });
+        }, "Should create PlaidService with null clientId (uses placeholder)");
     }
 
     @Test
-    void testPlaidService_Constructor_WithEmptyClientId_ThrowsException() {
-        // When/Then
-        assertThrows(IllegalArgumentException.class, () -> {
+    void testPlaidService_Constructor_WithEmptyClientId_UsesPlaceholder() {
+        // When/Then - Constructor now allows null/empty and uses placeholders (will fail on actual API calls)
+        assertDoesNotThrow(() -> {
             new PlaidService("", "secret", "sandbox", "https://app.budgetbuddy.com/plaid/callback", "https://api.budgetbuddy.com/api/plaid/webhooks", pciDSSComplianceService);
-        });
+        }, "Should create PlaidService with empty clientId (uses placeholder)");
     }
 
     @Test
-    void testPlaidService_Constructor_WithNullSecret_ThrowsException() {
-        // When/Then
-        assertThrows(IllegalArgumentException.class, () -> {
+    void testPlaidService_Constructor_WithNullSecret_UsesPlaceholder() {
+        // When/Then - Constructor now allows null/empty and uses placeholders (will fail on actual API calls)
+        assertDoesNotThrow(() -> {
             new PlaidService("clientId", null, "sandbox", "https://app.budgetbuddy.com/plaid/callback", "https://api.budgetbuddy.com/api/plaid/webhooks", pciDSSComplianceService);
-        });
+        }, "Should create PlaidService with null secret (uses placeholder)");
     }
 
     @Test
-    void testPlaidService_Constructor_WithEmptySecret_ThrowsException() {
-        // When/Then
-        assertThrows(IllegalArgumentException.class, () -> {
+    void testPlaidService_Constructor_WithEmptySecret_UsesPlaceholder() {
+        // When/Then - Constructor now allows null/empty and uses placeholders (will fail on actual API calls)
+        assertDoesNotThrow(() -> {
             new PlaidService("clientId", "", "sandbox", "https://app.budgetbuddy.com/plaid/callback", "https://api.budgetbuddy.com/api/plaid/webhooks", pciDSSComplianceService);
-        });
+        }, "Should create PlaidService with empty secret (uses placeholder)");
     }
 
     @Test
