@@ -45,6 +45,9 @@ class UserControllerIntegrationTest {
 
     @BeforeEach
     void setUp() {
+        // Clear security context to ensure clean state for each test
+        org.springframework.security.core.context.SecurityContextHolder.clearContext();
+        
         // Create a test user
         String email = "test-" + UUID.randomUUID() + "@example.com";
         // Use proper base64-encoded strings
@@ -73,6 +76,9 @@ class UserControllerIntegrationTest {
 
     @Test
     void testGetCurrentUser_WithoutAuthentication_Returns401() throws Exception {
+        // Given - Clear security context to ensure no authentication
+        org.springframework.security.core.context.SecurityContextHolder.clearContext();
+        
         // When/Then - Should return 401 if user is not authenticated
         mockMvc.perform(get("/api/users/me")
                         .contentType(MediaType.APPLICATION_JSON))

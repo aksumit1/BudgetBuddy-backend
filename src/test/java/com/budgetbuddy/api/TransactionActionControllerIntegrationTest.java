@@ -75,6 +75,9 @@ class TransactionActionControllerIntegrationTest {
 
     @BeforeEach
     void setUp() {
+        // Clear security context to ensure clean state for each test
+        org.springframework.security.core.context.SecurityContextHolder.clearContext();
+        
         testEmail = "test-" + UUID.randomUUID() + "@example.com";
 
         // Create test user
@@ -248,6 +251,9 @@ class TransactionActionControllerIntegrationTest {
 
     @Test
     void testGetActions_WithoutAuthentication_ReturnsUnauthorized() throws Exception {
+        // Given - Clear security context to ensure no authentication
+        org.springframework.security.core.context.SecurityContextHolder.clearContext();
+        
         // When/Then
         mockMvc.perform(get("/api/transactions/{transactionId}/actions", testTransaction.getTransactionId())
                         .contentType(MediaType.APPLICATION_JSON))

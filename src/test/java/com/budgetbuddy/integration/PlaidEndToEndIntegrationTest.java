@@ -103,7 +103,7 @@ class PlaidEndToEndIntegrationTest {
         assertNotNull(retrievedAccount, "Account should be found");
         assertTrue(retrievedAccount.getActive(), "Account should be active");
         assertEquals("Plaid E2E Test Account", retrievedAccount.getAccountName());
-        assertEquals(new BigDecimal("2000.00"), retrievedAccount.getBalance());
+        assertEquals(0, new BigDecimal("2000.00").compareTo(retrievedAccount.getBalance()), "Balance should be 2000.00");
     }
 
     @Test

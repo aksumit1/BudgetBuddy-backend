@@ -114,7 +114,7 @@ class TransactionCompositeKeyDeduplicationIntegrationTest {
         assertTrue(found.isPresent(), "Should find transaction by composite key");
         assertEquals(existingTransaction.getTransactionId(), found.get().getTransactionId(),
                 "Should return existing transaction");
-        assertEquals(amount, found.get().getAmount());
+        assertEquals(0, amount.compareTo(found.get().getAmount()), "Amount should match");
         assertEquals(description, found.get().getDescription());
     }
 
@@ -327,7 +327,7 @@ class TransactionCompositeKeyDeduplicationIntegrationTest {
         
         Optional<TransactionTable> finalTransaction = transactionRepository.findByPlaidTransactionId(newPlaidId);
         assertTrue(finalTransaction.isPresent(), "Transaction should have new Plaid ID");
-        assertEquals(amount, finalTransaction.get().getAmount(), "Amount should be preserved");
+        assertEquals(0, amount.compareTo(finalTransaction.get().getAmount()), "Amount should be preserved");
     }
 }
 

@@ -192,7 +192,7 @@ class PlaidReconnectSyncIntegrationTest {
                 .orElse(null);
         assertNotNull(retrievedTx1, "Transaction 1 should be found");
         assertEquals("Grocery Store", retrievedTx1.getDescription());
-        assertEquals(new BigDecimal("-50.00"), retrievedTx1.getAmount());
+        assertEquals(0, new BigDecimal("-50.00").compareTo(retrievedTx1.getAmount()), "Amount should be -50.00");
         
         TransactionTable retrievedTx2 = retrieved.stream()
                 .filter(t -> t.getTransactionId().equals(transaction2.getTransactionId()))
@@ -200,7 +200,7 @@ class PlaidReconnectSyncIntegrationTest {
                 .orElse(null);
         assertNotNull(retrievedTx2, "Transaction 2 should be found");
         assertEquals("Coffee Shop", retrievedTx2.getDescription());
-        assertEquals(new BigDecimal("-25.00"), retrievedTx2.getAmount());
+        assertEquals(0, new BigDecimal("-25.00").compareTo(retrievedTx2.getAmount()), "Amount should be -25.00");
     }
 
     @Test

@@ -126,7 +126,6 @@ public class TransactionTable {
      * Returns categoryPrimary if available, otherwise categoryDetailed
      */
     @JsonProperty("category")
-    @com.fasterxml.jackson.annotation.JsonIgnore
     public String getCategory() {
         if (categoryPrimary != null && !categoryPrimary.isEmpty()) {
             return categoryPrimary;

@@ -1,7 +1,12 @@
 package com.budgetbuddy.integration;
 
 import com.budgetbuddy.AWSTestConfiguration;
+import com.budgetbuddy.dto.AuthRequest;
+import com.budgetbuddy.dto.AuthResponse;
+import com.budgetbuddy.model.dynamodb.UserTable;
 import com.budgetbuddy.security.ddos.NotFoundErrorTrackingService;
+import com.budgetbuddy.service.AuthService;
+import com.budgetbuddy.service.UserService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -13,6 +18,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.util.Base64;
 import java.util.UUID;
 
 import org.hamcrest.core.StringContains;
@@ -40,10 +46,18 @@ class NotFoundErrorTrackingIntegrationTest {
     @Autowired
     private ObjectMapper objectMapper;
 
+    @Autowired
+    private UserService userService;
+
+    @Autowired
+    private AuthService authService;
+
     private String testIp1;
     private String testIp2;
     private String nonExistentTransactionId;
     private String nonExistentAccountId;
+    private String authToken;
+    private UserTable testUser;
 
     @BeforeEach
     void setUp() {
@@ -52,13 +66,38 @@ class NotFoundErrorTrackingIntegrationTest {
         testIp2 = "192.168.1." + (200 + (int)(Math.random() * 100));
         nonExistentTransactionId = UUID.randomUUID().toString();
         nonExistentAccountId = UUID.randomUUID().toString();
+        
+        // Create test user and authenticate for protected endpoint tests
+        String testEmail = "test-404-" + UUID.randomUUID() + "@example.com";
+        String passwordHash = Base64.getEncoder().encodeToString("hashed-password".getBytes());
+        String clientSalt = Base64.getEncoder().encodeToString("client-salt".getBytes());
+        
+        testUser = userService.createUserSecure(
+                testEmail,
+                passwordHash,
+                clientSalt,
+                "Test",
+                "User"
+        );
+        
+        // Authenticate to get token
+        AuthRequest authRequest = new AuthRequest(testEmail, passwordHash, clientSalt);
+        AuthResponse authResponse = authService.authenticate(authRequest);
+        authToken = authResponse.getAccessToken();
+    }
+    
+    /**
+     * Helper method to add JWT token to request
+     */
+    private org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder withAuth(org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder builder) {
+        return builder.header("Authorization", "Bearer " + authToken);
     }
 
     @Test
     void testSingle404Error_ShouldNotBlock() throws Exception {
-        // Given - A single 404 request
-        // When - Making a request to non-existent resource
-        mockMvc.perform(get("/api/transactions/" + nonExistentTransactionId + "/actions")
+        // Given - A single 404 request (authenticated to reach endpoint)
+        // When - Making a request to non-existent transaction (this endpoint returns 404)
+        mockMvc.perform(withAuth(get("/api/transactions/" + nonExistentTransactionId))
                         .header("X-Forwarded-For", testIp1)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isNotFound());
@@ -75,7 +114,7 @@ class NotFoundErrorTrackingIntegrationTest {
 
         // When - Making multiple 404 requests
         for (int i = 0; i < requests; i++) {
-            mockMvc.perform(get("/api/transactions/" + UUID.randomUUID() + "/actions")
+            mockMvc.perform(withAuth(get("/api/transactions/" + UUID.randomUUID()))
                             .header("X-Forwarded-For", testIp1)
                             .contentType(MediaType.APPLICATION_JSON))
                     .andExpect(status().isNotFound());
@@ -93,7 +132,7 @@ class NotFoundErrorTrackingIntegrationTest {
 
         // When - Making excessive 404 requests
         for (int i = 0; i < requests; i++) {
-            mockMvc.perform(get("/api/transactions/" + UUID.randomUUID() + "/actions")
+            mockMvc.perform(withAuth(get("/api/transactions/" + UUID.randomUUID()))
                             .header("X-Forwarded-For", testIp1)
                             .contentType(MediaType.APPLICATION_JSON))
                     .andExpect(status().isNotFound());
@@ -107,7 +146,7 @@ class NotFoundErrorTrackingIntegrationTest {
                 "Exceeding per-minute threshold should block the source");
 
         // And - Subsequent requests should return 429
-        mockMvc.perform(get("/api/transactions/" + UUID.randomUUID() + "/actions")
+        mockMvc.perform(withAuth(get("/api/transactions/" + UUID.randomUUID()))
                         .header("X-Forwarded-For", testIp1)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isTooManyRequests())
@@ -123,7 +162,7 @@ class NotFoundErrorTrackingIntegrationTest {
 
         // When - Making excessive 404 requests
         for (int i = 0; i < requests; i++) {
-            mockMvc.perform(get("/api/transactions/" + UUID.randomUUID() + "/actions")
+            mockMvc.perform(withAuth(get("/api/transactions/" + UUID.randomUUID()))
                             .header("X-Forwarded-For", testIp1)
                             .contentType(MediaType.APPLICATION_JSON))
                     .andExpect(status().isNotFound());
@@ -144,7 +183,7 @@ class NotFoundErrorTrackingIntegrationTest {
 
         // When - IP1 makes excessive 404s
         for (int i = 0; i < requests; i++) {
-            mockMvc.perform(get("/api/transactions/" + UUID.randomUUID() + "/actions")
+            mockMvc.perform(withAuth(get("/api/transactions/" + UUID.randomUUID()))
                             .header("X-Forwarded-For", testIp1)
                             .contentType(MediaType.APPLICATION_JSON))
                     .andExpect(status().isNotFound());
@@ -161,7 +200,7 @@ class NotFoundErrorTrackingIntegrationTest {
                 "IP2 should not be blocked (different source)");
 
         // And - IP2 can still make requests
-        mockMvc.perform(get("/api/transactions/" + UUID.randomUUID() + "/actions")
+        mockMvc.perform(withAuth(get("/api/transactions/" + UUID.randomUUID()))
                         .header("X-Forwarded-For", testIp2)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isNotFound());
@@ -172,7 +211,7 @@ class NotFoundErrorTrackingIntegrationTest {
         // Given - Source is blocked due to excessive 404s
         int requests = 25; // Above threshold
         for (int i = 0; i < requests; i++) {
-            mockMvc.perform(get("/api/transactions/" + UUID.randomUUID() + "/actions")
+            mockMvc.perform(withAuth(get("/api/transactions/" + UUID.randomUUID()))
                             .header("X-Forwarded-For", testIp1)
                             .contentType(MediaType.APPLICATION_JSON))
                     .andExpect(status().isNotFound());
@@ -183,7 +222,7 @@ class NotFoundErrorTrackingIntegrationTest {
 
         // When - Making any request (even valid ones) from blocked source
         // Then - Should return 429 Too Many Requests
-        mockMvc.perform(get("/api/transactions")
+        mockMvc.perform(withAuth(get("/api/transactions"))
                         .header("X-Forwarded-For", testIp1)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isTooManyRequests())
@@ -198,27 +237,15 @@ class NotFoundErrorTrackingIntegrationTest {
         String validPath = "/api/transactions";
         
         // When - Making mix of requests
-        // Valid request (should not count) - may return 200, 401, or 403 depending on auth
-        try {
-            mockMvc.perform(get(validPath)
-                            .header("X-Forwarded-For", testIp1)
-                            .contentType(MediaType.APPLICATION_JSON))
-                    .andExpect(status().isOk());
-        } catch (AssertionError e) {
-            // If not OK, might be 401 or 403 - that's fine, we just want to verify it's not a 404
-            try {
-                mockMvc.perform(get(validPath)
-                                .header("X-Forwarded-For", testIp1)
-                                .contentType(MediaType.APPLICATION_JSON))
-                        .andExpect(status().isUnauthorized());
-            } catch (AssertionError e2) {
-                // Might be 403 or other status - that's acceptable for this test
-            }
-        }
+        // Valid request (should not count) - authenticated request should return 200
+        mockMvc.perform(withAuth(get(validPath))
+                        .header("X-Forwarded-For", testIp1)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk());
 
         // 404 requests (should count)
         for (int i = 0; i < 25; i++) {
-            mockMvc.perform(get("/api/transactions/" + UUID.randomUUID() + "/actions")
+            mockMvc.perform(withAuth(get("/api/transactions/" + UUID.randomUUID()))
                             .header("X-Forwarded-For", testIp1)
                             .contentType(MediaType.APPLICATION_JSON))
                     .andExpect(status().isNotFound());
@@ -238,20 +265,20 @@ class NotFoundErrorTrackingIntegrationTest {
 
         // When - Making 404s to different endpoints
         for (int i = 0; i < requests / 3; i++) {
-            // Transaction actions endpoint
-            mockMvc.perform(get("/api/transactions/" + UUID.randomUUID() + "/actions")
+            // Transaction endpoint
+            mockMvc.perform(withAuth(get("/api/transactions/" + UUID.randomUUID()))
                             .header("X-Forwarded-For", testIp1)
                             .contentType(MediaType.APPLICATION_JSON))
                     .andExpect(status().isNotFound());
 
             // Account endpoint
-            mockMvc.perform(get("/api/accounts/" + UUID.randomUUID())
+            mockMvc.perform(withAuth(get("/api/accounts/" + UUID.randomUUID()))
                             .header("X-Forwarded-For", testIp1)
                             .contentType(MediaType.APPLICATION_JSON))
                     .andExpect(status().isNotFound());
 
             // Budget endpoint
-            mockMvc.perform(get("/api/budgets/" + UUID.randomUUID())
+            mockMvc.perform(withAuth(get("/api/budgets/" + UUID.randomUUID()))
                             .header("X-Forwarded-For", testIp1)
                             .contentType(MediaType.APPLICATION_JSON))
                     .andExpect(status().isNotFound());
@@ -271,7 +298,7 @@ class NotFoundErrorTrackingIntegrationTest {
 
         // When - Making requests with X-Real-IP header
         for (int i = 0; i < requests; i++) {
-            mockMvc.perform(get("/api/transactions/" + UUID.randomUUID() + "/actions")
+            mockMvc.perform(withAuth(get("/api/transactions/" + UUID.randomUUID()))
                             .header("X-Real-IP", testIp1)
                             .contentType(MediaType.APPLICATION_JSON))
                     .andExpect(status().isNotFound());
@@ -294,7 +321,7 @@ class NotFoundErrorTrackingIntegrationTest {
 
         // When - Making requests without IP headers
         for (int i = 0; i < requests; i++) {
-            mockMvc.perform(get("/api/transactions/" + UUID.randomUUID() + "/actions")
+            mockMvc.perform(withAuth(get("/api/transactions/" + UUID.randomUUID()))
                             .contentType(MediaType.APPLICATION_JSON))
                     .andExpect(status().isNotFound());
         }
@@ -311,7 +338,7 @@ class NotFoundErrorTrackingIntegrationTest {
         // Given - Source is blocked
         int requests = 25;
         for (int i = 0; i < requests; i++) {
-            mockMvc.perform(get("/api/transactions/" + UUID.randomUUID() + "/actions")
+            mockMvc.perform(withAuth(get("/api/transactions/" + UUID.randomUUID()))
                             .header("X-Forwarded-For", testIp1)
                             .contentType(MediaType.APPLICATION_JSON))
                     .andExpect(status().isNotFound());
@@ -321,7 +348,7 @@ class NotFoundErrorTrackingIntegrationTest {
 
         // When - Making request from blocked source
         // Then - Error response should have correct format
-        mockMvc.perform(get("/api/transactions")
+        mockMvc.perform(withAuth(get("/api/transactions"))
                         .header("X-Forwarded-For", testIp1)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isTooManyRequests())
@@ -348,7 +375,7 @@ class NotFoundErrorTrackingIntegrationTest {
             final int requestNum = i;
             executor.submit(() -> {
                 try {
-                    mockMvc.perform(get("/api/transactions/" + UUID.randomUUID() + "/actions")
+                    mockMvc.perform(withAuth(get("/api/transactions/" + UUID.randomUUID()))
                                     .header("X-Forwarded-For", testIp1)
                                     .contentType(MediaType.APPLICATION_JSON))
                             .andExpect(status().isNotFound());
