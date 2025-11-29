@@ -37,12 +37,49 @@ public class CircuitBreakerConfig {
 
     @Bean
     public CircuitBreaker plaidCircuitBreaker(final CircuitBreakerRegistry registry) {
-        return registry.circuitBreaker("plaid", io.github.resilience4j.circuitbreaker.CircuitBreakerConfig.custom()
-                .failureRateThreshold(60) // Higher threshold for external service
-                .waitDurationInOpenState(Duration.ofMinutes(1))
-                .slidingWindowSize(20)
-                .minimumNumberOfCalls(10)
-                .build());
+        io.github.resilience4j.circuitbreaker.CircuitBreakerConfig config = io.github.resilience4j.circuitbreaker.CircuitBreakerConfig.custom()
+                .failureRateThreshold(70) // Higher threshold for external service (70% failure rate)
+                .waitDurationInOpenState(Duration.ofMinutes(2)) // Wait 2 minutes before half-open
+                .slidingWindowSize(30) // Look at last 30 calls (more buffer)
+                .minimumNumberOfCalls(15) // Need at least 15 calls before opening (prevents premature opening)
+                .permittedNumberOfCallsInHalfOpenState(5) // Allow 5 test calls in half-open
+                .automaticTransitionFromOpenToHalfOpenEnabled(true)
+                .recordExceptions(
+                        java.net.ConnectException.class,
+                        java.net.SocketTimeoutException.class,
+                        java.util.concurrent.TimeoutException.class,
+                        org.springframework.web.client.HttpServerErrorException.class,
+                        com.budgetbuddy.exception.AppException.class // Record AppException as failure
+                )
+                .build();
+        
+        CircuitBreaker circuitBreaker = registry.circuitBreaker("plaid", config);
+        
+        // Add event listener to log circuit breaker state transitions
+        circuitBreaker.getEventPublisher()
+                .onStateTransition(event -> {
+                    org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(CircuitBreakerConfig.class);
+                    logger.warn("⚠️ Plaid Circuit Breaker state transition: {} -> {} (at {})", 
+                            event.getStateTransition().getFromState(),
+                            event.getStateTransition().getToState(),
+                            java.time.Instant.now());
+                })
+                .onFailureRateExceeded(event -> {
+                    org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(CircuitBreakerConfig.class);
+                    logger.error("🚨 Plaid Circuit Breaker failure rate exceeded: {}%", 
+                            event.getFailureRate());
+                })
+                .onCallNotPermitted(event -> {
+                    org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(CircuitBreakerConfig.class);
+                    io.github.resilience4j.circuitbreaker.CircuitBreaker.Metrics metrics = circuitBreaker.getMetrics();
+                    logger.warn("🚫 Plaid Circuit Breaker call not permitted - circuit is OPEN. " +
+                            "Metrics: failureRate={}%, numberOfBufferedCalls={}, numberOfFailedCalls={}", 
+                            metrics.getFailureRate(),
+                            metrics.getNumberOfBufferedCalls(),
+                            metrics.getNumberOfFailedCalls());
+                });
+        
+        return circuitBreaker;
     }
 
     @Bean

@@ -108,6 +108,25 @@ public class PlaidSyncService {
 
                     // CRITICAL: Check if account exists by plaidAccountId first (primary deduplication key)
                     Optional<AccountTable> existingAccount = accountRepository.findByPlaidAccountId(accountId);
+                    
+                    // If not found by plaidAccountId, also check by account number + institution
+                    // This provides additional deduplication when plaidAccountId might be missing or changed
+                    if (existingAccount.isEmpty()) {
+                        // First update account to get account number and institution name
+                        AccountTable tempAccount = new AccountTable();
+                        updateAccountFromPlaid(tempAccount, plaidAccount);
+                        String accountNumber = tempAccount.getAccountNumber();
+                        String institutionName = tempAccount.getInstitutionName();
+                        if (accountNumber != null && !accountNumber.isEmpty() 
+                                && institutionName != null && !institutionName.isEmpty()) {
+                            existingAccount = accountRepository.findByAccountNumberAndInstitution(
+                                    accountNumber, institutionName, user.getUserId());
+                            if (existingAccount.isPresent()) {
+                                logger.info("Found existing account by account number {} and institution {} (plaidAccountId: {})", 
+                                        accountNumber, institutionName, accountId);
+                            }
+                        }
+                    }
 
                     AccountTable account;
                     if (existingAccount.isPresent()) {
@@ -502,6 +521,44 @@ public class PlaidSyncService {
     }
 
     /**
+     * Extract account number (mask) from Plaid account
+     */
+    private String extractAccountNumber(final Object plaidAccount) {
+        try {
+            if (plaidAccount instanceof com.plaid.client.model.AccountBase) {
+                com.plaid.client.model.AccountBase accountBase = (com.plaid.client.model.AccountBase) plaidAccount;
+                String mask = accountBase.getMask();
+                if (mask != null && !mask.isEmpty()) {
+                    return mask;
+                }
+            }
+            // Try reflection
+            try {
+                java.lang.reflect.Method getMask = plaidAccount.getClass().getMethod("getMask");
+                Object mask = getMask.invoke(plaidAccount);
+                if (mask != null) {
+                    return mask.toString();
+                }
+            } catch (Exception e) {
+                logger.debug("Could not extract account mask: {}", e.getMessage());
+            }
+        } catch (Exception e) {
+            logger.debug("Error extracting account number: {}", e.getMessage());
+        }
+        return null;
+    }
+
+    /**
+     * Extract institution name from Plaid account
+     */
+    private String extractInstitutionName(final Object plaidAccount) {
+        // Institution name is typically not in AccountBase, it's in the Item
+        // For now, we'll get it from the account's institutionName if available
+        // This is a simplified version - in production, you might need to look up the Item
+        return null; // Will be set from account's institutionName field
+    }
+
+    /**
      * Extract account ID from Plaid account
      */
     private String extractAccountId(final Object plaidAccount) {
@@ -653,6 +710,13 @@ public class PlaidSyncService {
                             account.setAccountName("Unknown Account");
                         }
                     }
+                }
+                
+                // Extract and store account number/mask for deduplication
+                String mask = accountBase.getMask();
+                if (mask != null && !mask.isEmpty()) {
+                    account.setAccountNumber(mask);
+                    logger.debug("Stored account mask/number: {} for account: {}", mask, account.getAccountName());
                 }
                 
                 // Extract account type and subtype

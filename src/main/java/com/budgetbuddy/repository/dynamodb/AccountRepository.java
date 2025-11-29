@@ -158,6 +158,33 @@ public class AccountRepository {
     }
 
     /**
+     * Find account by account number (mask) and institution name
+     * Used for deduplication when plaidAccountId is not available
+     * Note: This scans the table, so for production with large datasets, consider adding a GSI
+     */
+    public Optional<AccountTable> findByAccountNumberAndInstitution(String accountNumber, String institutionName, String userId) {
+        if (accountNumber == null || accountNumber.isEmpty() || institutionName == null || institutionName.isEmpty()) {
+            return Optional.empty();
+        }
+        
+        try {
+            // Query by userId first (using GSI) for efficiency
+            List<AccountTable> userAccounts = findByUserId(userId);
+            
+            // Filter by account number and institution name
+            return userAccounts.stream()
+                    .filter(account -> accountNumber.equals(account.getAccountNumber()) 
+                            && institutionName.equals(account.getInstitutionName()))
+                    .findFirst();
+        } catch (Exception e) {
+            org.slf4j.LoggerFactory.getLogger(AccountRepository.class)
+                    .error("Error finding account by account number {} and institution {}: {}", 
+                            accountNumber, institutionName, e.getMessage(), e);
+            return Optional.empty();
+        }
+    }
+
+    /**
      * Find all accounts by Plaid item ID
      * Used for webhook processing to find all accounts associated with a Plaid item
      */

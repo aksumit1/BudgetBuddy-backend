@@ -276,13 +276,26 @@ resilience4j:
     instances:
       plaid:
         registerHealthIndicator: true
-        slidingWindowSize: 10
-        minimumNumberOfCalls: 5
-        permittedNumberOfCallsInHalfOpenState: 3
+        # More lenient settings for Plaid (external service with potential transient failures)
+        # Sliding window: Look at last 30 calls (more buffer for genuine failures)
+        slidingWindowSize: 30
+        # Minimum calls: Need at least 15 calls before circuit can open (prevents premature opening)
+        minimumNumberOfCalls: 15
+        # Half-open state: Allow 5 test calls to verify service recovery
+        permittedNumberOfCallsInHalfOpenState: 5
         automaticTransitionFromOpenToHalfOpenEnabled: true
-        waitDurationInOpenState: 10s
-        failureRateThreshold: 50
+        # Wait 2 minutes before trying half-open (gives Plaid time to recover from rate limits/outages)
+        waitDurationInOpenState: 2m
+        # Failure rate: Open circuit only if 70% of requests fail (more tolerant of transient errors)
+        failureRateThreshold: 70
         eventConsumerBufferSize: 10
+        # Record exceptions that should count as failures
+        recordExceptions:
+          - java.net.ConnectException
+          - java.net.SocketTimeoutException
+          - java.util.concurrent.TimeoutException
+          - org.springframework.web.client.HttpServerErrorException
+          - com.budgetbuddy.exception.AppException
   retry:
     instances:
       plaid:

@@ -24,6 +24,7 @@ public class AccountTable {
     private String currencyCode;
     private String plaidAccountId; // GSI for Plaid lookup
     private String plaidItemId;
+    private String accountNumber; // Account number/mask (last 4 digits) for deduplication
     private Boolean active;
     private Instant lastSyncedAt;
     private Instant createdAt;
@@ -120,6 +121,15 @@ public class AccountTable {
 
     public void setPlaidItemId(final String plaidItemId) {
         this.plaidItemId = plaidItemId;
+    }
+
+    @DynamoDbAttribute("accountNumber")
+    public String getAccountNumber() {
+        return accountNumber;
+    }
+
+    public void setAccountNumber(final String accountNumber) {
+        this.accountNumber = accountNumber;
     }
 
     @DynamoDbAttribute("active")

@@ -297,6 +297,21 @@ public class PlaidService {
             // Convert String dates to LocalDate for Plaid API
             java.time.LocalDate startLocalDate = java.time.LocalDate.parse(startDate);
             java.time.LocalDate endLocalDate = java.time.LocalDate.parse(endDate);
+            
+            // Validate date range
+            if (startLocalDate.isAfter(endLocalDate)) {
+                throw new AppException(ErrorCode.INVALID_INPUT, 
+                        String.format("Start date (%s) cannot be after end date (%s)", startDate, endDate));
+            }
+            
+            // Validate date range is not too large (Plaid allows max 2 years)
+            long daysBetween = java.time.temporal.ChronoUnit.DAYS.between(startLocalDate, endLocalDate);
+            if (daysBetween > 730) {
+                logger.warn("Date range exceeds 2 years ({} days). Plaid may limit results.", daysBetween);
+            }
+
+            logger.debug("Plaid: Requesting transactions for date range: {} to {} ({} days)", 
+                    startDate, endDate, daysBetween);
 
             // First request
             TransactionsGetRequest request = new TransactionsGetRequest()
@@ -304,10 +319,31 @@ public class PlaidService {
                     .startDate(startLocalDate)
                     .endDate(endLocalDate);
 
-            TransactionsGetResponse response = plaidApi.transactionsGet(request).execute().body();
+            // Execute request and check response
+            retrofit2.Response<TransactionsGetResponse> httpResponse = plaidApi.transactionsGet(request).execute();
+            
+            if (!httpResponse.isSuccessful()) {
+                String errorBody = "No error body";
+                try {
+                    if (httpResponse.errorBody() != null) {
+                        errorBody = httpResponse.errorBody().string();
+                    }
+                } catch (Exception e) {
+                    logger.warn("Could not read error body: {}", e.getMessage());
+                    errorBody = "Could not read error body: " + e.getMessage();
+                }
+                logger.error("Plaid API error: HTTP {} - {}", httpResponse.code(), errorBody);
+                throw new AppException(ErrorCode.PLAID_CONNECTION_FAILED, 
+                        String.format("Plaid API returned error: HTTP %d - %s", httpResponse.code(), errorBody));
+            }
+            
+            TransactionsGetResponse response = httpResponse.body();
 
             if (response == null) {
-                throw new AppException(ErrorCode.PLAID_CONNECTION_FAILED, "Failed to get transactions");
+                logger.error("Plaid API returned null response body for date range: {} to {}", startDate, endDate);
+                throw new AppException(ErrorCode.PLAID_CONNECTION_FAILED, 
+                        String.format("Failed to get transactions: null response body (date range: %s to %s)", 
+                                startDate, endDate));
             }
 
             // Handle pagination - Plaid API may return transactions in pages
@@ -424,10 +460,40 @@ public class PlaidService {
             return response;
         } catch (AppException e) {
             throw e;
-        } catch (Exception e) {
-            logger.error("Plaid: Failed to get transactions: {}", e.getMessage(), e);
+        } catch (java.time.format.DateTimeParseException e) {
+            logger.error("Plaid: Invalid date format - startDate: {}, endDate: {}, error: {}", 
+                    startDate, endDate, e.getMessage());
+            throw new AppException(ErrorCode.INVALID_INPUT,
+                    String.format("Invalid date format: %s", e.getMessage()), null, null, e);
+        } catch (retrofit2.HttpException e) {
+            String errorMessage = "Unknown error";
+            try {
+                retrofit2.Response<?> response = e.response();
+                if (response != null) {
+                    var errorBody = response.errorBody();
+                    if (errorBody != null) {
+                        errorMessage = errorBody.string();
+                    } else {
+                        errorMessage = e.getMessage() != null ? e.getMessage() : "No error message";
+                    }
+                } else {
+                    errorMessage = e.getMessage() != null ? e.getMessage() : "No response";
+                }
+            } catch (Exception ex) {
+                errorMessage = e.getMessage() != null ? e.getMessage() : "Could not read error details";
+            }
+            logger.error("Plaid HTTP error: {} - {}", e.code(), errorMessage, e);
             throw new AppException(ErrorCode.PLAID_CONNECTION_FAILED,
-                    "Failed to get transactions", null, null, e);
+                    String.format("Plaid API HTTP error %d: %s", e.code(), errorMessage), null, null, e);
+        } catch (java.io.IOException e) {
+            logger.error("Plaid: Network/IO error getting transactions: {}", e.getMessage(), e);
+            throw new AppException(ErrorCode.PLAID_CONNECTION_FAILED,
+                    String.format("Network error connecting to Plaid: %s", e.getMessage()), null, null, e);
+        } catch (Exception e) {
+            logger.error("Plaid: Failed to get transactions (accessToken length: {}, startDate: {}, endDate: {}): {}", 
+                    accessToken != null ? accessToken.length() : 0, startDate, endDate, e.getMessage(), e);
+            throw new AppException(ErrorCode.PLAID_CONNECTION_FAILED,
+                    String.format("Failed to get transactions: %s", e.getMessage()), null, null, e);
         }
     }
 
