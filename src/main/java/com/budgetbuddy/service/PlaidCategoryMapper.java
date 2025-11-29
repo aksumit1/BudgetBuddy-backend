@@ -167,11 +167,16 @@ public class PlaidCategoryMapper {
             mappedDetailed = DETAILED_CATEGORY_MAP.get(plaidCategoryDetailed.toUpperCase());
             if (mappedDetailed != null) {
                 logger.debug("Mapped Plaid detailed category '{}' to '{}'", plaidCategoryDetailed, mappedDetailed);
+                // If detailed category is mapped, use it for primary as well (unless primary has a specific mapping)
+                // This ensures consistency (e.g., GROCERIES -> groceries for both primary and detailed)
+                if (mappedPrimary == null) {
+                    mappedPrimary = mappedDetailed;
+                }
             }
         }
         
-        // Map primary category
-        if (plaidCategoryPrimary != null && !plaidCategoryPrimary.isEmpty()) {
+        // Map primary category (only if not already set from detailed category)
+        if (mappedPrimary == null && plaidCategoryPrimary != null && !plaidCategoryPrimary.isEmpty()) {
             mappedPrimary = PRIMARY_CATEGORY_MAP.get(plaidCategoryPrimary.toUpperCase());
             if (mappedPrimary == null) {
                 // If no mapping found, use Plaid's primary category as-is
