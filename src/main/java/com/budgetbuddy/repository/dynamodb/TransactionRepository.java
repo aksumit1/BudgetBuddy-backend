@@ -352,6 +352,52 @@ public class TransactionRepository {
     }
 
     /**
+     * Find transaction by composite key (accountId + amount + date + description/merchantName)
+     * Used as fallback when plaidTransactionId changes due to reconnection/relinking
+     * 
+     * @param accountId Account ID
+     * @param amount Transaction amount
+     * @param transactionDate Transaction date (YYYY-MM-DD)
+     * @param description Transaction description (or merchantName if description is null)
+     * @param userId User ID (for scoping)
+     * @return Optional transaction if found
+     */
+    public Optional<TransactionTable> findByCompositeKey(
+            final String accountId,
+            final java.math.BigDecimal amount,
+            final String transactionDate,
+            final String description,
+            final String userId) {
+        if (accountId == null || accountId.isEmpty() ||
+            amount == null ||
+            transactionDate == null || transactionDate.isEmpty() ||
+            userId == null || userId.isEmpty()) {
+            return Optional.empty();
+        }
+        
+        // Get all transactions for this user and account
+        // Then filter by amount, date, and description/merchantName
+        List<TransactionTable> userTransactions = findByUserId(userId, 0, Integer.MAX_VALUE);
+        
+        return userTransactions.stream()
+                .filter(t -> accountId.equals(t.getAccountId()))
+                .filter(t -> amount.compareTo(t.getAmount()) == 0)
+                .filter(t -> transactionDate.equals(t.getTransactionDate()))
+                .filter(t -> {
+                    // Match by description or merchantName
+                    if (description != null && !description.isEmpty()) {
+                        String txDescription = t.getDescription();
+                        String txMerchant = t.getMerchantName();
+                        // Match if description matches or merchantName matches
+                        return (txDescription != null && txDescription.equals(description)) ||
+                               (txMerchant != null && txMerchant.equals(description));
+                    }
+                    return true; // If description is null, don't filter by it
+                })
+                .findFirst();
+    }
+
+    /**
      * Save transaction only if Plaid transaction ID doesn't exist (conditional write)
      * Prevents duplicate Plaid transactions
      * 

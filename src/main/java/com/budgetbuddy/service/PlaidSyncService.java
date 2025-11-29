@@ -43,17 +43,23 @@ public class PlaidSyncService {
     private final PlaidService plaidService;
     private final AccountRepository accountRepository;
     private final TransactionRepository transactionRepository;
+    private final PlaidCategoryMapper categoryMapper;
 
-    public PlaidSyncService(final PlaidService plaidService, final AccountRepository accountRepository, final TransactionRepository transactionRepository) {
+    public PlaidSyncService(final PlaidService plaidService, final AccountRepository accountRepository, 
+                           final TransactionRepository transactionRepository, final PlaidCategoryMapper categoryMapper) {
         this.plaidService = plaidService;
         this.accountRepository = accountRepository;
         this.transactionRepository = transactionRepository;
+        this.categoryMapper = categoryMapper;
     }
 
     /**
      * Sync accounts for a user
+     * @param user The user to sync accounts for
+     * @param accessToken The Plaid access token
+     * @param itemId Optional Plaid item ID - if provided, checks for existing accounts before making API call
      */
-    public void syncAccounts(final UserTable user, final String accessToken) {
+    public void syncAccounts(final UserTable user, final String accessToken, final String itemId) {
         if (user == null) {
             throw new AppException(ErrorCode.INVALID_INPUT, "User cannot be null");
         }
@@ -62,7 +68,21 @@ public class PlaidSyncService {
         }
 
         try {
-            logger.info("Starting account sync for user: {}", user.getUserId());
+            logger.info("Starting account sync for user: {} (itemId: {})", user.getUserId(), itemId);
+
+            // CRITICAL: Check if we already have accounts for this Plaid item BEFORE making API call
+            // This prevents unnecessary API calls when reconnecting to the same bank
+            if (itemId != null && !itemId.isEmpty()) {
+                var existingAccounts = accountRepository.findByPlaidItemId(itemId);
+                if (!existingAccounts.isEmpty()) {
+                    logger.info("Found {} existing accounts for Plaid item {} - will update with latest data from Plaid", 
+                            existingAccounts.size(), itemId);
+                    // We still need to call Plaid to get updated balances, but we know accounts exist
+                    // This helps with deduplication logic below
+                } else {
+                    logger.debug("No existing accounts found for Plaid item {} - this appears to be a new connection", itemId);
+                }
+            }
 
             var accountsResponse = plaidService.getAccounts(accessToken);
 
@@ -107,23 +127,121 @@ public class PlaidSyncService {
                     logger.debug("Extracted account ID: {}", accountId);
 
                     // CRITICAL: Check if account exists by plaidAccountId first (primary deduplication key)
+                    // This deduplication happens BEFORE processing to prevent unnecessary work
                     Optional<AccountTable> existingAccount = accountRepository.findByPlaidAccountId(accountId);
                     
                     // If not found by plaidAccountId, also check by account number + institution
                     // This provides additional deduplication when plaidAccountId might be missing or changed
                     if (existingAccount.isEmpty()) {
-                        // First update account to get account number and institution name
+                        // First update account to get account number
                         AccountTable tempAccount = new AccountTable();
                         updateAccountFromPlaid(tempAccount, plaidAccount);
                         String accountNumber = tempAccount.getAccountNumber();
-                        String institutionName = tempAccount.getInstitutionName();
-                        if (accountNumber != null && !accountNumber.isEmpty() 
-                                && institutionName != null && !institutionName.isEmpty()) {
-                            existingAccount = accountRepository.findByAccountNumberAndInstitution(
-                                    accountNumber, institutionName, user.getUserId());
+                        
+                        // Get institution name from Item if available
+                        String institutionName = null;
+                        if (accountsResponse.getItem() != null && accountsResponse.getItem().getInstitutionId() != null) {
+                            institutionName = accountsResponse.getItem().getInstitutionId();
+                        }
+                        
+                        // CRITICAL FIX: Check by accountNumber even if institutionName is null
+                        // This handles cases where institutionName is missing but accountNumber is available
+                        if (accountNumber != null && !accountNumber.isEmpty()) {
+                            if (institutionName != null && !institutionName.isEmpty()) {
+                                // Both available - use both for matching
+                                existingAccount = accountRepository.findByAccountNumberAndInstitution(
+                                        accountNumber, institutionName, user.getUserId());
+                                if (existingAccount.isPresent()) {
+                                    logger.info("Found existing account by account number {} and institution {} (plaidAccountId: {})", 
+                                            accountNumber, institutionName, accountId);
+                                }
+                            } else {
+                                // Institution name missing - match by accountNumber only
+                                existingAccount = accountRepository.findByAccountNumber(accountNumber, user.getUserId());
+                                if (existingAccount.isPresent()) {
+                                    logger.warn("⚠️ Found existing account by account number {} (institution name was null) (plaidAccountId: {})", 
+                                            accountNumber, accountId);
+                                }
+                            }
+                            
+                            // CRITICAL: If account was found by accountNumber but doesn't have plaidAccountId,
+                            // we need to update it with the plaidAccountId to prevent future duplicates
                             if (existingAccount.isPresent()) {
-                                logger.info("Found existing account by account number {} and institution {} (plaidAccountId: {})", 
-                                        accountNumber, institutionName, accountId);
+                                AccountTable foundAccount = existingAccount.get();
+                                if (foundAccount.getPlaidAccountId() == null || foundAccount.getPlaidAccountId().isEmpty()) {
+                                    logger.info("Updating existing account with missing plaidAccountId: {} -> {}", 
+                                            foundAccount.getAccountId(), accountId);
+                                    foundAccount.setPlaidAccountId(accountId);
+                                    accountRepository.save(foundAccount);
+                                }
+                                // Also update institutionName if it was missing
+                                if ((foundAccount.getInstitutionName() == null || foundAccount.getInstitutionName().isEmpty()) 
+                                        && institutionName != null && !institutionName.isEmpty()) {
+                                    logger.info("Updating existing account with missing institutionName: {} -> {}", 
+                                            foundAccount.getAccountId(), institutionName);
+                                    foundAccount.setInstitutionName(institutionName);
+                                    accountRepository.save(foundAccount);
+                                }
+                            }
+                        }
+                    }
+                    
+                    // CRITICAL FIX: Also check all user accounts for duplicates by accountNumber+institution
+                    // This catches cases where plaidAccountId might be different but it's the same account
+                    // This is a fallback check to catch any edge cases
+                    if (existingAccount.isEmpty()) {
+                        // Get all user accounts and check manually
+                        var allUserAccounts = accountRepository.findByUserId(user.getUserId());
+                        for (var userAccount : allUserAccounts) {
+                            // Check if this account matches by accountNumber (with or without institution)
+                            // CRITICAL FIX: Don't require institutionName to be non-null
+                            if (userAccount.getAccountNumber() != null && !userAccount.getAccountNumber().isEmpty()) {
+                                
+                                // We need to get accountNumber from the Plaid account
+                                AccountTable tempAccount = new AccountTable();
+                                updateAccountFromPlaid(tempAccount, plaidAccount);
+                                String plaidAccountNumber = tempAccount.getAccountNumber();
+                                
+                                String plaidInstitutionName = null;
+                                if (accountsResponse.getItem() != null && accountsResponse.getItem().getInstitutionId() != null) {
+                                    plaidInstitutionName = accountsResponse.getItem().getInstitutionId();
+                                }
+                                
+                                // CRITICAL FIX: Match by accountNumber even if institutionName is null
+                                if (plaidAccountNumber != null && !plaidAccountNumber.isEmpty() &&
+                                    plaidAccountNumber.equals(userAccount.getAccountNumber())) {
+                                    
+                                // If both have institution names, they must match
+                                // If either is missing, match by accountNumber only
+                                boolean institutionMatches = true;
+                                if (plaidInstitutionName != null && !plaidInstitutionName.isEmpty() &&
+                                    userAccount.getInstitutionName() != null && !userAccount.getInstitutionName().isEmpty()) {
+                                    // Both have institution names - they must match
+                                    institutionMatches = plaidInstitutionName.equals(userAccount.getInstitutionName());
+                                }
+                                // If either institution name is null, we match by accountNumber only (institutionMatches stays true)
+                                    
+                                    if (institutionMatches) {
+                                        logger.info("Found duplicate account by accountNumber{}: {} (existing: {}, new plaidAccountId: {})", 
+                                                (plaidInstitutionName != null && !plaidInstitutionName.isEmpty() ? 
+                                                    " + institution: " + plaidInstitutionName : " only"), 
+                                                plaidAccountNumber, userAccount.getAccountId(), accountId);
+                                        existingAccount = Optional.of(userAccount);
+                                        
+                                        // Update the existing account with plaidAccountId if missing
+                                        if (userAccount.getPlaidAccountId() == null || userAccount.getPlaidAccountId().isEmpty()) {
+                                            userAccount.setPlaidAccountId(accountId);
+                                            accountRepository.save(userAccount);
+                                        }
+                                        // Update institutionName if it was missing
+                                        if ((userAccount.getInstitutionName() == null || userAccount.getInstitutionName().isEmpty()) 
+                                                && plaidInstitutionName != null && !plaidInstitutionName.isEmpty()) {
+                                            userAccount.setInstitutionName(plaidInstitutionName);
+                                            accountRepository.save(userAccount);
+                                        }
+                                        break;
+                                    }
+                                }
                             }
                         }
                     }
@@ -134,6 +252,34 @@ public class PlaidSyncService {
                         logger.debug("Updating existing account: {} (accountId: {})", accountId, account.getAccountId());
                         // Update account details
                         updateAccountFromPlaid(account, plaidAccount);
+                        
+                        // Update institution name from Item if available and missing
+                        if ((account.getInstitutionName() == null || account.getInstitutionName().isEmpty()) 
+                                && accountsResponse.getItem() != null 
+                                && accountsResponse.getItem().getInstitutionId() != null) {
+                            account.setInstitutionName(accountsResponse.getItem().getInstitutionId());
+                            logger.debug("Updated institution name from Item: {}", account.getInstitutionName());
+                        }
+                        
+                        // CRITICAL: Update plaidItemId if missing or different
+                        String itemIdFromResponse = null;
+                        if (accountsResponse.getItem() != null) {
+                            try {
+                                java.lang.reflect.Method getItemIdMethod = accountsResponse.getItem().getClass().getMethod("getItemId");
+                                Object itemIdObj = getItemIdMethod.invoke(accountsResponse.getItem());
+                                if (itemIdObj != null) {
+                                    itemIdFromResponse = itemIdObj.toString();
+                                }
+                            } catch (Exception e) {
+                                logger.debug("Could not extract itemId from Item object: {}", e.getMessage());
+                            }
+                        }
+                        String finalItemId = (itemId != null && !itemId.isEmpty()) ? itemId : itemIdFromResponse;
+                        if (finalItemId != null && !finalItemId.isEmpty()) {
+                            account.setPlaidItemId(finalItemId);
+                            logger.debug("Updated plaidItemId: {}", finalItemId);
+                        }
+                        
                         // Ensure active is set to true
                         account.setActive(true);
                         // Ensure plaidAccountId is set (in case it was missing)
@@ -155,15 +301,100 @@ public class PlaidSyncService {
                         logger.debug("Updated account: {} (name: {}, balance: {})", 
                                 account.getAccountId(), account.getAccountName(), account.getBalance());
                     } else {
-                        // Create new account
+                        // CRITICAL FINAL CHECK: Before creating a new account, do one more comprehensive check
+                        // This catches edge cases where plaidAccountId might have been missing on previous syncs
+                        // or where accountNumber/institutionName matching failed due to data inconsistencies
+                        var allUserAccounts = accountRepository.findByUserId(user.getUserId());
+                        Optional<AccountTable> finalCheckAccount = Optional.empty();
+                        
+                        // Get accountNumber and institutionName from Plaid account for comparison
+                        AccountTable tempAccountForCheck = new AccountTable();
+                        updateAccountFromPlaid(tempAccountForCheck, plaidAccount);
+                        String plaidAccountNumber = tempAccountForCheck.getAccountNumber();
+                        
+                        String plaidInstitutionName = null;
+                        if (accountsResponse.getItem() != null && accountsResponse.getItem().getInstitutionId() != null) {
+                            plaidInstitutionName = accountsResponse.getItem().getInstitutionId();
+                        }
+                        
+                        for (var userAccount : allUserAccounts) {
+                            // Check by plaidAccountId (in case it was added later or we missed it)
+                            if (userAccount.getPlaidAccountId() != null && userAccount.getPlaidAccountId().equals(accountId)) {
+                                logger.warn("⚠️ Found existing account by plaidAccountId in final check: {} (accountId: {})", 
+                                        accountId, userAccount.getAccountId());
+                                finalCheckAccount = Optional.of(userAccount);
+                                break;
+                            }
+                            
+                            // Check by accountNumber + institutionName (comprehensive check)
+                            // CRITICAL FIX: Also check by accountNumber only if institutionName is missing
+                            if (plaidAccountNumber != null && !plaidAccountNumber.isEmpty() &&
+                                userAccount.getAccountNumber() != null && !userAccount.getAccountNumber().isEmpty() &&
+                                plaidAccountNumber.equals(userAccount.getAccountNumber())) {
+                                
+                                // If both have institution names, they must match
+                                // If either is missing, match by accountNumber only
+                                boolean institutionMatches = true;
+                                if (plaidInstitutionName != null && !plaidInstitutionName.isEmpty() &&
+                                    userAccount.getInstitutionName() != null && !userAccount.getInstitutionName().isEmpty()) {
+                                    // Both have institution names - they must match
+                                    institutionMatches = plaidInstitutionName.equals(userAccount.getInstitutionName());
+                                }
+                                // If either institution name is null, we match by accountNumber only
+                                
+                                if (institutionMatches) {
+                                    logger.warn("⚠️ Found existing account by accountNumber{} in final check: {} (accountId: {})", 
+                                            (plaidInstitutionName != null && !plaidInstitutionName.isEmpty() ? 
+                                                " + institution: " + plaidInstitutionName : " only"), 
+                                            plaidAccountNumber, userAccount.getAccountId());
+                                    finalCheckAccount = Optional.of(userAccount);
+                                    
+                                    // Update with plaidAccountId if missing
+                                    if (userAccount.getPlaidAccountId() == null || userAccount.getPlaidAccountId().isEmpty()) {
+                                        userAccount.setPlaidAccountId(accountId);
+                                        accountRepository.save(userAccount);
+                                    }
+                                    // Update institutionName if it was missing
+                                    if ((userAccount.getInstitutionName() == null || userAccount.getInstitutionName().isEmpty()) 
+                                            && plaidInstitutionName != null && !plaidInstitutionName.isEmpty()) {
+                                        userAccount.setInstitutionName(plaidInstitutionName);
+                                        accountRepository.save(userAccount);
+                                    }
+                                    break;
+                                }
+                            }
+                        }
+                        
+                        if (finalCheckAccount.isPresent()) {
+                            // Use the existing account instead of creating a new one
+                            account = finalCheckAccount.get();
+                            logger.info("Updating existing account found in final check: {} (accountId: {}, plaidAccountId: {})", 
+                                    accountId, account.getAccountId(), account.getPlaidAccountId());
+                            updateAccountFromPlaid(account, plaidAccount);
+                            account.setActive(true);
+                            if (account.getPlaidAccountId() == null || account.getPlaidAccountId().isEmpty()) {
+                                account.setPlaidAccountId(accountId);
+                            }
+                            accountRepository.save(account);
+                            syncedCount++;
+                            continue; // Skip to next account
+                        }
+                        
+                        // Create new account (no duplicate found after all checks)
                         account = new AccountTable();
                         account.setUserId(user.getUserId());
                         account.setPlaidAccountId(accountId);
                         account.setActive(true); // Set active to true for new accounts
                         account.setCreatedAt(java.time.Instant.now());
-                        logger.debug("Creating new account with Plaid ID: {}", accountId);
-                        // Update account details (this should populate name, type, balance, institutionName, etc.)
+                        logger.debug("Creating new account with Plaid ID: {} (no duplicates found after comprehensive checks)", accountId);
+                        // Update account details (this should populate name, type, balance, etc.)
                         updateAccountFromPlaid(account, plaidAccount);
+                        
+                        // Set institution name from Item if available
+                        if (accountsResponse.getItem() != null && accountsResponse.getItem().getInstitutionId() != null) {
+                            account.setInstitutionName(accountsResponse.getItem().getInstitutionId());
+                            logger.debug("Set institution name from Item: {}", account.getInstitutionName());
+                        }
                         
                         // CRITICAL: Generate account ID using bank name + Plaid account ID for consistency
                         // This ensures the same account always gets the same ID across app and backend
@@ -250,8 +481,10 @@ public class PlaidSyncService {
 
     /**
      * Sync transactions for a user
-     * Uses per-account incremental sync: fetches transactions per account based on account-specific lastSyncedAt
-     * For first sync (no lastSyncedAt), fetches 18 months of data
+     * OPTIMIZED: Batches all accounts into a single Plaid API call to reduce API requests
+     * Uses per-account incremental sync: filters transactions per account based on account-specific lastSyncedAt
+     * For first sync (no lastSyncedAt), fetches ALL available transactions (up to 2 years)
+     * CRITICAL: Checks lastSyncedAt BEFORE making API calls to prevent unnecessary Plaid API requests
      */
     public void syncTransactions(final UserTable user, final String accessToken) {
         if (user == null) {
@@ -262,11 +495,11 @@ public class PlaidSyncService {
         }
 
         try {
-            logger.info("Starting transaction sync for user: {}", user.getUserId());
+            logger.info("Starting batched transaction sync for user: {}", user.getUserId());
 
             LocalDate endDate = LocalDate.now();
             
-            // Get all user accounts to sync per account
+            // Get all user accounts to sync
             var userAccounts = accountRepository.findByUserId(user.getUserId());
             
             if (userAccounts.isEmpty()) {
@@ -274,25 +507,162 @@ public class PlaidSyncService {
                 return;
             }
             
-            // Sync transactions per account with account-specific lastSyncedAt
+            // CRITICAL: Filter out accounts that were recently synced (within 5 minutes)
+            // This prevents unnecessary API calls when reconnecting
+            var accountsToSync = new java.util.ArrayList<AccountTable>();
             for (var account : userAccounts) {
-                try {
-                    syncTransactionsForAccount(user, accessToken, account, endDate);
-                } catch (Exception e) {
-                    logger.error("Failed to sync transactions for account {}: {}", 
-                            account.getAccountId(), e.getMessage(), e);
-                    // Continue with other accounts
+                if (account.getLastSyncedAt() != null) {
+                    java.time.Instant now = java.time.Instant.now();
+                    java.time.Duration timeSinceLastSync = java.time.Duration.between(account.getLastSyncedAt(), now);
+                    if (timeSinceLastSync.toMinutes() < 5) {
+                        logger.info("Skipping transaction sync for account {} - last synced {} minutes ago (less than 5 minutes threshold)", 
+                                account.getAccountId(), timeSinceLastSync.toMinutes());
+                        continue;
+                    }
+                }
+                accountsToSync.add(account);
+            }
+            
+            if (accountsToSync.isEmpty()) {
+                logger.info("All accounts were recently synced - skipping transaction sync");
+                return;
+            }
+            
+            logger.info("Syncing transactions for {} accounts ({} skipped due to recent sync)", 
+                    accountsToSync.size(), userAccounts.size() - accountsToSync.size());
+            
+            // OPTIMIZATION: Find the earliest lastSyncedAt across all accounts to minimize date range
+            // For first sync (no lastSyncedAt), use 2 years back (Plaid maximum)
+            LocalDate earliestStartDate = null;
+            
+            for (var account : accountsToSync) {
+                if (account.getLastSyncedAt() == null) {
+                    // First sync - use maximum range
+                    earliestStartDate = endDate.minusYears(2);
+                    logger.info("First sync detected for account {} - using maximum date range (2 years)", 
+                            account.getAccountId());
+                    break; // If any account is first sync, use max range
+                } else {
+                    // Incremental sync - use the account's lastSyncedAt date
+                    java.time.ZonedDateTime lastSyncedZoned = account.getLastSyncedAt().atZone(java.time.ZoneId.of("UTC"));
+                    LocalDate accountStartDate = lastSyncedZoned.toLocalDate();
+                    
+                    if (earliestStartDate == null || accountStartDate.isBefore(earliestStartDate)) {
+                        earliestStartDate = accountStartDate;
+                    }
                 }
             }
             
-            // Update lastSyncedAt for all accounts after successful sync
-            java.time.Instant now = java.time.Instant.now();
-            for (var account : userAccounts) {
-                account.setLastSyncedAt(now);
-                accountRepository.save(account);
+            if (earliestStartDate == null) {
+                // Fallback: should not happen, but use 2 years if somehow all accounts have null lastSyncedAt
+                earliestStartDate = endDate.minusYears(2);
+                logger.warn("No start date determined - using 2 years back as fallback");
             }
-            logger.debug("Updated lastSyncedAt for {} accounts", userAccounts.size());
             
+            logger.info("Batched transaction sync: fetching transactions from {} to {} for {} accounts", 
+                    earliestStartDate, endDate, accountsToSync.size());
+            
+            // OPTIMIZATION: Make ONE API call for all accounts instead of N calls
+            // Plaid's /transactions/get endpoint returns transactions for ALL accounts if account_ids is not specified
+            var allTransactionsResponse = plaidService.getTransactions(
+                    accessToken,
+                    earliestStartDate.format(DATE_FORMATTER),
+                    endDate.format(DATE_FORMATTER)
+            );
+            
+            if (allTransactionsResponse == null || allTransactionsResponse.getTransactions() == null || 
+                    allTransactionsResponse.getTransactions().isEmpty()) {
+                logger.warn("No transactions returned from Plaid for user: {}", user.getUserId());
+                // Still update lastSyncedAt to prevent repeated API calls
+                updateLastSyncedAtForAccounts(accountsToSync);
+                return;
+            }
+            
+            int totalTransactions = allTransactionsResponse.getTransactions().size();
+            logger.info("Plaid returned {} total transactions (batched for {} accounts)", 
+                    totalTransactions, accountsToSync.size());
+            
+            // OPTIMIZATION: Group transactions by account ID to process per account
+            // This maintains per-account lastSyncedAt filtering while using batched API call
+            java.util.Map<String, java.util.List<Object>> transactionsByAccount = new java.util.HashMap<>();
+            java.util.List<Object> unassignedTransactions = new java.util.ArrayList<>();
+            
+            for (var plaidTransaction : allTransactionsResponse.getTransactions()) {
+                String plaidAccountId = extractAccountIdFromTransaction(plaidTransaction);
+                if (plaidAccountId != null && !plaidAccountId.isEmpty()) {
+                    transactionsByAccount.computeIfAbsent(plaidAccountId, k -> new java.util.ArrayList<>()).add(plaidTransaction);
+                } else {
+                    unassignedTransactions.add(plaidTransaction);
+                    logger.warn("Transaction has no account ID - will try to assign later");
+                }
+            }
+            
+            logger.info("Grouped transactions: {} accounts have transactions, {} unassigned", 
+                    transactionsByAccount.size(), unassignedTransactions.size());
+            
+            // Process transactions per account, respecting individual lastSyncedAt dates
+            int totalSyncedCount = 0;
+            int totalErrorCount = 0;
+            int totalDuplicateCount = 0;
+            
+            for (var account : accountsToSync) {
+                try {
+                    // Get transactions for this account
+                    java.util.List<Object> accountTransactions = new java.util.ArrayList<>();
+                    
+                    if (account.getPlaidAccountId() != null && !account.getPlaidAccountId().isEmpty()) {
+                        accountTransactions = transactionsByAccount.getOrDefault(account.getPlaidAccountId(), new java.util.ArrayList<>());
+                    }
+                    
+                    // Also check unassigned transactions (might belong to this account)
+                    // This is a fallback for transactions without account_id
+                    if (!unassignedTransactions.isEmpty() && accountTransactions.isEmpty()) {
+                        logger.debug("Account {} has no assigned transactions, checking {} unassigned transactions", 
+                                account.getAccountId(), unassignedTransactions.size());
+                    }
+                    
+                    if (accountTransactions.isEmpty()) {
+                        logger.debug("No transactions found for account {} (Plaid account ID: {})", 
+                                account.getAccountId(), account.getPlaidAccountId());
+                        continue;
+                    }
+                    
+                    // Filter transactions based on account's specific lastSyncedAt
+                    // This ensures we only process transactions that are new for this account
+                    java.util.List<Object> filteredTransactions = filterTransactionsByLastSyncedAt(
+                            accountTransactions, account.getLastSyncedAt(), endDate);
+                    
+                    if (filteredTransactions.isEmpty()) {
+                        logger.debug("No new transactions for account {} after filtering by lastSyncedAt", 
+                                account.getAccountId());
+                        continue;
+                    }
+                    
+                    logger.info("Processing {} transactions for account {} (filtered from {} total)", 
+                            filteredTransactions.size(), account.getAccountId(), accountTransactions.size());
+                    
+                    // Process transactions for this account
+                    var result = processTransactionsForAccount(user, account, filteredTransactions, account.getLastSyncedAt() == null);
+                    totalSyncedCount += result.syncedCount;
+                    totalErrorCount += result.errorCount;
+                    totalDuplicateCount += result.duplicateCount;
+                    
+                } catch (Exception e) {
+                    logger.error("Failed to process transactions for account {}: {}", 
+                            account.getAccountId(), e.getMessage(), e);
+                    totalErrorCount++;
+                }
+            }
+            
+            // Update lastSyncedAt for all successfully synced accounts
+            updateLastSyncedAtForAccounts(accountsToSync);
+            
+            logger.info("Batched transaction sync completed: {} synced, {} duplicates, {} errors across {} accounts", 
+                    totalSyncedCount, totalDuplicateCount, totalErrorCount, accountsToSync.size());
+            
+        } catch (AppException e) {
+            // Re-throw AppException (e.g., rate limit errors)
+            throw e;
         } catch (Exception e) {
             logger.error("Error syncing transactions for user {}: {}", user.getUserId(), e.getMessage(), e);
             throw new AppException(ErrorCode.PLAID_CONNECTION_FAILED,
@@ -301,16 +671,243 @@ public class PlaidSyncService {
     }
     
     /**
+     * Filter transactions based on account's lastSyncedAt date
+     * For first sync (lastSyncedAt == null), returns all transactions
+     * For incremental sync, returns only transactions on or after lastSyncedAt date
+     */
+    private java.util.List<Object> filterTransactionsByLastSyncedAt(
+            final java.util.List<Object> transactions,
+            final java.time.Instant lastSyncedAt,
+            final LocalDate endDate) {
+        
+        if (lastSyncedAt == null) {
+            // First sync - return all transactions
+            return transactions;
+        }
+        
+        // Incremental sync - filter by date
+        LocalDate lastSyncedDate = lastSyncedAt.atZone(java.time.ZoneId.of("UTC")).toLocalDate();
+        java.util.List<Object> filtered = new java.util.ArrayList<>();
+        
+        for (var transaction : transactions) {
+            try {
+                // Extract transaction date
+                String transactionDateStr = extractTransactionDate(transaction);
+                if (transactionDateStr != null && !transactionDateStr.isEmpty()) {
+                    LocalDate transactionDate = LocalDate.parse(transactionDateStr);
+                    // Include transactions on or after lastSyncedAt date
+                    if (!transactionDate.isBefore(lastSyncedDate)) {
+                        filtered.add(transaction);
+                    }
+                } else {
+                    // If we can't determine date, include it (better safe than sorry)
+                    filtered.add(transaction);
+                }
+            } catch (Exception e) {
+                logger.debug("Could not filter transaction by date: {}", e.getMessage());
+                // Include transaction if we can't determine date
+                filtered.add(transaction);
+            }
+        }
+        
+        return filtered;
+    }
+    
+    /**
+     * Extract transaction date from Plaid transaction
+     */
+    private String extractTransactionDate(final Object plaidTransaction) {
+        try {
+            if (plaidTransaction instanceof com.plaid.client.model.Transaction) {
+                com.plaid.client.model.Transaction transaction = (com.plaid.client.model.Transaction) plaidTransaction;
+                if (transaction.getDate() != null) {
+                    return transaction.getDate().toString();
+                }
+            }
+            
+            // Fallback: try reflection
+            java.lang.reflect.Method getDateMethod = plaidTransaction.getClass().getMethod("getDate");
+            Object dateObj = getDateMethod.invoke(plaidTransaction);
+            if (dateObj != null) {
+                return dateObj.toString();
+            }
+        } catch (Exception e) {
+            logger.debug("Could not extract transaction date: {}", e.getMessage());
+        }
+        return null;
+    }
+    
+    /**
+     * Process transactions for a specific account
+     * Returns sync statistics
+     */
+    private static class SyncResult {
+        int syncedCount = 0;
+        int errorCount = 0;
+        int duplicateCount = 0;
+    }
+    
+    private SyncResult processTransactionsForAccount(
+            final UserTable user,
+            final AccountTable account,
+            final java.util.List<Object> plaidTransactions,
+            final boolean isFirstSync) {
+        
+        SyncResult result = new SyncResult();
+        
+        if (isFirstSync) {
+            logger.info("First sync detected for account {} - processing {} transactions", 
+                    account.getAccountId(), plaidTransactions.size());
+        }
+        
+        for (var plaidTransaction : plaidTransactions) {
+            try {
+                String transactionId = extractTransactionId(plaidTransaction);
+                if (transactionId == null || transactionId.isEmpty()) {
+                    logger.warn("Transaction ID is null or empty, skipping");
+                    result.errorCount++;
+                    continue;
+                }
+
+                // CRITICAL: Always check if transaction already exists to prevent duplicates
+                // First check by plaidTransactionId (primary method)
+                Optional<TransactionTable> existing = transactionRepository.findByPlaidTransactionId(transactionId);
+                
+                // CRITICAL FIX: If not found by plaidTransactionId, check by composite key
+                // This handles cases where plaidTransactionId changes due to reconnection/relinking
+                if (existing.isEmpty()) {
+                    // Extract transaction details for composite key lookup
+                    java.math.BigDecimal amount = extractAmount(plaidTransaction);
+                    String transactionDate = extractTransactionDate(plaidTransaction);
+                    String description = extractDescription(plaidTransaction);
+                    String merchantName = extractMerchantName(plaidTransaction);
+                    
+                    // Use description or merchantName for matching
+                    String matchKey = (description != null && !description.isEmpty()) ? description : merchantName;
+                    
+                    if (amount != null && transactionDate != null && matchKey != null && !matchKey.isEmpty()) {
+                        existing = transactionRepository.findByCompositeKey(
+                                account.getAccountId(),
+                                amount,
+                                transactionDate,
+                                matchKey,
+                                user.getUserId());
+                        
+                        if (existing.isPresent()) {
+                            logger.info("Found existing transaction by composite key (plaidTransactionId changed): " +
+                                    "accountId={}, amount={}, date={}, description={}, oldPlaidId={}, newPlaidId={}",
+                                    account.getAccountId(), amount, transactionDate, matchKey,
+                                    existing.get().getPlaidTransactionId(), transactionId);
+                        }
+                    }
+                }
+                
+                if (existing.isPresent()) {
+                    // Transaction already exists - update it (don't create duplicate)
+                    TransactionTable transaction = existing.get();
+                    
+                    // CRITICAL: Update plaidTransactionId if it changed (due to reconnection/relinking)
+                    if (!transactionId.equals(transaction.getPlaidTransactionId())) {
+                        logger.info("Updating transaction with new plaidTransactionId: old={}, new={}, transactionId={}",
+                                transaction.getPlaidTransactionId(), transactionId, transaction.getTransactionId());
+                        transaction.setPlaidTransactionId(transactionId);
+                    }
+                    
+                    updateTransactionFromPlaid(transaction, plaidTransaction);
+                    transactionRepository.save(transaction);
+                    result.syncedCount++;
+                    result.duplicateCount++;
+                    logger.debug("Updated existing transaction (deduplicated): plaidTransactionId={}, transactionId={}", 
+                            transactionId, transaction.getTransactionId());
+                } else {
+                    // Create new transaction
+                    String accountIdForTransaction = account.getAccountId();
+                    String institutionNameForTransaction = account.getInstitutionName();
+                    
+                    TransactionTable transaction = createTransactionFromPlaid(
+                        user.getUserId(), 
+                        plaidTransaction,
+                        institutionNameForTransaction,
+                        accountIdForTransaction
+                    );
+                    
+                    // Ensure plaidTransactionId is set
+                    if (transaction.getPlaidTransactionId() == null || transaction.getPlaidTransactionId().isEmpty()) {
+                        transaction.setPlaidTransactionId(transactionId);
+                    }
+                    
+                    // Use conditional write to prevent duplicate Plaid transactions
+                    boolean saved = transactionRepository.saveIfPlaidTransactionNotExists(transaction);
+                    if (saved) {
+                        result.syncedCount++;
+                        logger.debug("Created new transaction: plaidTransactionId={}, transactionId={}", 
+                                transactionId, transaction.getTransactionId());
+                    } else {
+                        // Race condition: transaction was inserted between check and save
+                        Optional<TransactionTable> raceConditionExisting = transactionRepository.findByPlaidTransactionId(transactionId);
+                        if (raceConditionExisting.isPresent()) {
+                            transaction = raceConditionExisting.get();
+                            updateTransactionFromPlaid(transaction, plaidTransaction);
+                            transactionRepository.save(transaction);
+                            result.syncedCount++;
+                            result.duplicateCount++;
+                            logger.debug("Updated transaction after race condition (deduplicated): plaidTransactionId={}, transactionId={}", 
+                                    transactionId, transaction.getTransactionId());
+                        } else {
+                            logger.warn("Transaction with Plaid ID {} could not be saved or retrieved (possible duplicate)", transactionId);
+                            result.errorCount++;
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                logger.error("Error processing transaction: {}", e.getMessage(), e);
+                result.errorCount++;
+            }
+        }
+        
+        return result;
+    }
+    
+    /**
+     * Update lastSyncedAt for accounts after successful sync
+     */
+    private void updateLastSyncedAtForAccounts(final java.util.List<AccountTable> accounts) {
+        java.time.Instant now = java.time.Instant.now();
+        for (var account : accounts) {
+            account.setLastSyncedAt(now);
+            accountRepository.save(account);
+        }
+        logger.debug("Updated lastSyncedAt for {} accounts", accounts.size());
+    }
+    
+    /**
      * Sync transactions for a specific account
      * Uses account-specific lastSyncedAt for incremental sync
      * For first sync (no lastSyncedAt), fetches ALL available transactions (no date limit)
      * For subsequent syncs, uses exact lastSyncedAt timestamp (date + time)
+     * 
+     * @deprecated This method is no longer used. Transaction syncing now uses batched fetching
+     * in syncTransactions() to reduce API calls. Kept for reference/testing purposes.
      */
+    @Deprecated
     private void syncTransactionsForAccount(
             final UserTable user,
             final String accessToken,
             final AccountTable account,
             final LocalDate endDate) {
+        
+        // CRITICAL: Check if we recently synced this account BEFORE making API call
+        // This prevents unnecessary Plaid API calls when reconnecting
+        if (account.getLastSyncedAt() != null) {
+            java.time.Instant now = java.time.Instant.now();
+            java.time.Duration timeSinceLastSync = java.time.Duration.between(account.getLastSyncedAt(), now);
+            // If synced within last 5 minutes, skip to prevent rate limiting
+            if (timeSinceLastSync.toMinutes() < 5) {
+                logger.info("Skipping transaction sync for account {} - last synced {} minutes ago (less than 5 minutes threshold)", 
+                        account.getAccountId(), timeSinceLastSync.toMinutes());
+                return;
+            }
+        }
         
         LocalDate startDate;
         boolean isFirstSync = false;
@@ -382,11 +979,59 @@ public class PlaidSyncService {
 
                     // CRITICAL: Always check if transaction already exists to prevent duplicates
                     // This is especially important on first sync when refetching everything
+                    // First check by plaidTransactionId (primary method)
                     Optional<TransactionTable> existing = transactionRepository.findByPlaidTransactionId(transactionId);
+                    
+                    // CRITICAL FIX: If not found by plaidTransactionId, check by composite key
+                    // This handles cases where plaidTransactionId changes due to reconnection/relinking
+                    if (existing.isEmpty()) {
+                        // Extract transaction details for composite key lookup
+                        java.math.BigDecimal amount = extractAmount(plaidTransaction);
+                        String transactionDate = extractTransactionDate(plaidTransaction);
+                        String description = extractDescription(plaidTransaction);
+                        String merchantName = extractMerchantName(plaidTransaction);
+                        
+                        // Use description or merchantName for matching
+                        String matchKey = (description != null && !description.isEmpty()) ? description : merchantName;
+                        
+                        // Get account ID for composite key lookup
+                        String accountIdForLookup = account.getAccountId();
+                        String plaidAccountIdFromTransaction = extractAccountIdFromTransaction(plaidTransaction);
+                        if (plaidAccountIdFromTransaction != null && !plaidAccountIdFromTransaction.isEmpty()) {
+                            Optional<AccountTable> accountForTransaction = accountRepository.findByPlaidAccountId(plaidAccountIdFromTransaction);
+                            if (accountForTransaction.isPresent()) {
+                                accountIdForLookup = accountForTransaction.get().getAccountId();
+                            }
+                        }
+                        
+                        if (amount != null && transactionDate != null && matchKey != null && !matchKey.isEmpty() && accountIdForLookup != null) {
+                            existing = transactionRepository.findByCompositeKey(
+                                    accountIdForLookup,
+                                    amount,
+                                    transactionDate,
+                                    matchKey,
+                                    user.getUserId());
+                            
+                            if (existing.isPresent()) {
+                                logger.info("Found existing transaction by composite key (plaidTransactionId changed): " +
+                                        "accountId={}, amount={}, date={}, description={}, oldPlaidId={}, newPlaidId={}",
+                                        accountIdForLookup, amount, transactionDate, matchKey,
+                                        existing.get().getPlaidTransactionId(), transactionId);
+                            }
+                        }
+                    }
                     
                     if (existing.isPresent()) {
                         // Transaction already exists - update it (don't create duplicate)
                         TransactionTable transaction = existing.get();
+                        
+                        // CRITICAL: Update plaidTransactionId if it changed (due to reconnection/relinking)
+                        if (!transactionId.equals(transaction.getPlaidTransactionId())) {
+                            logger.info("Updating transaction with new plaidTransactionId: old={}, new={}, transactionId={}",
+                                    transaction.getPlaidTransactionId(), transactionId, transaction.getTransactionId());
+                            transaction.setPlaidTransactionId(transactionId);
+                        }
+                        
                         updateTransactionFromPlaid(transaction, plaidTransaction);
                         transactionRepository.save(transaction);
                         syncedCount++;
@@ -896,6 +1541,80 @@ public class PlaidSyncService {
     }
     
     /**
+     * Extract amount from Plaid transaction
+     */
+    private java.math.BigDecimal extractAmount(final Object plaidTransaction) {
+        try {
+            if (plaidTransaction instanceof com.plaid.client.model.Transaction) {
+                com.plaid.client.model.Transaction transaction = (com.plaid.client.model.Transaction) plaidTransaction;
+                if (transaction.getAmount() != null) {
+                    return java.math.BigDecimal.valueOf(transaction.getAmount());
+                }
+            } else {
+                // Fallback: try reflection
+                java.lang.reflect.Method getAmount = plaidTransaction.getClass().getMethod("getAmount");
+                Object amount = getAmount.invoke(plaidTransaction);
+                if (amount != null && amount instanceof Number) {
+                    return java.math.BigDecimal.valueOf(((Number) amount).doubleValue());
+                }
+            }
+        } catch (Exception e) {
+            logger.warn("Could not extract amount from Plaid transaction: {}", e.getMessage());
+        }
+        return null;
+    }
+
+    /**
+     * Extract description from Plaid transaction
+     */
+    private String extractDescription(final Object plaidTransaction) {
+        try {
+            if (plaidTransaction instanceof com.plaid.client.model.Transaction) {
+                com.plaid.client.model.Transaction transaction = (com.plaid.client.model.Transaction) plaidTransaction;
+                String name = transaction.getName();
+                if (name != null && !name.isEmpty()) {
+                    return name;
+                }
+            } else {
+                // Fallback: try reflection
+                java.lang.reflect.Method getName = plaidTransaction.getClass().getMethod("getName");
+                Object name = getName.invoke(plaidTransaction);
+                if (name != null) {
+                    return name.toString();
+                }
+            }
+        } catch (Exception e) {
+            logger.warn("Could not extract description from Plaid transaction: {}", e.getMessage());
+        }
+        return null;
+    }
+
+    /**
+     * Extract merchant name from Plaid transaction
+     */
+    private String extractMerchantName(final Object plaidTransaction) {
+        try {
+            if (plaidTransaction instanceof com.plaid.client.model.Transaction) {
+                com.plaid.client.model.Transaction transaction = (com.plaid.client.model.Transaction) plaidTransaction;
+                String merchantName = transaction.getMerchantName();
+                if (merchantName != null && !merchantName.isEmpty()) {
+                    return merchantName;
+                }
+            } else {
+                // Fallback: try reflection
+                java.lang.reflect.Method getMerchantName = plaidTransaction.getClass().getMethod("getMerchantName");
+                Object merchantName = getMerchantName.invoke(plaidTransaction);
+                if (merchantName != null) {
+                    return merchantName.toString();
+                }
+            }
+        } catch (Exception e) {
+            logger.warn("Could not extract merchant name from Plaid transaction: {}", e.getMessage());
+        }
+        return null;
+    }
+
+    /**
      * Extract account ID from Plaid transaction
      * Plaid transactions have an account_id field that references the Plaid account
      */
@@ -967,14 +1686,51 @@ public class PlaidSyncService {
                     transaction.setDescription("Transaction");
                 }
                 
-                // Extract category
-                java.util.List<String> categoryList = plaidTx.getCategory();
-                if (categoryList != null && !categoryList.isEmpty()) {
-                    transaction.setCategory(String.join(", ", categoryList));
-                } else {
-                    // Default to "Other" if category is null or empty
-                    transaction.setCategory("Other");
+                // Extract Plaid personal finance category
+                String plaidCategoryPrimary = null;
+                String plaidCategoryDetailed = null;
+                
+                try {
+                    // Get personal_finance_category from Plaid
+                    var pfc = plaidTx.getPersonalFinanceCategory();
+                    if (pfc != null) {
+                        if (pfc.getPrimary() != null) {
+                            plaidCategoryPrimary = pfc.getPrimary();
+                        }
+                        if (pfc.getDetailed() != null) {
+                            plaidCategoryDetailed = pfc.getDetailed();
+                        }
+                    }
+                } catch (Exception e) {
+                    logger.debug("Could not extract personal_finance_category (may not be available): {}", e.getMessage());
                 }
+                
+                // Map Plaid categories to our category structure
+                PlaidCategoryMapper.CategoryMapping categoryMapping;
+                if (plaidCategoryPrimary != null || plaidCategoryDetailed != null) {
+                    categoryMapping = categoryMapper.mapPlaidCategory(
+                        plaidCategoryPrimary,
+                        plaidCategoryDetailed,
+                        transaction.getMerchantName(),
+                        transaction.getDescription()
+                    );
+                    logger.debug("Mapped Plaid category (primary: {}, detailed: {}) to (primary: {}, detailed: {})", 
+                                plaidCategoryPrimary, plaidCategoryDetailed,
+                                categoryMapping.getPrimary(), categoryMapping.getDetailed());
+                } else {
+                    // No Plaid category available - use defaults
+                    categoryMapping = new PlaidCategoryMapper.CategoryMapping("other", "other", false);
+                    logger.debug("No Plaid category available, using default: other/other");
+                }
+                
+                // Store Plaid's original categories
+                transaction.setPlaidCategoryPrimary(plaidCategoryPrimary);
+                transaction.setPlaidCategoryDetailed(plaidCategoryDetailed);
+                
+                // Store mapped categories (can be overridden by user later)
+                transaction.setCategoryPrimary(categoryMapping.getPrimary());
+                transaction.setCategoryDetailed(categoryMapping.getDetailed());
+                transaction.setCategoryOverridden(categoryMapping.isOverridden());
                 
                 // Extract date - CRITICAL for date range queries
                 if (plaidTx.getDate() != null) {

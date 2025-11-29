@@ -92,7 +92,7 @@ class PlaidDeduplicationTest {
         when(plaidService.getAccounts(anyString())).thenReturn(accountsResponse);
 
         // When - Sync accounts
-        plaidSyncService.syncAccounts(testUser, "test-access-token");
+        plaidSyncService.syncAccounts(testUser, "test-access-token", null);
 
         // Then - Account should be updated, not duplicated
         verify(accountRepository, times(1)).findByPlaidAccountId(testPlaidAccountId);
@@ -126,7 +126,7 @@ class PlaidDeduplicationTest {
         when(accountRepository.saveIfNotExists(any(AccountTable.class))).thenReturn(true);
 
         // When - Sync accounts
-        plaidSyncService.syncAccounts(testUser, "test-access-token");
+        plaidSyncService.syncAccounts(testUser, "test-access-token", null);
 
         // Then - New account should be created
         verify(accountRepository, times(1)).findByPlaidAccountId(testPlaidAccountId);
@@ -256,9 +256,9 @@ class PlaidDeduplicationTest {
         when(plaidService.getAccounts(anyString())).thenReturn(accountsResponse);
 
         // When - Sync accounts multiple times
-        plaidSyncService.syncAccounts(testUser, "test-access-token");
-        plaidSyncService.syncAccounts(testUser, "test-access-token");
-        plaidSyncService.syncAccounts(testUser, "test-access-token");
+        plaidSyncService.syncAccounts(testUser, "test-access-token", null);
+        plaidSyncService.syncAccounts(testUser, "test-access-token", null);
+        plaidSyncService.syncAccounts(testUser, "test-access-token", null);
 
         // Then - Account should only be updated, never duplicated
         verify(accountRepository, times(3)).findByPlaidAccountId(testPlaidAccountId);

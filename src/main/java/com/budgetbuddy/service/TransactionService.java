@@ -92,7 +92,7 @@ public class TransactionService {
                 user.getUserId(), sinceStr, nowStr);
 
         return transactions.stream()
-                .filter(t -> t != null && category.equals(t.getCategory()))
+                .filter(t -> t != null && (category.equals(t.getCategoryPrimary()) || category.equals(t.getCategoryDetailed())))
                 .collect(Collectors.toList());
     }
 
@@ -289,7 +289,9 @@ public class TransactionService {
         transaction.setAmount(amount);
         transaction.setTransactionDate(transactionDate.format(DATE_FORMATTER));
         transaction.setDescription(description != null ? description : "");
-        transaction.setCategory(category);
+        transaction.setCategoryPrimary(categoryPrimary);
+        transaction.setCategoryDetailed(categoryDetailed != null && !categoryDetailed.isEmpty() ? categoryDetailed : categoryPrimary);
+        transaction.setCategoryOverridden(false); // User-created transactions are not overrides
         transaction.setCurrencyCode(user.getPreferredCurrency() != null && !user.getPreferredCurrency().isEmpty()
                 ? user.getPreferredCurrency() : "USD");
         
@@ -316,15 +318,17 @@ public class TransactionService {
      * Supports lookup by transactionId or plaidTransactionId (fallback)
      */
     public TransactionTable updateTransaction(final UserTable user, final String transactionId, final String notes) {
-        return updateTransaction(user, transactionId, null, notes);
+        return updateTransaction(user, transactionId, null, notes, null, null);
     }
     
     /**
-     * Update transaction (e.g., notes)
+     * Update transaction (e.g., notes, category override)
      * Supports lookup by transactionId or plaidTransactionId (fallback)
      * @param plaidTransactionId Optional Plaid transaction ID for fallback lookup if transactionId not found
+     * @param categoryPrimary Optional: override primary category
+     * @param categoryDetailed Optional: override detailed category
      */
-    public TransactionTable updateTransaction(final UserTable user, final String transactionId, final String plaidTransactionId, final String notes) {
+    public TransactionTable updateTransaction(final UserTable user, final String transactionId, final String plaidTransactionId, final String notes, final String categoryPrimary, final String categoryDetailed) {
         if (user == null || user.getUserId() == null || user.getUserId().isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "User is required");
         }
@@ -354,10 +358,19 @@ public class TransactionService {
         // Update notes: if notes is null, clear it; if notes is provided, set it (trimming whitespace)
         if (notes != null) {
             transaction.setNotes(notes.trim().isEmpty() ? null : notes.trim());
-        } else {
-            // Explicitly clear notes when null is passed
-            transaction.setNotes(null);
         }
+        
+        // Update category override if provided
+        if (categoryPrimary != null && !categoryPrimary.trim().isEmpty()) {
+            transaction.setCategoryPrimary(categoryPrimary.trim());
+            transaction.setCategoryDetailed(categoryDetailed != null && !categoryDetailed.trim().isEmpty() 
+                    ? categoryDetailed.trim() 
+                    : categoryPrimary.trim());
+            transaction.setCategoryOverridden(true);
+            logger.info("Category override applied: primary={}, detailed={}", 
+                    transaction.getCategoryPrimary(), transaction.getCategoryDetailed());
+        }
+        
         transaction.setUpdatedAt(java.time.Instant.now());
 
         transactionRepository.save(transaction);

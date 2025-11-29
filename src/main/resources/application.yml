@@ -303,4 +303,8 @@ resilience4j:
         waitDuration: 1s
         enableExponentialBackoff: true
         exponentialBackoffMultiplier: 2
+        # For rate limit errors, retry with longer delays
+        # Note: Resilience4j retry doesn't support different delays per exception type
+        # Rate limit errors will use exponential backoff: 1s, 2s, 4s
+        # If rate limit persists, circuit breaker will open after multiple failures
 

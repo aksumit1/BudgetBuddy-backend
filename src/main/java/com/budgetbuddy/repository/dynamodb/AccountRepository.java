@@ -163,7 +163,7 @@ public class AccountRepository {
      * Note: This scans the table, so for production with large datasets, consider adding a GSI
      */
     public Optional<AccountTable> findByAccountNumberAndInstitution(String accountNumber, String institutionName, String userId) {
-        if (accountNumber == null || accountNumber.isEmpty() || institutionName == null || institutionName.isEmpty()) {
+        if (accountNumber == null || accountNumber.isEmpty()) {
             return Optional.empty();
         }
         
@@ -171,15 +171,47 @@ public class AccountRepository {
             // Query by userId first (using GSI) for efficiency
             List<AccountTable> userAccounts = findByUserId(userId);
             
-            // Filter by account number and institution name
-            return userAccounts.stream()
-                    .filter(account -> accountNumber.equals(account.getAccountNumber()) 
-                            && institutionName.equals(account.getInstitutionName()))
-                    .findFirst();
+            // Filter by account number and institution name (if provided)
+            // CRITICAL FIX: If institutionName is null, match by accountNumber only
+            // This handles cases where institutionName is missing but accountNumber is available
+            if (institutionName == null || institutionName.isEmpty()) {
+                // Match by accountNumber only when institutionName is not available
+                return userAccounts.stream()
+                        .filter(account -> accountNumber.equals(account.getAccountNumber()))
+                        .findFirst();
+            } else {
+                // Match by both accountNumber and institutionName when both are available
+                return userAccounts.stream()
+                        .filter(account -> accountNumber.equals(account.getAccountNumber()) 
+                                && institutionName.equals(account.getInstitutionName()))
+                        .findFirst();
+            }
         } catch (Exception e) {
             org.slf4j.LoggerFactory.getLogger(AccountRepository.class)
                     .error("Error finding account by account number {} and institution {}: {}", 
                             accountNumber, institutionName, e.getMessage(), e);
+            return Optional.empty();
+        }
+    }
+    
+    /**
+     * Find account by account number only (fallback when institution name is missing)
+     * Used for deduplication when plaidAccountId is not available and institutionName is null
+     */
+    public Optional<AccountTable> findByAccountNumber(String accountNumber, String userId) {
+        if (accountNumber == null || accountNumber.isEmpty()) {
+            return Optional.empty();
+        }
+        
+        try {
+            List<AccountTable> userAccounts = findByUserId(userId);
+            return userAccounts.stream()
+                    .filter(account -> accountNumber.equals(account.getAccountNumber()))
+                    .findFirst();
+        } catch (Exception e) {
+            org.slf4j.LoggerFactory.getLogger(AccountRepository.class)
+                    .error("Error finding account by account number {}: {}", 
+                            accountNumber, e.getMessage(), e);
             return Optional.empty();
         }
     }

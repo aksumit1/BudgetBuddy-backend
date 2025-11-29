@@ -22,7 +22,11 @@ public class TransactionTable {
     private BigDecimal amount;
     private String description;
     private String merchantName;
-    private String category;
+    private String categoryPrimary; // Primary category (from Plaid or user override)
+    private String categoryDetailed; // Detailed category (from Plaid or user override)
+    private String plaidCategoryPrimary; // Plaid's original primary personal finance category (e.g., "FOOD_AND_DRINK")
+    private String plaidCategoryDetailed; // Plaid's original detailed personal finance category (e.g., "RESTAURANTS")
+    private Boolean categoryOverridden; // Whether user has overridden Plaid's category
     private String transactionDate; // GSI sort key (YYYY-MM-DD format)
     private String currencyCode;
     private String plaidTransactionId; // GSI for deduplication
@@ -98,13 +102,49 @@ public class TransactionTable {
         this.merchantName = merchantName;
     }
 
-    @DynamoDbAttribute("category")
-    public String getCategory() {
-        return category;
+    @DynamoDbAttribute("categoryPrimary")
+    public String getCategoryPrimary() {
+        return categoryPrimary;
     }
 
-    public void setCategory(final String category) {
-        this.category = category;
+    public void setCategoryPrimary(final String categoryPrimary) {
+        this.categoryPrimary = categoryPrimary;
+    }
+
+    @DynamoDbAttribute("categoryDetailed")
+    public String getCategoryDetailed() {
+        return categoryDetailed;
+    }
+
+    public void setCategoryDetailed(final String categoryDetailed) {
+        this.categoryDetailed = categoryDetailed;
+    }
+
+    @DynamoDbAttribute("plaidCategoryPrimary")
+    public String getPlaidCategoryPrimary() {
+        return plaidCategoryPrimary;
+    }
+
+    public void setPlaidCategoryPrimary(final String plaidCategoryPrimary) {
+        this.plaidCategoryPrimary = plaidCategoryPrimary;
+    }
+
+    @DynamoDbAttribute("plaidCategoryDetailed")
+    public String getPlaidCategoryDetailed() {
+        return plaidCategoryDetailed;
+    }
+
+    public void setPlaidCategoryDetailed(final String plaidCategoryDetailed) {
+        this.plaidCategoryDetailed = plaidCategoryDetailed;
+    }
+
+    @DynamoDbAttribute("categoryOverridden")
+    public Boolean getCategoryOverridden() {
+        return categoryOverridden;
+    }
+
+    public void setCategoryOverridden(final Boolean categoryOverridden) {
+        this.categoryOverridden = categoryOverridden;
     }
 
     @DynamoDbAttribute("currencyCode")

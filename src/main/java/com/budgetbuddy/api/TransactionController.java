@@ -151,8 +151,8 @@ public class TransactionController {
         if (request.getTransactionDate() == null) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Transaction date is required");
         }
-        if (request.getCategory() == null || request.getCategory().isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "Category is required");
+        if (request.getCategoryPrimary() == null || request.getCategoryPrimary().isEmpty()) {
+            throw new AppException(ErrorCode.INVALID_INPUT, "Category primary is required");
         }
 
         TransactionTable transaction = transactionService.createTransaction(
@@ -161,7 +161,8 @@ public class TransactionController {
                 request.getAmount(),
                 request.getTransactionDate(),
                 request.getDescription(),
-                request.getCategory(),
+                request.getCategoryPrimary(),
+                request.getCategoryDetailed(),
                 request.getTransactionId(), // Pass optional transactionId from app
                 request.getNotes(), // Pass optional notes
                 request.getPlaidAccountId(), // Pass optional Plaid account ID for fallback lookup
@@ -193,7 +194,9 @@ public class TransactionController {
                 user,
                 id,
                 request.getPlaidTransactionId(), // Pass Plaid ID for fallback lookup
-                request.getNotes()
+                request.getNotes(),
+                request.getCategoryPrimary(),
+                request.getCategoryDetailed()
         );
 
         return ResponseEntity.ok(transaction);
@@ -251,7 +254,8 @@ public class TransactionController {
         private BigDecimal amount;
         private LocalDate transactionDate;
         private String description;
-        private String category;
+        private String categoryPrimary; // Primary category (required)
+        private String categoryDetailed; // Detailed category (optional, defaults to primary if not provided)
         private String notes; // Optional: User notes for the transaction
         private String plaidAccountId; // Optional: Plaid account ID for fallback lookup if accountId not found
         private String plaidTransactionId; // Optional: Plaid transaction ID for fallback lookup and ID consistency
@@ -267,8 +271,10 @@ public class TransactionController {
         public void setTransactionDate(final LocalDate transactionDate) { this.transactionDate = transactionDate; }
         public String getDescription() { return description; }
         public void setDescription(final String description) { this.description = description; }
-        public String getCategory() { return category; }
-        public void setCategory(final String category) { this.category = category; }
+        public String getCategoryPrimary() { return categoryPrimary; }
+        public void setCategoryPrimary(final String categoryPrimary) { this.categoryPrimary = categoryPrimary; }
+        public String getCategoryDetailed() { return categoryDetailed; }
+        public void setCategoryDetailed(final String categoryDetailed) { this.categoryDetailed = categoryDetailed; }
         public String getNotes() { return notes; }
         public void setNotes(final String notes) { this.notes = notes; }
         
@@ -292,10 +298,18 @@ public class TransactionController {
 
     public static class UpdateTransactionRequest {
         private String notes;
+        private String categoryPrimary; // Optional: override primary category
+        private String categoryDetailed; // Optional: override detailed category
         private String plaidTransactionId; // Optional: for fallback lookup if transactionId not found
 
         public String getNotes() { return notes; }
         public void setNotes(final String notes) { this.notes = notes; }
+        
+        public String getCategoryPrimary() { return categoryPrimary; }
+        public void setCategoryPrimary(final String categoryPrimary) { this.categoryPrimary = categoryPrimary; }
+        
+        public String getCategoryDetailed() { return categoryDetailed; }
+        public void setCategoryDetailed(final String categoryDetailed) { this.categoryDetailed = categoryDetailed; }
         
         public String getPlaidTransactionId() { return plaidTransactionId; }
         public void setPlaidTransactionId(final String plaidTransactionId) { this.plaidTransactionId = plaidTransactionId; }

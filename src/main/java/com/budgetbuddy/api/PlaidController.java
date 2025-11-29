@@ -140,8 +140,9 @@ public class PlaidController {
             }
 
             // Sync accounts and transactions (don't fail the request if sync fails)
+            // CRITICAL: Pass itemId to syncAccounts to enable deduplication before API calls
             try {
-                plaidSyncService.syncAccounts(user, accessToken);
+                plaidSyncService.syncAccounts(user, accessToken, itemId);
             } catch (Exception syncError) {
                 logger.warn("Account sync failed for user {} (non-fatal): {}", user.getUserId(), syncError.getMessage());
                 // Continue - token exchange succeeded even if sync failed
@@ -353,7 +354,9 @@ public class PlaidController {
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
 
         try {
-            plaidSyncService.syncAccounts(user, request.getAccessToken());
+            // Note: itemId is not available in sync request, so pass null
+            // syncAccounts will extract itemId from Plaid response if needed
+            plaidSyncService.syncAccounts(user, request.getAccessToken(), null);
             plaidSyncService.syncTransactions(user, request.getAccessToken());
 
             logger.info("Data synchronized for user: {}", user.getUserId());

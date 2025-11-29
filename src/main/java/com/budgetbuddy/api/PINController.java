@@ -9,7 +9,6 @@ import com.budgetbuddy.service.DevicePinService;
 import com.budgetbuddy.service.UserService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -61,7 +60,9 @@ public class PINController {
 
         devicePinService.storePIN(user, request.getDeviceId(), request.getPin());
 
-        return ResponseEntity.status(HttpStatus.CREATED).build();
+        // Return 204 No Content for successful PIN storage (no resource to return)
+        // This is consistent with DELETE operations and avoids empty body decoding issues
+        return ResponseEntity.noContent().build();
     }
 
     /**

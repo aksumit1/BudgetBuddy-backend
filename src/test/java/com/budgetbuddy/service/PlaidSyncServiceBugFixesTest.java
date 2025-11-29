@@ -71,7 +71,7 @@ class PlaidSyncServiceBugFixesTest {
         when(accountRepository.saveIfNotExists(any(AccountTable.class))).thenReturn(true);
 
         // When
-        plaidSyncService.syncAccounts(testUser, testAccessToken);
+        plaidSyncService.syncAccounts(testUser, testAccessToken, null);
 
         // Then - Verify active is set to true
         ArgumentCaptor<AccountTable> accountCaptor = ArgumentCaptor.forClass(AccountTable.class);
@@ -99,7 +99,7 @@ class PlaidSyncServiceBugFixesTest {
         when(accountRepository.findByPlaidAccountId("plaid-account-1")).thenReturn(Optional.of(existingAccount));
 
         // When
-        plaidSyncService.syncAccounts(testUser, testAccessToken);
+        plaidSyncService.syncAccounts(testUser, testAccessToken, null);
 
         // Then - Verify active status is preserved
         ArgumentCaptor<AccountTable> accountCaptor = ArgumentCaptor.forClass(AccountTable.class);
@@ -242,7 +242,7 @@ class PlaidSyncServiceBugFixesTest {
         when(accountRepository.saveIfNotExists(any(AccountTable.class))).thenReturn(true);
 
         // When - Should not throw exception even if one account fails
-        assertDoesNotThrow(() -> plaidSyncService.syncAccounts(testUser, testAccessToken));
+        assertDoesNotThrow(() -> plaidSyncService.syncAccounts(testUser, testAccessToken, null));
 
         // Then - At least one account should be saved
         verify(accountRepository, atLeastOnce()).saveIfNotExists(any(AccountTable.class));

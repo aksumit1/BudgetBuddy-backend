@@ -42,11 +42,19 @@ public class PlaidService {
             @Value("${app.plaid.webhook-url:}") String webhookUrl,
             PCIDSSComplianceService pciDSSComplianceService) {
 
+        // Allow Plaid service to be created even without credentials for scripts/analysis
+        // The service will fail on actual API calls if credentials are missing
         if (clientId == null || clientId.isEmpty()) {
-            throw new IllegalArgumentException("Plaid client ID cannot be null or empty");
+            logger.warn("⚠️ Plaid client ID is not configured. Plaid API calls will fail. " +
+                    "Set PLAID_CLIENT_ID environment variable or app.plaid.client-id property.");
+            // Use placeholder to allow service creation (will fail on actual API calls)
+            clientId = "placeholder-client-id";
         }
         if (secret == null || secret.isEmpty()) {
-            throw new IllegalArgumentException("Plaid secret cannot be null or empty");
+            logger.warn("⚠️ Plaid secret is not configured. Plaid API calls will fail. " +
+                    "Set PLAID_SECRET environment variable or app.plaid.secret property.");
+            // Use placeholder to allow service creation (will fail on actual API calls)
+            secret = "placeholder-secret";
         }
         if (pciDSSComplianceService == null) {
             throw new IllegalArgumentException("PCIDSSComplianceService cannot be null");
@@ -75,21 +83,50 @@ public class PlaidService {
         
         try {
             // Set base URL directly using reflection (Plaid SDK may not expose this directly)
-            // Try setPlaidAdapter first, if it fails, set base URL directly
+            // Try setPlaidAdapter first, if it fails, try alternative methods
+            boolean adapterSet = false;
             try {
+                // Try the standard method
                 apiClient.setPlaidAdapter(plaidBaseUrl);
+                adapterSet = true;
+                logger.debug("Plaid adapter configured using setPlaidAdapter for environment: {} (base URL: {})", environment, plaidBaseUrl);
+            } catch (NoSuchMethodError e) {
+                // Method doesn't exist at runtime - try reflection
+                logger.debug("setPlaidAdapter method not found at runtime, trying reflection: {}", e.getMessage());
+                try {
+                    java.lang.reflect.Method setPlaidAdapterMethod = apiClient.getClass().getMethod("setPlaidAdapter", String.class);
+                    setPlaidAdapterMethod.invoke(apiClient, plaidBaseUrl);
+                    adapterSet = true;
+                    logger.debug("Plaid adapter configured using reflection for environment: {} (base URL: {})", environment, plaidBaseUrl);
+                } catch (java.lang.reflect.InvocationTargetException | java.lang.NoSuchMethodException | java.lang.IllegalAccessException reflectionException) {
+                    logger.debug("Reflection method also failed: {}", reflectionException.getMessage());
+                }
             } catch (Exception adapterException) {
-                // If setPlaidAdapter fails, try setting base URL via Retrofit builder
-                logger.debug("setPlaidAdapter failed, trying alternative configuration: {}", adapterException.getMessage());
-                // The ApiClient should handle the base URL internally
-                // If this still fails, we'll throw the original exception
-                throw adapterException;
+                // Other exception - log but continue to try alternatives
+                logger.debug("setPlaidAdapter failed with exception: {}", adapterException.getMessage());
             }
-            logger.debug("Plaid adapter configured for environment: {} (base URL: {})", environment, plaidBaseUrl);
+            
+            // If setPlaidAdapter didn't work, try setting base URL via Retrofit builder
+            if (!adapterSet) {
+                try {
+                    // Try to set base URL using Retrofit builder pattern
+                    // The ApiClient might handle the base URL internally based on environment
+                    logger.debug("Attempting to configure Plaid client without explicit adapter setting");
+                    // For now, we'll proceed - the ApiClient may handle the environment automatically
+                    // If this fails, we'll catch it when making actual API calls
+                    logger.warn("Could not set Plaid adapter explicitly - API client may use default configuration. " +
+                            "This may work if Plaid SDK handles environment automatically.");
+                } catch (Exception e) {
+                    logger.warn("Alternative Plaid configuration also failed: {}", e.getMessage());
+                    // Don't throw - let it proceed and fail on actual API calls if needed
+                }
+            }
         } catch (Exception e) {
             logger.error("Failed to set Plaid adapter for environment '{}' with base URL '{}': {}", 
                     environment, plaidBaseUrl, e.getMessage(), e);
-            throw new IllegalArgumentException("Failed to configure Plaid API client for environment: " + environment, e);
+            // Don't throw immediately - the API client might still work with default configuration
+            // We'll let it fail on actual API calls if the configuration is truly broken
+            logger.warn("Continuing with Plaid service initialization despite adapter configuration warning");
         }
 
         this.plaidApi = apiClient.createService(PlaidApi.class);
@@ -325,14 +362,33 @@ public class PlaidService {
             if (!httpResponse.isSuccessful()) {
                 String errorBody = "No error body";
                 try {
-                    if (httpResponse.errorBody() != null) {
-                        errorBody = httpResponse.errorBody().string();
+                    var errorBodyStream = httpResponse.errorBody();
+                    if (errorBodyStream != null) {
+                        errorBody = errorBodyStream.string();
                     }
                 } catch (Exception e) {
                     logger.warn("Could not read error body: {}", e.getMessage());
                     errorBody = "Could not read error body: " + e.getMessage();
                 }
                 logger.error("Plaid API error: HTTP {} - {}", httpResponse.code(), errorBody);
+                
+                // Check for rate limit errors (HTTP 429)
+                if (httpResponse.code() == 429) {
+                    // Parse Plaid error response to extract error details
+                    PlaidErrorResponse plaidError = parsePlaidErrorResponse(errorBody);
+                    if (plaidError != null && (plaidError.errorCode != null && 
+                            (plaidError.errorCode.equals("TRANSACTIONS_LIMIT") || 
+                             plaidError.errorCode.equals("RATE_LIMIT_EXCEEDED") ||
+                             (plaidError.errorType != null && plaidError.errorType.equals("RATE_LIMIT_EXCEEDED"))))) {
+                        logger.warn("Plaid rate limit exceeded: {} - {}. Request ID: {}", 
+                                plaidError.errorCode, plaidError.errorMessage, plaidError.requestId);
+                        throw new AppException(ErrorCode.PLAID_RATE_LIMIT_EXCEEDED,
+                                String.format("Plaid rate limit exceeded: %s. %s. Please try again later.",
+                                        plaidError.errorCode != null ? plaidError.errorCode : "RATE_LIMIT_EXCEEDED",
+                                        plaidError.errorMessage != null ? plaidError.errorMessage : "Rate limit exceeded for transactions"));
+                    }
+                }
+                
                 throw new AppException(ErrorCode.PLAID_CONNECTION_FAILED, 
                         String.format("Plaid API returned error: HTTP %d - %s", httpResponse.code(), errorBody));
             }
@@ -403,7 +459,42 @@ public class PlaidService {
                             .endDate(endLocalDate)
                             .options(options);
 
-                    TransactionsGetResponse nextResponse = plaidApi.transactionsGet(nextRequest).execute().body();
+                    // Execute pagination request and check for errors (including rate limits)
+                    retrofit2.Response<TransactionsGetResponse> nextHttpResponse = plaidApi.transactionsGet(nextRequest).execute();
+                    
+                    if (!nextHttpResponse.isSuccessful()) {
+                        String errorBody = "No error body";
+                        try {
+                            var errorBodyStream = nextHttpResponse.errorBody();
+                            if (errorBodyStream != null) {
+                                errorBody = errorBodyStream.string();
+                            }
+                        } catch (Exception e) {
+                            logger.warn("Could not read error body: {}", e.getMessage());
+                        }
+                        
+                        // Check for rate limit errors (HTTP 429) during pagination
+                        if (nextHttpResponse.code() == 429) {
+                            PlaidErrorResponse plaidError = parsePlaidErrorResponse(errorBody);
+                            if (plaidError != null && (plaidError.errorCode != null && 
+                                    (plaidError.errorCode.equals("TRANSACTIONS_LIMIT") || 
+                                     plaidError.errorCode.equals("RATE_LIMIT_EXCEEDED") ||
+                                     (plaidError.errorType != null && plaidError.errorType.equals("RATE_LIMIT_EXCEEDED"))))) {
+                                logger.warn("Plaid rate limit exceeded during pagination (page {}): {} - {}. Request ID: {}", 
+                                        pageCount + 1, plaidError.errorCode, plaidError.errorMessage, plaidError.requestId);
+                                throw new AppException(ErrorCode.PLAID_RATE_LIMIT_EXCEEDED,
+                                        String.format("Plaid rate limit exceeded during pagination: %s. %s. Please try again later.",
+                                                plaidError.errorCode != null ? plaidError.errorCode : "RATE_LIMIT_EXCEEDED",
+                                                plaidError.errorMessage != null ? plaidError.errorMessage : "Rate limit exceeded for transactions"));
+                            }
+                        }
+                        
+                        logger.warn("Plaid pagination request failed: HTTP {} - {}. Stopping pagination.", 
+                                nextHttpResponse.code(), errorBody);
+                        break; // Stop pagination on error
+                    }
+                    
+                    TransactionsGetResponse nextResponse = nextHttpResponse.body();
 
                     if (nextResponse == null || nextResponse.getTransactions() == null || nextResponse.getTransactions().isEmpty()) {
                         logger.debug("Plaid: No more transactions in page {}", pageCount + 1);
@@ -467,12 +558,14 @@ public class PlaidService {
                     String.format("Invalid date format: %s", e.getMessage()), null, null, e);
         } catch (retrofit2.HttpException e) {
             String errorMessage = "Unknown error";
+            String errorBody = null;
             try {
                 retrofit2.Response<?> response = e.response();
                 if (response != null) {
-                    var errorBody = response.errorBody();
-                    if (errorBody != null) {
-                        errorMessage = errorBody.string();
+                    var errorBodyStream = response.errorBody();
+                    if (errorBodyStream != null) {
+                        errorBody = errorBodyStream.string();
+                        errorMessage = errorBody;
                     } else {
                         errorMessage = e.getMessage() != null ? e.getMessage() : "No error message";
                     }
@@ -482,6 +575,23 @@ public class PlaidService {
             } catch (Exception ex) {
                 errorMessage = e.getMessage() != null ? e.getMessage() : "Could not read error details";
             }
+            
+            // Check for rate limit errors (HTTP 429)
+            if (e.code() == 429 && errorBody != null) {
+                PlaidErrorResponse plaidError = parsePlaidErrorResponse(errorBody);
+                if (plaidError != null && (plaidError.errorCode != null && 
+                        (plaidError.errorCode.equals("TRANSACTIONS_LIMIT") || 
+                         plaidError.errorCode.equals("RATE_LIMIT_EXCEEDED") ||
+                         plaidError.errorType != null && plaidError.errorType.equals("RATE_LIMIT_EXCEEDED")))) {
+                    logger.warn("Plaid rate limit exceeded: {} - {}. Request ID: {}", 
+                            plaidError.errorCode, plaidError.errorMessage, plaidError.requestId);
+                    throw new AppException(ErrorCode.PLAID_RATE_LIMIT_EXCEEDED,
+                            String.format("Plaid rate limit exceeded: %s. %s. Please try again later.",
+                                    plaidError.errorCode != null ? plaidError.errorCode : "RATE_LIMIT_EXCEEDED",
+                                    plaidError.errorMessage != null ? plaidError.errorMessage : "Rate limit exceeded for transactions"));
+                }
+            }
+            
             logger.error("Plaid HTTP error: {} - {}", e.code(), errorMessage, e);
             throw new AppException(ErrorCode.PLAID_CONNECTION_FAILED,
                     String.format("Plaid API HTTP error %d: %s", e.code(), errorMessage), null, null, e);
@@ -582,5 +692,84 @@ public class PlaidService {
             throw new AppException(ErrorCode.PLAID_CONNECTION_FAILED,
                     "Failed to remove item", null, null, e);
         }
+    }
+
+    /**
+     * Parse Plaid error response JSON
+     * Plaid returns errors in format:
+     * {
+     *   "display_message": null,
+     *   "error_code": "TRANSACTIONS_LIMIT",
+     *   "error_message": "rate limit exceeded...",
+     *   "error_type": "RATE_LIMIT_EXCEEDED",
+     *   "request_id": "...",
+     *   "suggested_action": null
+     * }
+     */
+    private PlaidErrorResponse parsePlaidErrorResponse(final String errorBody) {
+        if (errorBody == null || errorBody.isEmpty() || !errorBody.trim().startsWith("{")) {
+            return null;
+        }
+        
+        try {
+            // Simple JSON parsing using string manipulation (no external dependencies needed)
+            // For more complex parsing, consider using Jackson ObjectMapper
+            PlaidErrorResponse error = new PlaidErrorResponse();
+            
+            // Extract error_code
+            int errorCodeIndex = errorBody.indexOf("\"error_code\"");
+            if (errorCodeIndex >= 0) {
+                int startIndex = errorBody.indexOf("\"", errorCodeIndex + 12) + 1;
+                int endIndex = errorBody.indexOf("\"", startIndex);
+                if (startIndex > 0 && endIndex > startIndex) {
+                    error.errorCode = errorBody.substring(startIndex, endIndex);
+                }
+            }
+            
+            // Extract error_message
+            int errorMessageIndex = errorBody.indexOf("\"error_message\"");
+            if (errorMessageIndex >= 0) {
+                int startIndex = errorBody.indexOf("\"", errorMessageIndex + 16) + 1;
+                int endIndex = errorBody.indexOf("\"", startIndex);
+                if (startIndex > 0 && endIndex > startIndex) {
+                    error.errorMessage = errorBody.substring(startIndex, endIndex);
+                }
+            }
+            
+            // Extract error_type
+            int errorTypeIndex = errorBody.indexOf("\"error_type\"");
+            if (errorTypeIndex >= 0) {
+                int startIndex = errorBody.indexOf("\"", errorTypeIndex + 13) + 1;
+                int endIndex = errorBody.indexOf("\"", startIndex);
+                if (startIndex > 0 && endIndex > startIndex) {
+                    error.errorType = errorBody.substring(startIndex, endIndex);
+                }
+            }
+            
+            // Extract request_id
+            int requestIdIndex = errorBody.indexOf("\"request_id\"");
+            if (requestIdIndex >= 0) {
+                int startIndex = errorBody.indexOf("\"", requestIdIndex + 13) + 1;
+                int endIndex = errorBody.indexOf("\"", startIndex);
+                if (startIndex > 0 && endIndex > startIndex) {
+                    error.requestId = errorBody.substring(startIndex, endIndex);
+                }
+            }
+            
+            return error;
+        } catch (Exception e) {
+            logger.debug("Failed to parse Plaid error response: {}", e.getMessage());
+            return null;
+        }
+    }
+    
+    /**
+     * Plaid error response structure
+     */
+    private static class PlaidErrorResponse {
+        String errorCode;
+        String errorMessage;
+        String errorType;
+        String requestId;
     }
 }

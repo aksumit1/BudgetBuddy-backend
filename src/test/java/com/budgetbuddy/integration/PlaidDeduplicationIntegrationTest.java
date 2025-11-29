@@ -145,6 +145,166 @@ class PlaidDeduplicationIntegrationTest {
     }
 
     @Test
+    void testAccountDeduplication_WithAccountNumber_FindsExistingAccount() {
+        // Given - Existing account with account number (but no plaidAccountId)
+        String accountNumber = "1234";
+        String institutionName = "Test Bank";
+        
+        AccountTable existingAccount = new AccountTable();
+        existingAccount.setAccountId(UUID.randomUUID().toString());
+        existingAccount.setUserId(testUser.getUserId());
+        existingAccount.setPlaidAccountId(null); // Missing Plaid ID
+        existingAccount.setAccountNumber(accountNumber);
+        existingAccount.setInstitutionName(institutionName);
+        existingAccount.setAccountName("Existing Account");
+        existingAccount.setAccountType("CHECKING");
+        existingAccount.setBalance(new BigDecimal("1000.00"));
+        existingAccount.setCurrencyCode("USD");
+        existingAccount.setActive(true);
+        existingAccount.setCreatedAt(Instant.now());
+        existingAccount.setUpdatedAt(Instant.now());
+        accountRepository.save(existingAccount);
+
+        // When - Try to find by account number and institution
+        Optional<AccountTable> found = accountRepository.findByAccountNumberAndInstitution(
+                accountNumber, institutionName, testUser.getUserId());
+
+        // Then - Should find the existing account
+        assertTrue(found.isPresent(), "Account should be found by account number and institution");
+        assertEquals(accountNumber, found.get().getAccountNumber());
+        assertEquals(institutionName, found.get().getInstitutionName());
+        assertEquals(existingAccount.getAccountId(), found.get().getAccountId());
+    }
+
+    @Test
+    void testAccountDeduplication_WithAccountNumber_PreventsDuplicate() {
+        // Given - Existing account with account number
+        String accountNumber = "5678";
+        String institutionName = "Test Bank";
+        
+        AccountTable existingAccount = new AccountTable();
+        existingAccount.setAccountId(UUID.randomUUID().toString());
+        existingAccount.setUserId(testUser.getUserId());
+        existingAccount.setAccountNumber(accountNumber);
+        existingAccount.setInstitutionName(institutionName);
+        existingAccount.setAccountName("Existing Account");
+        existingAccount.setAccountType("CHECKING");
+        existingAccount.setBalance(new BigDecimal("1000.00"));
+        existingAccount.setCurrencyCode("USD");
+        existingAccount.setActive(true);
+        existingAccount.setCreatedAt(Instant.now());
+        existingAccount.setUpdatedAt(Instant.now());
+        accountRepository.save(existingAccount);
+
+        // When - Try to create duplicate with same account number and institution
+        AccountTable duplicateAccount = new AccountTable();
+        duplicateAccount.setAccountId(UUID.randomUUID().toString()); // Different UUID
+        duplicateAccount.setUserId(testUser.getUserId());
+        duplicateAccount.setAccountNumber(accountNumber); // Same account number
+        duplicateAccount.setInstitutionName(institutionName); // Same institution
+        duplicateAccount.setAccountName("Duplicate Account");
+        duplicateAccount.setAccountType("CHECKING");
+        duplicateAccount.setBalance(new BigDecimal("2000.00"));
+        duplicateAccount.setCurrencyCode("USD");
+        duplicateAccount.setActive(true);
+        duplicateAccount.setCreatedAt(Instant.now());
+        duplicateAccount.setUpdatedAt(Instant.now());
+
+        // Find by account number should return existing account
+        Optional<AccountTable> found = accountRepository.findByAccountNumberAndInstitution(
+                accountNumber, institutionName, testUser.getUserId());
+
+        // Then - Should find existing account, preventing duplicate
+        assertTrue(found.isPresent(), "Should find existing account by account number");
+        assertEquals(existingAccount.getAccountId(), found.get().getAccountId(),
+                "Should return existing account, not create duplicate");
+        
+        // Verify only one account exists with this account number
+        List<AccountTable> allAccounts = accountRepository.findByUserId(testUser.getUserId());
+        long countWithAccountNumber = allAccounts.stream()
+                .filter(a -> accountNumber.equals(a.getAccountNumber()) 
+                        && institutionName.equals(a.getInstitutionName()))
+                .count();
+        assertEquals(1, countWithAccountNumber, 
+                "Should only have one account with this account number and institution");
+    }
+
+    @Test
+    void testAccountDeduplication_WithNullInstitutionName_MatchesByAccountNumber() {
+        // Given - Existing account with accountNumber but null institutionName
+        String accountNumber = "0000";
+        AccountTable existingAccount = new AccountTable();
+        existingAccount.setAccountId(UUID.randomUUID().toString());
+        existingAccount.setUserId(testUser.getUserId());
+        existingAccount.setPlaidAccountId("plaid-old-" + UUID.randomUUID());
+        existingAccount.setAccountName("Checking Account");
+        existingAccount.setAccountNumber(accountNumber);
+        existingAccount.setInstitutionName(null); // NULL institution name
+        existingAccount.setAccountType("CHECKING");
+        existingAccount.setBalance(new BigDecimal("1000.00"));
+        existingAccount.setCurrencyCode("USD");
+        existingAccount.setActive(true);
+        existingAccount.setCreatedAt(Instant.now());
+        existingAccount.setUpdatedAt(Instant.now());
+        accountRepository.save(existingAccount);
+
+        // When - Try to find account by accountNumber only (institutionName is null)
+        Optional<AccountTable> found = accountRepository.findByAccountNumber(accountNumber, testUser.getUserId());
+
+        // Then - Should find existing account even though institutionName is null
+        assertTrue(found.isPresent(), "Should find account by accountNumber even when institutionName is null");
+        assertEquals(existingAccount.getAccountId(), found.get().getAccountId(),
+                "Should return existing account");
+    }
+
+    @Test
+    void testAccountDeduplication_AccessTokenRegenerated_WithNullInstitutionName_PreventsDuplicate() {
+        // Given - Existing account from first sync with null institutionName
+        String accountNumber = "1111";
+        String oldPlaidId = "plaid-old-" + UUID.randomUUID();
+        
+        AccountTable existingAccount = new AccountTable();
+        existingAccount.setAccountId(UUID.randomUUID().toString());
+        existingAccount.setUserId(testUser.getUserId());
+        existingAccount.setPlaidAccountId(oldPlaidId);
+        existingAccount.setAccountName("Checking");
+        existingAccount.setAccountNumber(accountNumber);
+        existingAccount.setInstitutionName(null); // NULL institution name
+        existingAccount.setAccountType("CHECKING");
+        existingAccount.setBalance(new BigDecimal("1000.00"));
+        existingAccount.setCurrencyCode("USD");
+        existingAccount.setActive(true);
+        existingAccount.setCreatedAt(Instant.now());
+        existingAccount.setUpdatedAt(Instant.now());
+        accountRepository.save(existingAccount);
+
+        // When - Access token regenerated, new account comes in with:
+        // - New Plaid ID (different from existing)
+        // - Same accountNumber
+        // - Still null institutionName
+        String newPlaidId = "plaid-new-" + UUID.randomUUID();
+        
+        // Simulate PlaidSyncService deduplication logic:
+        // 1. Check by plaidAccountId (will fail - new ID)
+        Optional<AccountTable> byPlaidId = accountRepository.findByPlaidAccountId(newPlaidId);
+        assertFalse(byPlaidId.isPresent(), "Should not find by new Plaid ID");
+
+        // 2. Check by accountNumber only (should succeed)
+        Optional<AccountTable> byAccountNumber = accountRepository.findByAccountNumber(accountNumber, testUser.getUserId());
+        assertTrue(byAccountNumber.isPresent(), "Should find by accountNumber even when institutionName is null");
+        assertEquals(existingAccount.getAccountId(), byAccountNumber.get().getAccountId());
+
+        // Update existing account with new Plaid ID
+        AccountTable account = byAccountNumber.get();
+        account.setPlaidAccountId(newPlaidId);
+        accountRepository.save(account);
+
+        // Then - Should only have one account
+        List<AccountTable> allAccounts = accountRepository.findByUserId(testUser.getUserId());
+        assertEquals(1, allAccounts.size(), "Should only have one account after deduplication");
+    }
+
+    @Test
     void testTransactionDeduplication_WithSamePlaidTransactionId_DoesNotCreateDuplicate() {
         // Given - Existing transaction with plaidTransactionId
         String plaidTransactionId = "plaid-transaction-" + UUID.randomUUID();

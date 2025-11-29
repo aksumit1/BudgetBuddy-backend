@@ -64,7 +64,7 @@ class PlaidSyncServiceTest {
         when(accountRepository.saveIfNotExists(any(AccountTable.class))).thenReturn(true);
 
         // When
-        assertDoesNotThrow(() -> plaidSyncService.syncAccounts(testUser, testAccessToken));
+        assertDoesNotThrow(() -> plaidSyncService.syncAccounts(testUser, testAccessToken, null));
 
         // Then
         verify(plaidService, times(1)).getAccounts(testAccessToken);
@@ -85,7 +85,7 @@ class PlaidSyncServiceTest {
         when(accountRepository.findByPlaidAccountId("plaid-account-1")).thenReturn(Optional.of(existingAccount));
 
         // When
-        assertDoesNotThrow(() -> plaidSyncService.syncAccounts(testUser, testAccessToken));
+        assertDoesNotThrow(() -> plaidSyncService.syncAccounts(testUser, testAccessToken, null));
 
         // Then
         verify(accountRepository, times(1)).save(existingAccount);
@@ -105,7 +105,7 @@ class PlaidSyncServiceTest {
         when(accountRepository.saveIfNotExists(any(AccountTable.class))).thenReturn(true);
 
         // When
-        plaidSyncService.syncAccounts(testUser, testAccessToken);
+        plaidSyncService.syncAccounts(testUser, testAccessToken, null);
 
         // Then
         ArgumentCaptor<AccountTable> accountCaptor = ArgumentCaptor.forClass(AccountTable.class);
@@ -119,7 +119,7 @@ class PlaidSyncServiceTest {
     void testSyncAccounts_WithNullUser_ThrowsException() {
         // When/Then
         AppException exception = assertThrows(AppException.class, () -> {
-            plaidSyncService.syncAccounts(null, testAccessToken);
+            plaidSyncService.syncAccounts(null, testAccessToken, null);
         });
         assertEquals(ErrorCode.INVALID_INPUT, exception.getErrorCode());
     }
@@ -128,7 +128,7 @@ class PlaidSyncServiceTest {
     void testSyncAccounts_WithNullAccessToken_ThrowsException() {
         // When/Then
         AppException exception = assertThrows(AppException.class, () -> {
-            plaidSyncService.syncAccounts(testUser, null);
+            plaidSyncService.syncAccounts(testUser, null, null);
         });
         assertEquals(ErrorCode.INVALID_INPUT, exception.getErrorCode());
     }
@@ -137,7 +137,7 @@ class PlaidSyncServiceTest {
     void testSyncAccounts_WithEmptyAccessToken_ThrowsException() {
         // When/Then
         AppException exception = assertThrows(AppException.class, () -> {
-            plaidSyncService.syncAccounts(testUser, "");
+            plaidSyncService.syncAccounts(testUser, "", null);
         });
         assertEquals(ErrorCode.INVALID_INPUT, exception.getErrorCode());
     }
@@ -150,7 +150,7 @@ class PlaidSyncServiceTest {
         when(plaidService.getAccounts(testAccessToken)).thenReturn(accountsResponse);
 
         // When/Then
-        assertDoesNotThrow(() -> plaidSyncService.syncAccounts(testUser, testAccessToken));
+        assertDoesNotThrow(() -> plaidSyncService.syncAccounts(testUser, testAccessToken, null));
         verify(accountRepository, never()).save(any());
         verify(accountRepository, never()).saveIfNotExists(any());
     }
