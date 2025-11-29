@@ -65,9 +65,10 @@ public class PINController {
     }
 
     /**
-     * Verify PIN and refresh token
+     * Verify PIN and refresh token (authenticated endpoint)
      * POST /api/pin/verify
      * Returns new JWT token on successful verification
+     * Requires existing authentication token
      */
     @PostMapping("/verify")
     public ResponseEntity<AuthResponse> verifyPIN(
@@ -97,6 +98,50 @@ public class PINController {
         AuthResponse response = authService.generateTokensForUser(user);
 
         logger.info("PIN verified and token refreshed for userId: {}, deviceId: {}", 
+                user.getUserId(), request.getDeviceId());
+
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Login with PIN (unauthenticated endpoint)
+     * POST /api/pin/login
+     * Authenticates user using email + deviceId + PIN
+     * Returns JWT token on successful verification
+     * This endpoint does NOT require authentication - it's used for initial login
+     */
+    @PostMapping("/login")
+    public ResponseEntity<AuthResponse> loginWithPIN(
+            @RequestBody PINLoginRequest request) {
+        if (request == null || request.getEmail() == null || request.getEmail().isEmpty()) {
+            throw new AppException(ErrorCode.INVALID_INPUT, "Email is required");
+        }
+        if (request.getDeviceId() == null || request.getDeviceId().isEmpty()) {
+            throw new AppException(ErrorCode.INVALID_INPUT, "Device ID is required");
+        }
+        if (request.getPin() == null || request.getPin().isEmpty()) {
+            throw new AppException(ErrorCode.INVALID_INPUT, "PIN is required");
+        }
+
+        // Find user by email
+        UserTable user = userService.findByEmail(request.getEmail())
+                .orElseThrow(() -> new AppException(ErrorCode.INVALID_CREDENTIALS, "Invalid email or PIN"));
+
+        if (user.getEnabled() == null || !user.getEnabled()) {
+            throw new AppException(ErrorCode.ACCOUNT_DISABLED, "Account is disabled");
+        }
+
+        // Verify PIN
+        boolean isValid = devicePinService.verifyPIN(user, request.getDeviceId(), request.getPin());
+
+        if (!isValid) {
+            throw new AppException(ErrorCode.INVALID_CREDENTIALS, "Invalid email or PIN");
+        }
+
+        // Generate JWT token
+        AuthResponse response = authService.generateTokensForUser(user);
+
+        logger.info("PIN login successful for userId: {}, deviceId: {}", 
                 user.getUserId(), request.getDeviceId());
 
         return ResponseEntity.ok(response);
@@ -140,6 +185,19 @@ public class PINController {
         private String deviceId;
         private String pin;
 
+        public String getDeviceId() { return deviceId; }
+        public void setDeviceId(final String deviceId) { this.deviceId = deviceId; }
+        public String getPin() { return pin; }
+        public void setPin(final String pin) { this.pin = pin; }
+    }
+
+    public static class PINLoginRequest {
+        private String email;
+        private String deviceId;
+        private String pin;
+
+        public String getEmail() { return email; }
+        public void setEmail(final String email) { this.email = email; }
         public String getDeviceId() { return deviceId; }
         public void setDeviceId(final String deviceId) { this.deviceId = deviceId; }
         public String getPin() { return pin; }

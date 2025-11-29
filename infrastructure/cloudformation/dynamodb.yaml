@@ -372,6 +372,34 @@ Resources:
         - Key: ManagedBy
           Value: CloudFormation
 
+  # Device PIN Table
+  DevicePinTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub '${TablePrefix}-DevicePin'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: userId
+          AttributeType: S
+        - AttributeName: deviceId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: userId
+          KeyType: HASH
+        - AttributeName: deviceId
+          KeyType: RANGE
+      StreamSpecification:
+        StreamViewType: NEW_AND_OLD_IMAGES
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Application
+          Value: BudgetBuddy
+        - Key: ManagedBy
+          Value: CloudFormation
+
   # 404 Error Tracking Table
   NotFoundTrackingTable:
     Type: AWS::DynamoDB::Table
@@ -437,4 +465,10 @@ Outputs:
     Value: !Ref AuditLogsTable
     Export:
       Name: !Sub '${AWS::StackName}-AuditLogsTable'
+  
+  DevicePinTableName:
+    Description: Name of the DevicePin table
+    Value: !Ref DevicePinTable
+    Export:
+      Name: !Sub '${AWS::StackName}-DevicePinTable'
 

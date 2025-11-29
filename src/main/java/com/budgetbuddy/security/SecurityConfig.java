@@ -109,6 +109,7 @@ public class SecurityConfig {
                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html", "/api-docs/**").permitAll()
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/api/public/**").permitAll()
+                .requestMatchers("/api/pin/login").permitAll() // Allow unauthenticated PIN login
                 .requestMatchers("/api/plaid/webhooks").permitAll()
                 .requestMatchers("/.well-known/**").permitAll() // Allow well-known files (apple-app-site-association, etc.)
                 .anyRequest().authenticated()

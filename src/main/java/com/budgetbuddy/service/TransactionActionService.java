@@ -28,12 +28,15 @@ public class TransactionActionService {
 
     private final TransactionActionRepository actionRepository;
     private final TransactionRepository transactionRepository;
+    private final ReminderNotificationService reminderNotificationService;
 
     public TransactionActionService(
             final TransactionActionRepository actionRepository,
-            final TransactionRepository transactionRepository) {
+            final TransactionRepository transactionRepository,
+            final ReminderNotificationService reminderNotificationService) {
         this.actionRepository = actionRepository;
         this.transactionRepository = transactionRepository;
+        this.reminderNotificationService = reminderNotificationService;
     }
 
     /**
@@ -147,6 +150,12 @@ public class TransactionActionService {
         action.setDescription(description != null && !description.trim().isEmpty() ? description.trim() : null);
         action.setDueDate(dueDate);
         action.setReminderDate(reminderDate);
+        
+        // Validate reminder date against due date (logs warning if reminder is after due date)
+        if (reminderDate != null && dueDate != null) {
+            reminderNotificationService.validateReminderDate(reminderDate, dueDate);
+        }
+        
         action.setIsCompleted(false);
         action.setPriority(priority != null ? priority.toUpperCase() : "MEDIUM");
         action.setCreatedAt(Instant.now());
@@ -198,6 +207,10 @@ public class TransactionActionService {
         }
         if (reminderDate != null) {
             action.setReminderDate(reminderDate);
+            // Validate reminder date against due date (logs warning if reminder is after due date)
+            if (action.getDueDate() != null) {
+                reminderNotificationService.validateReminderDate(reminderDate, action.getDueDate());
+            }
         }
         if (isCompleted != null) {
             action.setIsCompleted(isCompleted);

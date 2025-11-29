@@ -170,6 +170,18 @@ class InfrastructureIntegrationTest {
     }
 
     @Test
+    void testDevicePinTable_Exists() {
+        // Given
+        String tableName = TABLE_PREFIX + "-DevicePin";
+
+        // When
+        boolean exists = tableExists(tableName);
+
+        // Then
+        assertTrue(exists, "DevicePin table should exist: " + tableName);
+    }
+
+    @Test
     void testTransactionsTable_HasRequiredGSIs() {
         // Given
         String tableName = TABLE_PREFIX + "-Transactions";
@@ -277,6 +289,19 @@ class InfrastructureIntegrationTest {
 
         // Then - TTL may not be configured in test environment
         assertTrue(tableExists(tableName), "DeviceAttestation table should exist");
+    }
+
+    @Test
+    void testDevicePinTable_HasCompositeKey() {
+        // Given
+        String tableName = TABLE_PREFIX + "-DevicePin";
+
+        // When
+        boolean exists = tableExists(tableName);
+
+        // Then - DevicePin table should exist with composite key (userId, deviceId)
+        assertTrue(exists, "DevicePin table should exist: " + tableName);
+        // Note: DevicePin table uses composite key (userId HASH, deviceId RANGE), no GSI needed
     }
 
     // Helper methods

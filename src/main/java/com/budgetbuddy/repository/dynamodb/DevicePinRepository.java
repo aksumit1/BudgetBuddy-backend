@@ -24,7 +24,7 @@ import java.util.Optional;
 public class DevicePinRepository {
 
     private static final Logger logger = LoggerFactory.getLogger(DevicePinRepository.class);
-    private static final String TABLE_NAME = "DevicePin";
+    private static final String TABLE_NAME = "BudgetBuddy-DevicePin";
 
     private final DynamoDbEnhancedClient enhancedClient;
     private DynamoDbTable<DevicePinTable> devicePinTable;

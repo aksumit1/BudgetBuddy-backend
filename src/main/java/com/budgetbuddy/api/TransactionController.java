@@ -199,6 +199,32 @@ public class TransactionController {
         return ResponseEntity.ok(transaction);
     }
 
+    @PostMapping("/verify")
+    public ResponseEntity<TransactionTable> verifyTransaction(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestBody VerifyTransactionRequest request) {
+        if (userDetails == null || userDetails.getUsername() == null) {
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+        }
+        if (request == null) {
+            throw new AppException(ErrorCode.INVALID_INPUT, "Verify request is required");
+        }
+        if (request.getTransactionId() == null || request.getTransactionId().isEmpty()) {
+            throw new AppException(ErrorCode.INVALID_INPUT, "Transaction ID is required");
+        }
+
+        UserTable user = userService.findByEmail(userDetails.getUsername())
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+
+        // Use plaidTransactionId from request body for fallback lookup if UUID doesn't match
+        TransactionTable transaction = transactionService.getTransaction(
+                user,
+                request.getTransactionId(),
+                request.getPlaidTransactionId()
+        );
+        return ResponseEntity.ok(transaction);
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteTransaction(
             @AuthenticationPrincipal UserDetails userDetails,
@@ -270,6 +296,17 @@ public class TransactionController {
 
         public String getNotes() { return notes; }
         public void setNotes(final String notes) { this.notes = notes; }
+        
+        public String getPlaidTransactionId() { return plaidTransactionId; }
+        public void setPlaidTransactionId(final String plaidTransactionId) { this.plaidTransactionId = plaidTransactionId; }
+    }
+
+    public static class VerifyTransactionRequest {
+        private String transactionId;
+        private String plaidTransactionId; // Optional: Plaid transaction ID in body for fallback lookup
+
+        public String getTransactionId() { return transactionId; }
+        public void setTransactionId(final String transactionId) { this.transactionId = transactionId; }
         
         public String getPlaidTransactionId() { return plaidTransactionId; }
         public void setPlaidTransactionId(final String plaidTransactionId) { this.plaidTransactionId = plaidTransactionId; }

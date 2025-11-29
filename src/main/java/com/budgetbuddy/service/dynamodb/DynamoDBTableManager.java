@@ -42,6 +42,7 @@ public class DynamoDBTableManager {
         createTransactionActionsTable();
         createAuditLogsTable();
         createNotFoundTrackingTable();
+        createDevicePinTable();
         logger.info("DynamoDB tables initialized");
     }
 
@@ -430,6 +431,39 @@ public class DynamoDBTableManager {
             } catch (Exception e) {
                 logger.warn("Failed to configure TTL for 404 tracking table: {}", e.getMessage());
             }
+            logger.info("Created table: {}", tableName);
+        } catch (ResourceInUseException e) {
+            logger.debug("Table {} already exists", tableName);
+        } catch (Exception e) {
+            logger.error("Failed to create table {}: {}", tableName, e.getMessage());
+        }
+    }
+
+    private void createDevicePinTable() {
+        String tableName = tablePrefix + "-DevicePin";
+        try {
+            dynamoDbClient.createTable(CreateTableRequest.builder()
+                    .tableName(tableName)
+                    .billingMode(BillingMode.PAY_PER_REQUEST)
+                    .attributeDefinitions(
+                            AttributeDefinition.builder()
+                                    .attributeName("userId")
+                                    .attributeType(ScalarAttributeType.S)
+                                    .build(),
+                            AttributeDefinition.builder()
+                                    .attributeName("deviceId")
+                                    .attributeType(ScalarAttributeType.S)
+                                    .build())
+                    .keySchema(
+                            KeySchemaElement.builder()
+                                    .attributeName("userId")
+                                    .keyType(KeyType.HASH)
+                                    .build(),
+                            KeySchemaElement.builder()
+                                    .attributeName("deviceId")
+                                    .keyType(KeyType.RANGE)
+                                    .build())
+                    .build());
             logger.info("Created table: {}", tableName);
         } catch (ResourceInUseException e) {
             logger.debug("Table {} already exists", tableName);
