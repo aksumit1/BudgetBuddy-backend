@@ -42,8 +42,19 @@ app:
   
   rate-limit:
     enabled: false # Disabled for tests to avoid rate limiting issues
-    requests-per-minute: 10000 # Very high limit if enabled
-    requests-per-hour: 100000
+    requests-per-minute: 100000 # Very high limit if enabled
+    requests-per-hour: 1000000
+    # Per-endpoint limits (used if rate limiting is enabled)
+    auth-login: 50000
+    auth-signup: 50000
+    plaid: 100000
+    transactions: 100000
+    analytics: 100000
+    default: 100000
+    # DDoS protection limits
+    ddos:
+      max-requests-per-minute: 100000
+      max-requests-per-hour: 1000000
   
   security:
     cors:

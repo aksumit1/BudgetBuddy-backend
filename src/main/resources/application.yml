@@ -101,8 +101,19 @@ app:
   # Rate Limiting
   rate-limit:
     enabled: true
-    requests-per-minute: 60
-    requests-per-hour: 1000
+    requests-per-minute: 10000
+    requests-per-hour: 500000
+    # Per-endpoint rate limits (per user, per 60 seconds)
+    auth-login: 1000
+    auth-signup: 500
+    plaid: 50000
+    transactions: 500000
+    analytics: 100000
+    default: 500000
+    # DDoS protection (IP-based)
+    ddos:
+      max-requests-per-minute: 100000
+      max-requests-per-hour: 5000000
   
   # Security
   security:

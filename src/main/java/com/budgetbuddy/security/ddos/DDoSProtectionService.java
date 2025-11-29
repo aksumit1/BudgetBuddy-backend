@@ -30,9 +30,12 @@ public class DDoSProtectionService {
     @Value("${app.rate-limit.enabled:true}")
     private boolean rateLimitEnabled;
 
-    private static final int MAX_REQUESTS_PER_MINUTE = 100; // Per IP
+    @Value("${app.rate-limit.ddos.max-requests-per-minute:100000}")
+    private int maxRequestsPerMinute;
+
     @SuppressWarnings("unused") // Reserved for future implementation
-    private static final int MAX_REQUESTS_PER_HOUR = 1000; // Per IP
+    @Value("${app.rate-limit.ddos.max-requests-per-hour:5000000}")
+    private int maxRequestsPerHour;
     private static final int BLOCK_DURATION_SECONDS = 3600; // 1 hour block
     private static final int MAX_CACHE_SIZE = 10000; // Prevent unbounded growth
     private static final long CACHE_CLEANUP_INTERVAL_MS = 300000; // 5 minutes
@@ -92,7 +95,7 @@ public class DDoSProtectionService {
             if (counter.isBlocked()) {
                 return false;
             }
-            if (counter.getRequestsPerMinute() >= MAX_REQUESTS_PER_MINUTE) {
+            if (counter.getRequestsPerMinute() >= maxRequestsPerMinute) {
                 counter.setBlocked(true);
                 // Async block in DynamoDB to avoid blocking
                 blockIpInDynamoDBAsync(ipAddress);

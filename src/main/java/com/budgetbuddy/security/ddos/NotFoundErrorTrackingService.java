@@ -27,9 +27,9 @@ public class NotFoundErrorTrackingService {
 
     private static final Logger logger = LoggerFactory.getLogger(NotFoundErrorTrackingService.class);
 
-    // Configuration
-    private static final int MAX_404_PER_MINUTE = 20; // Allow up to 20 404s per minute
-    private static final int MAX_404_PER_HOUR = 100; // Allow up to 100 404s per hour
+    // Configuration - Increased for testing and heavy usage scenarios
+    private static final int MAX_404_PER_MINUTE = 500; // Allow up to 500 404s per minute (for testing)
+    private static final int MAX_404_PER_HOUR = 5000; // Allow up to 5000 404s per hour (for testing)
     private static final int BLOCK_DURATION_SECONDS = 3600; // Block for 1 hour after threshold
     private static final long WINDOW_SIZE_MS = 60000; // 1 minute window
     private static final long CACHE_CLEANUP_INTERVAL_MS = 300000; // 5 minutes

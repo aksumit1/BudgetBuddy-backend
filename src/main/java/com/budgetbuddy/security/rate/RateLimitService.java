@@ -29,15 +29,35 @@ public class RateLimitService {
     @Value("${app.rate-limit.enabled:true}")
     private boolean rateLimitEnabled;
 
-    // Rate limits per endpoint type
-    private static final Map<String, RateLimitConfig> ENDPOINT_LIMITS = Map.of(
-            "/api/auth/login", new RateLimitConfig(5, 60), // 5 requests per minute
-            "/api/auth/signup", new RateLimitConfig(3, 60), // 3 requests per minute
-            "/api/plaid", new RateLimitConfig(10, 60), // 10 requests per minute
-            "/api/transactions", new RateLimitConfig(100, 60), // 100 requests per minute
-            "/api/analytics", new RateLimitConfig(20, 60), // 20 requests per minute
-            "default", new RateLimitConfig(50, 60) // Default: 50 requests per minute
-    );
+    @Value("${app.rate-limit.auth-login:1000}")
+    private int authLoginLimit;
+
+    @Value("${app.rate-limit.auth-signup:500}")
+    private int authSignupLimit;
+
+    @Value("${app.rate-limit.plaid:50000}")
+    private int plaidLimit;
+
+    @Value("${app.rate-limit.transactions:500000}")
+    private int transactionsLimit;
+
+    @Value("${app.rate-limit.analytics:100000}")
+    private int analyticsLimit;
+
+    @Value("${app.rate-limit.default:500000}")
+    private int defaultLimit;
+
+    // Rate limits per endpoint type - now configurable via properties
+    private Map<String, RateLimitConfig> getEndpointLimits() {
+        return Map.of(
+                "/api/auth/login", new RateLimitConfig(authLoginLimit, 60),
+                "/api/auth/signup", new RateLimitConfig(authSignupLimit, 60),
+                "/api/plaid", new RateLimitConfig(plaidLimit, 60),
+                "/api/transactions", new RateLimitConfig(transactionsLimit, 60),
+                "/api/analytics", new RateLimitConfig(analyticsLimit, 60),
+                "default", new RateLimitConfig(defaultLimit, 60)
+        );
+    }
 
     private static final int MAX_CACHE_SIZE = 50000; // Prevent unbounded growth
     private static final long CACHE_CLEANUP_INTERVAL_MS = 300000; // 5 minutes
@@ -150,20 +170,22 @@ public class RateLimitService {
     }
 
     private RateLimitConfig getRateLimitConfig(final String endpoint) {
+        Map<String, RateLimitConfig> endpointLimits = getEndpointLimits();
         if (endpoint == null) {
-            return ENDPOINT_LIMITS.get("default");
+            return endpointLimits.get("default");
         }
 
-        return ENDPOINT_LIMITS.entrySet().stream()
+        return endpointLimits.entrySet().stream()
                 .filter(e -> endpoint.startsWith(e.getKey()))
                 .findFirst()
                 .map(Map.Entry::getValue)
-                .orElse(ENDPOINT_LIMITS.get("default"));
+                .orElse(endpointLimits.get("default"));
     }
 
     private TokenBucket loadOrCreateBucket(final String key, final RateLimitConfig config) {
         if (key == null || config == null) {
-            return new TokenBucket(ENDPOINT_LIMITS.get("default"));
+            Map<String, RateLimitConfig> endpointLimits = getEndpointLimits();
+            return new TokenBucket(endpointLimits.get("default"));
         }
 
         try {

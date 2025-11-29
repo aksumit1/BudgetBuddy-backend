@@ -23,7 +23,8 @@ public class JacksonConfig {
         ObjectMapper mapper = Jackson2ObjectMapperBuilder.json()
                 .modules(new JavaTimeModule())
                 .featuresToDisable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
-                .serializerByType(BigDecimal.class, new ToStringSerializer())
+                // BigDecimal serializes as number (not string) for JSON compatibility
+                // iOS app supports both String and Double formats
                 .build();
         return mapper;
     }

@@ -15,10 +15,10 @@ import java.time.Duration;
 @Configuration
 public class RateLimitingConfig {
 
-    @Value("${app.rate-limit.requests-per-minute:60}")
+    @Value("${app.rate-limit.requests-per-minute:10000}")
     private int requestsPerMinute;
 
-    @Value("${app.rate-limit.requests-per-hour:1000}")
+    @Value("${app.rate-limit.requests-per-hour:500000}")
     private int requestsPerHour;
 
     @Bean

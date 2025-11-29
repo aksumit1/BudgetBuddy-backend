@@ -4,12 +4,15 @@ import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbAttri
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbBean;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbPartitionKey;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbSecondaryPartitionKey;
+import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbSecondarySortKey;
 
 import java.time.Instant;
 
 /**
  * DynamoDB table for Transaction Actions/Reminders
  * GSI: TransactionIdIndex (transactionId as partition key) for querying actions by transaction
+ * GSI: UserIdIndex (userId as partition key) for querying actions by user
+ * GSI: ReminderDateIndex (reminderDatePartition as partition key, reminderDate as sort key) for querying reminders by date
  */
 @DynamoDbBean
 public class TransactionActionTable {
@@ -20,7 +23,8 @@ public class TransactionActionTable {
     private String title;
     private String description;
     private String dueDate; // ISO date string (YYYY-MM-DD) or ISO datetime
-    private String reminderDate; // ISO datetime
+    private String reminderDate; // ISO datetime - GSI sort key for ReminderDateIndex
+    private String reminderDatePartition; // Partition key for ReminderDateIndex (YYYY-MM-DD format for distribution)
     private Boolean isCompleted;
     private String priority; // LOW, MEDIUM, HIGH
     private String notificationId; // For tracking scheduled notifications
@@ -85,12 +89,40 @@ public class TransactionActionTable {
     }
 
     @DynamoDbAttribute("reminderDate")
+    @DynamoDbSecondarySortKey(indexNames = "ReminderDateIndex")
     public String getReminderDate() {
         return reminderDate;
     }
 
     public void setReminderDate(final String reminderDate) {
         this.reminderDate = reminderDate;
+        // Auto-set partition key from reminder date (YYYY-MM-DD format)
+        if (reminderDate != null && !reminderDate.isEmpty()) {
+            try {
+                // Extract date part from ISO datetime (e.g., "2024-12-30T10:00:00Z" -> "2024-12-30")
+                if (reminderDate.contains("T")) {
+                    this.reminderDatePartition = reminderDate.substring(0, reminderDate.indexOf("T"));
+                } else {
+                    // Already a date string
+                    this.reminderDatePartition = reminderDate.substring(0, Math.min(10, reminderDate.length()));
+                }
+            } catch (Exception e) {
+                // If parsing fails, use a default partition
+                this.reminderDatePartition = "DEFAULT";
+            }
+        } else {
+            this.reminderDatePartition = null;
+        }
+    }
+    
+    @DynamoDbSecondaryPartitionKey(indexNames = "ReminderDateIndex")
+    @DynamoDbAttribute("reminderDatePartition")
+    public String getReminderDatePartition() {
+        return reminderDatePartition;
+    }
+    
+    public void setReminderDatePartition(final String reminderDatePartition) {
+        this.reminderDatePartition = reminderDatePartition;
     }
 
     @DynamoDbAttribute("isCompleted")

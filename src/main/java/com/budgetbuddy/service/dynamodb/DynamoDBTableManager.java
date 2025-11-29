@@ -316,6 +316,14 @@ public class DynamoDBTableManager {
                             AttributeDefinition.builder()
                                     .attributeName("userId")
                                     .attributeType(ScalarAttributeType.S)
+                                    .build(),
+                            AttributeDefinition.builder()
+                                    .attributeName("reminderDatePartition")
+                                    .attributeType(ScalarAttributeType.S)
+                                    .build(),
+                            AttributeDefinition.builder()
+                                    .attributeName("reminderDate")
+                                    .attributeType(ScalarAttributeType.S)
                                     .build())
                     .keySchema(
                             KeySchemaElement.builder()
@@ -340,6 +348,21 @@ public class DynamoDBTableManager {
                                             KeySchemaElement.builder()
                                                     .attributeName("userId")
                                                     .keyType(KeyType.HASH)
+                                                    .build())
+                                    .projection(Projection.builder()
+                                            .projectionType(ProjectionType.ALL)
+                                            .build())
+                                    .build(),
+                            GlobalSecondaryIndex.builder()
+                                    .indexName("ReminderDateIndex")
+                                    .keySchema(
+                                            KeySchemaElement.builder()
+                                                    .attributeName("reminderDatePartition")
+                                                    .keyType(KeyType.HASH)
+                                                    .build(),
+                                            KeySchemaElement.builder()
+                                                    .attributeName("reminderDate")
+                                                    .keyType(KeyType.RANGE)
                                                     .build())
                                     .projection(Projection.builder()
                                             .projectionType(ProjectionType.ALL)

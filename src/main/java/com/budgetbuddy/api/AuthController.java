@@ -161,6 +161,58 @@ public class AuthController {
         return ResponseEntity.ok(new PasswordResetResponse(true, "Password reset successful"));
     }
 
+    /**
+     * Change password endpoint (authenticated)
+     * Requires current password verification and new password
+     */
+    @PostMapping("/change-password")
+    @Operation(summary = "Change Password", description = "Changes password for authenticated user")
+    public ResponseEntity<PasswordChangeResponse> changePassword(
+            @org.springframework.security.core.annotation.AuthenticationPrincipal
+            org.springframework.security.core.userdetails.UserDetails userDetails,
+            @Valid @RequestBody ChangePasswordRequest request) {
+        
+        if (userDetails == null || userDetails.getUsername() == null) {
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+        }
+
+        // Validate secure format for new password
+        if (!request.isSecureFormat()) {
+            throw new AppException(ErrorCode.INVALID_INPUT,
+                    "Password change requires new_password_hash and new_salt. Legacy password format not supported.");
+        }
+
+        // Find user
+        com.budgetbuddy.model.dynamodb.UserTable user = userService.findByEmail(userDetails.getUsername())
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+
+        // Verify current password
+        AuthRequest currentPasswordRequest = new AuthRequest(
+                user.getEmail(),
+                request.getCurrentPasswordHash(),
+                request.getCurrentSalt()
+        );
+
+        try {
+            authService.authenticate(currentPasswordRequest);
+        } catch (AppException e) {
+            if (e.getErrorCode() == ErrorCode.INVALID_CREDENTIALS) {
+                throw new AppException(ErrorCode.INVALID_CREDENTIALS, "Current password is incorrect");
+            }
+            throw e;
+        }
+
+        // Change password
+        userService.changePasswordSecure(
+                user.getUserId(),
+                request.getNewPasswordHash(),
+                request.getNewSalt()
+        );
+
+        logger.info("Password changed successfully for user: {}", user.getEmail());
+        return ResponseEntity.ok(new PasswordChangeResponse(true, "Password changed successfully"));
+    }
+
     // Inner class for refresh token request
     public static class RefreshTokenRequest {
         private String refreshToken;
@@ -281,6 +333,98 @@ public class AuthController {
         }
 
         public PasswordResetResponse(final boolean success, final String message) {
+            this.success = success;
+            this.message = message;
+        }
+
+        public boolean isSuccess() {
+            return success;
+        }
+
+        public void setSuccess(final boolean success) {
+            this.success = success;
+        }
+
+        public String getMessage() {
+            return message;
+        }
+
+        public void setMessage(final String message) {
+            this.message = message;
+        }
+    }
+
+    // Inner class for change password request
+    public static class ChangePasswordRequest {
+        @JsonProperty("currentPasswordHash")
+        @JsonAlias("current_password_hash")
+        @NotBlank(message = "Current password hash is required")
+        private String currentPasswordHash;
+
+        @NotBlank(message = "Current salt is required")
+        private String currentSalt;
+
+        @JsonProperty("newPasswordHash")
+        @JsonAlias("new_password_hash")
+        @NotBlank(message = "New password hash is required")
+        private String newPasswordHash;
+
+        @NotBlank(message = "New salt is required")
+        private String newSalt;
+
+        public String getCurrentPasswordHash() {
+            return currentPasswordHash;
+        }
+
+        public void setCurrentPasswordHash(final String currentPasswordHash) {
+            this.currentPasswordHash = currentPasswordHash;
+        }
+
+        public String getCurrentSalt() {
+            return currentSalt;
+        }
+
+        public void setCurrentSalt(final String currentSalt) {
+            this.currentSalt = currentSalt;
+        }
+
+        public String getNewPasswordHash() {
+            return newPasswordHash;
+        }
+
+        public void setNewPasswordHash(final String newPasswordHash) {
+            this.newPasswordHash = newPasswordHash;
+        }
+
+        public String getNewSalt() {
+            return newSalt;
+        }
+
+        public void setNewSalt(final String newSalt) {
+            this.newSalt = newSalt;
+        }
+
+        /**
+         * Check if request uses secure format (password_hash + salt)
+         */
+        @com.fasterxml.jackson.annotation.JsonIgnore
+        public boolean isSecureFormat() {
+            return newPasswordHash != null && !newPasswordHash.isEmpty()
+                   && newSalt != null && !newSalt.isEmpty()
+                   && currentPasswordHash != null && !currentPasswordHash.isEmpty()
+                   && currentSalt != null && !currentSalt.isEmpty();
+        }
+    }
+
+    // Inner class for change password response
+    public static class PasswordChangeResponse {
+        private boolean success;
+        private String message;
+
+        public PasswordChangeResponse() {
+        }
+
+        public PasswordChangeResponse(final boolean success, final String message) {
             this.success = success;
             this.message = message;
         }

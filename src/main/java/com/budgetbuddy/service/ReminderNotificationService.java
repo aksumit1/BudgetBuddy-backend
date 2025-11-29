@@ -76,29 +76,20 @@ public class ReminderNotificationService {
             Instant now = Instant.now();
             Instant oneHourAgo = now.minusSeconds(3600); // Check reminders from last hour
             
-            // Find all pending actions with reminder dates
-            // Note: DynamoDB doesn't support efficient date range queries without a GSI
-            // For production, consider:
-            // 1. Adding a GSI on reminderDate with reminderDate as sort key
-            // 2. Using a separate reminder queue table
-            // 3. Using DynamoDB Streams to process reminders
-            // 
-            // For now, this is a placeholder that logs the requirement
-            // The iOS app handles reminders client-side, so this backend service is a backup
-            logger.info("Reminder notification check: Backend reminder service requires GSI on reminderDate for production use");
-            logger.info("iOS app handles reminders client-side, so backend service is currently a backup/fallback");
-            
-            // TODO: Implement when GSI on reminderDate is available:
-            // Query actions where reminderDate is between oneHourAgo and now
-            // For now, we'll skip the actual processing and log that it needs implementation
+            // Find all pending actions with reminder dates in the range
+            // Use GSI on reminderDate to efficiently query by date range
             int sentCount = 0;
             int skippedCount = 0;
             
-            // Placeholder: In production, query would be:
-            // List<TransactionActionTable> actions = actionRepository.findByReminderDateRange(oneHourAgo, now);
-            List<TransactionActionTable> allActions = java.util.Collections.emptyList();
+            // Query actions where reminderDate is between oneHourAgo and now
+            String startDateStr = oneHourAgo.toString(); // ISO format
+            String endDateStr = now.toString(); // ISO format
+            List<TransactionActionTable> actions = actionRepository.findByReminderDateRange(startDateStr, endDateStr);
             
-            for (TransactionActionTable action : allActions) {
+            logger.debug("Found {} actions with reminder dates in range {} to {}", 
+                    actions.size(), startDateStr, endDateStr);
+            
+            for (TransactionActionTable action : actions) {
                 // Skip if action is completed
                 if (Boolean.TRUE.equals(action.getIsCompleted())) {
                     skippedCount++;
