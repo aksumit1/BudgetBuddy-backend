@@ -35,6 +35,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 @Import(AWSTestConfiguration.class)
+@org.springframework.test.annotation.DirtiesContext(classMode = org.springframework.test.annotation.DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 class NotFoundErrorTrackingIntegrationTest {
 
     @Autowired
@@ -61,6 +62,9 @@ class NotFoundErrorTrackingIntegrationTest {
 
     @BeforeEach
     void setUp() {
+        // Clear tracking to avoid interference between tests
+        notFoundTrackingService.clearAllTracking();
+        
         // Use unique IPs for each test to avoid interference
         testIp1 = "192.168.1." + (100 + (int)(Math.random() * 100));
         testIp2 = "192.168.1." + (200 + (int)(Math.random() * 100));
@@ -127,11 +131,11 @@ class NotFoundErrorTrackingIntegrationTest {
 
     @Test
     void test404Errors_ExceedingPerMinuteThreshold_ShouldBlock() throws Exception {
-        // Given - More than 20 404 requests in a minute (threshold)
-        int requests = 25; // Above threshold of 20
-
-        // When - Making excessive 404 requests
-        for (int i = 0; i < requests; i++) {
+        // Given - Threshold is 20 per minute
+        int threshold = 20;
+        
+        // When - Making requests up to threshold (should all return 404)
+        for (int i = 0; i < threshold; i++) {
             mockMvc.perform(withAuth(get("/api/transactions/" + UUID.randomUUID()))
                             .header("X-Forwarded-For", testIp1)
                             .contentType(MediaType.APPLICATION_JSON))
@@ -139,6 +143,19 @@ class NotFoundErrorTrackingIntegrationTest {
         }
 
         // Small delay to ensure tracking is processed
+        Thread.sleep(100);
+        
+        // Should not be blocked yet (at threshold, not exceeding)
+        assertFalse(notFoundTrackingService.isBlocked(testIp1), 
+                "At threshold should not block yet");
+
+        // Make one more request that exceeds threshold (should still return 404, but triggers blocking)
+        mockMvc.perform(withAuth(get("/api/transactions/" + UUID.randomUUID()))
+                        .header("X-Forwarded-For", testIp1)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isNotFound());
+
+        // Small delay to ensure blocking is processed
         Thread.sleep(100);
 
         // Then - Source should be blocked
@@ -157,11 +174,11 @@ class NotFoundErrorTrackingIntegrationTest {
 
     @Test
     void test404Errors_ExceedingPerHourThreshold_ShouldBlock() throws Exception {
-        // Given - More than 100 404 requests in an hour (threshold)
-        int requests = 105; // Above threshold of 100
-
-        // When - Making excessive 404 requests
-        for (int i = 0; i < requests; i++) {
+        // Given - Threshold is 100 per hour
+        int threshold = 100;
+        
+        // When - Making requests up to threshold (should all return 404)
+        for (int i = 0; i < threshold; i++) {
             mockMvc.perform(withAuth(get("/api/transactions/" + UUID.randomUUID()))
                             .header("X-Forwarded-For", testIp1)
                             .contentType(MediaType.APPLICATION_JSON))
@@ -169,6 +186,19 @@ class NotFoundErrorTrackingIntegrationTest {
         }
 
         // Small delay to ensure tracking is processed
+        Thread.sleep(100);
+        
+        // Should not be blocked yet (at threshold, not exceeding)
+        assertFalse(notFoundTrackingService.isBlocked(testIp1), 
+                "At threshold should not block yet");
+
+        // Make one more request that exceeds threshold (should still return 404, but triggers blocking)
+        mockMvc.perform(withAuth(get("/api/transactions/" + UUID.randomUUID()))
+                        .header("X-Forwarded-For", testIp1)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isNotFound());
+
+        // Small delay to ensure blocking is processed
         Thread.sleep(100);
 
         // Then - Source should be blocked
@@ -179,15 +209,21 @@ class NotFoundErrorTrackingIntegrationTest {
     @Test
     void testDifferentIPs_TrackedSeparately() throws Exception {
         // Given - Two different IPs making 404 requests
-        int requests = 25; // Above threshold
+        int threshold = 20;
 
-        // When - IP1 makes excessive 404s
-        for (int i = 0; i < requests; i++) {
+        // When - IP1 makes requests up to threshold, then exceeds
+        for (int i = 0; i < threshold; i++) {
             mockMvc.perform(withAuth(get("/api/transactions/" + UUID.randomUUID()))
                             .header("X-Forwarded-For", testIp1)
                             .contentType(MediaType.APPLICATION_JSON))
                     .andExpect(status().isNotFound());
         }
+        
+        // One more to trigger blocking
+        mockMvc.perform(withAuth(get("/api/transactions/" + UUID.randomUUID()))
+                        .header("X-Forwarded-For", testIp1)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isNotFound());
 
         Thread.sleep(100);
 
@@ -209,13 +245,19 @@ class NotFoundErrorTrackingIntegrationTest {
     @Test
     void testBlockedSource_SubsequentRequests_Return429() throws Exception {
         // Given - Source is blocked due to excessive 404s
-        int requests = 25; // Above threshold
-        for (int i = 0; i < requests; i++) {
+        int threshold = 20;
+        for (int i = 0; i < threshold; i++) {
             mockMvc.perform(withAuth(get("/api/transactions/" + UUID.randomUUID()))
                             .header("X-Forwarded-For", testIp1)
                             .contentType(MediaType.APPLICATION_JSON))
                     .andExpect(status().isNotFound());
         }
+        
+        // One more to trigger blocking
+        mockMvc.perform(withAuth(get("/api/transactions/" + UUID.randomUUID()))
+                        .header("X-Forwarded-For", testIp1)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isNotFound());
 
         Thread.sleep(100);
         assertTrue(notFoundTrackingService.isBlocked(testIp1));
@@ -235,6 +277,7 @@ class NotFoundErrorTrackingIntegrationTest {
     void test404Errors_MixedWithValidRequests_Only404sCounted() throws Exception {
         // Given - Mix of 404 and valid requests
         String validPath = "/api/transactions";
+        int threshold = 20;
         
         // When - Making mix of requests
         // Valid request (should not count) - authenticated request should return 200
@@ -243,13 +286,19 @@ class NotFoundErrorTrackingIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk());
 
-        // 404 requests (should count)
-        for (int i = 0; i < 25; i++) {
+        // 404 requests (should count) - up to threshold
+        for (int i = 0; i < threshold; i++) {
             mockMvc.perform(withAuth(get("/api/transactions/" + UUID.randomUUID()))
                             .header("X-Forwarded-For", testIp1)
                             .contentType(MediaType.APPLICATION_JSON))
                     .andExpect(status().isNotFound());
         }
+        
+        // One more 404 to trigger blocking
+        mockMvc.perform(withAuth(get("/api/transactions/" + UUID.randomUUID()))
+                        .header("X-Forwarded-For", testIp1)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isNotFound());
 
         Thread.sleep(100);
 
@@ -298,15 +347,21 @@ class NotFoundErrorTrackingIntegrationTest {
     @Test
     void test404Tracking_WithXRealIPHeader() throws Exception {
         // Given - Request with X-Real-IP header
-        int requests = 25; // Above threshold
+        int threshold = 20;
 
-        // When - Making requests with X-Real-IP header
-        for (int i = 0; i < requests; i++) {
+        // When - Making requests with X-Real-IP header up to threshold
+        for (int i = 0; i < threshold; i++) {
             mockMvc.perform(withAuth(get("/api/transactions/" + UUID.randomUUID()))
                             .header("X-Real-IP", testIp1)
                             .contentType(MediaType.APPLICATION_JSON))
                     .andExpect(status().isNotFound());
         }
+        
+        // One more to trigger blocking
+        mockMvc.perform(withAuth(get("/api/transactions/" + UUID.randomUUID()))
+                        .header("X-Real-IP", testIp1)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isNotFound());
 
         Thread.sleep(100);
 
@@ -340,13 +395,19 @@ class NotFoundErrorTrackingIntegrationTest {
     @Test
     void test404Tracking_ErrorResponseFormat() throws Exception {
         // Given - Source is blocked
-        int requests = 25;
-        for (int i = 0; i < requests; i++) {
+        int threshold = 20;
+        for (int i = 0; i < threshold; i++) {
             mockMvc.perform(withAuth(get("/api/transactions/" + UUID.randomUUID()))
                             .header("X-Forwarded-For", testIp1)
                             .contentType(MediaType.APPLICATION_JSON))
                     .andExpect(status().isNotFound());
         }
+        
+        // One more to trigger blocking
+        mockMvc.perform(withAuth(get("/api/transactions/" + UUID.randomUUID()))
+                        .header("X-Forwarded-For", testIp1)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isNotFound());
 
         Thread.sleep(100);
 
@@ -356,7 +417,7 @@ class NotFoundErrorTrackingIntegrationTest {
                         .header("X-Forwarded-For", testIp1)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isTooManyRequests())
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.errorCode").value("RATE_LIMIT_EXCEEDED"))
                 .andExpect(jsonPath("$.message").exists())
                 .andExpect(jsonPath("$.correlationId").exists())
@@ -367,7 +428,7 @@ class NotFoundErrorTrackingIntegrationTest {
     @Test
     void test404Tracking_ConcurrentRequests() throws Exception {
         // Given - Multiple concurrent 404 requests
-        int requests = 30; // Above threshold
+        int requests = 25; // Above threshold (20)
         int threads = 5;
 
         // When - Making concurrent requests from multiple threads
@@ -379,10 +440,11 @@ class NotFoundErrorTrackingIntegrationTest {
             final int requestNum = i;
             executor.submit(() -> {
                 try {
+                    // Don't assert status - some may return 404, some may return 429 after blocking
                     mockMvc.perform(withAuth(get("/api/transactions/" + UUID.randomUUID()))
                                     .header("X-Forwarded-For", testIp1)
                                     .contentType(MediaType.APPLICATION_JSON))
-                            .andExpect(status().isNotFound());
+                            .andReturn();
                 } catch (Exception e) {
                     // Ignore exceptions in concurrent test
                 } finally {

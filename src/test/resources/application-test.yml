@@ -55,6 +55,11 @@ app:
     ddos:
       max-requests-per-minute: 100000
       max-requests-per-hour: 1000000
+  # 404 Error Tracking Configuration (lower thresholds for tests)
+  ddos:
+    notfound:
+      max-per-minute: 20  # Lower threshold for tests (tests expect ~25 to exceed)
+      max-per-hour: 100   # Lower threshold for tests (tests expect ~105 to exceed)
   
   security:
     cors:

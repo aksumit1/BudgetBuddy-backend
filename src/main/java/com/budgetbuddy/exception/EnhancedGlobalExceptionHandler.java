@@ -122,7 +122,8 @@ public class EnhancedGlobalExceptionHandler {
                 String errorMessage = messageUtil.getValidationMessage(fieldName);
                 String validationKey = "validation." 
                         + fieldName.toLowerCase().replace("_", ".");
-                if (errorMessage.equals(validationKey)) {
+                // Check if errorMessage is null before calling equals()
+                if (errorMessage != null && errorMessage.equals(validationKey)) {
                     errorMessage = error.getDefaultMessage();
                 }
                 validationErrors.put(fieldName, 

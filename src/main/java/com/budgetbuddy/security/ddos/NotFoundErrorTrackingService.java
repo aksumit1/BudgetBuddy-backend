@@ -2,6 +2,7 @@ package com.budgetbuddy.security.ddos;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 import software.amazon.awssdk.services.dynamodb.model.*;
@@ -27,9 +28,13 @@ public class NotFoundErrorTrackingService {
 
     private static final Logger logger = LoggerFactory.getLogger(NotFoundErrorTrackingService.class);
 
-    // Configuration - Increased for testing and heavy usage scenarios
-    private static final int MAX_404_PER_MINUTE = 500; // Allow up to 500 404s per minute (for testing)
-    private static final int MAX_404_PER_HOUR = 5000; // Allow up to 5000 404s per hour (for testing)
+    // Configuration - Configurable via properties for different environments
+    @Value("${app.ddos.notfound.max-per-minute:500}")
+    private int max404PerMinute; // Allow up to 500 404s per minute (default, configurable for tests)
+    
+    @Value("${app.ddos.notfound.max-per-hour:5000}")
+    private int max404PerHour; // Allow up to 5000 404s per hour (default, configurable for tests)
+    
     private static final int BLOCK_DURATION_SECONDS = 3600; // Block for 1 hour after threshold
     private static final long WINDOW_SIZE_MS = 60000; // 1 minute window
     private static final long CACHE_CLEANUP_INTERVAL_MS = 300000; // 5 minutes
@@ -86,9 +91,9 @@ public class NotFoundErrorTrackingService {
             
             counter.increment();
             
-            // Check if threshold exceeded
-            if (counter.getCountPerMinute() >= MAX_404_PER_MINUTE || 
-                counter.getCountPerHour() >= MAX_404_PER_HOUR) {
+            // Check if threshold exceeded (use > instead of >= to block only when exceeding, not at threshold)
+            if (counter.getCountPerMinute() > max404PerMinute || 
+                counter.getCountPerHour() > max404PerHour) {
                 counter.setBlocked(true);
                 blockSourceInDynamoDBAsync(sourceId);
                 logger.warn("404 tracking: Blocked source {} after {} 404s in minute, {} in hour", 
@@ -139,6 +144,22 @@ public class NotFoundErrorTrackingService {
         }
 
         return false;
+    }
+
+    /**
+     * Clear tracking for a specific source (for testing purposes)
+     */
+    public void clearTracking(final String sourceId) {
+        if (sourceId != null && !sourceId.isEmpty()) {
+            inMemoryCache.remove(sourceId);
+        }
+    }
+
+    /**
+     * Clear all tracking (for testing purposes)
+     */
+    public void clearAllTracking() {
+        inMemoryCache.clear();
     }
 
     private void cleanupCacheIfNeeded() {

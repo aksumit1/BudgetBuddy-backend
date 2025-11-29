@@ -80,6 +80,31 @@ class EnhancedGlobalExceptionHandlerTest {
     }
 
     @Test
+    void testHandleValidationException_WithNullErrorMessage_HandlesGracefully() {
+        // Given - Test the fix for NullPointerException when getValidationMessage returns null
+        MethodArgumentNotValidException ex = mock(MethodArgumentNotValidException.class);
+        org.springframework.validation.BindingResult bindingResult = mock(org.springframework.validation.BindingResult.class);
+        FieldError fieldError = new FieldError("passwordResetRequest", "code", null, false, 
+                new String[]{"NotBlank.passwordResetRequest.code", "NotBlank.code"}, null, "Verification code is required");
+
+        when(ex.getBindingResult()).thenReturn(bindingResult);
+        when(bindingResult.getAllErrors()).thenReturn(java.util.Collections.singletonList(fieldError));
+        // Mock getValidationMessage to return null (simulating the bug scenario)
+        when(messageUtil.getValidationMessage("code")).thenReturn(null);
+
+        // When - Should not throw NullPointerException
+        ResponseEntity<EnhancedGlobalExceptionHandler.ErrorResponse> response = exceptionHandler.handleValidationException(ex, webRequest);
+
+        // Then
+        assertNotNull(response);
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertNotNull(response.getBody().getValidationErrors());
+        // Should use fallback "Invalid value" when errorMessage is null
+        assertEquals("Invalid value", response.getBody().getValidationErrors().get("code"));
+    }
+
+    @Test
     void testHandleGenericException_WithRuntimeException_ReturnsErrorResponse() {
         // Given
         RuntimeException ex = new RuntimeException("Unexpected error");
