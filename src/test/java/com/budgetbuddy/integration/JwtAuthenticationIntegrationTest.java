@@ -65,14 +65,12 @@ class JwtAuthenticationIntegrationTest {
         SecurityContextHolder.clearContext();
         testEmail = "test-" + UUID.randomUUID() + "@example.com";
         testPasswordHash = Base64.getEncoder().encodeToString("hashed-password".getBytes());
-        testSalt = Base64.getEncoder().encodeToString("client-salt".getBytes());
+
 
         // Create test user
         testUser = userService.createUserSecure(
                 testEmail,
-                testPasswordHash,
-                testSalt,
-                "Test",
+                testPasswordHash, "Test",
                 "User"
         );
     }
@@ -83,7 +81,6 @@ class JwtAuthenticationIntegrationTest {
         AuthRequest loginRequest = new AuthRequest();
         loginRequest.setEmail(testEmail);
         loginRequest.setPasswordHash(testPasswordHash);
-        loginRequest
 
         String loginResponse = mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -156,7 +153,6 @@ class JwtAuthenticationIntegrationTest {
         AuthRequest loginRequest = new AuthRequest();
         loginRequest.setEmail(testEmail);
         loginRequest.setPasswordHash(testPasswordHash);
-        loginRequest
 
         String loginResponse = mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -209,7 +205,6 @@ class JwtAuthenticationIntegrationTest {
         AuthRequest loginRequest = new AuthRequest();
         loginRequest.setEmail(testEmail);
         loginRequest.setPasswordHash(testPasswordHash);
-        loginRequest
 
         String loginResponse = mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)

@@ -35,7 +35,7 @@ class AppConfigIntegrationTest {
     @BeforeEach
     void setUp() {
         ReflectionTestUtils.setField(appConfigIntegration, "applicationName", "test-app");
-        ReflectionTestUtils.setField(appConfigIntegration, "environment", "test");
+        ReflectionTestUtils.setField(appConfigIntegration, "appConfigEnvironment", "test");
         ReflectionTestUtils.setField(appConfigIntegration, "configProfile", "default");
         ReflectionTestUtils.setField(appConfigIntegration, "refreshIntervalSeconds", 60L);
     }

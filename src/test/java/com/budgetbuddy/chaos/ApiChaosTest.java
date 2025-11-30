@@ -61,12 +61,11 @@ class ApiChaosTest {
         SecurityContextHolder.clearContext();
         testEmail = "chaos-" + UUID.randomUUID() + "@example.com";
         testPasswordHash = Base64.getEncoder().encodeToString("hashed-password".getBytes());
-        testSalt = Base64.getEncoder().encodeToString("client-salt".getBytes());
+
 
         testUser = userService.createUserSecure(
                 testEmail,
                 testPasswordHash,
-                testSalt,
                 "Chaos",
                 "Test"
         );
@@ -74,7 +73,6 @@ class ApiChaosTest {
         AuthRequest loginRequest = new AuthRequest();
         loginRequest.setEmail(testEmail);
         loginRequest.setPasswordHash(testPasswordHash);
-        loginRequest
         AuthResponse authResponse = authService.authenticate(loginRequest);
         authToken = authResponse.getAccessToken();
         

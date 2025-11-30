@@ -153,6 +153,8 @@ public class GDPRComplianceService {
         // Convert to JSON
         try {
             com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            mapper.registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule());
+            mapper.disable(com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
             return mapper.writerWithDefaultPrettyPrinter().writeValueAsString(export);
         } catch (Exception e) {
             logger.error("Failed to export data as JSON: {}", e.getMessage());

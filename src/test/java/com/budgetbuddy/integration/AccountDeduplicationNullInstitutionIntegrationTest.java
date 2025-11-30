@@ -49,12 +49,10 @@ class AccountDeduplicationNullInstitutionIntegrationTest {
         testUser = new UserTable();
         testUser.setUserId(UUID.randomUUID().toString());
         String base64PasswordHash = java.util.Base64.getEncoder().encodeToString("test-hash".getBytes());
-        String base64ClientSalt = java.util.Base64.getEncoder().encodeToString("test-salt".getBytes());
+
         testUser = userService.createUserSecure(
                 uniqueEmail,
-                base64PasswordHash,
-                base64ClientSalt,
-                "Test",
+                base64PasswordHash, "Test",
                 "User"
         );
     }

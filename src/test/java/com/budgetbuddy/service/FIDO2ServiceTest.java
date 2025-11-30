@@ -25,8 +25,24 @@ class FIDO2ServiceTest {
     private FIDO2Service fido2Service;
 
     @BeforeEach
-    void setUp() {
+    void setUp() throws Exception {
         fido2Service = new FIDO2Service(userRepository);
+        // Set required properties using reflection
+        java.lang.reflect.Field rpIdField = FIDO2Service.class.getDeclaredField("rpId");
+        rpIdField.setAccessible(true);
+        rpIdField.set(fido2Service, "localhost");
+        
+        java.lang.reflect.Field rpNameField = FIDO2Service.class.getDeclaredField("rpName");
+        rpNameField.setAccessible(true);
+        rpNameField.set(fido2Service, "BudgetBuddy Test");
+        
+        java.lang.reflect.Field originField = FIDO2Service.class.getDeclaredField("origin");
+        originField.setAccessible(true);
+        originField.set(fido2Service, "http://localhost:8080");
+        
+        java.lang.reflect.Field timeoutField = FIDO2Service.class.getDeclaredField("challengeExpirationSeconds");
+        timeoutField.setAccessible(true);
+        timeoutField.setLong(fido2Service, 300L); // 5 minutes
     }
 
     @Test
@@ -40,9 +56,11 @@ class FIDO2ServiceTest {
 
         // Then
         assertNotNull(result);
-        assertNotNull(result.getChallenge());
         assertNotNull(result.getOptions());
-        assertNotNull(result.getChallenge().getValue());
+        // Challenge is inside options
+        assertNotNull(result.getOptions().getChallenge());
+        // ByteArray from Yubico library - just verify it exists
+        assertNotNull(result.getOptions().getChallenge());
     }
 
     @Test

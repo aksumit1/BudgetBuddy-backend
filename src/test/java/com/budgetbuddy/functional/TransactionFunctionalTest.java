@@ -58,12 +58,10 @@ class TransactionFunctionalTest {
         // Create test user with base64-encoded password hash and salt
         String email = "test-" + UUID.randomUUID() + "@example.com";
         String passwordHash = java.util.Base64.getEncoder().encodeToString(("hashed-password-" + UUID.randomUUID()).getBytes());
-        String clientSalt = java.util.Base64.getEncoder().encodeToString((UUID.randomUUID().toString()).getBytes());
+
         testUser = userService.createUserSecure(
                 email,
-                passwordHash,
-                clientSalt,
-                "Test",
+                passwordHash, "Test",
                 "User"
         );
         

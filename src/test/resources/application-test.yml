@@ -44,6 +44,11 @@ app:
     enabled: false # Disabled for tests to avoid rate limiting issues
     requests-per-minute: 10000000 # Very high limit for heavy testing (10 million per minute)
     requests-per-hour: 100000000 # Very high limit for heavy testing (100 million per hour)
+  
+  ddos:
+    notfound:
+      max-per-minute: 20 # Lower threshold for NotFoundErrorTracking tests
+      max-per-hour: 200 # Lower threshold for NotFoundErrorTracking tests
     # Per-endpoint limits (used if rate limiting is enabled)
     auth-login: 1000000 # 1 million per minute for heavy testing
     auth-signup: 1000000 # 1 million per minute for heavy testing
@@ -55,11 +60,10 @@ app:
     ddos:
       max-requests-per-minute: 10000000 # 10 million per minute
       max-requests-per-hour: 100000000 # 100 million per hour
-  # 404 Error Tracking Configuration (very high thresholds for heavy testing)
-  ddos:
-    notfound:
-      max-per-minute: 1000000  # 1 million per minute for heavy testing
-      max-per-hour: 10000000   # 10 million per hour for heavy testing
+      # 404 Error Tracking Configuration (lower thresholds for NotFoundErrorTracking tests)
+      notfound:
+        max-per-minute: 20  # Lower threshold for NotFoundErrorTracking tests
+        max-per-hour: 200   # Lower threshold for NotFoundErrorTracking tests
   
   security:
     cors:

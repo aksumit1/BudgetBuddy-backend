@@ -42,6 +42,9 @@ public class DynamoDBTableManager {
         createTransactionActionsTable();
         createAuditLogsTable();
         createNotFoundTrackingTable();
+        createRateLimitTable();
+        createDDoSProtectionTable();
+        createDeviceAttestationTable();
         // BREAKING CHANGE: DevicePin table creation removed - PIN backend endpoints removed
         // DevicePin table is deprecated and will be removed in future version
         // createDevicePinTable(); // Removed - PIN is now local-only
@@ -397,6 +400,10 @@ public class DynamoDBTableManager {
                             AttributeDefinition.builder()
                                     .attributeName("createdAt")
                                     .attributeType(ScalarAttributeType.N)
+                                    .build(),
+                            AttributeDefinition.builder()
+                                    .attributeName("action")
+                                    .attributeType(ScalarAttributeType.S)
                                     .build())
                     .keySchema(
                             KeySchemaElement.builder()
@@ -409,6 +416,21 @@ public class DynamoDBTableManager {
                                     .keySchema(
                                             KeySchemaElement.builder()
                                                     .attributeName("userId")
+                                                    .keyType(KeyType.HASH)
+                                                    .build(),
+                                            KeySchemaElement.builder()
+                                                    .attributeName("createdAt")
+                                                    .keyType(KeyType.RANGE)
+                                                    .build())
+                                    .projection(Projection.builder()
+                                            .projectionType(ProjectionType.ALL)
+                                            .build())
+                                    .build(),
+                            GlobalSecondaryIndex.builder()
+                                    .indexName("ActionCreatedAtIndex")
+                                    .keySchema(
+                                            KeySchemaElement.builder()
+                                                    .attributeName("action")
                                                     .keyType(KeyType.HASH)
                                                     .build(),
                                             KeySchemaElement.builder()
@@ -496,6 +518,131 @@ public class DynamoDBTableManager {
                                     .keyType(KeyType.RANGE)
                                     .build())
                     .build());
+            logger.info("Created table: {}", tableName);
+        } catch (ResourceInUseException e) {
+            logger.debug("Table {} already exists", tableName);
+        } catch (Exception e) {
+            logger.error("Failed to create table {}: {}", tableName, e.getMessage());
+        }
+    }
+
+    private void createRateLimitTable() {
+        String tableName = tablePrefix + "-RateLimits";
+        try {
+            dynamoDbClient.createTable(CreateTableRequest.builder()
+                    .tableName(tableName)
+                    .billingMode(BillingMode.PAY_PER_REQUEST)
+                    .attributeDefinitions(
+                            AttributeDefinition.builder()
+                                    .attributeName("key")
+                                    .attributeType(ScalarAttributeType.S)
+                                    .build())
+                    .keySchema(
+                            KeySchemaElement.builder()
+                                    .attributeName("key")
+                                    .keyType(KeyType.HASH)
+                                    .build())
+                    .build());
+            
+            // Configure TTL
+            try {
+                dynamoDbClient.updateTimeToLive(UpdateTimeToLiveRequest.builder()
+                        .tableName(tableName)
+                        .timeToLiveSpecification(TimeToLiveSpecification.builder()
+                                .enabled(true)
+                                .attributeName("ttl")
+                                .build())
+                        .build());
+            } catch (Exception e) {
+                logger.warn("Failed to configure TTL for RateLimits table: {}", e.getMessage());
+            }
+            
+            logger.info("Created table: {}", tableName);
+        } catch (ResourceInUseException e) {
+            logger.debug("Table {} already exists", tableName);
+        } catch (Exception e) {
+            logger.error("Failed to create table {}: {}", tableName, e.getMessage());
+        }
+    }
+
+    private void createDDoSProtectionTable() {
+        String tableName = tablePrefix + "-DDoSProtection";
+        try {
+            dynamoDbClient.createTable(CreateTableRequest.builder()
+                    .tableName(tableName)
+                    .billingMode(BillingMode.PAY_PER_REQUEST)
+                    .attributeDefinitions(
+                            AttributeDefinition.builder()
+                                    .attributeName("ipAddress")
+                                    .attributeType(ScalarAttributeType.S)
+                                    .build())
+                    .keySchema(
+                            KeySchemaElement.builder()
+                                    .attributeName("ipAddress")
+                                    .keyType(KeyType.HASH)
+                                    .build())
+                    .build());
+            
+            // Configure TTL
+            try {
+                dynamoDbClient.updateTimeToLive(UpdateTimeToLiveRequest.builder()
+                        .tableName(tableName)
+                        .timeToLiveSpecification(TimeToLiveSpecification.builder()
+                                .enabled(true)
+                                .attributeName("ttl")
+                                .build())
+                        .build());
+            } catch (Exception e) {
+                logger.warn("Failed to configure TTL for DDoSProtection table: {}", e.getMessage());
+            }
+            
+            logger.info("Created table: {}", tableName);
+        } catch (ResourceInUseException e) {
+            logger.debug("Table {} already exists", tableName);
+        } catch (Exception e) {
+            logger.error("Failed to create table {}: {}", tableName, e.getMessage());
+        }
+    }
+
+    private void createDeviceAttestationTable() {
+        String tableName = tablePrefix + "-DeviceAttestation";
+        try {
+            dynamoDbClient.createTable(CreateTableRequest.builder()
+                    .tableName(tableName)
+                    .billingMode(BillingMode.PAY_PER_REQUEST)
+                    .attributeDefinitions(
+                            AttributeDefinition.builder()
+                                    .attributeName("deviceId")
+                                    .attributeType(ScalarAttributeType.S)
+                                    .build(),
+                            AttributeDefinition.builder()
+                                    .attributeName("userId")
+                                    .attributeType(ScalarAttributeType.S)
+                                    .build())
+                    .keySchema(
+                            KeySchemaElement.builder()
+                                    .attributeName("deviceId")
+                                    .keyType(KeyType.HASH)
+                                    .build(),
+                            KeySchemaElement.builder()
+                                    .attributeName("userId")
+                                    .keyType(KeyType.RANGE)
+                                    .build())
+                    .build());
+            
+            // Configure TTL
+            try {
+                dynamoDbClient.updateTimeToLive(UpdateTimeToLiveRequest.builder()
+                        .tableName(tableName)
+                        .timeToLiveSpecification(TimeToLiveSpecification.builder()
+                                .enabled(true)
+                                .attributeName("ttl")
+                                .build())
+                        .build());
+            } catch (Exception e) {
+                logger.warn("Failed to configure TTL for DeviceAttestation table: {}", e.getMessage());
+            }
+            
             logger.info("Created table: {}", tableName);
         } catch (ResourceInUseException e) {
             logger.debug("Table {} already exists", tableName);

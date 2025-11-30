@@ -56,10 +56,10 @@ class AuthIntegrationTest {
     @Test
     void testRegisterAndAuthenticate_EndToEnd() {
         // Given - Register user
+        // BREAKING CHANGE: Client salt removed
         UserTable user = userService.createUserSecure(
                 testEmail,
                 testPasswordHash,
-                testClientSalt,
                 "Test",
                 "User"
         );
@@ -70,7 +70,6 @@ class AuthIntegrationTest {
         AuthRequest authRequest = new AuthRequest();
         authRequest.setEmail(testEmail);
         authRequest.setPasswordHash(testPasswordHash);
-        authRequest
 
         AuthResponse response = authService.authenticate(authRequest);
 
@@ -88,7 +87,6 @@ class AuthIntegrationTest {
         AuthRequest authRequest = new AuthRequest();
         authRequest.setEmail("nonexistent@example.com");
         authRequest.setPasswordHash("invalid-hash");
-        authRequest
 
         // When/Then
         assertThrows(Exception.class, () -> authService.authenticate(authRequest));
@@ -97,10 +95,10 @@ class AuthIntegrationTest {
     @Test
     void testRefreshToken_WithValidToken_ReturnsNewTokens() {
         // Given - Register and authenticate
+        // BREAKING CHANGE: Client salt removed
         userService.createUserSecure(
                 testEmail,
                 testPasswordHash,
-                testClientSalt,
                 "Test",
                 "User"
         );
@@ -108,7 +106,6 @@ class AuthIntegrationTest {
         AuthRequest authRequest = new AuthRequest();
         authRequest.setEmail(testEmail);
         authRequest.setPasswordHash(testPasswordHash);
-        authRequest
 
         AuthResponse authResponse = authService.authenticate(authRequest);
         String refreshToken = authResponse.getRefreshToken();

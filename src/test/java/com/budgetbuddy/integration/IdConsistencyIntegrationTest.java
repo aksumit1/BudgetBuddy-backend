@@ -89,13 +89,11 @@ class IdConsistencyIntegrationTest {
         // Create test user
         String testEmail = "id-test-" + UUID.randomUUID() + "@example.com";
         String testPasswordHash = Base64.getEncoder().encodeToString("hashed-password".getBytes());
-        String testSalt = Base64.getEncoder().encodeToString("client-salt".getBytes());
+
 
         testUser = userService.createUserSecure(
                 testEmail,
-                testPasswordHash,
-                testSalt,
-                "ID",
+                testPasswordHash, "ID",
                 "Test"
         );
 

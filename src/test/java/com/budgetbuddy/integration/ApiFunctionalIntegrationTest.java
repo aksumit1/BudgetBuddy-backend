@@ -74,14 +74,12 @@ class ApiFunctionalIntegrationTest {
         SecurityContextHolder.clearContext();
         testEmail = "test-" + UUID.randomUUID() + "@example.com";
         testPasswordHash = Base64.getEncoder().encodeToString("hashed-password".getBytes());
-        testSalt = Base64.getEncoder().encodeToString("client-salt".getBytes());
+
 
         // Create test user
         testUser = userService.createUserSecure(
                 testEmail,
-                testPasswordHash,
-                testSalt,
-                "Test",
+                testPasswordHash, "Test",
                 "User"
         );
 
@@ -89,7 +87,6 @@ class ApiFunctionalIntegrationTest {
         AuthRequest loginRequest = new AuthRequest();
         loginRequest.setEmail(testEmail);
         loginRequest.setPasswordHash(testPasswordHash);
-        loginRequest
         AuthResponse authResponse = authService.authenticate(loginRequest);
         authToken = authResponse.getAccessToken();
 
@@ -117,7 +114,6 @@ class ApiFunctionalIntegrationTest {
         AuthRequest request = new AuthRequest();
         request.setEmail(newEmail);
         request.setPasswordHash(testPasswordHash);
-        request
 
         // When/Then
         mockMvc.perform(post("/api/auth/register")
@@ -134,7 +130,6 @@ class ApiFunctionalIntegrationTest {
         AuthRequest request = new AuthRequest();
         request.setEmail(testEmail);
         request.setPasswordHash(testPasswordHash);
-        request
 
         // When/Then
         mockMvc.perform(post("/api/auth/login")
@@ -151,7 +146,6 @@ class ApiFunctionalIntegrationTest {
         AuthRequest request = new AuthRequest();
         request.setEmail(testEmail);
         request.setPasswordHash("wrong-hash");
-        request
 
         // When/Then
         mockMvc.perform(post("/api/auth/login")
@@ -166,7 +160,6 @@ class ApiFunctionalIntegrationTest {
         AuthRequest loginRequest = new AuthRequest();
         loginRequest.setEmail(testEmail);
         loginRequest.setPasswordHash(testPasswordHash);
-        loginRequest
         AuthResponse loginResponse = authService.authenticate(loginRequest);
 
         // When/Then

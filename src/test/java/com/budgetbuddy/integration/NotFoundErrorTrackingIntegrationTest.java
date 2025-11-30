@@ -77,10 +77,7 @@ class NotFoundErrorTrackingIntegrationTest {
         String clientSalt = Base64.getEncoder().encodeToString("client-salt".getBytes());
         
         testUser = userService.createUserSecure(
-                testEmail,
-                passwordHash,
-                clientSalt,
-                "Test",
+                testEmail, passwordHash, "Test",
                 "User"
         );
         

@@ -107,7 +107,8 @@ public class E2EAPITestSuite {
                 "amount": 100.50,
                 "transactionDate": "2024-01-15",
                 "description": "Test Transaction",
-                "category": "food",
+                "categoryPrimary": "Food and Drink",
+                "categoryDetailed": "Restaurants",
                 "notes": "Test notes"
             }
             """.formatted(testAccount.getAccountId());

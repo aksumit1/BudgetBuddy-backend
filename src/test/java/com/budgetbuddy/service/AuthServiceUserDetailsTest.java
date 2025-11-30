@@ -74,7 +74,6 @@ class AuthServiceUserDetailsTest {
         AuthRequest request = new AuthRequest();
         request.setEmail("test@example.com");
         request.setPasswordHash("client-hash");
-        request
 
         when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(testUser));
         when(passwordHashingService.verifyClientPassword(anyString(), anyString(), anyString()))
@@ -116,7 +115,6 @@ class AuthServiceUserDetailsTest {
         AuthRequest request = new AuthRequest();
         request.setEmail("test@example.com");
         request.setPasswordHash("client-hash");
-        request
 
         when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(testUser));
         when(passwordHashingService.verifyClientPassword(anyString(), anyString(), anyString()))
@@ -149,7 +147,6 @@ class AuthServiceUserDetailsTest {
         AuthRequest request = new AuthRequest();
         request.setEmail("test@example.com");
         request.setPasswordHash("client-hash");
-        request
 
         when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(testUser));
         when(passwordHashingService.verifyClientPassword(anyString(), anyString(), anyString()))
@@ -172,7 +169,6 @@ class AuthServiceUserDetailsTest {
         AuthRequest request = new AuthRequest();
         request.setEmail("test@example.com");
         request.setPasswordHash("client-hash");
-        request
 
         when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(testUser));
         when(passwordHashingService.verifyClientPassword(anyString(), anyString(), anyString()))

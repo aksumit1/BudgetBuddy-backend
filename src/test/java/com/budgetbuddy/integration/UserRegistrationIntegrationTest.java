@@ -63,7 +63,8 @@ class UserRegistrationIntegrationTest {
         AuthRequest request = new AuthRequest();
         request.setEmail(uniqueEmail);
         request.setPasswordHash(Base64.getEncoder().encodeToString("testpassword123".getBytes()));
-        request.setSalt(Base64.getEncoder().encodeToString("somesalt".getBytes()));
+        // BREAKING CHANGE: Client salt removed
+        // request.setSalt(Base64.getEncoder().encodeToString("somesalt".getBytes()));
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(org.springframework.http.MediaType.APPLICATION_JSON);
@@ -96,7 +97,7 @@ class UserRegistrationIntegrationTest {
         AuthRequest firstRequest = new AuthRequest();
         firstRequest.setEmail(uniqueEmail);
         firstRequest.setPasswordHash(Base64.getEncoder().encodeToString("testpassword123".getBytes()));
-        firstRequest.setSalt(Base64.getEncoder().encodeToString("somesalt".getBytes()));
+        // BREAKING CHANGE: Client salt removed
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(org.springframework.http.MediaType.APPLICATION_JSON);
@@ -114,7 +115,7 @@ class UserRegistrationIntegrationTest {
         AuthRequest duplicateRequest = new AuthRequest();
         duplicateRequest.setEmail(uniqueEmail);
         duplicateRequest.setPasswordHash(Base64.getEncoder().encodeToString("testpassword123".getBytes()));
-        duplicateRequest.setSalt(Base64.getEncoder().encodeToString("somesalt".getBytes()));
+        // BREAKING CHANGE: Client salt removed
         HttpEntity<AuthRequest> duplicateEntity = new HttpEntity<>(duplicateRequest, headers);
 
         // Act
@@ -140,7 +141,8 @@ class UserRegistrationIntegrationTest {
         AuthRequest request = new AuthRequest();
         request.setEmail(uniqueEmail);
         request.setPasswordHash(Base64.getEncoder().encodeToString("testpassword123".getBytes()));
-        request.setSalt(Base64.getEncoder().encodeToString("somesalt".getBytes()));
+        // BREAKING CHANGE: Client salt removed
+        // request.setSalt(Base64.getEncoder().encodeToString("somesalt".getBytes()));
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(org.springframework.http.MediaType.APPLICATION_JSON);

@@ -57,10 +57,10 @@ class UserServiceRegistrationTest {
         when(userRepository.findAllByEmail(email)).thenReturn(java.util.Collections.emptyList());
 
         // Act
+        // BREAKING CHANGE: Client salt removed
         UserTable result = userService.createUserSecure(
                 email,
                 "client-hash",
-                "client-salt",
                 "John",
                 "Doe"
         );
@@ -99,10 +99,10 @@ class UserServiceRegistrationTest {
 
         // Act & Assert
         AppException exception = assertThrows(AppException.class, () -> {
+            // BREAKING CHANGE: Client salt removed
             userService.createUserSecure(
                     email,
                     "client-hash",
-                    "client-salt",
                     "John",
                     "Doe"
             );
@@ -182,10 +182,10 @@ class UserServiceRegistrationTest {
         when(userRepository.findAllByEmail(email)).thenReturn(java.util.Collections.emptyList());
 
         // Act
+        // BREAKING CHANGE: Client salt removed
         UserTable result = userService.createUserSecure(
                 email,
                 "client-hash",
-                "client-salt",
                 null, // No first name
                 null  // No last name
         );

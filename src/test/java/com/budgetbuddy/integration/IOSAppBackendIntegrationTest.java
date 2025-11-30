@@ -74,12 +74,10 @@ class IOSAppBackendIntegrationTest {
         // Create test user (simulating iOS app registration)
         // Use proper base64-encoded strings
         String base64PasswordHash = java.util.Base64.getEncoder().encodeToString("hashed-password".getBytes());
-        String base64ClientSalt = java.util.Base64.getEncoder().encodeToString("client-salt".getBytes());
+
         testUser = userService.createUserSecure(
                 testEmail,
-                base64PasswordHash,
-                base64ClientSalt,
-                "iOS",
+                base64PasswordHash, "iOS",
                 "User"
         );
 

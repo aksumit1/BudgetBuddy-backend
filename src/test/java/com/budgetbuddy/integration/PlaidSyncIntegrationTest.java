@@ -49,10 +49,7 @@ class PlaidSyncIntegrationTest {
         String base64PasswordHash = java.util.Base64.getEncoder().encodeToString("hashed-password".getBytes());
         String base64ClientSalt = java.util.Base64.getEncoder().encodeToString("client-salt".getBytes());
         testUser = userService.createUserSecure(
-                testEmail,
-                base64PasswordHash,
-                base64ClientSalt,
-                "Test",
+                testEmail, base64PasswordHash, "Test",
                 "User"
         );
     }

@@ -26,8 +26,20 @@ class MFAServiceTest {
     private MFAService mfaService;
 
     @BeforeEach
-    void setUp() {
+    void setUp() throws Exception {
         mfaService = new MFAService(userRepository);
+        // Set required @Value properties using reflection (not injected in unit tests)
+        java.lang.reflect.Field backupCodesCountField = MFAService.class.getDeclaredField("backupCodesCount");
+        backupCodesCountField.setAccessible(true);
+        backupCodesCountField.setInt(mfaService, 10);
+        
+        java.lang.reflect.Field otpExpirationField = MFAService.class.getDeclaredField("otpExpirationSeconds");
+        otpExpirationField.setAccessible(true);
+        otpExpirationField.setLong(mfaService, 300L); // 5 minutes
+        
+        java.lang.reflect.Field backupCodeLengthField = MFAService.class.getDeclaredField("backupCodeLength");
+        backupCodeLengthField.setAccessible(true);
+        backupCodeLengthField.setInt(mfaService, 8);
     }
 
     @Test
@@ -104,6 +116,7 @@ class MFAServiceTest {
         // Given
         String userId = "test-user-id";
         List<String> codes = mfaService.generateBackupCodes(userId);
+        assertFalse(codes.isEmpty(), "Backup codes should be generated");
         String codeToVerify = codes.get(0);
 
         // When
@@ -145,12 +158,14 @@ class MFAServiceTest {
         // Given
         String userId = "test-user-id";
         String otp = mfaService.generateOTP(userId, MFAService.OTPType.SMS);
+        assertNotNull(otp, "OTP should be generated");
+        assertEquals(6, otp.length(), "OTP should be 6 digits");
 
-        // When
+        // When - Verify immediately to avoid expiration
         boolean isValid = mfaService.verifyOTP(userId, MFAService.OTPType.SMS, otp);
 
         // Then
-        assertTrue(isValid);
+        assertTrue(isValid, "Valid OTP should be accepted");
     }
 
     @Test
