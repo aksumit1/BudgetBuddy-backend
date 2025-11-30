@@ -149,8 +149,9 @@ public class PasswordResetService {
 
     /**
      * Reset password with verified code
+     * BREAKING CHANGE: Client salt removed - Zero Trust architecture
      */
-    public void resetPassword(final String email, final String code, final String passwordHash, final String clientSalt) {
+    public void resetPassword(final String email, final String code, final String passwordHash) {
         if (email == null || email.isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Email is required");
         }
@@ -159,9 +160,6 @@ public class PasswordResetService {
         }
         if (passwordHash == null || passwordHash.isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Password hash is required");
-        }
-        if (clientSalt == null || clientSalt.isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "Salt is required");
         }
 
         // Verify code again (double-check)

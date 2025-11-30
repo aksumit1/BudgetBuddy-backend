@@ -35,7 +35,8 @@ public class UserService {
     }
 
     /**
-     * Create user with secure format (password_hash + salt)
+     * Create user with secure format (password_hash only)
+     * BREAKING CHANGE: Client salt removed - Zero Trust architecture
      * 
      * CRITICAL FIX: Removed pre-check for email to eliminate race condition.
      * The previous implementation had a TOCTOU (time-of-check-time-of-use) race condition:
@@ -54,20 +55,18 @@ public class UserService {
      * 
      * This ensures atomicity and prevents duplicate emails.
      */
-    public UserTable createUserSecure(final String email, final String passwordHash, final String clientSalt, final String firstName, final String lastName) {
+    public UserTable createUserSecure(final String email, final String passwordHash, final String firstName, final String lastName) {
         if (email == null || email.isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Email is required");
         }
         if (passwordHash == null || passwordHash.isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Password hash is required");
         }
-        if (clientSalt == null || clientSalt.isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "Salt is required");
-        }
 
         // Perform server-side hashing (defense in depth)
+        // BREAKING CHANGE: No longer requires client salt
         PasswordHashingService.PasswordHashResult result = passwordHashingService.hashClientPassword(
-                passwordHash, clientSalt, null);
+                passwordHash, null);
 
         // Create user with new UUID
         UserTable user = new UserTable();
@@ -76,7 +75,7 @@ public class UserService {
         user.setEmail(email);
         user.setPasswordHash(result.getHash());
         user.setServerSalt(result.getSalt());
-        user.setClientSalt(clientSalt); // Store client salt for reference
+        // BREAKING CHANGE: clientSalt removed - Zero Trust architecture
         user.setFirstName(firstName);
         user.setLastName(lastName);
         user.setEnabled(true);
@@ -188,21 +187,19 @@ public class UserService {
 
     /**
      * Change password (secure format)
+     * BREAKING CHANGE: Client salt removed - Zero Trust architecture
      * 
      * CRITICAL FIX: Reuse existing server salt instead of generating a new one.
      * This ensures that password verification works correctly after password reset.
      * The server salt should only be generated once during registration and then
      * preserved for all password changes to maintain consistency.
      */
-    public void changePasswordSecure(final String userId, final String passwordHash, final String clientSalt) {
+    public void changePasswordSecure(final String userId, final String passwordHash) {
         if (userId == null || userId.isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "User ID is required");
         }
         if (passwordHash == null || passwordHash.isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Password hash is required");
-        }
-        if (clientSalt == null || clientSalt.isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "Salt is required");
         }
 
         UserTable user = dynamoDBUserRepository.findById(userId)
@@ -222,12 +219,13 @@ public class UserService {
         }
 
         // Perform server-side hashing with existing server salt (or generate new if missing)
+        // BREAKING CHANGE: No longer requires client salt
         PasswordHashingService.PasswordHashResult result = passwordHashingService.hashClientPassword(
-                passwordHash, clientSalt, existingServerSalt);
+                passwordHash, existingServerSalt);
 
         user.setPasswordHash(result.getHash());
         user.setServerSalt(result.getSalt()); // This will be the same as existing if reused, or new if generated
-        user.setClientSalt(clientSalt);
+        // BREAKING CHANGE: clientSalt removed - Zero Trust architecture
         user.setPasswordChangedAt(Instant.now());
         user.setUpdatedAt(Instant.now());
 
@@ -237,17 +235,15 @@ public class UserService {
 
     /**
      * Reset password by email (secure format)
+     * BREAKING CHANGE: Client salt removed - Zero Trust architecture
      * Used for password reset flow when user has forgotten their password
      */
-    public void resetPasswordByEmail(final String email, final String passwordHash, final String clientSalt) {
+    public void resetPasswordByEmail(final String email, final String passwordHash) {
         if (email == null || email.isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Email is required");
         }
         if (passwordHash == null || passwordHash.isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Password hash is required");
-        }
-        if (clientSalt == null || clientSalt.isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "Salt is required");
         }
 
         // Find user by email
@@ -255,7 +251,8 @@ public class UserService {
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
 
         // Use existing changePasswordSecure method
-        changePasswordSecure(user.getUserId(), passwordHash, clientSalt);
+        // BREAKING CHANGE: No longer requires client salt
+        changePasswordSecure(user.getUserId(), passwordHash);
         logger.info("Password reset for user: {}", email);
     }
 

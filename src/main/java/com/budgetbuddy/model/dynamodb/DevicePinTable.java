@@ -9,11 +9,17 @@ import java.time.Instant;
 
 /**
  * DynamoDB table for storing device PIN hashes
+ * 
+ * @deprecated PIN backend endpoints have been removed. PIN is now local-only.
+ * This table is kept for backward compatibility but should not be used for new code.
+ * 
+ * BREAKING CHANGE: All PIN backend endpoints removed. PIN is local-only.
+ * 
  * Partition key: userId
  * Sort key: deviceId
- * 
  * Security: Stores one-way hashed PIN (SHA-256) with device ID
  */
+@Deprecated
 @DynamoDbBean
 public class DevicePinTable {
 

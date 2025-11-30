@@ -45,7 +45,7 @@ class UserServiceRegistrationTest {
     @BeforeEach
     void setUp() {
         hashResult = new PasswordHashingService.PasswordHashResult("hashed-password", "server-salt");
-        when(passwordHashingService.hashClientPassword(anyString(), anyString(), any()))
+        when(passwordHashingService.hashClientPassword(anyString(), any()))
                 .thenReturn(hashResult);
     }
 
@@ -125,7 +125,7 @@ class UserServiceRegistrationTest {
         when(userRepository.findAllByEmail(email)).thenReturn(java.util.Collections.emptyList());
 
         // Act
-        userService.createUserSecure(email, "hash", "salt", "First", "Last");
+        userService.createUserSecure(email, "hash", "First", "Last");
 
         // Assert - Verify order of operations (implementation saves first, then checks for duplicates)
         var inOrder = inOrder(userRepository);
@@ -141,7 +141,7 @@ class UserServiceRegistrationTest {
 
         // Act & Assert - Should throw INTERNAL_SERVER_ERROR when saveIfNotExists fails
         AppException exception = assertThrows(AppException.class, () -> {
-            userService.createUserSecure(email, "hash", "salt", "First", "Last");
+            userService.createUserSecure(email, "hash", "First", "Last");
         });
 
         assertEquals(ErrorCode.INTERNAL_SERVER_ERROR, exception.getErrorCode());
@@ -155,22 +155,22 @@ class UserServiceRegistrationTest {
     void testCreateUserSecure_InvalidInput_ThrowsException() {
         // Act & Assert - Null email
         assertThrows(AppException.class, () -> {
-            userService.createUserSecure(null, "hash", "salt", "First", "Last");
+            userService.createUserSecure(null, "hash", "First", "Last");
         });
 
         // Act & Assert - Empty email
         assertThrows(AppException.class, () -> {
-            userService.createUserSecure("", "hash", "salt", "First", "Last");
+            userService.createUserSecure("", "hash", "First", "Last");
         });
 
         // Act & Assert - Null password hash
         assertThrows(AppException.class, () -> {
-            userService.createUserSecure("test@example.com", null, "salt", "First", "Last");
+            userService.createUserSecure("test@example.com", null, "First", "Last");
         });
 
         // Act & Assert - Null salt
         assertThrows(AppException.class, () -> {
-            userService.createUserSecure("test@example.com", "hash", null, "First", "Last");
+            userService.createUserSecure("test@example.com", "hash", "First", "Last");
         });
     }
 

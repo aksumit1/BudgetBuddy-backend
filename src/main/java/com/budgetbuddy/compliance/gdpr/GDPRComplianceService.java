@@ -189,6 +189,78 @@ public class GDPRComplianceService {
         });
     }
 
+    /**
+     * Article 33 - Breach Notification
+     * Notify supervisory authority within 72 hours of breach discovery
+     */
+    public void reportBreach(final String userId, final String breachType, final String details, final int affectedUsers) {
+        logger.error("GDPR BREACH DETECTED: User={}, Type={}, AffectedUsers={}, Details={}", 
+                userId, breachType, affectedUsers, details);
+        
+        // Log breach
+        auditLogService.logBreach(new com.budgetbuddy.compliance.hipaa.HIPAAComplianceService.BreachReport());
+        
+        // Notify supervisory authority within 72 hours
+        notifySupervisoryAuthority(breachType, details, affectedUsers);
+        
+        // Notify affected individuals without undue delay
+        if (affectedUsers > 0) {
+            notifyAffectedIndividuals(userId, breachType, affectedUsers);
+        }
+    }
+
+    /**
+     * Article 7 - Conditions for Consent
+     * Manage user consent for data processing
+     */
+    public void recordConsent(final String userId, final String consentType, final boolean granted, final String purpose) {
+        auditLogService.logConsent(userId, consentType, granted, purpose);
+        logger.info("GDPR: Consent recorded - User={}, Type={}, Granted={}, Purpose={}", 
+                userId, consentType, granted, purpose);
+    }
+
+    /**
+     * Article 7(3) - Withdrawal of Consent
+     * Allow users to withdraw consent at any time
+     */
+    public void withdrawConsent(final String userId, final String consentType) {
+        auditLogService.logConsentWithdrawal(userId, consentType);
+        logger.info("GDPR: Consent withdrawn - User={}, Type={}", userId, consentType);
+        
+        // In production, stop processing that requires this consent
+        // For now, just log the withdrawal
+    }
+
+    /**
+     * Article 13/14 - Information to be Provided
+     * Ensure users are informed about data processing
+     */
+    public void logDataProcessingNotification(final String userId, final String processingPurpose, final String legalBasis) {
+        auditLogService.logDataProcessingNotification(userId, processingPurpose, legalBasis);
+        logger.debug("GDPR: Data processing notification - User={}, Purpose={}, LegalBasis={}", 
+                userId, processingPurpose, legalBasis);
+    }
+
+    /**
+     * Notify supervisory authority (within 72 hours)
+     */
+    private void notifySupervisoryAuthority(final String breachType, final String details, final int affectedUsers) {
+        // In production, send notification to relevant supervisory authority
+        // Must be done within 72 hours of breach discovery
+        logger.error("GDPR: Supervisory authority notification required - Type={}, AffectedUsers={}", 
+                breachType, affectedUsers);
+    }
+
+    /**
+     * Notify affected individuals (without undue delay)
+     */
+    private void notifyAffectedIndividuals(final String userId, final String breachType, final int affectedUsers) {
+        // In production, send notification to all affected individuals
+        // Must be done without undue delay
+        logger.warn("GDPR: Affected individuals notification required - User={}, Type={}, Count={}", 
+                userId, breachType, affectedUsers);
+    }
+
     private void deleteFromS3(final String userId, final String accountId) {
         try {
             // List and delete all objects with this prefix

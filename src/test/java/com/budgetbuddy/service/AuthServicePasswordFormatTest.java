@@ -56,7 +56,7 @@ class AuthServicePasswordFormatTest {
         testUser.setUserId(UUID.randomUUID().toString());
         testUser.setEmail(testEmail);
         testUser.setPasswordHash("server-hashed-password");
-        testUser.setClientSalt(testClientSalt);
+        // BREAKING CHANGE: Client salt removed - backend handles salt management
         testUser.setServerSalt("server-salt");
         testUser.setEnabled(true); // Ensure user is enabled for all tests
 
@@ -65,15 +65,15 @@ class AuthServicePasswordFormatTest {
 
     @Test
     void testAuthenticate_WithSecureFormat_ShouldSucceed() {
-        // Given - Request with password_hash and salt
+        // Given - Request with password_hash (BREAKING CHANGE: Client salt removed)
         AuthRequest request = new AuthRequest();
         request.setEmail(testEmail);
         request.setPasswordHash(testPasswordHash);
-        request.setSalt(testClientSalt);
+        // BREAKING CHANGE: Client salt removed - backend handles salt management
 
-        // Mock password verification
+        // Mock password verification (BREAKING CHANGE: verifyClientPassword signature changed)
         when(passwordHashingService.verifyClientPassword(
-                testPasswordHash, testClientSalt, 
+                testPasswordHash, 
                 testUser.getPasswordHash(), testUser.getServerSalt()))
                 .thenReturn(true);
 
@@ -107,31 +107,10 @@ class AuthServicePasswordFormatTest {
 
     @Test
     void testAuthenticate_WithMissingPasswordHash_ShouldThrowException() {
-        // Given - Request with salt but no password_hash
+        // Given - Request with no password_hash (BREAKING CHANGE: Client salt removed, only password_hash required)
         AuthRequest request = new AuthRequest();
         request.setEmail(testEmail);
-        request.setSalt(testClientSalt);
         // passwordHash is null
-        testUser.setEnabled(true); // Ensure user is enabled to reach format check
-
-        // When/Then - Should throw exception
-        AppException ex = assertThrows(AppException.class, () -> {
-            authService.authenticate(request);
-        });
-
-        // The error could be INVALID_INPUT (format check) or ACCOUNT_DISABLED (if user is disabled)
-        assertTrue(ex.getErrorCode() == ErrorCode.INVALID_INPUT || 
-                   ex.getMessage().contains("password_hash") ||
-                   ex.getMessage().contains("secure format"));
-    }
-
-    @Test
-    void testAuthenticate_WithMissingSalt_ShouldThrowException() {
-        // Given - Request with password_hash but no salt
-        AuthRequest request = new AuthRequest();
-        request.setEmail(testEmail);
-        request.setPasswordHash(testPasswordHash);
-        // salt is null
         testUser.setEnabled(true); // Ensure user is enabled to reach format check
 
         // When/Then - Should throw exception

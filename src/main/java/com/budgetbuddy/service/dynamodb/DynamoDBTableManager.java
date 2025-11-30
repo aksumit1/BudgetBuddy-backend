@@ -42,7 +42,9 @@ public class DynamoDBTableManager {
         createTransactionActionsTable();
         createAuditLogsTable();
         createNotFoundTrackingTable();
-        createDevicePinTable();
+        // BREAKING CHANGE: DevicePin table creation removed - PIN backend endpoints removed
+        // DevicePin table is deprecated and will be removed in future version
+        // createDevicePinTable(); // Removed - PIN is now local-only
         logger.info("DynamoDB tables initialized");
     }
 
@@ -462,6 +464,13 @@ public class DynamoDBTableManager {
         }
     }
 
+    /**
+     * @deprecated DevicePin table is deprecated - PIN backend endpoints removed
+     * PIN is now local-only and used only to decrypt refresh token from Keychain
+     * This method is kept for reference but will be removed in future version
+     */
+    @Deprecated
+    @SuppressWarnings("unused") // Kept for reference only
     private void createDevicePinTable() {
         String tableName = tablePrefix + "-DevicePin";
         try {

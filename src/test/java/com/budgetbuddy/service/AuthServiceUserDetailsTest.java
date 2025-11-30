@@ -77,7 +77,7 @@ class AuthServiceUserDetailsTest {
         request.setSalt("client-salt");
 
         when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(testUser));
-        when(passwordHashingService.verifyClientPassword(anyString(), anyString(), anyString(), anyString()))
+        when(passwordHashingService.verifyClientPassword(anyString(), anyString(), anyString()))
                 .thenReturn(true);
         when(tokenProvider.generateToken(any(Authentication.class))).thenReturn("access-token");
         when(tokenProvider.generateRefreshToken(anyString())).thenReturn("refresh-token");
@@ -119,7 +119,7 @@ class AuthServiceUserDetailsTest {
         request.setSalt("client-salt");
 
         when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(testUser));
-        when(passwordHashingService.verifyClientPassword(anyString(), anyString(), anyString(), anyString()))
+        when(passwordHashingService.verifyClientPassword(anyString(), anyString(), anyString()))
                 .thenReturn(true);
         when(tokenProvider.generateToken(any(Authentication.class))).thenReturn("access-token");
         when(tokenProvider.generateRefreshToken(anyString())).thenReturn("refresh-token");
@@ -152,7 +152,7 @@ class AuthServiceUserDetailsTest {
         request.setSalt("client-salt");
 
         when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(testUser));
-        when(passwordHashingService.verifyClientPassword(anyString(), anyString(), anyString(), anyString()))
+        when(passwordHashingService.verifyClientPassword(anyString(), anyString(), anyString()))
                 .thenReturn(true);
 
         // Act & Assert - Disabled users should not be able to authenticate
@@ -175,7 +175,7 @@ class AuthServiceUserDetailsTest {
         request.setSalt("client-salt");
 
         when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(testUser));
-        when(passwordHashingService.verifyClientPassword(anyString(), anyString(), anyString(), anyString()))
+        when(passwordHashingService.verifyClientPassword(anyString(), anyString(), anyString()))
                 .thenReturn(true);
         when(tokenProvider.generateToken(any(Authentication.class))).thenReturn("access-token");
         when(tokenProvider.generateRefreshToken(anyString())).thenReturn("refresh-token");

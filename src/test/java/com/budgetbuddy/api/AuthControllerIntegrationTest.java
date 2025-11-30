@@ -37,7 +37,8 @@ class AuthControllerIntegrationTest {
         request.setEmail(uniqueEmail);
         // Use proper base64-encoded strings
         request.setPasswordHash(java.util.Base64.getEncoder().encodeToString("hashed-password".getBytes()));
-        request.setSalt(java.util.Base64.getEncoder().encodeToString("client-salt".getBytes()));
+        // BREAKING CHANGE: Client salt removed - backend handles salt management
+        // request.setSalt(java.util.Base64.getEncoder().encodeToString("client-salt".getBytes()));
 
         mockMvc.perform(post("/api/auth/register")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -53,7 +54,8 @@ class AuthControllerIntegrationTest {
         request.setEmail("invalid-email");
         // Use proper base64-encoded strings
         request.setPasswordHash(java.util.Base64.getEncoder().encodeToString("hashed-password".getBytes()));
-        request.setSalt(java.util.Base64.getEncoder().encodeToString("client-salt".getBytes()));
+        // BREAKING CHANGE: Client salt removed - backend handles salt management
+        // request.setSalt(java.util.Base64.getEncoder().encodeToString("client-salt".getBytes()));
 
         mockMvc.perform(post("/api/auth/register")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -72,7 +74,7 @@ class AuthControllerIntegrationTest {
         AuthRequest registerRequest = new AuthRequest();
         registerRequest.setEmail(uniqueEmail);
         registerRequest.setPasswordHash(passwordHash);
-        registerRequest.setSalt(clientSalt);
+        
 
         mockMvc.perform(post("/api/auth/register")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -83,7 +85,7 @@ class AuthControllerIntegrationTest {
         AuthRequest loginRequest = new AuthRequest();
         loginRequest.setEmail(uniqueEmail);
         loginRequest.setPasswordHash(passwordHash);
-        loginRequest.setSalt(clientSalt);
+        
 
         mockMvc.perform(post("/api/auth/login")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -99,7 +101,8 @@ class AuthControllerIntegrationTest {
         request.setEmail("nonexistent@example.com");
         // Use proper base64-encoded strings
         request.setPasswordHash(java.util.Base64.getEncoder().encodeToString("wrong-hash".getBytes()));
-        request.setSalt(java.util.Base64.getEncoder().encodeToString("client-salt".getBytes()));
+        // BREAKING CHANGE: Client salt removed - backend handles salt management
+        // request.setSalt(java.util.Base64.getEncoder().encodeToString("client-salt".getBytes()));
 
         mockMvc.perform(post("/api/auth/login")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -117,7 +120,7 @@ class AuthControllerIntegrationTest {
         AuthRequest registerRequest = new AuthRequest();
         registerRequest.setEmail(uniqueEmail);
         registerRequest.setPasswordHash(passwordHash);
-        registerRequest.setSalt(clientSalt);
+        
 
         String registerResponse = mockMvc.perform(post("/api/auth/register")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -153,7 +156,7 @@ class AuthControllerIntegrationTest {
         AuthRequest newLoginRequest = new AuthRequest();
         newLoginRequest.setEmail(uniqueEmail);
         newLoginRequest.setPasswordHash(newPasswordHash);
-        newLoginRequest.setSalt(newClientSalt);
+        
 
         mockMvc.perform(post("/api/auth/login")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -172,7 +175,7 @@ class AuthControllerIntegrationTest {
         AuthRequest registerRequest = new AuthRequest();
         registerRequest.setEmail(uniqueEmail);
         registerRequest.setPasswordHash(passwordHash);
-        registerRequest.setSalt(clientSalt);
+        
 
         String registerResponse = mockMvc.perform(post("/api/auth/register")
                 .contentType(MediaType.APPLICATION_JSON)

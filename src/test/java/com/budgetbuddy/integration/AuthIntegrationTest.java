@@ -49,7 +49,7 @@ class AuthIntegrationTest {
 
         // Create client-side hashed password
         PasswordHashingService.PasswordHashResult clientHash =
-                passwordHashingService.hashClientPassword("testPassword123", testClientSalt, null);
+                passwordHashingService.hashClientPassword("testPassword123", null);
         testPasswordHash = clientHash.getHash();
     }
 

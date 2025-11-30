@@ -20,16 +20,12 @@ class PasswordHashingServiceTest {
     private PasswordHashingService passwordHashingService;
 
     private String testClientHash;
-    private String testClientSalt;
     private String testPlaintextPassword;
 
     @BeforeEach
     void setUp() {
-        // Create test client hash and salt (simulating client-side hashing)
-        byte[] testSalt = new byte[16];
-        testSalt[0] = 1; // Non-zero for testing
-        testClientSalt = Base64.getEncoder().encodeToString(testSalt);
-
+        // BREAKING CHANGE: Client salt removed - backend handles salt management
+        // Create test client hash (simulating client-side hashing)
         byte[] testHash = new byte[32];
         testHash[0] = 1; // Non-zero for testing
         testClientHash = Base64.getEncoder().encodeToString(testHash);
@@ -39,9 +35,9 @@ class PasswordHashingServiceTest {
 
     @Test
     void testHashClientPassword_WithValidInput_ReturnsHash() {
-        // When
+        // When - BREAKING CHANGE: Client salt removed, only server salt is used
         PasswordHashingService.PasswordHashResult result =
-                passwordHashingService.hashClientPassword(testClientHash, testClientSalt, null);
+                passwordHashingService.hashClientPassword(testClientHash, null);
 
         // Then
         assertNotNull(result);
@@ -53,42 +49,35 @@ class PasswordHashingServiceTest {
 
     @Test
     void testHashClientPassword_WithNullClientHash_ThrowsException() {
-        // When/Then
+        // When/Then - BREAKING CHANGE: Client salt removed
         assertThrows(IllegalArgumentException.class, () -> {
-            passwordHashingService.hashClientPassword(null, testClientSalt, null);
+            passwordHashingService.hashClientPassword(null, null);
         });
     }
 
     @Test
     void testHashClientPassword_WithEmptyClientHash_ThrowsException() {
-        // When/Then
+        // When/Then - BREAKING CHANGE: Client salt removed
         assertThrows(IllegalArgumentException.class, () -> {
-            passwordHashingService.hashClientPassword("", testClientSalt, null);
-        });
-    }
-
-    @Test
-    void testHashClientPassword_WithNullClientSalt_ThrowsException() {
-        // When/Then
-        assertThrows(IllegalArgumentException.class, () -> {
-            passwordHashingService.hashClientPassword(testClientHash, null, null);
+            passwordHashingService.hashClientPassword("", null);
         });
     }
 
     @Test
     void testHashClientPassword_WithProvidedServerSalt_UsesProvidedSalt() {
-        // Given
+        // Given - BREAKING CHANGE: Client salt removed, only server salt is used
         byte[] providedSalt = new byte[16];
         providedSalt[0] = 99;
-        String providedSaltBase64 = Base64.getEncoder().encodeToString(providedSalt);
 
         // When
         PasswordHashingService.PasswordHashResult result =
-                passwordHashingService.hashClientPassword(testClientHash, testClientSalt, providedSalt);
+                passwordHashingService.hashClientPassword(testClientHash, providedSalt);
 
         // Then
+        String providedSaltBase64 = Base64.getEncoder().encodeToString(providedSalt);
         assertEquals(providedSaltBase64, result.getSalt());
     }
+
 
     @Test
     void testHashPlaintextPassword_WithValidPassword_ReturnsHash() {
@@ -120,13 +109,13 @@ class PasswordHashingServiceTest {
 
     @Test
     void testVerifyClientPassword_WithValidPassword_ReturnsTrue() {
-        // Given
+        // Given - BREAKING CHANGE: Client salt removed
         PasswordHashingService.PasswordHashResult stored =
-                passwordHashingService.hashClientPassword(testClientHash, testClientSalt, null);
+                passwordHashingService.hashClientPassword(testClientHash, null);
 
         // When
         boolean isValid = passwordHashingService.verifyClientPassword(
-                testClientHash, testClientSalt, stored.getHash(), stored.getSalt());
+                testClientHash, stored.getHash(), stored.getSalt());
 
         // Then
         assertTrue(isValid);
@@ -134,14 +123,14 @@ class PasswordHashingServiceTest {
 
     @Test
     void testVerifyClientPassword_WithInvalidPassword_ReturnsFalse() {
-        // Given
+        // Given - BREAKING CHANGE: Client salt removed
         PasswordHashingService.PasswordHashResult stored =
-                passwordHashingService.hashClientPassword(testClientHash, testClientSalt, null);
+                passwordHashingService.hashClientPassword(testClientHash, null);
         String wrongClientHash = Base64.getEncoder().encodeToString(new byte[32]);
 
         // When
         boolean isValid = passwordHashingService.verifyClientPassword(
-                wrongClientHash, testClientSalt, stored.getHash(), stored.getSalt());
+                wrongClientHash, stored.getHash(), stored.getSalt());
 
         // Then
         assertFalse(isValid);
@@ -149,11 +138,10 @@ class PasswordHashingServiceTest {
 
     @Test
     void testVerifyClientPassword_WithNullInputs_ReturnsFalse() {
-        // When/Then
-        assertFalse(passwordHashingService.verifyClientPassword(null, testClientSalt, "hash", "salt"));
-        assertFalse(passwordHashingService.verifyClientPassword(testClientHash, null, "hash", "salt"));
-        assertFalse(passwordHashingService.verifyClientPassword(testClientHash, testClientSalt, null, "salt"));
-        assertFalse(passwordHashingService.verifyClientPassword(testClientHash, testClientSalt, "hash", null));
+        // When/Then - BREAKING CHANGE: Client salt removed
+        assertFalse(passwordHashingService.verifyClientPassword(null, "hash", "salt"));
+        assertFalse(passwordHashingService.verifyClientPassword(testClientHash, null, "salt"));
+        assertFalse(passwordHashingService.verifyClientPassword(testClientHash, "hash", null));
     }
 
     @Test
@@ -201,11 +189,11 @@ class PasswordHashingServiceTest {
 
     @Test
     void testHashClientPassword_WithSameInput_ProducesDifferentHashes() {
-        // Given - Same client hash and salt, but different server salts
+        // Given - BREAKING CHANGE: Client salt removed, same client hash but different server salts
         PasswordHashingService.PasswordHashResult result1 =
-                passwordHashingService.hashClientPassword(testClientHash, testClientSalt, null);
+                passwordHashingService.hashClientPassword(testClientHash, null);
         PasswordHashingService.PasswordHashResult result2 =
-                passwordHashingService.hashClientPassword(testClientHash, testClientSalt, null);
+                passwordHashingService.hashClientPassword(testClientHash, null);
 
         // Then - Should produce different hashes (due to different server salts)
         assertNotEquals(result1.getHash(), result2.getHash());

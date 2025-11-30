@@ -51,7 +51,7 @@ class UserServiceTest {
         // Given
         PasswordHashingService.PasswordHashResult serverHash =
                 new PasswordHashingService.PasswordHashResult("server-hash", "server-salt");
-        when(passwordHashingService.hashClientPassword(anyString(), anyString(), isNull()))
+        when(passwordHashingService.hashClientPassword(anyString(), isNull()))
                 .thenReturn(serverHash);
         when(userRepository.saveIfNotExists(any(UserTable.class))).thenReturn(true);
         when(userRepository.findAllByEmail(testEmail)).thenReturn(java.util.Collections.emptyList());
@@ -77,7 +77,7 @@ class UserServiceTest {
         // Given - Simulate duplicate email detected after save
         PasswordHashingService.PasswordHashResult serverHash =
                 new PasswordHashingService.PasswordHashResult("server-hash", "server-salt");
-        when(passwordHashingService.hashClientPassword(anyString(), anyString(), isNull()))
+        when(passwordHashingService.hashClientPassword(anyString(), isNull()))
                 .thenReturn(serverHash);
         when(userRepository.saveIfNotExists(any(UserTable.class))).thenReturn(true);
         // Simulate finding 2 users with same email (race condition detected)
@@ -168,7 +168,7 @@ class UserServiceTest {
         PasswordHashingService.PasswordHashResult newHash =
                 new PasswordHashingService.PasswordHashResult("new-hash", "new-salt");
         when(userRepository.findById("user-123")).thenReturn(Optional.of(user));
-        when(passwordHashingService.hashClientPassword(anyString(), anyString(), isNull()))
+        when(passwordHashingService.hashClientPassword(anyString(), isNull()))
                 .thenReturn(newHash);
         doNothing().when(userRepository).save(any(UserTable.class));
 

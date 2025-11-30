@@ -1,11 +1,5 @@
 package com.budgetbuddy.e2e;
 
-import com.budgetbuddy.api.AuthController;
-import com.budgetbuddy.api.TransactionController;
-import com.budgetbuddy.api.AccountController;
-import com.budgetbuddy.api.BudgetController;
-import com.budgetbuddy.api.GoalController;
-import com.budgetbuddy.api.TransactionActionController;
 import com.budgetbuddy.model.dynamodb.UserTable;
 import com.budgetbuddy.model.dynamodb.AccountTable;
 import com.budgetbuddy.model.dynamodb.TransactionTable;
@@ -19,44 +13,50 @@ import com.budgetbuddy.repository.dynamodb.BudgetRepository;
 import com.budgetbuddy.repository.dynamodb.GoalRepository;
 import com.budgetbuddy.repository.dynamodb.TransactionActionRepository;
 import com.budgetbuddy.service.AuthService;
-import com.budgetbuddy.service.TransactionService;
-import com.budgetbuddy.service.BudgetService;
-import com.budgetbuddy.service.GoalService;
-import com.budgetbuddy.service.TransactionActionService;
-import com.budgetbuddy.service.PlaidSyncService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.DisplayName;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
-import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.context.annotation.Import;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import com.budgetbuddy.AWSTestConfiguration;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.UUID;
-
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
-import static org.springframework.http.MediaType.APPLICATION_JSON;
+import java.util.Map;
+import java.util.List;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Comprehensive End-to-End API Test Suite
  * Tests all CRUD operations for all resources
+ * 
+ * These are true E2E tests from customer perspective - they use a real HTTP server
+ * and make actual HTTP requests, testing the full stack including controllers,
+ * services, repositories, and database.
  */
-@SpringBootTest(classes = com.budgetbuddy.BudgetBuddyApplication.class)
-@AutoConfigureMockMvc
+@SpringBootTest(
+    classes = com.budgetbuddy.BudgetBuddyApplication.class,
+    webEnvironment = org.springframework.boot.test.context.SpringBootTest.WebEnvironment.RANDOM_PORT
+)
 @ActiveProfiles("test")
 @Import(AWSTestConfiguration.class)
 @DisplayName("E2E API Test Suite")
 public class E2EAPITestSuite {
 
     @Autowired
-    private MockMvc mockMvc;
+    private org.springframework.boot.test.web.client.TestRestTemplate restTemplate;
+
+    @Value("${local.server.port}")
+    private int port;
 
     @Autowired
     private AuthService authService;
@@ -70,8 +70,6 @@ public class E2EAPITestSuite {
     @Autowired
     private TransactionRepository transactionRepository;
 
-    @Autowired
-    private PlaidSyncService plaidSyncService;
 
     @Autowired
     private BudgetRepository budgetRepository;
@@ -114,14 +112,23 @@ public class E2EAPITestSuite {
             }
             """.formatted(testAccount.getAccountId());
 
-        mockMvc.perform(post("/api/transactions")
-                .header("Authorization", "Bearer " + authToken)
-                .contentType(APPLICATION_JSON)
-                .content(requestBody))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.transactionId").exists())
-                .andExpect(jsonPath("$.description").value("Test Transaction"))
-                .andExpect(jsonPath("$.notes").value("Test notes"));
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("Authorization", "Bearer " + authToken);
+        headers.set("Content-Type", "application/json");
+        HttpEntity<String> entity = new HttpEntity<>(requestBody, headers);
+
+        ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
+                "http://localhost:" + port + "/api/transactions",
+                HttpMethod.POST,
+                entity,
+                new org.springframework.core.ParameterizedTypeReference<Map<String, Object>>() {}
+        );
+
+        assertEquals(HttpStatus.CREATED, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertNotNull(response.getBody().get("transactionId"));
+        assertEquals("Test Transaction", response.getBody().get("description"));
+        assertEquals("Test notes", response.getBody().get("notes"));
     }
 
     @Test
@@ -130,11 +137,21 @@ public class E2EAPITestSuite {
         // Create transaction first
         TransactionTable transaction = createTestTransaction(testUser, testAccount);
         
-        mockMvc.perform(get("/api/transactions/" + transaction.getTransactionId())
-                .header("Authorization", "Bearer " + authToken))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.transactionId").value(transaction.getTransactionId()))
-                .andExpect(jsonPath("$.description").exists());
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("Authorization", "Bearer " + authToken);
+        HttpEntity<String> entity = new HttpEntity<>(headers);
+
+        ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
+                "http://localhost:" + port + "/api/transactions/" + transaction.getTransactionId(),
+                HttpMethod.GET,
+                entity,
+                new org.springframework.core.ParameterizedTypeReference<Map<String, Object>>() {}
+        );
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals(transaction.getTransactionId(), response.getBody().get("transactionId"));
+        assertNotNull(response.getBody().get("description"));
     }
 
     @Test
@@ -149,12 +166,21 @@ public class E2EAPITestSuite {
             }
             """;
 
-        mockMvc.perform(put("/api/transactions/" + transaction.getTransactionId())
-                .header("Authorization", "Bearer " + authToken)
-                .contentType(APPLICATION_JSON)
-                .content(requestBody))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.notes").value("Updated notes"));
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("Authorization", "Bearer " + authToken);
+        headers.set("Content-Type", "application/json");
+        HttpEntity<String> entity = new HttpEntity<>(requestBody, headers);
+
+        ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
+                "http://localhost:" + port + "/api/transactions/" + transaction.getTransactionId(),
+                HttpMethod.PUT,
+                entity,
+                new org.springframework.core.ParameterizedTypeReference<Map<String, Object>>() {}
+        );
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals("Updated notes", response.getBody().get("notes"));
     }
 
     @Test
@@ -163,14 +189,28 @@ public class E2EAPITestSuite {
         // Create transaction first
         TransactionTable transaction = createTestTransaction(testUser, testAccount);
         
-        mockMvc.perform(delete("/api/transactions/" + transaction.getTransactionId())
-                .header("Authorization", "Bearer " + authToken))
-                .andExpect(status().isNoContent());
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("Authorization", "Bearer " + authToken);
+        HttpEntity<String> entity = new HttpEntity<>(headers);
+
+        ResponseEntity<Void> deleteResponse = restTemplate.exchange(
+                "http://localhost:" + port + "/api/transactions/" + transaction.getTransactionId(),
+                HttpMethod.DELETE,
+                entity,
+                Void.class
+        );
+
+        assertEquals(HttpStatus.NO_CONTENT, deleteResponse.getStatusCode());
 
         // Verify deletion
-        mockMvc.perform(get("/api/transactions/" + transaction.getTransactionId())
-                .header("Authorization", "Bearer " + authToken))
-                .andExpect(status().isNotFound());
+        ResponseEntity<Map<String, Object>> getResponse = restTemplate.exchange(
+                "http://localhost:" + port + "/api/transactions/" + transaction.getTransactionId(),
+                HttpMethod.GET,
+                entity,
+                new org.springframework.core.ParameterizedTypeReference<Map<String, Object>>() {}
+        );
+
+        assertEquals(HttpStatus.NOT_FOUND, getResponse.getStatusCode());
     }
 
     // MARK: - Account CRUD Tests
@@ -178,21 +218,43 @@ public class E2EAPITestSuite {
     @Test
     @DisplayName("Read Account - GET /api/accounts/{id}")
     void testReadAccount() throws Exception {
-        mockMvc.perform(get("/api/accounts/" + testAccount.getAccountId())
-                .header("Authorization", "Bearer " + authToken))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.accountId").value(testAccount.getAccountId()))
-                .andExpect(jsonPath("$.accountName").exists());
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("Authorization", "Bearer " + authToken);
+        HttpEntity<String> entity = new HttpEntity<>(headers);
+
+        ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
+                "http://localhost:" + port + "/api/accounts/" + testAccount.getAccountId(),
+                HttpMethod.GET,
+                entity,
+                new org.springframework.core.ParameterizedTypeReference<Map<String, Object>>() {}
+        );
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals(testAccount.getAccountId(), response.getBody().get("accountId"));
+        assertNotNull(response.getBody().get("accountName"));
     }
 
     @Test
     @DisplayName("List Accounts - GET /api/accounts")
     void testListAccounts() throws Exception {
-        mockMvc.perform(get("/api/accounts")
-                .header("Authorization", "Bearer " + authToken))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isArray())
-                .andExpect(jsonPath("$[0].accountId").exists());
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("Authorization", "Bearer " + authToken);
+        HttpEntity<String> entity = new HttpEntity<>(headers);
+
+        ResponseEntity<List<Map<String, Object>>> response = restTemplate.exchange(
+                "http://localhost:" + port + "/api/accounts",
+                HttpMethod.GET,
+                entity,
+                new org.springframework.core.ParameterizedTypeReference<List<Map<String, Object>>>() {}
+        );
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertTrue(response.getBody() instanceof List);
+        assertFalse(response.getBody().isEmpty());
+        assertTrue(response.getBody().get(0) instanceof Map);
+        assertNotNull(response.getBody().get(0).get("accountId"));
     }
 
     // MARK: - Budget CRUD Tests
@@ -207,14 +269,23 @@ public class E2EAPITestSuite {
             }
             """;
 
-        mockMvc.perform(post("/api/budgets")
-                .header("Authorization", "Bearer " + authToken)
-                .contentType(APPLICATION_JSON)
-                .content(requestBody))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.budgetId").exists())
-                .andExpect(jsonPath("$.category").value("food"))
-                .andExpect(jsonPath("$.monthlyLimit").value(500.00));
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("Authorization", "Bearer " + authToken);
+        headers.set("Content-Type", "application/json");
+        HttpEntity<String> entity = new HttpEntity<>(requestBody, headers);
+
+        ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
+                "http://localhost:" + port + "/api/budgets",
+                HttpMethod.POST,
+                entity,
+                new org.springframework.core.ParameterizedTypeReference<Map<String, Object>>() {}
+        );
+
+        assertEquals(HttpStatus.CREATED, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertNotNull(response.getBody().get("budgetId"));
+        assertEquals("food", response.getBody().get("category"));
+        assertEquals(500.00, ((Number) response.getBody().get("monthlyLimit")).doubleValue(), 0.01);
     }
 
     @Test
@@ -231,12 +302,21 @@ public class E2EAPITestSuite {
             }
             """.formatted(budget.getBudgetId());
 
-        mockMvc.perform(post("/api/budgets")
-                .header("Authorization", "Bearer " + authToken)
-                .contentType(APPLICATION_JSON)
-                .content(requestBody))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.monthlyLimit").value(750.00));
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("Authorization", "Bearer " + authToken);
+        headers.set("Content-Type", "application/json");
+        HttpEntity<String> entity = new HttpEntity<>(requestBody, headers);
+
+        ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
+                "http://localhost:" + port + "/api/budgets",
+                HttpMethod.POST,
+                entity,
+                new org.springframework.core.ParameterizedTypeReference<Map<String, Object>>() {}
+        );
+
+        assertEquals(HttpStatus.CREATED, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals(750.00, ((Number) response.getBody().get("monthlyLimit")).doubleValue(), 0.01);
     }
 
     @Test
@@ -245,9 +325,18 @@ public class E2EAPITestSuite {
         // Create budget first
         BudgetTable budget = createTestBudget(testUser);
         
-        mockMvc.perform(delete("/api/budgets/" + budget.getBudgetId())
-                .header("Authorization", "Bearer " + authToken))
-                .andExpect(status().isNoContent());
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("Authorization", "Bearer " + authToken);
+        HttpEntity<String> entity = new HttpEntity<>(headers);
+
+        ResponseEntity<Void> response = restTemplate.exchange(
+                "http://localhost:" + port + "/api/budgets/" + budget.getBudgetId(),
+                HttpMethod.DELETE,
+                entity,
+                Void.class
+        );
+
+        assertEquals(HttpStatus.NO_CONTENT, response.getStatusCode());
     }
 
     // MARK: - Goal CRUD Tests
@@ -264,14 +353,23 @@ public class E2EAPITestSuite {
             }
             """;
 
-        mockMvc.perform(post("/api/goals")
-                .header("Authorization", "Bearer " + authToken)
-                .contentType(APPLICATION_JSON)
-                .content(requestBody))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.goalId").exists())
-                .andExpect(jsonPath("$.name").value("Vacation Fund"))
-                .andExpect(jsonPath("$.targetAmount").value(5000.00));
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("Authorization", "Bearer " + authToken);
+        headers.set("Content-Type", "application/json");
+        HttpEntity<String> entity = new HttpEntity<>(requestBody, headers);
+
+        ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
+                "http://localhost:" + port + "/api/goals",
+                HttpMethod.POST,
+                entity,
+                new org.springframework.core.ParameterizedTypeReference<Map<String, Object>>() {}
+        );
+
+        assertEquals(HttpStatus.CREATED, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertNotNull(response.getBody().get("goalId"));
+        assertEquals("Vacation Fund", response.getBody().get("name"));
+        assertEquals(5000.00, ((Number) response.getBody().get("targetAmount")).doubleValue(), 0.01);
     }
 
     @Test
@@ -286,12 +384,21 @@ public class E2EAPITestSuite {
             }
             """;
 
-        mockMvc.perform(put("/api/goals/" + goal.getGoalId() + "/progress")
-                .header("Authorization", "Bearer " + authToken)
-                .contentType(APPLICATION_JSON)
-                .content(requestBody))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.currentAmount").exists());
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("Authorization", "Bearer " + authToken);
+        headers.set("Content-Type", "application/json");
+        HttpEntity<String> entity = new HttpEntity<>(requestBody, headers);
+
+        ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
+                "http://localhost:" + port + "/api/goals/" + goal.getGoalId() + "/progress",
+                HttpMethod.PUT,
+                entity,
+                new org.springframework.core.ParameterizedTypeReference<Map<String, Object>>() {}
+        );
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertNotNull(response.getBody().get("currentAmount"));
     }
 
     // MARK: - Transaction Action CRUD Tests
@@ -310,13 +417,22 @@ public class E2EAPITestSuite {
             }
             """;
 
-        mockMvc.perform(post("/api/transactions/" + transaction.getTransactionId() + "/actions")
-                .header("Authorization", "Bearer " + authToken)
-                .contentType(APPLICATION_JSON)
-                .content(requestBody))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.actionId").exists())
-                .andExpect(jsonPath("$.title").value("Review transaction"));
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("Authorization", "Bearer " + authToken);
+        headers.set("Content-Type", "application/json");
+        HttpEntity<String> entity = new HttpEntity<>(requestBody, headers);
+
+        ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
+                "http://localhost:" + port + "/api/transactions/" + transaction.getTransactionId() + "/actions",
+                HttpMethod.POST,
+                entity,
+                new org.springframework.core.ParameterizedTypeReference<Map<String, Object>>() {}
+        );
+
+        assertEquals(HttpStatus.CREATED, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertNotNull(response.getBody().get("actionId"));
+        assertEquals("Review transaction", response.getBody().get("title"));
     }
 
     @Test
@@ -326,11 +442,23 @@ public class E2EAPITestSuite {
         TransactionTable transaction = createTestTransaction(testUser, testAccount);
         createTestTransactionAction(testUser, transaction);
         
-        mockMvc.perform(get("/api/transactions/" + transaction.getTransactionId() + "/actions")
-                .header("Authorization", "Bearer " + authToken))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isArray())
-                .andExpect(jsonPath("$[0].actionId").exists());
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("Authorization", "Bearer " + authToken);
+        HttpEntity<String> entity = new HttpEntity<>(headers);
+
+        ResponseEntity<List<Map<String, Object>>> response = restTemplate.exchange(
+                "http://localhost:" + port + "/api/transactions/" + transaction.getTransactionId() + "/actions",
+                HttpMethod.GET,
+                entity,
+                new org.springframework.core.ParameterizedTypeReference<List<Map<String, Object>>>() {}
+        );
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertTrue(response.getBody() instanceof List);
+        assertFalse(response.getBody().isEmpty());
+        assertTrue(response.getBody().get(0) instanceof Map);
+        assertNotNull(response.getBody().get(0).get("actionId"));
     }
 
     // MARK: - Helper Methods

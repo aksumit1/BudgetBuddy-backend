@@ -21,7 +21,7 @@ public class UserTable {
     private String email; // GSI partition key
     private String passwordHash; // Server-side PBKDF2 hash
     private String serverSalt; // Server-side salt for password hashing
-    private String clientSalt; // Client-side salt (for reference, optional)
+    // BREAKING CHANGE: clientSalt removed - Zero Trust architecture
     private String firstName;
     private String lastName;
     private String phoneNumber;
@@ -74,14 +74,8 @@ public class UserTable {
         this.serverSalt = serverSalt;
     }
 
-    @DynamoDbAttribute("clientSalt")
-    public String getClientSalt() {
-        return clientSalt;
-    }
-
-    public void setClientSalt(final String clientSalt) {
-        this.clientSalt = clientSalt;
-    }
+    // BREAKING CHANGE: clientSalt removed - Zero Trust architecture
+    // Client salt is no longer stored on backend
 
     @DynamoDbAttribute("firstName")
     public String getFirstName() {

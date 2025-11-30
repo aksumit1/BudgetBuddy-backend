@@ -22,7 +22,8 @@ import java.util.Map;
 
 /**
  * Authentication REST Controller
- * Supports secure client-side hashed passwords
+ * BREAKING CHANGE: Supports secure client-side hashed passwords (password_hash only, no salt)
+ * Backend uses server salt only for password hashing
  * Supports both /api/auth and /auth paths for backward compatibility
  */
 @RestController
@@ -44,14 +45,15 @@ public class AuthController {
 
     /**
      * Login endpoint
-     * Accepts secure format (password_hash + salt)
+     * BREAKING CHANGE: Accepts secure format (password_hash only, no salt)
+     * Backend uses server salt only for password hashing
      */
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody AuthRequest loginRequest) {
         // Validate request format
         if (!loginRequest.isSecureFormat()) {
             throw new AppException(ErrorCode.INVALID_INPUT,
-                    "password_hash and salt must be provided");
+                    "password_hash must be provided. Legacy password format not supported.");
         }
 
         AuthResponse response = authService.authenticate(loginRequest);
@@ -68,23 +70,23 @@ public class AuthController {
         // Validate secure format
         if (!signUpRequest.isSecureFormat()) {
             throw new AppException(ErrorCode.INVALID_INPUT,
-                    "Registration requires password_hash and salt. Legacy password format not supported.");
+                    "Registration requires password_hash. Legacy password format not supported.");
         }
 
         // Create user with secure format
+        // BREAKING CHANGE: No longer requires salt
         userService.createUserSecure(
                 signUpRequest.getEmail(),
                 signUpRequest.getPasswordHash(),
-                signUpRequest.getSalt(),
                 null,
                 null
         );
 
         // Authenticate and return tokens
+        // BREAKING CHANGE: No longer requires salt
         AuthRequest authRequest = new AuthRequest(
                 signUpRequest.getEmail(),
-                signUpRequest.getPasswordHash(),
-                signUpRequest.getSalt());
+                signUpRequest.getPasswordHash());
         AuthResponse response = authService.authenticate(authRequest);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
@@ -92,6 +94,7 @@ public class AuthController {
 
     /**
      * Refresh token endpoint
+     * Zero Trust: Validates refresh token and issues new tokens with rotation
      */
     @PostMapping("/refresh")
     public ResponseEntity<AuthResponse> refreshToken(@RequestBody RefreshTokenRequest request) {
@@ -100,6 +103,24 @@ public class AuthController {
         }
 
         AuthResponse response = authService.refreshToken(request.getRefreshToken());
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Token validation endpoint (Zero Trust)
+     * Validates refresh token and issues new access token + rotated refresh token
+     * This is called during app startup after local unlock
+     */
+    @PostMapping("/token/validate")
+    @Operation(summary = "Validate Refresh Token", description = "Validates refresh token and issues new tokens with rotation (Zero Trust)")
+    public ResponseEntity<AuthResponse> validateToken(@RequestBody RefreshTokenRequest request) {
+        if (request == null || request.getRefreshToken() == null || request.getRefreshToken().isEmpty()) {
+            throw new AppException(ErrorCode.INVALID_INPUT, "Refresh token is required");
+        }
+
+        // Validate and rotate tokens (same as refresh, but explicit for Zero Trust flow)
+        AuthResponse response = authService.refreshToken(request.getRefreshToken());
+        logger.info("Token validated and rotated for user: {}", response.getUser().getEmail());
         return ResponseEntity.ok(response);
     }
 
@@ -137,24 +158,25 @@ public class AuthController {
     @Operation(summary = "Reset Password", description = "Resets password using verified code")
     public ResponseEntity<PasswordResetResponse> resetPassword(@Valid @RequestBody PasswordResetRequest request) {
         // Validate secure format
+        // BREAKING CHANGE: No longer requires salt
         if (!request.isSecureFormat()) {
             throw new AppException(ErrorCode.INVALID_INPUT,
-                    "Password reset requires password_hash and salt. Legacy password format not supported.");
+                    "Password reset requires password_hash. Legacy password format not supported.");
         }
 
         // Verify code and reset password
+        // BREAKING CHANGE: No longer requires salt
         passwordResetService.resetPassword(
                 request.getEmail(),
                 request.getCode(),
-                request.getPasswordHash(),
-                request.getSalt()
+                request.getPasswordHash()
         );
 
         // Reset password in UserService
+        // BREAKING CHANGE: No longer requires salt
         userService.resetPasswordByEmail(
                 request.getEmail(),
-                request.getPasswordHash(),
-                request.getSalt()
+                request.getPasswordHash()
         );
 
         logger.info("Password reset successful for email: {}", request.getEmail());
@@ -177,9 +199,10 @@ public class AuthController {
         }
 
         // Validate secure format for new password
+        // BREAKING CHANGE: No longer requires salt
         if (!request.isSecureFormat()) {
             throw new AppException(ErrorCode.INVALID_INPUT,
-                    "Password change requires new_password_hash and new_salt. Legacy password format not supported.");
+                    "Password change requires new_password_hash. Legacy password format not supported.");
         }
 
         // Find user
@@ -187,10 +210,10 @@ public class AuthController {
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
 
         // Verify current password
+        // BREAKING CHANGE: No longer requires salt
         AuthRequest currentPasswordRequest = new AuthRequest(
                 user.getEmail(),
-                request.getCurrentPasswordHash(),
-                request.getCurrentSalt()
+                request.getCurrentPasswordHash()
         );
 
         try {
@@ -203,10 +226,10 @@ public class AuthController {
         }
 
         // Change password
+        // BREAKING CHANGE: No longer requires salt
         userService.changePasswordSecure(
                 user.getUserId(),
-                request.getNewPasswordHash(),
-                request.getNewSalt()
+                request.getNewPasswordHash()
         );
 
         logger.info("Password changed successfully for user: {}", user.getEmail());
@@ -279,7 +302,8 @@ public class AuthController {
         @JsonProperty("passwordHash")
         @JsonAlias("password_hash")
         private String passwordHash;
-        private String salt;
+
+        // BREAKING CHANGE: Salt field removed - Zero Trust architecture
 
         public String getEmail() {
             return email;
@@ -305,22 +329,13 @@ public class AuthController {
             this.passwordHash = passwordHash;
         }
 
-        public String getSalt() {
-            return salt;
-        }
-
-        public void setSalt(final String salt) {
-            this.salt = salt;
-        }
-
         /**
-         * Check if request uses secure format (password_hash + salt)
-         * @JsonIgnore prevents this method from being serialized/deserialized as a JSON property
+         * Check if request uses secure format (password_hash only)
+         * BREAKING CHANGE: No longer requires salt
          */
         @com.fasterxml.jackson.annotation.JsonIgnore
         public boolean isSecureFormat() {
-            return passwordHash != null && !passwordHash.isEmpty()
-                   && salt != null && !salt.isEmpty();
+            return passwordHash != null && !passwordHash.isEmpty();
         }
     }
 
@@ -361,16 +376,12 @@ public class AuthController {
         @NotBlank(message = "Current password hash is required")
         private String currentPasswordHash;
 
-        @NotBlank(message = "Current salt is required")
-        private String currentSalt;
-
         @JsonProperty("newPasswordHash")
         @JsonAlias("new_password_hash")
         @NotBlank(message = "New password hash is required")
         private String newPasswordHash;
 
-        @NotBlank(message = "New salt is required")
-        private String newSalt;
+        // BREAKING CHANGE: Salt fields removed - Zero Trust architecture
 
         public String getCurrentPasswordHash() {
             return currentPasswordHash;
@@ -378,14 +389,6 @@ public class AuthController {
 
         public void setCurrentPasswordHash(final String currentPasswordHash) {
             this.currentPasswordHash = currentPasswordHash;
-        }
-
-        public String getCurrentSalt() {
-            return currentSalt;
-        }
-
-        public void setCurrentSalt(final String currentSalt) {
-            this.currentSalt = currentSalt;
         }
 
         public String getNewPasswordHash() {
@@ -396,23 +399,14 @@ public class AuthController {
             this.newPasswordHash = newPasswordHash;
         }
 
-        public String getNewSalt() {
-            return newSalt;
-        }
-
-        public void setNewSalt(final String newSalt) {
-            this.newSalt = newSalt;
-        }
-
         /**
-         * Check if request uses secure format (password_hash + salt)
+         * Check if request uses secure format (password_hash only)
+         * BREAKING CHANGE: No longer requires salt
          */
         @com.fasterxml.jackson.annotation.JsonIgnore
         public boolean isSecureFormat() {
             return newPasswordHash != null && !newPasswordHash.isEmpty()
-                   && newSalt != null && !newSalt.isEmpty()
-                   && currentPasswordHash != null && !currentPasswordHash.isEmpty()
-                   && currentSalt != null && !currentSalt.isEmpty();
+                   && currentPasswordHash != null && !currentPasswordHash.isEmpty();
         }
     }
 

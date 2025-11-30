@@ -18,8 +18,14 @@ import java.util.Optional;
 
 /**
  * Service for managing device PINs
- * Handles PIN storage, verification, and rate limiting
+ * 
+ * @deprecated PIN backend endpoints have been removed. PIN is now local-only.
+ * This service is kept for backward compatibility but should not be used for new code.
+ * PIN should only be used locally to decrypt refresh token from Keychain.
+ * 
+ * BREAKING CHANGE: All PIN backend endpoints removed. PIN is local-only.
  */
+@Deprecated
 @Service
 public class DevicePinService {
 

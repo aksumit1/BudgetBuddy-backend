@@ -18,8 +18,13 @@ import java.util.Optional;
 
 /**
  * Repository for DevicePinTable
- * Handles PIN storage and retrieval by userId and deviceId
+ * 
+ * @deprecated PIN backend endpoints have been removed. PIN is now local-only.
+ * This repository is kept for backward compatibility but should not be used for new code.
+ * 
+ * BREAKING CHANGE: All PIN backend endpoints removed. PIN is local-only.
  */
+@Deprecated
 @Repository
 public class DevicePinRepository {
 

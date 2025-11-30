@@ -887,9 +887,10 @@ public class PlaidSyncService {
      * For subsequent syncs, uses exact lastSyncedAt timestamp (date + time)
      * 
      * @deprecated This method is no longer used. Transaction syncing now uses batched fetching
-     * in syncTransactions() to reduce API calls. Kept for reference/testing purposes.
+     * in syncTransactions() to reduce API calls. REMOVED - use syncTransactions() instead.
      */
     @Deprecated
+    @SuppressWarnings("unused") // Kept for reference only - will be removed in next version
     private void syncTransactionsForAccount(
             final UserTable user,
             final String accessToken,

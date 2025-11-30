@@ -191,7 +191,7 @@ class PasswordResetServiceTest {
 
         // When
         assertDoesNotThrow(() -> {
-            passwordResetService.resetPassword(testEmail, code, "new_hash", "new_salt");
+            passwordResetService.resetPassword(testEmail, code, "new_hash");
         });
 
         // Then
@@ -214,7 +214,7 @@ class PasswordResetServiceTest {
 
         // When/Then - Try to reset without verifying
         AppException exception = assertThrows(AppException.class, () -> {
-            passwordResetService.resetPassword(testEmail, code, "new_hash", "new_salt");
+            passwordResetService.resetPassword(testEmail, code, "new_hash");
         });
 
         assertEquals(ErrorCode.INVALID_INPUT, exception.getErrorCode());
@@ -225,19 +225,19 @@ class PasswordResetServiceTest {
     void testResetPassword_MissingParameters() {
         // When/Then
         assertThrows(AppException.class, () -> {
-            passwordResetService.resetPassword("", "123456", "hash", "salt");
+            passwordResetService.resetPassword("", "123456", "hash");
         });
 
         assertThrows(AppException.class, () -> {
-            passwordResetService.resetPassword(testEmail, "", "hash", "salt");
+            passwordResetService.resetPassword(testEmail, "", "hash");
         });
 
         assertThrows(AppException.class, () -> {
-            passwordResetService.resetPassword(testEmail, "123456", "", "salt");
+            passwordResetService.resetPassword(testEmail, "123456", "");
         });
 
         assertThrows(AppException.class, () -> {
-            passwordResetService.resetPassword(testEmail, "123456", "hash", "");
+            passwordResetService.resetPassword(testEmail, "123456", "hash");
         });
     }
 

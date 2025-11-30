@@ -287,6 +287,58 @@ public class AuditLogService {
         logAction(userId, "DATA_UPDATE", "DATA", userId, Collections.emptyMap(), null, null);
     }
 
+    // FINRA Compliance Methods
+    public void logRecordKeeping(final String recordType, final String recordId, final Instant retentionUntil) {
+        logAction("SYSTEM", "RECORD_KEEPING", recordType != null ? recordType : "UNKNOWN", recordId,
+                Map.of("retentionUntil", retentionUntil != null ? retentionUntil.toString() : ""), null, null);
+    }
+
+    public void logSupervision(final String supervisorId, final String supervisedUserId, final String activity, final boolean approved) {
+        logAction(supervisorId, "SUPERVISION", "SUPERVISION", supervisedUserId,
+                Map.of("activity", activity != null ? activity : "", "approved", approved), null, null);
+    }
+
+    public void logSuspiciousActivity(final String userId, final String activityType, final String details) {
+        logAction(userId, "SUSPICIOUS_ACTIVITY", "COMPLIANCE", null,
+                Map.of("activityType", activityType != null ? activityType : "",
+                       "details", details != null ? details : ""), null, null);
+    }
+
+    public void logCommunication(final String userId, final String customerId, final String communicationType, final String content) {
+        logAction(userId, "COMMUNICATION", communicationType != null ? communicationType : "UNKNOWN", customerId,
+                Map.of("content", content != null ? content : ""), null, null);
+    }
+
+    // HIPAA Breach Notification
+    public void logBreachNotification(final com.budgetbuddy.compliance.hipaa.HIPAAComplianceService.BreachReport report) {
+        if (report == null) {
+            return;
+        }
+        logAction(report.getUserId(), "BREACH_NOTIFICATION", "BREACH", report.getPhiId(),
+                Map.of("breachType", report.getBreachType() != null ? report.getBreachType() : "",
+                       "details", report.getDetails() != null ? report.getDetails() : "",
+                       "reported", report.isReported()), null, null);
+    }
+
+    // GDPR Consent Management
+    public void logConsent(final String userId, final String consentType, final boolean granted, final String purpose) {
+        logAction(userId, "CONSENT", "CONSENT", null,
+                Map.of("consentType", consentType != null ? consentType : "",
+                       "granted", granted,
+                       "purpose", purpose != null ? purpose : ""), null, null);
+    }
+
+    public void logConsentWithdrawal(final String userId, final String consentType) {
+        logAction(userId, "CONSENT_WITHDRAWAL", "CONSENT", null,
+                Map.of("consentType", consentType != null ? consentType : ""), null, null);
+    }
+
+    public void logDataProcessingNotification(final String userId, final String processingPurpose, final String legalBasis) {
+        logAction(userId, "DATA_PROCESSING_NOTIFICATION", "GDPR", null,
+                Map.of("processingPurpose", processingPurpose != null ? processingPurpose : "",
+                       "legalBasis", legalBasis != null ? legalBasis : ""), null, null);
+    }
+
     private String convertToJson(final Map<String, Object> details) {
         try {
             if (details == null || details.isEmpty()) {

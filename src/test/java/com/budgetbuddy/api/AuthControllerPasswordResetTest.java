@@ -154,14 +154,15 @@ class AuthControllerPasswordResetTest {
     @Test
     void testResetPassword_Success() throws Exception {
         // Given
-        doNothing().when(passwordResetService).resetPassword(testEmail, testCode, "password_hash", "salt");
-        doNothing().when(userService).resetPasswordByEmail(testEmail, "password_hash", "salt");
+        // BREAKING CHANGE: Client salt removed - backend handles salt management
+        doNothing().when(passwordResetService).resetPassword(testEmail, testCode, "password_hash");
+        doNothing().when(userService).resetPasswordByEmail(testEmail, "password_hash");
 
         AuthController.PasswordResetRequest request = new AuthController.PasswordResetRequest();
         request.setEmail(testEmail);
         request.setCode(testCode);
         request.setPasswordHash("password_hash");
-        request.setSalt("salt");
+        // BREAKING CHANGE: Client salt removed
 
         // When/Then
         mockMvc.perform(post("/api/auth/reset-password")
@@ -171,8 +172,9 @@ class AuthControllerPasswordResetTest {
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.message").value("Password reset successful"));
 
-        verify(passwordResetService).resetPassword(testEmail, testCode, "password_hash", "salt");
-        verify(userService).resetPasswordByEmail(testEmail, "password_hash", "salt");
+        // BREAKING CHANGE: Client salt removed
+        verify(passwordResetService).resetPassword(testEmail, testCode, "password_hash");
+        verify(userService).resetPasswordByEmail(testEmail, "password_hash");
     }
 
     @Test
@@ -181,7 +183,7 @@ class AuthControllerPasswordResetTest {
         AuthController.PasswordResetRequest request = new AuthController.PasswordResetRequest();
         request.setEmail(testEmail);
         request.setPasswordHash("password_hash");
-        request.setSalt("salt");
+        
         // Code is missing
 
         // When/Then
@@ -190,7 +192,7 @@ class AuthControllerPasswordResetTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
 
-        verify(passwordResetService, never()).resetPassword(anyString(), anyString(), anyString(), anyString());
+        verify(passwordResetService, never()).resetPassword(anyString(), anyString(), anyString()));
     }
 
     @Test
@@ -207,7 +209,7 @@ class AuthControllerPasswordResetTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
 
-        verify(passwordResetService, never()).resetPassword(anyString(), anyString(), anyString(), anyString());
+        verify(passwordResetService, never()).resetPassword(anyString(), anyString(), anyString()));
     }
 }
 

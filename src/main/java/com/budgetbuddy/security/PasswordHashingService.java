@@ -32,38 +32,26 @@ public class PasswordHashingService {
 
     /**
      * Hash a client-side hashed password with server salt (defense in depth)
+     * BREAKING CHANGE: Client salt removed - Zero Trust architecture
      *
      * @param clientHash Base64-encoded client-side PBKDF2 hash
-     * @param clientSalt Base64-encoded client-side salt
      * @param serverSalt Server-side salt (will be generated if null)
      * @return Server-side hash and salt
      */
-    public PasswordHashResult hashClientPassword(final String clientHash, final String clientSalt, final byte[] serverSalt) {
+    public PasswordHashResult hashClientPassword(final String clientHash, final byte[] serverSalt) {
         if (clientHash == null || clientHash.isEmpty()) {
             throw new IllegalArgumentException("Client hash cannot be null or empty");
-        }
-        if (clientSalt == null || clientSalt.isEmpty()) {
-            throw new IllegalArgumentException("Client salt cannot be null or empty");
         }
 
         try {
             // Generate server salt if not provided
             byte[] finalServerSalt = serverSalt != null ? serverSalt : generateSalt();
 
-            // Decode client hash (client salt is not needed here - it was already used client-side)
+            // Decode client hash
             byte[] clientHashBytes = Base64.getDecoder().decode(clientHash);
-            
-            // Validate client salt format (must be valid Base64, but we don't use it in hashing)
-            try {
-                Base64.getDecoder().decode(clientSalt);
-            } catch (IllegalArgumentException e) {
-                throw new IllegalArgumentException("Invalid client salt format: " + e.getMessage());
-            }
 
-            // CRITICAL FIX: Combine client hash with server salt using Base64 encoding
+            // Combine client hash with server salt using Base64 encoding
             // This prevents data corruption when converting binary to string
-            // The original code was converting binary data directly to UTF-8 string, which can corrupt data
-            // Convert both to Base64 strings, concatenate, then use as password input
             String clientHashBase64 = Base64.getEncoder().encodeToString(clientHashBytes);
             String serverSaltBase64 = Base64.getEncoder().encodeToString(finalServerSalt);
             String combinedInput = clientHashBase64 + ":" + serverSaltBase64; // Use separator to prevent collisions
@@ -129,21 +117,19 @@ public class PasswordHashingService {
 
     /**
      * Verify a client-side hashed password against stored server hash
+     * BREAKING CHANGE: Client salt removed - Zero Trust architecture
      *
      * @param clientHash Base64-encoded client-side hash
-     * @param clientSalt Base64-encoded client-side salt
      * @param serverHash Base64-encoded stored server hash
      * @param serverSalt Base64-encoded stored server salt
      * @return true if password matches
      */
-    public boolean verifyClientPassword(final String clientHash, final String clientSalt, final String serverHash, final String serverSalt) {
+    public boolean verifyClientPassword(final String clientHash, final String serverHash, final String serverSalt) {
         if (clientHash == null || clientHash.isEmpty() ||
-            clientSalt == null || clientSalt.isEmpty() ||
             serverHash == null || serverHash.isEmpty() ||
             serverSalt == null || serverSalt.isEmpty()) {
-            logger.warn("Password verification failed: missing required parameters (clientHash={}, clientSalt={}, serverHash={}, serverSalt={})",
+            logger.warn("Password verification failed: missing required parameters (clientHash={}, serverHash={}, serverSalt={})",
                     clientHash != null && !clientHash.isEmpty(),
-                    clientSalt != null && !clientSalt.isEmpty(),
                     serverHash != null && !serverHash.isEmpty(),
                     serverSalt != null && !serverSalt.isEmpty());
             return false;
@@ -153,7 +139,6 @@ public class PasswordHashingService {
             // Validate Base64 encoding before decoding
             try {
                 Base64.getDecoder().decode(clientHash);
-                Base64.getDecoder().decode(clientSalt);
                 Base64.getDecoder().decode(serverHash);
                 Base64.getDecoder().decode(serverSalt);
             } catch (IllegalArgumentException e) {
@@ -161,9 +146,9 @@ public class PasswordHashingService {
                 return false;
             }
 
-            // Hash the client password with the stored server salt (new method)
+            // Hash the client password with the stored server salt
             byte[] serverSaltBytes = Base64.getDecoder().decode(serverSalt);
-            PasswordHashResult result = hashClientPassword(clientHash, clientSalt, serverSaltBytes);
+            PasswordHashResult result = hashClientPassword(clientHash, serverSaltBytes);
 
             // Constant-time comparison to prevent timing attacks
             boolean matches = constantTimeEquals(result.getHash(), serverHash);

@@ -40,32 +40,76 @@ public class JwtTokenProvider {
     @Value("${app.jwt.refresh-expiration}")
     private long refreshExpiration;
 
+    // Cache the JWT secret to ensure consistency between token generation and validation
+    // This prevents issues where the secret might change between calls
+    private volatile String cachedJwtSecret = null;
+    private volatile SecretKey cachedSigningKey = null;
+    private final Object secretLock = new Object();
+
     public JwtTokenProvider(final SecretsManagerService secretsManagerService) {
         this.secretsManagerService = secretsManagerService;
     }
 
     private SecretKey getSigningKey() {
-        String secret = getJwtSecret();
-        return Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
+        // Use cached secret if available to ensure consistency
+        if (cachedSigningKey != null) {
+            return cachedSigningKey;
+        }
+
+        synchronized (secretLock) {
+            // Double-check after acquiring lock
+            if (cachedSigningKey != null) {
+                return cachedSigningKey;
+            }
+
+            String secret = getJwtSecret();
+            SecretKey signingKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
+            
+            // Cache both secret and signing key
+            cachedJwtSecret = secret;
+            cachedSigningKey = signingKey;
+            
+            logger.debug("JWT signing key initialized and cached | Secret source: {}", 
+                    cachedJwtSecret.equals(jwtSecretFallback) ? "fallback" : "Secrets Manager");
+            
+            return signingKey;
+        }
     }
 
     private String getJwtSecret() {
-        try {
-            // Try to get from Secrets Manager first
-            String secret = secretsManagerService.getSecret(jwtSecretName, "JWT_SECRET");
-            if (secret != null && !secret.isEmpty()) {
-                return secret;
+        // Return cached secret if available
+        if (cachedJwtSecret != null) {
+            return cachedJwtSecret;
+        }
+
+        synchronized (secretLock) {
+            // Double-check after acquiring lock
+            if (cachedJwtSecret != null) {
+                return cachedJwtSecret;
             }
-        } catch (Exception e) {
-            logger.warn("Failed to fetch JWT secret from Secrets Manager, using fallback: {}", e.getMessage());
-        }
 
-        // Fallback to environment variable or configuration
-        if (jwtSecretFallback != null && !jwtSecretFallback.isEmpty()) {
-            return jwtSecretFallback;
-        }
+            String secret = null;
+            try {
+                // Try to get from Secrets Manager first
+                secret = secretsManagerService.getSecret(jwtSecretName, "JWT_SECRET");
+                if (secret != null && !secret.isEmpty()) {
+                    logger.info("JWT secret loaded from Secrets Manager: {}", jwtSecretName);
+                    cachedJwtSecret = secret;
+                    return secret;
+                }
+            } catch (Exception e) {
+                logger.warn("Failed to fetch JWT secret from Secrets Manager, using fallback: {}", e.getMessage());
+            }
 
-        throw new IllegalStateException("JWT secret not configured. Set app.jwt.secret or configure AWS Secrets Manager.");
+            // Fallback to environment variable or configuration
+            if (jwtSecretFallback != null && !jwtSecretFallback.isEmpty()) {
+                logger.info("JWT secret loaded from fallback (environment variable or configuration)");
+                cachedJwtSecret = jwtSecretFallback;
+                return jwtSecretFallback;
+            }
+
+            throw new IllegalStateException("JWT secret not configured. Set app.jwt.secret or configure AWS Secrets Manager.");
+        }
     }
 
     /**
@@ -177,13 +221,20 @@ public class JwtTokenProvider {
                     .parseSignedClaims(cleanedToken);
             return true;
         } catch (ExpiredJwtException e) {
-            logger.error("JWT token is expired: {}", e.getMessage());
+            logger.warn("JWT token is expired: {} | Token preview: {}", 
+                    e.getMessage(), cleanedToken.length() > 20 ? cleanedToken.substring(0, 20) + "..." : cleanedToken);
         } catch (UnsupportedJwtException e) {
-            logger.error("JWT token is unsupported: {}", e.getMessage());
+            logger.warn("JWT token is unsupported: {} | Token preview: {}", 
+                    e.getMessage(), cleanedToken.length() > 20 ? cleanedToken.substring(0, 20) + "..." : cleanedToken);
         } catch (MalformedJwtException e) {
-            logger.error("Invalid JWT token: {}", e.getMessage());
+            logger.warn("Invalid JWT token: {} | Token preview: {}", 
+                    e.getMessage(), cleanedToken.length() > 20 ? cleanedToken.substring(0, 20) + "..." : cleanedToken);
         } catch (IllegalArgumentException e) {
-            logger.error("JWT claims string is empty: {}", e.getMessage());
+            logger.warn("JWT claims string is empty: {} | Token preview: {}", 
+                    e.getMessage(), cleanedToken.length() > 20 ? cleanedToken.substring(0, 20) + "..." : cleanedToken);
+        } catch (io.jsonwebtoken.security.SignatureException e) {
+            logger.warn("JWT signature verification failed: {} | This may indicate a secret mismatch | Token preview: {}", 
+                    e.getMessage(), cleanedToken.length() > 20 ? cleanedToken.substring(0, 20) + "..." : cleanedToken);
         }
         return false;
     }

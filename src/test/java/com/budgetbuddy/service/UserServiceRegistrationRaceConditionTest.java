@@ -58,7 +58,7 @@ class UserServiceRegistrationRaceConditionTest {
         // Given - Multiple threads trying to register the same email simultaneously
         PasswordHashingService.PasswordHashResult serverHash =
                 new PasswordHashingService.PasswordHashResult("server-hash", "server-salt");
-        when(passwordHashingService.hashClientPassword(anyString(), anyString(), isNull()))
+        when(passwordHashingService.hashClientPassword(anyString(), isNull()))
                 .thenReturn(serverHash);
         when(userRepository.saveIfNotExists(any(UserTable.class))).thenReturn(true);
         
@@ -76,10 +76,10 @@ class UserServiceRegistrationRaceConditionTest {
         for (int i = 0; i < 10; i++) {
             CompletableFuture<UserTable> future = CompletableFuture.supplyAsync(() -> {
                 try {
+                    // BREAKING CHANGE: Client salt removed - backend handles salt management
                     return userService.createUserSecure(
                             testEmail,
                             testPasswordHash,
-                            testClientSalt,
                             "Test",
                             "User"
                     );
@@ -115,7 +115,7 @@ class UserServiceRegistrationRaceConditionTest {
         // Given - User already exists
         PasswordHashingService.PasswordHashResult serverHash =
                 new PasswordHashingService.PasswordHashResult("server-hash", "server-salt");
-        when(passwordHashingService.hashClientPassword(anyString(), anyString(), isNull()))
+        when(passwordHashingService.hashClientPassword(anyString(), isNull()))
                 .thenReturn(serverHash);
         when(userRepository.findByEmail(testEmail)).thenReturn(java.util.Optional.empty());
         when(userRepository.saveIfNotExists(any(UserTable.class))).thenReturn(true);
@@ -123,10 +123,10 @@ class UserServiceRegistrationRaceConditionTest {
 
         // When/Then
         assertThrows(AppException.class, () -> {
+            // BREAKING CHANGE: Client salt removed
             userService.createUserSecure(
                     testEmail,
                     testPasswordHash,
-                    testClientSalt,
                     "Test",
                     "User"
             );

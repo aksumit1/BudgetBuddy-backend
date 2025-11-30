@@ -58,14 +58,14 @@ class AuthServiceTest {
 
     @Test
     void testAuthenticate_Success() {
-        // Arrange
+        // Arrange - BREAKING CHANGE: Client salt removed
         AuthRequest request = new AuthRequest();
         request.setEmail("test@example.com");
         request.setPasswordHash("client-hash");
-        request.setSalt("client-salt");
+        // BREAKING CHANGE: Client salt removed - backend handles salt management
 
         when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(testUser));
-        when(passwordHashingService.verifyClientPassword(anyString(), anyString(), anyString(), anyString()))
+        when(passwordHashingService.verifyClientPassword(anyString(), anyString(), anyString()))
                 .thenReturn(true);
         when(tokenProvider.generateToken(any())).thenReturn("access-token");
         when(tokenProvider.generateRefreshToken(anyString())).thenReturn("refresh-token");
@@ -84,14 +84,14 @@ class AuthServiceTest {
 
     @Test
     void testAuthenticate_InvalidCredentials() {
-        // Arrange
+        // Arrange - BREAKING CHANGE: Client salt removed
         AuthRequest request = new AuthRequest();
         request.setEmail("test@example.com");
         request.setPasswordHash("client-hash");
-        request.setSalt("client-salt");
+        // BREAKING CHANGE: Client salt removed - backend handles salt management
 
         when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(testUser));
-        when(passwordHashingService.verifyClientPassword(anyString(), anyString(), anyString(), anyString()))
+        when(passwordHashingService.verifyClientPassword(anyString(), anyString(), anyString()))
                 .thenReturn(false);
 
         // Act & Assert
@@ -104,11 +104,11 @@ class AuthServiceTest {
 
     @Test
     void testAuthenticate_UserNotFound() {
-        // Arrange
+        // Arrange - BREAKING CHANGE: Client salt removed
         AuthRequest request = new AuthRequest();
         request.setEmail("nonexistent@example.com");
         request.setPasswordHash("client-hash");
-        request.setSalt("client-salt");
+        // BREAKING CHANGE: Client salt removed - backend handles salt management
 
         when(userRepository.findByEmail(anyString())).thenReturn(Optional.empty());
 

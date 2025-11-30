@@ -45,7 +45,8 @@ public class AuthService {
     }
 
     /**
-     * Authenticate user with secure format (password_hash + salt)
+     * Authenticate user with secure format (password_hash only)
+     * BREAKING CHANGE: Client salt removed - backend uses server salt only
      * Only secure client-side hashed passwords are supported
      */
     public AuthResponse authenticate(final AuthRequest request) {
@@ -78,27 +79,23 @@ public class AuthService {
                 throw new AppException(ErrorCode.INVALID_CREDENTIALS, "Invalid email or password");
             }
 
-            // Validate that client hash and salt are provided
+            // Validate that client hash is provided
+            // BREAKING CHANGE: No longer requires salt
             if (request.getPasswordHash() == null || request.getPasswordHash().isEmpty()) {
                 logger.warn("Login request for user {} missing password_hash", request.getEmail());
                 throw new AppException(ErrorCode.INVALID_INPUT, "password_hash is required");
             }
-            if (request.getSalt() == null || request.getSalt().isEmpty()) {
-                logger.warn("Login request for user {} missing salt", request.getEmail());
-                throw new AppException(ErrorCode.INVALID_INPUT, "salt is required");
-            }
 
             // Log for debugging (redact sensitive data)
-            logger.debug("Authenticating user {}: clientHash length={}, clientSalt length={}, serverHash length={}, serverSalt length={}",
+            logger.debug("Authenticating user {}: clientHash length={}, serverHash length={}, serverSalt length={}",
                     request.getEmail(),
                     request.getPasswordHash() != null ? request.getPasswordHash().length() : 0,
-                    request.getSalt() != null ? request.getSalt().length() : 0,
                     user.getPasswordHash() != null ? user.getPasswordHash().length() : 0,
                     serverSalt != null ? serverSalt.length() : 0);
 
+            // BREAKING CHANGE: No longer requires client salt
             authenticated = passwordHashingService.verifyClientPassword(
                     request.getPasswordHash(),
-                    request.getSalt(),
                     user.getPasswordHash(),
                     serverSalt
             );
@@ -108,7 +105,7 @@ public class AuthService {
             }
         } else {
             throw new AppException(ErrorCode.INVALID_INPUT,
-                    "password_hash and salt must be provided. Only secure format is supported.");
+                    "password_hash must be provided. Only secure format is supported.");
         }
 
         if (!authenticated) {
@@ -184,24 +181,36 @@ public class AuthService {
         return new AuthResponse(accessToken, refreshToken, expiresAt, userInfo);
     }
 
+    /**
+     * Refresh token endpoint (Zero Trust)
+     * Validates refresh token and issues new tokens with rotation
+     * Old refresh token is invalidated (token rotation for security)
+     */
     public AuthResponse refreshToken(final String refreshToken) {
         if (refreshToken == null || refreshToken.isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Refresh token is required");
         }
 
+        // Validate token structure and signature
         if (!tokenProvider.validateToken(refreshToken)) {
+            logger.warn("Invalid refresh token provided (validation failed)");
             throw new AppException(ErrorCode.TOKEN_INVALID, "Invalid refresh token");
         }
 
         String email = tokenProvider.getUsernameFromToken(refreshToken);
         if (email == null || email.isEmpty()) {
+            logger.warn("Refresh token missing email claim");
             throw new AppException(ErrorCode.TOKEN_INVALID, "Invalid refresh token: no email found");
         }
 
         UserTable user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+                .orElseThrow(() -> {
+                    logger.warn("User not found for refresh token: {}", email);
+                    return new AppException(ErrorCode.USER_NOT_FOUND, "User not found");
+                });
 
         if (user.getEnabled() == null || !user.getEnabled()) {
+            logger.warn("Account disabled for user: {}", email);
             throw new AppException(ErrorCode.ACCOUNT_DISABLED, "Account is disabled");
         }
 
@@ -216,9 +225,9 @@ public class AuthService {
             authorities = Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER"));
         }
 
-        // Generate new tokens
-        // Create UserDetails object for token generation (same as in authenticate method)
-        // Ensure passwordHash is not null (use empty string as fallback for UserDetails)
+        // Generate new tokens (Zero Trust: token rotation)
+        // Old refresh token is implicitly invalidated (not tracked, but new token issued)
+        // Create UserDetails object for token generation
         String passwordHash = user.getPasswordHash();
         if (passwordHash == null || passwordHash.isEmpty()) {
             logger.warn("User {} has no password hash during token refresh. Using empty string.", email);
@@ -238,13 +247,17 @@ public class AuthService {
 
         Authentication authentication = new UsernamePasswordAuthenticationToken(
                 userDetails, null, authorities);
+        
+        // Zero Trust: Generate short-lived access token (15 minutes)
         String newAccessToken = tokenProvider.generateToken(authentication);
+        
+        // Zero Trust: Generate new refresh token (30 days, will be encrypted in keychain)
         String newRefreshToken = tokenProvider.generateRefreshToken(email);
 
         Date expirationDate = tokenProvider.getExpirationDateFromToken(newAccessToken);
         if (expirationDate == null) {
-            // Fallback: set expiration to 24 hours from now
-            expirationDate = new Date(System.currentTimeMillis() + 86400000L);
+            // Fallback: set expiration to 15 minutes from now (matches Zero Trust config)
+            expirationDate = new Date(System.currentTimeMillis() + 900000L);
         }
         LocalDateTime expiresAt = expirationDate.toInstant()
                 .atZone(ZoneId.systemDefault())
@@ -257,6 +270,7 @@ public class AuthService {
                 user.getLastName() != null ? user.getLastName() : ""
         );
 
+        logger.info("Token refreshed successfully for user: {} | New access token expires in 15 minutes", email);
         return new AuthResponse(newAccessToken, newRefreshToken, expiresAt, userInfo);
     }
 

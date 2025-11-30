@@ -30,7 +30,7 @@ class SecurityTest {
         AuthRequest request = new AuthRequest();
         request.setEmail("test@example.com' OR '1'='1");
         request.setPasswordHash("hash");
-        request.setSalt("salt");
+        // BREAKING CHANGE: Client salt removed - backend handles salt management
 
         // When/Then - Should not execute SQL, should fail validation
         // The email validation should catch this or authentication should fail
@@ -55,7 +55,7 @@ class SecurityTest {
         AuthRequest request = new AuthRequest();
         request.setEmail("test@example.com");
         request.setPasswordHash("wrong-hash");
-        request.setSalt("salt");
+        // BREAKING CHANGE: Client salt removed - backend handles salt management
 
         int attempts = 0;
         int maxAttempts = 10;

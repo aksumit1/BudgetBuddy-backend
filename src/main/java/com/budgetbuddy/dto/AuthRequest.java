@@ -7,11 +7,10 @@ import jakarta.validation.constraints.NotBlank;
 
 /**
  * Authentication request DTO
- * Supports both client-side hashed passwords (secure) and plaintext
- * passwords (legacy)
+ * Zero Trust: Client sends password_hash (client-side hashed), backend performs
+ * additional server-side hashing with server salt only
  *
- * Security: Client sends password_hash and salt, backend performs
- * additional server-side hashing
+ * BREAKING CHANGE: Client salt removed - no backward compatibility
  */
 public final class AuthRequest {
 
@@ -19,21 +18,18 @@ public final class AuthRequest {
     @Email(message = "Email should be valid")
     private String email;
 
-    // Secure fields - client-side hashed password
+    // Secure field - client-side hashed password (PBKDF2)
     // Accept both camelCase (passwordHash) and snake_case (password_hash) for compatibility
     @JsonProperty("passwordHash")
     @JsonAlias("password_hash")
     private String passwordHash;
-    private String salt;
 
     public AuthRequest() {
     }
 
-    public AuthRequest(final String email, final String passwordHash,
-                       final String salt) {
+    public AuthRequest(final String email, final String passwordHash) {
         this.email = email;
         this.passwordHash = passwordHash;
-        this.salt = salt;
     }
 
     public String getEmail() {
@@ -46,6 +42,7 @@ public final class AuthRequest {
 
     /**
      * Client-side hashed password (PBKDF2)
+     * Backend will perform additional server-side hashing with server salt
      */
     public String getPasswordHash() {
         return passwordHash;
@@ -56,22 +53,11 @@ public final class AuthRequest {
     }
 
     /**
-     * Salt used for client-side hashing
-     */
-    public String getSalt() {
-        return salt;
-    }
-
-    public void setSalt(final String salt) {
-        this.salt = salt;
-    }
-
-    /**
-     * Check if request uses secure format (password_hash + salt)
+     * Check if request uses secure format (password_hash only)
+     * BREAKING CHANGE: No longer requires salt
      */
     @com.fasterxml.jackson.annotation.JsonIgnore
     public boolean isSecureFormat() {
-        return passwordHash != null && !passwordHash.isEmpty()
-               && salt != null && !salt.isEmpty();
+        return passwordHash != null && !passwordHash.isEmpty();
     }
 }

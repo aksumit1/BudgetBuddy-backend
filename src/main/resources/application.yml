@@ -86,12 +86,12 @@ app:
       enabled: ${AWS_SECRETS_MANAGER_ENABLED:true} # Enabled by default to match production
       refresh-interval: ${AWS_SECRETS_MANAGER_REFRESH_INTERVAL:3600}
   
-  # JWT Configuration
+  # JWT Configuration - Zero Trust: Short-lived access tokens, longer refresh tokens
   jwt:
     secret: ${JWT_SECRET:your-256-bit-secret-key-change-in-production}
     secret-name: ${JWT_SECRET_NAME:budgetbuddy/jwt-secret}
-    expiration: 86400000 # 24 hours
-    refresh-expiration: 604800000 # 7 days
+    expiration: 900000 # 15 minutes (short-lived for Zero Trust)
+    refresh-expiration: 2592000000 # 30 days (longer-lived, encrypted in keychain)
   
   # Plaid Configuration
   plaid:
@@ -147,6 +147,39 @@ app:
       enabled: ${CERTIFICATE_PINNING_ENABLED:true}
       certificates: ${CERTIFICATE_PINNED_HASHES:} # Comma-separated list of SHA-256 hashes
   
+  # MFA Configuration
+  mfa:
+    totp:
+      issuer: ${MFA_TOTP_ISSUER:BudgetBuddy}
+    backup-codes:
+      count: ${MFA_BACKUP_CODES_COUNT:10}
+      length: ${MFA_BACKUP_CODES_LENGTH:8}
+    otp:
+      expiration-seconds: ${MFA_OTP_EXPIRATION_SECONDS:300}
+
+  # FIDO2/WebAuthn Configuration
+  fido2:
+    rp-id: ${FIDO2_RP_ID:budgetbuddy.com}
+    rp-name: ${FIDO2_RP_NAME:BudgetBuddy}
+    origin: ${FIDO2_ORIGIN:https://budgetbuddy.com}
+    challenge:
+      expiration-seconds: ${FIDO2_CHALLENGE_EXPIRATION_SECONDS:300}
+
+  # Device Attestation Configuration
+  device-attestation:
+    enabled: ${DEVICE_ATTESTATION_ENABLED:true}
+    devicecheck-enabled: ${DEVICE_ATTESTATION_DEVICECHECK_ENABLED:true}
+    play-integrity-enabled: ${DEVICE_ATTESTATION_PLAY_INTEGRITY_ENABLED:true}
+    trust-window-hours: ${DEVICE_ATTESTATION_TRUST_WINDOW_HOURS:24}
+
+  # Behavioral Analysis Configuration
+  behavioral-analysis:
+    enabled: ${BEHAVIORAL_ANALYSIS_ENABLED:true}
+    activity-history-size: ${BEHAVIORAL_ANALYSIS_HISTORY_SIZE:100}
+    anomaly-detection-window-seconds: ${BEHAVIORAL_ANALYSIS_WINDOW_SECONDS:3600}
+    high-risk-threshold: ${BEHAVIORAL_ANALYSIS_HIGH_RISK_THRESHOLD:70.0}
+    medium-risk-threshold: ${BEHAVIORAL_ANALYSIS_MEDIUM_RISK_THRESHOLD:40.0}
+
   # Compliance
   compliance:
     audit-log:

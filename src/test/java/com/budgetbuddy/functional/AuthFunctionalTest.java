@@ -172,7 +172,7 @@ class AuthFunctionalTest {
     void testLogin_WithValidCredentials_Succeeds() throws Exception {
         // Given - Register first (skip if infrastructure not available)
         try {
-            userService.createUserSecure(testEmail, testPasswordHash, testClientSalt, "Test", "User");
+            userService.createUserSecure(testEmail, testPasswordHash, "Test", "User");
         } catch (Exception e) {
             // If user creation fails due to infrastructure, skip test
             String errorMsg = e.getMessage() != null ? e.getMessage() : "";
@@ -224,7 +224,7 @@ class AuthFunctionalTest {
         // Given - Register and login
         // Skip if DynamoDB operations fail (LocalStack not running)
         try {
-            userService.createUserSecure(testEmail, testPasswordHash, testClientSalt, "Test", "User");
+            userService.createUserSecure(testEmail, testPasswordHash, "Test", "User");
             AuthRequest authRequest = new AuthRequest();
             authRequest.setEmail(testEmail);
             authRequest.setPasswordHash(testPasswordHash);

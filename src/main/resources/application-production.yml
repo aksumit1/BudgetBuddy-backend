@@ -1,0 +1,221 @@
+# Production Environment Configuration
+# Production-ready configuration with all security and compliance features enabled
+
+spring:
+  profiles:
+    active: production
+  
+  # Data Source (RDS in production)
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://prod-db.budgetbuddy.com:5432/budgetbuddy}
+    username: ${DATABASE_USERNAME:budgetbuddy}
+    password: ${DATABASE_PASSWORD:}
+    hikari:
+      maximum-pool-size: 50
+      minimum-idle: 10
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+
+  # DynamoDB Configuration
+  dynamodb:
+    endpoint: ${DYNAMODB_ENDPOINT:} # Use AWS DynamoDB in production
+    region: ${AWS_REGION:us-east-1}
+    table-prefix: BudgetBuddy
+    auto-create-tables: false # Tables should already exist in production
+
+server:
+  port: 8080
+  address: 0.0.0.0
+  compression:
+    enabled: true
+    mime-types: application/json,application/xml,text/html,text/xml,text/plain
+  error:
+    include-message: never # Don't expose error messages in production
+    include-stacktrace: never # Never expose stack traces in production
+    include-binding-errors: never
+
+# AWS Configuration
+app:
+  aws:
+    region: ${AWS_REGION:us-east-1}
+    dynamodb:
+      endpoint: ${DYNAMODB_ENDPOINT:} # Use AWS DynamoDB (no endpoint = AWS)
+      timeout-seconds: 10
+      auto-create-tables: false
+    s3:
+      bucket: budgetbuddy-production-storage
+    secrets-manager:
+      enabled: true
+      refresh-interval: 3600
+    appconfig:
+      enabled: true
+      application: budgetbuddy-backend
+      environment: production
+      config-profile: production
+      refresh-interval: 60
+    cloudwatch:
+      enabled: true
+
+  # JWT Configuration
+  jwt:
+    secret: ${JWT_SECRET:} # Must be set via Secrets Manager
+    secret-name: ${JWT_SECRET_NAME:budgetbuddy/jwt-secret}
+    expiration: 900000 # 15 minutes (short-lived for Zero Trust)
+    refresh-expiration: 2592000000 # 30 days (longer-lived, encrypted in keychain)
+
+  # MFA Configuration
+  mfa:
+    totp:
+      issuer: BudgetBuddy
+    backup-codes:
+      count: 10
+      length: 8
+    otp:
+      expiration-seconds: 300 # 5 minutes
+
+  # FIDO2/WebAuthn Configuration
+  fido2:
+    rp-id: ${FIDO2_RP_ID:budgetbuddy.com}
+    rp-name: BudgetBuddy
+    origin: ${FIDO2_ORIGIN:https://budgetbuddy.com}
+    challenge:
+      expiration-seconds: 300 # 5 minutes
+
+  # Device Attestation Configuration
+  device-attestation:
+    enabled: true
+    devicecheck-enabled: true # iOS DeviceCheck
+    play-integrity-enabled: true # Android Play Integrity
+    trust-window-hours: 24
+
+  # Behavioral Analysis Configuration
+  behavioral-analysis:
+    enabled: true
+    activity-history-size: 1000 # Larger history in production
+    anomaly-detection-window-seconds: 3600
+    high-risk-threshold: 70.0
+    medium-risk-threshold: 40.0
+
+  # Plaid Configuration
+  plaid:
+    client-id: ${PLAID_CLIENT_ID:}
+    secret: ${PLAID_SECRET:}
+    environment: ${PLAID_ENVIRONMENT:production} # Use production for production
+    webhook-verification-key: ${PLAID_WEBHOOK_VERIFICATION_KEY:}
+    redirect-uri: ${PLAID_REDIRECT_URI:https://budgetbuddy.com/plaid/callback}
+    webhook-url: ${PLAID_WEBHOOK_URL:https://api.budgetbuddy.com/api/plaid/webhooks}
+
+  # Stripe Configuration
+  stripe:
+    secret-key: ${STRIPE_SECRET_KEY:}
+
+  # Rate Limiting (production - strict limits)
+  rate-limit:
+    enabled: true
+    requests-per-minute: 10000
+    requests-per-hour: 500000
+    auth-login: 1000
+    auth-signup: 500
+    plaid: 50000
+    transactions: 500000
+    analytics: 100000
+    default: 500000
+    ddos:
+      max-requests-per-minute: 100000
+      max-requests-per-hour: 5000000
+
+  # Security
+  security:
+    cors:
+      allowed-origins: ${CORS_ALLOWED_ORIGINS:https://budgetbuddy.com,https://app.budgetbuddy.com} # Must be explicitly set
+      allowed-methods: GET,POST,PUT,DELETE,OPTIONS
+      allowed-headers: "*"
+      allow-credentials: true
+    encryption:
+      algorithm: AES-256-GCM
+      key: ${ENCRYPTION_KEY:} # Must be set via Secrets Manager
+    tls:
+      min-version: TLSv1.3 # TLS 1.3 only in production
+      enabled-protocols: TLSv1.3
+    certificate-pinning:
+      enabled: true
+      certificates: ${CERTIFICATE_PINNED_HASHES:} # Must be set
+
+  # Compliance
+  compliance:
+    audit-log:
+      enabled: true
+      retention-days: 2555 # 7 years for FINRA
+    pci-dss:
+      enabled: true
+    soc2:
+      enabled: true
+    finra:
+      enabled: true
+    hipaa:
+      enabled: true
+    gdpr:
+      enabled: true
+    dma:
+      enabled: true
+
+  # Performance
+  performance:
+    cache:
+      enabled: true
+      default-ttl: 1800
+      max-size: 100000 # Larger cache in production
+      warming:
+        enabled: true
+
+# Logging
+logging:
+  level:
+    root: WARN
+    com.budgetbuddy: INFO
+    org.springframework.security: ERROR
+    org.springframework.web: WARN
+    software.amazon.awssdk: ERROR
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: /var/log/budgetbuddy/application.log
+    max-size: 100MB
+    max-history: 30
+
+# Management
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: never # Never show details in production
+  health:
+    redis:
+      timeout: 2s
+
+# Spring Data
+spring:
+  data:
+    redis:
+      connect-timeout: 1000ms
+      lettuce:
+        shutdown-timeout: 100ms
+        pool:
+          max-wait: 1000ms
+          max-active: 32 # Larger pool in production
+          min-idle: 5
+          test-on-borrow: true
+          test-while-idle: true
+    web:
+      pageable:
+        one-indexed-parameters: true
+    redis:
+      repositories:
+        enabled: false
+

@@ -107,11 +107,15 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/actuator/health", "/actuator/info").permitAll()
                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html", "/api-docs/**").permitAll()
-                .requestMatchers("/api/auth/**").permitAll()
+                .requestMatchers("/api/auth/**").permitAll() // Authentication endpoints (register, login, refresh)
                 .requestMatchers("/api/public/**").permitAll()
-                .requestMatchers("/api/pin/login").permitAll() // Allow unauthenticated PIN login
                 .requestMatchers("/api/plaid/webhooks").permitAll()
                 .requestMatchers("/.well-known/**").permitAll() // Allow well-known files (apple-app-site-association, etc.)
+                .requestMatchers("/api/mfa/**").permitAll() // MFA endpoints (some require auth, handled in controller)
+                .requestMatchers("/api/fido2/**").permitAll() // FIDO2 endpoints (some require auth, handled in controller)
+                .requestMatchers("/api/device/attestation/**").authenticated() // Device attestation requires authentication
+                // BREAKING CHANGE: PIN endpoints removed - PIN is now local-only
+                // .requestMatchers("/api/pin/**").permitAll() // REMOVED - PIN backend endpoints deleted
                 .anyRequest().authenticated()
             );
 

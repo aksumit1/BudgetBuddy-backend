@@ -67,7 +67,7 @@ class AuthControllerTest {
         com.budgetbuddy.model.dynamodb.UserTable testUserTable = new com.budgetbuddy.model.dynamodb.UserTable();
         testUserTable.setUserId(UUID.randomUUID().toString());
         // AuthController.register calls createUserSecure with null for firstName and lastName
-        when(userService.createUserSecure(anyString(), anyString(), anyString(), isNull(), isNull()))
+        when(userService.createUserSecure(anyString(), anyString(), isNull(), isNull()))
                 .thenReturn(testUserTable);
 
         // When
@@ -76,7 +76,7 @@ class AuthControllerTest {
         // Then
         assertEquals(HttpStatus.CREATED, response.getStatusCode()); // register returns CREATED, not OK
         assertNotNull(response.getBody());
-        verify(userService, times(1)).createUserSecure(anyString(), anyString(), anyString(), isNull(), isNull());
+        verify(userService, times(1)).createUserSecure(anyString(), anyString(), isNull(), isNull());
         verify(authService, times(1)).authenticate(any(AuthRequest.class));
     }
 

@@ -12,6 +12,9 @@ import org.springframework.web.bind.annotation.*;
 /**
  * Compliance REST Controller
  * Provides endpoints for GDPR and DMA compliance
+ * 
+ * Note: DMA-specific endpoints are now in DMAController
+ * This controller maintains GDPR endpoints for backward compatibility
  */
 @RestController
 @RequestMapping("/api/compliance")
@@ -103,7 +106,10 @@ public class ComplianceController {
     /**
      * DMA Article 6: Data Portability
      * Export data in standardized format
+     * 
+     * @deprecated Use /api/dma/export instead. This endpoint is kept for backward compatibility.
      */
+    @Deprecated
     @GetMapping(value = "/dma/export", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<String> exportDataDMA(
             @AuthenticationPrincipal UserDetails userDetails,

@@ -326,6 +326,20 @@
             </exclusions>
         </dependency>
 
+        <!-- TOTP Library for MFA -->
+        <dependency>
+            <groupId>com.warrenstrange</groupId>
+            <artifactId>googleauth</artifactId>
+            <version>1.5.0</version>
+        </dependency>
+
+        <!-- WebAuthn/FIDO2 Library - Using Yubico library (more reliable) -->
+        <dependency>
+            <groupId>com.yubico</groupId>
+            <artifactId>webauthn-server-core</artifactId>
+            <version>2.3.0</version>
+        </dependency>
+
         <!-- Testing -->
         <dependency>
             <groupId>org.springframework.security</groupId>

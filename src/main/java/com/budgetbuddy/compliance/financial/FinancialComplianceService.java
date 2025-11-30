@@ -118,6 +118,60 @@ public class FinancialComplianceService {
     }
 
     /**
+     * FINRA Rule 4511 - Record Keeping
+     * Maintain records for 7 years (or as required by regulation)
+     */
+    public void logRecordKeeping(final String recordType, final String recordId, final Instant retentionUntil) {
+        auditLogService.logRecordKeeping(recordType, recordId, retentionUntil);
+        putMetric("RecordKeeping", 1.0, Map.of("RecordType", recordType));
+        logger.debug("FINRA: Record logged for retention: Type={}, ID={}, RetentionUntil={}", recordType, recordId, retentionUntil);
+    }
+
+    /**
+     * FINRA Rule 3110 - Supervision
+     * Log supervisory activities and reviews
+     */
+    public void logSupervision(final String supervisorId, final String supervisedUserId, final String activity, final boolean approved) {
+        auditLogService.logSupervision(supervisorId, supervisedUserId, activity, approved);
+        putMetric("Supervision", approved ? 1.0 : 0.0, Map.of("Activity", activity));
+        
+        if (!approved) {
+            logger.warn("FINRA: Supervisory activity not approved: Supervisor={}, Supervised={}, Activity={}", 
+                    supervisorId, supervisedUserId, activity);
+        }
+    }
+
+    /**
+     * FINRA Rule 4530 - Reporting
+     * Report suspicious activity and violations
+     */
+    public void reportSuspiciousActivity(final String userId, final String activityType, final String details) {
+        auditLogService.logSuspiciousActivity(userId, activityType, details);
+        putMetric("SuspiciousActivity", 1.0, Map.of("ActivityType", activityType));
+        
+        // In production, this would trigger:
+        // 1. Immediate notification to compliance team
+        // 2. Filing of SAR (Suspicious Activity Report) if required
+        // 3. Notification to FINRA if required
+        logger.error("FINRA: Suspicious activity reported: User={}, Type={}, Details={}", userId, activityType, details);
+    }
+
+    /**
+     * FINRA Rule 2210 - Communications
+     * Monitor and log all customer communications
+     */
+    public void logCommunication(final String userId, final String customerId, final String communicationType, final String content) {
+        auditLogService.logCommunication(userId, customerId, communicationType, content);
+        putMetric("Communication", 1.0, Map.of("Type", communicationType));
+        
+        // In production, this would:
+        // 1. Store communication content (encrypted)
+        // 2. Apply retention policies (7 years)
+        // 3. Enable search and retrieval for compliance reviews
+        logger.debug("FINRA: Communication logged: User={}, Customer={}, Type={}", userId, customerId, communicationType);
+    }
+
+    /**
      * Transaction Monitoring
      * Monitor transactions for suspicious activity
      */

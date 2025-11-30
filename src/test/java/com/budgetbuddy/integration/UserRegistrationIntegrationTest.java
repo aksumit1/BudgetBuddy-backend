@@ -188,7 +188,7 @@ class UserRegistrationIntegrationTest {
             AuthRequest request = new AuthRequest();
             request.setEmail(email);
             request.setPasswordHash(Base64.getEncoder().encodeToString("testpassword123".getBytes()));
-            request.setSalt(Base64.getEncoder().encodeToString("somesalt".getBytes()));
+            // BREAKING CHANGE: Client salt removed - backend handles salt management
             HttpEntity<AuthRequest> entity = new HttpEntity<>(request, headers);
 
             ResponseEntity<AuthResponse> response = restTemplate.exchange(
@@ -209,7 +209,7 @@ class UserRegistrationIntegrationTest {
         // Arrange - Missing password hash
         AuthRequest request = new AuthRequest();
         request.setEmail(uniqueEmail);
-        request.setSalt(Base64.getEncoder().encodeToString("somesalt".getBytes()));
+        // BREAKING CHANGE: Client salt removed - backend handles salt management
         // password_hash is missing
 
         HttpHeaders headers = new HttpHeaders();

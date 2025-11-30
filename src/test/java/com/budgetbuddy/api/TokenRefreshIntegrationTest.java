@@ -71,7 +71,7 @@ class TokenRefreshIntegrationTest {
     void testRefreshToken_WithValidToken_ReturnsNewTokens() throws Exception {
         // Given - Register and login to get refresh token
         try {
-            userService.createUserSecure(testEmail, testPasswordHash, testClientSalt, "Test", "User");
+            userService.createUserSecure(testEmail, testPasswordHash, "Test", "User");
 
             AuthRequest loginRequest = new AuthRequest();
             loginRequest.setEmail(testEmail);
@@ -163,7 +163,7 @@ class TokenRefreshIntegrationTest {
     void testRefreshToken_MultipleRefreshes_AllSucceed() throws Exception {
         // Given - Register and login
         try {
-            userService.createUserSecure(testEmail, testPasswordHash, testClientSalt, "Test", "User");
+            userService.createUserSecure(testEmail, testPasswordHash, "Test", "User");
 
             AuthRequest loginRequest = new AuthRequest();
             loginRequest.setEmail(testEmail);
@@ -214,7 +214,7 @@ class TokenRefreshIntegrationTest {
     void testRefreshToken_ReturnsValidJWT() throws Exception {
         // Given - Register and login
         try {
-            userService.createUserSecure(testEmail, testPasswordHash, testClientSalt, "Test", "User");
+            userService.createUserSecure(testEmail, testPasswordHash, "Test", "User");
 
             AuthRequest loginRequest = new AuthRequest();
             loginRequest.setEmail(testEmail);

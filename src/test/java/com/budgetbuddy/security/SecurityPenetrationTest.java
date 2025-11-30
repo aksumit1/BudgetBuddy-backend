@@ -60,7 +60,7 @@ class SecurityPenetrationTest {
         AuthRequest request = new AuthRequest();
         request.setEmail("test@example.com");
         request.setPasswordHash("wrong-hash");
-        request.setSalt("salt");
+        // BREAKING CHANGE: Client salt removed - backend handles salt management
 
         // When - Make many rapid requests
         int blockedCount = 0;
