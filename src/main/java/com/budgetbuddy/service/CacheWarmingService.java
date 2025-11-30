@@ -5,6 +5,7 @@ import com.budgetbuddy.repository.dynamodb.TransactionRepository;
 import com.budgetbuddy.repository.dynamodb.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.CacheManager;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -25,6 +26,9 @@ public class CacheWarmingService {
     private final TransactionRepository transactionRepository;
     private final CacheManager cacheManager;
 
+    @Value("${app.performance.cache.warming.enabled:true}")
+    private boolean cacheWarmingEnabled;
+
     public CacheWarmingService(
             final UserRepository userRepository,
             final AccountRepository accountRepository,
@@ -42,6 +46,10 @@ public class CacheWarmingService {
      */
     @Scheduled(cron = "0 0 2 * * ?") // 2 AM daily
     public void warmUserCache() {
+        if (!cacheWarmingEnabled) {
+            logger.debug("Cache warming is disabled, skipping user cache warming");
+            return;
+        }
         logger.info("Starting user cache warming");
         try {
             // Fetch list of active users (logged in within last 30 days)
@@ -72,6 +80,10 @@ public class CacheWarmingService {
      */
     @Scheduled(cron = "0 0 */6 * * ?") // Every 6 hours
     public void warmAccountCache() {
+        if (!cacheWarmingEnabled) {
+            logger.debug("Cache warming is disabled, skipping account cache warming");
+            return;
+        }
         logger.info("Starting account cache warming");
         try {
             // Fetch list of active users (logged in within last 7 days)
@@ -105,6 +117,10 @@ public class CacheWarmingService {
      */
     @Scheduled(cron = "0 0 */4 * * ?") // Every 4 hours
     public void warmTransactionCache() {
+        if (!cacheWarmingEnabled) {
+            logger.debug("Cache warming is disabled, skipping transaction cache warming");
+            return;
+        }
         logger.info("Starting transaction cache warming");
         try {
             // Fetch list of active users (logged in within last 3 days)

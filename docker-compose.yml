@@ -1,15 +1,26 @@
+networks:
+  budgetbuddy-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16
+
 services:
   # LocalStack for local DynamoDB development
   localstack:
     image: localstack/localstack:latest
     container_name: budgetbuddy-localstack
+    networks:
+      - budgetbuddy-network
     ports:
       - "4566:4566"
     environment:
-      - SERVICES=dynamodb,s3,secretsmanager,cloudwatch,iam,sts
+      - SERVICES=dynamodb,s3,secretsmanager,cloudwatch,iam,sts,appconfig
       - DEBUG=0
       - PERSISTENCE=1
-      - DOCKER_HOST=unix:///var/run/docker.sock
+      # Remove DOCKER_HOST - LocalStack will use the mounted socket directly
+      # DOCKER_HOST was causing API version mismatch (v1.51 not supported)
+      # The socket is mounted at /var/run/docker.sock, no need for DOCKER_HOST env var
     volumes:
       - localstack_data:/var/lib/localstack
       - /var/run/docker.sock:/var/run/docker.sock
@@ -23,9 +34,19 @@ services:
   redis:
     image: redis:7-alpine
     container_name: budgetbuddy-redis
+    networks:
+      - budgetbuddy-network
     ports:
       - "6379:6379"
-    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    # Optimize Redis for fast connections
+    command: >
+      redis-server
+      --appendonly yes
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+      --tcp-backlog 511
+      --timeout 0
+      --tcp-keepalive 300
     volumes:
       - redis_data:/data
     healthcheck:
@@ -42,13 +63,20 @@ services:
       platforms:
         - linux/arm64
     container_name: budgetbuddy-backend
+    networks:
+      - budgetbuddy-network
     ports:
       - "8080:8080"
     environment:
       AWS_REGION: us-east-1
       AWS_ACCESS_KEY_ID: test
       AWS_SECRET_ACCESS_KEY: test
+      # LocalStack endpoints for all AWS services (matches production architecture)
       DYNAMODB_ENDPOINT: http://localstack:4566
+      AWS_S3_ENDPOINT: http://localstack:4566
+      AWS_SECRETS_MANAGER_ENDPOINT: http://localstack:4566
+      AWS_APPCONFIG_ENDPOINT: http://localstack:4566
+      AWS_CLOUDWATCH_ENDPOINT: http://localstack:4566
       AWS_S3_BUCKET: budgetbuddy-storage
       JWT_SECRET: test-secret-change-in-production-this-must-be-at-least-64-characters-long-for-hs512-algorithm-to-work-properly
       PLAID_CLIENT_ID: 69262b89a1808400220732ed
@@ -56,13 +84,22 @@ services:
       PLAID_ENVIRONMENT: sandbox
       PLAID_REDIRECT_URI: ${PLAID_REDIRECT_URI:-https://app.budgetbuddy.com/plaid/callback}
       STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-sk_test_placeholder}
+      # Use service name for DNS resolution (Docker Compose handles this efficiently)
       SPRING_DATA_REDIS_HOST: redis
       SPRING_DATA_REDIS_PORT: 6379
-      APP_CONFIG_ENABLED: ${APP_CONFIG_ENABLED:-false}
-      SERVER_SSL_ENABLED: ${SERVER_SSL_ENABLED:-false}
-      MANAGEMENT_TRACING_ENABLED: 'false'
+      # Enable production features to match production stack
+      APP_CONFIG_ENABLED: ${APP_CONFIG_ENABLED:-true}  # Enabled to match production
+      AWS_SECRETS_MANAGER_ENABLED: ${AWS_SECRETS_MANAGER_ENABLED:-true}  # Enabled to match production
+      AWS_CLOUDWATCH_ENABLED: ${AWS_CLOUDWATCH_ENABLED:-true}  # Enabled to match production
+      CACHE_WARMING_ENABLED: ${CACHE_WARMING_ENABLED:-true}  # Enabled to match production
+      SERVER_SSL_ENABLED: ${SERVER_SSL_ENABLED:-false}  # Keep disabled for local (no SSL certs)
+      MANAGEMENT_TRACING_ENABLED: ${MANAGEMENT_TRACING_ENABLED:-false}  # Keep disabled for local (reduces overhead)
       APPLE_TEAM_ID: ${APPLE_TEAM_ID:-TEAM_ID}
       APPLE_BUNDLE_ID: ${APPLE_BUNDLE_ID:-com.budgetbuddy.app}
+      # Optimize DNS resolution
+      # Use Docker's embedded DNS server (no external DNS lookup needed)
+    dns:
+      - 127.0.0.11  # Docker's embedded DNS server (fastest)
     depends_on:
       localstack:
         condition: service_healthy

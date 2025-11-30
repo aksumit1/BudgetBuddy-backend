@@ -7,12 +7,19 @@ spring:
     redis:
       host: ${SPRING_DATA_REDIS_HOST:localhost}
       port: ${SPRING_DATA_REDIS_PORT:6379}
-      timeout: 2000ms
+      timeout: 1000ms  # Reduced from 2000ms for faster failure detection
+      connect-timeout: 1000ms  # Reduced from 2000ms for faster connection establishment
       lettuce:
         pool:
-          max-active: 8
+          max-active: 16  # Increased from 8 to handle concurrent health checks
           max-idle: 8
-          min-idle: 0
+          min-idle: 2  # Pre-warm pool with 2 connections (avoids cold start delays)
+          max-wait: 1000ms  # Reduced from 2000ms - fail fast if pool exhausted
+          # Connection validation and reuse
+          test-on-borrow: true  # Test connections before using (detect stale connections)
+          test-while-idle: true  # Test idle connections periodically
+          time-between-eviction-runs: 30s  # Check idle connections every 30s
+        shutdown-timeout: 100ms  # Fast shutdown for health checks
   
   # Jackson Configuration
   jackson:
@@ -23,6 +30,7 @@ spring:
 # Server Configuration
 server:
   port: ${SERVER_PORT:8080}
+  address: ${SERVER_ADDRESS:0.0.0.0}  # Bind to all interfaces (0.0.0.0) to allow network access, use 127.0.0.1 for localhost only
   # SSL/HTTPS Configuration (optional for local development)
   ssl:
     enabled: ${SERVER_SSL_ENABLED:false}
@@ -64,13 +72,13 @@ app:
     kms:
       key-id: ${AWS_KMS_KEY_ID:} # For encryption at rest
     appconfig:
-      enabled: ${APP_CONFIG_ENABLED:false} # Disabled by default for local development
+      enabled: ${APP_CONFIG_ENABLED:true} # Enabled by default to match production
       application: ${APP_CONFIG_APPLICATION:budgetbuddy-backend}
       environment: ${APP_CONFIG_ENVIRONMENT:production}
       config-profile: ${APP_CONFIG_PROFILE:default}
       refresh-interval: ${APP_CONFIG_REFRESH_INTERVAL:60}
     secrets-manager:
-      enabled: ${AWS_SECRETS_MANAGER_ENABLED:false}
+      enabled: ${AWS_SECRETS_MANAGER_ENABLED:true} # Enabled by default to match production
       refresh-interval: ${AWS_SECRETS_MANAGER_REFRESH_INTERVAL:3600}
   
   # JWT Configuration
@@ -185,6 +193,11 @@ management:
       show-details: when-authorized
       probes:
         enabled: true
+  health:
+    # Configure timeouts for health contributors to prevent slow health checks
+    redis:
+      enabled: true
+      timeout: 2s  # 2 seconds (matches Redis connection timeout)
   metrics:
     export:
       cloudwatch:
@@ -242,15 +255,17 @@ api:
 
 # Feature Flags (merged into app section above)
 
-# Performance Configuration
-performance:
-  async:
-    core-pool-size: ${ASYNC_CORE_POOL_SIZE:10}
-    max-pool-size: ${ASYNC_MAX_POOL_SIZE:50}
-    queue-capacity: ${ASYNC_QUEUE_CAPACITY:100}
-  cache:
-    default-ttl: ${CACHE_DEFAULT_TTL:1800}
-    max-size: ${CACHE_MAX_SIZE:10000}
+  # Performance Configuration
+  performance:
+    async:
+      core-pool-size: ${ASYNC_CORE_POOL_SIZE:10}
+      max-pool-size: ${ASYNC_MAX_POOL_SIZE:50}
+      queue-capacity: ${ASYNC_QUEUE_CAPACITY:100}
+    cache:
+      default-ttl: ${CACHE_DEFAULT_TTL:1800}
+      max-size: ${CACHE_MAX_SIZE:10000}
+      warming:
+        enabled: ${CACHE_WARMING_ENABLED:true} # Enabled by default to match production
 
 # Resilience Configuration
 resilience:

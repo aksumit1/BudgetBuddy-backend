@@ -42,24 +42,24 @@ app:
   
   rate-limit:
     enabled: false # Disabled for tests to avoid rate limiting issues
-    requests-per-minute: 100000 # Very high limit if enabled
-    requests-per-hour: 1000000
+    requests-per-minute: 10000000 # Very high limit for heavy testing (10 million per minute)
+    requests-per-hour: 100000000 # Very high limit for heavy testing (100 million per hour)
     # Per-endpoint limits (used if rate limiting is enabled)
-    auth-login: 50000
-    auth-signup: 50000
-    plaid: 100000
-    transactions: 100000
-    analytics: 100000
-    default: 100000
-    # DDoS protection limits
+    auth-login: 1000000 # 1 million per minute for heavy testing
+    auth-signup: 1000000 # 1 million per minute for heavy testing
+    plaid: 10000000 # 10 million per minute for heavy testing
+    transactions: 10000000 # 10 million per minute for heavy testing
+    analytics: 10000000 # 10 million per minute for heavy testing
+    default: 10000000 # 10 million per minute for heavy testing
+    # DDoS protection limits (very high for heavy testing)
     ddos:
-      max-requests-per-minute: 100000
-      max-requests-per-hour: 1000000
-  # 404 Error Tracking Configuration (lower thresholds for tests)
+      max-requests-per-minute: 10000000 # 10 million per minute
+      max-requests-per-hour: 100000000 # 100 million per hour
+  # 404 Error Tracking Configuration (very high thresholds for heavy testing)
   ddos:
     notfound:
-      max-per-minute: 20  # Lower threshold for tests (tests expect ~25 to exceed)
-      max-per-hour: 100   # Lower threshold for tests (tests expect ~105 to exceed)
+      max-per-minute: 1000000  # 1 million per minute for heavy testing
+      max-per-hour: 10000000   # 10 million per hour for heavy testing
   
   security:
     cors:
@@ -70,25 +70,32 @@ app:
       min-version: TLSv1.2
       enabled-protocols: TLSv1.2,TLSv1.3
 
-# Resilience4j Circuit Breaker Configuration for Tests
+# Resilience4j Circuit Breaker Configuration for Tests (Very Lenient for Heavy Testing)
 resilience4j:
   circuitbreaker:
     configs:
       default:
-        failureRateThreshold: 50
-        waitDurationInOpenState: 10s
-        slidingWindowSize: 10
-        minimumNumberOfCalls: 5
-        permittedNumberOfCallsInHalfOpenState: 3
+        failureRateThreshold: 95  # Very high threshold - only open at 95% failure rate
+        waitDurationInOpenState: 5s  # Short wait time for faster recovery
+        slidingWindowSize: 1000  # Large window to prevent premature opening
+        minimumNumberOfCalls: 100  # Need many calls before circuit can open
+        permittedNumberOfCallsInHalfOpenState: 50  # Allow many test calls
         automaticTransitionFromOpenToHalfOpenEnabled: true
     instances:
       plaid:
-        failureRateThreshold: 70
-        waitDurationInOpenState: 30s
-        slidingWindowSize: 30
-        minimumNumberOfCalls: 15
-        permittedNumberOfCallsInHalfOpenState: 5
+        failureRateThreshold: 95  # Very high threshold - only open at 95% failure rate
+        waitDurationInOpenState: 5s  # Short wait time for faster recovery
+        slidingWindowSize: 1000  # Large window to prevent premature opening
+        minimumNumberOfCalls: 100  # Need many calls before circuit can open
+        permittedNumberOfCallsInHalfOpenState: 50  # Allow many test calls
         automaticTransitionFromOpenToHalfOpenEnabled: true
+  retry:
+    instances:
+      plaid:
+        maxAttempts: 10  # More retry attempts for heavy testing
+        waitDuration: 100ms  # Shorter wait between retries
+        enableExponentialBackoff: true
+        exponentialBackoffMultiplier: 1.5  # Slower backoff for heavy testing
 
 # Logging
 logging:

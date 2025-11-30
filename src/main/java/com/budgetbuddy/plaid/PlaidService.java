@@ -216,8 +216,8 @@ public class PlaidService {
             
             if (!callResponse.isSuccessful()) {
                 String errorBody = "No error body";
-                try {
-                    final okhttp3.ResponseBody errorBodyResponse = callResponse.errorBody();
+                // Use try-with-resources to ensure ResponseBody is closed to prevent connection leaks
+                try (final okhttp3.ResponseBody errorBodyResponse = callResponse.errorBody()) {
                     if (errorBodyResponse != null) {
                         errorBody = errorBodyResponse.string();
                     }
@@ -361,8 +361,8 @@ public class PlaidService {
             
             if (!httpResponse.isSuccessful()) {
                 String errorBody = "No error body";
-                try {
-                    var errorBodyStream = httpResponse.errorBody();
+                // Use try-with-resources to ensure ResponseBody is closed to prevent connection leaks
+                try (var errorBodyStream = httpResponse.errorBody()) {
                     if (errorBodyStream != null) {
                         errorBody = errorBodyStream.string();
                     }
@@ -464,8 +464,8 @@ public class PlaidService {
                     
                     if (!nextHttpResponse.isSuccessful()) {
                         String errorBody = "No error body";
-                        try {
-                            var errorBodyStream = nextHttpResponse.errorBody();
+                        // Use try-with-resources to ensure ResponseBody is closed to prevent connection leaks
+                        try (var errorBodyStream = nextHttpResponse.errorBody()) {
                             if (errorBodyStream != null) {
                                 errorBody = errorBodyStream.string();
                             }

@@ -1,5 +1,6 @@
 package com.budgetbuddy.service;
 
+import jakarta.annotation.PreDestroy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Async;
@@ -9,6 +10,7 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -23,6 +25,7 @@ public class AsyncSyncService {
     private static final Logger logger = LoggerFactory.getLogger(AsyncSyncService.class);
     private static final int DEFAULT_BATCH_SIZE = 100;
     private static final int DEFAULT_THREAD_POOL_SIZE = 10;
+    private static final int SHUTDOWN_TIMEOUT_SECONDS = 30;
 
     private final ExecutorService executorService;
 
@@ -132,11 +135,35 @@ public class AsyncSyncService {
 
     /**
      * Shutdown executor service (called on application shutdown)
+     * Prevents thread pool leaks by ensuring proper cleanup
      */
+    @PreDestroy
     public void shutdown() {
         if (executorService != null && !executorService.isShutdown()) {
+            logger.info("Shutting down AsyncSyncService executor service...");
             executorService.shutdown();
-            logger.info("AsyncSyncService executor service shut down");
+            
+            try {
+                // Wait for tasks to complete
+                if (!executorService.awaitTermination(SHUTDOWN_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
+                    logger.warn("AsyncSyncService executor did not terminate within {} seconds, forcing shutdown", 
+                            SHUTDOWN_TIMEOUT_SECONDS);
+                    executorService.shutdownNow();
+                    
+                    // Wait again after shutdownNow
+                    if (!executorService.awaitTermination(SHUTDOWN_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
+                        logger.error("AsyncSyncService executor did not terminate after forced shutdown");
+                    } else {
+                        logger.info("AsyncSyncService executor terminated after forced shutdown");
+                    }
+                } else {
+                    logger.info("AsyncSyncService executor service shut down successfully");
+                }
+            } catch (InterruptedException e) {
+                logger.error("Interrupted while shutting down AsyncSyncService executor", e);
+                executorService.shutdownNow();
+                Thread.currentThread().interrupt();
+            }
         }
     }
 }

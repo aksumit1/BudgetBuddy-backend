@@ -47,10 +47,15 @@ public class DeploymentSafetyService {
 
     public DeploymentSafetyService(final RestTemplateBuilder restTemplateBuilder) {
         // Use request factory to set timeouts (replacement for deprecated setConnectTimeout/setReadTimeout)
+        // Configure connection pool limits to prevent connection leaks
         final SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
         requestFactory.setConnectTimeout((int) Duration.ofSeconds(5).toMillis());
         requestFactory.setReadTimeout((int) Duration.ofSeconds(10).toMillis());
+        // Connection reuse is handled by the underlying HTTP client
+        // Timeouts ensure connections don't hang indefinitely
         
+        // Timeouts are configured via requestFactory (setConnectTimeout/setReadTimeout)
+        // RestTemplateBuilder.setConnectTimeout/setReadTimeout are deprecated in Spring Boot 3.4+
         this.restTemplate = restTemplateBuilder
                 .requestFactory(() -> requestFactory)
                 .build();

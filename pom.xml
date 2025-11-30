@@ -38,6 +38,10 @@
         <maven.surefire.version>3.5.1</maven.surefire.version>
         <maven.failsafe.version>3.5.1</maven.failsafe.version>
         <jacoco.version>0.8.12</jacoco.version>
+        <!-- Build performance optimizations -->
+        <maven.compiler.fork>true</maven.compiler.fork>
+        <maven.test.skip>false</maven.test.skip>
+        <skipTests>false</skipTests>
     </properties>
 
     <dependencies>
@@ -354,6 +358,7 @@
                     <target>21</target>
                     <release>21</release>
                     <parameters>true</parameters>
+                    <fork>true</fork>  <!-- Enable parallel compilation -->
                     <compilerArgs>
                         <arg>-Xlint:deprecation</arg>
                         <arg>-Xlint:unchecked</arg>
@@ -393,6 +398,12 @@
                     <excludes>
                         <exclude>**/*IntegrationTest.java</exclude>
                     </excludes>
+                    <!-- Performance optimizations -->
+                    <forkCount>1</forkCount>  <!-- Use 1 fork for faster startup -->
+                    <reuseForks>true</reuseForks>  <!-- Reuse forks to avoid JVM startup overhead -->
+                    <parallel>methods</parallel>  <!-- Run tests in parallel -->
+                    <threadCount>4</threadCount>  <!-- Use 4 threads for parallel test execution -->
+                    <skipTests>${skipTests}</skipTests>
                 </configuration>
                 </plugin>
             <!-- Failsafe Plugin for Integration Tests -->

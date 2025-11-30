@@ -8,6 +8,11 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
+import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
+import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
+import software.amazon.awssdk.auth.credentials.InstanceProfileCredentialsProvider;
+import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.services.appconfig.AppConfigClient;
 import software.amazon.awssdk.services.appconfigdata.AppConfigDataClient;
 import software.amazon.awssdk.services.appconfigdata.model.GetLatestConfigurationRequest;
@@ -74,6 +79,36 @@ public class AppConfigIntegration {
         // Client will be created lazily in @PostConstruct if enabled
     }
 
+    @Value("${AWS_APPCONFIG_ENDPOINT:}")
+    private String appConfigEndpoint;
+
+    @Value("${AWS_REGION:us-east-1}")
+    private String awsRegion;
+
+    @Value("${AWS_ACCESS_KEY_ID:}")
+    private String accessKeyId;
+
+    @Value("${AWS_SECRET_ACCESS_KEY:}")
+    private String secretAccessKey;
+
+    /**
+     * Credentials provider that uses IAM role in ECS/EKS, or static credentials for LocalStack
+     */
+    private AwsCredentialsProvider getCredentialsProvider() {
+        // For LocalStack, use static credentials if provided
+        if (!accessKeyId.isEmpty() && !secretAccessKey.isEmpty()) {
+            return StaticCredentialsProvider.create(
+                    AwsBasicCredentials.create(accessKeyId, secretAccessKey)
+            );
+        }
+        // For production, use IAM role
+        try {
+            return InstanceProfileCredentialsProvider.create();
+        } catch (Exception e) {
+            return DefaultCredentialsProvider.create();
+        }
+    }
+
     @Bean
     @org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(
             name = "app.aws.appconfig.enabled", 
@@ -84,7 +119,16 @@ public class AppConfigIntegration {
             return null;
         }
         try {
-            return AppConfigClient.builder().build();
+            var builder = AppConfigClient.builder()
+                    .region(software.amazon.awssdk.regions.Region.of(awsRegion))
+                    .credentialsProvider(getCredentialsProvider());
+            
+            // Use LocalStack endpoint if configured
+            if (!appConfigEndpoint.isEmpty()) {
+                builder.endpointOverride(java.net.URI.create(appConfigEndpoint));
+            }
+            
+            return builder.build();
         } catch (Exception e) {
             logger.warn("Failed to create AppConfigClient (this is expected in tests without AWS credentials): {}", e.getMessage());
             return null;
@@ -112,7 +156,16 @@ public class AppConfigIntegration {
         
         try {
             // Create client lazily here after @Value injection
-            this.appConfigDataClient = AppConfigDataClient.builder().build();
+            var builder = AppConfigDataClient.builder()
+                    .region(software.amazon.awssdk.regions.Region.of(awsRegion))
+                    .credentialsProvider(getCredentialsProvider());
+            
+            // Use LocalStack endpoint if configured
+            if (!appConfigEndpoint.isEmpty()) {
+                builder.endpointOverride(java.net.URI.create(appConfigEndpoint));
+            }
+            
+            this.appConfigDataClient = builder.build();
             startConfigurationSession();
             scheduleConfigurationRefresh();
             logger.info("AWS AppConfig integration initialized for application: {}, environment: {}",
