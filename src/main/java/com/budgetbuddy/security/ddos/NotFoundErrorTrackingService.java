@@ -211,9 +211,11 @@ public class NotFoundErrorTrackingService {
             dynamoDbAvailable = true;
             return true;
         } catch (Exception e) {
-            // Don't log as error in test environments - this is expected if LocalStack isn't running
-            logger.debug("Failed to create 404 tracking table: {}. " +
-                    "404 tracking will work in in-memory only mode. This is acceptable in test environments.", e.getMessage());
+            // Log at WARN level - table creation failure indicates configuration issue
+            // In test environments, ensure LocalStack is running and auto-create-tables is enabled
+            logger.warn("Failed to create 404 tracking table: {}. " +
+                    "404 tracking will work in in-memory only mode. " +
+                    "Ensure LocalStack is running and auto-create-tables is enabled.", e.getMessage());
             dynamoDbAvailable = false;
             return false;
         }

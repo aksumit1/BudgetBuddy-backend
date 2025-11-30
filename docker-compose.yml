@@ -4,6 +4,12 @@ networks:
     ipam:
       config:
         - subnet: 172.28.0.0/16
+    # Configure DNS for external hostname resolution
+    # Docker's embedded DNS (127.0.0.11) handles service discovery
+    # External DNS servers handle external hostnames like sandbox.plaid.com
+    driver_opts:
+      com.docker.network.bridge.enable_icc: "true"
+      com.docker.network.driver.mtu: "1500"
 
 services:
   # LocalStack for local DynamoDB development
@@ -18,12 +24,20 @@ services:
       - SERVICES=dynamodb,s3,secretsmanager,cloudwatch,iam,sts,appconfig
       - DEBUG=0
       - PERSISTENCE=1
+      # Pass through secrets from .env file for init script
+      - JWT_SECRET=${JWT_SECRET:-test-secret-change-in-production-this-must-be-at-least-64-characters-long-for-hs512-algorithm-to-work-properly}
+      - PLAID_CLIENT_ID=${PLAID_CLIENT_ID:-}
+      - PLAID_SECRET=${PLAID_SECRET:-}
+      - PLAID_ENVIRONMENT=${PLAID_ENVIRONMENT:-sandbox}
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY:-sk_test_placeholder}
+      - STRIPE_PUBLISHABLE_KEY=${STRIPE_PUBLISHABLE_KEY:-}
       # Remove DOCKER_HOST - LocalStack will use the mounted socket directly
       # DOCKER_HOST was causing API version mismatch (v1.51 not supported)
       # The socket is mounted at /var/run/docker.sock, no need for DOCKER_HOST env var
     volumes:
       - localstack_data:/var/lib/localstack
       - /var/run/docker.sock:/var/run/docker.sock
+      - ./scripts/init-localstack-secrets.sh:/etc/localstack/init/ready.d/init-secrets.sh:ro
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:4566/_localstack/health"]
       interval: 10s
@@ -103,9 +117,12 @@ services:
       APPLE_TEAM_ID: ${APPLE_TEAM_ID:-TEAM_ID}
       APPLE_BUNDLE_ID: ${APPLE_BUNDLE_ID:-com.budgetbuddy.app}
       # Optimize DNS resolution
-      # Use Docker's embedded DNS server (no external DNS lookup needed)
+      # Use external DNS for external hostnames (like sandbox.plaid.com)
+      # Docker's embedded DNS (127.0.0.11) will still be used for service discovery via Docker's network
     dns:
-      - 127.0.0.11  # Docker's embedded DNS server (fastest)
+      - 8.8.8.8     # Google DNS (primary for external hostnames)
+      - 8.8.4.4     # Google DNS secondary
+      - 127.0.0.11  # Docker's embedded DNS (for service discovery within Docker network)
     depends_on:
       localstack:
         condition: service_healthy

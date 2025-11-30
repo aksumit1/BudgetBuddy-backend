@@ -95,8 +95,8 @@ class AuthFunctionalTest {
                 testEmail, testPasswordHash, testClientSalt
         );
 
-        // When/Then - Functional test may fail if DynamoDB tables don't exist
-        // This is expected for integration tests without LocalStack running
+        // When/Then - Functional tests require LocalStack to be running
+        // These are integration tests that test the full stack including DynamoDB
         try {
             var result = mockMvc.perform(post("/api/auth/register")
                             .contentType(MediaType.APPLICATION_JSON)

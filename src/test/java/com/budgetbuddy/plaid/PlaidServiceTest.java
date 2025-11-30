@@ -24,7 +24,7 @@ class PlaidServiceTest {
         // When/Then - Constructor now allows null/empty and uses placeholders (will fail on actual API calls)
         // This allows service creation for scripts/analysis without credentials
         assertDoesNotThrow(() -> {
-            new PlaidService(null, "secret", "sandbox", "https://app.budgetbuddy.com/plaid/callback", "https://api.budgetbuddy.com/api/plaid/webhooks", pciDSSComplianceService);
+            new PlaidService(null, "secret", "sandbox", "https://app.budgetbuddy.com/plaid/callback", "https://api.budgetbuddy.com/api/plaid/webhooks", true, pciDSSComplianceService);
         }, "Should create PlaidService with null clientId (uses placeholder)");
     }
 
@@ -32,7 +32,7 @@ class PlaidServiceTest {
     void testPlaidService_Constructor_WithEmptyClientId_UsesPlaceholder() {
         // When/Then - Constructor now allows null/empty and uses placeholders (will fail on actual API calls)
         assertDoesNotThrow(() -> {
-            new PlaidService("", "secret", "sandbox", "https://app.budgetbuddy.com/plaid/callback", "https://api.budgetbuddy.com/api/plaid/webhooks", pciDSSComplianceService);
+            new PlaidService("", "secret", "sandbox", "https://app.budgetbuddy.com/plaid/callback", "https://api.budgetbuddy.com/api/plaid/webhooks", true, pciDSSComplianceService);
         }, "Should create PlaidService with empty clientId (uses placeholder)");
     }
 
@@ -40,7 +40,7 @@ class PlaidServiceTest {
     void testPlaidService_Constructor_WithNullSecret_UsesPlaceholder() {
         // When/Then - Constructor now allows null/empty and uses placeholders (will fail on actual API calls)
         assertDoesNotThrow(() -> {
-            new PlaidService("clientId", null, "sandbox", "https://app.budgetbuddy.com/plaid/callback", "https://api.budgetbuddy.com/api/plaid/webhooks", pciDSSComplianceService);
+            new PlaidService("clientId", null, "sandbox", "https://app.budgetbuddy.com/plaid/callback", "https://api.budgetbuddy.com/api/plaid/webhooks", true, pciDSSComplianceService);
         }, "Should create PlaidService with null secret (uses placeholder)");
     }
 
@@ -48,7 +48,7 @@ class PlaidServiceTest {
     void testPlaidService_Constructor_WithEmptySecret_UsesPlaceholder() {
         // When/Then - Constructor now allows null/empty and uses placeholders (will fail on actual API calls)
         assertDoesNotThrow(() -> {
-            new PlaidService("clientId", "", "sandbox", "https://app.budgetbuddy.com/plaid/callback", "https://api.budgetbuddy.com/api/plaid/webhooks", pciDSSComplianceService);
+            new PlaidService("clientId", "", "sandbox", "https://app.budgetbuddy.com/plaid/callback", "https://api.budgetbuddy.com/api/plaid/webhooks", true, pciDSSComplianceService);
         }, "Should create PlaidService with empty secret (uses placeholder)");
     }
 
@@ -56,7 +56,7 @@ class PlaidServiceTest {
     void testPlaidService_Constructor_WithNullPCIDSSService_ThrowsException() {
         // When/Then
         assertThrows(IllegalArgumentException.class, () -> {
-            new PlaidService("clientId", "secret", "sandbox", "https://app.budgetbuddy.com/plaid/callback", "https://api.budgetbuddy.com/api/plaid/webhooks", null);
+            new PlaidService("clientId", "secret", "sandbox", "https://app.budgetbuddy.com/plaid/callback", "https://api.budgetbuddy.com/api/plaid/webhooks", true, null);
         });
     }
 
@@ -64,7 +64,7 @@ class PlaidServiceTest {
     void testPlaidService_Constructor_WithValidInput_CreatesService() {
         // When/Then - Should not throw exception with valid input
         assertDoesNotThrow(() -> {
-            new PlaidService("test-client-id", "test-secret", "sandbox", "https://app.budgetbuddy.com/plaid/callback", "https://api.budgetbuddy.com/api/plaid/webhooks", pciDSSComplianceService);
+            new PlaidService("test-client-id", "test-secret", "sandbox", "https://app.budgetbuddy.com/plaid/callback", "https://api.budgetbuddy.com/api/plaid/webhooks", true, pciDSSComplianceService);
         }, "Should create PlaidService with valid input");
     }
 }

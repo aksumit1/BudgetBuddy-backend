@@ -21,7 +21,7 @@ app:
     dynamodb:
       table-prefix: TestBudgetBuddy
       endpoint: http://localhost:4566
-      auto-create-tables: false # Disable table auto-creation in tests
+      auto-create-tables: true # Enable table auto-creation in tests - ensures tables exist for proper testing
     s3:
       bucket-name: test-budgetbuddy-storage
     cloudwatch:

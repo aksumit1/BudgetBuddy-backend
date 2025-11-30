@@ -18,8 +18,8 @@ import static org.junit.jupiter.api.Assertions.*;
  * Integration Tests for Infrastructure
  * Verifies that all DynamoDB tables and infrastructure components are properly configured
  * 
- * Note: These tests require tables to be created. In test environment with auto-create-tables: false,
- * tables may not exist. These tests verify table existence when tables are available.
+ * Note: These tests require LocalStack to be running and auto-create-tables enabled.
+ * Tables are automatically created by DynamoDBTableManager on application startup.
  */
 @SpringBootTest(classes = com.budgetbuddy.BudgetBuddyApplication.class)
 @ActiveProfiles("test")
@@ -48,14 +48,10 @@ class InfrastructureIntegrationTest {
         // When
         boolean exists = tableExists(tableName);
 
-        // Then - In test environment, tables may not exist if auto-create is disabled
-        // This test verifies table existence when tables are available
-        if (!exists) {
-            // Skip test if table doesn't exist (expected in test environment with auto-create disabled)
-            org.junit.jupiter.api.Assumptions.assumeTrue(false, 
-                    "Table " + tableName + " does not exist. This is expected if auto-create-tables is disabled.");
-        }
-        assertTrue(exists, "Users table should exist: " + tableName);
+        // Then - Tables should be auto-created by DynamoDBTableManager
+        // If table doesn't exist, it's a configuration issue, not an expected condition
+        assertTrue(exists, "Users table should exist: " + tableName + 
+                ". Ensure LocalStack is running and auto-create-tables is enabled in test config.");
     }
 
     @Test
@@ -66,12 +62,9 @@ class InfrastructureIntegrationTest {
         // When
         boolean exists = tableExists(tableName);
 
-        // Then - In test environment, tables may not exist if auto-create is disabled
-        if (!exists) {
-            org.junit.jupiter.api.Assumptions.assumeTrue(false, 
-                    "Table " + tableName + " does not exist. This is expected if auto-create-tables is disabled.");
-        }
-        assertTrue(exists, "Accounts table should exist: " + tableName);
+        // Then - Tables should be auto-created by DynamoDBTableManager
+        assertTrue(exists, "Accounts table should exist: " + tableName + 
+                ". Ensure LocalStack is running and auto-create-tables is enabled in test config.");
     }
 
     @Test
@@ -82,12 +75,9 @@ class InfrastructureIntegrationTest {
         // When
         boolean exists = tableExists(tableName);
 
-        // Then - In test environment, tables may not exist if auto-create is disabled
-        if (!exists) {
-            org.junit.jupiter.api.Assumptions.assumeTrue(false, 
-                    "Table " + tableName + " does not exist. This is expected if auto-create-tables is disabled.");
-        }
-        assertTrue(exists, "Transactions table should exist: " + tableName);
+        // Then - Tables should be auto-created by DynamoDBTableManager
+        assertTrue(exists, "Transactions table should exist: " + tableName + 
+                ". Ensure LocalStack is running and auto-create-tables is enabled in test config.");
     }
 
     @Test
@@ -98,11 +88,7 @@ class InfrastructureIntegrationTest {
         // When
         boolean exists = tableExists(tableName);
 
-        // Then - In test environment, tables may not exist if auto-create is disabled
-        if (!exists) {
-            org.junit.jupiter.api.Assumptions.assumeTrue(false, 
-                    "Table " + tableName + " does not exist. This is expected if auto-create-tables is disabled.");
-        }
+                assertTrue(exists, "Table " + tableName + " should exist. Ensure LocalStack is running and auto-create-tables is enabled in test config.");
         assertTrue(exists, "Budgets table should exist: " + tableName);
     }
 
@@ -114,11 +100,7 @@ class InfrastructureIntegrationTest {
         // When
         boolean exists = tableExists(tableName);
 
-        // Then - In test environment, tables may not exist if auto-create is disabled
-        if (!exists) {
-            org.junit.jupiter.api.Assumptions.assumeTrue(false, 
-                    "Table " + tableName + " does not exist. This is expected if auto-create-tables is disabled.");
-        }
+                assertTrue(exists, "Table " + tableName + " should exist. Ensure LocalStack is running and auto-create-tables is enabled in test config.");
         assertTrue(exists, "Goals table should exist: " + tableName);
     }
 
@@ -130,11 +112,7 @@ class InfrastructureIntegrationTest {
         // When
         boolean exists = tableExists(tableName);
 
-        // Then - In test environment, tables may not exist if auto-create is disabled
-        if (!exists) {
-            org.junit.jupiter.api.Assumptions.assumeTrue(false, 
-                    "Table " + tableName + " does not exist. This is expected if auto-create-tables is disabled.");
-        }
+                assertTrue(exists, "Table " + tableName + " should exist. Ensure LocalStack is running and auto-create-tables is enabled in test config.");
         assertTrue(exists, "TransactionActions table should exist: " + tableName);
     }
 
@@ -146,11 +124,7 @@ class InfrastructureIntegrationTest {
         // When
         boolean exists = tableExists(tableName);
 
-        // Then - In test environment, tables may not exist if auto-create is disabled
-        if (!exists) {
-            org.junit.jupiter.api.Assumptions.assumeTrue(false, 
-                    "Table " + tableName + " does not exist. This is expected if auto-create-tables is disabled.");
-        }
+                assertTrue(exists, "Table " + tableName + " should exist. Ensure LocalStack is running and auto-create-tables is enabled in test config.");
         assertTrue(exists, "AuditLogs table should exist: " + tableName);
     }
 
@@ -162,11 +136,7 @@ class InfrastructureIntegrationTest {
         // When
         boolean exists = tableExists(tableName);
 
-        // Then - In test environment, tables may not exist if auto-create is disabled
-        if (!exists) {
-            org.junit.jupiter.api.Assumptions.assumeTrue(false, 
-                    "Table " + tableName + " does not exist. This is expected if auto-create-tables is disabled.");
-        }
+                assertTrue(exists, "Table " + tableName + " should exist. Ensure LocalStack is running and auto-create-tables is enabled in test config.");
         assertTrue(exists, "NotFoundTracking table should exist: " + tableName);
     }
 
@@ -178,11 +148,7 @@ class InfrastructureIntegrationTest {
         // When
         boolean exists = tableExists(tableName);
 
-        // Then - In test environment, tables may not exist if auto-create is disabled
-        if (!exists) {
-            org.junit.jupiter.api.Assumptions.assumeTrue(false, 
-                    "Table " + tableName + " does not exist. This is expected if auto-create-tables is disabled.");
-        }
+                assertTrue(exists, "Table " + tableName + " should exist. Ensure LocalStack is running and auto-create-tables is enabled in test config.");
         assertTrue(exists, "RateLimits table should exist: " + tableName);
     }
 
@@ -194,11 +160,7 @@ class InfrastructureIntegrationTest {
         // When
         boolean exists = tableExists(tableName);
 
-        // Then - In test environment, tables may not exist if auto-create is disabled
-        if (!exists) {
-            org.junit.jupiter.api.Assumptions.assumeTrue(false, 
-                    "Table " + tableName + " does not exist. This is expected if auto-create-tables is disabled.");
-        }
+                assertTrue(exists, "Table " + tableName + " should exist. Ensure LocalStack is running and auto-create-tables is enabled in test config.");
         assertTrue(exists, "DDoSProtection table should exist: " + tableName);
     }
 
@@ -210,11 +172,7 @@ class InfrastructureIntegrationTest {
         // When
         boolean exists = tableExists(tableName);
 
-        // Then - In test environment, tables may not exist if auto-create is disabled
-        if (!exists) {
-            org.junit.jupiter.api.Assumptions.assumeTrue(false, 
-                    "Table " + tableName + " does not exist. This is expected if auto-create-tables is disabled.");
-        }
+                assertTrue(exists, "Table " + tableName + " should exist. Ensure LocalStack is running and auto-create-tables is enabled in test config.");
         assertTrue(exists, "DeviceAttestation table should exist: " + tableName);
     }
 
@@ -226,11 +184,7 @@ class InfrastructureIntegrationTest {
         // When
         boolean exists = tableExists(tableName);
 
-        // Then - In test environment, tables may not exist if auto-create is disabled
-        if (!exists) {
-            org.junit.jupiter.api.Assumptions.assumeTrue(false, 
-                    "Table " + tableName + " does not exist. This is expected if auto-create-tables is disabled.");
-        }
+                assertTrue(exists, "Table " + tableName + " should exist. Ensure LocalStack is running and auto-create-tables is enabled in test config.");
         assertTrue(exists, "DevicePin table should exist: " + tableName);
     }
 
@@ -240,10 +194,7 @@ class InfrastructureIntegrationTest {
         String tableName = TABLE_PREFIX + "-Transactions";
 
         // When
-        if (!tableExists(tableName)) {
-            org.junit.jupiter.api.Assumptions.assumeTrue(false, 
-                    "Table " + tableName + " does not exist. This is expected if auto-create-tables is disabled.");
-        }
+        assertTrue(tableExists(tableName), "Table " + tableName + " should exist. Ensure LocalStack is running and auto-create-tables is enabled in test config.");
         List<String> gsiNames = getGSINames(tableName);
 
         // Then
@@ -261,10 +212,7 @@ class InfrastructureIntegrationTest {
         String tableName = TABLE_PREFIX + "-TransactionActions";
 
         // When
-        if (!tableExists(tableName)) {
-            org.junit.jupiter.api.Assumptions.assumeTrue(false, 
-                    "Table " + tableName + " does not exist. This is expected if auto-create-tables is disabled.");
-        }
+        assertTrue(tableExists(tableName), "Table " + tableName + " should exist. Ensure LocalStack is running and auto-create-tables is enabled in test config.");
         List<String> gsiNames = getGSINames(tableName);
 
         // Then
@@ -280,10 +228,7 @@ class InfrastructureIntegrationTest {
         String tableName = TABLE_PREFIX + "-AuditLogs";
 
         // When
-        if (!tableExists(tableName)) {
-            org.junit.jupiter.api.Assumptions.assumeTrue(false, 
-                    "Table " + tableName + " does not exist. This is expected if auto-create-tables is disabled.");
-        }
+        assertTrue(tableExists(tableName), "Table " + tableName + " should exist. Ensure LocalStack is running and auto-create-tables is enabled in test config.");
         List<String> gsiNames = getGSINames(tableName);
 
         // Then
@@ -299,10 +244,7 @@ class InfrastructureIntegrationTest {
         String tableName = TABLE_PREFIX + "-Goals";
 
         // When
-        if (!tableExists(tableName)) {
-            org.junit.jupiter.api.Assumptions.assumeTrue(false, 
-                    "Table " + tableName + " does not exist. This is expected if auto-create-tables is disabled.");
-        }
+        assertTrue(tableExists(tableName), "Table " + tableName + " should exist. Ensure LocalStack is running and auto-create-tables is enabled in test config.");
         List<String> gsiNames = getGSINames(tableName);
 
         // Then
@@ -316,10 +258,7 @@ class InfrastructureIntegrationTest {
         String tableName = TABLE_PREFIX + "-NotFoundTracking";
 
         // When
-        if (!tableExists(tableName)) {
-            org.junit.jupiter.api.Assumptions.assumeTrue(false, 
-                    "Table " + tableName + " does not exist. This is expected if auto-create-tables is disabled.");
-        }
+        assertTrue(tableExists(tableName), "Table " + tableName + " should exist. Ensure LocalStack is running and auto-create-tables is enabled in test config.");
         boolean ttlEnabled = hasTTLEnabled(tableName);
 
         // Then - TTL may not be configured in test environment, so we just check if table exists
@@ -334,10 +273,7 @@ class InfrastructureIntegrationTest {
         String tableName = TABLE_PREFIX + "-DDoSProtection";
 
         // When
-        if (!tableExists(tableName)) {
-            org.junit.jupiter.api.Assumptions.assumeTrue(false, 
-                    "Table " + tableName + " does not exist. This is expected if auto-create-tables is disabled.");
-        }
+        assertTrue(tableExists(tableName), "Table " + tableName + " should exist. Ensure LocalStack is running and auto-create-tables is enabled in test config.");
         boolean ttlEnabled = hasTTLEnabled(tableName);
 
         // Then - TTL may not be configured in test environment
@@ -350,10 +286,7 @@ class InfrastructureIntegrationTest {
         String tableName = TABLE_PREFIX + "-RateLimits";
 
         // When
-        if (!tableExists(tableName)) {
-            org.junit.jupiter.api.Assumptions.assumeTrue(false, 
-                    "Table " + tableName + " does not exist. This is expected if auto-create-tables is disabled.");
-        }
+        assertTrue(tableExists(tableName), "Table " + tableName + " should exist. Ensure LocalStack is running and auto-create-tables is enabled in test config.");
         boolean ttlEnabled = hasTTLEnabled(tableName);
 
         // Then - TTL may not be configured in test environment
@@ -366,10 +299,7 @@ class InfrastructureIntegrationTest {
         String tableName = TABLE_PREFIX + "-DeviceAttestation";
 
         // When
-        if (!tableExists(tableName)) {
-            org.junit.jupiter.api.Assumptions.assumeTrue(false, 
-                    "Table " + tableName + " does not exist. This is expected if auto-create-tables is disabled.");
-        }
+        assertTrue(tableExists(tableName), "Table " + tableName + " should exist. Ensure LocalStack is running and auto-create-tables is enabled in test config.");
         boolean ttlEnabled = hasTTLEnabled(tableName);
 
         // Then - TTL may not be configured in test environment
@@ -384,11 +314,7 @@ class InfrastructureIntegrationTest {
         // When
         boolean exists = tableExists(tableName);
 
-        // Then - In test environment, tables may not exist if auto-create is disabled
-        if (!exists) {
-            org.junit.jupiter.api.Assumptions.assumeTrue(false, 
-                    "Table " + tableName + " does not exist. This is expected if auto-create-tables is disabled.");
-        }
+                assertTrue(exists, "Table " + tableName + " should exist. Ensure LocalStack is running and auto-create-tables is enabled in test config.");
         // DevicePin table should exist with composite key (userId, deviceId)
         assertTrue(exists, "DevicePin table should exist: " + tableName);
         // Note: DevicePin table uses composite key (userId HASH, deviceId RANGE), no GSI needed

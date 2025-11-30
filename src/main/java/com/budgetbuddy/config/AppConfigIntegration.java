@@ -202,7 +202,7 @@ public class AppConfigIntegration {
      */
     private void initializeAppConfigApi() {
         if (appConfigClient == null) {
-            logger.warn("AppConfigClient not available, using fallback configuration from application.yml");
+            logger.info("AppConfigClient not available, using fallback configuration from application.yml (matches production structure)");
             initializeFallbackConfiguration();
             return;
         }
@@ -214,8 +214,10 @@ public class AppConfigIntegration {
             logger.info("AWS AppConfig integration initialized (AppConfig API) for application: {}, environment: {}",
                     applicationName, appConfigEnvironment);
         } catch (Exception e) {
+            // LocalStack Community Edition doesn't support AppConfig API - this is expected
             if (isLocalStackNotImplemented(e)) {
-                logger.debug("AppConfig API not fully supported by LocalStack, using fallback configuration: {}", e.getMessage());
+                logger.info("AppConfig API not supported by LocalStack (expected for Community Edition), " +
+                        "using fallback configuration that matches production structure");
             } else {
                 logger.warn("Failed to initialize AppConfig API, using fallback configuration: {}", e.getMessage());
             }
@@ -233,7 +235,8 @@ public class AppConfigIntegration {
             JsonNode fallbackConfig = buildFallbackConfiguration();
             parsedConfiguration.set(fallbackConfig);
             latestConfiguration.set(fallbackConfig.toString());
-            logger.info("Using fallback configuration from application.yml (all configuration values available)");
+            logger.info("Using fallback configuration from application.yml (LocalStack doesn't support AppConfig API). " +
+                    "Configuration structure matches production AppConfig template. All configuration values available.");
         } catch (Exception e) {
             logger.error("Failed to initialize fallback configuration", e);
         }
@@ -241,25 +244,30 @@ public class AppConfigIntegration {
 
     /**
      * Build fallback configuration JSON from application.yml
+     * This matches the CloudFormation template structure exactly for production parity
+     * Note: LocalStack Community Edition doesn't support AppConfig API, so this fallback
+     * ensures all configuration values are available and matches production structure
      */
     private JsonNode buildFallbackConfiguration() throws IOException {
         com.fasterxml.jackson.databind.node.ObjectNode config = objectMapper.createObjectNode();
         
-        // Feature Flags
+        // Feature Flags - matches CloudFormation template
         com.fasterxml.jackson.databind.node.ObjectNode featureFlags = objectMapper.createObjectNode();
         featureFlags.put("plaid", springEnvironment.getProperty("app.features.enable-plaid", Boolean.class, true));
         featureFlags.put("stripe", springEnvironment.getProperty("app.features.enable-stripe", Boolean.class, true));
         featureFlags.put("oauth2", springEnvironment.getProperty("app.features.enable-oauth2", Boolean.class, false));
+        featureFlags.put("advancedAnalytics", springEnvironment.getProperty("app.features.enable-advanced-analytics", Boolean.class, false));
+        featureFlags.put("notifications", springEnvironment.getProperty("app.notifications.enabled", Boolean.class, true));
         config.set("featureFlags", featureFlags);
         
-        // Rate Limits
+        // Rate Limits - matches CloudFormation template (uses values from application.yml which match production)
         com.fasterxml.jackson.databind.node.ObjectNode rateLimits = objectMapper.createObjectNode();
         rateLimits.put("perUser", springEnvironment.getProperty("app.rate-limit.requests-per-minute", Integer.class, 10000));
         rateLimits.put("perIp", springEnvironment.getProperty("app.rate-limit.ddos.max-requests-per-minute", Integer.class, 100000));
         rateLimits.put("windowSeconds", 60);
         config.set("rateLimits", rateLimits);
         
-        // Cache Settings
+        // Cache Settings - matches CloudFormation template
         com.fasterxml.jackson.databind.node.ObjectNode cacheSettings = objectMapper.createObjectNode();
         cacheSettings.put("defaultTtl", springEnvironment.getProperty("app.performance.cache.default-ttl", Integer.class, 1800));
         cacheSettings.put("maxSize", springEnvironment.getProperty("app.performance.cache.max-size", Integer.class, 10000));
