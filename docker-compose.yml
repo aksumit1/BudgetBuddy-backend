@@ -79,14 +79,20 @@ services:
       AWS_CLOUDWATCH_ENDPOINT: http://localstack:4566
       AWS_S3_BUCKET: budgetbuddy-storage
       JWT_SECRET: test-secret-change-in-production-this-must-be-at-least-64-characters-long-for-hs512-algorithm-to-work-properly
-      PLAID_CLIENT_ID: 69262b89a1808400220732ed
-      PLAID_SECRET: 1fd73c16bc49a1a0f81c86c67127d3
-      PLAID_ENVIRONMENT: sandbox
+      # Plaid credentials - use environment variables or .env file (NEVER commit real credentials)
+      # For local development, create a .env file with:
+      # PLAID_CLIENT_ID=your-client-id
+      # PLAID_SECRET=your-secret
+      PLAID_CLIENT_ID: ${PLAID_CLIENT_ID:-}
+      PLAID_SECRET: ${PLAID_SECRET:-}
+      PLAID_ENVIRONMENT: ${PLAID_ENVIRONMENT:-sandbox}
       PLAID_REDIRECT_URI: ${PLAID_REDIRECT_URI:-https://app.budgetbuddy.com/plaid/callback}
       STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-sk_test_placeholder}
       # Use service name for DNS resolution (Docker Compose handles this efficiently)
       SPRING_DATA_REDIS_HOST: redis
       SPRING_DATA_REDIS_PORT: 6379
+      # Spring Profile
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-local}  # Set profile: local, dev, staging, prod
       # Enable production features to match production stack
       APP_CONFIG_ENABLED: ${APP_CONFIG_ENABLED:-true}  # Enabled to match production
       AWS_SECRETS_MANAGER_ENABLED: ${AWS_SECRETS_MANAGER_ENABLED:-true}  # Enabled to match production

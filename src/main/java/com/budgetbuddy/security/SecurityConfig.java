@@ -147,9 +147,13 @@ public class SecurityConfig {
             logger.warn("Production environment detected but CORS origins not configured. Defaulting to empty list.");
             configuration.setAllowedOrigins(List.of());
         } else {
-            // Development/Staging: allow all
-            configuration.setAllowedOrigins(List.of("*"));
-            logger.info("CORS configured to allow all origins (non-production environment)");
+            // Development/Staging: allow all origins (localhost, IP addresses, etc.)
+            // This enables connections from:
+            // - localhost (http://localhost:8080, http://127.0.0.1:8080)
+            // - IP addresses (http://192.168.1.100:8080, http://192.168.4.46:8080)
+            // - Any other origin for local development
+            configuration.setAllowedOriginPatterns(List.of("*"));  // Use patterns to allow credentials with wildcard
+            logger.info("CORS configured to allow all origins (non-production environment) - supports localhost and IP addresses");
         }
 
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));

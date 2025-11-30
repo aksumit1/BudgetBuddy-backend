@@ -4,7 +4,12 @@ spring:
   
   # Redis Configuration
   data:
+    # Configure Spring Data to handle multiple repository types
+    # We use DynamoDB repositories (custom @Repository) and Redis (for caching/locking only)
+    # Disable automatic repository detection for Redis since we don't use Redis repositories
     redis:
+      repositories:
+        enabled: false  # Disable Redis repositories - we only use Redis for caching/locking
       host: ${SPRING_DATA_REDIS_HOST:localhost}
       port: ${SPRING_DATA_REDIS_PORT:6379}
       timeout: 1000ms  # Reduced from 2000ms for faster failure detection

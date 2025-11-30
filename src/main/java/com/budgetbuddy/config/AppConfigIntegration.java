@@ -14,11 +14,15 @@ import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.InstanceProfileCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.services.appconfig.AppConfigClient;
+import software.amazon.awssdk.services.appconfig.model.GetConfigurationRequest;
+import software.amazon.awssdk.services.appconfig.model.GetConfigurationResponse;
 import software.amazon.awssdk.services.appconfigdata.AppConfigDataClient;
 import software.amazon.awssdk.services.appconfigdata.model.GetLatestConfigurationRequest;
 import software.amazon.awssdk.services.appconfigdata.model.GetLatestConfigurationResponse;
 import software.amazon.awssdk.services.appconfigdata.model.StartConfigurationSessionRequest;
 import software.amazon.awssdk.services.appconfigdata.model.StartConfigurationSessionResponse;
+import software.amazon.awssdk.core.exception.SdkServiceException;
+import org.springframework.core.env.Environment;
 
 import java.io.IOException;
 import java.util.Optional;
@@ -51,7 +55,7 @@ public class AppConfigIntegration {
     private String applicationName;
 
     @Value("${app.aws.appconfig.environment:production}")
-    private String environment;
+    private String appConfigEnvironment;
 
     @Value("${app.aws.appconfig.config-profile:default}")
     private String configProfile;
@@ -62,10 +66,13 @@ public class AppConfigIntegration {
     @Value("${app.aws.appconfig.enabled:true}")
     private boolean enabled;
 
+    private AppConfigClient appConfigClient;
     private AppConfigDataClient appConfigDataClient;
     private final AtomicReference<String> configurationToken = new AtomicReference<>();
     private final AtomicReference<String> latestConfiguration = new AtomicReference<>();
     private final AtomicReference<JsonNode> parsedConfiguration = new AtomicReference<>();
+    private boolean useAppConfigDataApi = true; // Use AppConfigData API by default, fallback to AppConfig API for LocalStack
+    private boolean useFallbackConfig = false; // Use application.yml fallback when AppConfig is unavailable
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(
             r -> {
                 Thread t = new Thread(r, "appconfig-refresh");
@@ -74,9 +81,10 @@ public class AppConfigIntegration {
             });
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final Object sessionLock = new Object(); // Prevent deadlocks
+    private final Environment springEnvironment;
 
-    public AppConfigIntegration() {
-        // Client will be created lazily in @PostConstruct if enabled
+    public AppConfigIntegration(Environment springEnvironment) {
+        this.springEnvironment = springEnvironment;
     }
 
     @Value("${AWS_APPCONFIG_ENDPOINT:}")
@@ -128,7 +136,9 @@ public class AppConfigIntegration {
                 builder.endpointOverride(java.net.URI.create(appConfigEndpoint));
             }
             
-            return builder.build();
+            AppConfigClient client = builder.build();
+            this.appConfigClient = client; // Store for use in initialize()
+            return client;
         } catch (Exception e) {
             logger.warn("Failed to create AppConfigClient (this is expected in tests without AWS credentials): {}", e.getMessage());
             return null;
@@ -151,30 +161,147 @@ public class AppConfigIntegration {
     public void initialize() {
         if (!enabled) {
             logger.info("AWS AppConfig integration is disabled (app.aws.appconfig.enabled=false)");
+            initializeFallbackConfiguration();
+            return;
+        }
+        
+        // Check if we're using LocalStack (which doesn't support AppConfigData API)
+        if (isLocalStack()) {
+            logger.info("LocalStack detected - using AppConfig API (not AppConfigData API) for configuration");
+            useAppConfigDataApi = false;
+            initializeAppConfigApi();
+        } else {
+            // Try AppConfigData API first (production/preferred)
+            try {
+                var builder = AppConfigDataClient.builder()
+                        .region(software.amazon.awssdk.regions.Region.of(awsRegion))
+                        .credentialsProvider(getCredentialsProvider());
+                
+                // Use LocalStack endpoint if configured
+                if (!appConfigEndpoint.isEmpty()) {
+                    builder.endpointOverride(java.net.URI.create(appConfigEndpoint));
+                }
+                
+                this.appConfigDataClient = builder.build();
+                useAppConfigDataApi = true;
+                startConfigurationSession();
+                scheduleConfigurationRefresh();
+                logger.info("AWS AppConfig integration initialized (AppConfigData API) for application: {}, environment: {}",
+                        applicationName, appConfigEnvironment);
+            } catch (Exception e) {
+                logger.warn("Failed to initialize AppConfigData API, falling back to AppConfig API: {}", e.getMessage());
+                logger.debug("AppConfigData initialization error details", e);
+                useAppConfigDataApi = false;
+                initializeAppConfigApi();
+            }
+        }
+    }
+
+    /**
+     * Initialize using regular AppConfig API (supported by LocalStack)
+     */
+    private void initializeAppConfigApi() {
+        if (appConfigClient == null) {
+            logger.warn("AppConfigClient not available, using fallback configuration from application.yml");
+            initializeFallbackConfiguration();
             return;
         }
         
         try {
-            // Create client lazily here after @Value injection
-            var builder = AppConfigDataClient.builder()
-                    .region(software.amazon.awssdk.regions.Region.of(awsRegion))
-                    .credentialsProvider(getCredentialsProvider());
-            
-            // Use LocalStack endpoint if configured
-            if (!appConfigEndpoint.isEmpty()) {
-                builder.endpointOverride(java.net.URI.create(appConfigEndpoint));
-            }
-            
-            this.appConfigDataClient = builder.build();
-            startConfigurationSession();
+            // Try to get configuration using AppConfig API
+            getConfigurationFromAppConfigApi();
             scheduleConfigurationRefresh();
-            logger.info("AWS AppConfig integration initialized for application: {}, environment: {}",
-                    applicationName, environment);
+            logger.info("AWS AppConfig integration initialized (AppConfig API) for application: {}, environment: {}",
+                    applicationName, appConfigEnvironment);
         } catch (Exception e) {
-            logger.warn("Failed to initialize AWS AppConfig (this is expected in local development without AWS credentials): {}", e.getMessage());
-            logger.debug("AppConfig initialization error details", e);
-            // Set to null to prevent NPE
-            this.appConfigDataClient = null;
+            if (isLocalStackNotImplemented(e)) {
+                logger.debug("AppConfig API not fully supported by LocalStack, using fallback configuration: {}", e.getMessage());
+            } else {
+                logger.warn("Failed to initialize AppConfig API, using fallback configuration: {}", e.getMessage());
+            }
+            initializeFallbackConfiguration();
+        }
+    }
+
+    /**
+     * Initialize fallback configuration from application.yml
+     */
+    private void initializeFallbackConfiguration() {
+        useFallbackConfig = true;
+        try {
+            // Build configuration JSON from application.yml values
+            JsonNode fallbackConfig = buildFallbackConfiguration();
+            parsedConfiguration.set(fallbackConfig);
+            latestConfiguration.set(fallbackConfig.toString());
+            logger.info("Using fallback configuration from application.yml (all configuration values available)");
+        } catch (Exception e) {
+            logger.error("Failed to initialize fallback configuration", e);
+        }
+    }
+
+    /**
+     * Build fallback configuration JSON from application.yml
+     */
+    private JsonNode buildFallbackConfiguration() throws IOException {
+        com.fasterxml.jackson.databind.node.ObjectNode config = objectMapper.createObjectNode();
+        
+        // Feature Flags
+        com.fasterxml.jackson.databind.node.ObjectNode featureFlags = objectMapper.createObjectNode();
+        featureFlags.put("plaid", springEnvironment.getProperty("app.features.enable-plaid", Boolean.class, true));
+        featureFlags.put("stripe", springEnvironment.getProperty("app.features.enable-stripe", Boolean.class, true));
+        featureFlags.put("oauth2", springEnvironment.getProperty("app.features.enable-oauth2", Boolean.class, false));
+        config.set("featureFlags", featureFlags);
+        
+        // Rate Limits
+        com.fasterxml.jackson.databind.node.ObjectNode rateLimits = objectMapper.createObjectNode();
+        rateLimits.put("perUser", springEnvironment.getProperty("app.rate-limit.requests-per-minute", Integer.class, 10000));
+        rateLimits.put("perIp", springEnvironment.getProperty("app.rate-limit.ddos.max-requests-per-minute", Integer.class, 100000));
+        rateLimits.put("windowSeconds", 60);
+        config.set("rateLimits", rateLimits);
+        
+        // Cache Settings
+        com.fasterxml.jackson.databind.node.ObjectNode cacheSettings = objectMapper.createObjectNode();
+        cacheSettings.put("defaultTtl", springEnvironment.getProperty("app.performance.cache.default-ttl", Integer.class, 1800));
+        cacheSettings.put("maxSize", springEnvironment.getProperty("app.performance.cache.max-size", Integer.class, 10000));
+        config.set("cacheSettings", cacheSettings);
+        
+        return config;
+    }
+
+    /**
+     * Get configuration using AppConfig API (not AppConfigData)
+     */
+    private void getConfigurationFromAppConfigApi() {
+        if (appConfigClient == null) {
+            throw new IllegalStateException("AppConfigClient is not initialized");
+        }
+        
+        try {
+            GetConfigurationRequest request = GetConfigurationRequest.builder()
+                    .application(applicationName)
+                    .environment(appConfigEnvironment)
+                    .configuration(configProfile)
+                    .clientId("budgetbuddy-backend-client")
+                    .build();
+            
+            GetConfigurationResponse response = appConfigClient.getConfiguration(request);
+            software.amazon.awssdk.core.SdkBytes configBytes = response.content();
+            
+            if (configBytes != null && configBytes.asByteArray().length > 0) {
+                String config = configBytes.asUtf8String();
+                latestConfiguration.set(config);
+                
+                // Parse JSON configuration
+                try {
+                    JsonNode jsonNode = objectMapper.readTree(config);
+                    parsedConfiguration.set(jsonNode);
+                    logger.debug("Configuration loaded from AppConfig API");
+                } catch (IOException e) {
+                    logger.warn("Failed to parse configuration JSON: {}", e.getMessage());
+                }
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to get configuration from AppConfig API", e);
         }
     }
 
@@ -197,9 +324,42 @@ public class AppConfigIntegration {
             try {
                 appConfigDataClient.close();
             } catch (Exception e) {
+                logger.warn("Error closing AppConfigData client: {}", e.getMessage());
+            }
+        }
+        if (appConfigClient != null) {
+            try {
+                appConfigClient.close();
+            } catch (Exception e) {
                 logger.warn("Error closing AppConfig client: {}", e.getMessage());
             }
         }
+    }
+
+    /**
+     * Check if we're using LocalStack (which doesn't support AppConfigData API)
+     */
+    private boolean isLocalStack() {
+        return appConfigEndpoint != null && 
+               (appConfigEndpoint.contains("localstack") || 
+                appConfigEndpoint.contains(":4566") ||
+                appConfigEndpoint.contains("localhost:4566"));
+    }
+
+    /**
+     * Check if exception is a 501 Not Implemented from LocalStack
+     */
+    private boolean isLocalStackNotImplemented(Exception e) {
+        if (e instanceof SdkServiceException) {
+            SdkServiceException sdkException = (SdkServiceException) e;
+            return sdkException.statusCode() == 501;
+        }
+        // Check error message for LocalStack 501 pattern
+        String message = e.getMessage();
+        return message != null && 
+               (message.contains("501") || 
+                message.contains("not yet been emulated") ||
+                message.contains("not included in your current license plan"));
     }
 
     /**
@@ -215,7 +375,7 @@ public class AppConfigIntegration {
             try {
                 StartConfigurationSessionRequest request = StartConfigurationSessionRequest.builder()
                         .applicationIdentifier(applicationName)
-                        .environmentIdentifier(environment)
+                        .environmentIdentifier(appConfigEnvironment)
                         .configurationProfileIdentifier(configProfile)
                         .build();
 
@@ -228,8 +388,15 @@ public class AppConfigIntegration {
                     logger.warn("Configuration session started but token is null or empty");
                 }
             } catch (Exception e) {
-                logger.warn("Failed to start configuration session (this is expected in local development): {}", e.getMessage());
-                logger.debug("AppConfig session error details", e);
+                // LocalStack doesn't support AppConfigData API (returns 501)
+                // Log at DEBUG level to avoid noise in logs
+                if (isLocalStack() || isLocalStackNotImplemented(e)) {
+                    logger.debug("AppConfigData API not supported by LocalStack (this is expected). " +
+                            "AppConfig integration will use cached/default configuration. Error: {}", e.getMessage());
+                } else {
+                    logger.warn("Failed to start configuration session (this is expected in local development): {}", e.getMessage());
+                    logger.debug("AppConfig session error details", e);
+                }
                 // Don't throw exception - allow application to continue without AppConfig
             }
         }
@@ -240,7 +407,28 @@ public class AppConfigIntegration {
      * Thread-safe implementation
      */
     public String getLatestConfiguration() {
-        if (!enabled || appConfigDataClient == null) {
+        if (!enabled) {
+            return latestConfiguration.get();
+        }
+        
+        // If using fallback config, return it (no refresh needed)
+        if (useFallbackConfig) {
+            return latestConfiguration.get();
+        }
+        
+        // If using AppConfig API (not AppConfigData), use that
+        if (!useAppConfigDataApi && appConfigClient != null) {
+            try {
+                getConfigurationFromAppConfigApi();
+                return latestConfiguration.get();
+            } catch (Exception e) {
+                logger.debug("Failed to refresh configuration from AppConfig API: {}", e.getMessage());
+                return latestConfiguration.get(); // Return cached
+            }
+        }
+        
+        // Use AppConfigData API
+        if (appConfigDataClient == null) {
             return latestConfiguration.get();
         }
         
@@ -251,7 +439,12 @@ public class AppConfigIntegration {
         }
 
         if (token == null || token.isEmpty()) {
-            logger.warn("Configuration token is null or empty, returning cached configuration");
+            // Only warn if not using LocalStack (which doesn't support AppConfigData)
+            if (!isLocalStack()) {
+                logger.warn("Configuration token is null or empty, returning cached configuration");
+            } else {
+                logger.debug("Configuration token is null (LocalStack doesn't support AppConfigData), returning cached configuration");
+            }
             return latestConfiguration.get();
         }
 
@@ -300,7 +493,14 @@ public class AppConfigIntegration {
 
             return latestConfiguration.get();
         } catch (Exception e) {
-            logger.error("Failed to get latest configuration from AppConfig", e);
+            // LocalStack doesn't support AppConfigData API (returns 501)
+            // Log at appropriate level based on whether it's LocalStack
+            if (isLocalStack() || isLocalStackNotImplemented(e)) {
+                logger.debug("AppConfigData API not supported by LocalStack (this is expected). " +
+                        "Using cached/default configuration. Error: {}", e.getMessage());
+            } else {
+                logger.error("Failed to get latest configuration from AppConfig", e);
+            }
             return latestConfiguration.get(); // Return cached configuration
         }
     }
@@ -331,13 +531,22 @@ public class AppConfigIntegration {
 
         JsonNode config = parsedConfiguration.get();
         if (config == null) {
+            // Try to load configuration
             getLatestConfiguration();
             config = parsedConfiguration.get();
         }
 
         if (config == null) {
-            logger.warn("Configuration not available");
-            return Optional.empty();
+            // If still null, initialize fallback
+            if (useFallbackConfig || isLocalStack()) {
+                initializeFallbackConfiguration();
+                config = parsedConfiguration.get();
+            }
+            
+            if (config == null) {
+                logger.debug("Configuration not available for key: {}, using application.yml defaults", key);
+                return Optional.empty();
+            }
         }
 
         try {

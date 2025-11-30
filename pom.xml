@@ -343,6 +343,14 @@
                 <version>${aws.sdk.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
+                <exclusions>
+                    <!-- Exclude commons-logging from all AWS SDK dependencies -->
+                    <!-- Spring Boot uses spring-jcl (Jakarta Commons Logging bridge) -->
+                    <exclusion>
+                        <groupId>commons-logging</groupId>
+                        <artifactId>commons-logging</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
         </dependencies>
     </dependencyManagement>

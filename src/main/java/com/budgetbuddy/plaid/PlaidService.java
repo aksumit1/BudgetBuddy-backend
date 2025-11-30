@@ -40,19 +40,29 @@ public class PlaidService {
             @Value("${app.plaid.environment:sandbox}") String environment,
             @Value("${app.plaid.redirect-uri:}") String redirectUri,
             @Value("${app.plaid.webhook-url:}") String webhookUrl,
+            @Value("${app.features.enable-plaid:true}") boolean plaidEnabled,
             PCIDSSComplianceService pciDSSComplianceService) {
 
         // Allow Plaid service to be created even without credentials for scripts/analysis
         // The service will fail on actual API calls if credentials are missing
-        if (clientId == null || clientId.isEmpty()) {
-            logger.warn("⚠️ Plaid client ID is not configured. Plaid API calls will fail. " +
-                    "Set PLAID_CLIENT_ID environment variable or app.plaid.client-id property.");
+        // Only warn if Plaid feature is enabled (to avoid noise in local development)
+        if (clientId == null || clientId.isEmpty() || "placeholder-client-id".equals(clientId)) {
+            if (plaidEnabled) {
+                logger.warn("⚠️ Plaid client ID is not configured. Plaid API calls will fail. " +
+                        "Set PLAID_CLIENT_ID environment variable or app.plaid.client-id property.");
+            } else {
+                logger.debug("Plaid client ID not configured (Plaid feature is disabled).");
+            }
             // Use placeholder to allow service creation (will fail on actual API calls)
             clientId = "placeholder-client-id";
         }
-        if (secret == null || secret.isEmpty()) {
-            logger.warn("⚠️ Plaid secret is not configured. Plaid API calls will fail. " +
-                    "Set PLAID_SECRET environment variable or app.plaid.secret property.");
+        if (secret == null || secret.isEmpty() || "placeholder-secret".equals(secret)) {
+            if (plaidEnabled) {
+                logger.warn("⚠️ Plaid secret is not configured. Plaid API calls will fail. " +
+                        "Set PLAID_SECRET environment variable or app.plaid.secret property.");
+            } else {
+                logger.debug("Plaid secret not configured (Plaid feature is disabled).");
+            }
             // Use placeholder to allow service creation (will fail on actual API calls)
             secret = "placeholder-secret";
         }
