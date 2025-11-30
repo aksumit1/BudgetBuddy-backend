@@ -48,7 +48,7 @@ class GoalIntegrationTest {
         testUser.setUserId(UUID.randomUUID().toString());
         testUser.setEmail(email);
         testUser.setPasswordHash(base64PasswordHash);
-        testUser.setClientSalt(base64ClientSalt);
+        // BREAKING CHANGE: Client salt removed
         testUser.setServerSalt(base64ServerSalt);
         testUser.setPreferredCurrency("USD");
         testUser.setEnabled(true);

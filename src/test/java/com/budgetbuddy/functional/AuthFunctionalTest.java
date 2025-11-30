@@ -228,7 +228,7 @@ class AuthFunctionalTest {
             AuthRequest authRequest = new AuthRequest();
             authRequest.setEmail(testEmail);
             authRequest.setPasswordHash(testPasswordHash);
-            authRequest.setSalt(testClientSalt);
+            authRequest
             AuthResponse authResponse = authService.authenticate(authRequest);
             String refreshToken = authResponse.getRefreshToken();
 

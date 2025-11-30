@@ -45,7 +45,7 @@ class AuthControllerTest {
         testAuthRequest = new AuthRequest();
         testAuthRequest.setEmail("test@example.com");
         testAuthRequest.setPasswordHash("hashed-password");
-        testAuthRequest.setSalt("client-salt");
+        // BREAKING CHANGE: Client salt removed
 
         testAuthResponse = new AuthResponse(
                 "access-token",

@@ -119,7 +119,7 @@ class TransactionActionControllerIntegrationTest {
         AuthRequest authRequest = new AuthRequest();
         authRequest.setEmail(testEmail);
         authRequest.setPasswordHash(base64PasswordHash);
-        authRequest.setSalt(base64ClientSalt);
+        authRequest
         AuthResponse authResponse = authService.authenticate(authRequest);
         accessToken = authResponse.getAccessToken();
     }

@@ -67,13 +67,13 @@ class PlaidControllerIntegrationTest {
         }
         testEmail = "test-" + UUID.randomUUID() + "@example.com";
         
-        // Create test user with proper base64-encoded strings
+        // Create test user with proper base64-encoded strings - BREAKING CHANGE: Client salt removed
         String base64PasswordHash = java.util.Base64.getEncoder().encodeToString("hashed-password".getBytes());
-        String base64ClientSalt = java.util.Base64.getEncoder().encodeToString("client-salt".getBytes());
+        // BREAKING CHANGE: Client salt removed - backend handles salt management
+        // BREAKING CHANGE: Client salt removed
         testUser = userService.createUserSecure(
                 testEmail,
                 base64PasswordHash,
-                base64ClientSalt,
                 "Test",
                 "User"
         );
@@ -96,7 +96,7 @@ class PlaidControllerIntegrationTest {
         AuthRequest authRequest = new AuthRequest();
         authRequest.setEmail(testEmail);
         authRequest.setPasswordHash(base64PasswordHash);
-        authRequest.setSalt(base64ClientSalt);
+        authRequest
         AuthResponse authResponse = authService.authenticate(authRequest);
         accessToken = authResponse.getAccessToken();
     }

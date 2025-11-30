@@ -89,7 +89,7 @@ class ApiFunctionalIntegrationTest {
         AuthRequest loginRequest = new AuthRequest();
         loginRequest.setEmail(testEmail);
         loginRequest.setPasswordHash(testPasswordHash);
-        loginRequest.setSalt(testSalt);
+        loginRequest
         AuthResponse authResponse = authService.authenticate(loginRequest);
         authToken = authResponse.getAccessToken();
 
@@ -117,7 +117,7 @@ class ApiFunctionalIntegrationTest {
         AuthRequest request = new AuthRequest();
         request.setEmail(newEmail);
         request.setPasswordHash(testPasswordHash);
-        request.setSalt(testSalt);
+        request
 
         // When/Then
         mockMvc.perform(post("/api/auth/register")
@@ -134,7 +134,7 @@ class ApiFunctionalIntegrationTest {
         AuthRequest request = new AuthRequest();
         request.setEmail(testEmail);
         request.setPasswordHash(testPasswordHash);
-        request.setSalt(testSalt);
+        request
 
         // When/Then
         mockMvc.perform(post("/api/auth/login")
@@ -151,7 +151,7 @@ class ApiFunctionalIntegrationTest {
         AuthRequest request = new AuthRequest();
         request.setEmail(testEmail);
         request.setPasswordHash("wrong-hash");
-        request.setSalt(testSalt);
+        request
 
         // When/Then
         mockMvc.perform(post("/api/auth/login")
@@ -166,7 +166,7 @@ class ApiFunctionalIntegrationTest {
         AuthRequest loginRequest = new AuthRequest();
         loginRequest.setEmail(testEmail);
         loginRequest.setPasswordHash(testPasswordHash);
-        loginRequest.setSalt(testSalt);
+        loginRequest
         AuthResponse loginResponse = authService.authenticate(loginRequest);
 
         // When/Then

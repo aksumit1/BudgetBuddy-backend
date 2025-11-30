@@ -119,7 +119,7 @@ class IOSAppBackendIntegrationTest {
         transactionRepository.save(testTransaction);
 
         // Authenticate and get JWT token
-        AuthRequest authRequest = new AuthRequest(testEmail, base64PasswordHash, base64ClientSalt);
+        AuthRequest authRequest = new AuthRequest(testEmail, base64PasswordHash);
         AuthResponse authResponse = authService.authenticate(authRequest);
         accessToken = authResponse.getAccessToken();
     }

@@ -83,7 +83,7 @@ class JwtAuthenticationIntegrationTest {
         AuthRequest loginRequest = new AuthRequest();
         loginRequest.setEmail(testEmail);
         loginRequest.setPasswordHash(testPasswordHash);
-        loginRequest.setSalt(testSalt);
+        loginRequest
 
         String loginResponse = mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -156,7 +156,7 @@ class JwtAuthenticationIntegrationTest {
         AuthRequest loginRequest = new AuthRequest();
         loginRequest.setEmail(testEmail);
         loginRequest.setPasswordHash(testPasswordHash);
-        loginRequest.setSalt(testSalt);
+        loginRequest
 
         String loginResponse = mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -209,7 +209,7 @@ class JwtAuthenticationIntegrationTest {
         AuthRequest loginRequest = new AuthRequest();
         loginRequest.setEmail(testEmail);
         loginRequest.setPasswordHash(testPasswordHash);
-        loginRequest.setSalt(testSalt);
+        loginRequest
 
         String loginResponse = mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)

@@ -76,7 +76,7 @@ class TokenRefreshIntegrationTest {
             AuthRequest loginRequest = new AuthRequest();
             loginRequest.setEmail(testEmail);
             loginRequest.setPasswordHash(testPasswordHash);
-            loginRequest.setSalt(testClientSalt);
+            loginRequest
 
             AuthResponse loginResponse = authService.authenticate(loginRequest);
             String refreshToken = loginResponse.getRefreshToken();
@@ -168,7 +168,7 @@ class TokenRefreshIntegrationTest {
             AuthRequest loginRequest = new AuthRequest();
             loginRequest.setEmail(testEmail);
             loginRequest.setPasswordHash(testPasswordHash);
-            loginRequest.setSalt(testClientSalt);
+            loginRequest
 
             AuthResponse loginResponse = authService.authenticate(loginRequest);
             String refreshToken = loginResponse.getRefreshToken();
@@ -219,7 +219,7 @@ class TokenRefreshIntegrationTest {
             AuthRequest loginRequest = new AuthRequest();
             loginRequest.setEmail(testEmail);
             loginRequest.setPasswordHash(testPasswordHash);
-            loginRequest.setSalt(testClientSalt);
+            loginRequest
 
             AuthResponse loginResponse = authService.authenticate(loginRequest);
             String refreshToken = loginResponse.getRefreshToken();

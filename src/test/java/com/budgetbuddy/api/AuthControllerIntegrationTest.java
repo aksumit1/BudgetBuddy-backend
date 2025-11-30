@@ -137,11 +137,12 @@ class AuthControllerIntegrationTest {
         String newPasswordHash = java.util.Base64.getEncoder().encodeToString("new-hashed-password".getBytes());
         String newClientSalt = java.util.Base64.getEncoder().encodeToString("new-client-salt".getBytes());
 
+        // BREAKING CHANGE: Client salt removed
         AuthController.ChangePasswordRequest changeRequest = new AuthController.ChangePasswordRequest();
         changeRequest.setCurrentPasswordHash(passwordHash);
-        changeRequest.setCurrentSalt(clientSalt);
+        // BREAKING CHANGE: Client salt removed - backend handles salt management
         changeRequest.setNewPasswordHash(newPasswordHash);
-        changeRequest.setNewSalt(newClientSalt);
+        // BREAKING CHANGE: Client salt removed
 
         // Change password
         mockMvc.perform(post("/api/auth/change-password")
@@ -192,11 +193,12 @@ class AuthControllerIntegrationTest {
         String newPasswordHash = java.util.Base64.getEncoder().encodeToString("new-hashed-password".getBytes());
         String newClientSalt = java.util.Base64.getEncoder().encodeToString("new-client-salt".getBytes());
 
+        // BREAKING CHANGE: Client salt removed
         AuthController.ChangePasswordRequest changeRequest = new AuthController.ChangePasswordRequest();
         changeRequest.setCurrentPasswordHash("wrong-password-hash");
-        changeRequest.setCurrentSalt(clientSalt);
+        // BREAKING CHANGE: Client salt removed - backend handles salt management
         changeRequest.setNewPasswordHash(newPasswordHash);
-        changeRequest.setNewSalt(newClientSalt);
+        // BREAKING CHANGE: Client salt removed
 
         // Change password should fail
         mockMvc.perform(post("/api/auth/change-password")
@@ -208,14 +210,15 @@ class AuthControllerIntegrationTest {
 
     @Test
     void testChangePassword_WithoutAuthentication() throws Exception {
-        String newPasswordHash = java.util.Base64.getEncoder().encodeToString("new-hashed-password".getBytes());
-        String newClientSalt = java.util.Base64.getEncoder().encodeToString("new-client-salt".getBytes());
+        // BREAKING CHANGE: Client salt removed
+        String newPasswordHash = java.util.Base64.getEncoder().encodeToString("new-password-hash".getBytes());
 
+        // BREAKING CHANGE: Client salt removed
         AuthController.ChangePasswordRequest changeRequest = new AuthController.ChangePasswordRequest();
         changeRequest.setCurrentPasswordHash("some-hash");
-        changeRequest.setCurrentSalt("some-salt");
+        // BREAKING CHANGE: Client salt removed - backend handles salt management
         changeRequest.setNewPasswordHash(newPasswordHash);
-        changeRequest.setNewSalt(newClientSalt);
+        // BREAKING CHANGE: Client salt removed
 
         // Change password without authentication should fail
         mockMvc.perform(post("/api/auth/change-password")

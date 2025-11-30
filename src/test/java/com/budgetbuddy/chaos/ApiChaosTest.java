@@ -74,7 +74,7 @@ class ApiChaosTest {
         AuthRequest loginRequest = new AuthRequest();
         loginRequest.setEmail(testEmail);
         loginRequest.setPasswordHash(testPasswordHash);
-        loginRequest.setSalt(testSalt);
+        loginRequest
         AuthResponse authResponse = authService.authenticate(loginRequest);
         authToken = authResponse.getAccessToken();
         

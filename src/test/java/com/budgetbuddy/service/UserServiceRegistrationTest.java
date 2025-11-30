@@ -196,7 +196,7 @@ class UserServiceRegistrationTest {
         assertEquals(email, result.getEmail());
         assertNotNull(result.getPasswordHash());
         assertNotNull(result.getServerSalt());
-        assertEquals("client-salt", result.getClientSalt());
+        // BREAKING CHANGE: Client salt removed - backend handles salt management
         assertTrue(result.getEnabled());
         assertFalse(result.getEmailVerified());
         assertFalse(result.getTwoFactorEnabled());

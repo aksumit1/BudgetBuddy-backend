@@ -85,7 +85,7 @@ class NotFoundErrorTrackingIntegrationTest {
         );
         
         // Authenticate to get token
-        AuthRequest authRequest = new AuthRequest(testEmail, passwordHash, clientSalt);
+        AuthRequest authRequest = new AuthRequest(testEmail, passwordHash);
         AuthResponse authResponse = authService.authenticate(authRequest);
         authToken = authResponse.getAccessToken();
     }

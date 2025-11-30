@@ -70,7 +70,7 @@ class AuthIntegrationTest {
         AuthRequest authRequest = new AuthRequest();
         authRequest.setEmail(testEmail);
         authRequest.setPasswordHash(testPasswordHash);
-        authRequest.setSalt(testClientSalt);
+        authRequest
 
         AuthResponse response = authService.authenticate(authRequest);
 
@@ -88,7 +88,7 @@ class AuthIntegrationTest {
         AuthRequest authRequest = new AuthRequest();
         authRequest.setEmail("nonexistent@example.com");
         authRequest.setPasswordHash("invalid-hash");
-        authRequest.setSalt("invalid-salt");
+        authRequest
 
         // When/Then
         assertThrows(Exception.class, () -> authService.authenticate(authRequest));
@@ -108,7 +108,7 @@ class AuthIntegrationTest {
         AuthRequest authRequest = new AuthRequest();
         authRequest.setEmail(testEmail);
         authRequest.setPasswordHash(testPasswordHash);
-        authRequest.setSalt(testClientSalt);
+        authRequest
 
         AuthResponse authResponse = authService.authenticate(authRequest);
         String refreshToken = authResponse.getRefreshToken();

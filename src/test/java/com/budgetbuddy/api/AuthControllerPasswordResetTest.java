@@ -192,7 +192,7 @@ class AuthControllerPasswordResetTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
 
-        verify(passwordResetService, never()).resetPassword(anyString(), anyString(), anyString()));
+        verify(passwordResetService, never()).resetPassword(anyString(), anyString(), anyString());
     }
 
     @Test
@@ -209,7 +209,7 @@ class AuthControllerPasswordResetTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
 
-        verify(passwordResetService, never()).resetPassword(anyString(), anyString(), anyString()));
+        verify(passwordResetService, never()).resetPassword(anyString(), anyString(), anyString());
     }
 }
 

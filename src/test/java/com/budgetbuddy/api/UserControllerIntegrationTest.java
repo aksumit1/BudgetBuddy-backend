@@ -62,7 +62,7 @@ class UserControllerIntegrationTest {
         );
 
         // Authenticate and get JWT token
-        AuthRequest authRequest = new AuthRequest(email, base64PasswordHash, base64ClientSalt);
+        AuthRequest authRequest = new AuthRequest(email, base64PasswordHash);
         AuthResponse authResponse = authService.authenticate(authRequest);
         accessToken = authResponse.getAccessToken();
     }

@@ -60,7 +60,7 @@ class AuthServiceUserDetailsTest {
         testUser.setEmail("test@example.com");
         testUser.setPasswordHash("hashed-password");
         testUser.setServerSalt("server-salt");
-        testUser.setClientSalt("client-salt");
+        // BREAKING CHANGE: Client salt removed
         testUser.setFirstName("Test");
         testUser.setLastName("User");
         testUser.setEnabled(true);
@@ -74,7 +74,7 @@ class AuthServiceUserDetailsTest {
         AuthRequest request = new AuthRequest();
         request.setEmail("test@example.com");
         request.setPasswordHash("client-hash");
-        request.setSalt("client-salt");
+        request
 
         when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(testUser));
         when(passwordHashingService.verifyClientPassword(anyString(), anyString(), anyString()))
@@ -116,7 +116,7 @@ class AuthServiceUserDetailsTest {
         AuthRequest request = new AuthRequest();
         request.setEmail("test@example.com");
         request.setPasswordHash("client-hash");
-        request.setSalt("client-salt");
+        request
 
         when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(testUser));
         when(passwordHashingService.verifyClientPassword(anyString(), anyString(), anyString()))
@@ -149,7 +149,7 @@ class AuthServiceUserDetailsTest {
         AuthRequest request = new AuthRequest();
         request.setEmail("test@example.com");
         request.setPasswordHash("client-hash");
-        request.setSalt("client-salt");
+        request
 
         when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(testUser));
         when(passwordHashingService.verifyClientPassword(anyString(), anyString(), anyString()))
@@ -172,7 +172,7 @@ class AuthServiceUserDetailsTest {
         AuthRequest request = new AuthRequest();
         request.setEmail("test@example.com");
         request.setPasswordHash("client-hash");
-        request.setSalt("client-salt");
+        request
 
         when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(testUser));
         when(passwordHashingService.verifyClientPassword(anyString(), anyString(), anyString()))

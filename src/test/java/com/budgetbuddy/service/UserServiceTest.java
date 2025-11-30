@@ -56,11 +56,10 @@ class UserServiceTest {
         when(userRepository.saveIfNotExists(any(UserTable.class))).thenReturn(true);
         when(userRepository.findAllByEmail(testEmail)).thenReturn(java.util.Collections.emptyList());
 
-        // When
+        // When - BREAKING CHANGE: Client salt removed
         UserTable result = userService.createUserSecure(
                 testEmail,
                 testPasswordHash,
-                testClientSalt,
                 "Test",
                 "User"
         );
@@ -91,11 +90,11 @@ class UserServiceTest {
         doNothing().when(userRepository).delete(anyString());
 
         // When/Then
+        // BREAKING CHANGE: Client salt removed
         AppException exception = assertThrows(AppException.class,
                 () -> userService.createUserSecure(
                         testEmail,
                         testPasswordHash,
-                        testClientSalt,
                         "Test",
                         "User"
                 ));
@@ -105,11 +104,11 @@ class UserServiceTest {
     @Test
     void testCreateUserSecure_WithNullEmail_ThrowsException() {
         // When/Then
+        // BREAKING CHANGE: Client salt removed
         AppException exception = assertThrows(AppException.class,
                 () -> userService.createUserSecure(
                         null,
                         testPasswordHash,
-                        testClientSalt,
                         "Test",
                         "User"
                 ));
@@ -172,8 +171,8 @@ class UserServiceTest {
                 .thenReturn(newHash);
         doNothing().when(userRepository).save(any(UserTable.class));
 
-        // When
-        userService.changePasswordSecure("user-123", "new-password-hash", "new-client-salt");
+        // When - BREAKING CHANGE: Client salt removed
+        userService.changePasswordSecure("user-123", "new-password-hash");
 
         // Then
         verify(userRepository).save(any(UserTable.class));
@@ -185,8 +184,9 @@ class UserServiceTest {
         when(userRepository.findById("invalid-user")).thenReturn(Optional.empty());
 
         // When/Then
+        // BREAKING CHANGE: Client salt removed
         AppException exception = assertThrows(AppException.class,
-                () -> userService.changePasswordSecure("invalid-user", "hash", "salt"));
+                () -> userService.changePasswordSecure("invalid-user", "hash"));
         assertEquals(ErrorCode.USER_NOT_FOUND, exception.getErrorCode());
     }
 

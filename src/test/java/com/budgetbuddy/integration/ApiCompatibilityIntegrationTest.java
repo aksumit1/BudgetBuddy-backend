@@ -83,7 +83,7 @@ class ApiCompatibilityIntegrationTest {
         );
 
         // Authenticate to verify user is valid
-        AuthRequest authRequest = new AuthRequest(testEmail, testPasswordHash, testClientSalt);
+        AuthRequest authRequest = new AuthRequest(testEmail, testPasswordHash);
         AuthResponse authResponse = authService.authenticate(authRequest);
         assertNotNull(authResponse.getAccessToken(), "Authentication should succeed");
     }
@@ -91,7 +91,7 @@ class ApiCompatibilityIntegrationTest {
     @Test
     void testAuthResponse_Format_MatchesIOS() throws Exception {
         // Given
-        AuthRequest authRequest = new AuthRequest(testEmail, testPasswordHash, testClientSalt);
+        AuthRequest authRequest = new AuthRequest(testEmail, testPasswordHash);
 
         // When
         AuthResponse response = authService.authenticate(authRequest);
