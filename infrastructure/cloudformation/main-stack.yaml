@@ -800,12 +800,55 @@ Resources:
       - !Ref Environment
       - production
 
+  # SNS/SES Stack for Notifications
+  SNSSESStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: sns-ses.yaml
+      Parameters:
+        Environment: !Ref Environment
+        TablePrefix: BudgetBuddy
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Application
+          Value: BudgetBuddy
+
+  # Monitoring Stack for CloudWatch Dashboards and Alarms
+  MonitoringStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: monitoring.yaml
+      Parameters:
+        Environment: !Ref Environment
+        ECSClusterName: !Ref ECSCluster
+        ALBArn: !GetAtt ApplicationLoadBalancer.LoadBalancerArn
+        TargetGroupArn: !GetAtt ALBTargetGroup.TargetGroupArn
+        SnsTopicArn: !GetAtt SNSSESStack.Outputs.SNSTopicArn
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Application
+          Value: BudgetBuddy
+
 Outputs:
   VPCId:
     Description: VPC ID
     Value: !Ref VPC
     Export:
       Name: !Sub '${AWS::StackName}-VPCId'
+  
+  SNSTopicArn:
+    Description: SNS Topic ARN for notifications
+    Value: !GetAtt SNSSESStack.Outputs.SNSTopicArn
+    Export:
+      Name: !Sub '${AWS::StackName}-SNSTopicArn'
+  
+  SESIdentityArn:
+    Description: SES Identity ARN
+    Value: !GetAtt SNSSESStack.Outputs.SESIdentityArn
+    Export:
+      Name: !Sub '${AWS::StackName}-SESIdentityArn'
 
   ECSClusterName:
     Description: ECS Cluster Name
@@ -836,4 +879,16 @@ Outputs:
     Value: !GetAtt ECSTaskRole.Arn
     Export:
       Name: !Sub '${AWS::StackName}-ECSTaskRole'
+  
+  MonitoringDashboardUrl:
+    Description: URL to CloudWatch Monitoring Dashboard
+    Value: !GetAtt MonitoringStack.Outputs.DashboardUrl
+    Export:
+      Name: !Sub '${AWS::StackName}-MonitoringDashboard'
+  
+  ECSLogGroupName:
+    Description: ECS Log Group Name
+    Value: !GetAtt MonitoringStack.Outputs.LogGroupName
+    Export:
+      Name: !Sub '${AWS::StackName}-ECSLogGroup'
 

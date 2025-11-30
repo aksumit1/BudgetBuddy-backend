@@ -2,8 +2,6 @@ package com.budgetbuddy.service;
 
 import com.budgetbuddy.exception.AppException;
 import com.budgetbuddy.exception.ErrorCode;
-import com.budgetbuddy.model.dynamodb.UserTable;
-import com.budgetbuddy.repository.dynamodb.UserRepository;
 import com.yubico.webauthn.*;
 import com.yubico.webauthn.data.*;
 import com.yubico.webauthn.data.exception.Base64UrlException;
@@ -14,10 +12,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import java.security.SecureRandom;
 import java.time.Instant;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 /**
@@ -30,18 +26,9 @@ public class FIDO2Service {
 
     private static final Logger logger = LoggerFactory.getLogger(FIDO2Service.class);
 
-    private final UserRepository userRepository;
-    private final SecureRandom secureRandom = new SecureRandom();
+    private final com.budgetbuddy.repository.dynamodb.FIDO2CredentialRepository credentialRepository;
+    private final com.budgetbuddy.repository.dynamodb.FIDO2ChallengeRepository challengeRepository;
     private RelyingParty relyingParty;
-
-    // In-memory storage for challenges (in production, store in DynamoDB with TTL)
-    // Key: userId, Value: Challenge with expiration
-    private final ConcurrentHashMap<String, ChallengeInfo> registrationChallenges = new ConcurrentHashMap<>();
-    private final ConcurrentHashMap<String, ChallengeInfo> authenticationChallenges = new ConcurrentHashMap<>();
-
-    // In-memory storage for passkey credentials (in production, store encrypted in DynamoDB)
-    // Key: userId, Value: Map of credentialId -> RegisteredCredential
-    private final ConcurrentHashMap<String, Map<ByteArray, RegisteredCredential>> passkeyCredentials = new ConcurrentHashMap<>();
 
     @Value("${app.fido2.rp-id:budgetbuddy.com}")
     private String rpId;
@@ -55,8 +42,11 @@ public class FIDO2Service {
     @Value("${app.fido2.challenge.expiration-seconds:300}")
     private long challengeExpirationSeconds;
 
-    public FIDO2Service(final UserRepository userRepository) {
-        this.userRepository = userRepository;
+    public FIDO2Service(
+            final com.budgetbuddy.repository.dynamodb.FIDO2CredentialRepository credentialRepository,
+            final com.budgetbuddy.repository.dynamodb.FIDO2ChallengeRepository challengeRepository) {
+        this.credentialRepository = credentialRepository;
+        this.challengeRepository = challengeRepository;
     }
 
     /**
@@ -70,7 +60,7 @@ public class FIDO2Service {
                                 .id(rpId)
                                 .name(rpName)
                                 .build())
-                        .credentialRepository(new InMemoryCredentialRepository())
+                        .credentialRepository(new DynamoDBCredentialRepository())
                         .origins(Collections.singleton(origin))
                         .build();
             } catch (Exception e) {
@@ -108,12 +98,14 @@ public class FIDO2Service {
             RelyingParty rp = getRelyingParty();
             PublicKeyCredentialCreationOptions creationOptions = rp.startRegistration(options);
 
-            // Store challenge with expiration
-            ChallengeInfo challengeInfo = new ChallengeInfo(
-                    creationOptions.getChallenge(),
-                    Instant.now().plusSeconds(challengeExpirationSeconds)
-            );
-            registrationChallenges.put(userId, challengeInfo);
+            // Store challenge in DynamoDB with TTL
+            com.budgetbuddy.model.dynamodb.FIDO2ChallengeTable challenge = new com.budgetbuddy.model.dynamodb.FIDO2ChallengeTable();
+            challenge.setChallengeKey(com.budgetbuddy.repository.dynamodb.FIDO2ChallengeRepository.generateChallengeKey(userId, "registration"));
+            challenge.setChallenge(creationOptions.getChallenge().getBase64Url());
+            challenge.setChallengeType("registration");
+            challenge.setUserId(userId);
+            challenge.setExpiresAt(Instant.now().plusSeconds(challengeExpirationSeconds));
+            challengeRepository.save(challenge);
 
             logger.info("Registration challenge generated for user: {}", userId);
 
@@ -141,16 +133,26 @@ public class FIDO2Service {
             throw new AppException(ErrorCode.INVALID_INPUT, "Credential JSON is required");
         }
 
-        // Get stored challenge
-        ChallengeInfo challengeInfo = registrationChallenges.get(userId);
-        if (challengeInfo == null) {
+        // Get stored challenge from DynamoDB
+        String challengeKey = com.budgetbuddy.repository.dynamodb.FIDO2ChallengeRepository.generateChallengeKey(userId, "registration");
+        java.util.Optional<com.budgetbuddy.model.dynamodb.FIDO2ChallengeTable> challengeOpt = challengeRepository.findByChallengeKey(challengeKey);
+        if (challengeOpt.isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Registration challenge not found or expired");
         }
-
+        com.budgetbuddy.model.dynamodb.FIDO2ChallengeTable challengeTable = challengeOpt.get();
+        
         // Check expiration
-        if (challengeInfo.getExpiresAt().isBefore(Instant.now())) {
-            registrationChallenges.remove(userId);
+        if (challengeTable.getExpiresAt().isBefore(Instant.now())) {
+            challengeRepository.delete(challengeKey);
             throw new AppException(ErrorCode.INVALID_INPUT, "Registration challenge expired");
+        }
+        
+        // Convert challenge from base64 to ByteArray
+        ByteArray challenge;
+        try {
+            challenge = ByteArray.fromBase64Url(challengeTable.getChallenge());
+        } catch (Base64UrlException e) {
+            throw new AppException(ErrorCode.INVALID_INPUT, "Invalid challenge format");
         }
 
         try {
@@ -172,7 +174,7 @@ public class FIDO2Service {
                             .name(rpName)
                             .build())
                     .user(userIdentity)
-                    .challenge(challengeInfo.getChallenge())
+                    .challenge(challenge)
                     .pubKeyCredParams(Collections.singletonList(PublicKeyCredentialParameters.builder()
                             .alg(COSEAlgorithmIdentifier.ES256)
                             .build()))
@@ -195,12 +197,21 @@ public class FIDO2Service {
                     .signatureCount(result.getSignatureCount())
                     .build();
 
-            // Store passkey credential
-            passkeyCredentials.computeIfAbsent(userId, k -> new ConcurrentHashMap<>())
-                    .put(registeredCredential.getCredentialId(), registeredCredential);
+            // Store passkey credential in DynamoDB
+            com.budgetbuddy.model.dynamodb.FIDO2CredentialTable credentialTable = new com.budgetbuddy.model.dynamodb.FIDO2CredentialTable();
+            credentialTable.setCredentialId(registeredCredential.getCredentialId().getBase64Url());
+            credentialTable.setUserId(userId);
+            credentialTable.setUserHandle(userId);
+            // publicKeyCose is already bytes, encode to base64 for storage
+            credentialTable.setPublicKeyCose(java.util.Base64.getEncoder().encodeToString(registeredCredential.getPublicKeyCose().getBytes()));
+            credentialTable.setSignatureCount(registeredCredential.getSignatureCount());
+            credentialTable.setCreatedAt(Instant.now());
+            credentialTable.setLastUsedAt(Instant.now());
+            credentialTable.setEnabled(true);
+            credentialRepository.save(credentialTable);
 
             // Remove used challenge
-            registrationChallenges.remove(userId);
+            challengeRepository.delete(challengeKey);
 
             logger.info("Passkey registration verified and stored for user: {}", userId);
             return true;
@@ -226,7 +237,7 @@ public class FIDO2Service {
         }
 
         // Check if user has passkeys
-        Map<ByteArray, RegisteredCredential> credentials = passkeyCredentials.get(userId);
+        java.util.List<com.budgetbuddy.model.dynamodb.FIDO2CredentialTable> credentials = credentialRepository.findByUserId(userId);
         if (credentials == null || credentials.isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "No passkeys registered for this user");
         }
@@ -240,12 +251,14 @@ public class FIDO2Service {
             RelyingParty rp = getRelyingParty();
             AssertionRequest requestOptions = rp.startAssertion(options);
 
-            // Store challenge with expiration
-            ChallengeInfo challengeInfo = new ChallengeInfo(
-                    requestOptions.getPublicKeyCredentialRequestOptions().getChallenge(),
-                    Instant.now().plusSeconds(challengeExpirationSeconds)
-            );
-            authenticationChallenges.put(userId, challengeInfo);
+            // Store challenge in DynamoDB with TTL
+            com.budgetbuddy.model.dynamodb.FIDO2ChallengeTable challenge = new com.budgetbuddy.model.dynamodb.FIDO2ChallengeTable();
+            challenge.setChallengeKey(com.budgetbuddy.repository.dynamodb.FIDO2ChallengeRepository.generateChallengeKey(userId, "authentication"));
+            challenge.setChallenge(requestOptions.getPublicKeyCredentialRequestOptions().getChallenge().getBase64Url());
+            challenge.setChallengeType("authentication");
+            challenge.setUserId(userId);
+            challenge.setExpiresAt(Instant.now().plusSeconds(challengeExpirationSeconds));
+            challengeRepository.save(challenge);
 
             logger.info("Authentication challenge generated for user: {}", userId);
 
@@ -270,20 +283,30 @@ public class FIDO2Service {
             throw new AppException(ErrorCode.INVALID_INPUT, "Credential JSON is required");
         }
 
-        // Get stored challenge
-        ChallengeInfo challengeInfo = authenticationChallenges.get(userId);
-        if (challengeInfo == null) {
+        // Get stored challenge from DynamoDB
+        String challengeKey = com.budgetbuddy.repository.dynamodb.FIDO2ChallengeRepository.generateChallengeKey(userId, "authentication");
+        java.util.Optional<com.budgetbuddy.model.dynamodb.FIDO2ChallengeTable> challengeOpt = challengeRepository.findByChallengeKey(challengeKey);
+        if (challengeOpt.isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Authentication challenge not found or expired");
         }
-
+        com.budgetbuddy.model.dynamodb.FIDO2ChallengeTable challengeTable = challengeOpt.get();
+        
         // Check expiration
-        if (challengeInfo.getExpiresAt().isBefore(Instant.now())) {
-            authenticationChallenges.remove(userId);
+        if (challengeTable.getExpiresAt().isBefore(Instant.now())) {
+            challengeRepository.delete(challengeKey);
             throw new AppException(ErrorCode.INVALID_INPUT, "Authentication challenge expired");
+        }
+        
+        // Convert challenge from base64 to ByteArray
+        ByteArray challenge;
+        try {
+            challenge = ByteArray.fromBase64Url(challengeTable.getChallenge());
+        } catch (Base64UrlException e) {
+            throw new AppException(ErrorCode.INVALID_INPUT, "Invalid challenge format");
         }
 
         // Check if user has passkeys
-        Map<ByteArray, RegisteredCredential> credentials = passkeyCredentials.get(userId);
+        java.util.List<com.budgetbuddy.model.dynamodb.FIDO2CredentialTable> credentials = credentialRepository.findByUserId(userId);
         if (credentials == null || credentials.isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "No passkeys registered for this user");
         }
@@ -295,14 +318,27 @@ public class FIDO2Service {
 
             // Extract credential ID from response to find the right credential
             ByteArray credentialId = publicKeyCredential.getId();
-            RegisteredCredential credential = credentials.get(credentialId);
-            if (credential == null) {
-                throw new AppException(ErrorCode.INVALID_INPUT, "Credential not found for this user");
-            }
+            String credentialIdBase64 = credentialId.getBase64Url();
+            
+            // Find credential in DynamoDB
+            com.budgetbuddy.model.dynamodb.FIDO2CredentialTable credentialTable = credentials.stream()
+                    .filter(c -> credentialIdBase64.equals(c.getCredentialId()))
+                    .findFirst()
+                    .orElseThrow(() -> new AppException(ErrorCode.INVALID_INPUT, "Credential not found for this user"));
+            
+            // Convert to RegisteredCredential
+            // publicKeyCose is already base64 encoded in the table, so we decode it to bytes first
+            byte[] publicKeyCoseBytes = java.util.Base64.getDecoder().decode(credentialTable.getPublicKeyCose());
+            RegisteredCredential credential = RegisteredCredential.builder()
+                    .credentialId(credentialId)
+                    .userHandle(ByteArray.fromBase64Url(credentialTable.getUserHandle()))
+                    .publicKeyCose(new ByteArray(publicKeyCoseBytes))
+                    .signatureCount(credentialTable.getSignatureCount() != null ? credentialTable.getSignatureCount() : 0L)
+                    .build();
 
             // Create assertion request options
             PublicKeyCredentialRequestOptions requestOptions = PublicKeyCredentialRequestOptions.builder()
-                    .challenge(challengeInfo.getChallenge())
+                    .challenge(challenge)
                     .rpId(rpId)
                     .allowCredentials(Collections.singletonList(
                             PublicKeyCredentialDescriptor.builder()
@@ -323,18 +359,17 @@ public class FIDO2Service {
             AssertionResult result = rp.finishAssertion(finishOptions);
 
             if (result.isSuccess()) {
-                // Update signature counter for replay attack prevention
-                // In production, persist this to DynamoDB
-                credential = RegisteredCredential.builder()
-                        .credentialId(credential.getCredentialId())
-                        .userHandle(credential.getUserHandle())
-                        .publicKeyCose(credential.getPublicKeyCose())
-                        .signatureCount(result.getSignatureCount())
-                        .build();
-                credentials.put(credential.getCredentialId(), credential);
+                // Update signature counter for replay attack prevention in DynamoDB
+                credentialRepository.updateSignatureCount(credentialIdBase64, result.getSignatureCount());
+                
+                // Update last used timestamp
+                com.budgetbuddy.model.dynamodb.FIDO2CredentialTable updatedCredential = new com.budgetbuddy.model.dynamodb.FIDO2CredentialTable();
+                updatedCredential.setCredentialId(credentialIdBase64);
+                updatedCredential.setLastUsedAt(Instant.now());
+                credentialRepository.save(updatedCredential);
 
                 // Remove used challenge
-                authenticationChallenges.remove(userId);
+                challengeRepository.delete(challengeKey);
 
                 logger.info("Passkey authentication verified for user: {}", userId);
                 return true;
@@ -359,17 +394,19 @@ public class FIDO2Service {
             throw new AppException(ErrorCode.INVALID_INPUT, "User ID is required");
         }
 
-        Map<ByteArray, RegisteredCredential> credentials = passkeyCredentials.get(userId);
+        java.util.List<com.budgetbuddy.model.dynamodb.FIDO2CredentialTable> credentials = credentialRepository.findByUserId(userId);
         if (credentials == null || credentials.isEmpty()) {
             return Collections.emptyList();
         }
 
         List<PasskeyInfo> passkeyInfos = new ArrayList<>();
-        for (RegisteredCredential credential : credentials.values()) {
-            passkeyInfos.add(new PasskeyInfo(
-                    credential.getCredentialId().getBase64Url(),
-                    Instant.now() // In production, store creation time
-            ));
+        for (com.budgetbuddy.model.dynamodb.FIDO2CredentialTable credential : credentials) {
+            if (credential.getEnabled() != null && credential.getEnabled()) {
+                passkeyInfos.add(new PasskeyInfo(
+                        credential.getCredentialId(),
+                        credential.getCreatedAt() != null ? credential.getCreatedAt() : Instant.now()
+                ));
+            }
         }
 
         return passkeyInfos;
@@ -386,22 +423,18 @@ public class FIDO2Service {
             throw new AppException(ErrorCode.INVALID_INPUT, "Credential ID is required");
         }
 
-        Map<ByteArray, RegisteredCredential> credentials = passkeyCredentials.get(userId);
-        if (credentials == null || credentials.isEmpty()) {
+        // Verify credential belongs to user
+        java.util.List<com.budgetbuddy.model.dynamodb.FIDO2CredentialTable> credentials = credentialRepository.findByUserId(userId);
+        boolean found = credentials.stream()
+                .anyMatch(c -> credentialId.equals(c.getCredentialId()));
+        if (!found) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Passkey not found");
         }
 
-        try {
-            ByteArray credentialIdBytes = ByteArray.fromBase64Url(credentialId);
-            RegisteredCredential removed = credentials.remove(credentialIdBytes);
-            if (removed == null) {
-                throw new AppException(ErrorCode.INVALID_INPUT, "Passkey not found");
-            }
+        // Delete from DynamoDB
+        credentialRepository.delete(credentialId);
 
-            logger.info("Passkey deleted for user: {}, credential: {}", userId, credentialId);
-        } catch (Base64UrlException e) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "Invalid credential ID format");
-        }
+        logger.info("Passkey deleted for user: {}, credential: {}", userId, credentialId);
     }
 
     // MARK: - Inner Classes
@@ -436,26 +469,6 @@ public class FIDO2Service {
         }
     }
 
-    /**
-     * Challenge information with expiration
-     */
-    private static class ChallengeInfo {
-        private final ByteArray challenge;
-        private final Instant expiresAt;
-
-        public ChallengeInfo(final ByteArray challenge, final Instant expiresAt) {
-            this.challenge = challenge;
-            this.expiresAt = expiresAt;
-        }
-
-        public ByteArray getChallenge() {
-            return challenge;
-        }
-
-        public Instant getExpiresAt() {
-            return expiresAt;
-        }
-    }
 
     /**
      * Passkey information (public)
@@ -479,30 +492,35 @@ public class FIDO2Service {
     }
 
     /**
-     * In-memory credential repository for Yubico library
-     * In production, implement proper CredentialRepository interface with DynamoDB
+     * DynamoDB credential repository for Yubico library
+     * Implements CredentialRepository interface using DynamoDB storage
      */
-    private class InMemoryCredentialRepository implements CredentialRepository {
+    private class DynamoDBCredentialRepository implements CredentialRepository {
         @Override
         public Set<PublicKeyCredentialDescriptor> getCredentialIdsForUsername(String username) {
-            Map<ByteArray, RegisteredCredential> credentials = passkeyCredentials.get(username);
+            java.util.List<com.budgetbuddy.model.dynamodb.FIDO2CredentialTable> credentials = credentialRepository.findByUserId(username);
             if (credentials == null || credentials.isEmpty()) {
                 return Collections.emptySet();
             }
-            return credentials.keySet().stream()
-                    .map(credentialId -> PublicKeyCredentialDescriptor.builder()
-                            .id(credentialId)
-                            .type(PublicKeyCredentialType.PUBLIC_KEY)
-                            .build())
+            return credentials.stream()
+                    .filter(c -> c.getEnabled() != null && c.getEnabled())
+                    .map(credential -> {
+                        try {
+                            ByteArray credentialId = ByteArray.fromBase64Url(credential.getCredentialId());
+                            return PublicKeyCredentialDescriptor.builder()
+                                    .id(credentialId)
+                                    .type(PublicKeyCredentialType.PUBLIC_KEY)
+                                    .build();
+                        } catch (Base64UrlException e) {
+                            return null;
+                        }
+                    })
+                    .filter(java.util.Objects::nonNull)
                     .collect(Collectors.toSet());
         }
 
         @Override
         public Optional<ByteArray> getUserHandleForUsername(String username) {
-            Map<ByteArray, RegisteredCredential> credentials = passkeyCredentials.get(username);
-            if (credentials == null || credentials.isEmpty()) {
-                return Optional.empty();
-            }
             try {
                 return Optional.of(ByteArray.fromBase64Url(username));
             } catch (Base64UrlException e) {
@@ -512,34 +530,44 @@ public class FIDO2Service {
 
         @Override
         public Optional<String> getUsernameForUserHandle(ByteArray userHandle) {
-            for (Map.Entry<String, Map<ByteArray, RegisteredCredential>> entry : passkeyCredentials.entrySet()) {
-                try {
-                    ByteArray userIdBytes = ByteArray.fromBase64Url(entry.getKey());
-                    if (userIdBytes.equals(userHandle)) {
-                        return Optional.of(entry.getKey());
-                    }
-                } catch (Base64UrlException e) {
-                    // Skip invalid user IDs
+            try {
+                String userId = userHandle.getBase64Url();
+                // Verify user exists by checking if they have any credentials
+                java.util.List<com.budgetbuddy.model.dynamodb.FIDO2CredentialTable> credentials = credentialRepository.findByUserId(userId);
+                if (credentials != null && !credentials.isEmpty()) {
+                    return Optional.of(userId);
                 }
+            } catch (Exception e) {
+                // Skip invalid user handles
             }
             return Optional.empty();
         }
 
         @Override
         public Optional<RegisteredCredential> lookup(ByteArray credentialId, ByteArray userHandle) {
-            // Find credential by credentialId and userHandle
-            for (Map.Entry<String, Map<ByteArray, RegisteredCredential>> entry : passkeyCredentials.entrySet()) {
-                try {
-                    ByteArray userIdBytes = ByteArray.fromBase64Url(entry.getKey());
-                    if (userIdBytes.equals(userHandle)) {
-                        RegisteredCredential credential = entry.getValue().get(credentialId);
-                        if (credential != null) {
-                            return Optional.of(credential);
-                        }
+            try {
+                String userId = userHandle.getBase64Url();
+                String credentialIdBase64 = credentialId.getBase64Url();
+                
+                java.util.Optional<com.budgetbuddy.model.dynamodb.FIDO2CredentialTable> credentialOpt = 
+                        credentialRepository.findByCredentialId(credentialIdBase64);
+                
+                if (credentialOpt.isPresent()) {
+                    com.budgetbuddy.model.dynamodb.FIDO2CredentialTable credentialTable = credentialOpt.get();
+                    if (userId.equals(credentialTable.getUserId()) && 
+                        (credentialTable.getEnabled() == null || credentialTable.getEnabled())) {
+                        byte[] publicKeyCoseBytes = java.util.Base64.getDecoder().decode(credentialTable.getPublicKeyCose());
+                        RegisteredCredential credential = RegisteredCredential.builder()
+                                .credentialId(credentialId)
+                                .userHandle(userHandle)
+                                .publicKeyCose(new ByteArray(publicKeyCoseBytes))
+                                .signatureCount(credentialTable.getSignatureCount() != null ? credentialTable.getSignatureCount() : 0L)
+                                .build();
+                        return Optional.of(credential);
                     }
-                } catch (Base64UrlException e) {
-                    // Skip invalid user IDs
                 }
+            } catch (Exception e) {
+                logger.debug("Error looking up credential: {}", e.getMessage());
             }
             return Optional.empty();
         }
@@ -547,15 +575,29 @@ public class FIDO2Service {
         @Override
         public Set<RegisteredCredential> lookupAll(ByteArray userHandle) {
             Set<RegisteredCredential> results = new HashSet<>();
-            for (Map.Entry<String, Map<ByteArray, RegisteredCredential>> entry : passkeyCredentials.entrySet()) {
-                try {
-                    ByteArray userIdBytes = ByteArray.fromBase64Url(entry.getKey());
-                    if (userIdBytes.equals(userHandle)) {
-                        results.addAll(entry.getValue().values());
+            try {
+                String userId = userHandle.getBase64Url();
+                java.util.List<com.budgetbuddy.model.dynamodb.FIDO2CredentialTable> credentials = credentialRepository.findByUserId(userId);
+                
+                for (com.budgetbuddy.model.dynamodb.FIDO2CredentialTable credentialTable : credentials) {
+                    if (credentialTable.getEnabled() == null || credentialTable.getEnabled()) {
+                        try {
+                            ByteArray credentialId = ByteArray.fromBase64Url(credentialTable.getCredentialId());
+                            byte[] publicKeyCoseBytes = java.util.Base64.getDecoder().decode(credentialTable.getPublicKeyCose());
+                            RegisteredCredential credential = RegisteredCredential.builder()
+                                    .credentialId(credentialId)
+                                    .userHandle(userHandle)
+                                    .publicKeyCose(new ByteArray(publicKeyCoseBytes))
+                                    .signatureCount(credentialTable.getSignatureCount() != null ? credentialTable.getSignatureCount() : 0L)
+                                    .build();
+                            results.add(credential);
+                        } catch (Exception e) {
+                            logger.debug("Error converting credential: {}", e.getMessage());
+                        }
                     }
-                } catch (Base64UrlException e) {
-                    // Skip invalid user IDs
                 }
+            } catch (Exception e) {
+                logger.debug("Error looking up all credentials: {}", e.getMessage());
             }
             return results;
         }

@@ -45,9 +45,13 @@ public class DynamoDBTableManager {
         createRateLimitTable();
         createDDoSProtectionTable();
         createDeviceAttestationTable();
+        createFIDO2CredentialsTable();
+        createFIDO2ChallengesTable();
+        createMFACredentialsTable();
+        createMFABackupCodesTable();
+        createMFAOTPCodesTable();
         // BREAKING CHANGE: DevicePin table creation removed - PIN backend endpoints removed
-        // DevicePin table is deprecated and will be removed in future version
-        // createDevicePinTable(); // Removed - PIN is now local-only
+        // DevicePin table is deprecated and removed - PIN is now local-only
         logger.info("DynamoDB tables initialized");
     }
 
@@ -486,45 +490,6 @@ public class DynamoDBTableManager {
         }
     }
 
-    /**
-     * @deprecated DevicePin table is deprecated - PIN backend endpoints removed
-     * PIN is now local-only and used only to decrypt refresh token from Keychain
-     * This method is kept for reference but will be removed in future version
-     */
-    @Deprecated
-    @SuppressWarnings("unused") // Kept for reference only
-    private void createDevicePinTable() {
-        String tableName = tablePrefix + "-DevicePin";
-        try {
-            dynamoDbClient.createTable(CreateTableRequest.builder()
-                    .tableName(tableName)
-                    .billingMode(BillingMode.PAY_PER_REQUEST)
-                    .attributeDefinitions(
-                            AttributeDefinition.builder()
-                                    .attributeName("userId")
-                                    .attributeType(ScalarAttributeType.S)
-                                    .build(),
-                            AttributeDefinition.builder()
-                                    .attributeName("deviceId")
-                                    .attributeType(ScalarAttributeType.S)
-                                    .build())
-                    .keySchema(
-                            KeySchemaElement.builder()
-                                    .attributeName("userId")
-                                    .keyType(KeyType.HASH)
-                                    .build(),
-                            KeySchemaElement.builder()
-                                    .attributeName("deviceId")
-                                    .keyType(KeyType.RANGE)
-                                    .build())
-                    .build());
-            logger.info("Created table: {}", tableName);
-        } catch (ResourceInUseException e) {
-            logger.debug("Table {} already exists", tableName);
-        } catch (Exception e) {
-            logger.error("Failed to create table {}: {}", tableName, e.getMessage());
-        }
-    }
 
     private void createRateLimitTable() {
         String tableName = tablePrefix + "-RateLimits";
@@ -641,6 +606,203 @@ public class DynamoDBTableManager {
                         .build());
             } catch (Exception e) {
                 logger.warn("Failed to configure TTL for DeviceAttestation table: {}", e.getMessage());
+            }
+            
+            logger.info("Created table: {}", tableName);
+        } catch (ResourceInUseException e) {
+            logger.debug("Table {} already exists", tableName);
+        } catch (Exception e) {
+            logger.error("Failed to create table {}: {}", tableName, e.getMessage());
+        }
+    }
+
+    private void createFIDO2CredentialsTable() {
+        String tableName = tablePrefix + "-FIDO2Credentials";
+        try {
+            dynamoDbClient.createTable(CreateTableRequest.builder()
+                    .tableName(tableName)
+                    .billingMode(BillingMode.PAY_PER_REQUEST)
+                    .attributeDefinitions(
+                            AttributeDefinition.builder()
+                                    .attributeName("credentialId")
+                                    .attributeType(ScalarAttributeType.S)
+                                    .build(),
+                            AttributeDefinition.builder()
+                                    .attributeName("userId")
+                                    .attributeType(ScalarAttributeType.S)
+                                    .build())
+                    .keySchema(
+                            KeySchemaElement.builder()
+                                    .attributeName("credentialId")
+                                    .keyType(KeyType.HASH)
+                                    .build())
+                    .globalSecondaryIndexes(
+                            GlobalSecondaryIndex.builder()
+                                    .indexName("UserIdIndex")
+                                    .keySchema(
+                                            KeySchemaElement.builder()
+                                                    .attributeName("userId")
+                                                    .keyType(KeyType.HASH)
+                                                    .build())
+                                    .projection(Projection.builder()
+                                            .projectionType(ProjectionType.ALL)
+                                            .build())
+                                    .build())
+                    .streamSpecification(StreamSpecification.builder()
+                            .streamEnabled(true)
+                            .streamViewType(StreamViewType.NEW_AND_OLD_IMAGES)
+                            .build())
+                    .build());
+            logger.info("Created table: {}", tableName);
+        } catch (ResourceInUseException e) {
+            logger.debug("Table {} already exists", tableName);
+        } catch (Exception e) {
+            logger.error("Failed to create table {}: {}", tableName, e.getMessage());
+        }
+    }
+
+    private void createFIDO2ChallengesTable() {
+        String tableName = tablePrefix + "-FIDO2Challenges";
+        try {
+            dynamoDbClient.createTable(CreateTableRequest.builder()
+                    .tableName(tableName)
+                    .billingMode(BillingMode.PAY_PER_REQUEST)
+                    .attributeDefinitions(
+                            AttributeDefinition.builder()
+                                    .attributeName("challengeKey")
+                                    .attributeType(ScalarAttributeType.S)
+                                    .build())
+                    .keySchema(
+                            KeySchemaElement.builder()
+                                    .attributeName("challengeKey")
+                                    .keyType(KeyType.HASH)
+                                    .build())
+                    .build());
+            
+            // Configure TTL separately
+            try {
+                dynamoDbClient.updateTimeToLive(UpdateTimeToLiveRequest.builder()
+                        .tableName(tableName)
+                        .timeToLiveSpecification(TimeToLiveSpecification.builder()
+                                .enabled(true)
+                                .attributeName("ttl")
+                                .build())
+                        .build());
+            } catch (Exception e) {
+                logger.warn("Failed to configure TTL for FIDO2Challenges table: {}", e.getMessage());
+            }
+            
+            logger.info("Created table: {}", tableName);
+        } catch (ResourceInUseException e) {
+            logger.debug("Table {} already exists", tableName);
+        } catch (Exception e) {
+            logger.error("Failed to create table {}: {}", tableName, e.getMessage());
+        }
+    }
+
+    private void createMFACredentialsTable() {
+        String tableName = tablePrefix + "-MFACredentials";
+        try {
+            dynamoDbClient.createTable(CreateTableRequest.builder()
+                    .tableName(tableName)
+                    .billingMode(BillingMode.PAY_PER_REQUEST)
+                    .attributeDefinitions(
+                            AttributeDefinition.builder()
+                                    .attributeName("userId")
+                                    .attributeType(ScalarAttributeType.S)
+                                    .build(),
+                            AttributeDefinition.builder()
+                                    .attributeName("mfaType")
+                                    .attributeType(ScalarAttributeType.S)
+                                    .build())
+                    .keySchema(
+                            KeySchemaElement.builder()
+                                    .attributeName("userId")
+                                    .keyType(KeyType.HASH)
+                                    .build(),
+                            KeySchemaElement.builder()
+                                    .attributeName("mfaType")
+                                    .keyType(KeyType.RANGE)
+                                    .build())
+                    .streamSpecification(StreamSpecification.builder()
+                            .streamEnabled(true)
+                            .streamViewType(StreamViewType.NEW_AND_OLD_IMAGES)
+                            .build())
+                    .build());
+            logger.info("Created table: {}", tableName);
+        } catch (ResourceInUseException e) {
+            logger.debug("Table {} already exists", tableName);
+        } catch (Exception e) {
+            logger.error("Failed to create table {}: {}", tableName, e.getMessage());
+        }
+    }
+
+    private void createMFABackupCodesTable() {
+        String tableName = tablePrefix + "-MFABackupCodes";
+        try {
+            dynamoDbClient.createTable(CreateTableRequest.builder()
+                    .tableName(tableName)
+                    .billingMode(BillingMode.PAY_PER_REQUEST)
+                    .attributeDefinitions(
+                            AttributeDefinition.builder()
+                                    .attributeName("userId")
+                                    .attributeType(ScalarAttributeType.S)
+                                    .build(),
+                            AttributeDefinition.builder()
+                                    .attributeName("codeHash")
+                                    .attributeType(ScalarAttributeType.S)
+                                    .build())
+                    .keySchema(
+                            KeySchemaElement.builder()
+                                    .attributeName("userId")
+                                    .keyType(KeyType.HASH)
+                                    .build(),
+                            KeySchemaElement.builder()
+                                    .attributeName("codeHash")
+                                    .keyType(KeyType.RANGE)
+                                    .build())
+                    .streamSpecification(StreamSpecification.builder()
+                            .streamEnabled(true)
+                            .streamViewType(StreamViewType.NEW_AND_OLD_IMAGES)
+                            .build())
+                    .build());
+            logger.info("Created table: {}", tableName);
+        } catch (ResourceInUseException e) {
+            logger.debug("Table {} already exists", tableName);
+        } catch (Exception e) {
+            logger.error("Failed to create table {}: {}", tableName, e.getMessage());
+        }
+    }
+
+    private void createMFAOTPCodesTable() {
+        String tableName = tablePrefix + "-MFAOTPCodes";
+        try {
+            dynamoDbClient.createTable(CreateTableRequest.builder()
+                    .tableName(tableName)
+                    .billingMode(BillingMode.PAY_PER_REQUEST)
+                    .attributeDefinitions(
+                            AttributeDefinition.builder()
+                                    .attributeName("otpKey")
+                                    .attributeType(ScalarAttributeType.S)
+                                    .build())
+                    .keySchema(
+                            KeySchemaElement.builder()
+                                    .attributeName("otpKey")
+                                    .keyType(KeyType.HASH)
+                                    .build())
+                    .build());
+            
+            // Configure TTL
+            try {
+                dynamoDbClient.updateTimeToLive(UpdateTimeToLiveRequest.builder()
+                        .tableName(tableName)
+                        .timeToLiveSpecification(TimeToLiveSpecification.builder()
+                                .enabled(true)
+                                .attributeName("ttl")
+                                .build())
+                        .build());
+            } catch (Exception e) {
+                logger.warn("Failed to configure TTL for MFAOTPCodes table: {}", e.getMessage());
             }
             
             logger.info("Created table: {}", tableName);

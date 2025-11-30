@@ -90,31 +90,65 @@ public class NotFoundErrorTrackingFilter extends OncePerRequestFilter {
 
     /**
      * Extract client IP address from request
+     * Priority: X-Forwarded-For > X-Real-IP > RemoteAddr
+     * 
+     * Note: In MockMvc tests, headers must be explicitly set and may return empty strings
+     * instead of null, so we check for both null and empty strings.
      */
     private String getClientIpAddress(final HttpServletRequest request) {
         if (request == null) {
             return null;
         }
 
+        // Check X-Forwarded-For first (standard proxy header)
+        // MockMvc may return empty string instead of null, so check both
         String ip = request.getHeader("X-Forwarded-For");
-        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
-            ip = request.getHeader("X-Real-IP");
+        if (ip != null) {
+            ip = ip.trim();
+            // If empty after trim, treat as not set
+            if (ip.isEmpty()) {
+                ip = null;
+            }
         }
-        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+        
+        // If X-Forwarded-For is not available or invalid, check X-Real-IP
+        if (ip == null || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getHeader("X-Real-IP");
+            if (ip != null) {
+                ip = ip.trim();
+                // If empty after trim, treat as not set
+                if (ip.isEmpty()) {
+                    ip = null;
+                }
+            }
+        }
+        
+        // Fallback to RemoteAddr if both headers are unavailable
+        if (ip == null || "unknown".equalsIgnoreCase(ip)) {
             ip = request.getRemoteAddr();
         }
 
-        // Handle multiple IPs (X-Forwarded-For can contain multiple IPs)
+        // Handle multiple IPs (X-Forwarded-For can contain multiple IPs: "client, proxy1, proxy2")
         if (ip != null && ip.contains(",")) {
             String[] ips = ip.split(",");
             if (ips.length > 0) {
+                // Take the first IP (original client IP)
                 ip = ips[0].trim();
+                // Validate the extracted IP is not empty
+                if (ip.isEmpty()) {
+                    ip = request.getRemoteAddr();
+                }
             } else {
                 ip = request.getRemoteAddr();
             }
         }
 
-        return ip != null && !ip.isEmpty() ? ip : request.getRemoteAddr();
+        // Final validation and fallback
+        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getRemoteAddr();
+        }
+
+        return ip;
     }
 
     private String getUserIdFromRequest(final HttpServletRequest request) {

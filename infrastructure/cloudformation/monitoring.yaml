@@ -98,6 +98,59 @@ Resources:
                 "region": "${AWS::Region}",
                 "title": "Error Rates"
               }
+            },
+            {
+              "type": "metric",
+              "properties": {
+                "metrics": [
+                  ["BudgetBuddy", "AuthenticationCount", {"stat": "Sum", "label": "Authentications"}],
+                  ["BudgetBuddy", "AuthenticationFailureCount", {"stat": "Sum", "label": "Auth Failures"}],
+                  ["BudgetBuddy", "MFASetupCount", {"stat": "Sum", "label": "MFA Setups"}],
+                  ["BudgetBuddy", "FIDO2RegistrationCount", {"stat": "Sum", "label": "FIDO2 Registrations"}]
+                ],
+                "period": 300,
+                "stat": "Sum",
+                "region": "${AWS::Region}",
+                "title": "Authentication Metrics"
+              }
+            },
+            {
+              "type": "metric",
+              "properties": {
+                "metrics": [
+                  ["BudgetBuddy", "AuditLogCount", {"stat": "Sum", "label": "Audit Logs"}],
+                  ["BudgetBuddy", "ComplianceCheckCount", {"stat": "Sum", "label": "Compliance Checks"}],
+                  ["BudgetBuddy", "RiskAssessmentCount", {"stat": "Sum", "label": "Risk Assessments"}]
+                ],
+                "period": 300,
+                "stat": "Sum",
+                "region": "${AWS::Region}",
+                "title": "Compliance & Audit Metrics"
+              }
+            },
+            {
+              "type": "metric",
+              "properties": {
+                "metrics": [
+                  ["BudgetBuddy", "APIRequestCount", {"stat": "Sum", "label": "API Requests"}],
+                  ["BudgetBuddy", "APIResponseTime", {"stat": "Average", "label": "Response Time (ms)"}],
+                  ["BudgetBuddy", "RateLimitBlockedCount", {"stat": "Sum", "label": "Rate Limited"}]
+                ],
+                "period": 300,
+                "stat": "Average",
+                "region": "${AWS::Region}",
+                "title": "API Performance Metrics"
+              }
+            },
+            {
+              "type": "log",
+              "properties": {
+                "query": "SOURCE '/ecs/budgetbuddy-backend-${Environment}' | fields @timestamp, @message\n| filter @message like /ERROR/\n| stats count() by bin(5m)",
+                "region": "${AWS::Region}",
+                "title": "Error Logs (Last 1 Hour)",
+                "view": "timeSeries",
+                "stacked": false
+              }
             }
           ]
         }

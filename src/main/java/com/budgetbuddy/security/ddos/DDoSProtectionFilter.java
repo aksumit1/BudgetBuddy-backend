@@ -119,6 +119,7 @@ public class DDoSProtectionFilter extends OncePerRequestFilter {
 
     /**
      * Extract client IP address from request
+     * Priority: X-Forwarded-For > X-Real-IP > RemoteAddr
      * Handles X-Forwarded-For with multiple IPs safely
      */
     private String getClientIpAddress(final HttpServletRequest request) {
@@ -126,25 +127,42 @@ public class DDoSProtectionFilter extends OncePerRequestFilter {
             return null;
         }
 
+        // Check X-Forwarded-For first (standard proxy header)
         String ip = request.getHeader("X-Forwarded-For");
+        if (ip != null) {
+            ip = ip.trim();
+        }
+        
+        // If X-Forwarded-For is not available or invalid, check X-Real-IP
         if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
             ip = request.getHeader("X-Real-IP");
+            if (ip != null) {
+                ip = ip.trim();
+            }
         }
+        
+        // Fallback to RemoteAddr if both headers are unavailable
         if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
             ip = request.getRemoteAddr();
         }
 
-        // Handle multiple IPs (X-Forwarded-For can contain multiple IPs)
+        // Handle multiple IPs (X-Forwarded-For can contain multiple IPs: "client, proxy1, proxy2")
         if (ip != null && ip.contains(",")) {
             String[] ips = ip.split(",");
             if (ips.length > 0) {
+                // Take the first IP (original client IP)
                 ip = ips[0].trim();
             } else {
                 ip = request.getRemoteAddr();
             }
         }
 
-        return ip != null && !ip.isEmpty() ? ip : request.getRemoteAddr();
+        // Final validation and fallback
+        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getRemoteAddr();
+        }
+
+        return ip;
     }
 
     private String getUserIdFromRequest(final HttpServletRequest request) {

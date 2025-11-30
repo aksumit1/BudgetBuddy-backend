@@ -114,19 +114,24 @@ app:
   # Rate Limiting
   rate-limit:
     enabled: true
-    requests-per-minute: 10000
-    requests-per-hour: 500000
+    requests-per-minute: 20000 # Increased for heavy business users
+    requests-per-hour: 1000000 # Increased for heavy business users (1M per hour)
     # Per-endpoint rate limits (per user, per 60 seconds)
-    auth-login: 1000
-    auth-signup: 500
-    plaid: 50000
-    transactions: 500000
-    analytics: 100000
-    default: 500000
-    # DDoS protection (IP-based)
+    # Increased for heavy business users with large transaction volumes
+    auth-login: 2000 # Increased for business users with multiple devices
+    auth-signup: 1000 # Increased for business onboarding
+    plaid: 100000 # Very high - Plaid errors are common and need retries
+    transactions: 1000000 # Very high - heavy users sync thousands of transactions
+    analytics: 200000 # Increased for business analytics
+    default: 1000000 # High default for business operations
+    # DDoS protection (IP-based) - increased for legitimate heavy usage
     ddos:
-      max-requests-per-minute: 100000
-      max-requests-per-hour: 5000000
+      max-requests-per-minute: 200000 # Increased for heavy business users
+      max-requests-per-hour: 10000000 # 10M per hour - supports heavy business operations
+      # 404 Error Tracking - Plaid errors are common, don't block legitimate retries
+      notfound:
+        max-per-minute: 1000 # Allow many 404s (Plaid errors are common)
+        max-per-hour: 10000 # Allow retries for Plaid connection issues
   
   # Security
   security:

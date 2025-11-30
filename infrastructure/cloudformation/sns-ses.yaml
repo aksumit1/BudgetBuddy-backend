@@ -1,0 +1,106 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'SNS and SES resources for BudgetBuddy notifications (MFA OTP, alerts)'
+
+Parameters:
+  Environment:
+    Type: String
+    Default: dev
+    AllowedValues:
+      - dev
+      - staging
+      - production
+    Description: Environment name
+
+  TablePrefix:
+    Type: String
+    Default: BudgetBuddy
+    Description: Prefix for DynamoDB table names
+
+Resources:
+  # SNS Topic for SMS notifications (MFA OTP)
+  SNSTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Sub '${TablePrefix}-Notifications-${Environment}'
+      DisplayName: !Sub 'BudgetBuddy Notifications ${Environment}'
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Application
+          Value: BudgetBuddy
+        - Key: ManagedBy
+          Value: CloudFormation
+
+  # SNS Topic Policy
+  SNSTopicPolicy:
+    Type: AWS::SNS::TopicPolicy
+    Properties:
+      Topics:
+        - !Ref SNSTopic
+      PolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: 
+                - ses.amazonaws.com
+                - lambda.amazonaws.com
+            Action:
+              - SNS:Publish
+            Resource: !Ref SNSTopic
+
+  # SES Configuration Set
+  SESConfigurationSet:
+    Type: AWS::SES::ConfigurationSet
+    Properties:
+      Name: !Sub '${TablePrefix}-EmailConfig-${Environment}'
+      DeliveryOptions:
+        TlsPolicy: Require
+
+  # SES Identity (Email Domain)
+  SESIdentity:
+    Type: AWS::SES::EmailIdentity
+    Properties:
+      EmailIdentity: !Sub 'noreply@${TablePrefix}.com'
+      ConfigurationSetAttributes:
+        ConfigurationSetName: !Ref SESConfigurationSet
+      MailFromAttributes:
+        MailFromDomain: !Sub 'mail.${TablePrefix}.com'
+        BehaviorOnMxFailure: UseDefaultValue
+
+  # SES Identity Policy
+  SESIdentityPolicy:
+    Type: AWS::SES::IdentityPolicy
+    Properties:
+      Identity: !Ref SESIdentity
+      PolicyName: BudgetBuddySESPolicy
+      PolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: 
+                - ses.amazonaws.com
+                - lambda.amazonaws.com
+            Action:
+              - SES:SendEmail
+              - SES:SendRawEmail
+            Resource: !Sub 'arn:aws:ses:*:*:identity/${SESIdentity}'
+
+Outputs:
+  SNSTopicArn:
+    Description: ARN of the SNS topic for notifications
+    Value: !Ref SNSTopic
+    Export:
+      Name: !Sub '${AWS::StackName}-SNSTopicArn'
+
+  SESIdentityArn:
+    Description: ARN of the SES identity
+    Value: !GetAtt SESIdentity.Arn
+    Export:
+      Name: !Sub '${AWS::StackName}-SESIdentityArn'
+
+  SESConfigurationSetName:
+    Description: Name of the SES configuration set
+    Value: !Ref SESConfigurationSet
+    Export:
+      Name: !Sub '${AWS::StackName}-SESConfigurationSetName'
+

@@ -44,26 +44,24 @@ app:
     enabled: false # Disabled for tests to avoid rate limiting issues
     requests-per-minute: 10000000 # Very high limit for heavy testing (10 million per minute)
     requests-per-hour: 100000000 # Very high limit for heavy testing (100 million per hour)
+    # Per-endpoint limits for tests (very high to support 200+ test runs per day)
+    auth-login: 1000000 # 1 million per minute
+    auth-signup: 1000000 # 1 million per minute
+    plaid: 10000000 # 10 million per minute (Plaid errors are common in tests)
+    transactions: 10000000 # 10 million per minute
+    analytics: 10000000 # 10 million per minute
+    default: 10000000 # 10 million per minute
   
   ddos:
+    # DDoS protection limits (very high for heavy testing - supports 200+ test runs per day)
+    max-requests-per-minute: 10000000 # 10 million per minute (supports 200 test runs/day)
+    max-requests-per-hour: 100000000 # 100 million per hour
+    # 404 Error Tracking Configuration
+    # Note: Some tests expect blocking at 20 requests, so we use a lower threshold for those tests
+    # Other tests can handle higher thresholds
     notfound:
-      max-per-minute: 20 # Lower threshold for NotFoundErrorTracking tests
-      max-per-hour: 200 # Lower threshold for NotFoundErrorTracking tests
-    # Per-endpoint limits (used if rate limiting is enabled)
-    auth-login: 1000000 # 1 million per minute for heavy testing
-    auth-signup: 1000000 # 1 million per minute for heavy testing
-    plaid: 10000000 # 10 million per minute for heavy testing
-    transactions: 10000000 # 10 million per minute for heavy testing
-    analytics: 10000000 # 10 million per minute for heavy testing
-    default: 10000000 # 10 million per minute for heavy testing
-    # DDoS protection limits (very high for heavy testing)
-    ddos:
-      max-requests-per-minute: 10000000 # 10 million per minute
-      max-requests-per-hour: 100000000 # 100 million per hour
-      # 404 Error Tracking Configuration (lower thresholds for NotFoundErrorTracking tests)
-      notfound:
-        max-per-minute: 20  # Lower threshold for NotFoundErrorTracking tests
-        max-per-hour: 200   # Lower threshold for NotFoundErrorTracking tests
+      max-per-minute: 20  # Lower threshold to match test expectations (test404Tracking_WithXRealIPHeader expects 20)
+      max-per-hour: 200   # Lower threshold to match test expectations
   
   security:
     cors:

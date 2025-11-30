@@ -2,7 +2,6 @@ package com.budgetbuddy.service;
 
 import com.budgetbuddy.exception.AppException;
 import com.budgetbuddy.exception.ErrorCode;
-import com.budgetbuddy.repository.dynamodb.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -20,13 +19,16 @@ import static org.junit.jupiter.api.Assertions.*;
 class FIDO2ServiceTest {
 
     @Mock
-    private UserRepository userRepository;
+    private com.budgetbuddy.repository.dynamodb.FIDO2CredentialRepository credentialRepository;
+    
+    @Mock
+    private com.budgetbuddy.repository.dynamodb.FIDO2ChallengeRepository challengeRepository;
 
     private FIDO2Service fido2Service;
 
     @BeforeEach
     void setUp() throws Exception {
-        fido2Service = new FIDO2Service(userRepository);
+        fido2Service = new FIDO2Service(credentialRepository, challengeRepository);
         // Set required properties using reflection
         java.lang.reflect.Field rpIdField = FIDO2Service.class.getDeclaredField("rpId");
         rpIdField.setAccessible(true);

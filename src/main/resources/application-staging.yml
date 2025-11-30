@@ -113,17 +113,24 @@ app:
   # Rate Limiting (staging - more lenient than production)
   rate-limit:
     enabled: true
-    requests-per-minute: 5000
-    requests-per-hour: 250000
-    auth-login: 500
-    auth-signup: 250
-    plaid: 25000
-    transactions: 250000
-    analytics: 50000
-    default: 250000
+    requests-per-minute: 15000 # Moderate limit for staging testing
+    requests-per-hour: 1000000 # 1M per hour - supports staging test scenarios
+    # Per-endpoint rate limits (per user, per 60 seconds)
+    # Moderate limits for staging - higher than before but lower than production
+    auth-login: 1500 # Multiple devices per user in staging
+    auth-signup: 1000 # Staging onboarding tests
+    plaid: 100000 # High - Plaid errors are common in staging
+    transactions: 1000000 # High - staging tests with large datasets
+    analytics: 200000 # Moderate for staging analytics
+    default: 1000000 # High default for staging operations
+    # DDoS protection (IP-based) - moderate for staging
     ddos:
-      max-requests-per-minute: 50000
-      max-requests-per-hour: 2500000
+      max-requests-per-minute: 150000 # Moderate for staging
+      max-requests-per-hour: 10000000 # 10M per hour - supports staging scenarios
+      # 404 Error Tracking - Plaid errors are common in staging
+      notfound:
+        max-per-minute: 1500 # Allow many 404s (Plaid sandbox issues)
+        max-per-hour: 15000 # Allow retries for Plaid staging errors
 
   # Security
   security:

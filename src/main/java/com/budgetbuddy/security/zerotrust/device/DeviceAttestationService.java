@@ -94,16 +94,25 @@ public class DeviceAttestationService {
     /**
      * Verify DeviceCheck (iOS) or Play Integrity (Android) attestation token
      * In production, this would call Apple/Google APIs to verify the token
+     * 
+     * CRITICAL FIX: Apple DeviceCheck tokens are CBOR-encoded (base64), not JWT
+     * Android Play Integrity tokens are JWT format
      */
     private boolean verifyAttestationToken(final String attestationToken, final String platform, final String userId) {
         try {
+            if (attestationToken == null || attestationToken.isEmpty()) {
+                logger.warn("Attestation token is null or empty");
+                return false;
+            }
+            
             if ("ios".equalsIgnoreCase(platform)) {
-                // Verify DeviceCheck token with Apple
-                // In production, use Apple's DeviceCheck API
-                // For now, validate token format (JWT)
-                return isValidJWTFormat(attestationToken);
+                // Apple DeviceCheck tokens are CBOR-encoded (base64), not JWT
+                // They are base64-encoded CBOR objects, not JWT (which has 3 parts separated by dots)
+                // For now, validate that it's valid base64 and has reasonable length
+                // In production, decode CBOR and verify with Apple's DeviceCheck API
+                return isValidAppleAttestationToken(attestationToken);
             } else if ("android".equalsIgnoreCase(platform)) {
-                // Verify Play Integrity token with Google
+                // Google Play Integrity tokens are JWT format
                 // In production, use Google's Play Integrity API
                 // For now, validate token format (JWT)
                 return isValidJWTFormat(attestationToken);
@@ -112,13 +121,34 @@ public class DeviceAttestationService {
                 return false;
             }
         } catch (Exception e) {
-            logger.error("Failed to verify attestation token: {}", e.getMessage());
+            logger.error("Failed to verify attestation token: {}", e.getMessage(), e);
             return false;
         }
     }
 
     /**
-     * Basic JWT format validation (in production, use proper JWT library)
+     * Validate Apple DeviceCheck attestation token format
+     * Apple tokens are base64-encoded CBOR, not JWT
+     */
+    private boolean isValidAppleAttestationToken(final String token) {
+        if (token == null || token.isEmpty()) {
+            return false;
+        }
+        // Apple DeviceCheck tokens are base64-encoded CBOR
+        // They should be valid base64 and have reasonable length (typically 1000-10000 chars)
+        try {
+            // Validate base64 encoding
+            java.util.Base64.getDecoder().decode(token);
+            // Check reasonable length (CBOR tokens are typically larger than JWT)
+            return token.length() > 100 && token.length() < 50000;
+        } catch (IllegalArgumentException e) {
+            logger.debug("Invalid base64 encoding in Apple attestation token: {}", e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Basic JWT format validation (for Android Play Integrity tokens)
      */
     private boolean isValidJWTFormat(final String token) {
         if (token == null || token.isEmpty()) {

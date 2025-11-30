@@ -423,6 +423,141 @@ Resources:
         - Key: ManagedBy
           Value: CloudFormation
 
+  # FIDO2 Credentials Table (for WebAuthn/Passkey storage)
+  FIDO2CredentialsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub '${TablePrefix}-FIDO2Credentials'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: credentialId
+          AttributeType: S
+        - AttributeName: userId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: credentialId
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: UserIdIndex
+          KeySchema:
+            - AttributeName: userId
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+      StreamSpecification:
+        StreamViewType: NEW_AND_OLD_IMAGES
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Application
+          Value: BudgetBuddy
+        - Key: ManagedBy
+          Value: CloudFormation
+
+  # FIDO2 Challenges Table (for registration/authentication challenges with TTL)
+  FIDO2ChallengesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub '${TablePrefix}-FIDO2Challenges'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: challengeKey
+          AttributeType: S
+      KeySchema:
+        - AttributeName: challengeKey
+          KeyType: HASH
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Application
+          Value: BudgetBuddy
+        - Key: ManagedBy
+          Value: CloudFormation
+
+  # MFA Credentials Table (for TOTP secrets)
+  MFACredentialsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub '${TablePrefix}-MFACredentials'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: userId
+          AttributeType: S
+        - AttributeName: mfaType
+          AttributeType: S
+      KeySchema:
+        - AttributeName: userId
+          KeyType: HASH
+        - AttributeName: mfaType
+          KeyType: RANGE
+      StreamSpecification:
+        StreamViewType: NEW_AND_OLD_IMAGES
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Application
+          Value: BudgetBuddy
+        - Key: ManagedBy
+          Value: CloudFormation
+
+  # MFA Backup Codes Table
+  MFABackupCodesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub '${TablePrefix}-MFABackupCodes'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: userId
+          AttributeType: S
+        - AttributeName: codeHash
+          AttributeType: S
+      KeySchema:
+        - AttributeName: userId
+          KeyType: HASH
+        - AttributeName: codeHash
+          KeyType: RANGE
+      StreamSpecification:
+        StreamViewType: NEW_AND_OLD_IMAGES
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Application
+          Value: BudgetBuddy
+        - Key: ManagedBy
+          Value: CloudFormation
+
+  # MFA OTP Codes Table (for SMS/Email OTP with TTL)
+  MFAOTPCodesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub '${TablePrefix}-MFAOTPCodes'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: otpKey
+          AttributeType: S
+      KeySchema:
+        - AttributeName: otpKey
+          KeyType: HASH
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Application
+          Value: BudgetBuddy
+        - Key: ManagedBy
+          Value: CloudFormation
+
 Outputs:
   UsersTableName:
     Description: Name of the Users table
@@ -471,4 +606,34 @@ Outputs:
     Value: !Ref DevicePinTable
     Export:
       Name: !Sub '${AWS::StackName}-DevicePinTable'
+  
+  FIDO2CredentialsTableName:
+    Description: Name of the FIDO2 Credentials table
+    Value: !Ref FIDO2CredentialsTable
+    Export:
+      Name: !Sub '${AWS::StackName}-FIDO2CredentialsTable'
+  
+  FIDO2ChallengesTableName:
+    Description: Name of the FIDO2 Challenges table
+    Value: !Ref FIDO2ChallengesTable
+    Export:
+      Name: !Sub '${AWS::StackName}-FIDO2ChallengesTable'
+  
+  MFACredentialsTableName:
+    Description: Name of the MFA Credentials table
+    Value: !Ref MFACredentialsTable
+    Export:
+      Name: !Sub '${AWS::StackName}-MFACredentialsTable'
+  
+  MFABackupCodesTableName:
+    Description: Name of the MFA Backup Codes table
+    Value: !Ref MFABackupCodesTable
+    Export:
+      Name: !Sub '${AWS::StackName}-MFABackupCodesTable'
+  
+  MFAOTPCodesTableName:
+    Description: Name of the MFA OTP Codes table
+    Value: !Ref MFAOTPCodesTable
+    Export:
+      Name: !Sub '${AWS::StackName}-MFAOTPCodesTable'
 
