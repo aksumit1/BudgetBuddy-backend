@@ -34,6 +34,7 @@ public class TransactionTable {
     private Boolean pending;
     private String paymentChannel; // online, in_store, ach, etc.
     private String notes; // User notes for the transaction
+    private Boolean isAudited; // Audit checkmark state (client-side UI state)
     private Instant createdAt;
     private Instant updatedAt;
 
@@ -204,6 +205,15 @@ public class TransactionTable {
 
     public void setNotes(final String notes) {
         this.notes = notes;
+    }
+
+    @DynamoDbAttribute("isAudited")
+    public Boolean getIsAudited() {
+        return isAudited;
+    }
+
+    public void setIsAudited(final Boolean isAudited) {
+        this.isAudited = isAudited;
     }
 
     @DynamoDbAttribute("createdAt")

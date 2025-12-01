@@ -324,13 +324,14 @@ public class TransactionService {
     }
     
     /**
-     * Update transaction (e.g., notes, category override)
+     * Update transaction (e.g., notes, category override, audit state)
      * Supports lookup by transactionId or plaidTransactionId (fallback)
      * @param plaidTransactionId Optional Plaid transaction ID for fallback lookup if transactionId not found
      * @param categoryPrimary Optional: override primary category
      * @param categoryDetailed Optional: override detailed category
+     * @param isAudited Optional: audit checkmark state
      */
-    public TransactionTable updateTransaction(final UserTable user, final String transactionId, final String plaidTransactionId, final String notes, final String categoryPrimary, final String categoryDetailed) {
+    public TransactionTable updateTransaction(final UserTable user, final String transactionId, final String plaidTransactionId, final String notes, final String categoryPrimary, final String categoryDetailed, final Boolean isAudited) {
         if (user == null || user.getUserId() == null || user.getUserId().isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "User is required");
         }
@@ -375,6 +376,12 @@ public class TransactionService {
             transaction.setCategoryOverridden(true);
             logger.info("Category override applied: primary={}, detailed={}", 
                     transaction.getCategoryPrimary(), transaction.getCategoryDetailed());
+        }
+        
+        // Update audit state if provided
+        if (isAudited != null) {
+            transaction.setIsAudited(isAudited);
+            logger.info("Audit state updated: isAudited={}", isAudited);
         }
         
         transaction.setUpdatedAt(java.time.Instant.now());

@@ -196,7 +196,8 @@ public class TransactionController {
                 request.getPlaidTransactionId(), // Pass Plaid ID for fallback lookup
                 request.getNotes(),
                 request.getCategoryPrimary(),
-                request.getCategoryDetailed()
+                request.getCategoryDetailed(),
+                request.getIsAudited() // Pass audit state
         );
 
         return ResponseEntity.ok(transaction);
@@ -301,6 +302,7 @@ public class TransactionController {
         private String categoryPrimary; // Optional: override primary category
         private String categoryDetailed; // Optional: override detailed category
         private String plaidTransactionId; // Optional: for fallback lookup if transactionId not found
+        private Boolean isAudited; // Optional: audit checkmark state
 
         public String getNotes() { return notes; }
         public void setNotes(final String notes) { this.notes = notes; }
@@ -313,6 +315,9 @@ public class TransactionController {
         
         public String getPlaidTransactionId() { return plaidTransactionId; }
         public void setPlaidTransactionId(final String plaidTransactionId) { this.plaidTransactionId = plaidTransactionId; }
+        
+        public Boolean getIsAudited() { return isAudited; }
+        public void setIsAudited(final Boolean isAudited) { this.isAudited = isAudited; }
     }
 
     public static class VerifyTransactionRequest {
