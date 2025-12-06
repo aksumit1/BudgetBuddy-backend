@@ -1168,7 +1168,9 @@ public class PlaidSyncService {
 
     /**
      * Extract account number (mask) from Plaid account
+     * Reserved for future use - may be needed for account deduplication
      */
+    @SuppressWarnings("unused")
     private String extractAccountNumber(final Object plaidAccount) {
         try {
             if (plaidAccount instanceof com.plaid.client.model.AccountBase) {
@@ -1196,7 +1198,9 @@ public class PlaidSyncService {
 
     /**
      * Extract institution name from Plaid account
+     * Reserved for future use - may be needed for institution name extraction
      */
+    @SuppressWarnings("unused")
     private String extractInstitutionName(final Object plaidAccount) {
         // Institution name is typically not in AccountBase, it's in the Item
         // For now, we'll get it from the account's institutionName if available

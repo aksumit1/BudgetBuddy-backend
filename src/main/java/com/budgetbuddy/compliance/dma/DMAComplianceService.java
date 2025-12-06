@@ -4,7 +4,6 @@ import com.budgetbuddy.compliance.AuditLogService;
 import com.budgetbuddy.compliance.gdpr.GDPRComplianceService;
 import com.budgetbuddy.model.dynamodb.UserTable;
 import com.budgetbuddy.repository.dynamodb.*;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -35,7 +34,6 @@ public class DMAComplianceService {
     private final AccountRepository accountRepository;
     private final BudgetRepository budgetRepository;
     private final GoalRepository goalRepository;
-    private final ObjectMapper objectMapper;
 
     public DMAComplianceService(
             final GDPRComplianceService gdprComplianceService,
@@ -44,8 +42,7 @@ public class DMAComplianceService {
             final TransactionRepository transactionRepository,
             final AccountRepository accountRepository,
             final BudgetRepository budgetRepository,
-            final GoalRepository goalRepository,
-            final ObjectMapper objectMapper) {
+            final GoalRepository goalRepository) {
         this.gdprComplianceService = gdprComplianceService;
         this.auditLogService = auditLogService;
         this.userRepository = userRepository;
@@ -53,7 +50,6 @@ public class DMAComplianceService {
         this.accountRepository = accountRepository;
         this.budgetRepository = budgetRepository;
         this.goalRepository = goalRepository;
-        this.objectMapper = objectMapper;
     }
 
     /**
