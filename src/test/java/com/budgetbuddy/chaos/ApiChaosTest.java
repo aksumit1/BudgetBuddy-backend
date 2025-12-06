@@ -84,11 +84,13 @@ class ApiChaosTest {
     @Test
     void testChaos_RateLimiting_ShouldThrottleExcessiveRequests() throws Exception {
         // Given - Make many rapid requests
-        int requestCount = 200;
+        // Updated to use higher request count that matches new rate limits (100M per minute)
+        // But keep it reasonable for test execution time
+        int requestCount = 1000; // Increased from 200 to test higher limits, but still reasonable
         AtomicInteger successCount = new AtomicInteger(0);
         AtomicInteger rateLimitedCount = new AtomicInteger(0);
 
-        ExecutorService executor = Executors.newFixedThreadPool(50);
+        ExecutorService executor = Executors.newFixedThreadPool(100); // Increased thread pool
         CountDownLatch latch = new CountDownLatch(requestCount);
 
         // When - Send many concurrent requests
@@ -115,14 +117,14 @@ class ApiChaosTest {
             });
         }
 
-        latch.await(30, TimeUnit.SECONDS);
+        latch.await(60, TimeUnit.SECONDS); // Increased timeout for higher request count
         executor.shutdown();
 
         // Then - Since rate limiting is disabled in tests, all requests should succeed
-        // If rate limiting were enabled, some requests would be rate limited (429)
+        // If rate limiting were enabled with new limits (100M per minute), most requests should succeed
         // For now, verify that requests are handled (either success or rate limited)
         assertTrue(successCount.get() > 0 || rateLimitedCount.get() > 0,
-                "Requests should be handled (either success or rate limited)");
+                "Requests should be handled (either success or rate limited). Success: " + successCount.get() + ", Rate limited: " + rateLimitedCount.get());
     }
 
     // ==================== CONCURRENT REQUEST CHAOS TESTS ====================
@@ -130,7 +132,8 @@ class ApiChaosTest {
     @Test
     void testChaos_ConcurrentRequests_ShouldHandleGracefully() throws Exception {
         // Given
-        int concurrentRequests = 100;
+        // Updated to match new higher rate limits (100M per minute)
+        int concurrentRequests = 500; // Increased from 100 to test higher limits
         AtomicInteger successCount = new AtomicInteger(0);
         AtomicInteger errorCount = new AtomicInteger(0);
 

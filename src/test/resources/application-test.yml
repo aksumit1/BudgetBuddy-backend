@@ -76,7 +76,16 @@ app:
       # Other tests can handle higher thresholds
       notfound:
         max-per-minute: 20  # Lower threshold to match test expectations (test404Tracking_WithXRealIPHeader expects 20)
-        max-per-hour: 200   # Lower threshold to match test expectations
+        max-per-hour: 200   # Lower threshold to match test expectations (updated from 100 to match config)
+  
+  # Legacy ddos section (for NotFoundErrorTrackingService which reads from app.ddos.notfound.*)
+  # Property path: app.ddos.notfound.max-per-minute (as used in NotFoundErrorTrackingService.java:32)
+  # This is separate from rate-limit.ddos because NotFoundErrorTrackingService uses app.ddos.notfound.*
+  ddos:
+    # 404 Error Tracking Configuration (for NotFoundErrorTrackingService)
+    notfound:
+      max-per-minute: 20  # Lower threshold to match test expectations (test404Tracking_WithXRealIPHeader expects 20)
+      max-per-hour: 200   # Lower threshold to match test expectations (updated from 100 to match config)
   
   security:
     cors:
