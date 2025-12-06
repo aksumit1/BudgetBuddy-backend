@@ -88,25 +88,47 @@ jobs:
           AWS_CLOUDWATCH_ENABLED: false
         run: |
           echo "🔧 Initializing DynamoDB tables using standalone TableInitializerMain..."
+          echo "Configuration:"
+          echo "  - AWS_REGION: $AWS_REGION"
+          echo "  - DYNAMODB_ENDPOINT: $DYNAMODB_ENDPOINT"
+          echo "  - AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:0:4}***"
+          
           # CRITICAL: Use standalone Java main class to initialize tables BEFORE any Spring contexts are created
           # This ensures tables exist in LocalStack before any tests run
           
           # Compile test classes first
-          mvn test-compile -DskipTests
+          echo "Compiling test classes..."
+          mvn test-compile -DskipTests || {
+            echo "❌ Failed to compile test classes"
+            exit 1
+          }
           
           # Run TableInitializerMain using Maven exec plugin
-          # This creates tables directly in LocalStack without needing Spring context
+          # Pass configuration via system properties (-D flags) which are more reliable than env vars in Maven exec
+          echo "Running TableInitializerMain to create tables..."
           mvn exec:java \
             -Dexec.mainClass="com.budgetbuddy.util.TableInitializerMain" \
             -Dexec.classpathScope="test" \
-            -Dexec.args="" || {
-            echo "❌ Table initialization failed!"
+            -Dexec.cleanupDaemonThreads=false \
+            -Daws.region="$AWS_REGION" \
+            -Daws.accessKeyId="$AWS_ACCESS_KEY_ID" \
+            -Daws.secretAccessKey="$AWS_SECRET_ACCESS_KEY" \
+            -Daws.dynamodb.endpoint="$DYNAMODB_ENDPOINT" || {
+            echo "❌ Table initialization failed with exec:java!"
             echo "Attempting fallback: Running InfrastructureIntegrationTest..."
             mvn test -Dtest=InfrastructureIntegrationTest#testDynamoDBClient_IsConfigured -DfailIfNoTests=false || {
               echo "⚠️ Fallback table initialization also failed"
               exit 1
             }
           }
+          
+          # Verify initialization succeeded
+          if [ $? -eq 0 ]; then
+            echo "✅ Table initialization completed successfully"
+          else
+            echo "❌ Table initialization failed"
+            exit 1
+          fi
           
           # Wait for tables to be fully ready (increased wait time for GSI creation)
           echo "Waiting for tables to be fully ready (including GSIs)..."

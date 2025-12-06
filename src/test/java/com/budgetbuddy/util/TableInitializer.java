@@ -18,28 +18,37 @@ public class TableInitializer {
     /**
      * Initialize all required DynamoDB tables with full schemas (including GSIs)
      * This method can be called before running tests to ensure tables exist
+     * @throws RuntimeException if any critical table fails to be created
      */
     public static void initializeTables(DynamoDbClient dynamoDbClient) {
         logger.info("Initializing DynamoDB tables with prefix: {} (with full schemas including GSIs)", TABLE_PREFIX);
         
-        createUsersTable(dynamoDbClient);
-        createAccountsTable(dynamoDbClient);
-        createTransactionsTable(dynamoDbClient);
-        createBudgetsTable(dynamoDbClient);
-        createGoalsTable(dynamoDbClient);
-        createTransactionActionsTable(dynamoDbClient);
-        createAuditLogsTable(dynamoDbClient);
-        createNotFoundTrackingTable(dynamoDbClient);
-        createRateLimitTable(dynamoDbClient);
-        createDDoSProtectionTable(dynamoDbClient);
-        createDeviceAttestationTable(dynamoDbClient);
-        createFIDO2CredentialsTable(dynamoDbClient);
-        createFIDO2ChallengesTable(dynamoDbClient);
-        createMFACredentialsTable(dynamoDbClient);
-        createMFABackupCodesTable(dynamoDbClient);
-        createMFAOTPCodesTable(dynamoDbClient);
-        
-        logger.info("✅ DynamoDB tables initialization complete");
+        try {
+            // Create critical tables first (required for most tests)
+            createUsersTable(dynamoDbClient);
+            createAccountsTable(dynamoDbClient);
+            createTransactionsTable(dynamoDbClient);
+            createBudgetsTable(dynamoDbClient);
+            createGoalsTable(dynamoDbClient);
+            createTransactionActionsTable(dynamoDbClient);
+            createAuditLogsTable(dynamoDbClient);
+            
+            // Create supporting tables
+            createNotFoundTrackingTable(dynamoDbClient);
+            createRateLimitTable(dynamoDbClient);
+            createDDoSProtectionTable(dynamoDbClient);
+            createDeviceAttestationTable(dynamoDbClient);
+            createFIDO2CredentialsTable(dynamoDbClient);
+            createFIDO2ChallengesTable(dynamoDbClient);
+            createMFACredentialsTable(dynamoDbClient);
+            createMFABackupCodesTable(dynamoDbClient);
+            createMFAOTPCodesTable(dynamoDbClient);
+            
+            logger.info("✅ DynamoDB tables initialization complete");
+        } catch (Exception e) {
+            logger.error("❌ Failed to initialize DynamoDB tables: {}", e.getMessage(), e);
+            throw new RuntimeException("Failed to initialize DynamoDB tables: " + e.getMessage(), e);
+        }
     }
 
     private static void createUsersTable(DynamoDbClient dynamoDbClient) {
@@ -75,7 +84,9 @@ public class TableInitializer {
         } catch (ResourceInUseException e) {
             logger.info("✅ Table {} already exists", tableName);
         } catch (Exception e) {
-            logger.error("❌ Failed to create table {}: {}", tableName, e.getMessage());
+            logger.error("❌ Failed to create table {}: {}", tableName, e.getMessage(), e);
+            // Re-throw for critical tables to fail fast
+            throw new RuntimeException("Failed to create table " + tableName + ": " + e.getMessage(), e);
         }
     }
 
@@ -115,7 +126,9 @@ public class TableInitializer {
         } catch (ResourceInUseException e) {
             logger.info("✅ Table {} already exists", tableName);
         } catch (Exception e) {
-            logger.error("❌ Failed to create table {}: {}", tableName, e.getMessage());
+            logger.error("❌ Failed to create table {}: {}", tableName, e.getMessage(), e);
+            // Re-throw for critical tables to fail fast
+            throw new RuntimeException("Failed to create table " + tableName + ": " + e.getMessage(), e);
         }
     }
 
@@ -166,7 +179,9 @@ public class TableInitializer {
         } catch (ResourceInUseException e) {
             logger.info("✅ Table {} already exists", tableName);
         } catch (Exception e) {
-            logger.error("❌ Failed to create table {}: {}", tableName, e.getMessage());
+            logger.error("❌ Failed to create table {}: {}", tableName, e.getMessage(), e);
+            // Re-throw for critical tables to fail fast
+            throw new RuntimeException("Failed to create table " + tableName + ": " + e.getMessage(), e);
         }
     }
 
@@ -225,7 +240,9 @@ public class TableInitializer {
         } catch (ResourceInUseException e) {
             logger.info("✅ Table {} already exists", tableName);
         } catch (Exception e) {
-            logger.error("❌ Failed to create table {}: {}", tableName, e.getMessage());
+            logger.error("❌ Failed to create table {}: {}", tableName, e.getMessage(), e);
+            // Re-throw for critical tables to fail fast
+            throw new RuntimeException("Failed to create table " + tableName + ": " + e.getMessage(), e);
         }
     }
 
@@ -270,7 +287,9 @@ public class TableInitializer {
         } catch (ResourceInUseException e) {
             logger.info("✅ Table {} already exists", tableName);
         } catch (Exception e) {
-            logger.error("❌ Failed to create table {}: {}", tableName, e.getMessage());
+            logger.error("❌ Failed to create table {}: {}", tableName, e.getMessage(), e);
+            // Re-throw for critical tables to fail fast
+            throw new RuntimeException("Failed to create table " + tableName + ": " + e.getMessage(), e);
         }
     }
 
@@ -316,7 +335,9 @@ public class TableInitializer {
         } catch (ResourceInUseException e) {
             logger.info("✅ Table {} already exists", tableName);
         } catch (Exception e) {
-            logger.error("❌ Failed to create table {}: {}", tableName, e.getMessage());
+            logger.error("❌ Failed to create table {}: {}", tableName, e.getMessage(), e);
+            // Re-throw for critical tables to fail fast
+            throw new RuntimeException("Failed to create table " + tableName + ": " + e.getMessage(), e);
         }
     }
 
@@ -354,7 +375,9 @@ public class TableInitializer {
         } catch (ResourceInUseException e) {
             logger.info("✅ Table {} already exists", tableName);
         } catch (Exception e) {
-            logger.error("❌ Failed to create table {}: {}", tableName, e.getMessage());
+            logger.error("❌ Failed to create table {}: {}", tableName, e.getMessage(), e);
+            // Re-throw for critical tables to fail fast
+            throw new RuntimeException("Failed to create table " + tableName + ": " + e.getMessage(), e);
         }
     }
 
@@ -393,7 +416,9 @@ public class TableInitializer {
         } catch (ResourceInUseException e) {
             logger.info("✅ Table {} already exists", tableName);
         } catch (Exception e) {
-            logger.error("❌ Failed to create table {}: {}", tableName, e.getMessage());
+            logger.error("❌ Failed to create table {}: {}", tableName, e.getMessage(), e);
+            // Re-throw for critical tables to fail fast
+            throw new RuntimeException("Failed to create table " + tableName + ": " + e.getMessage(), e);
         }
     }
 
@@ -427,7 +452,9 @@ public class TableInitializer {
         } catch (ResourceInUseException e) {
             logger.info("✅ Table {} already exists", tableName);
         } catch (Exception e) {
-            logger.error("❌ Failed to create table {}: {}", tableName, e.getMessage());
+            logger.error("❌ Failed to create table {}: {}", tableName, e.getMessage(), e);
+            // Re-throw for critical tables to fail fast
+            throw new RuntimeException("Failed to create table " + tableName + ": " + e.getMessage(), e);
         }
     }
 
@@ -467,7 +494,9 @@ public class TableInitializer {
         } catch (ResourceInUseException e) {
             logger.info("✅ Table {} already exists", tableName);
         } catch (Exception e) {
-            logger.error("❌ Failed to create table {}: {}", tableName, e.getMessage());
+            logger.error("❌ Failed to create table {}: {}", tableName, e.getMessage(), e);
+            // Re-throw for critical tables to fail fast
+            throw new RuntimeException("Failed to create table " + tableName + ": " + e.getMessage(), e);
         }
     }
 
@@ -494,7 +523,9 @@ public class TableInitializer {
         } catch (ResourceInUseException e) {
             logger.info("✅ Table {} already exists", tableName);
         } catch (Exception e) {
-            logger.error("❌ Failed to create table {}: {}", tableName, e.getMessage());
+            logger.error("❌ Failed to create table {}: {}", tableName, e.getMessage(), e);
+            // Re-throw for critical tables to fail fast
+            throw new RuntimeException("Failed to create table " + tableName + ": " + e.getMessage(), e);
         }
     }
 
