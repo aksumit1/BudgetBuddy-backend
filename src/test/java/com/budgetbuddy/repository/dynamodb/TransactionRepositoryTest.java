@@ -28,6 +28,7 @@ import static org.mockito.Mockito.*;
  * Tests transaction CRUD operations and query methods
  */
 @ExtendWith(MockitoExtension.class)
+@org.mockito.junit.jupiter.MockitoSettings(strictness = org.mockito.quality.Strictness.LENIENT)
 class TransactionRepositoryTest {
 
     @Mock
@@ -185,7 +186,8 @@ class TransactionRepositoryTest {
     @Test
     void testDelete_WithValidId_DeletesTransaction() {
         // Given
-        doNothing().when(transactionTable).deleteItem(any(Key.class));
+        // deleteItem returns void - verify it's called without stubbing
+        // (void methods don't need stubbing, just verification)
 
         // When
         transactionRepository.delete(testTransactionId);

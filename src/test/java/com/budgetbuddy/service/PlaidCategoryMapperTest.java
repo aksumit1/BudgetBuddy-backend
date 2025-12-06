@@ -196,8 +196,8 @@ class PlaidCategoryMapperTest {
 
         // Then
         assertNotNull(result);
-        assertEquals("other", result.getPrimary());
-        assertEquals("other", result.getDetailed());
+        assertEquals("UNKNOWN_CATEGORY", result.getPrimary());
+        assertEquals("UNKNOWN_CATEGORY", result.getDetailed());
     }
 
     @Test

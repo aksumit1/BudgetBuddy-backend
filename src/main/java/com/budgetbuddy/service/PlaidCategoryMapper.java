@@ -177,10 +177,16 @@ public class PlaidCategoryMapper {
         
         // Map primary category (only if not already set from detailed category)
         if (mappedPrimary == null && plaidCategoryPrimary != null && !plaidCategoryPrimary.isEmpty()) {
-            mappedPrimary = PRIMARY_CATEGORY_MAP.get(plaidCategoryPrimary.toUpperCase());
-            if (mappedPrimary == null) {
-                // If no mapping found, use Plaid's primary category as-is
-                mappedPrimary = plaidCategoryPrimary;
+            String upperPrimary = plaidCategoryPrimary.toUpperCase();
+            // Map "UNKNOWN_CATEGORY" to "other"
+            if ("UNKNOWN_CATEGORY".equals(upperPrimary)) {
+                mappedPrimary = "other";
+            } else {
+                mappedPrimary = PRIMARY_CATEGORY_MAP.get(upperPrimary);
+                if (mappedPrimary == null) {
+                    // If no mapping found, use Plaid's primary category as-is
+                    mappedPrimary = plaidCategoryPrimary;
+                }
             }
             logger.debug("Mapped Plaid primary category '{}' to '{}'", plaidCategoryPrimary, mappedPrimary);
         }

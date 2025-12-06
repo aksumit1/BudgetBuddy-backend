@@ -27,6 +27,7 @@ import static org.mockito.Mockito.*;
  * Tests user CRUD operations and email lookup
  */
 @ExtendWith(MockitoExtension.class)
+@org.mockito.junit.jupiter.MockitoSettings(strictness = org.mockito.quality.Strictness.LENIENT)
 class UserRepositoryTest {
 
     @Mock
@@ -51,9 +52,10 @@ class UserRepositoryTest {
         testUserId = UUID.randomUUID().toString();
         testEmail = "test@example.com";
         
-        when(enhancedClient.table(anyString(), any(software.amazon.awssdk.enhanced.dynamodb.TableSchema.class)))
+        // Use lenient stubbing to avoid unnecessary stubbing errors for tests that don't use these
+        org.mockito.Mockito.lenient().when(enhancedClient.table(anyString(), any(software.amazon.awssdk.enhanced.dynamodb.TableSchema.class)))
                 .thenReturn(userTable);
-        when(userTable.index("EmailIndex")).thenReturn(emailIndex);
+        org.mockito.Mockito.lenient().when(userTable.index("EmailIndex")).thenReturn(emailIndex);
         
         userRepository = new UserRepository(enhancedClient, dynamoDbClient, "BudgetBuddy");
         

@@ -57,7 +57,7 @@ class PushNotificationServiceTest {
         // Given
         // Note: Since getDeviceEndpointArn is private and returns null, we can't easily test
         // the success path without reflection. This test verifies error handling.
-        when(objectMapper.writeValueAsString(any())).thenThrow(new RuntimeException("JSON error"));
+        // Note: writeValueAsString won't be called if getDeviceEndpointArn returns null
 
         // When - This will fail at message creation
         // Since getDeviceEndpointArn returns null, this will return false before reaching publish

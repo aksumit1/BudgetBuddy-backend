@@ -57,7 +57,8 @@ class DeviceAttestationServiceTest {
                 ))
                 .build();
         when(dynamoDbClient.getItem(any(GetItemRequest.class))).thenReturn(response);
-        doNothing().when(dynamoDbClient).updateItem(any(UpdateItemRequest.class));
+        when(dynamoDbClient.updateItem(any(UpdateItemRequest.class)))
+                .thenReturn(software.amazon.awssdk.services.dynamodb.model.UpdateItemResponse.builder().build());
 
         // When
         boolean result = deviceAttestationService.verifyDevice(testDeviceId, testUserId);
@@ -92,7 +93,8 @@ class DeviceAttestationServiceTest {
         // Given
         GetItemResponse emptyResponse = GetItemResponse.builder().build();
         when(dynamoDbClient.getItem(any(GetItemRequest.class))).thenReturn(emptyResponse);
-        doNothing().when(dynamoDbClient).putItem(any(PutItemRequest.class));
+        when(dynamoDbClient.putItem(any(PutItemRequest.class)))
+                .thenReturn(software.amazon.awssdk.services.dynamodb.model.PutItemResponse.builder().build());
 
         // When
         boolean result = deviceAttestationService.verifyDevice(testDeviceId, testUserId);
@@ -109,7 +111,8 @@ class DeviceAttestationServiceTest {
         String platform = "ios";
         GetItemResponse emptyResponse = GetItemResponse.builder().build();
         when(dynamoDbClient.getItem(any(GetItemRequest.class))).thenReturn(emptyResponse);
-        doNothing().when(dynamoDbClient).putItem(any(PutItemRequest.class));
+        when(dynamoDbClient.putItem(any(PutItemRequest.class)))
+                .thenReturn(software.amazon.awssdk.services.dynamodb.model.PutItemResponse.builder().build());
 
         // When
         boolean result = deviceAttestationService.verifyDevice(testDeviceId, testUserId, attestationToken, platform);
@@ -140,7 +143,8 @@ class DeviceAttestationServiceTest {
         String platform = "android";
         GetItemResponse emptyResponse = GetItemResponse.builder().build();
         when(dynamoDbClient.getItem(any(GetItemRequest.class))).thenReturn(emptyResponse);
-        doNothing().when(dynamoDbClient).putItem(any(PutItemRequest.class));
+        when(dynamoDbClient.putItem(any(PutItemRequest.class)))
+                .thenReturn(software.amazon.awssdk.services.dynamodb.model.PutItemResponse.builder().build());
 
         // When
         boolean result = deviceAttestationService.verifyDevice(testDeviceId, testUserId, jwtToken, platform);

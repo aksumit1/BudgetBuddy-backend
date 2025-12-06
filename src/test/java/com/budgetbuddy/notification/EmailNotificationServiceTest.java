@@ -105,8 +105,7 @@ class EmailNotificationServiceTest {
         Map<String, Object> templateData = new HashMap<>();
         when(objectMapper.writeValueAsString(templateData))
                 .thenThrow(new RuntimeException("JSON error"));
-        when(sesClient.sendTemplatedEmail(any(SendTemplatedEmailRequest.class)))
-                .thenThrow(new RuntimeException("SES error"));
+        // Note: sendTemplatedEmail won't be called if writeValueAsString throws
 
         // When
         boolean result = emailService.sendEmail(testUserId, testToEmail, "Subject", "Body", templateId, templateData);

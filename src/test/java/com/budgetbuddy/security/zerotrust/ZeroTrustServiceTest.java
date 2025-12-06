@@ -97,15 +97,18 @@ class ZeroTrustServiceTest {
     @Test
     void testVerifyAccess_WithHighRiskScore_DeniesAccess() {
         // Given
+        String highSensitivityResource = "/api/admin/users";
+        String deleteAction = "DELETE";
         when(identityVerificationService.verifyIdentity(testUserId)).thenReturn(true);
         when(deviceAttestationService.verifyDevice(testDeviceId, testUserId)).thenReturn(true);
         when(deviceAttestationService.getDeviceTrustLevel(testDeviceId))
                 .thenReturn(DeviceAttestationService.DeviceTrustLevel.LOW); // Low trust = high risk
-        when(identityVerificationService.hasPermission(testUserId, testResource, testAction)).thenReturn(true);
+        // Fix: Use the actual resource and action that will be called
+        when(identityVerificationService.hasPermission(testUserId, highSensitivityResource, deleteAction)).thenReturn(true);
 
         // When - Access to high-sensitivity resource with low trust device
         ZeroTrustService.ZeroTrustResult result = zeroTrustService.verifyAccess(
-                testUserId, testDeviceId, "/api/admin/users", "DELETE");
+                testUserId, testDeviceId, highSensitivityResource, deleteAction);
 
         // Then
         // Risk score calculation depends on multiple factors

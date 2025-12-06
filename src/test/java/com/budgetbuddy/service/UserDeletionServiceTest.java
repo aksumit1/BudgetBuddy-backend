@@ -23,6 +23,7 @@ import java.util.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.eq;
 
 /**
  * Unit Tests for UserDeletionService
@@ -146,7 +147,7 @@ class UserDeletionServiceTest {
         doNothing().when(accountRepository).save(any(AccountTable.class));
         doNothing().when(transactionRepository).batchDelete(anyList());
         doNothing().when(accountRepository).batchDelete(anyList());
-        doNothing().when(auditLogService).logAction(anyString(), anyString(), anyString(), any(), any(), any(), any());
+        doNothing().when(auditLogService).logAction(eq(testUserId), eq("DELETE_PLAID_INTEGRATION"), eq("PLAID"), eq(null), any(), eq(null), eq(null));
 
         // When
         userDeletionService.deletePlaidIntegration(testUserId);
@@ -178,7 +179,7 @@ class UserDeletionServiceTest {
         
         doNothing().when(userRepository).delete(anyString());
         doNothing().when(auditLogService).logDataDeletion(anyString());
-        doNothing().when(auditLogService).logAction(anyString(), anyString(), anyString(), any(), any(), any(), any());
+        doNothing().when(auditLogService).logAction(eq(testUserId), eq("DELETE_ACCOUNT"), eq("USER"), eq(testUserId), any(), eq(null), eq(null));
 
         // When
         userDeletionService.deleteAccountCompletely(testUserId);

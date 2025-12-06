@@ -24,6 +24,7 @@ import static org.mockito.Mockito.*;
  * Tests PCI-DSS compliance functionality
  */
 @ExtendWith(MockitoExtension.class)
+@org.mockito.junit.jupiter.MockitoSettings(strictness = org.mockito.quality.Strictness.LENIENT)
 class PCIDSSComplianceServiceTest {
 
     @Mock
@@ -175,8 +176,7 @@ class PCIDSSComplianceServiceTest {
         String resource = "/api/transactions";
         String action = "READ";
         doNothing().when(auditLogService).logCardholderDataAccess(anyString(), anyString(), anyBoolean());
-        PutMetricDataResponse response = PutMetricDataResponse.builder().build();
-        when(cloudWatchClient.putMetricData(any(PutMetricDataRequest.class))).thenReturn(response);
+        // Note: putMetricData is only called for unauthorized access, not for authorized access
 
         // When
         boolean result = pciDSSComplianceService.checkAccessAuthorization(testUserId, resource, action);
