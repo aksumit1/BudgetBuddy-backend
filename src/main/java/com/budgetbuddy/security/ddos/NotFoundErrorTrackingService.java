@@ -29,6 +29,9 @@ public class NotFoundErrorTrackingService {
     private static final Logger logger = LoggerFactory.getLogger(NotFoundErrorTrackingService.class);
 
     // Configuration - Configurable via properties for different environments
+    @Value("${app.ddos.notfound.enabled:true}")
+    private boolean notFoundTrackingEnabled; // Allow disabling 404 tracking in tests
+    
     @Value("${app.ddos.notfound.max-per-minute:500}")
     private int max404PerMinute; // Allow up to 500 404s per minute (default, configurable for tests)
     
@@ -74,6 +77,11 @@ public class NotFoundErrorTrackingService {
      * @return true if source should be blocked, false otherwise
      */
     public boolean recordNotFoundError(final String sourceId) {
+        // If 404 tracking is disabled, never block
+        if (!notFoundTrackingEnabled) {
+            return false;
+        }
+        
         if (sourceId == null || sourceId.isEmpty()) {
             return false;
         }
@@ -129,6 +137,10 @@ public class NotFoundErrorTrackingService {
      * Check if a source is currently blocked due to excessive 404s
      */
     public boolean isBlocked(final String sourceId) {
+        // If 404 tracking is disabled, never block
+        if (!notFoundTrackingEnabled) {
+            return false;
+        }
         if (sourceId == null || sourceId.isEmpty()) {
             return false;
         }

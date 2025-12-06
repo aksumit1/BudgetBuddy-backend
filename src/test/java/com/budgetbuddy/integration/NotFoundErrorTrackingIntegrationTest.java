@@ -36,6 +36,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ActiveProfiles("test")
 @Import(AWSTestConfiguration.class)
 @org.springframework.test.annotation.DirtiesContext(classMode = org.springframework.test.annotation.DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
+@org.springframework.test.context.TestPropertySource(properties = {
+    "app.ddos.notfound.enabled=true",
+    "app.ddos.notfound.max-per-minute=20",
+    "app.ddos.notfound.max-per-hour=200"
+})
 class NotFoundErrorTrackingIntegrationTest {
 
     @Autowired

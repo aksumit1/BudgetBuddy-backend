@@ -55,7 +55,7 @@ app:
     return-otp-in-response: true
   
   rate-limit:
-    enabled: true # Enable rate limiting but with very high limits for CI/GitHub
+    enabled: false # Disable rate limiting in tests to avoid interference with test execution
     requests-per-minute: 1000000000 # 1 billion per minute (extremely high for CI/GitHub)
     requests-per-hour: 10000000000 # 10 billion per hour (extremely high for CI/GitHub)
     # Per-endpoint limits for tests (extremely high to support CI/GitHub test runs and multiple mvn install executions)
@@ -82,17 +82,20 @@ app:
       # Note: Some tests expect blocking at 20 requests, so we use a lower threshold for those tests
       # Other tests can handle higher thresholds
       notfound:
-        max-per-minute: 20  # Lower threshold to match test expectations (test404Tracking_WithXRealIPHeader expects 20)
-        max-per-hour: 200   # Lower threshold to match test expectations (updated from 100 to match config)
+        max-per-minute: 1000000  # Very high limit for tests (1 million per minute) - only NotFoundErrorTrackingIntegrationTest uses lower limit
+        max-per-hour: 10000000   # Very high limit for tests (10 million per hour)
   
   # Legacy ddos section (for NotFoundErrorTrackingService which reads from app.ddos.notfound.*)
   # Property path: app.ddos.notfound.max-per-minute (as used in NotFoundErrorTrackingService.java:32)
   # This is separate from rate-limit.ddos because NotFoundErrorTrackingService uses app.ddos.notfound.*
   ddos:
     # 404 Error Tracking Configuration (for NotFoundErrorTrackingService)
+    # Note: NotFoundErrorTrackingIntegrationTest specifically tests 404 tracking with threshold of 20
+    # For that test, we'll use @TestPropertySource to override with lower limit
     notfound:
-      max-per-minute: 20  # Lower threshold to match test expectations (test404Tracking_WithXRealIPHeader expects 20)
-      max-per-hour: 200   # Lower threshold to match test expectations (updated from 100 to match config)
+      enabled: false  # Disable 404 error tracking in tests (except NotFoundErrorTrackingIntegrationTest which overrides this)
+      max-per-minute: 1000000  # Very high limit for tests (1 million per minute) - only NotFoundErrorTrackingIntegrationTest uses lower limit
+      max-per-hour: 10000000   # Very high limit for tests (10 million per hour)
   
   security:
     cors:
