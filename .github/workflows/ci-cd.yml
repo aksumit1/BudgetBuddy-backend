@@ -108,21 +108,42 @@ jobs:
             }
           }
           
-          # Wait a moment for tables to be fully ready
-          echo "Waiting for tables to be fully ready..."
-          sleep 5
+          # Wait for tables to be fully ready (increased wait time for GSI creation)
+          echo "Waiting for tables to be fully ready (including GSIs)..."
+          sleep 10  # Increased from 5 to 10 seconds to allow GSIs to be created
           
           # Verify critical tables exist using AWS CLI (if available)
-          echo "Verifying critical tables exist..."
+          echo "Verifying critical tables exist with proper schemas..."
           if command -v aws &> /dev/null; then
-            # Check for Users table (most critical)
+            # Check for Users table (most critical) and verify it has EmailIndex GSI
             if aws dynamodb describe-table --table-name TestBudgetBuddy-Users --endpoint-url http://localhost:4566 --region us-east-1 &> /dev/null; then
               echo "✅ Users table exists"
+              # Verify EmailIndex GSI exists
+              if aws dynamodb describe-table --table-name TestBudgetBuddy-Users --endpoint-url http://localhost:4566 --region us-east-1 2>&1 | grep -q "EmailIndex"; then
+                echo "✅ Users table has EmailIndex GSI"
+              else
+                echo "⚠️ Users table missing EmailIndex GSI - this may cause test failures"
+              fi
             else
               echo "⚠️ Users table not found - this may cause test failures"
             fi
+            
+            # Check Accounts table
+            if aws dynamodb describe-table --table-name TestBudgetBuddy-Accounts --endpoint-url http://localhost:4566 --region us-east-1 &> /dev/null; then
+              echo "✅ Accounts table exists"
+            else
+              echo "⚠️ Accounts table not found"
+            fi
+            
+            # Check Transactions table
+            if aws dynamodb describe-table --table-name TestBudgetBuddy-Transactions --endpoint-url http://localhost:4566 --region us-east-1 &> /dev/null; then
+              echo "✅ Transactions table exists"
+            else
+              echo "⚠️ Transactions table not found"
+            fi
           else
             echo "⚠️ AWS CLI not available, skipping table verification"
+            echo "⚠️ Note: Tables should be created by TableInitializerMain"
           fi
           
           echo "✅ DynamoDB tables initialization complete"

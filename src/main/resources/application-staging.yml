@@ -73,6 +73,8 @@ app:
       length: 8
     otp:
       expiration-seconds: 300 # 5 minutes
+    # Never return OTP in response in staging (security requirement)
+    return-otp-in-response: false
 
   # FIDO2/WebAuthn Configuration
   fido2:

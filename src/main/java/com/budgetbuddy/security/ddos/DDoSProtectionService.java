@@ -40,7 +40,7 @@ public class DDoSProtectionService {
     private static final long CACHE_CLEANUP_INTERVAL_MS = 300000; // 5 minutes
 
     private final DynamoDbClient dynamoDbClient;
-    private final String tableName = "BudgetBuddy-DDoSProtection";
+    private final String tableName; // Configured via table prefix for different environments
 
     // In-memory cache for hot paths (reduces DynamoDB costs)
     private final Map<String, RequestCounter> inMemoryCache = new ConcurrentHashMap<>();
@@ -52,11 +52,18 @@ public class DDoSProtectionService {
     private volatile long lastDynamoDbCheck = 0;
     private static final long DYNAMODB_CHECK_INTERVAL_MS = 60000; // Check every minute
 
-    public DDoSProtectionService(final DynamoDbClient dynamoDbClient) {
+    public DDoSProtectionService(
+            final DynamoDbClient dynamoDbClient,
+            @Value("${app.aws.dynamodb.table-prefix:BudgetBuddy}") String tablePrefix) {
         if (dynamoDbClient == null) {
             throw new IllegalArgumentException("DynamoDbClient cannot be null");
         }
         this.dynamoDbClient = dynamoDbClient;
+        // Use table prefix from configuration for different environments:
+        // - LocalStack/CI: TestBudgetBuddy-DDoSProtection
+        // - Staging: BudgetBuddyStaging-DDoSProtection
+        // - Production: BudgetBuddy-DDoSProtection
+        this.tableName = tablePrefix + "-DDoSProtection";
         boolean initialized = initializeTable();
         if (!initialized) {
             logger.warn("DDoS protection initialized with in-memory only mode (DynamoDB unavailable). " +
@@ -198,7 +205,7 @@ public class DDoSProtectionService {
             // Configure TTL separately
             try {
                 dynamoDbClient.updateTimeToLive(UpdateTimeToLiveRequest.builder()
-                        .tableName("BudgetBuddy-DDoSProtection")
+                        .tableName(tableName)
                         .timeToLiveSpecification(TimeToLiveSpecification.builder()
                                 .enabled(true)
                                 .attributeName("ttl")

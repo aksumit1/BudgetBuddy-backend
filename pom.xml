@@ -390,8 +390,10 @@
                     <compilerArgs>
                         <arg>-Xlint:deprecation</arg>
                         <arg>-Xlint:unchecked</arg>
+                        <arg>-Xlint:all</arg>
                     </compilerArgs>
                     <showWarnings>true</showWarnings>
+                    <failOnWarning>false</failOnWarning>
                     <showDeprecation>true</showDeprecation>
                     <annotationProcessorPaths>
                         <path>

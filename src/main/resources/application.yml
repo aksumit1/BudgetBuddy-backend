@@ -161,6 +161,9 @@ app:
       length: ${MFA_BACKUP_CODES_LENGTH:8}
     otp:
       expiration-seconds: ${MFA_OTP_EXPIRATION_SECONDS:300}
+    # Return OTP in response (only for dev/test environments)
+    # Set to true for LocalStack/CI/testing, false for staging/production
+    return-otp-in-response: ${MFA_RETURN_OTP_IN_RESPONSE:false}
 
   # FIDO2/WebAuthn Configuration
   fido2:

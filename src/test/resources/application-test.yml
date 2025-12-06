@@ -49,6 +49,11 @@ app:
     secret: test-secret
     environment: sandbox
   
+  # MFA Configuration for Tests
+  mfa:
+    # Return OTP in response for testing (LocalStack doesn't send real SMS/email)
+    return-otp-in-response: true
+  
   rate-limit:
     enabled: false # Disabled for tests to avoid rate limiting issues
     requests-per-minute: 10000000 # Very high limit for heavy testing (10 million per minute)

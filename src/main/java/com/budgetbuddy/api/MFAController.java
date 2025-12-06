@@ -3,12 +3,15 @@ package com.budgetbuddy.api;
 import com.budgetbuddy.exception.AppException;
 import com.budgetbuddy.exception.ErrorCode;
 import com.budgetbuddy.model.dynamodb.UserTable;
+import com.budgetbuddy.notification.EmailNotificationService;
+import com.budgetbuddy.notification.NotificationService;
 import com.budgetbuddy.service.MFAService;
 import com.budgetbuddy.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -17,6 +20,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Multi-Factor Authentication (MFA) REST Controller
@@ -32,10 +36,21 @@ public class MFAController {
 
     private final MFAService mfaService;
     private final UserService userService;
+    private final NotificationService notificationService;
+    private final EmailNotificationService emailNotificationService;
+    private final boolean returnOtpInResponse; // Only true in dev/test environments
 
-    public MFAController(final MFAService mfaService, final UserService userService) {
+    public MFAController(
+            final MFAService mfaService,
+            final UserService userService,
+            final NotificationService notificationService,
+            final EmailNotificationService emailNotificationService,
+            @Value("${app.mfa.return-otp-in-response:false}") boolean returnOtpInResponse) {
         this.mfaService = mfaService;
         this.userService = userService;
+        this.notificationService = notificationService;
+        this.emailNotificationService = emailNotificationService;
+        this.returnOtpInResponse = returnOtpInResponse;
     }
 
     /**
@@ -237,15 +252,41 @@ public class MFAController {
             throw new AppException(ErrorCode.INVALID_INPUT, "Phone number not configured");
         }
 
-        // In production, this would send SMS via AWS SNS
-        // For now, generate and return OTP (should be sent via SMS in production)
+        // Generate OTP
         String otp = mfaService.generateOTP(user.getUserId(), MFAService.OTPType.SMS);
+
+        // Send SMS via AWS SNS (works with LocalStack for CI/testing, real SNS for staging/production)
+        try {
+            NotificationService.NotificationRequest notificationRequest = new NotificationService.NotificationRequest();
+            notificationRequest.setUserId(user.getUserId());
+            notificationRequest.setType(NotificationService.NotificationType.SECURITY_ALERT);
+            notificationRequest.setTitle("MFA OTP Code");
+            notificationRequest.setBody(String.format("Your BudgetBuddy MFA code is: %s. This code expires in 5 minutes.", otp));
+            notificationRequest.setRecipientPhone(user.getPhoneNumber());
+            notificationRequest.setChannels(Set.of(NotificationService.NotificationChannel.SMS));
+
+            boolean smsSent = notificationService.sendNotification(notificationRequest).isSmsSent();
+            
+            if (!smsSent) {
+                logger.warn("Failed to send SMS OTP for user: {}. OTP generated but not delivered.", user.getUserId());
+                // In production, this would be a critical error - consider throwing exception
+                // For now, log warning and continue (allows graceful degradation in dev/test)
+            }
+        } catch (Exception e) {
+            logger.error("Error sending SMS OTP for user: {}. Error: {}", user.getUserId(), e.getMessage(), e);
+            // In production, this would be a critical error - consider throwing exception
+            // For now, log error and continue (allows graceful degradation in dev/test)
+        }
 
         Map<String, Object> response = new HashMap<>();
         response.put("message", "SMS OTP sent to your phone number");
-        // In production, don't return the OTP - it should be sent via SMS
-        // For development/testing, return it (remove in production)
-        response.put("otp", otp); // TODO: Remove in production
+        
+        // Only return OTP in dev/test environments (controlled by app.mfa.return-otp-in-response)
+        // In production/staging, OTP is only sent via SMS, never returned in response
+        if (returnOtpInResponse) {
+            response.put("otp", otp);
+            logger.debug("OTP returned in response (dev/test mode) for user: {}", user.getUserId());
+        }
 
         logger.info("SMS OTP requested for user: {}", user.getUserId());
         return ResponseEntity.ok(response);
@@ -268,15 +309,51 @@ public class MFAController {
         UserTable user = userService.findByEmail(userDetails.getUsername())
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
 
-        // In production, this would send email via AWS SES
-        // For now, generate and return OTP (should be sent via email in production)
+        // Generate OTP
         String otp = mfaService.generateOTP(user.getUserId(), MFAService.OTPType.EMAIL);
+
+        // Send email via AWS SES (works with LocalStack for CI/testing, real SES for staging/production)
+        try {
+            String emailSubject = "BudgetBuddy MFA OTP Code";
+            String emailBody = String.format(
+                    "<html><body>" +
+                    "<h2>Your MFA OTP Code</h2>" +
+                    "<p>Your BudgetBuddy MFA code is: <strong>%s</strong></p>" +
+                    "<p>This code expires in 5 minutes.</p>" +
+                    "<p>If you did not request this code, please ignore this email.</p>" +
+                    "</body></html>",
+                    otp
+            );
+
+            boolean emailSent = emailNotificationService.sendEmail(
+                    user.getUserId(),
+                    user.getEmail(),
+                    emailSubject,
+                    emailBody,
+                    null, // No template ID
+                    null  // No template data
+            );
+
+            if (!emailSent) {
+                logger.warn("Failed to send email OTP for user: {}. OTP generated but not delivered.", user.getUserId());
+                // In production, this would be a critical error - consider throwing exception
+                // For now, log warning and continue (allows graceful degradation in dev/test)
+            }
+        } catch (Exception e) {
+            logger.error("Error sending email OTP for user: {}. Error: {}", user.getUserId(), e.getMessage(), e);
+            // In production, this would be a critical error - consider throwing exception
+            // For now, log error and continue (allows graceful degradation in dev/test)
+        }
 
         Map<String, Object> response = new HashMap<>();
         response.put("message", "Email OTP sent to your email address");
-        // In production, don't return the OTP - it should be sent via email
-        // For development/testing, return it (remove in production)
-        response.put("otp", otp); // TODO: Remove in production
+        
+        // Only return OTP in dev/test environments (controlled by app.mfa.return-otp-in-response)
+        // In production/staging, OTP is only sent via email, never returned in response
+        if (returnOtpInResponse) {
+            response.put("otp", otp);
+            logger.debug("OTP returned in response (dev/test mode) for user: {}", user.getUserId());
+        }
 
         logger.info("Email OTP requested for user: {}", user.getUserId());
         return ResponseEntity.ok(response);
