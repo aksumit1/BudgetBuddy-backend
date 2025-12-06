@@ -101,7 +101,8 @@ class PlaidCategoryIntegrationTest {
                 null,
                 null,
                 "groceries",
-                "groceries"
+                "groceries",
+                null
         );
 
         // Then - Verify override is applied

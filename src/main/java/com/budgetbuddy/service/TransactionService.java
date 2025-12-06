@@ -320,7 +320,7 @@ public class TransactionService {
      * Supports lookup by transactionId or plaidTransactionId (fallback)
      */
     public TransactionTable updateTransaction(final UserTable user, final String transactionId, final String notes) {
-        return updateTransaction(user, transactionId, null, notes, null, null);
+        return updateTransaction(user, transactionId, null, notes, null, null, null);
     }
     
     /**
