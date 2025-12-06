@@ -67,7 +67,7 @@ class AccountRepositoryTest {
         when(accountTable.index("PlaidAccountIdIndex")).thenReturn(plaidAccountIdIndex);
         
         // Construct repository with mocks
-        accountRepository = new AccountRepository(enhancedClient, dynamoDbClient);
+        accountRepository = new AccountRepository(enhancedClient, dynamoDbClient, "TestBudgetBuddy");
     }
 
     @Test

@@ -22,10 +22,13 @@ public class FIDO2CredentialRepository {
 
     private final DynamoDbTable<FIDO2CredentialTable> credentialTable;
     private final DynamoDbIndex<FIDO2CredentialTable> userIdIndex;
-    private static final String TABLE_NAME = "BudgetBuddy-FIDO2Credentials";
+    private final String tableName;
 
-    public FIDO2CredentialRepository(final DynamoDbEnhancedClient enhancedClient) {
-        this.credentialTable = enhancedClient.table(TABLE_NAME, 
+    public FIDO2CredentialRepository(
+            final DynamoDbEnhancedClient enhancedClient,
+            @org.springframework.beans.factory.annotation.Value("${app.aws.dynamodb.table-prefix:BudgetBuddy}") final String tablePrefix) {
+        this.tableName = tablePrefix + "-FIDO2Credentials";
+        this.credentialTable = enhancedClient.table(this.tableName, 
                 TableSchema.fromBean(FIDO2CredentialTable.class));
         this.userIdIndex = credentialTable.index("UserIdIndex");
     }

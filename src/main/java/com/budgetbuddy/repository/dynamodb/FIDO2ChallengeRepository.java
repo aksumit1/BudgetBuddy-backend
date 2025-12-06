@@ -18,10 +18,13 @@ import java.util.Optional;
 public class FIDO2ChallengeRepository {
 
     private final DynamoDbTable<FIDO2ChallengeTable> challengeTable;
-    private static final String TABLE_NAME = "BudgetBuddy-FIDO2Challenges";
+    private final String tableName;
 
-    public FIDO2ChallengeRepository(final DynamoDbEnhancedClient enhancedClient) {
-        this.challengeTable = enhancedClient.table(TABLE_NAME, 
+    public FIDO2ChallengeRepository(
+            final DynamoDbEnhancedClient enhancedClient,
+            @org.springframework.beans.factory.annotation.Value("${app.aws.dynamodb.table-prefix:BudgetBuddy}") final String tablePrefix) {
+        this.tableName = tablePrefix + "-FIDO2Challenges";
+        this.challengeTable = enhancedClient.table(this.tableName, 
                 TableSchema.fromBean(FIDO2ChallengeTable.class));
     }
 

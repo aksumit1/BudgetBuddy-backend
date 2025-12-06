@@ -26,10 +26,13 @@ public class TransactionActionRepository {
     private final DynamoDbIndex<TransactionActionTable> transactionIdIndex;
     private final DynamoDbIndex<TransactionActionTable> userIdIndex;
     private final DynamoDbIndex<TransactionActionTable> reminderDateIndex;
-    private static final String TABLE_NAME = "BudgetBuddy-TransactionActions";
+    private final String tableName;
 
-    public TransactionActionRepository(final DynamoDbEnhancedClient enhancedClient) {
-        this.actionTable = enhancedClient.table(TABLE_NAME,
+    public TransactionActionRepository(
+            final DynamoDbEnhancedClient enhancedClient,
+            @org.springframework.beans.factory.annotation.Value("${app.aws.dynamodb.table-prefix:BudgetBuddy}") final String tablePrefix) {
+        this.tableName = tablePrefix + "-TransactionActions";
+        this.actionTable = enhancedClient.table(this.tableName,
                 TableSchema.fromBean(TransactionActionTable.class));
         this.transactionIdIndex = actionTable.index("TransactionIdIndex");
         this.userIdIndex = actionTable.index("UserIdIndex");

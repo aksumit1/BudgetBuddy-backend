@@ -33,13 +33,15 @@ public class UserRepository {
 
     private final DynamoDbTable<UserTable> userTable;
     private final DynamoDbClient dynamoDbClient;
-    private static final String TABLE_NAME = "BudgetBuddy-Users";
+    private final String tableName;
     private static final String EMAIL_INDEX = "EmailIndex";
 
     public UserRepository(
             final DynamoDbEnhancedClient enhancedClient,
-            final DynamoDbClient dynamoDbClient) {
-        this.userTable = enhancedClient.table(TABLE_NAME, TableSchema.fromBean(UserTable.class));
+            final DynamoDbClient dynamoDbClient,
+            @org.springframework.beans.factory.annotation.Value("${app.aws.dynamodb.table-prefix:BudgetBuddy}") final String tablePrefix) {
+        this.tableName = tablePrefix + "-Users";
+        this.userTable = enhancedClient.table(this.tableName, TableSchema.fromBean(UserTable.class));
         this.dynamoDbClient = dynamoDbClient;
     }
 
@@ -302,7 +304,7 @@ public class UserRepository {
 
             // Build GetItem request with projection
             GetItemRequest request = GetItemRequest.builder()
-                    .tableName(TABLE_NAME)
+                    .tableName(this.tableName)
                     .key(key)
                     .projectionExpression(projectionExpression.toString())
                     .expressionAttributeNames(expressionAttributeNames.isEmpty() ? null : expressionAttributeNames)

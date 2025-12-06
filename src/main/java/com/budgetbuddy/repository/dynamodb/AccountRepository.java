@@ -35,12 +35,14 @@ public class AccountRepository {
     private final DynamoDbIndex<AccountTable> userIdIndex;
     private final DynamoDbIndex<AccountTable> plaidAccountIdIndex;
     private final DynamoDbClient dynamoDbClient;
-    private static final String TABLE_NAME = "BudgetBuddy-Accounts";
+    private final String tableName;
 
     public AccountRepository(
             final DynamoDbEnhancedClient enhancedClient,
-            final DynamoDbClient dynamoDbClient) {
-        this.accountTable = enhancedClient.table(TABLE_NAME,
+            final DynamoDbClient dynamoDbClient,
+            @org.springframework.beans.factory.annotation.Value("${app.aws.dynamodb.table-prefix:BudgetBuddy}") final String tablePrefix) {
+        this.tableName = tablePrefix + "-Accounts";
+        this.accountTable = enhancedClient.table(this.tableName,
                 TableSchema.fromBean(AccountTable.class));
         this.userIdIndex = accountTable.index("UserIdIndex");
         this.plaidAccountIdIndex =
@@ -320,7 +322,7 @@ public class AccountRepository {
                     .collect(Collectors.toList());
 
             Map<String, List<WriteRequest>> requestItems = new HashMap<>();
-            requestItems.put(TABLE_NAME, writeRequests);
+            requestItems.put(this.tableName, writeRequests);
 
             BatchWriteItemRequest batchRequest = BatchWriteItemRequest.builder()
                     .requestItems(requestItems)
@@ -366,7 +368,7 @@ public class AccountRepository {
                     .collect(Collectors.toList());
 
             Map<String, List<WriteRequest>> requestItems = new HashMap<>();
-            requestItems.put(TABLE_NAME, writeRequests);
+            requestItems.put(this.tableName, writeRequests);
 
             BatchWriteItemRequest batchRequest = BatchWriteItemRequest.builder()
                     .requestItems(requestItems)

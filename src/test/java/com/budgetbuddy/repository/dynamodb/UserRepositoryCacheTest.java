@@ -65,7 +65,7 @@ class UserRepositoryCacheTest {
         when(userTable.index("EmailIndex")).thenReturn(emailIndex);
         
         // Construct repository with mocks
-        userRepository = new UserRepository(enhancedClient, dynamoDbClient);
+        userRepository = new UserRepository(enhancedClient, dynamoDbClient, "TestBudgetBuddy");
     }
 
     @Test

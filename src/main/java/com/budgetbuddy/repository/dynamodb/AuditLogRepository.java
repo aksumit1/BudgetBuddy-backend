@@ -21,10 +21,13 @@ public class AuditLogRepository {
 
     private final DynamoDbTable<AuditLogTable> auditLogTable;
     private final DynamoDbIndex<AuditLogTable> userIdCreatedAtIndex;
-    private static final String TABLE_NAME = "BudgetBuddy-AuditLogs";
+    private final String tableName;
 
-    public AuditLogRepository(final DynamoDbEnhancedClient enhancedClient) {
-        this.auditLogTable = enhancedClient.table(TABLE_NAME, TableSchema.fromBean(AuditLogTable.class));
+    public AuditLogRepository(
+            final DynamoDbEnhancedClient enhancedClient,
+            @org.springframework.beans.factory.annotation.Value("${app.aws.dynamodb.table-prefix:BudgetBuddy}") final String tablePrefix) {
+        this.tableName = tablePrefix + "-AuditLogs";
+        this.auditLogTable = enhancedClient.table(this.tableName, TableSchema.fromBean(AuditLogTable.class));
         this.userIdCreatedAtIndex = auditLogTable.index("UserIdCreatedAtIndex");
     }
 

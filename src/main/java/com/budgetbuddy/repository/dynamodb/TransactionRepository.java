@@ -44,12 +44,14 @@ public class TransactionRepository {
     private final DynamoDbIndex<TransactionTable> userIdDateIndex;
     private final DynamoDbIndex<TransactionTable> plaidTransactionIdIndex;
     private final DynamoDbClient dynamoDbClient;
-    private static final String TABLE_NAME = "BudgetBuddy-Transactions";
+    private final String tableName;
 
     public TransactionRepository(
             final DynamoDbEnhancedClient enhancedClient,
-            final DynamoDbClient dynamoDbClient) {
-        this.transactionTable = enhancedClient.table(TABLE_NAME,
+            final DynamoDbClient dynamoDbClient,
+            @org.springframework.beans.factory.annotation.Value("${app.aws.dynamodb.table-prefix:BudgetBuddy}") final String tablePrefix) {
+        this.tableName = tablePrefix + "-Transactions";
+        this.transactionTable = enhancedClient.table(this.tableName,
                 TableSchema.fromBean(TransactionTable.class));
         this.userIdDateIndex = transactionTable.index("UserIdDateIndex");
         this.plaidTransactionIdIndex =
@@ -493,7 +495,7 @@ public class TransactionRepository {
                     .collect(Collectors.toList());
 
             Map<String, List<WriteRequest>> requestItems = new HashMap<>();
-            requestItems.put(TABLE_NAME, writeRequests);
+            requestItems.put(this.tableName, writeRequests);
 
             BatchWriteItemRequest batchRequest = BatchWriteItemRequest.builder()
                     .requestItems(requestItems)
@@ -543,7 +545,7 @@ public class TransactionRepository {
                     .build();
 
             Map<String, KeysAndAttributes> requestItems = new HashMap<>();
-            requestItems.put(TABLE_NAME, keysAndAttributes);
+            requestItems.put(this.tableName, keysAndAttributes);
 
             BatchGetItemRequest batchRequest = BatchGetItemRequest.builder()
                     .requestItems(requestItems)
@@ -552,8 +554,8 @@ public class TransactionRepository {
             BatchGetItemResponse response = dynamoDbClient.batchGetItem(batchRequest);
 
             // Convert response items to TransactionTable objects
-            if (response.responses() != null && response.responses().containsKey(TABLE_NAME)) {
-                List<Map<String, AttributeValue>> items = response.responses().get(TABLE_NAME);
+            if (response.responses() != null && response.responses().containsKey(this.tableName)) {
+                List<Map<String, AttributeValue>> items = response.responses().get(this.tableName);
                 for (Map<String, AttributeValue> item : items) {
                     // Use proper conversion method to fully populate all fields
                     TransactionTable transaction = convertAttributeValueMapToTransaction(item);
@@ -578,8 +580,8 @@ public class TransactionRepository {
                 });
 
                 // Process retry response items
-                if (retryResponse.responses() != null && retryResponse.responses().containsKey(TABLE_NAME)) {
-                    List<Map<String, AttributeValue>> retryItems = retryResponse.responses().get(TABLE_NAME);
+                if (retryResponse.responses() != null && retryResponse.responses().containsKey(this.tableName)) {
+                    List<Map<String, AttributeValue>> retryItems = retryResponse.responses().get(this.tableName);
                     for (Map<String, AttributeValue> item : retryItems) {
                         TransactionTable transaction = convertAttributeValueMapToTransaction(item);
                         results.add(transaction);
@@ -616,7 +618,7 @@ public class TransactionRepository {
                     .collect(Collectors.toList());
 
             Map<String, List<WriteRequest>> requestItems = new HashMap<>();
-            requestItems.put(TABLE_NAME, writeRequests);
+            requestItems.put(this.tableName, writeRequests);
 
             BatchWriteItemRequest batchRequest = BatchWriteItemRequest.builder()
                     .requestItems(requestItems)

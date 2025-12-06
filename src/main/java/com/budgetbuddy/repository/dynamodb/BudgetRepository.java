@@ -22,10 +22,13 @@ public class BudgetRepository {
 
     private final DynamoDbTable<BudgetTable> budgetTable;
     private final DynamoDbIndex<BudgetTable> userIdIndex;
-    private static final String TABLE_NAME = "BudgetBuddy-Budgets";
+    private final String tableName;
 
-    public BudgetRepository(final DynamoDbEnhancedClient enhancedClient) {
-        this.budgetTable = enhancedClient.table(TABLE_NAME, TableSchema.fromBean(BudgetTable.class));
+    public BudgetRepository(
+            final DynamoDbEnhancedClient enhancedClient,
+            @org.springframework.beans.factory.annotation.Value("${app.aws.dynamodb.table-prefix:BudgetBuddy}") final String tablePrefix) {
+        this.tableName = tablePrefix + "-Budgets";
+        this.budgetTable = enhancedClient.table(this.tableName, TableSchema.fromBean(BudgetTable.class));
         this.userIdIndex = budgetTable.index("UserIdIndex");
     }
 

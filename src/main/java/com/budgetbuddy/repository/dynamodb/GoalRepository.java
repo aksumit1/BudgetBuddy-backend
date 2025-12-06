@@ -33,12 +33,14 @@ public class GoalRepository {
     private final DynamoDbTable<GoalTable> goalTable;
     private final DynamoDbIndex<GoalTable> userIdIndex;
     private final DynamoDbClient dynamoDbClient;
-    private static final String TABLE_NAME = "BudgetBuddy-Goals";
+    private final String tableName;
 
     public GoalRepository(
             final DynamoDbEnhancedClient enhancedClient,
-            final DynamoDbClient dynamoDbClient) {
-        this.goalTable = enhancedClient.table(TABLE_NAME, TableSchema.fromBean(GoalTable.class));
+            final DynamoDbClient dynamoDbClient,
+            @org.springframework.beans.factory.annotation.Value("${app.aws.dynamodb.table-prefix:BudgetBuddy}") final String tablePrefix) {
+        this.tableName = tablePrefix + "-Goals";
+        this.goalTable = enhancedClient.table(this.tableName, TableSchema.fromBean(GoalTable.class));
         this.userIdIndex = goalTable.index("UserIdIndex");
         this.dynamoDbClient = dynamoDbClient;
     }
@@ -118,7 +120,7 @@ public class GoalRepository {
         String updateExpression = "ADD #currentAmount :amount SET #updatedAt = :updatedAt";
 
         UpdateItemRequest updateRequest = UpdateItemRequest.builder()
-                .tableName(TABLE_NAME)
+                    .tableName(this.tableName)
                 .key(key)
                 .updateExpression(updateExpression)
                 .expressionAttributeNames(expressionAttributeNames)
