@@ -5,9 +5,14 @@ import com.budgetbuddy.dto.AuthRequest;
 import com.budgetbuddy.dto.AuthResponse;
 import com.budgetbuddy.service.AuthService;
 import com.budgetbuddy.service.UserService;
+import com.budgetbuddy.util.TableInitializer;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import com.budgetbuddy.security.ddos.DDoSProtectionService;
 import com.budgetbuddy.security.rate.RateLimitService;
@@ -18,6 +23,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
+import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 
 import java.util.UUID;
 
@@ -38,7 +44,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ActiveProfiles("test")
 @Import(AWSTestConfiguration.class)
 @DirtiesContext(classMode = DirtiesContext.ClassMode.BEFORE_CLASS)
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class AuthFunctionalTest {
+
+    private static final Logger logger = LoggerFactory.getLogger(AuthFunctionalTest.class);
+    private static volatile boolean tablesInitialized = false;
 
     @Autowired
     private MockMvc mockMvc;
@@ -51,6 +61,9 @@ class AuthFunctionalTest {
 
     @Autowired
     private UserService userService;
+
+    @Autowired
+    private DynamoDbClient dynamoDbClient;
     
     // Note: @MockBean is deprecated in Spring Boot 3.4.0, but still functional
     // Suppressing deprecation warning as replacement API is not yet stable
@@ -72,6 +85,29 @@ class AuthFunctionalTest {
 
     private String testEmail;
     private String testPasswordHash;
+
+    @BeforeAll
+    void ensureTablesInitialized() {
+        // CRITICAL: Ensure tables are initialized before any tests run
+        // This is especially important in CI where Spring contexts may be created separately
+        if (!tablesInitialized) {
+            synchronized (AuthFunctionalTest.class) {
+                if (!tablesInitialized) {
+                    logger.info("🔧 Ensuring DynamoDB tables are initialized for Auth functional tests...");
+                    try {
+                        TableInitializer.initializeTables(dynamoDbClient);
+                        logger.info("✅ Tables initialized for Auth functional tests");
+                        // Wait a moment for tables to be fully ready
+                        Thread.sleep(1000);
+                    } catch (Exception e) {
+                        logger.error("❌ Failed to initialize tables for Auth functional tests: {}", e.getMessage(), e);
+                        throw new RuntimeException("Failed to initialize DynamoDB tables", e);
+                    }
+                    tablesInitialized = true;
+                }
+            }
+        }
+    }
 
     @BeforeEach
     void setUp() {

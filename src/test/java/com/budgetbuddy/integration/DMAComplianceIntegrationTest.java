@@ -4,13 +4,19 @@ import com.budgetbuddy.AWSTestConfiguration;
 import com.budgetbuddy.compliance.dma.DMAComplianceService;
 import com.budgetbuddy.model.dynamodb.UserTable;
 import com.budgetbuddy.service.UserService;
+import com.budgetbuddy.util.TableInitializer;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.TestInstance;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.context.annotation.Import;
+import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 
 import java.util.UUID;
 
@@ -23,8 +29,12 @@ import static org.junit.jupiter.api.Assertions.*;
 @SpringBootTest(classes = com.budgetbuddy.BudgetBuddyApplication.class)
 @ActiveProfiles("test")
 @Import(AWSTestConfiguration.class)
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @DisplayName("DMA Compliance Integration Tests")
 class DMAComplianceIntegrationTest {
+
+    private static final Logger logger = LoggerFactory.getLogger(DMAComplianceIntegrationTest.class);
+    private static volatile boolean tablesInitialized = false;
 
     @Autowired
     private DMAComplianceService dmaComplianceService;
@@ -32,9 +42,35 @@ class DMAComplianceIntegrationTest {
     @Autowired
     private UserService userService;
 
+    @Autowired
+    private DynamoDbClient dynamoDbClient;
+
     private String testEmail;
     private String testPasswordHash;
     private UserTable testUser;
+
+    @BeforeAll
+    void ensureTablesInitialized() {
+        // CRITICAL: Ensure tables are initialized before any tests run
+        // This is especially important in CI where Spring contexts may be created separately
+        if (!tablesInitialized) {
+            synchronized (DMAComplianceIntegrationTest.class) {
+                if (!tablesInitialized) {
+                    logger.info("🔧 Ensuring DynamoDB tables are initialized for DMA compliance tests...");
+                    try {
+                        TableInitializer.initializeTables(dynamoDbClient);
+                        logger.info("✅ Tables initialized for DMA compliance tests");
+                        // Wait a moment for tables to be fully ready
+                        Thread.sleep(1000);
+                    } catch (Exception e) {
+                        logger.error("❌ Failed to initialize tables for DMA compliance tests: {}", e.getMessage(), e);
+                        throw new RuntimeException("Failed to initialize DynamoDB tables", e);
+                    }
+                    tablesInitialized = true;
+                }
+            }
+        }
+    }
 
     @BeforeEach
     void setUp() {

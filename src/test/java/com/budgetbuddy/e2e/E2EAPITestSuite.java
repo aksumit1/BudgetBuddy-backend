@@ -13,9 +13,14 @@ import com.budgetbuddy.repository.dynamodb.BudgetRepository;
 import com.budgetbuddy.repository.dynamodb.GoalRepository;
 import com.budgetbuddy.repository.dynamodb.TransactionActionRepository;
 import com.budgetbuddy.service.AuthService;
+import com.budgetbuddy.util.TableInitializer;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.TestInstance;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
@@ -27,6 +32,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import com.budgetbuddy.AWSTestConfiguration;
+import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -49,8 +55,12 @@ import static org.junit.jupiter.api.Assertions.*;
 )
 @ActiveProfiles("test")
 @Import(AWSTestConfiguration.class)
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @DisplayName("E2E API Test Suite")
 public class E2EAPITestSuite {
+
+    private static final Logger logger = LoggerFactory.getLogger(E2EAPITestSuite.class);
+    private static volatile boolean tablesInitialized = false;
 
     @Autowired
     private org.springframework.boot.test.web.client.TestRestTemplate restTemplate;
@@ -80,9 +90,35 @@ public class E2EAPITestSuite {
     @Autowired
     private TransactionActionRepository transactionActionRepository;
 
+    @Autowired
+    private DynamoDbClient dynamoDbClient;
+
     private String authToken;
     private UserTable testUser;
     private AccountTable testAccount;
+
+    @BeforeAll
+    void ensureTablesInitialized() {
+        // CRITICAL: Ensure tables are initialized before any tests run
+        // This is especially important in CI where Spring contexts may be created separately
+        if (!tablesInitialized) {
+            synchronized (E2EAPITestSuite.class) {
+                if (!tablesInitialized) {
+                    logger.info("🔧 Ensuring DynamoDB tables are initialized for E2E API tests...");
+                    try {
+                        TableInitializer.initializeTables(dynamoDbClient);
+                        logger.info("✅ Tables initialized for E2E API tests");
+                        // Wait a moment for tables to be fully ready
+                        Thread.sleep(1000);
+                    } catch (Exception e) {
+                        logger.error("❌ Failed to initialize tables for E2E API tests: {}", e.getMessage(), e);
+                        throw new RuntimeException("Failed to initialize DynamoDB tables", e);
+                    }
+                    tablesInitialized = true;
+                }
+            }
+        }
+    }
 
     @BeforeEach
     void setUp() {
