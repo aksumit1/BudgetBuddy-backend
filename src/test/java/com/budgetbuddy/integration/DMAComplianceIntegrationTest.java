@@ -34,7 +34,6 @@ import static org.junit.jupiter.api.Assertions.*;
 class DMAComplianceIntegrationTest {
 
     private static final Logger logger = LoggerFactory.getLogger(DMAComplianceIntegrationTest.class);
-    private static volatile boolean tablesInitialized = false;
 
     @Autowired
     private DMAComplianceService dmaComplianceService;
@@ -51,25 +50,9 @@ class DMAComplianceIntegrationTest {
 
     @BeforeAll
     void ensureTablesInitialized() {
-        // CRITICAL: Ensure tables are initialized before any tests run
-        // This is especially important in CI where Spring contexts may be created separately
-        if (!tablesInitialized) {
-            synchronized (DMAComplianceIntegrationTest.class) {
-                if (!tablesInitialized) {
-                    logger.info("🔧 Ensuring DynamoDB tables are initialized for DMA compliance tests...");
-                    try {
-                        TableInitializer.initializeTables(dynamoDbClient);
-                        logger.info("✅ Tables initialized for DMA compliance tests");
-                        // Wait a moment for tables to be fully ready
-                        Thread.sleep(1000);
-                    } catch (Exception e) {
-                        logger.error("❌ Failed to initialize tables for DMA compliance tests: {}", e.getMessage(), e);
-                        throw new RuntimeException("Failed to initialize DynamoDB tables", e);
-                    }
-                    tablesInitialized = true;
-                }
-            }
-        }
+        // CRITICAL: Use global synchronized method to ensure tables are initialized
+        // This prevents race conditions when tests run in parallel
+        TableInitializer.ensureTablesInitializedAndVerified(dynamoDbClient);
     }
 
     @BeforeEach

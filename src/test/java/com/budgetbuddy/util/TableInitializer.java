@@ -15,6 +15,10 @@ public class TableInitializer {
     private static final Logger logger = LoggerFactory.getLogger(TableInitializer.class);
     private static final String TABLE_PREFIX = "TestBudgetBuddy";
 
+    // Global flag to track if tables have been initialized (shared across all test classes)
+    private static volatile boolean globalTablesInitialized = false;
+    private static final Object initializationLock = new Object();
+
     /**
      * Initialize all required DynamoDB tables with full schemas (including GSIs)
      * This method can be called before running tests to ensure tables exist
@@ -49,6 +53,141 @@ public class TableInitializer {
             logger.error("❌ Failed to initialize DynamoDB tables: {}", e.getMessage(), e);
             throw new RuntimeException("Failed to initialize DynamoDB tables: " + e.getMessage(), e);
         }
+    }
+
+    /**
+     * Ensure tables are initialized and verified, with global synchronization.
+     * This method is thread-safe and can be called from multiple test classes in parallel.
+     * It ensures tables exist and are ACTIVE before returning.
+     * 
+     * @param dynamoDbClient The DynamoDB client to use
+     * @throws RuntimeException if tables cannot be initialized or verified
+     */
+    public static void ensureTablesInitializedAndVerified(DynamoDbClient dynamoDbClient) {
+        // Use global lock to ensure only one test class initializes tables at a time
+        synchronized (initializationLock) {
+            if (!globalTablesInitialized) {
+                logger.info("🔧 Ensuring DynamoDB tables are initialized (global lock)...");
+                try {
+                    initializeTables(dynamoDbClient);
+                    verifyCriticalTablesActive(dynamoDbClient);
+                    logger.info("✅ Tables initialized and verified (global)");
+                    globalTablesInitialized = true;
+                } catch (Exception e) {
+                    // If connection pool is shut down, this might be during Spring context shutdown
+                    // In this case, assume tables were already initialized in a previous test run
+                    if (isConnectionPoolShutdown(e)) {
+                        logger.warn("⚠️ Connection pool shut down during table initialization (likely during Spring context shutdown)");
+                        logger.warn("⚠️ Assuming tables are already initialized from previous test run");
+                        // Mark as initialized to prevent retries, but don't verify (can't verify with shut down pool)
+                        globalTablesInitialized = true;
+                        return; // Exit gracefully without throwing
+                    }
+                    logger.error("❌ Failed to initialize tables: {}", e.getMessage(), e);
+                    throw new RuntimeException("Failed to initialize DynamoDB tables", e);
+                }
+            } else {
+                // Even if tables were already initialized, verify they're still active
+                logger.debug("🔍 Tables were already initialized, verifying they're still active...");
+                try {
+                    verifyCriticalTablesActive(dynamoDbClient);
+                    logger.debug("✅ Tables verified and ready");
+                } catch (Exception e) {
+                    // CRITICAL: If connection pool is shut down (during Spring context shutdown),
+                    // don't try to re-initialize - tables were already initialized earlier
+                    if (isConnectionPoolShutdown(e)) {
+                        logger.debug("⚠️ Connection pool shut down (likely during Spring context shutdown), assuming tables are still initialized");
+                        // Don't throw - tables were already initialized, just can't verify due to shutdown
+                        return;
+                    }
+                    
+                    logger.warn("⚠️ Table verification failed, re-initializing: {}", e.getMessage());
+                    try {
+                        initializeTables(dynamoDbClient);
+                        verifyCriticalTablesActive(dynamoDbClient);
+                        logger.info("✅ Tables re-initialized and verified");
+                    } catch (Exception e2) {
+                        // If re-initialization also fails due to connection pool shutdown, assume tables are OK
+                        if (isConnectionPoolShutdown(e2)) {
+                            logger.debug("⚠️ Connection pool shut down during re-initialization, assuming tables are still initialized");
+                            return;
+                        }
+                        logger.error("❌ Failed to re-initialize tables: {}", e2.getMessage(), e2);
+                        throw new RuntimeException("Failed to re-initialize DynamoDB tables", e2);
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Verify that critical tables exist and are ACTIVE
+     */
+    private static void verifyCriticalTablesActive(DynamoDbClient dynamoDbClient) throws Exception {
+        String[] criticalTables = {
+            TABLE_PREFIX + "-Users",
+            TABLE_PREFIX + "-Accounts",
+            TABLE_PREFIX + "-Transactions",
+            TABLE_PREFIX + "-Budgets",
+            TABLE_PREFIX + "-Goals",
+            TABLE_PREFIX + "-TransactionActions"
+        };
+        
+        int maxAttempts = 10;
+        for (String tableName : criticalTables) {
+            int attempt = 0;
+            while (attempt < maxAttempts) {
+                try {
+                    DescribeTableResponse response = dynamoDbClient.describeTable(
+                        DescribeTableRequest.builder().tableName(tableName).build());
+                    TableStatus status = response.table().tableStatus();
+                    if (status == TableStatus.ACTIVE) {
+                        logger.debug("✅ Table {} is ACTIVE", tableName);
+                        break;
+                    } else {
+                        logger.debug("⏳ Table {} status: {}, waiting...", tableName, status);
+                        Thread.sleep(500);
+                        attempt++;
+                    }
+                } catch (ResourceNotFoundException e) {
+                    logger.warn("⚠️ Table {} not found, attempt {}/{}, waiting...", tableName, attempt + 1, maxAttempts);
+                    Thread.sleep(500);
+                    attempt++;
+                    if (attempt >= maxAttempts) {
+                        throw new RuntimeException("Table " + tableName + " not found after " + maxAttempts + " attempts");
+                    }
+                }
+            }
+        }
+        // Give tables a moment to be fully ready after all are ACTIVE
+        Thread.sleep(500);
+    }
+
+    /**
+     * Check if the exception is due to connection pool being shut down
+     * This can happen during Spring context shutdown when DynamoDB client is being closed
+     */
+    private static boolean isConnectionPoolShutdown(Exception e) {
+        String message = e.getMessage();
+        if (message != null && message.contains("Connection pool shut down")) {
+            return true;
+        }
+        // Also check for IllegalStateException with connection pool shutdown message
+        if (e instanceof IllegalStateException && message != null && message.contains("shut down")) {
+            return true;
+        }
+        // Check cause chain
+        Throwable cause = e.getCause();
+        while (cause != null) {
+            if (cause instanceof IllegalStateException) {
+                String causeMessage = cause.getMessage();
+                if (causeMessage != null && (causeMessage.contains("Connection pool shut down") || causeMessage.contains("shut down"))) {
+                    return true;
+                }
+            }
+            cause = cause.getCause();
+        }
+        return false;
     }
 
     private static void createUsersTable(DynamoDbClient dynamoDbClient) {

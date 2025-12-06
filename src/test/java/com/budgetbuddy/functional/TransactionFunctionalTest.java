@@ -41,7 +41,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class TransactionFunctionalTest {
 
     private static final Logger logger = LoggerFactory.getLogger(TransactionFunctionalTest.class);
-    private static volatile boolean tablesInitialized = false;
 
     @Autowired
     private MockMvc mockMvc;
@@ -67,25 +66,9 @@ class TransactionFunctionalTest {
 
     @BeforeAll
     void ensureTablesInitialized() {
-        // CRITICAL: Ensure tables are initialized before any tests run
-        // This is especially important in CI where Spring contexts may be created separately
-        if (!tablesInitialized) {
-            synchronized (TransactionFunctionalTest.class) {
-                if (!tablesInitialized) {
-                    logger.info("🔧 Ensuring DynamoDB tables are initialized for Transaction functional tests...");
-                    try {
-                        TableInitializer.initializeTables(dynamoDbClient);
-                        logger.info("✅ Tables initialized for Transaction functional tests");
-                        // Wait a moment for tables to be fully ready
-                        Thread.sleep(1000);
-                    } catch (Exception e) {
-                        logger.error("❌ Failed to initialize tables for Transaction functional tests: {}", e.getMessage(), e);
-                        throw new RuntimeException("Failed to initialize DynamoDB tables", e);
-                    }
-                    tablesInitialized = true;
-                }
-            }
-        }
+        // CRITICAL: Use global synchronized method to ensure tables are initialized
+        // This prevents race conditions when tests run in parallel
+        TableInitializer.ensureTablesInitializedAndVerified(dynamoDbClient);
     }
 
     @BeforeEach

@@ -6,8 +6,13 @@ import com.budgetbuddy.dto.AuthResponse;
 import com.budgetbuddy.exception.ErrorCode;
 import com.budgetbuddy.model.dynamodb.UserTable;
 import com.budgetbuddy.repository.dynamodb.UserRepository;
+import com.budgetbuddy.util.TableInitializer;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
@@ -19,6 +24,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.ActiveProfiles;
+import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 
 import java.util.Base64;
 import java.util.Optional;
@@ -37,7 +43,10 @@ import static org.junit.jupiter.api.Assertions.*;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
 @Import(AWSTestConfiguration.class)
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class UserRegistrationIntegrationTest {
+
+    private static final Logger logger = LoggerFactory.getLogger(UserRegistrationIntegrationTest.class);
 
     @LocalServerPort
     private int port;
@@ -48,8 +57,18 @@ class UserRegistrationIntegrationTest {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private DynamoDbClient dynamoDbClient;
+
     private String baseUrl;
     private String uniqueEmail;
+
+    @BeforeAll
+    void ensureTablesInitialized() {
+        // CRITICAL: Use global synchronized method to ensure tables are initialized
+        // This prevents race conditions when tests run in parallel
+        TableInitializer.ensureTablesInitializedAndVerified(dynamoDbClient);
+    }
 
     @BeforeEach
     void setUp() {

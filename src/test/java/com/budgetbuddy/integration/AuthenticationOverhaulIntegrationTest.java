@@ -10,15 +10,21 @@ import com.budgetbuddy.service.MFAService;
 import com.budgetbuddy.service.FIDO2Service;
 import com.budgetbuddy.service.UserService;
 import com.budgetbuddy.service.AuthService;
+import com.budgetbuddy.util.TableInitializer;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.TestInstance;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.context.annotation.Import;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.test.context.support.WithMockUser;
+import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 
 import java.util.UUID;
 
@@ -33,8 +39,11 @@ import static org.junit.jupiter.api.Assertions.*;
 @SpringBootTest(classes = com.budgetbuddy.BudgetBuddyApplication.class)
 @ActiveProfiles("test")
 @Import(AWSTestConfiguration.class)
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @DisplayName("Authentication Overhaul Integration Tests")
 class AuthenticationOverhaulIntegrationTest {
+
+    private static final Logger logger = LoggerFactory.getLogger(AuthenticationOverhaulIntegrationTest.class);
 
     @Autowired
     private AuthService authService;
@@ -48,8 +57,18 @@ class AuthenticationOverhaulIntegrationTest {
     @Autowired
     private FIDO2Service fido2Service;
 
+    @Autowired
+    private DynamoDbClient dynamoDbClient;
+
     private String testEmail;
     private String testPasswordHash;
+
+    @BeforeAll
+    void ensureTablesInitialized() {
+        // CRITICAL: Use global synchronized method to ensure tables are initialized
+        // This prevents race conditions when tests run in parallel
+        TableInitializer.ensureTablesInitializedAndVerified(dynamoDbClient);
+    }
 
     @BeforeEach
     void setUp() {

@@ -7,12 +7,18 @@ import com.budgetbuddy.model.dynamodb.UserTable;
 import com.budgetbuddy.repository.dynamodb.AccountRepository;
 import com.budgetbuddy.repository.dynamodb.TransactionRepository;
 import com.budgetbuddy.service.UserService;
+import com.budgetbuddy.util.TableInitializer;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
+import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -33,7 +39,10 @@ import static org.junit.jupiter.api.Assertions.*;
 @SpringBootTest(classes = com.budgetbuddy.BudgetBuddyApplication.class)
 @ActiveProfiles("test")
 @Import(AWSTestConfiguration.class)
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class TransactionCompositeKeyDeduplicationIntegrationTest {
+
+    private static final Logger logger = LoggerFactory.getLogger(TransactionCompositeKeyDeduplicationIntegrationTest.class);
 
     @Autowired
     private TransactionRepository transactionRepository;
@@ -44,8 +53,18 @@ class TransactionCompositeKeyDeduplicationIntegrationTest {
     @Autowired
     private UserService userService;
 
+    @Autowired
+    private DynamoDbClient dynamoDbClient;
+
     private UserTable testUser;
     private AccountTable testAccount;
+
+    @BeforeAll
+    void ensureTablesInitialized() {
+        // CRITICAL: Use global synchronized method to ensure tables are initialized
+        // This prevents race conditions when tests run in parallel
+        TableInitializer.ensureTablesInitializedAndVerified(dynamoDbClient);
+    }
 
     @BeforeEach
     void setUp() {
