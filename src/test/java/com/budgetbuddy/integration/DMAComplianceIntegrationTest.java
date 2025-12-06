@@ -52,7 +52,32 @@ class DMAComplianceIntegrationTest {
     void ensureTablesInitialized() {
         // CRITICAL: Use global synchronized method to ensure tables are initialized
         // This prevents race conditions when tests run in parallel
-        TableInitializer.ensureTablesInitializedAndVerified(dynamoDbClient);
+        // Wait for DynamoDB client to be available (Spring context might not be fully initialized yet)
+        int maxAttempts = 10;
+        int attempt = 0;
+        while (dynamoDbClient == null && attempt < maxAttempts) {
+            try {
+                Thread.sleep(500); // Wait 500ms for Spring context to initialize
+                attempt++;
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new RuntimeException("Interrupted while waiting for DynamoDB client", e);
+            }
+        }
+        
+        if (dynamoDbClient == null) {
+            logger.error("DynamoDB client not available after {} attempts", maxAttempts);
+            throw new IllegalStateException("DynamoDB client not available after " + maxAttempts + " attempts");
+        }
+        
+        // Now ensure tables are initialized (including AuditLogs which is required for DMA compliance)
+        try {
+            TableInitializer.ensureTablesInitializedAndVerified(dynamoDbClient);
+            logger.info("✅ Tables initialized and verified for DMA compliance tests");
+        } catch (Exception e) {
+            logger.error("❌ Failed to initialize tables: {}", e.getMessage(), e);
+            throw new RuntimeException("Failed to initialize DynamoDB tables for DMA compliance tests", e);
+        }
     }
 
     @BeforeEach

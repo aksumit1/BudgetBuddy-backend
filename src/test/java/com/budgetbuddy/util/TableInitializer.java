@@ -130,7 +130,8 @@ public class TableInitializer {
             TABLE_PREFIX + "-Transactions",
             TABLE_PREFIX + "-Budgets",
             TABLE_PREFIX + "-Goals",
-            TABLE_PREFIX + "-TransactionActions"
+            TABLE_PREFIX + "-TransactionActions",
+            TABLE_PREFIX + "-AuditLogs"  // Required for DMA compliance and GDPR exports
         };
         
         int maxAttempts = 10;
