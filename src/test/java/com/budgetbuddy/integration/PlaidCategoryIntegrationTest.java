@@ -6,10 +6,8 @@ import com.budgetbuddy.model.dynamodb.UserTable;
 import com.budgetbuddy.model.dynamodb.AccountTable;
 import com.budgetbuddy.repository.dynamodb.TransactionRepository;
 import com.budgetbuddy.repository.dynamodb.AccountRepository;
-import com.budgetbuddy.service.PlaidSyncService;
 import com.budgetbuddy.service.PlaidCategoryMapper;
 import com.budgetbuddy.service.TransactionService;
-import com.budgetbuddy.plaid.PlaidService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,7 +16,6 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.time.LocalDate;
-import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -33,19 +30,10 @@ import static org.junit.jupiter.api.Assertions.*;
 class PlaidCategoryIntegrationTest {
 
     @Autowired
-    private PlaidSyncService plaidSyncService;
-
-    @Autowired
     private TransactionService transactionService;
 
     @Autowired
     private TransactionRepository transactionRepository;
-
-    @Autowired
-    private AccountRepository accountRepository;
-
-    @Autowired
-    private PlaidCategoryMapper categoryMapper;
 
     private UserTable testUser;
     private AccountTable testAccount;

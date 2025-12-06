@@ -46,9 +46,12 @@ class TokenRefreshIntegrationTest {
     @Autowired
     private UserService userService;
 
+    // Note: @MockBean is deprecated in Spring Boot 3.4.0, but still functional
+    @SuppressWarnings("deprecation")
     @MockBean
     private com.budgetbuddy.security.rate.RateLimitService rateLimitService;
 
+    @SuppressWarnings("deprecation")
     @MockBean
     private com.budgetbuddy.security.ddos.DDoSProtectionService ddosProtectionService;
 

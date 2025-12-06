@@ -87,19 +87,30 @@ jobs:
           AWS_SECRETS_MANAGER_ENABLED: false
           AWS_CLOUDWATCH_ENABLED: false
         run: |
-          echo "Initializing DynamoDB tables..."
-          # CRITICAL: Run InfrastructureIntegrationTest which will:
-          # 1. Use @BeforeAll to call TableInitializer.initializeTables() BEFORE any tests run
-          # 2. This ensures tables are created in a way that persists across all test contexts
-          # 3. The @BeforeAll method runs once and creates all tables before any test methods execute
-          echo "Running InfrastructureIntegrationTest to initialize tables..."
-          mvn test -Dtest=InfrastructureIntegrationTest#testDynamoDBClient_IsConfigured -DfailIfNoTests=false || {
-            echo "⚠️ Table initialization test failed, but continuing..."
+          echo "🔧 Initializing DynamoDB tables using standalone TableInitializerMain..."
+          # CRITICAL: Use standalone Java main class to initialize tables BEFORE any Spring contexts are created
+          # This ensures tables exist in LocalStack before any tests run
+          
+          # Compile test classes first
+          mvn test-compile -DskipTests
+          
+          # Run TableInitializerMain using Maven exec plugin
+          # This creates tables directly in LocalStack without needing Spring context
+          mvn exec:java \
+            -Dexec.mainClass="com.budgetbuddy.util.TableInitializerMain" \
+            -Dexec.classpathScope="test" \
+            -Dexec.args="" || {
+            echo "❌ Table initialization failed!"
+            echo "Attempting fallback: Running InfrastructureIntegrationTest..."
+            mvn test -Dtest=InfrastructureIntegrationTest#testDynamoDBClient_IsConfigured -DfailIfNoTests=false || {
+              echo "⚠️ Fallback table initialization also failed"
+              exit 1
+            }
           }
           
-          # Wait a moment for tables to be fully ready and propagated
+          # Wait a moment for tables to be fully ready
           echo "Waiting for tables to be fully ready..."
-          sleep 3
+          sleep 5
           
           # Verify critical tables exist using AWS CLI (if available)
           echo "Verifying critical tables exist..."

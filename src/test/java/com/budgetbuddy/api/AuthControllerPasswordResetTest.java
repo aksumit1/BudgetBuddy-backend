@@ -39,21 +39,28 @@ class AuthControllerPasswordResetTest {
     @Autowired
     private ObjectMapper objectMapper;
 
+    // Note: @MockBean is deprecated in Spring Boot 3.4.0, but still functional
+    @SuppressWarnings("deprecation")
     @MockBean
     private AuthService authService;
 
+    @SuppressWarnings("deprecation")
     @MockBean
     private UserService userService;
 
+    @SuppressWarnings("deprecation")
     @MockBean
     private PasswordResetService passwordResetService;
 
+    @SuppressWarnings("deprecation")
     @MockBean
     private MessageUtil messageUtil;
 
+    @SuppressWarnings("deprecation")
     @MockBean
     private DDoSProtectionService ddosProtectionService;
 
+    @SuppressWarnings("deprecation")
     @MockBean
     private RateLimitService rateLimitService;
 

@@ -45,13 +45,14 @@ public class TableInitializer {
         try {
             // Check if table exists
             try {
-                dynamoDbClient.describeTable(DescribeTableRequest.builder()
+                DescribeTableResponse response = dynamoDbClient.describeTable(DescribeTableRequest.builder()
                         .tableName(tableName)
                         .build());
-                logger.debug("Table {} already exists", tableName);
+                logger.info("✅ Table {} already exists (status: {})", tableName, response.table().tableStatus());
                 return;
             } catch (ResourceNotFoundException e) {
                 // Table doesn't exist, create it
+                logger.info("Table {} does not exist, creating...", tableName);
             }
 
             // Create table
@@ -70,17 +71,21 @@ public class TableInitializer {
                                     .build())
                     .build();
 
-            dynamoDbClient.createTable(createTableRequest);
-            logger.info("Created table: {}", tableName);
+            logger.info("Creating table: {} with key: {}", tableName, keyName);
+            CreateTableResponse response = dynamoDbClient.createTable(createTableRequest);
+            logger.info("✅ Created table: {} (status: {})", tableName, response.tableDescription().tableStatus());
             
             // Wait for table to be active
             waitForTableActive(dynamoDbClient, tableName);
             
         } catch (ResourceInUseException e) {
-            logger.debug("Table {} already exists (ResourceInUseException)", tableName);
+            logger.info("✅ Table {} already exists (ResourceInUseException)", tableName);
         } catch (Exception e) {
-            logger.error("Failed to create table {}: {}", tableName, e.getMessage());
-            // Don't throw - continue with other tables
+            logger.error("❌ Failed to create table {}: {} - {}", tableName, e.getClass().getSimpleName(), e.getMessage());
+            if (e.getCause() != null) {
+                logger.error("   Caused by: {}", e.getCause().getMessage());
+            }
+            // Don't throw - continue with other tables, but log the error clearly
         }
     }
 

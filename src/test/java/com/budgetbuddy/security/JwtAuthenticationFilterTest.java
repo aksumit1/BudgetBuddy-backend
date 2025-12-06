@@ -1,7 +1,6 @@
 package com.budgetbuddy.security;
 
 import jakarta.servlet.FilterChain;
-import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.junit.jupiter.api.BeforeEach;
@@ -17,7 +16,6 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
-import java.io.IOException;
 import java.util.Collections;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -50,7 +48,6 @@ class JwtAuthenticationFilterTest {
     private JwtAuthenticationFilter jwtAuthenticationFilter;
 
     private static final String VALID_TOKEN = "valid.jwt.token";
-    private static final String INVALID_TOKEN = "invalid.jwt.token";
     private static final String TEST_USERNAME = "test@example.com";
     private static final String BEARER_TOKEN = "Bearer " + VALID_TOKEN;
 
