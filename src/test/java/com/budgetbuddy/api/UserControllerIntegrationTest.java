@@ -18,6 +18,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.UUID;
 
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -40,11 +41,23 @@ class UserControllerIntegrationTest {
     @Autowired
     private AuthService authService;
 
+    // Note: @MockBean is deprecated in Spring Boot 3.4.0, but still functional
+    @SuppressWarnings("deprecation")
+    @org.springframework.boot.test.mock.mockito.MockBean
+    private com.budgetbuddy.security.rate.RateLimitService rateLimitService;
+
+    @SuppressWarnings("deprecation")
+    @org.springframework.boot.test.mock.mockito.MockBean
+    private com.budgetbuddy.security.ddos.DDoSProtectionService ddosProtectionService;
+
     private UserTable testUser;
     private String accessToken;
 
     @BeforeEach
     void setUp() {
+        // Mock rate limiting services to allow all requests in tests
+        org.mockito.Mockito.when(rateLimitService.isAllowed(anyString(), anyString())).thenReturn(true);
+        org.mockito.Mockito.when(ddosProtectionService.isAllowed(anyString())).thenReturn(true);
         // Clear security context to ensure clean state for each test
         org.springframework.security.core.context.SecurityContextHolder.clearContext();
         

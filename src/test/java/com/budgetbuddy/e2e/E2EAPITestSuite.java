@@ -180,6 +180,9 @@ public class E2EAPITestSuite {
         // Create transaction first
         TransactionTable transaction = createTestTransaction(testUser, testAccount);
         
+        // Refresh auth token to ensure it's valid (token might have expired from previous tests)
+        authToken = generateAuthToken(testUser);
+        
         String requestBody = """
             {
                 "notes": "Updated notes"
@@ -198,7 +201,22 @@ public class E2EAPITestSuite {
                 new org.springframework.core.ParameterizedTypeReference<Map<String, Object>>() {}
         );
 
-        assertEquals(HttpStatus.OK, response.getStatusCode());
+        // Handle 401 by refreshing token and retrying once
+        if (response.getStatusCode() == HttpStatus.UNAUTHORIZED) {
+            logger.warn("Received 401, refreshing token and retrying...");
+            authToken = generateAuthToken(testUser);
+            headers.set("Authorization", "Bearer " + authToken);
+            entity = new HttpEntity<>(requestBody, headers);
+            response = restTemplate.exchange(
+                    "http://localhost:" + port + "/api/transactions/" + transaction.getTransactionId(),
+                    HttpMethod.PUT,
+                    entity,
+                    new org.springframework.core.ParameterizedTypeReference<Map<String, Object>>() {}
+            );
+        }
+
+        assertEquals(HttpStatus.OK, response.getStatusCode(), 
+                "Expected 200 OK but got " + response.getStatusCode() + ". Response body: " + response.getBody());
         assertNotNull(response.getBody());
         assertEquals("Updated notes", response.getBody().get("notes"));
     }

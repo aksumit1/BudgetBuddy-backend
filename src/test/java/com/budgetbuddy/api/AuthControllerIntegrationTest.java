@@ -5,6 +5,7 @@ import com.budgetbuddy.dto.AuthRequest;
 import com.budgetbuddy.util.TableInitializer;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.slf4j.Logger;
@@ -18,6 +19,8 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -40,6 +43,22 @@ class AuthControllerIntegrationTest {
 
     @Autowired
     private DynamoDbClient dynamoDbClient;
+
+    // Note: @MockBean is deprecated in Spring Boot 3.4.0, but still functional
+    @SuppressWarnings("deprecation")
+    @org.springframework.boot.test.mock.mockito.MockBean
+    private com.budgetbuddy.security.rate.RateLimitService rateLimitService;
+
+    @SuppressWarnings("deprecation")
+    @org.springframework.boot.test.mock.mockito.MockBean
+    private com.budgetbuddy.security.ddos.DDoSProtectionService ddosProtectionService;
+
+    @BeforeEach
+    void setUp() {
+        // Mock rate limiting services to allow all requests in tests
+        when(rateLimitService.isAllowed(anyString(), anyString())).thenReturn(true);
+        when(ddosProtectionService.isAllowed(anyString())).thenReturn(true);
+    }
 
     @BeforeAll
     void ensureTablesInitialized() {

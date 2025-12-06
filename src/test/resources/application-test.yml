@@ -55,22 +55,29 @@ app:
     return-otp-in-response: true
   
   rate-limit:
-    enabled: false # Disabled for tests to avoid rate limiting issues
-    requests-per-minute: 100000000 # Very high limit for heavy testing (100 million per minute)
-    requests-per-hour: 1000000000 # Very high limit for heavy testing (1 billion per hour)
-    # Per-endpoint limits for tests (very high to support multiple mvn install runs)
+    enabled: true # Enable rate limiting but with very high limits for CI/GitHub
+    requests-per-minute: 1000000000 # 1 billion per minute (extremely high for CI/GitHub)
+    requests-per-hour: 10000000000 # 10 billion per hour (extremely high for CI/GitHub)
+    # Per-endpoint limits for tests (extremely high to support CI/GitHub test runs and multiple mvn install executions)
     # Increased significantly to handle CI/GitHub test runs and multiple mvn install executions
-    auth-login: 10000000 # 10 million per minute
-    auth-signup: 10000000 # 10 million per minute
-    plaid: 100000000 # 100 million per minute (Plaid errors are common in tests, need very high limit)
-    transactions: 100000000 # 100 million per minute
-    analytics: 100000000 # 100 million per minute
-    default: 100000000 # 100 million per minute
+    auth-login: 100000000 # 100 million per minute
+    auth-signup: 100000000 # 100 million per minute
+    auth-register: 100000000 # 100 million per minute
+    auth-refresh: 100000000 # 100 million per minute
+    auth-change-password: 100000000 # 100 million per minute
+    auth-forgot-password: 100000000 # 100 million per minute
+    auth-reset-password: 100000000 # 100 million per minute
+    plaid: 1000000000 # 1 billion per minute (Plaid errors are common in tests, need extremely high limit)
+    transactions: 1000000000 # 1 billion per minute
+    transaction-actions: 1000000000 # 1 billion per minute
+    users: 1000000000 # 1 billion per minute
+    analytics: 1000000000 # 1 billion per minute
+    default: 1000000000 # 1 billion per minute
     # DDoS protection limits (must be under rate-limit.ddos for DDoSProtectionService to read)
     # Property path: app.rate-limit.ddos.max-requests-per-minute (as used in DDoSProtectionService.java:32)
     ddos:
-      max-requests-per-minute: 100000000 # 100 million per minute (supports multiple mvn install runs)
-      max-requests-per-hour: 1000000000 # 1 billion per hour
+      max-requests-per-minute: 1000000000 # 1 billion per minute (extremely high for CI/GitHub)
+      max-requests-per-hour: 10000000000 # 10 billion per hour (extremely high for CI/GitHub)
       # 404 Error Tracking Configuration
       # Note: Some tests expect blocking at 20 requests, so we use a lower threshold for those tests
       # Other tests can handle higher thresholds
