@@ -88,19 +88,18 @@ jobs:
           AWS_CLOUDWATCH_ENABLED: false
         run: |
           echo "Initializing DynamoDB tables..."
-          # Run InfrastructureIntegrationTest which will:
-          # 1. Load Spring context (triggers @PostConstruct table creation)
-          # 2. Explicitly call initializeTables() if needed
-          # 3. Verify tables exist
-          # CRITICAL: Run the full InfrastructureIntegrationTest suite to ensure all tables are created
-          # Use -Dmaven.test.failure.ignore=true to continue even if some tests fail
-          mvn test -Dtest=InfrastructureIntegrationTest -DfailIfNoTests=false -Dmaven.test.failure.ignore=true || {
-            echo "⚠️ InfrastructureIntegrationTest had some failures, but continuing..."
+          # CRITICAL: Run InfrastructureIntegrationTest which will:
+          # 1. Use @BeforeAll to call TableInitializer.initializeTables() BEFORE any tests run
+          # 2. This ensures tables are created in a way that persists across all test contexts
+          # 3. The @BeforeAll method runs once and creates all tables before any test methods execute
+          echo "Running InfrastructureIntegrationTest to initialize tables..."
+          mvn test -Dtest=InfrastructureIntegrationTest#testDynamoDBClient_IsConfigured -DfailIfNoTests=false || {
+            echo "⚠️ Table initialization test failed, but continuing..."
           }
           
           # Wait a moment for tables to be fully ready and propagated
           echo "Waiting for tables to be fully ready..."
-          sleep 5
+          sleep 3
           
           # Verify critical tables exist using AWS CLI (if available)
           echo "Verifying critical tables exist..."

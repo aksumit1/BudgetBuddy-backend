@@ -2,7 +2,6 @@ package com.budgetbuddy.security.ddos;
 
 import com.budgetbuddy.exception.ErrorCode;
 import com.budgetbuddy.exception.EnhancedGlobalExceptionHandler;
-import com.budgetbuddy.security.ddos.DDoSProtectionService;
 import com.budgetbuddy.security.rate.RateLimitService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
@@ -19,8 +18,6 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.time.Instant;
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * DDoS Protection Filter

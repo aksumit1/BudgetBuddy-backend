@@ -1,7 +1,5 @@
 package com.budgetbuddy.security.behavioral;
 
-import com.budgetbuddy.exception.AppException;
-import com.budgetbuddy.exception.ErrorCode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;

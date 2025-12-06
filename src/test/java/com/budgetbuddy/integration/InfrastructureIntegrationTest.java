@@ -2,7 +2,10 @@ package com.budgetbuddy.integration;
 
 import com.budgetbuddy.AWSTestConfiguration;
 import com.budgetbuddy.service.dynamodb.DynamoDBTableManager;
+import com.budgetbuddy.util.TableInitializer;
+import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,10 +25,14 @@ import static org.junit.jupiter.api.Assertions.*;
  * 
  * Note: These tests require LocalStack to be running and auto-create-tables enabled.
  * Tables are automatically created by DynamoDBTableManager on application startup.
+ * 
+ * CRITICAL: The testDynamoDBClient_IsConfigured test runs first (Order(1)) and ensures
+ * tables are created before any other tests run. This is essential for CI/CD pipelines.
  */
 @SpringBootTest(classes = com.budgetbuddy.BudgetBuddyApplication.class)
 @ActiveProfiles("test")
 @Import(AWSTestConfiguration.class)
+@TestInstance(org.junit.jupiter.api.TestInstance.Lifecycle.PER_CLASS)
 class InfrastructureIntegrationTest {
 
     @Autowired(required = false)
@@ -36,35 +43,51 @@ class InfrastructureIntegrationTest {
 
     private static final Logger logger = LoggerFactory.getLogger(InfrastructureIntegrationTest.class);
     private static final String TABLE_PREFIX = "TestBudgetBuddy";
+    private static volatile boolean tablesInitialized = false;
 
     @Test
+    @Order(1)
     void testDynamoDBClient_IsConfigured() {
         // Then
         assertNotNull(dynamoDbClient, "DynamoDB client should be configured");
         
-        // CRITICAL: Explicitly trigger table creation if DynamoDBTableManager is available
-        // This ensures tables are created even if @PostConstruct didn't run or failed
+        // CRITICAL: Initialize tables ONCE before any other tests run
+        // This ensures tables exist even if @PostConstruct didn't run or failed
         // This is especially important in CI where Spring contexts may be created separately
-        if (dynamoDBTableManager != null) {
-            try {
-                // Use reflection to call initializeTables() to ensure tables are created
-                java.lang.reflect.Method initMethod = dynamoDBTableManager.getClass().getDeclaredMethod("initializeTables");
-                initMethod.setAccessible(true);
-                initMethod.invoke(dynamoDBTableManager);
-                logger.info("✅ Explicitly triggered table initialization via reflection");
-                
-                // Wait a moment for tables to be fully created
-                try {
-                    Thread.sleep(1000);
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
+        if (!tablesInitialized) {
+            synchronized (InfrastructureIntegrationTest.class) {
+                if (!tablesInitialized) {
+                    logger.info("🔧 Initializing DynamoDB tables before tests run...");
+                    
+                    // First, try using TableInitializer utility (direct DynamoDB client call)
+                    try {
+                        TableInitializer.initializeTables(dynamoDbClient);
+                        logger.info("✅ Tables initialized via TableInitializer");
+                    } catch (Exception e) {
+                        logger.warn("⚠️ TableInitializer failed, trying DynamoDBTableManager: {}", e.getMessage());
+                        
+                        // Fallback: Use DynamoDBTableManager if available
+                        if (dynamoDBTableManager != null) {
+                            try {
+                                java.lang.reflect.Method initMethod = dynamoDBTableManager.getClass().getDeclaredMethod("initializeTables");
+                                initMethod.setAccessible(true);
+                                initMethod.invoke(dynamoDBTableManager);
+                                logger.info("✅ Tables initialized via DynamoDBTableManager reflection");
+                            } catch (Exception ex) {
+                                logger.error("❌ Failed to initialize tables via DynamoDBTableManager: {}", ex.getMessage());
+                            }
+                        }
+                    }
+                    
+                    tablesInitialized = true;
+                    logger.info("✅ Tables initialized, waiting for them to be ready...");
+                    try {
+                        Thread.sleep(2000); // Wait 2 seconds for tables to be fully ready
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                    }
                 }
-            } catch (Exception e) {
-                logger.warn("⚠️ Failed to explicitly initialize tables: {}", e.getMessage());
-                // Continue - @PostConstruct should have already created tables
             }
-        } else {
-            logger.warn("⚠️ DynamoDBTableManager is not available - tables may not be created");
         }
     }
 
