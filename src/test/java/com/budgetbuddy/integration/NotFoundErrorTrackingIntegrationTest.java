@@ -399,7 +399,16 @@ class NotFoundErrorTrackingIntegrationTest {
                     .andExpect(status().isNotFound());
         }
         
-        // One more to trigger blocking
+        // Small delay to ensure tracking is processed
+        Thread.sleep(100);
+        
+        // Should not be blocked yet (at threshold, not exceeding)
+        assertFalse(notFoundTrackingService.isBlocked(testIp1), 
+                "At threshold should not block yet");
+        
+        // One more to trigger blocking (this will record the 404, which exceeds threshold)
+        // The 404 is recorded AFTER the response, so this request will still return 404
+        // but the next request will be blocked
         mockMvc.perform(withAuth(get("/api/transactions/" + UUID.randomUUID()))
                         .header("X-Real-IP", testIp1)
                         .contentType(MediaType.APPLICATION_JSON))
@@ -407,9 +416,17 @@ class NotFoundErrorTrackingIntegrationTest {
 
         Thread.sleep(100);
 
-        // Then - Source should be blocked
+        // Then - Source should be blocked after exceeding threshold
         assertTrue(notFoundTrackingService.isBlocked(testIp1), 
-                "X-Real-IP header should be used for IP tracking");
+                "X-Real-IP header should be used for IP tracking and source should be blocked after exceeding threshold");
+        
+        // And - Next request should return 429 (blocked)
+        mockMvc.perform(withAuth(get("/api/transactions/" + UUID.randomUUID()))
+                        .header("X-Real-IP", testIp1)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isTooManyRequests())
+                .andExpect(jsonPath("$.errorCode").value("RATE_LIMIT_EXCEEDED"))
+                .andExpect(jsonPath("$.message").value(StringContains.containsString("Too many 404 errors")));
     }
 
     @Test
