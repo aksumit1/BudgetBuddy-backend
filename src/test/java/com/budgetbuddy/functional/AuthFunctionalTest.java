@@ -52,9 +52,13 @@ class AuthFunctionalTest {
     @Autowired
     private UserService userService;
     
+    // Note: @MockBean is deprecated in Spring Boot 3.4.0, but still functional
+    // Suppressing deprecation warning as replacement API is not yet stable
+    @SuppressWarnings("deprecation")
     @org.springframework.boot.test.mock.mockito.MockBean
     private RateLimitService rateLimitService;
 
+    @SuppressWarnings("deprecation")
     @org.springframework.boot.test.mock.mockito.MockBean
     private DDoSProtectionService ddosProtectionService;
     

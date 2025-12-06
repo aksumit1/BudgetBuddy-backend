@@ -278,7 +278,9 @@ public class AppConfigIntegration {
 
     /**
      * Get configuration using AppConfig API (not AppConfigData)
+     * Note: Using deprecated getConfiguration() for LocalStack compatibility
      */
+    @SuppressWarnings("deprecation")
     private void getConfigurationFromAppConfigApi() {
         if (appConfigClient == null) {
             throw new IllegalStateException("AppConfigClient is not initialized");

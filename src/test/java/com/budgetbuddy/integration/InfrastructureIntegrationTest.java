@@ -41,6 +41,31 @@ class InfrastructureIntegrationTest {
     void testDynamoDBClient_IsConfigured() {
         // Then
         assertNotNull(dynamoDbClient, "DynamoDB client should be configured");
+        
+        // CRITICAL: Explicitly trigger table creation if DynamoDBTableManager is available
+        // This ensures tables are created even if @PostConstruct didn't run or failed
+        // This is especially important in CI where Spring contexts may be created separately
+        if (dynamoDBTableManager != null) {
+            try {
+                // Use reflection to call initializeTables() to ensure tables are created
+                java.lang.reflect.Method initMethod = dynamoDBTableManager.getClass().getDeclaredMethod("initializeTables");
+                initMethod.setAccessible(true);
+                initMethod.invoke(dynamoDBTableManager);
+                logger.info("✅ Explicitly triggered table initialization via reflection");
+                
+                // Wait a moment for tables to be fully created
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+            } catch (Exception e) {
+                logger.warn("⚠️ Failed to explicitly initialize tables: {}", e.getMessage());
+                // Continue - @PostConstruct should have already created tables
+            }
+        } else {
+            logger.warn("⚠️ DynamoDBTableManager is not available - tables may not be created");
+        }
     }
 
     @Test

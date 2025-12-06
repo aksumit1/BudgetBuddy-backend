@@ -19,7 +19,6 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.Base64;
-import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -53,7 +52,6 @@ class ApiChaosTest {
     private String testEmail;
     private String testPasswordHash;
     private String authToken;
-    private UserTable testUser;
 
     @BeforeEach
     void setUp() {
@@ -63,7 +61,7 @@ class ApiChaosTest {
 
         // Create test user - tables should be initialized before tests run
         // BREAKING CHANGE: firstName and lastName are optional (can be null)
-        testUser = userService.createUserSecure(
+        userService.createUserSecure(
                 testEmail,
                 testPasswordHash,
                 null,
