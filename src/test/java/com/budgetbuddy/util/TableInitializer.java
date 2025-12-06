@@ -101,15 +101,29 @@ public class TableInitializer {
                         return;
                     }
                     
-                    logger.warn("⚠️ Table verification failed, re-initializing: {}", e.getMessage());
+                    // CRITICAL: If verification fails with ResourceNotFoundException, tables definitely don't exist
+                    // Reset the flag so we can re-initialize
+                    boolean isResourceNotFound = e instanceof software.amazon.awssdk.services.dynamodb.model.ResourceNotFoundException ||
+                                                (e.getCause() != null && e.getCause() instanceof software.amazon.awssdk.services.dynamodb.model.ResourceNotFoundException);
+                    
+                    if (isResourceNotFound) {
+                        logger.warn("⚠️ Table verification failed with ResourceNotFoundException - tables don't exist, re-initializing: {}", e.getMessage());
+                        globalTablesInitialized = false; // Reset flag to allow re-initialization
+                    } else {
+                        logger.warn("⚠️ Table verification failed (tables may not exist), re-initializing: {}", e.getMessage());
+                        globalTablesInitialized = false; // Reset flag to allow re-initialization
+                    }
+                    
                     try {
                         initializeTables(dynamoDbClient);
                         verifyCriticalTablesActive(dynamoDbClient);
+                        globalTablesInitialized = true; // Mark as initialized again
                         logger.info("✅ Tables re-initialized and verified");
                     } catch (Exception e2) {
                         // If re-initialization also fails due to connection pool shutdown, assume tables are OK
                         if (isConnectionPoolShutdown(e2)) {
                             logger.debug("⚠️ Connection pool shut down during re-initialization, assuming tables are still initialized");
+                            globalTablesInitialized = true; // Mark as initialized to prevent further attempts
                             return;
                         }
                         logger.error("❌ Failed to re-initialize tables: {}", e2.getMessage(), e2);

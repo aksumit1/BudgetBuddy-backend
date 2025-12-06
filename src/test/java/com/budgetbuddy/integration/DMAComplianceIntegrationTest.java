@@ -82,6 +82,25 @@ class DMAComplianceIntegrationTest {
 
     @BeforeEach
     void setUp() {
+        // CRITICAL: Verify tables still exist before each test
+        // Spring might create new contexts or DynamoDB clients between @BeforeAll and @BeforeEach
+        // Re-verify tables exist to handle cases where context is recreated
+        try {
+            // Quick verification - if this fails, tables don't exist and we need to re-initialize
+            TableInitializer.ensureTablesInitializedAndVerified(dynamoDbClient);
+            logger.debug("✅ Tables verified before test setup");
+        } catch (Exception e) {
+            logger.warn("⚠️ Table verification failed in @BeforeEach, attempting re-initialization: {}", e.getMessage());
+            // Try to re-initialize tables
+            try {
+                TableInitializer.ensureTablesInitializedAndVerified(dynamoDbClient);
+                logger.info("✅ Tables re-initialized in @BeforeEach");
+            } catch (Exception e2) {
+                logger.error("❌ Failed to re-initialize tables in @BeforeEach: {}", e2.getMessage(), e2);
+                throw new RuntimeException("Failed to ensure tables exist before test", e2);
+            }
+        }
+        
         testEmail = "test-dma-" + UUID.randomUUID().toString().substring(0, 8) + "@example.com";
         testPasswordHash = java.util.Base64.getEncoder().encodeToString("test-password-hash".getBytes());
         testUser = userService.createUserSecure(testEmail, testPasswordHash, null, null);
