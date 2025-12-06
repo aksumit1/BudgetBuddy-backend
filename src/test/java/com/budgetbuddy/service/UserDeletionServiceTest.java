@@ -95,10 +95,10 @@ class UserDeletionServiceTest {
     void testDeleteAllUserData_WithValidUserId_DeletesAllData() {
         // Given
         when(accountRepository.findByUserId(testUserId)).thenReturn(List.of(testAccount));
-        when(transactionRepository.findByUserId(testUserId, anyInt(), anyInt())).thenReturn(List.of(testTransaction));
+        when(transactionRepository.findByUserId(eq(testUserId), anyInt(), anyInt())).thenReturn(List.of(testTransaction));
         when(budgetRepository.findByUserId(testUserId)).thenReturn(List.of(testBudget));
         when(goalRepository.findByUserId(testUserId)).thenReturn(List.of(testGoal));
-        when(auditLogRepository.findByUserIdAndDateRange(anyString(), anyLong(), anyLong()))
+        when(auditLogRepository.findByUserIdAndDateRange(eq(testUserId), anyLong(), anyLong()))
                 .thenReturn(List.of(new AuditLogTable()));
         
         doNothing().when(accountRepository).save(any(AccountTable.class));
@@ -107,14 +107,14 @@ class UserDeletionServiceTest {
         doNothing().when(budgetRepository).delete(anyString());
         doNothing().when(goalRepository).delete(anyString());
         doNothing().when(auditLogRepository).save(any(AuditLogTable.class));
-        doNothing().when(auditLogService).logDataDeletion(anyString());
+        doNothing().when(auditLogService).logDataDeletion(eq(testUserId));
 
         // When
         userDeletionService.deleteAllUserData(testUserId);
 
         // Then
         verify(accountRepository, atLeastOnce()).findByUserId(testUserId);
-        verify(transactionRepository, atLeastOnce()).findByUserId(testUserId, anyInt(), anyInt());
+        verify(transactionRepository, atLeastOnce()).findByUserId(eq(testUserId), anyInt(), anyInt());
         verify(budgetRepository, times(1)).findByUserId(testUserId);
         verify(goalRepository, times(1)).findByUserId(testUserId);
         verify(auditLogService, times(1)).logDataDeletion(testUserId);
@@ -142,7 +142,7 @@ class UserDeletionServiceTest {
     void testDeletePlaidIntegration_WithValidUserId_DeletesPlaidData() {
         // Given
         when(accountRepository.findByUserId(testUserId)).thenReturn(List.of(testAccount));
-        when(transactionRepository.findByUserId(testUserId, anyInt(), anyInt())).thenReturn(List.of(testTransaction));
+        when(transactionRepository.findByUserId(eq(testUserId), anyInt(), anyInt())).thenReturn(List.of(testTransaction));
         
         doNothing().when(accountRepository).save(any(AccountTable.class));
         doNothing().when(transactionRepository).batchDelete(anyList());
@@ -154,8 +154,8 @@ class UserDeletionServiceTest {
 
         // Then
         verify(accountRepository, atLeastOnce()).findByUserId(testUserId);
-        verify(transactionRepository, atLeastOnce()).findByUserId(testUserId, anyInt(), anyInt());
-        verify(auditLogService, times(1)).logAction(eq(testUserId), eq("DELETE_PLAID_INTEGRATION"), anyString(), any(), any(), any(), any());
+        verify(transactionRepository, atLeastOnce()).findByUserId(eq(testUserId), anyInt(), anyInt());
+        verify(auditLogService, times(1)).logAction(eq(testUserId), eq("DELETE_PLAID_INTEGRATION"), eq("PLAID"), eq(null), any(), eq(null), eq(null));
     }
 
     @Test
@@ -171,14 +171,14 @@ class UserDeletionServiceTest {
     void testDeleteAccountCompletely_WithValidUserId_DeletesAccount() {
         // Given
         when(accountRepository.findByUserId(testUserId)).thenReturn(Collections.emptyList());
-        when(transactionRepository.findByUserId(testUserId, anyInt(), anyInt())).thenReturn(Collections.emptyList());
+        when(transactionRepository.findByUserId(eq(testUserId), anyInt(), anyInt())).thenReturn(Collections.emptyList());
         when(budgetRepository.findByUserId(testUserId)).thenReturn(Collections.emptyList());
         when(goalRepository.findByUserId(testUserId)).thenReturn(Collections.emptyList());
-        when(auditLogRepository.findByUserIdAndDateRange(anyString(), anyLong(), anyLong()))
+        when(auditLogRepository.findByUserIdAndDateRange(eq(testUserId), anyLong(), anyLong()))
                 .thenReturn(Collections.emptyList());
         
-        doNothing().when(userRepository).delete(anyString());
-        doNothing().when(auditLogService).logDataDeletion(anyString());
+        doNothing().when(userRepository).delete(eq(testUserId));
+        doNothing().when(auditLogService).logDataDeletion(eq(testUserId));
         doNothing().when(auditLogService).logAction(eq(testUserId), eq("DELETE_ACCOUNT"), eq("USER"), eq(testUserId), any(), eq(null), eq(null));
 
         // When
@@ -186,7 +186,7 @@ class UserDeletionServiceTest {
 
         // Then
         verify(userRepository, times(1)).delete(testUserId);
-        verify(auditLogService, times(1)).logAction(eq(testUserId), eq("DELETE_ACCOUNT"), anyString(), any(), any(), any(), any());
+        verify(auditLogService, times(1)).logAction(eq(testUserId), eq("DELETE_ACCOUNT"), eq("USER"), eq(testUserId), any(), eq(null), eq(null));
     }
 
     @Test

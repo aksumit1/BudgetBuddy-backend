@@ -101,13 +101,18 @@ class DeviceAttestationServiceTest {
 
         // Then
         // New device without attestation token should return false (requires verification)
-        verify(dynamoDbClient, times(1)).putItem(any(PutItemRequest.class));
+        // But putItem should still be called to register the device
+        verify(dynamoDbClient, atLeastOnce()).putItem(any(PutItemRequest.class));
+        assertFalse(result, "New device without attestation should return false");
     }
 
     @Test
     void testVerifyDevice_WithValidAttestationToken_VerifiesAndTrusts() {
         // Given
-        String attestationToken = "valid-token-base64-encoded-cbor-data-123456789012345678901234567890";
+        // Use a valid base64-encoded token that's > 100 chars (Apple DeviceCheck tokens are base64 CBOR)
+        String attestationToken = java.util.Base64.getEncoder().encodeToString(
+            ("valid-apple-devicecheck-cbor-token-data-that-is-long-enough-to-pass-validation-" +
+             "123456789012345678901234567890123456789012345678901234567890").getBytes());
         String platform = "ios";
         GetItemResponse emptyResponse = GetItemResponse.builder().build();
         when(dynamoDbClient.getItem(any(GetItemRequest.class))).thenReturn(emptyResponse);
@@ -126,14 +131,15 @@ class DeviceAttestationServiceTest {
         // Given
         String invalidToken = "invalid";
         String platform = "ios";
-        GetItemResponse emptyResponse = GetItemResponse.builder().build();
-        when(dynamoDbClient.getItem(any(GetItemRequest.class))).thenReturn(emptyResponse);
+        // Note: Invalid token causes early return before getItem/putItem are called
+        // No need to stub these methods as they won't be invoked
 
         // When
         boolean result = deviceAttestationService.verifyDevice(testDeviceId, testUserId, invalidToken, platform);
 
         // Then
         assertFalse(result);
+        // Invalid token causes early return, so getItem/putItem are never called
     }
 
     @Test

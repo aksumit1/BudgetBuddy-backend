@@ -66,10 +66,14 @@ public class DeviceAttestationService {
                     ))
                     .build());
 
-            if (response.item() != null) {
+            if (response.item() != null && !response.item().isEmpty()) {
                 // Device is registered
-                boolean trusted = Boolean.parseBoolean(response.item().getOrDefault("trusted", AttributeValue.builder().bool(false).build()).bool().toString());
-                long lastVerified = Long.parseLong(response.item().get("lastVerified").n());
+                AttributeValue trustedValue = response.item().get("trusted");
+                boolean trusted = trustedValue != null && trustedValue.bool() != null && trustedValue.bool();
+                AttributeValue lastVerifiedValue = response.item().get("lastVerified");
+                long lastVerified = lastVerifiedValue != null && lastVerifiedValue.n() != null 
+                    ? Long.parseLong(lastVerifiedValue.n()) 
+                    : Instant.now().getEpochSecond();
 
                 // Check if verification is recent (within 24 hours)
                 if (trusted && (Instant.now().getEpochSecond() - lastVerified) < 86400) {

@@ -222,14 +222,22 @@ public class PlaidCategoryMapper {
             }
         }
         
-        // If still no detailed category, use primary or default
-        if (mappedDetailed == null) {
-            mappedDetailed = mappedPrimary != null ? mappedPrimary : "other";
+        // Ensure primary is set first
+        if (mappedPrimary == null) {
+            // If all inputs were null/empty, return UNKNOWN_CATEGORY instead of "other"
+            if ((plaidCategoryPrimary == null || plaidCategoryPrimary.isEmpty()) &&
+                (plaidCategoryDetailed == null || plaidCategoryDetailed.isEmpty()) &&
+                (merchantName == null || merchantName.isEmpty()) &&
+                (description == null || description.isEmpty())) {
+                mappedPrimary = "UNKNOWN_CATEGORY";
+            } else {
+                mappedPrimary = "other";
+            }
         }
         
-        // Ensure primary is set
-        if (mappedPrimary == null) {
-            mappedPrimary = "other";
+        // If still no detailed category, use primary or default
+        if (mappedDetailed == null) {
+            mappedDetailed = mappedPrimary != null ? mappedPrimary : "UNKNOWN_CATEGORY";
         }
         
         return new CategoryMapping(mappedPrimary, mappedDetailed, false);
