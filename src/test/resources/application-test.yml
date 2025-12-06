@@ -56,26 +56,27 @@ app:
   
   rate-limit:
     enabled: false # Disabled for tests to avoid rate limiting issues
-    requests-per-minute: 10000000 # Very high limit for heavy testing (10 million per minute)
-    requests-per-hour: 100000000 # Very high limit for heavy testing (100 million per hour)
-    # Per-endpoint limits for tests (very high to support 200+ test runs per day)
-    auth-login: 1000000 # 1 million per minute
-    auth-signup: 1000000 # 1 million per minute
-    plaid: 10000000 # 10 million per minute (Plaid errors are common in tests)
-    transactions: 10000000 # 10 million per minute
-    analytics: 10000000 # 10 million per minute
-    default: 10000000 # 10 million per minute
-  
-  ddos:
-    # DDoS protection limits (very high for heavy testing - supports 200+ test runs per day)
-    max-requests-per-minute: 10000000 # 10 million per minute (supports 200 test runs/day)
-    max-requests-per-hour: 100000000 # 100 million per hour
-    # 404 Error Tracking Configuration
-    # Note: Some tests expect blocking at 20 requests, so we use a lower threshold for those tests
-    # Other tests can handle higher thresholds
-    notfound:
-      max-per-minute: 20  # Lower threshold to match test expectations (test404Tracking_WithXRealIPHeader expects 20)
-      max-per-hour: 200   # Lower threshold to match test expectations
+    requests-per-minute: 100000000 # Very high limit for heavy testing (100 million per minute)
+    requests-per-hour: 1000000000 # Very high limit for heavy testing (1 billion per hour)
+    # Per-endpoint limits for tests (very high to support multiple mvn install runs)
+    # Increased significantly to handle CI/GitHub test runs and multiple mvn install executions
+    auth-login: 10000000 # 10 million per minute
+    auth-signup: 10000000 # 10 million per minute
+    plaid: 100000000 # 100 million per minute (Plaid errors are common in tests, need very high limit)
+    transactions: 100000000 # 100 million per minute
+    analytics: 100000000 # 100 million per minute
+    default: 100000000 # 100 million per minute
+    # DDoS protection limits (must be under rate-limit.ddos for DDoSProtectionService to read)
+    # Property path: app.rate-limit.ddos.max-requests-per-minute (as used in DDoSProtectionService.java:32)
+    ddos:
+      max-requests-per-minute: 100000000 # 100 million per minute (supports multiple mvn install runs)
+      max-requests-per-hour: 1000000000 # 1 billion per hour
+      # 404 Error Tracking Configuration
+      # Note: Some tests expect blocking at 20 requests, so we use a lower threshold for those tests
+      # Other tests can handle higher thresholds
+      notfound:
+        max-per-minute: 20  # Lower threshold to match test expectations (test404Tracking_WithXRealIPHeader expects 20)
+        max-per-hour: 200   # Lower threshold to match test expectations
   
   security:
     cors:
