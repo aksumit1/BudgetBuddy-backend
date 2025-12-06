@@ -1,14 +1,18 @@
 package com.budgetbuddy.security.circuitbreaker;
 
 import com.budgetbuddy.AWSTestConfiguration;
+import com.budgetbuddy.util.TableInitializer;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
+import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -22,10 +26,19 @@ import static org.junit.jupiter.api.Assertions.*;
         })
 @ActiveProfiles("test")
 @Import(AWSTestConfiguration.class)
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class CircuitBreakerConfigurationTest {
 
     @Autowired
     private CircuitBreakerRegistry circuitBreakerRegistry;
+
+    @Autowired
+    private DynamoDbClient dynamoDbClient;
+
+    @BeforeAll
+    void ensureTablesInitialized() {
+        TableInitializer.ensureTablesInitializedAndVerified(dynamoDbClient);
+    }
 
     @Test
     void testPlaidCircuitBreaker_HasCorrectConfiguration() {

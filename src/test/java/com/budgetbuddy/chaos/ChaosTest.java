@@ -1,10 +1,15 @@
 package com.budgetbuddy.chaos;
 
 import com.budgetbuddy.AWSTestConfiguration;
+import com.budgetbuddy.util.TableInitializer;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
+import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 
 import java.util.Random;
 import java.util.concurrent.*;
@@ -18,7 +23,16 @@ import java.util.concurrent.atomic.AtomicInteger;
 @SpringBootTest(classes = com.budgetbuddy.BudgetBuddyApplication.class)
 @ActiveProfiles("test")
 @Import(AWSTestConfiguration.class)
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class ChaosTest {
+
+    @Autowired
+    private DynamoDbClient dynamoDbClient;
+
+    @BeforeAll
+    void ensureTablesInitialized() {
+        TableInitializer.ensureTablesInitializedAndVerified(dynamoDbClient);
+    }
 
     @Test
     void testRandomFailures() throws InterruptedException {

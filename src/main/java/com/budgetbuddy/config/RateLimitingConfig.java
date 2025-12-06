@@ -16,10 +16,10 @@ import java.time.Duration;
 public class RateLimitingConfig {
 
     @Value("${app.rate-limit.requests-per-minute:10000}")
-    private int requestsPerMinute;
+    private long requestsPerMinute;
 
     @Value("${app.rate-limit.requests-per-hour:500000}")
-    private int requestsPerHour;
+    private long requestsPerHour;
 
     @Bean
     public Bucket defaultBucket() {

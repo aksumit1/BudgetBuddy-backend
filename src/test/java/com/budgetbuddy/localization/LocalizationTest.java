@@ -3,12 +3,16 @@ package com.budgetbuddy.localization;
 import com.budgetbuddy.AWSTestConfiguration;
 import com.budgetbuddy.exception.ErrorCode;
 import com.budgetbuddy.util.MessageUtil;
+import com.budgetbuddy.util.TableInitializer;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.test.context.ActiveProfiles;
+import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 
 import java.util.Locale;
 
@@ -22,10 +26,19 @@ import static org.junit.jupiter.api.Assertions.*;
 @SpringBootTest(classes = com.budgetbuddy.BudgetBuddyApplication.class)
 @ActiveProfiles("test")
 @Import(AWSTestConfiguration.class)
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class LocalizationTest {
 
     @Autowired
     private MessageUtil messageUtil;
+
+    @Autowired
+    private DynamoDbClient dynamoDbClient;
+
+    @BeforeAll
+    void ensureTablesInitialized() {
+        TableInitializer.ensureTablesInitializedAndVerified(dynamoDbClient);
+    }
 
     @Test
     void testGetMessage_WithDefaultLocale() {
