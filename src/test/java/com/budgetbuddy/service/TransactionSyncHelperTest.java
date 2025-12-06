@@ -1,87 +1,126 @@
 package com.budgetbuddy.service;
 
-import com.budgetbuddy.AWSTestConfiguration;
 import com.budgetbuddy.model.dynamodb.TransactionTable;
-import com.budgetbuddy.util.TableInitializer;
-import org.junit.jupiter.api.BeforeAll;
+import com.budgetbuddy.repository.dynamodb.TransactionRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInstance;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Import;
-import org.springframework.test.context.ActiveProfiles;
-import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
-import java.time.Instant;
-import java.util.UUID;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
 /**
- * Tests for TransactionSyncHelper
+ * Unit Tests for TransactionSyncHelper
+ * Tests transaction synchronization logic
  */
-@SpringBootTest(classes = com.budgetbuddy.BudgetBuddyApplication.class)
-@ActiveProfiles("test")
-@Import(AWSTestConfiguration.class)
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
+@ExtendWith(MockitoExtension.class)
 class TransactionSyncHelperTest {
 
-    @Autowired
+    @Mock
+    private TransactionRepository transactionRepository;
+
+    @InjectMocks
     private TransactionSyncHelper transactionSyncHelper;
 
-    @Autowired
-    private DynamoDbClient dynamoDbClient;
+    private TransactionTable testTransaction;
+    private String testPlaidTransactionId;
 
-    @BeforeAll
-    void ensureTablesInitialized() {
-        TableInitializer.ensureTablesInitializedAndVerified(dynamoDbClient);
-    }
-
-    @Test
-    void testTransactionSyncHelper_IsCreated() {
-        // Then
-        assertNotNull(transactionSyncHelper, "TransactionSyncHelper should be created");
+    @BeforeEach
+    void setUp() {
+        transactionSyncHelper = new TransactionSyncHelper(transactionRepository);
+        testPlaidTransactionId = "plaid-txn-123";
+        
+        testTransaction = new TransactionTable();
+        testTransaction.setTransactionId("txn-123");
+        testTransaction.setPlaidTransactionId(testPlaidTransactionId);
+        testTransaction.setAmount(new BigDecimal("100.00"));
     }
 
     @Test
     void testSyncSingleTransaction_WithNullTransaction_ReturnsError() {
-        // Given
-        if (transactionSyncHelper == null) {
-            return;
-        }
-
         // When
-        TransactionSyncHelper.SyncResult result = transactionSyncHelper.syncSingleTransaction(
-                null,
-                "plaid-id-123"
-        );
+        TransactionSyncHelper.SyncResult result = transactionSyncHelper.syncSingleTransaction(null, testPlaidTransactionId);
 
         // Then
-        assertNotNull(result, "Result should not be null");
-        assertEquals(1, result.getErrorCount(), "Should have 1 error");
+        assertEquals(1, result.getErrorCount());
+        assertEquals(0, result.getNewCount());
+        verify(transactionRepository, never()).save(any());
     }
 
     @Test
     void testSyncSingleTransaction_WithNullPlaidId_ReturnsError() {
-        // Given
-        if (transactionSyncHelper == null) {
-            return;
-        }
-        TransactionTable transaction = new TransactionTable();
-        transaction.setTransactionId(UUID.randomUUID().toString());
-        transaction.setAmount(new BigDecimal("100.00"));
-        transaction.setCreatedAt(Instant.now());
-
         // When
-        TransactionSyncHelper.SyncResult result = transactionSyncHelper.syncSingleTransaction(
-                transaction,
-                null
-        );
+        TransactionSyncHelper.SyncResult result = transactionSyncHelper.syncSingleTransaction(testTransaction, null);
 
         // Then
-        assertNotNull(result, "Result should not be null");
-        assertEquals(1, result.getErrorCount(), "Should have 1 error");
+        assertEquals(1, result.getErrorCount());
+        verify(transactionRepository, never()).save(any());
+    }
+
+    @Test
+    void testSyncSingleTransaction_WithNewTransaction_ReturnsNewCount() {
+        // Given
+        when(transactionRepository.saveIfPlaidTransactionNotExists(any(TransactionTable.class))).thenReturn(true);
+
+        // When
+        TransactionSyncHelper.SyncResult result = transactionSyncHelper.syncSingleTransaction(testTransaction, testPlaidTransactionId);
+
+        // Then
+        assertEquals(1, result.getNewCount());
+        assertEquals(0, result.getUpdatedCount());
+        assertEquals(0, result.getErrorCount());
+        verify(transactionRepository, times(1)).saveIfPlaidTransactionNotExists(any(TransactionTable.class));
+    }
+
+    @Test
+    void testSyncSingleTransaction_WithExistingTransaction_ReturnsUpdatedCount() {
+        // Given
+        when(transactionRepository.saveIfPlaidTransactionNotExists(any(TransactionTable.class))).thenReturn(false);
+        when(transactionRepository.findByPlaidTransactionId(testPlaidTransactionId))
+                .thenReturn(Optional.of(testTransaction));
+        doNothing().when(transactionRepository).save(any(TransactionTable.class));
+
+        // When
+        TransactionSyncHelper.SyncResult result = transactionSyncHelper.syncSingleTransaction(testTransaction, testPlaidTransactionId);
+
+        // Then
+        assertEquals(0, result.getNewCount());
+        assertEquals(1, result.getUpdatedCount());
+        assertEquals(0, result.getErrorCount());
+        verify(transactionRepository, times(1)).findByPlaidTransactionId(testPlaidTransactionId);
+    }
+
+    @Test
+    void testSyncSingleTransaction_WithNoPlaidId_UsesRegularSave() {
+        // Given
+        testTransaction.setPlaidTransactionId(null);
+        when(transactionRepository.saveIfNotExists(any(TransactionTable.class))).thenReturn(true);
+
+        // When
+        TransactionSyncHelper.SyncResult result = transactionSyncHelper.syncSingleTransaction(testTransaction, testPlaidTransactionId);
+
+        // Then
+        assertEquals(1, result.getNewCount());
+        verify(transactionRepository, times(1)).saveIfNotExists(any(TransactionTable.class));
+    }
+
+    @Test
+    void testSyncSingleTransaction_WithException_ReturnsError() {
+        // Given
+        when(transactionRepository.saveIfPlaidTransactionNotExists(any(TransactionTable.class)))
+                .thenThrow(new RuntimeException("Database error"));
+
+        // When
+        TransactionSyncHelper.SyncResult result = transactionSyncHelper.syncSingleTransaction(testTransaction, testPlaidTransactionId);
+
+        // Then
+        assertEquals(1, result.getErrorCount());
+        assertEquals(0, result.getNewCount());
     }
 }
-
