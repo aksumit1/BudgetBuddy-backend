@@ -91,6 +91,8 @@ public class DynamoDBTableManager {
             logger.info("Created table: {}", tableName);
         } catch (ResourceInUseException e) {
             logger.debug("Table {} already exists", tableName);
+        } catch (Exception e) {
+            logger.warn("Failed to create table {}: {}. This may be expected if LocalStack is not running.", tableName, e.getMessage());
         }
     }
 
@@ -145,6 +147,8 @@ public class DynamoDBTableManager {
             logger.info("Created table: {}", tableName);
         } catch (ResourceInUseException e) {
             logger.debug("Table {} already exists", tableName);
+        } catch (Exception e) {
+            logger.warn("Failed to create table {}: {}. This may be expected if LocalStack is not running.", tableName, e.getMessage());
         }
     }
 
@@ -226,6 +230,8 @@ public class DynamoDBTableManager {
             logger.info("Created table: {}", tableName);
         } catch (ResourceInUseException e) {
             logger.debug("Table {} already exists", tableName);
+        } catch (Exception e) {
+            logger.warn("Failed to create table {}: {}. This may be expected if LocalStack is not running.", tableName, e.getMessage());
         }
     }
 
@@ -265,6 +271,8 @@ public class DynamoDBTableManager {
             logger.info("Created table: {}", tableName);
         } catch (ResourceInUseException e) {
             logger.debug("Table {} already exists", tableName);
+        } catch (Exception e) {
+            logger.warn("Failed to create table {}: {}. This may be expected if LocalStack is not running.", tableName, e.getMessage());
         }
     }
 
@@ -304,6 +312,8 @@ public class DynamoDBTableManager {
             logger.info("Created table: {}", tableName);
         } catch (ResourceInUseException e) {
             logger.debug("Table {} already exists", tableName);
+        } catch (Exception e) {
+            logger.warn("Failed to create table {}: {}. This may be expected if LocalStack is not running.", tableName, e.getMessage());
         }
     }
 
@@ -449,6 +459,8 @@ public class DynamoDBTableManager {
             logger.info("Created table: {}", tableName);
         } catch (ResourceInUseException e) {
             logger.debug("Table {} already exists", tableName);
+        } catch (Exception e) {
+            logger.warn("Failed to create table {}: {}. This may be expected if LocalStack is not running.", tableName, e.getMessage());
         }
     }
 

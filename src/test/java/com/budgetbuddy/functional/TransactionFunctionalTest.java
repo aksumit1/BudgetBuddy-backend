@@ -59,33 +59,14 @@ class TransactionFunctionalTest {
         String email = "test-" + UUID.randomUUID() + "@example.com";
         String passwordHash = java.util.Base64.getEncoder().encodeToString(("hashed-password-" + UUID.randomUUID()).getBytes());
 
-        // Skip test if DynamoDB tables don't exist (LocalStack not running)
-        try {
-            // BREAKING CHANGE: firstName and lastName are optional (can be null)
-            testUser = userService.createUserSecure(
-                    email,
-                    passwordHash,
-                    null,
-                    null
-            );
-        } catch (Exception e) {
-            // If user creation fails due to infrastructure, skip test
-            String errorMsg = e.getMessage() != null ? e.getMessage() : "";
-            Throwable cause = e.getCause();
-            String causeMsg = (cause != null && cause.getMessage() != null) ? cause.getMessage() : "";
-            
-            if (errorMsg.contains("DynamoDB") || errorMsg.contains("LocalStack") || 
-                errorMsg.contains("Connection") || errorMsg.contains("endpoint") ||
-                errorMsg.contains("ResourceNotFoundException") ||
-                causeMsg.contains("DynamoDB") || causeMsg.contains("Connection") ||
-                causeMsg.contains("endpoint") || causeMsg.contains("ResourceNotFoundException")) {
-                org.junit.jupiter.api.Assumptions.assumeTrue(
-                        false,
-                        "Test requires DynamoDB/LocalStack to be running. Skipping transaction functional test: " + errorMsg
-                );
-            }
-            throw e; // Re-throw if it's not an infrastructure issue
-        }
+        // Create test user - tables should be initialized before tests run
+        // BREAKING CHANGE: firstName and lastName are optional (can be null)
+        testUser = userService.createUserSecure(
+                email,
+                passwordHash,
+                null,
+                null
+        );
         
         // Ensure ObjectMapper has JavaTimeModule for Instant serialization
         ObjectMapper mapper = getObjectMapper();
@@ -110,22 +91,13 @@ class TransactionFunctionalTest {
         // Given - User is authenticated (use test user's email)
         String testUserEmail = testUser.getEmail();
 
-        // When/Then - Test pagination
-        // Skip if DynamoDB operations fail (LocalStack not running)
-        try {
-            mockMvc.perform(get("/api/transactions")
-                            .param("page", "0")
-                            .param("size", "20")
-                            .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user(testUserEmail))
-                            .contentType(MediaType.APPLICATION_JSON))
-                    .andExpect(status().isOk());
-        } catch (AssertionError e) {
-            // If test fails due to infrastructure, skip it
-            org.junit.jupiter.api.Assumptions.assumeTrue(
-                    false,
-                    "Test requires DynamoDB/LocalStack to be running. Skipping functional test."
-            );
-        }
+        // When/Then - Test pagination - tables should be initialized before tests run
+        mockMvc.perform(get("/api/transactions")
+                        .param("page", "0")
+                        .param("size", "20")
+                        .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user(testUserEmail))
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk());
     }
 
     @Test
@@ -135,22 +107,13 @@ class TransactionFunctionalTest {
         LocalDate startDate = LocalDate.now().minusDays(30);
         LocalDate endDate = LocalDate.now();
 
-        // When/Then
-        // Skip if DynamoDB operations fail (LocalStack not running)
-        try {
-            mockMvc.perform(get("/api/transactions/range")
-                            .param("startDate", startDate.toString())
-                            .param("endDate", endDate.toString())
-                            .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user(testUserEmail))
-                            .contentType(MediaType.APPLICATION_JSON))
-                    .andExpect(status().isOk());
-        } catch (AssertionError e) {
-            // If test fails due to infrastructure, skip it
-            org.junit.jupiter.api.Assumptions.assumeTrue(
-                    false,
-                    "Test requires DynamoDB/LocalStack to be running. Skipping functional test."
-            );
-        }
+        // When/Then - tables should be initialized before tests run
+        mockMvc.perform(get("/api/transactions/range")
+                        .param("startDate", startDate.toString())
+                        .param("endDate", endDate.toString())
+                        .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user(testUserEmail))
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk());
     }
 }
 

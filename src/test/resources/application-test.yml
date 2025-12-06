@@ -10,6 +10,15 @@ spring:
   dynamodb:
     endpoint: http://localhost:4566 # LocalStack endpoint for testing
     region: us-east-1
+  
+  # Redis Configuration (Optional for tests - will use in-memory if not available)
+  data:
+    redis:
+      host: ${SPRING_DATA_REDIS_HOST:localhost}
+      port: ${SPRING_DATA_REDIS_PORT:6379}
+      timeout: 2000ms
+      # In tests, Redis is optional - tests will work without it
+      # If Redis is not available, some features may be disabled but tests should still pass
 
 # Test Application Configuration
 app:

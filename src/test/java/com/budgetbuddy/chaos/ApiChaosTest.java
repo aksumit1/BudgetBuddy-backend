@@ -61,33 +61,14 @@ class ApiChaosTest {
         testEmail = "chaos-" + UUID.randomUUID() + "@example.com";
         testPasswordHash = Base64.getEncoder().encodeToString("hashed-password".getBytes());
 
-        // Skip test if DynamoDB tables don't exist (LocalStack not running)
-        try {
-            // BREAKING CHANGE: firstName and lastName are optional (can be null)
-            testUser = userService.createUserSecure(
-                    testEmail,
-                    testPasswordHash,
-                    null,
-                    null
-            );
-        } catch (Exception e) {
-            // If user creation fails due to infrastructure, skip test
-            String errorMsg = e.getMessage() != null ? e.getMessage() : "";
-            Throwable cause = e.getCause();
-            String causeMsg = (cause != null && cause.getMessage() != null) ? cause.getMessage() : "";
-            
-            if (errorMsg.contains("DynamoDB") || errorMsg.contains("LocalStack") || 
-                errorMsg.contains("Connection") || errorMsg.contains("endpoint") ||
-                errorMsg.contains("ResourceNotFoundException") ||
-                causeMsg.contains("DynamoDB") || causeMsg.contains("Connection") ||
-                causeMsg.contains("endpoint") || causeMsg.contains("ResourceNotFoundException")) {
-                org.junit.jupiter.api.Assumptions.assumeTrue(
-                        false,
-                        "Test requires DynamoDB/LocalStack to be running. Skipping chaos test: " + errorMsg
-                );
-            }
-            throw e; // Re-throw if it's not an infrastructure issue
-        }
+        // Create test user - tables should be initialized before tests run
+        // BREAKING CHANGE: firstName and lastName are optional (can be null)
+        testUser = userService.createUserSecure(
+                testEmail,
+                testPasswordHash,
+                null,
+                null
+        );
 
         AuthRequest loginRequest = new AuthRequest();
         loginRequest.setEmail(testEmail);

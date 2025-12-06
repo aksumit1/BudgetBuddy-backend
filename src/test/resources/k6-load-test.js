@@ -1,6 +1,7 @@
 import http from 'k6/http';
 import { check, sleep } from 'k6';
 import { Rate } from 'k6/metrics';
+import { textSummary } from 'https://jslib.k6.io/k6-summary/0.0.1/index.js';
 
 // Custom metrics
 const errorRate = new Rate('errors');
@@ -24,18 +25,18 @@ export const options = {
 const BASE_URL = __ENV.BASE_URL || 'http://localhost:8080';
 
 // Test data
+// BREAKING CHANGE: Backend now only accepts email and password_hash (no salt)
 const testUser = {
     email: 'loadtest@example.com',
-    passwordHash: 'test-hash',
-    salt: 'test-salt'
+    passwordHash: 'test-hash'
 };
 
 export default function () {
     // Test authentication endpoint
+    // BREAKING CHANGE: Use new format (no salt)
     const authResponse = http.post(`${BASE_URL}/api/auth/login`, JSON.stringify({
         email: testUser.email,
-        passwordHash: testUser.passwordHash,
-        salt: testUser.salt
+        password_hash: testUser.passwordHash
     }), {
         headers: { 'Content-Type': 'application/json' },
     });
