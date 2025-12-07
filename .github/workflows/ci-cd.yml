@@ -256,7 +256,14 @@ jobs:
     name: Deploy to Staging
     runs-on: ubuntu-latest
     needs: [test, build]
-    if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
+    # Deploy to staging on:
+    # 1. Pushes to develop branch
+    # 2. Pull requests targeting develop branch (for testing)
+    # 3. Manual workflow dispatch
+    if: |
+      (github.ref == 'refs/heads/develop' && github.event_name == 'push') ||
+      (github.event_name == 'pull_request' && github.base_ref == 'develop') ||
+      github.event_name == 'workflow_dispatch'
     environment:
       name: staging
       url: https://staging-api.budgetbuddy.com
@@ -265,7 +272,20 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Check AWS credentials
+        id: check-credentials
+        run: |
+          if [ -z "${{ secrets.AWS_ACCESS_KEY_ID }}" ] || [ -z "${{ secrets.AWS_SECRET_ACCESS_KEY }}" ]; then
+            echo "⚠️ AWS credentials not configured in GitHub secrets"
+            echo "Skipping deployment. Please configure AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY secrets."
+            echo "skip_deployment=true" >> $GITHUB_OUTPUT
+          else
+            echo "✅ AWS credentials found"
+            echo "skip_deployment=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Configure AWS credentials
+        if: steps.check-credentials.outputs.skip_deployment == 'false'
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -273,16 +293,33 @@ jobs:
           aws-region: us-east-1
 
       - name: Deploy to ECS
+        if: steps.check-credentials.outputs.skip_deployment == 'false'
         run: |
           echo "Deploying to staging ECS..."
           # Add your ECS deployment commands here
           # aws ecs update-service --cluster staging-cluster --service budgetbuddy-backend --force-new-deployment
+          echo "✅ Deployment step completed (actual deployment commands commented out)"
+        
+      - name: Skip deployment notice
+        if: steps.check-credentials.outputs.skip_deployment == 'true'
+        run: |
+          echo "⚠️ Deployment skipped due to missing AWS credentials"
+          echo "To enable deployment, configure the following secrets in GitHub:"
+          echo "  - AWS_ACCESS_KEY_ID"
+          echo "  - AWS_SECRET_ACCESS_KEY"
+          echo ""
+          echo "Go to: Settings > Secrets and variables > Actions > New repository secret"
 
   deploy-production:
     name: Deploy to Production
     runs-on: ubuntu-latest
     needs: [test, build]
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    # Deploy to production only on:
+    # 1. Pushes to main branch (after merge)
+    # 2. Manual workflow dispatch (for emergency deployments)
+    if: |
+      (github.ref == 'refs/heads/main' && github.event_name == 'push') ||
+      github.event_name == 'workflow_dispatch'
     environment:
       name: production
       url: https://api.budgetbuddy.com
@@ -291,7 +328,20 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Check AWS credentials
+        id: check-credentials
+        run: |
+          if [ -z "${{ secrets.AWS_ACCESS_KEY_ID }}" ] || [ -z "${{ secrets.AWS_SECRET_ACCESS_KEY }}" ]; then
+            echo "⚠️ AWS credentials not configured in GitHub secrets"
+            echo "Skipping deployment. Please configure AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY secrets."
+            echo "skip_deployment=true" >> $GITHUB_OUTPUT
+          else
+            echo "✅ AWS credentials found"
+            echo "skip_deployment=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Configure AWS credentials
+        if: steps.check-credentials.outputs.skip_deployment == 'false'
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -299,10 +349,22 @@ jobs:
           aws-region: us-east-1
 
       - name: Deploy to ECS
+        if: steps.check-credentials.outputs.skip_deployment == 'false'
         run: |
           echo "Deploying to production ECS..."
           # Add your ECS deployment commands here
           # aws ecs update-service --cluster production-cluster --service budgetbuddy-backend --force-new-deployment
+          echo "✅ Deployment step completed (actual deployment commands commented out)"
+        
+      - name: Skip deployment notice
+        if: steps.check-credentials.outputs.skip_deployment == 'true'
+        run: |
+          echo "⚠️ Deployment skipped due to missing AWS credentials"
+          echo "To enable deployment, configure the following secrets in GitHub:"
+          echo "  - AWS_ACCESS_KEY_ID"
+          echo "  - AWS_SECRET_ACCESS_KEY"
+          echo ""
+          echo "Go to: Settings > Secrets and variables > Actions > New repository secret"
 
   security-scan:
     name: Security Scan
