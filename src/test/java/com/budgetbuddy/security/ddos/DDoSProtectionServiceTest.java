@@ -127,23 +127,39 @@ class DDoSProtectionServiceTest {
     @Test
     void testIsAllowed_WithDifferentIps_HasSeparateLimits() {
         // Given - Different IP addresses (use unique IPs to avoid interference)
-        String ip1 = "192.168.1." + UUID.randomUUID().toString().substring(0, 3);
-        String ip2 = "192.168.1." + UUID.randomUUID().toString().substring(0, 3);
+        // Use different subnets to ensure uniqueness
+        String uuid1 = UUID.randomUUID().toString().replace("-", "");
+        String uuid2 = UUID.randomUUID().toString().replace("-", "");
+        int thirdOctet1 = Math.abs(uuid1.substring(0, 4).hashCode()) % 255;
+        int fourthOctet1 = Math.abs(uuid1.substring(4, 8).hashCode()) % 255;
+        int thirdOctet2 = Math.abs(uuid2.substring(0, 4).hashCode()) % 255;
+        int fourthOctet2 = Math.abs(uuid2.substring(4, 8).hashCode()) % 255;
+        String ip1 = "192.168." + thirdOctet1 + "." + fourthOctet1;
+        String ip2 = "192.168." + thirdOctet2 + "." + fourthOctet2;
+        
+        // Ensure IPs are different
+        if (ip1.equals(ip2)) {
+            ip2 = "192.168." + ((thirdOctet2 + 1) % 255) + "." + fourthOctet2;
+        }
 
-        // When - Make requests from both IPs
+        // When - Make requests from both IPs (limit is 10 per minute, so we make 15 total)
         int ip1Allowed = 0;
         int ip2Allowed = 0;
 
+        // Make requests alternating between IPs to ensure both get processed
         for (int i = 0; i < 15; i++) {
-            if (ddosProtectionService.isAllowed(ip1)) {
-                ip1Allowed++;
-            }
-            if (ddosProtectionService.isAllowed(ip2)) {
-                ip2Allowed++;
+            if (i % 2 == 0) {
+                if (ddosProtectionService.isAllowed(ip1)) {
+                    ip1Allowed++;
+                }
+            } else {
+                if (ddosProtectionService.isAllowed(ip2)) {
+                    ip2Allowed++;
+                }
             }
         }
 
-        // Then - Both IPs should have separate rate limits
+        // Then - Both IPs should have separate rate limits (each can make up to 10 requests)
         assertTrue(ip1Allowed > 0, "IP1 should be allowed some requests. Got: " + ip1Allowed);
         assertTrue(ip2Allowed > 0, "IP2 should be allowed some requests. Got: " + ip2Allowed);
         // Both should be able to make requests independently

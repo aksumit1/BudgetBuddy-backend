@@ -10,7 +10,8 @@ import java.time.LocalDateTime;
  * Transaction entity representing a financial transaction
  * Note: This is a domain model. For DynamoDB persistence, use TransactionTable.
  */
-public class Transaction {
+public class Transaction implements java.io.Serializable {
+    private static final long serialVersionUID = 1L;
 
     private Long id;
 

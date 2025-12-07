@@ -12,7 +12,8 @@ import java.util.Set;
  * User entity representing an application user
  * Note: This is a domain model. For DynamoDB persistence, use UserTable.
  */
-public class User {
+public class User implements java.io.Serializable {
+    private static final long serialVersionUID = 1L;
 
     private Long id;
 

@@ -10,7 +10,8 @@ import java.time.LocalDateTime;
  * Goal entity representing a financial goal
  * Note: This is a domain model. For DynamoDB persistence, use GoalTable.
  */
-public class Goal {
+public class Goal implements java.io.Serializable {
+    private static final long serialVersionUID = 1L;
 
     private Long id;
 

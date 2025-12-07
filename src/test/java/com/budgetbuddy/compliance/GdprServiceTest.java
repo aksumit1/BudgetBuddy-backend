@@ -92,7 +92,7 @@ class GdprServiceTest {
         // Then
         assertNotNull(downloadUrl);
         assertEquals("https://s3.example.com/download", downloadUrl);
-        verify(s3Service).uploadFileInfrequentAccess(anyString(), any(), anyInt(), anyString());
+        verify(s3Service).uploadFileInfrequentAccess(anyString(), any(), anyLong(), anyString());
         verify(s3Service).getPresignedUrl(anyString(), eq(7 * 24 * 60));
     }
 
@@ -183,10 +183,13 @@ class GdprServiceTest {
         
         when(userRepository.findById(testUserId)).thenReturn(Optional.of(testUser));
         when(accountRepository.findByUserId(testUserId)).thenReturn(List.of());
+        // exportUserData uses limit 10000, deleteUserData uses limit 1000
+        when(transactionRepository.findByUserId(testUserId, 0, 10000)).thenReturn(List.of());
         when(transactionRepository.findByUserId(testUserId, 0, 1000)).thenReturn(List.of(txn1, txn2));
-        when(transactionRepository.findByUserId(testUserId, 2, 1000)).thenReturn(List.of());
-        when(budgetRepository.findByUserId(testUserId)).thenReturn(List.of());
-        when(goalRepository.findByUserId(testUserId)).thenReturn(List.of());
+        // The next batch call (skip=2) will be made to check if there are more transactions
+        org.mockito.Mockito.lenient().when(transactionRepository.findByUserId(testUserId, 2, 1000)).thenReturn(List.of());
+        org.mockito.Mockito.lenient().when(budgetRepository.findByUserId(testUserId)).thenReturn(List.of());
+        org.mockito.Mockito.lenient().when(goalRepository.findByUserId(testUserId)).thenReturn(List.of());
         when(auditLogRepository.findByUserIdAndDateRange(anyString(), anyLong(), anyLong())).thenReturn(List.of());
         when(s3Service.uploadFileInfrequentAccess(anyString(), any(ByteArrayInputStream.class), anyLong(), anyString()))
                 .thenReturn("s3-key");
@@ -211,6 +214,8 @@ class GdprServiceTest {
         
         when(userRepository.findById(testUserId)).thenReturn(Optional.of(testUser));
         when(accountRepository.findByUserId(testUserId)).thenReturn(List.of(account));
+        // exportUserData uses limit 10000, deleteUserData uses limit 1000
+        when(transactionRepository.findByUserId(testUserId, 0, 10000)).thenReturn(List.of());
         when(transactionRepository.findByUserId(testUserId, 0, 1000)).thenReturn(List.of());
         when(budgetRepository.findByUserId(testUserId)).thenReturn(List.of());
         when(goalRepository.findByUserId(testUserId)).thenReturn(List.of());

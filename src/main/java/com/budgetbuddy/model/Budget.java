@@ -9,7 +9,8 @@ import java.time.LocalDateTime;
  * Budget entity representing a monthly budget for a category
  * Note: This is a domain model. For DynamoDB persistence, use BudgetTable.
  */
-public class Budget {
+public class Budget implements java.io.Serializable {
+    private static final long serialVersionUID = 1L;
 
     private Long id;
 

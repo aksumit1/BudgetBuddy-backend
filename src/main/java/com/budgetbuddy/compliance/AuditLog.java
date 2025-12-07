@@ -6,7 +6,8 @@ import java.time.LocalDateTime;
  * Audit Log entity for compliance tracking
  * Note: This is a domain model. For DynamoDB persistence, use AuditLogTable.
  */
-public class AuditLog {
+public class AuditLog implements java.io.Serializable {
+    private static final long serialVersionUID = 1L;
 
     private Long id;
 

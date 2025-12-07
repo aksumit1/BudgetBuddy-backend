@@ -10,7 +10,8 @@ import java.time.LocalDateTime;
  * Account entity representing a linked financial account
  * Note: This is a domain model. For DynamoDB persistence, use AccountTable.
  */
-public class Account {
+public class Account implements java.io.Serializable {
+    private static final long serialVersionUID = 1L;
 
     private Long id;
 

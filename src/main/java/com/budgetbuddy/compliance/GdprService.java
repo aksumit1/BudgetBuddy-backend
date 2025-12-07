@@ -404,7 +404,8 @@ public class GdprService {
     }
 
     // Inner class for data export
-    public static class UserDataExport {
+    public static class UserDataExport implements java.io.Serializable {
+        private static final long serialVersionUID = 1L;
         private User user;
         private java.util.List<com.budgetbuddy.model.Account> accounts;
         private java.util.List<com.budgetbuddy.model.Transaction> transactions;
