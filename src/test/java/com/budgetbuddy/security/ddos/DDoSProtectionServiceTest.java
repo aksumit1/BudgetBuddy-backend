@@ -52,7 +52,12 @@ class DDoSProtectionServiceTest {
 
     @BeforeEach
     void setUp() {
-        testIp = "192.168.1." + (100 + (int)(Math.random() * 100)); // Random IP to avoid conflicts
+        // Use UUID-based IP to ensure uniqueness and avoid conflicts with previous test runs
+        // Format: 192.168.{0-254}.{0-254} (valid IP range)
+        String uuid = UUID.randomUUID().toString().replace("-", "");
+        int thirdOctet = Math.abs(uuid.substring(0, 4).hashCode()) % 255; // 0-254
+        int fourthOctet = Math.abs(uuid.substring(4, 8).hashCode()) % 255; // 0-254
+        testIp = "192.168." + thirdOctet + "." + fourthOctet;
     }
 
     @Test
@@ -95,13 +100,19 @@ class DDoSProtectionServiceTest {
     @Test
     void testIsAllowed_WithMultipleRequests_RespectsRateLimit() {
         // Given - Rate limit of 10 per minute
+        // Use a unique IP for this test to avoid conflicts with previous runs
+        String uuid = UUID.randomUUID().toString().replace("-", "");
+        int thirdOctet = Math.abs(uuid.substring(0, 4).hashCode()) % 255; // 0-254
+        int fourthOctet = Math.abs(uuid.substring(4, 8).hashCode()) % 255; // 0-254
+        String uniqueTestIp = "192.168." + thirdOctet + "." + fourthOctet;
+        
         int limit = 10;
         int requestsToMake = limit + 5; // Exceed limit
 
         // When - Make requests up to limit
         int allowedCount = 0;
         for (int i = 0; i < requestsToMake; i++) {
-            if (ddosProtectionService.isAllowed(testIp)) {
+            if (ddosProtectionService.isAllowed(uniqueTestIp)) {
                 allowedCount++;
             }
         }
@@ -235,12 +246,10 @@ class DDoSProtectionServiceTest {
         // Given - Invalid IP format
         String invalidIp = "not-an-ip-address";
 
-        // When
-        boolean allowed = ddosProtectionService.isAllowed(invalidIp);
-
-        // Then - Should handle gracefully (may allow or block, but shouldn't crash)
+        // When/Then - Should handle gracefully (may allow or block, but shouldn't crash)
         // The service should handle invalid IPs without throwing exceptions
-        assertNotNull(ddosProtectionService, "Service should handle invalid IP format");
+        assertDoesNotThrow(() -> ddosProtectionService.isAllowed(invalidIp), 
+                "Service should handle invalid IP format without throwing exceptions");
     }
 
     @Test
@@ -248,11 +257,9 @@ class DDoSProtectionServiceTest {
         // Given - Very long string (potential DoS attempt)
         String veryLongIp = "192.168.1." + "x".repeat(1000);
 
-        // When
-        boolean allowed = ddosProtectionService.isAllowed(veryLongIp);
-
-        // Then - Should handle without crashing
-        assertNotNull(ddosProtectionService, "Service should handle very long IP strings");
+        // When/Then - Should handle without crashing
+        assertDoesNotThrow(() -> ddosProtectionService.isAllowed(veryLongIp), 
+                "Service should handle very long IP strings without throwing exceptions");
     }
 
     @Test
@@ -260,11 +267,9 @@ class DDoSProtectionServiceTest {
         // Given - IP with special characters
         String specialIp = "192.168.1.100<script>alert('xss')</script>";
 
-        // When
-        boolean allowed = ddosProtectionService.isAllowed(specialIp);
-
-        // Then - Should handle without crashing
-        assertNotNull(ddosProtectionService, "Service should handle special characters");
+        // When/Then - Should handle without crashing
+        assertDoesNotThrow(() -> ddosProtectionService.isAllowed(specialIp), 
+                "Service should handle special characters without throwing exceptions");
     }
 
     @Test
