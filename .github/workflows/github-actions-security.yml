@@ -1,0 +1,55 @@
+name: GitHub Actions Security
+
+# Scans GitHub Actions workflows for security best practices
+# Free tool to ensure workflows follow security guidelines
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - '.github/workflows/**'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - '.github/workflows/**'
+  workflow_dispatch:
+
+jobs:
+  actionlint:
+    name: GitHub Actions Security Scan
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run actionlint
+        uses: reviewdog/action-actionlint@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          reporter: github-pr-review
+          fail_on_error: true
+          filter_mode: nofilter
+
+      - name: Check for security issues in workflows
+        run: |
+          echo "Checking GitHub Actions workflows for security best practices..."
+          
+          # Check for hardcoded secrets
+          if grep -r "password\|secret\|token\|key" .github/workflows/ --include="*.yml" --include="*.yaml" | grep -v "secrets\." | grep -v "#"; then
+            echo "⚠️ Potential hardcoded secrets found in workflows"
+            exit 1
+          fi
+          
+          # Check for use of actions/checkout with persist-credentials
+          if grep -r "persist-credentials: true" .github/workflows/ --include="*.yml" --include="*.yaml"; then
+            echo "⚠️ Found persist-credentials: true - ensure this is intentional"
+          fi
+          
+          # Check for use of GITHUB_TOKEN with write permissions
+          if grep -r "permissions:" .github/workflows/ --include="*.yml" --include="*.yaml" -A 5 | grep -i "write"; then
+            echo "ℹ️ Workflows with write permissions detected - ensure this is necessary"
+          fi
+          
+          echo "✅ Security checks completed"
+
