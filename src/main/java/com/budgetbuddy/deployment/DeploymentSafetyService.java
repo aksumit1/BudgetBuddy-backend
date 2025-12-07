@@ -88,6 +88,12 @@ public class DeploymentSafetyService {
                     isHealthy = true;
                     logger.info("Deployment health check passed after {} attempts", attempt);
                     break;
+                } else {
+                    // Health check returned false but didn't throw exception
+                    // This means the health endpoint returned non-UP status
+                    if (errorMessage == null) {
+                        errorMessage = "Health check returned non-UP status";
+                    }
                 }
             } catch (Exception e) {
                 logger.warn("Health check attempt {} failed: {}", attempt, e.getMessage());
@@ -120,21 +126,16 @@ public class DeploymentSafetyService {
     /**
      * Perform health check
      */
-    private boolean performHealthCheck(final String baseUrl) {
-        try {
-            String healthUrl = baseUrl + "/actuator/health";
-            ResponseEntity<String> response = restTemplate.getForEntity(healthUrl, String.class);
+    private boolean performHealthCheck(final String baseUrl) throws RestClientException {
+        String healthUrl = baseUrl + "/actuator/health";
+        ResponseEntity<String> response = restTemplate.getForEntity(healthUrl, String.class);
 
-            if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
-                String body = response.getBody();
-                return body.contains("\"status\":\"UP\"") || body.contains("\"status\":\"up\"");
-            }
-
-            return false;
-        } catch (RestClientException e) {
-            logger.debug("Health check failed: {}", e.getMessage());
-            return false;
+        if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
+            String body = response.getBody();
+            return body.contains("\"status\":\"UP\"") || body.contains("\"status\":\"up\"");
         }
+
+        return false;
     }
 
     /**

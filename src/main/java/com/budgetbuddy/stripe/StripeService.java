@@ -77,11 +77,17 @@ public class StripeService {
                     .build();
 
             PaymentIntent paymentIntent = PaymentIntent.retrieve(paymentIntentId);
+            // Get userId from the original payment intent before confirming
+            String userId = paymentIntent.getMetadata() != null ? paymentIntent.getMetadata().get("userId") : null;
             paymentIntent = paymentIntent.confirm(params);
 
             // PCI-DSS: Log payment confirmation
+            // Use userId from original intent, or try to get it from confirmed intent if not available
+            if (userId == null && paymentIntent.getMetadata() != null) {
+                userId = paymentIntent.getMetadata().get("userId");
+            }
             pciDSSComplianceService.logCardholderDataAccess(
-                    paymentIntent.getMetadata().get("userId"),
+                    userId,
                     "PAYMENT_INTENT",
                     "CONFIRM",
                     true

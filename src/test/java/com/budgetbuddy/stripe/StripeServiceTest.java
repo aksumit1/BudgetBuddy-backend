@@ -101,7 +101,6 @@ class StripeServiceTest {
     void testConfirmPaymentIntent_WithValidInput_ReturnsPaymentIntent() throws StripeException {
         // Given
         PaymentIntent existingIntent = mock(PaymentIntent.class);
-        when(existingIntent.getId()).thenReturn("pi_test123");
         Map<String, String> metadata = new HashMap<>();
         metadata.put("userId", "user-123");
         when(existingIntent.getMetadata()).thenReturn(metadata);
@@ -109,7 +108,6 @@ class StripeServiceTest {
         PaymentIntent confirmedIntent = mock(PaymentIntent.class);
         when(confirmedIntent.getId()).thenReturn("pi_test123");
         when(confirmedIntent.getStatus()).thenReturn("succeeded");
-        // getMetadata() is not used on confirmedIntent, only on existingIntent
         
         try (MockedStatic<PaymentIntent> paymentIntentMock = mockStatic(PaymentIntent.class)) {
             paymentIntentMock.when(() -> PaymentIntent.retrieve("pi_test123"))
