@@ -14,6 +14,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
@@ -29,6 +31,7 @@ import static org.mockito.Mockito.*;
  * Unit Tests for Plaid Webhook Service
  */
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class PlaidWebhookServiceTest {
 
     @Mock
@@ -63,7 +66,8 @@ class PlaidWebhookServiceTest {
                 objectMapper
         );
         
-        when(secretsManagerService.getSecret("plaid/webhook_secret", "")).thenReturn(webhookSecret);
+        // Use lenient stubbing to avoid unnecessary stubbing errors
+        lenient().when(secretsManagerService.getSecret("plaid/webhook_secret", "")).thenReturn(webhookSecret);
     }
 
     @Test
@@ -127,7 +131,8 @@ class PlaidWebhookServiceTest {
     @Test
     void testVerifyWebhookSignature_WithMissingSecret_ReturnsFalse() throws Exception {
         // Given
-        when(secretsManagerService.getSecret("plaid/webhook_secret", "")).thenReturn("");
+        // Override the lenient stubbing from setUp - use lenient here too to avoid conflicts
+        lenient().when(secretsManagerService.getSecret("plaid/webhook_secret", "")).thenReturn("");
         
         Map<String, Object> payload = new HashMap<>();
         String payloadJson = "{}";

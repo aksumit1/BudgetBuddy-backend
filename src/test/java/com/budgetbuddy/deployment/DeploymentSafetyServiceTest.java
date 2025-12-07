@@ -96,8 +96,9 @@ class DeploymentSafetyServiceTest {
     @Test
     void testValidateDeployment_WithFailedHealthCheck_ReturnsUnhealthy() {
         // Given
+        RestClientException exception = new RestClientException("Connection refused");
         when(restTemplate.getForEntity(anyString(), eq(String.class)))
-                .thenThrow(new RestClientException("Connection refused"));
+                .thenThrow(exception);
         
         // When
         DeploymentSafetyService.DeploymentValidationResult result = 
@@ -106,7 +107,9 @@ class DeploymentSafetyServiceTest {
         // Then
         assertNotNull(result);
         assertFalse(result.isHealthy());
-        assertNotNull(result.getErrorMessage());
+        // Error message should be set from the exception message
+        assertNotNull(result.getErrorMessage(), "Error message should be set when health check fails");
+        assertEquals("Connection refused", result.getErrorMessage());
     }
 
     @Test

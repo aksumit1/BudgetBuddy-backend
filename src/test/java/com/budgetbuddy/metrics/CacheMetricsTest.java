@@ -67,11 +67,18 @@ class CacheMetricsTest {
         
         // Then
         assertNotNull(stats);
-        assertTrue(stats.containsKey("testCache"));
-        CacheMetrics.CacheStatsInfo info = stats.get("testCache");
-        assertNotNull(info);
-        assertEquals(0, info.getHits());
-        assertEquals(0, info.getMisses());
+        // The cache should be found if it's a CaffeineCache
+        if (!stats.isEmpty()) {
+            assertTrue(stats.containsKey("testCache"), "Stats should contain testCache. Found: " + stats.keySet());
+            CacheMetrics.CacheStatsInfo info = stats.get("testCache");
+            assertNotNull(info);
+            assertEquals(0, info.getHits());
+            assertEquals(0, info.getMisses());
+        } else {
+            // If stats are empty, it means the cache wasn't recognized as CaffeineCache
+            // This can happen if the cache manager doesn't return the cache properly
+            fail("Cache stats should not be empty. Cache manager has caches: " + simpleCacheManager.getCacheNames());
+        }
     }
 
     @Test
@@ -99,7 +106,11 @@ class CacheMetricsTest {
         CacheMetrics.CacheStatsInfo stats = metricsWithRealCache.getCacheStats("testCache");
         
         // Then
-        assertNotNull(stats);
+        // The cache should be found and return stats since we're using CaffeineCache
+        assertNotNull(stats, "Cache stats should not be null for CaffeineCache. " +
+                "Cache exists: " + (simpleCacheManager.getCache("testCache") != null) +
+                ", Cache type: " + (simpleCacheManager.getCache("testCache") != null ? 
+                    simpleCacheManager.getCache("testCache").getClass().getName() : "null"));
         assertEquals(0, stats.getHits());
         assertEquals(0, stats.getMisses());
     }

@@ -60,8 +60,8 @@ class StripeServiceTest {
         
         PaymentIntent createdIntent = mock(PaymentIntent.class);
         when(createdIntent.getId()).thenReturn("pi_test123");
-        when(createdIntent.getAmount()).thenReturn(1000L);
-        when(createdIntent.getStatus()).thenReturn("requires_payment_method");
+        // Only stub methods that are actually used in the test
+        // getAmount() and getStatus() are not used in this test, so we don't stub them
         
         try (MockedStatic<PaymentIntent> paymentIntentMock = mockStatic(PaymentIntent.class)) {
             paymentIntentMock.when(() -> PaymentIntent.create(any(PaymentIntentCreateParams.class)))
@@ -102,11 +102,14 @@ class StripeServiceTest {
         // Given
         PaymentIntent existingIntent = mock(PaymentIntent.class);
         when(existingIntent.getId()).thenReturn("pi_test123");
-        when(existingIntent.getMetadata()).thenReturn(Map.of("userId", "user-123"));
+        Map<String, String> metadata = new HashMap<>();
+        metadata.put("userId", "user-123");
+        when(existingIntent.getMetadata()).thenReturn(metadata);
         
         PaymentIntent confirmedIntent = mock(PaymentIntent.class);
         when(confirmedIntent.getId()).thenReturn("pi_test123");
         when(confirmedIntent.getStatus()).thenReturn("succeeded");
+        // getMetadata() is not used on confirmedIntent, only on existingIntent
         
         try (MockedStatic<PaymentIntent> paymentIntentMock = mockStatic(PaymentIntent.class)) {
             paymentIntentMock.when(() -> PaymentIntent.retrieve("pi_test123"))
@@ -157,7 +160,7 @@ class StripeServiceTest {
         
         PaymentMethod createdMethod = mock(PaymentMethod.class);
         when(createdMethod.getId()).thenReturn("pm_test123");
-        when(createdMethod.getType()).thenReturn("card");
+        // getType() is not used in this test, so we don't stub it
         
         try (MockedStatic<PaymentMethod> paymentMethodMock = mockStatic(PaymentMethod.class)) {
             paymentMethodMock.when(() -> PaymentMethod.create(any(PaymentMethodCreateParams.class)))
@@ -169,6 +172,7 @@ class StripeServiceTest {
             // Then
             assertNotNull(result);
             assertEquals("pm_test123", result.getId());
+            // Verify maskPAN is called with the card number from cardDetails
             verify(pciDSSComplianceService).maskPAN("4242424242424242");
         }
     }
