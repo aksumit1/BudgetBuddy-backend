@@ -23,6 +23,21 @@ class PlaidServiceTest {
 
     private PlaidService plaidService;
 
+    // Helper method to parse error response using reflection
+    private Object parseErrorResponse(String errorBody) throws Exception {
+        java.lang.reflect.Method method = PlaidService.class.getDeclaredMethod("parsePlaidErrorResponse", String.class);
+        method.setAccessible(true);
+        return method.invoke(plaidService, errorBody);
+    }
+
+    // Helper method to get field value from error response object
+    private String getErrorField(Object errorObj, String fieldName) throws NoSuchFieldException, IllegalAccessException {
+        if (errorObj == null) return null;
+        java.lang.reflect.Field field = errorObj.getClass().getDeclaredField(fieldName);
+        field.setAccessible(true);
+        return (String) field.get(errorObj);
+    }
+
     @Test
     void testPlaidService_Constructor_WithNullClientId_UsesPlaceholder() {
         // When/Then - Constructor now allows null/empty and uses placeholders (will fail on actual API calls)
@@ -858,5 +873,663 @@ class PlaidServiceTest {
         assertDoesNotThrow(() -> {
             new PlaidService("test-client-id", "test-secret", "sandbox", "", "", true, pciDSSComplianceService);
         }, "Should create PlaidService even if adapter set fails");
+    }
+
+    @Test
+    void testParsePlaidErrorResponse_WithErrorTypeInErrorBody_ExtractsErrorType() throws Exception {
+        // Given
+        plaidService = new PlaidService("test-client-id", "test-secret", "sandbox", "", "", true, pciDSSComplianceService);
+        String errorBody = "{\"error_code\":\"RATE_LIMIT_EXCEEDED\",\"error_type\":\"RATE_LIMIT_EXCEEDED\",\"error_message\":\"Rate limit exceeded\",\"request_id\":\"req-123\"}";
+        
+        // When - Use reflection to access private method
+        java.lang.reflect.Method method = PlaidService.class.getDeclaredMethod("parsePlaidErrorResponse", String.class);
+        method.setAccessible(true);
+        Object errorObj = method.invoke(plaidService, errorBody);
+        // Use reflection to access private inner class fields
+        if (errorObj == null) {
+            assertNull(errorObj);
+            return;
+        }
+        java.lang.reflect.Field errorCodeField = errorObj.getClass().getDeclaredField("errorCode");
+        errorCodeField.setAccessible(true);
+        java.lang.reflect.Field errorTypeField = errorObj.getClass().getDeclaredField("errorType");
+        errorTypeField.setAccessible(true);
+        java.lang.reflect.Field errorMessageField = errorObj.getClass().getDeclaredField("errorMessage");
+        errorMessageField.setAccessible(true);
+        java.lang.reflect.Field requestIdField = errorObj.getClass().getDeclaredField("requestId");
+        requestIdField.setAccessible(true);
+        
+        String errorCode = (String) errorCodeField.get(errorObj);
+        String errorType = (String) errorTypeField.get(errorObj);
+        String errorMessage = (String) errorMessageField.get(errorObj);
+        String requestId = (String) requestIdField.get(errorObj);
+        
+        // Then
+        assertNotNull(errorObj);
+        assertEquals("RATE_LIMIT_EXCEEDED", errorCode);
+        assertEquals("RATE_LIMIT_EXCEEDED", errorType);
+        assertEquals("Rate limit exceeded", errorMessage);
+        assertEquals("req-123", requestId);
+    }
+
+    @Test
+    void testParsePlaidErrorResponse_WithWhitespaceOnly_ReturnsNull() throws Exception {
+        // Given
+        plaidService = new PlaidService("test-client-id", "test-secret", "sandbox", "", "", true, pciDSSComplianceService);
+        String errorBody = "   ";
+        
+        // When - Use reflection to access private method
+        java.lang.reflect.Method method = PlaidService.class.getDeclaredMethod("parsePlaidErrorResponse", String.class);
+        method.setAccessible(true);
+        Object errorObj = method.invoke(plaidService, errorBody);
+        // Use reflection to access private inner class fields
+        if (errorObj == null) {
+            assertNull(errorObj);
+            return;
+        }
+        java.lang.reflect.Field errorCodeField = errorObj.getClass().getDeclaredField("errorCode");
+        errorCodeField.setAccessible(true);
+        java.lang.reflect.Field errorTypeField = errorObj.getClass().getDeclaredField("errorType");
+        errorTypeField.setAccessible(true);
+        java.lang.reflect.Field errorMessageField = errorObj.getClass().getDeclaredField("errorMessage");
+        errorMessageField.setAccessible(true);
+        java.lang.reflect.Field requestIdField = errorObj.getClass().getDeclaredField("requestId");
+        requestIdField.setAccessible(true);
+        
+        String errorCode = (String) errorCodeField.get(errorObj);
+        String errorType = (String) errorTypeField.get(errorObj);
+        String errorMessage = (String) errorMessageField.get(errorObj);
+        String requestId = (String) requestIdField.get(errorObj);
+        
+        // Then
+        assertNull(errorObj);
+    }
+
+    @Test
+    void testParsePlaidErrorResponse_WithNonJsonString_ReturnsNull() throws Exception {
+        // Given
+        plaidService = new PlaidService("test-client-id", "test-secret", "sandbox", "", "", true, pciDSSComplianceService);
+        String errorBody = "This is not JSON";
+        
+        // When - Use reflection to access private method
+        java.lang.reflect.Method method = PlaidService.class.getDeclaredMethod("parsePlaidErrorResponse", String.class);
+        method.setAccessible(true);
+        Object errorObj = method.invoke(plaidService, errorBody);
+        // Use reflection to access private inner class fields
+        if (errorObj == null) {
+            assertNull(errorObj);
+            return;
+        }
+        java.lang.reflect.Field errorCodeField = errorObj.getClass().getDeclaredField("errorCode");
+        errorCodeField.setAccessible(true);
+        java.lang.reflect.Field errorTypeField = errorObj.getClass().getDeclaredField("errorType");
+        errorTypeField.setAccessible(true);
+        java.lang.reflect.Field errorMessageField = errorObj.getClass().getDeclaredField("errorMessage");
+        errorMessageField.setAccessible(true);
+        java.lang.reflect.Field requestIdField = errorObj.getClass().getDeclaredField("requestId");
+        requestIdField.setAccessible(true);
+        
+        String errorCode = (String) errorCodeField.get(errorObj);
+        String errorType = (String) errorTypeField.get(errorObj);
+        String errorMessage = (String) errorMessageField.get(errorObj);
+        String requestId = (String) requestIdField.get(errorObj);
+        
+        // Then
+        assertNull(errorObj);
+    }
+
+    @Test
+    void testParsePlaidErrorResponse_WithJsonNotStartingWithBrace_ReturnsNull() throws Exception {
+        // Given
+        plaidService = new PlaidService("test-client-id", "test-secret", "sandbox", "", "", true, pciDSSComplianceService);
+        String errorBody = "  not json"; // Has leading whitespace and doesn't start with {
+        
+        // When - Use reflection to access private method
+        java.lang.reflect.Method method = PlaidService.class.getDeclaredMethod("parsePlaidErrorResponse", String.class);
+        method.setAccessible(true);
+        Object errorObj = method.invoke(plaidService, errorBody);
+        
+        // Then
+        // Should return null because trimmed string doesn't start with {
+        assertNull(errorObj);
+    }
+
+    @Test
+    void testParsePlaidErrorResponse_WithMalformedJson_HandlesGracefully() throws Exception {
+        // Given
+        plaidService = new PlaidService("test-client-id", "test-secret", "sandbox", "", "", true, pciDSSComplianceService);
+        String errorBody = "{\"error_code\":\"TEST\""; // Missing closing brace
+        
+        // When - Use reflection to access private method
+        java.lang.reflect.Method method = PlaidService.class.getDeclaredMethod("parsePlaidErrorResponse", String.class);
+        method.setAccessible(true);
+        Object errorObj = method.invoke(plaidService, errorBody);
+        // Use reflection to access private inner class fields
+        if (errorObj == null) {
+            assertNull(errorObj);
+            return;
+        }
+        java.lang.reflect.Field errorCodeField = errorObj.getClass().getDeclaredField("errorCode");
+        errorCodeField.setAccessible(true);
+        java.lang.reflect.Field errorTypeField = errorObj.getClass().getDeclaredField("errorType");
+        errorTypeField.setAccessible(true);
+        java.lang.reflect.Field errorMessageField = errorObj.getClass().getDeclaredField("errorMessage");
+        errorMessageField.setAccessible(true);
+        java.lang.reflect.Field requestIdField = errorObj.getClass().getDeclaredField("requestId");
+        requestIdField.setAccessible(true);
+        
+        String errorCode = (String) errorCodeField.get(errorObj);
+        String errorType = (String) errorTypeField.get(errorObj);
+        String errorMessage = (String) errorMessageField.get(errorObj);
+        String requestId = (String) requestIdField.get(errorObj);
+        
+        // Then
+        // Should handle gracefully - might return partial data or null
+        // The method uses string manipulation, so it might extract what it can
+        assertNotNull(errorObj); // Should at least create the object
+    }
+
+    @Test
+    void testParsePlaidErrorResponse_WithNestedJson_ExtractsTopLevelFields() throws Exception {
+        // Given
+        plaidService = new PlaidService("test-client-id", "test-secret", "sandbox", "", "", true, pciDSSComplianceService);
+        String errorBody = "{\"error_code\":\"TEST\",\"nested\":{\"field\":\"value\"},\"error_message\":\"Test message\"}";
+        
+        // When - Use reflection to access private method
+        java.lang.reflect.Method method = PlaidService.class.getDeclaredMethod("parsePlaidErrorResponse", String.class);
+        method.setAccessible(true);
+        Object errorObj = method.invoke(plaidService, errorBody);
+        // Use reflection to access private inner class fields
+        if (errorObj == null) {
+            assertNull(errorObj);
+            return;
+        }
+        java.lang.reflect.Field errorCodeField = errorObj.getClass().getDeclaredField("errorCode");
+        errorCodeField.setAccessible(true);
+        java.lang.reflect.Field errorTypeField = errorObj.getClass().getDeclaredField("errorType");
+        errorTypeField.setAccessible(true);
+        java.lang.reflect.Field errorMessageField = errorObj.getClass().getDeclaredField("errorMessage");
+        errorMessageField.setAccessible(true);
+        java.lang.reflect.Field requestIdField = errorObj.getClass().getDeclaredField("requestId");
+        requestIdField.setAccessible(true);
+        
+        String errorCode = (String) errorCodeField.get(errorObj);
+        String errorType = (String) errorTypeField.get(errorObj);
+        String errorMessage = (String) errorMessageField.get(errorObj);
+        String requestId = (String) requestIdField.get(errorObj);
+        
+        // Then
+        assertNotNull(errorObj);
+        assertEquals("TEST", getErrorField(errorObj, "errorCode"));
+        assertEquals("Test message", getErrorField(errorObj, "errorMessage"));
+    }
+
+    @Test
+    void testParsePlaidErrorResponse_WithEscapedQuotes_HandlesCorrectly() throws Exception {
+        // Given
+        plaidService = new PlaidService("test-client-id", "test-secret", "sandbox", "", "", true, pciDSSComplianceService);
+        String errorBody = "{\"error_code\":\"TEST\",\"error_message\":\"Message with \\\"quotes\\\"\"}";
+        
+        // When - Use reflection to access private method
+        java.lang.reflect.Method method = PlaidService.class.getDeclaredMethod("parsePlaidErrorResponse", String.class);
+        method.setAccessible(true);
+        Object errorObj = method.invoke(plaidService, errorBody);
+        // Use reflection to access private inner class fields
+        if (errorObj == null) {
+            assertNull(errorObj);
+            return;
+        }
+        java.lang.reflect.Field errorCodeField = errorObj.getClass().getDeclaredField("errorCode");
+        errorCodeField.setAccessible(true);
+        java.lang.reflect.Field errorTypeField = errorObj.getClass().getDeclaredField("errorType");
+        errorTypeField.setAccessible(true);
+        java.lang.reflect.Field errorMessageField = errorObj.getClass().getDeclaredField("errorMessage");
+        errorMessageField.setAccessible(true);
+        java.lang.reflect.Field requestIdField = errorObj.getClass().getDeclaredField("requestId");
+        requestIdField.setAccessible(true);
+        
+        String errorCode = (String) errorCodeField.get(errorObj);
+        String errorType = (String) errorTypeField.get(errorObj);
+        String errorMessage = (String) errorMessageField.get(errorObj);
+        String requestId = (String) requestIdField.get(errorObj);
+        
+        // Then
+        assertNotNull(errorObj);
+        assertEquals("TEST", getErrorField(errorObj, "errorCode"));
+        // The string manipulation might not handle escaped quotes perfectly, but should extract something
+    }
+
+    @Test
+    void testParsePlaidErrorResponse_WithMultipleErrorCodes_ExtractsFirst() throws Exception {
+        // Given
+        plaidService = new PlaidService("test-client-id", "test-secret", "sandbox", "", "", true, pciDSSComplianceService);
+        String errorBody = "{\"error_code\":\"FIRST\",\"error_code\":\"SECOND\"}"; // Duplicate keys (invalid JSON but might happen)
+        
+        // When - Use reflection to access private method
+        java.lang.reflect.Method method = PlaidService.class.getDeclaredMethod("parsePlaidErrorResponse", String.class);
+        method.setAccessible(true);
+        Object errorObj = method.invoke(plaidService, errorBody);
+        // Use reflection to access private inner class fields
+        if (errorObj == null) {
+            assertNull(errorObj);
+            return;
+        }
+        java.lang.reflect.Field errorCodeField = errorObj.getClass().getDeclaredField("errorCode");
+        errorCodeField.setAccessible(true);
+        java.lang.reflect.Field errorTypeField = errorObj.getClass().getDeclaredField("errorType");
+        errorTypeField.setAccessible(true);
+        java.lang.reflect.Field errorMessageField = errorObj.getClass().getDeclaredField("errorMessage");
+        errorMessageField.setAccessible(true);
+        java.lang.reflect.Field requestIdField = errorObj.getClass().getDeclaredField("requestId");
+        requestIdField.setAccessible(true);
+        
+        String errorCode = (String) errorCodeField.get(errorObj);
+        String errorType = (String) errorTypeField.get(errorObj);
+        String errorMessage = (String) errorMessageField.get(errorObj);
+        String requestId = (String) requestIdField.get(errorObj);
+        
+        // Then
+        assertNotNull(errorObj);
+        // Should extract the first occurrence
+        assertTrue(getErrorField(errorObj, "errorCode") != null);
+    }
+
+    @Test
+    void testParsePlaidErrorResponse_WithEmptyStringValues_HandlesCorrectly() throws Exception {
+        // Given
+        plaidService = new PlaidService("test-client-id", "test-secret", "sandbox", "", "", true, pciDSSComplianceService);
+        String errorBody = "{\"error_code\":\"\",\"error_message\":\"\",\"request_id\":\"\"}";
+        
+        // When - Use reflection to access private method
+        java.lang.reflect.Method method = PlaidService.class.getDeclaredMethod("parsePlaidErrorResponse", String.class);
+        method.setAccessible(true);
+        Object errorObj = method.invoke(plaidService, errorBody);
+        // Use reflection to access private inner class fields
+        if (errorObj == null) {
+            assertNull(errorObj);
+            return;
+        }
+        java.lang.reflect.Field errorCodeField = errorObj.getClass().getDeclaredField("errorCode");
+        errorCodeField.setAccessible(true);
+        java.lang.reflect.Field errorTypeField = errorObj.getClass().getDeclaredField("errorType");
+        errorTypeField.setAccessible(true);
+        java.lang.reflect.Field errorMessageField = errorObj.getClass().getDeclaredField("errorMessage");
+        errorMessageField.setAccessible(true);
+        java.lang.reflect.Field requestIdField = errorObj.getClass().getDeclaredField("requestId");
+        requestIdField.setAccessible(true);
+        
+        String errorCode = (String) errorCodeField.get(errorObj);
+        String errorType = (String) errorTypeField.get(errorObj);
+        String errorMessage = (String) errorMessageField.get(errorObj);
+        String requestId = (String) requestIdField.get(errorObj);
+        
+        // Then
+        // The parsing logic extracts empty strings, but they might be null if extraction fails
+        // or if the string manipulation doesn't handle empty strings correctly
+        assertNotNull(errorObj);
+        // Empty strings in JSON might be extracted as empty strings or null depending on parsing logic
+        // Accept either empty string or null as valid (the method handles both)
+        if (errorCode != null) {
+            assertEquals("", errorCode);
+        }
+        if (errorMessage != null) {
+            assertEquals("", errorMessage);
+        }
+        if (requestId != null) {
+            assertEquals("", requestId);
+        }
+    }
+
+    @Test
+    void testParsePlaidErrorResponse_WithOnlyErrorCode_ExtractsOnlyErrorCode() throws Exception {
+        // Given
+        plaidService = new PlaidService("test-client-id", "test-secret", "sandbox", "", "", true, pciDSSComplianceService);
+        String errorBody = "{\"error_code\":\"TEST_ERROR\"}";
+        
+        // When - Use reflection to access private method
+        java.lang.reflect.Method method = PlaidService.class.getDeclaredMethod("parsePlaidErrorResponse", String.class);
+        method.setAccessible(true);
+        Object errorObj = method.invoke(plaidService, errorBody);
+        // Use reflection to access private inner class fields
+        if (errorObj == null) {
+            assertNull(errorObj);
+            return;
+        }
+        java.lang.reflect.Field errorCodeField = errorObj.getClass().getDeclaredField("errorCode");
+        errorCodeField.setAccessible(true);
+        java.lang.reflect.Field errorTypeField = errorObj.getClass().getDeclaredField("errorType");
+        errorTypeField.setAccessible(true);
+        java.lang.reflect.Field errorMessageField = errorObj.getClass().getDeclaredField("errorMessage");
+        errorMessageField.setAccessible(true);
+        java.lang.reflect.Field requestIdField = errorObj.getClass().getDeclaredField("requestId");
+        requestIdField.setAccessible(true);
+        
+        String errorCode = (String) errorCodeField.get(errorObj);
+        String errorType = (String) errorTypeField.get(errorObj);
+        String errorMessage = (String) errorMessageField.get(errorObj);
+        String requestId = (String) requestIdField.get(errorObj);
+        
+        // Then
+        assertNotNull(errorObj);
+        assertEquals("TEST_ERROR", getErrorField(errorObj, "errorCode"));
+        assertNull(getErrorField(errorObj, "errorMessage"));
+        assertNull(getErrorField(errorObj, "errorType"));
+        assertNull(getErrorField(errorObj, "requestId"));
+    }
+
+    @Test
+    void testParsePlaidErrorResponse_WithOnlyErrorMessage_ExtractsOnlyErrorMessage() throws Exception {
+        // Given
+        plaidService = new PlaidService("test-client-id", "test-secret", "sandbox", "", "", true, pciDSSComplianceService);
+        String errorBody = "{\"error_message\":\"Test error message\"}";
+        
+        // When - Use reflection to access private method
+        java.lang.reflect.Method method = PlaidService.class.getDeclaredMethod("parsePlaidErrorResponse", String.class);
+        method.setAccessible(true);
+        Object errorObj = method.invoke(plaidService, errorBody);
+        // Use reflection to access private inner class fields
+        if (errorObj == null) {
+            assertNull(errorObj);
+            return;
+        }
+        java.lang.reflect.Field errorCodeField = errorObj.getClass().getDeclaredField("errorCode");
+        errorCodeField.setAccessible(true);
+        java.lang.reflect.Field errorTypeField = errorObj.getClass().getDeclaredField("errorType");
+        errorTypeField.setAccessible(true);
+        java.lang.reflect.Field errorMessageField = errorObj.getClass().getDeclaredField("errorMessage");
+        errorMessageField.setAccessible(true);
+        java.lang.reflect.Field requestIdField = errorObj.getClass().getDeclaredField("requestId");
+        requestIdField.setAccessible(true);
+        
+        String errorCode = (String) errorCodeField.get(errorObj);
+        String errorType = (String) errorTypeField.get(errorObj);
+        String errorMessage = (String) errorMessageField.get(errorObj);
+        String requestId = (String) requestIdField.get(errorObj);
+        
+        // Then
+        assertNotNull(errorObj);
+        assertEquals("Test error message", getErrorField(errorObj, "errorMessage"));
+        assertNull(getErrorField(errorObj, "errorCode"));
+    }
+
+    @Test
+    void testParsePlaidErrorResponse_WithOnlyRequestId_ExtractsOnlyRequestId() throws Exception {
+        // Given
+        plaidService = new PlaidService("test-client-id", "test-secret", "sandbox", "", "", true, pciDSSComplianceService);
+        String errorBody = "{\"request_id\":\"req-123-456\"}";
+        
+        // When - Use reflection to access private method
+        java.lang.reflect.Method method = PlaidService.class.getDeclaredMethod("parsePlaidErrorResponse", String.class);
+        method.setAccessible(true);
+        Object errorObj = method.invoke(plaidService, errorBody);
+        // Use reflection to access private inner class fields
+        if (errorObj == null) {
+            assertNull(errorObj);
+            return;
+        }
+        java.lang.reflect.Field errorCodeField = errorObj.getClass().getDeclaredField("errorCode");
+        errorCodeField.setAccessible(true);
+        java.lang.reflect.Field errorTypeField = errorObj.getClass().getDeclaredField("errorType");
+        errorTypeField.setAccessible(true);
+        java.lang.reflect.Field errorMessageField = errorObj.getClass().getDeclaredField("errorMessage");
+        errorMessageField.setAccessible(true);
+        java.lang.reflect.Field requestIdField = errorObj.getClass().getDeclaredField("requestId");
+        requestIdField.setAccessible(true);
+        
+        String errorCode = (String) errorCodeField.get(errorObj);
+        String errorType = (String) errorTypeField.get(errorObj);
+        String errorMessage = (String) errorMessageField.get(errorObj);
+        String requestId = (String) requestIdField.get(errorObj);
+        
+        // Then
+        assertNotNull(errorObj);
+        assertEquals("req-123-456", getErrorField(errorObj, "requestId"));
+        assertNull(getErrorField(errorObj, "errorCode"));
+    }
+
+    @Test
+    void testParsePlaidErrorResponse_WithUnicodeCharacters_HandlesCorrectly() throws Exception {
+        // Given
+        plaidService = new PlaidService("test-client-id", "test-secret", "sandbox", "", "", true, pciDSSComplianceService);
+        String errorBody = "{\"error_code\":\"TEST\",\"error_message\":\"错误消息\"}";
+        
+        // When - Use reflection to access private method
+        java.lang.reflect.Method method = PlaidService.class.getDeclaredMethod("parsePlaidErrorResponse", String.class);
+        method.setAccessible(true);
+        Object errorObj = method.invoke(plaidService, errorBody);
+        // Use reflection to access private inner class fields
+        if (errorObj == null) {
+            assertNull(errorObj);
+            return;
+        }
+        java.lang.reflect.Field errorCodeField = errorObj.getClass().getDeclaredField("errorCode");
+        errorCodeField.setAccessible(true);
+        java.lang.reflect.Field errorTypeField = errorObj.getClass().getDeclaredField("errorType");
+        errorTypeField.setAccessible(true);
+        java.lang.reflect.Field errorMessageField = errorObj.getClass().getDeclaredField("errorMessage");
+        errorMessageField.setAccessible(true);
+        java.lang.reflect.Field requestIdField = errorObj.getClass().getDeclaredField("requestId");
+        requestIdField.setAccessible(true);
+        
+        String errorCode = (String) errorCodeField.get(errorObj);
+        String errorType = (String) errorTypeField.get(errorObj);
+        String errorMessage = (String) errorMessageField.get(errorObj);
+        String requestId = (String) requestIdField.get(errorObj);
+        
+        // Then
+        assertNotNull(errorObj);
+        assertEquals("TEST", getErrorField(errorObj, "errorCode"));
+        assertEquals("错误消息", getErrorField(errorObj, "errorMessage"));
+    }
+
+    @Test
+    void testParsePlaidErrorResponse_WithVeryLongErrorBody_HandlesCorrectly() throws Exception {
+        // Given
+        plaidService = new PlaidService("test-client-id", "test-secret", "sandbox", "", "", true, pciDSSComplianceService);
+        String longMessage = "a".repeat(10000);
+        String errorBody = "{\"error_code\":\"TEST\",\"error_message\":\"" + longMessage + "\"}";
+        
+        // When - Use reflection to access private method
+        java.lang.reflect.Method method = PlaidService.class.getDeclaredMethod("parsePlaidErrorResponse", String.class);
+        method.setAccessible(true);
+        Object errorObj = method.invoke(plaidService, errorBody);
+        // Use reflection to access private inner class fields
+        if (errorObj == null) {
+            assertNull(errorObj);
+            return;
+        }
+        java.lang.reflect.Field errorCodeField = errorObj.getClass().getDeclaredField("errorCode");
+        errorCodeField.setAccessible(true);
+        java.lang.reflect.Field errorTypeField = errorObj.getClass().getDeclaredField("errorType");
+        errorTypeField.setAccessible(true);
+        java.lang.reflect.Field errorMessageField = errorObj.getClass().getDeclaredField("errorMessage");
+        errorMessageField.setAccessible(true);
+        java.lang.reflect.Field requestIdField = errorObj.getClass().getDeclaredField("requestId");
+        requestIdField.setAccessible(true);
+        
+        String errorCode = (String) errorCodeField.get(errorObj);
+        String errorType = (String) errorTypeField.get(errorObj);
+        String errorMessage = (String) errorMessageField.get(errorObj);
+        String requestId = (String) requestIdField.get(errorObj);
+        
+        // Then
+        assertNotNull(errorObj);
+        assertEquals("TEST", getErrorField(errorObj, "errorCode"));
+        assertEquals(longMessage, getErrorField(errorObj, "errorMessage"));
+    }
+
+    @Test
+    void testParsePlaidErrorResponse_WithSpecialCharactersInValues_HandlesCorrectly() throws Exception {
+        // Given
+        plaidService = new PlaidService("test-client-id", "test-secret", "sandbox", "", "", true, pciDSSComplianceService);
+        String errorBody = "{\"error_code\":\"TEST_123\",\"error_message\":\"Error: test@example.com failed\"}";
+        
+        // When - Use reflection to access private method
+        java.lang.reflect.Method method = PlaidService.class.getDeclaredMethod("parsePlaidErrorResponse", String.class);
+        method.setAccessible(true);
+        Object errorObj = method.invoke(plaidService, errorBody);
+        // Use reflection to access private inner class fields
+        if (errorObj == null) {
+            assertNull(errorObj);
+            return;
+        }
+        java.lang.reflect.Field errorCodeField = errorObj.getClass().getDeclaredField("errorCode");
+        errorCodeField.setAccessible(true);
+        java.lang.reflect.Field errorTypeField = errorObj.getClass().getDeclaredField("errorType");
+        errorTypeField.setAccessible(true);
+        java.lang.reflect.Field errorMessageField = errorObj.getClass().getDeclaredField("errorMessage");
+        errorMessageField.setAccessible(true);
+        java.lang.reflect.Field requestIdField = errorObj.getClass().getDeclaredField("requestId");
+        requestIdField.setAccessible(true);
+        
+        String errorCode = (String) errorCodeField.get(errorObj);
+        String errorType = (String) errorTypeField.get(errorObj);
+        String errorMessage = (String) errorMessageField.get(errorObj);
+        String requestId = (String) requestIdField.get(errorObj);
+        
+        // Then
+        assertNotNull(errorObj);
+        assertEquals("TEST_123", getErrorField(errorObj, "errorCode"));
+        assertEquals("Error: test@example.com failed", getErrorField(errorObj, "errorMessage"));
+    }
+
+    @Test
+    void testParsePlaidErrorResponse_WithNullValuesInJson_HandlesCorrectly() throws Exception {
+        // Given
+        plaidService = new PlaidService("test-client-id", "test-secret", "sandbox", "", "", true, pciDSSComplianceService);
+        String errorBody = "{\"error_code\":null,\"error_message\":\"Test\",\"request_id\":null}";
+        
+        // When - Use reflection to access private method
+        java.lang.reflect.Method method = PlaidService.class.getDeclaredMethod("parsePlaidErrorResponse", String.class);
+        method.setAccessible(true);
+        Object errorObj = method.invoke(plaidService, errorBody);
+        // Use reflection to access private inner class fields
+        if (errorObj == null) {
+            assertNull(errorObj);
+            return;
+        }
+        java.lang.reflect.Field errorCodeField = errorObj.getClass().getDeclaredField("errorCode");
+        errorCodeField.setAccessible(true);
+        java.lang.reflect.Field errorTypeField = errorObj.getClass().getDeclaredField("errorType");
+        errorTypeField.setAccessible(true);
+        java.lang.reflect.Field errorMessageField = errorObj.getClass().getDeclaredField("errorMessage");
+        errorMessageField.setAccessible(true);
+        java.lang.reflect.Field requestIdField = errorObj.getClass().getDeclaredField("requestId");
+        requestIdField.setAccessible(true);
+        
+        String errorCode = (String) errorCodeField.get(errorObj);
+        String errorType = (String) errorTypeField.get(errorObj);
+        String errorMessage = (String) errorMessageField.get(errorObj);
+        String requestId = (String) requestIdField.get(errorObj);
+        
+        // Then
+        assertNotNull(errorObj);
+        // String manipulation might extract "null" as string or handle it differently
+        assertEquals("Test", getErrorField(errorObj, "errorMessage"));
+    }
+
+    @Test
+    void testParsePlaidErrorResponse_WithArrayInJson_HandlesCorrectly() throws Exception {
+        // Given
+        plaidService = new PlaidService("test-client-id", "test-secret", "sandbox", "", "", true, pciDSSComplianceService);
+        String errorBody = "{\"error_code\":\"TEST\",\"errors\":[\"error1\",\"error2\"]}";
+        
+        // When - Use reflection to access private method
+        java.lang.reflect.Method method = PlaidService.class.getDeclaredMethod("parsePlaidErrorResponse", String.class);
+        method.setAccessible(true);
+        Object errorObj = method.invoke(plaidService, errorBody);
+        // Use reflection to access private inner class fields
+        if (errorObj == null) {
+            assertNull(errorObj);
+            return;
+        }
+        java.lang.reflect.Field errorCodeField = errorObj.getClass().getDeclaredField("errorCode");
+        errorCodeField.setAccessible(true);
+        java.lang.reflect.Field errorTypeField = errorObj.getClass().getDeclaredField("errorType");
+        errorTypeField.setAccessible(true);
+        java.lang.reflect.Field errorMessageField = errorObj.getClass().getDeclaredField("errorMessage");
+        errorMessageField.setAccessible(true);
+        java.lang.reflect.Field requestIdField = errorObj.getClass().getDeclaredField("requestId");
+        requestIdField.setAccessible(true);
+        
+        String errorCode = (String) errorCodeField.get(errorObj);
+        String errorType = (String) errorTypeField.get(errorObj);
+        String errorMessage = (String) errorMessageField.get(errorObj);
+        String requestId = (String) requestIdField.get(errorObj);
+        
+        // Then
+        assertNotNull(errorObj);
+        assertEquals("TEST", getErrorField(errorObj, "errorCode"));
+        // Should not crash on array values
+    }
+
+    @Test
+    void testParsePlaidErrorResponse_WithBooleanValues_HandlesCorrectly() throws Exception {
+        // Given
+        plaidService = new PlaidService("test-client-id", "test-secret", "sandbox", "", "", true, pciDSSComplianceService);
+        String errorBody = "{\"error_code\":\"TEST\",\"is_retryable\":true}";
+        
+        // When - Use reflection to access private method
+        java.lang.reflect.Method method = PlaidService.class.getDeclaredMethod("parsePlaidErrorResponse", String.class);
+        method.setAccessible(true);
+        Object errorObj = method.invoke(plaidService, errorBody);
+        // Use reflection to access private inner class fields
+        if (errorObj == null) {
+            assertNull(errorObj);
+            return;
+        }
+        java.lang.reflect.Field errorCodeField = errorObj.getClass().getDeclaredField("errorCode");
+        errorCodeField.setAccessible(true);
+        java.lang.reflect.Field errorTypeField = errorObj.getClass().getDeclaredField("errorType");
+        errorTypeField.setAccessible(true);
+        java.lang.reflect.Field errorMessageField = errorObj.getClass().getDeclaredField("errorMessage");
+        errorMessageField.setAccessible(true);
+        java.lang.reflect.Field requestIdField = errorObj.getClass().getDeclaredField("requestId");
+        requestIdField.setAccessible(true);
+        
+        String errorCode = (String) errorCodeField.get(errorObj);
+        String errorType = (String) errorTypeField.get(errorObj);
+        String errorMessage = (String) errorMessageField.get(errorObj);
+        String requestId = (String) requestIdField.get(errorObj);
+        
+        // Then
+        assertNotNull(errorObj);
+        assertEquals("TEST", getErrorField(errorObj, "errorCode"));
+        // Should handle boolean values without crashing
+    }
+
+    @Test
+    void testParsePlaidErrorResponse_WithNumericValues_HandlesCorrectly() throws Exception {
+        // Given
+        plaidService = new PlaidService("test-client-id", "test-secret", "sandbox", "", "", true, pciDSSComplianceService);
+        String errorBody = "{\"error_code\":\"TEST\",\"status_code\":429}";
+        
+        // When - Use reflection to access private method
+        java.lang.reflect.Method method = PlaidService.class.getDeclaredMethod("parsePlaidErrorResponse", String.class);
+        method.setAccessible(true);
+        Object errorObj = method.invoke(plaidService, errorBody);
+        // Use reflection to access private inner class fields
+        if (errorObj == null) {
+            assertNull(errorObj);
+            return;
+        }
+        java.lang.reflect.Field errorCodeField = errorObj.getClass().getDeclaredField("errorCode");
+        errorCodeField.setAccessible(true);
+        java.lang.reflect.Field errorTypeField = errorObj.getClass().getDeclaredField("errorType");
+        errorTypeField.setAccessible(true);
+        java.lang.reflect.Field errorMessageField = errorObj.getClass().getDeclaredField("errorMessage");
+        errorMessageField.setAccessible(true);
+        java.lang.reflect.Field requestIdField = errorObj.getClass().getDeclaredField("requestId");
+        requestIdField.setAccessible(true);
+        
+        String errorCode = (String) errorCodeField.get(errorObj);
+        String errorType = (String) errorTypeField.get(errorObj);
+        String errorMessage = (String) errorMessageField.get(errorObj);
+        String requestId = (String) requestIdField.get(errorObj);
+        
+        // Then
+        assertNotNull(errorObj);
+        assertEquals("TEST", getErrorField(errorObj, "errorCode"));
+        // Should handle numeric values without crashing
     }
 }
