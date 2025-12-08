@@ -1,6 +1,8 @@
 package com.budgetbuddy.repository.dynamodb;
 
 import com.budgetbuddy.model.dynamodb.AccountTable;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Repository;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbIndex;
@@ -34,6 +36,8 @@ public class AccountRepository {
     private final DynamoDbTable<AccountTable> accountTable;
     private final DynamoDbIndex<AccountTable> userIdIndex;
     private final DynamoDbIndex<AccountTable> plaidAccountIdIndex;
+    private final DynamoDbIndex<AccountTable> plaidItemIdIndex;
+    private final DynamoDbIndex<AccountTable> userIdUpdatedAtIndex;
     private final DynamoDbClient dynamoDbClient;
     private final String tableName;
 
@@ -45,11 +49,13 @@ public class AccountRepository {
         this.accountTable = enhancedClient.table(this.tableName,
                 TableSchema.fromBean(AccountTable.class));
         this.userIdIndex = accountTable.index("UserIdIndex");
-        this.plaidAccountIdIndex =
-                accountTable.index("PlaidAccountIdIndex");
+        this.plaidAccountIdIndex = accountTable.index("PlaidAccountIdIndex");
+        this.plaidItemIdIndex = accountTable.index("PlaidItemIdIndex");
+        this.userIdUpdatedAtIndex = accountTable.index("UserIdUpdatedAtIndex");
         this.dynamoDbClient = dynamoDbClient;
     }
 
+    @CacheEvict(value = "accounts", key = "#account.userId")
     public void save(final AccountTable account) {
         accountTable.putItem(account);
     }
@@ -70,6 +76,7 @@ public class AccountRepository {
         return Optional.ofNullable(account);
     }
 
+    @Cacheable(value = "accounts", key = "#userId", unless = "#result == null || #result.isEmpty()")
     public List<AccountTable> findByUserId(String userId) {
         List<AccountTable> results = new ArrayList<>();
         int totalFound = 0;
@@ -219,9 +226,10 @@ public class AccountRepository {
     }
 
     /**
-     * Find all accounts by Plaid item ID
+     * Find all accounts by Plaid item ID using GSI (optimized)
      * Used for webhook processing to find all accounts associated with a Plaid item
      */
+    @Cacheable(value = "accounts", key = "'plaidItem:' + #plaidItemId", unless = "#result == null || #result.isEmpty()")
     public List<AccountTable> findByPlaidItemId(String plaidItemId) {
         if (plaidItemId == null || plaidItemId.isEmpty()) {
             return List.of();
@@ -229,25 +237,33 @@ public class AccountRepository {
         
         List<AccountTable> results = new ArrayList<>();
         try {
-            // Scan table with filter expression for plaidItemId
-            // Note: For production with large datasets, consider adding a GSI on plaidItemId
-            software.amazon.awssdk.enhanced.dynamodb.model.ScanEnhancedRequest scanRequest =
-                    software.amazon.awssdk.enhanced.dynamodb.model.ScanEnhancedRequest.builder()
-                            .filterExpression(
-                                    Expression.builder()
-                                            .expression("plaidItemId = :itemId")
-                                            .putExpressionValue(":itemId",
-                                                    software.amazon.awssdk.services.dynamodb.model.AttributeValue.builder()
-                                                            .s(plaidItemId)
-                                                            .build())
-                                            .build())
-                            .build();
+            // Check if index is available (may be null in test environments or if index doesn't exist)
+            if (plaidItemIdIndex != null) {
+                // Use GSI for efficient query (replaces inefficient scan)
+                SdkIterable<software.amazon.awssdk.enhanced.dynamodb.model.Page<AccountTable>> pages =
+                        plaidItemIdIndex.query(
+                                QueryConditional.keyEqualTo(
+                                        Key.builder().partitionValue(plaidItemId).build()));
 
-            SdkIterable<software.amazon.awssdk.enhanced.dynamodb.model.Page<AccountTable>> pages =
-                    accountTable.scan(scanRequest);
-
-            for (software.amazon.awssdk.enhanced.dynamodb.model.Page<AccountTable> page : pages) {
-                results.addAll(page.items());
+                for (software.amazon.awssdk.enhanced.dynamodb.model.Page<AccountTable> page : pages) {
+                    results.addAll(page.items());
+                }
+            } else {
+                // Fallback to scan if index is not available (e.g., in test environments)
+                // This is less efficient but ensures the method works even if the index isn't initialized
+                org.slf4j.LoggerFactory.getLogger(AccountRepository.class)
+                        .warn("PlaidItemIdIndex is not available, falling back to scan for plaidItemId: {}", plaidItemId);
+                
+                SdkIterable<software.amazon.awssdk.enhanced.dynamodb.model.Page<AccountTable>> pages =
+                        accountTable.scan();
+                
+                for (software.amazon.awssdk.enhanced.dynamodb.model.Page<AccountTable> page : pages) {
+                    for (AccountTable account : page.items()) {
+                        if (plaidItemId.equals(account.getPlaidItemId())) {
+                            results.add(account);
+                        }
+                    }
+                }
             }
         } catch (Exception e) {
             org.slf4j.LoggerFactory.getLogger(AccountRepository.class)
@@ -257,6 +273,44 @@ public class AccountRepository {
         return results;
     }
 
+    /**
+     * Find accounts updated after a specific timestamp using GSI
+     * Optimized for incremental sync - queries only changed items
+     */
+    @Cacheable(value = "accounts", key = "'user:' + #userId + ':updatedAfter:' + #updatedAfterTimestamp", unless = "#result == null || #result.isEmpty()")
+    public List<AccountTable> findByUserIdAndUpdatedAfter(String userId, Long updatedAfterTimestamp) {
+        if (userId == null || userId.isEmpty() || updatedAfterTimestamp == null) {
+            return List.of();
+        }
+        
+        List<AccountTable> results = new ArrayList<>();
+        try {
+            // CRITICAL FIX: Cannot use filter expression on sort key (updatedAtTimestamp is GSI sort key)
+            // Query all items for user, then filter in application code
+            // This is still efficient because we're using the GSI partition key
+            SdkIterable<software.amazon.awssdk.enhanced.dynamodb.model.Page<AccountTable>> pages =
+                    userIdUpdatedAtIndex.query(
+                            QueryConditional.keyEqualTo(Key.builder().partitionValue(userId).build()));
+
+            for (software.amazon.awssdk.enhanced.dynamodb.model.Page<AccountTable> page : pages) {
+                for (AccountTable account : page.items()) {
+                    // Filter in application code: updatedAtTimestamp >= updatedAfterTimestamp
+                    // Use >= to include items updated exactly at the timestamp
+                    if (account.getUpdatedAtTimestamp() != null && 
+                        account.getUpdatedAtTimestamp() >= updatedAfterTimestamp) {
+                        results.add(account);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            org.slf4j.LoggerFactory.getLogger(AccountRepository.class)
+                    .error("Error finding accounts by userId and updatedAfter {}: {}", userId, e.getMessage(), e);
+        }
+        
+        return results;
+    }
+
+    @CacheEvict(value = "accounts", allEntries = true)
     public void delete(final String accountId) {
         if (accountId == null || accountId.isEmpty()) {
             throw new IllegalArgumentException("Account ID cannot be null or empty");
@@ -295,6 +349,7 @@ public class AccountRepository {
      * Batch save accounts using BatchWriteItem (cost-optimized)
      * DynamoDB allows up to 25 items per batch
      */
+    @CacheEvict(value = "accounts", allEntries = true)
     public void batchSave(final List<AccountTable> accounts) {
         if (accounts == null || accounts.isEmpty()) {
             return;
@@ -346,6 +401,7 @@ public class AccountRepository {
     /**
      * Batch delete accounts using BatchWriteItem
      */
+    @CacheEvict(value = "accounts", allEntries = true)
     public void batchDelete(final List<String> accountIds) {
         if (accountIds == null || accountIds.isEmpty()) {
             return;

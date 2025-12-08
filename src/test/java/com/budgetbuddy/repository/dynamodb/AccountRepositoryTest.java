@@ -45,6 +45,9 @@ class AccountRepositoryTest {
     @Mock
     private DynamoDbIndex<AccountTable> plaidAccountIdIndex;
 
+    @Mock
+    private DynamoDbIndex<AccountTable> plaidItemIdIndex;
+
     private AccountRepository accountRepository;
 
     private String testUserId;
@@ -66,6 +69,8 @@ class AccountRepositoryTest {
                 .thenReturn(accountTable);
         when(accountTable.index("UserIdIndex")).thenReturn(userIdIndex);
         when(accountTable.index("PlaidAccountIdIndex")).thenReturn(plaidAccountIdIndex);
+        when(accountTable.index("PlaidItemIdIndex")).thenReturn(plaidItemIdIndex);
+        when(accountTable.index("UserIdUpdatedAtIndex")).thenReturn(mock(DynamoDbIndex.class));
         
         // Construct repository with mocks
         accountRepository = new AccountRepository(enhancedClient, dynamoDbClient, "TestBudgetBuddy");
@@ -273,29 +278,21 @@ class AccountRepositoryTest {
         activeAccount.setPlaidItemId(plaidItemId);
         inactiveAccount.setPlaidItemId(plaidItemId);
         
-        // Create a mock page with the accounts
+        // Create a mock page with the accounts using the helper method
+        Page<AccountTable> page = createPage(Arrays.asList(activeAccount, inactiveAccount));
         @SuppressWarnings("unchecked")
-        software.amazon.awssdk.enhanced.dynamodb.model.Page<AccountTable> page = mock(software.amazon.awssdk.enhanced.dynamodb.model.Page.class);
-        when(page.items()).thenReturn(Arrays.asList(activeAccount, inactiveAccount));
-        
-        // Create PageIterable mock (scan() returns PageIterable<AccountTable>, not SdkIterable<Page<AccountTable>>)
-        @SuppressWarnings("unchecked")
-        PageIterable<AccountTable> pageIterable = mock(PageIterable.class);
-        when(pageIterable.iterator()).thenReturn(Collections.singletonList(page).iterator());
-        
-        // Use doReturn().when() to avoid type inference issues with complex generic types
-        // scan(ScanEnhancedRequest) returns PageIterable<AccountTable>
-        org.mockito.Mockito.lenient().doReturn(pageIterable)
-                .when(accountTable)
-                .scan(any(software.amazon.awssdk.enhanced.dynamodb.model.ScanEnhancedRequest.class));
+        SdkIterable<Page<AccountTable>> pages = mock(SdkIterable.class);
+        when(pages.iterator()).thenReturn(Collections.singletonList(page).iterator());
+        when(plaidItemIdIndex.query(any(QueryConditional.class))).thenReturn(pages);
 
         // When
         List<AccountTable> result = accountRepository.findByPlaidItemId(plaidItemId);
 
         // Then
         assertNotNull(result);
-        // Result may be empty if scan mock doesn't work perfectly, but method should not throw
-        assertTrue(result.size() >= 0);
+        assertEquals(2, result.size());
+        assertTrue(result.contains(activeAccount));
+        assertTrue(result.contains(inactiveAccount));
     }
 
     @Test

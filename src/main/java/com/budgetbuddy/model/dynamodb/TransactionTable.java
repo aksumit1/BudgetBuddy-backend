@@ -37,6 +37,7 @@ public class TransactionTable {
     private Boolean isAudited; // Audit checkmark state (client-side UI state)
     private Instant createdAt;
     private Instant updatedAt;
+    private Long updatedAtTimestamp; // GSI sort key (epoch seconds) for incremental sync
 
     @DynamoDbPartitionKey
     @DynamoDbAttribute("transactionId")
@@ -48,7 +49,7 @@ public class TransactionTable {
         this.transactionId = transactionId;
     }
 
-    @DynamoDbSecondaryPartitionKey(indexNames = "UserIdDateIndex")
+    @DynamoDbSecondaryPartitionKey(indexNames = {"UserIdDateIndex", "UserIdUpdatedAtIndex"})
     @DynamoDbAttribute("userId")
     public String getUserId() {
         return userId;
@@ -232,6 +233,18 @@ public class TransactionTable {
 
     public void setUpdatedAt(final Instant updatedAt) {
         this.updatedAt = updatedAt;
+        // Auto-populate timestamp for GSI sort key
+        this.updatedAtTimestamp = updatedAt != null ? updatedAt.getEpochSecond() : null;
+    }
+
+    @DynamoDbSecondarySortKey(indexNames = "UserIdUpdatedAtIndex")
+    @DynamoDbAttribute("updatedAtTimestamp")
+    public Long getUpdatedAtTimestamp() {
+        return updatedAtTimestamp;
+    }
+
+    public void setUpdatedAtTimestamp(final Long updatedAtTimestamp) {
+        this.updatedAtTimestamp = updatedAtTimestamp;
     }
 }
 

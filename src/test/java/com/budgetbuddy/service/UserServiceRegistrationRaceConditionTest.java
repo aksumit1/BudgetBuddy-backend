@@ -21,6 +21,7 @@ import java.util.concurrent.TimeUnit;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
+import com.budgetbuddy.repository.dynamodb.AccountRepository;
 
 /**
  * Unit Tests for User Registration Race Condition
@@ -47,7 +48,8 @@ class UserServiceRegistrationRaceConditionTest {
 
     @BeforeEach
     void setUp() {
-        userService = new UserService(userRepository, passwordHashingService);
+        com.budgetbuddy.repository.dynamodb.AccountRepository accountRepository = mock(com.budgetbuddy.repository.dynamodb.AccountRepository.class);
+        userService = new UserService(userRepository, passwordHashingService, accountRepository);
         testEmail = "test-" + UUID.randomUUID() + "@example.com";
         testPasswordHash = "hashed-password";
         testClientSalt = "client-salt";

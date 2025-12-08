@@ -1,5 +1,9 @@
 package com.budgetbuddy.exception;
 
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import com.budgetbuddy.util.MessageUtil;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -7,12 +11,14 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.context.request.WebRequest;
 
+import java.util.List;
 import java.util.Locale;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -35,6 +41,9 @@ class EnhancedGlobalExceptionHandlerTest {
 
     @InjectMocks
     private EnhancedGlobalExceptionHandler exceptionHandler;
+    
+    private ListAppender<ILoggingEvent> logAppender;
+    private Logger logger;
 
     @BeforeEach
     void setUp() {
@@ -42,6 +51,12 @@ class EnhancedGlobalExceptionHandlerTest {
         when(webRequest.getDescription(anyBoolean())).thenReturn("uri=/api/test");
         when(messageUtil.getErrorMessage(anyString())).thenReturn("Test error message");
         when(messageUtil.getValidationMessage(anyString())).thenReturn("Validation error");
+        
+        // Set up log appender to capture log events for verification
+        logger = (Logger) LoggerFactory.getLogger(EnhancedGlobalExceptionHandler.class);
+        logAppender = new ListAppender<>();
+        logAppender.start();
+        logger.addAppender(logAppender);
     }
 
     @Test
@@ -107,7 +122,10 @@ class EnhancedGlobalExceptionHandlerTest {
     @Test
     void testHandleGenericException_WithRuntimeException_ReturnsErrorResponse() {
         // Given
+        // Note: This test intentionally throws a RuntimeException to verify that unexpected exceptions
+        // are logged at ERROR level. The ERROR log is EXPECTED and CORRECT.
         RuntimeException ex = new RuntimeException("Unexpected error");
+        org.slf4j.MDC.put("correlationId", "test-correlation-id");
 
         // When
         ResponseEntity<EnhancedGlobalExceptionHandler.ErrorResponse> response = exceptionHandler.handleGenericException(ex, webRequest);
@@ -116,6 +134,23 @@ class EnhancedGlobalExceptionHandlerTest {
         assertNotNull(response);
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
         assertNotNull(response.getBody());
+        
+        // Verify logging behavior - should log ERROR for unexpected exceptions
+        List<ILoggingEvent> logEvents = logAppender.list;
+        long errorLogs = logEvents.stream()
+                .filter(event -> event.getLevel() == Level.ERROR 
+                        && event.getMessage().contains("Unexpected error"))
+                .count();
+        
+        assertEquals(1, errorLogs, "Should log ERROR when unexpected exception occurs");
+        
+        // Verify ERROR log contains expected message and correlation ID
+        // Use getFormattedMessage() to get the actual formatted message, not the template
+        boolean foundErrorLog = logEvents.stream()
+                .anyMatch(event -> event.getLevel() == Level.ERROR 
+                        && event.getFormattedMessage().contains("Unexpected error")
+                        && event.getFormattedMessage().contains("test-correlation-id"));
+        assertTrue(foundErrorLog, "Should log ERROR with exception message and correlation ID");
     }
 
     @Test

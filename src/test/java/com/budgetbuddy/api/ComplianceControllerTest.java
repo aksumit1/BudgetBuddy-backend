@@ -163,43 +163,8 @@ class ComplianceControllerTest {
         verify(gdprComplianceService, times(1)).updateUserData(eq(testUserId), any(UserTable.class));
     }
 
-    @Test
-    @SuppressWarnings("deprecation")
-    void testExportDataDMA_WithValidUser_ReturnsData() {
-        // Given
-        when(userDetails.getUsername()).thenReturn(testEmail);
-        when(userService.findByEmail(testEmail)).thenReturn(Optional.of(testUser));
-        
-        String dmaData = "{\"userId\":\"" + testUserId + "\",\"format\":\"JSON\"}";
-        when(dmaComplianceService.exportDataPortable(testUserId, "JSON")).thenReturn(dmaData);
-
-        // When
-        ResponseEntity<String> response = complianceController.exportDataDMA(userDetails, "JSON");
-
-        // Then
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertNotNull(response.getBody());
-        assertEquals(dmaData, response.getBody());
-        assertTrue(response.getHeaders().containsKey(HttpHeaders.CONTENT_DISPOSITION));
-        verify(dmaComplianceService, times(1)).exportDataPortable(testUserId, "JSON");
-    }
-
-    @Test
-    @SuppressWarnings("deprecation")
-    void testExportDataDMA_WithDefaultFormat_UsesJSON() {
-        // Given
-        when(userDetails.getUsername()).thenReturn(testEmail);
-        when(userService.findByEmail(testEmail)).thenReturn(Optional.of(testUser));
-        
-        String dmaData = "{\"userId\":\"" + testUserId + "\"}";
-        when(dmaComplianceService.exportDataPortable(testUserId, "JSON")).thenReturn(dmaData);
-
-        // When
-        ResponseEntity<String> response = complianceController.exportDataDMA(userDetails, "JSON");
-
-        // Then
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        verify(dmaComplianceService, times(1)).exportDataPortable(testUserId, "JSON");
-    }
+    // Note: exportDataDMA() method was removed (deprecated endpoint)
+    // Use DMAController.exportData() instead
+    // These tests have been removed as the endpoint no longer exists
 }
 

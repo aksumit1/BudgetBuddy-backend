@@ -1,6 +1,8 @@
 package com.budgetbuddy.repository.dynamodb;
 
 import com.budgetbuddy.model.dynamodb.TransactionTable;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Repository;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbIndex;
@@ -43,6 +45,7 @@ public class TransactionRepository {
     private final DynamoDbTable<TransactionTable> transactionTable;
     private final DynamoDbIndex<TransactionTable> userIdDateIndex;
     private final DynamoDbIndex<TransactionTable> plaidTransactionIdIndex;
+    private final DynamoDbIndex<TransactionTable> userIdUpdatedAtIndex;
     private final DynamoDbClient dynamoDbClient;
     private final String tableName;
 
@@ -54,11 +57,12 @@ public class TransactionRepository {
         this.transactionTable = enhancedClient.table(this.tableName,
                 TableSchema.fromBean(TransactionTable.class));
         this.userIdDateIndex = transactionTable.index("UserIdDateIndex");
-        this.plaidTransactionIdIndex =
-                transactionTable.index("PlaidTransactionIdIndex");
+        this.plaidTransactionIdIndex = transactionTable.index("PlaidTransactionIdIndex");
+        this.userIdUpdatedAtIndex = transactionTable.index("UserIdUpdatedAtIndex");
         this.dynamoDbClient = dynamoDbClient;
     }
 
+    @CacheEvict(value = "transactions", key = "#transaction.userId")
     public void save(final TransactionTable transaction) {
         if (transaction == null) {
             throw new IllegalArgumentException("Transaction cannot be null");
@@ -82,6 +86,7 @@ public class TransactionRepository {
         return Optional.ofNullable(transaction);
     }
 
+    @Cacheable(value = "transactions", key = "'user:' + #userId + ':skip:' + #skip + ':limit:' + #limit", unless = "#result == null || #result.isEmpty()")
     public List<TransactionTable> findByUserId(final String userId,
                                                final int skip,
                                                final int limit) {
@@ -299,6 +304,59 @@ public class TransactionRepository {
         return results;
     }
 
+    /**
+     * Find transactions updated after a specific timestamp using GSI
+     * Optimized for incremental sync - queries only changed items
+     */
+    @Cacheable(value = "transactions", key = "'user:' + #userId + ':updatedAfter:' + #updatedAfterTimestamp + ':limit:' + #limit", unless = "#result == null || #result.isEmpty()")
+    public List<TransactionTable> findByUserIdAndUpdatedAfter(String userId, Long updatedAfterTimestamp, int limit) {
+        if (userId == null || userId.isEmpty() || updatedAfterTimestamp == null) {
+            return List.of();
+        }
+        
+        int adjustedLimit = limit;
+        if (adjustedLimit <= 0) {
+            adjustedLimit = 50; // Default limit
+        }
+        if (adjustedLimit > 100) {
+            adjustedLimit = 100; // Max limit
+        }
+        
+        List<TransactionTable> results = new ArrayList<>();
+        try {
+            // CRITICAL FIX: Cannot use filter expression on sort key (updatedAtTimestamp is GSI sort key)
+            // Query all items for user, then filter in application code
+            // This is still efficient because we're using the GSI partition key
+            SdkIterable<software.amazon.awssdk.enhanced.dynamodb.model.Page<TransactionTable>> pages =
+                    userIdUpdatedAtIndex.query(
+                            QueryConditional.keyEqualTo(Key.builder().partitionValue(userId).build()));
+
+            int count = 0;
+            for (software.amazon.awssdk.enhanced.dynamodb.model.Page<TransactionTable> page : pages) {
+                for (TransactionTable item : page.items()) {
+                    // Filter in application code: updatedAtTimestamp >= updatedAfterTimestamp
+                    // Use >= to include items updated exactly at the timestamp
+                    if (item.getUpdatedAtTimestamp() != null && 
+                        item.getUpdatedAtTimestamp() >= updatedAfterTimestamp) {
+                        if (count >= adjustedLimit) {
+                            break;
+                        }
+                        results.add(item);
+                        count++;
+                    }
+                }
+                if (count >= adjustedLimit) {
+                    break;
+                }
+            }
+        } catch (Exception e) {
+            org.slf4j.LoggerFactory.getLogger(TransactionRepository.class)
+                    .error("Error finding transactions by userId and updatedAfter {}: {}", userId, e.getMessage(), e);
+        }
+        
+        return results;
+    }
+
     public Optional<TransactionTable> findByPlaidTransactionId(
             final String plaidTransactionId) {
         if (plaidTransactionId == null || plaidTransactionId.isEmpty()) {
@@ -319,6 +377,7 @@ public class TransactionRepository {
         return Optional.empty();
     }
 
+    @CacheEvict(value = "transactions", allEntries = true)
     public void delete(final String transactionId) {
         if (transactionId == null || transactionId.isEmpty()) {
             throw new IllegalArgumentException("Transaction ID cannot be null or empty");
@@ -461,6 +520,7 @@ public class TransactionRepository {
      * Batch save transactions using BatchWriteItem (cost-optimized)
      * DynamoDB allows up to 25 items per batch
      */
+    @CacheEvict(value = "transactions", allEntries = true)
     public void batchSave(final List<TransactionTable> transactions) {
         if (transactions == null || transactions.isEmpty()) {
             return;
@@ -596,6 +656,7 @@ public class TransactionRepository {
     /**
      * Batch delete transactions using BatchWriteItem
      */
+    @CacheEvict(value = "transactions", allEntries = true)
     public void batchDelete(final List<String> transactionIds) {
         if (transactionIds == null || transactionIds.isEmpty()) {
             return;

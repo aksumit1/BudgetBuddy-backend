@@ -4,6 +4,7 @@ import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbAttri
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbBean;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbPartitionKey;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbSecondaryPartitionKey;
+import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbSecondarySortKey;
 
 import java.time.Instant;
 import java.util.Set;
@@ -34,6 +35,8 @@ public class UserTable {
     private Instant createdAt;
     private Instant updatedAt;
     private Instant lastLoginAt;
+    private Long lastLoginAtTimestamp; // GSI sort key (epoch seconds) for finding active users
+    private String activeStatus; // GSI partition key: "ACTIVE" or "INACTIVE" (computed from enabled)
     private Instant passwordChangedAt;
 
     @DynamoDbPartitionKey
@@ -111,6 +114,8 @@ public class UserTable {
 
     public void setEnabled(final Boolean enabled) {
         this.enabled = enabled;
+        // Auto-populate activeStatus for GSI partition key
+        this.activeStatus = (enabled != null && enabled) ? "ACTIVE" : "INACTIVE";
     }
 
     @DynamoDbAttribute("emailVerified")
@@ -183,6 +188,32 @@ public class UserTable {
 
     public void setLastLoginAt(final Instant lastLoginAt) {
         this.lastLoginAt = lastLoginAt;
+        // Auto-populate timestamp for GSI sort key
+        this.lastLoginAtTimestamp = lastLoginAt != null ? lastLoginAt.getEpochSecond() : null;
+    }
+
+    @DynamoDbSecondaryPartitionKey(indexNames = "ActiveUsersIndex")
+    @DynamoDbAttribute("activeStatus")
+    public String getActiveStatus() {
+        // Auto-compute from enabled if not set
+        if (activeStatus == null && enabled != null) {
+            activeStatus = enabled ? "ACTIVE" : "INACTIVE";
+        }
+        return activeStatus;
+    }
+
+    public void setActiveStatus(final String activeStatus) {
+        this.activeStatus = activeStatus;
+    }
+
+    @DynamoDbSecondarySortKey(indexNames = "ActiveUsersIndex")
+    @DynamoDbAttribute("lastLoginAtTimestamp")
+    public Long getLastLoginAtTimestamp() {
+        return lastLoginAtTimestamp;
+    }
+
+    public void setLastLoginAtTimestamp(final Long lastLoginAtTimestamp) {
+        this.lastLoginAtTimestamp = lastLoginAtTimestamp;
     }
 
     @DynamoDbAttribute("passwordChangedAt")

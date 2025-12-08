@@ -10,7 +10,6 @@ import com.budgetbuddy.repository.dynamodb.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -40,7 +39,15 @@ class PlaidDeduplicationTest {
     @Mock
     private UserRepository userRepository;
 
-    @InjectMocks
+    @Mock
+    private com.budgetbuddy.service.PlaidCategoryMapper categoryMapper;
+
+    @Mock
+    private com.budgetbuddy.service.plaid.PlaidDataExtractor dataExtractor;
+
+    @Mock
+    private com.budgetbuddy.service.plaid.PlaidSyncOrchestrator syncOrchestrator;
+
     private PlaidSyncService plaidSyncService;
 
     private UserTable testUser;
@@ -57,6 +64,32 @@ class PlaidDeduplicationTest {
         testUser = new UserTable();
         testUser.setUserId(testUserId);
         testUser.setEmail("test@example.com");
+
+        // Create real services with mocked dependencies so the actual sync logic runs
+        com.budgetbuddy.service.plaid.PlaidAccountSyncService accountSyncService = 
+            new com.budgetbuddy.service.plaid.PlaidAccountSyncService(
+                plaidService, accountRepository, categoryMapper, dataExtractor);
+        com.budgetbuddy.service.plaid.PlaidTransactionSyncService transactionSyncService = 
+            new com.budgetbuddy.service.plaid.PlaidTransactionSyncService(
+                plaidService, accountRepository, transactionRepository, dataExtractor);
+        com.budgetbuddy.service.plaid.PlaidSyncOrchestrator realOrchestrator = 
+            new com.budgetbuddy.service.plaid.PlaidSyncOrchestrator(accountSyncService, transactionSyncService);
+        
+        // Use doAnswer to call the real orchestrator methods so repository calls are made
+        // Use nullable() for itemId since it can be null
+        // Use lenient stubbing to avoid issues with tests that throw exceptions early
+        lenient().doAnswer(invocation -> {
+            realOrchestrator.syncAccountsOnly(invocation.getArgument(0), invocation.getArgument(1), invocation.getArgument(2));
+            return null;
+        }).when(syncOrchestrator).syncAccountsOnly(any(UserTable.class), anyString(), nullable(String.class));
+        
+        lenient().doAnswer(invocation -> {
+            realOrchestrator.syncTransactionsOnly(invocation.getArgument(0), invocation.getArgument(1));
+            return null;
+        }).when(syncOrchestrator).syncTransactionsOnly(any(UserTable.class), anyString());
+        
+        // Manually inject the orchestrator to ensure it's set before tests run
+        plaidSyncService = new PlaidSyncService(syncOrchestrator);
     }
 
     @Test
@@ -90,6 +123,21 @@ class PlaidDeduplicationTest {
         accountsResponse.setItem(new com.plaid.client.model.Item());
 
         when(plaidService.getAccounts(anyString())).thenReturn(accountsResponse);
+        // Mock dataExtractor to extract account IDs and update accounts
+        when(dataExtractor.extractAccountId(any())).thenAnswer(invocation -> {
+            Object account = invocation.getArgument(0);
+            if (account instanceof com.plaid.client.model.AccountBase) {
+                return ((com.plaid.client.model.AccountBase) account).getAccountId();
+            }
+            return null;
+        });
+        // Mock updateAccountFromPlaid to actually set updatedAt
+        doAnswer(invocation -> {
+            AccountTable account = invocation.getArgument(0);
+            account.setUpdatedAt(java.time.Instant.now());
+            return null;
+        }).when(dataExtractor).updateAccountFromPlaid(any(AccountTable.class), any());
+        doNothing().when(accountRepository).save(any(AccountTable.class));
 
         // When - Sync accounts
         plaidSyncService.syncAccounts(testUser, "test-access-token", null);
@@ -123,6 +171,20 @@ class PlaidDeduplicationTest {
         accountsResponse.setItem(new com.plaid.client.model.Item());
 
         when(plaidService.getAccounts(anyString())).thenReturn(accountsResponse);
+        // Mock dataExtractor to extract account IDs and update accounts
+        when(dataExtractor.extractAccountId(any())).thenAnswer(invocation -> {
+            Object account = invocation.getArgument(0);
+            if (account instanceof com.plaid.client.model.AccountBase) {
+                return ((com.plaid.client.model.AccountBase) account).getAccountId();
+            }
+            return null;
+        });
+        // Mock updateAccountFromPlaid to actually set updatedAt
+        doAnswer(invocation -> {
+            AccountTable account = invocation.getArgument(0);
+            account.setUpdatedAt(java.time.Instant.now());
+            return null;
+        }).when(dataExtractor).updateAccountFromPlaid(any(AccountTable.class), any());
         when(accountRepository.saveIfNotExists(any(AccountTable.class))).thenReturn(true);
 
         // When - Sync accounts
@@ -160,14 +222,49 @@ class PlaidDeduplicationTest {
         transactionsResponse.setTotalTransactions(1);
 
         when(plaidService.getTransactions(anyString(), any(), any())).thenReturn(transactionsResponse);
+        // Mock dataExtractor to return account ID for transaction grouping and transaction ID
+        when(dataExtractor.extractAccountIdFromTransaction(any()))
+                .thenReturn(testPlaidAccountId);
+        when(dataExtractor.extractTransactionId(any()))
+                .thenAnswer(invocation -> {
+                    Object plaidTxObj = invocation.getArgument(0);
+                    if (plaidTxObj instanceof com.plaid.client.model.Transaction) {
+                        return ((com.plaid.client.model.Transaction) plaidTxObj).getTransactionId();
+                    }
+                    return null;
+                });
+        // Mock updateTransactionFromPlaid to actually populate transaction fields
+        doAnswer(invocation -> {
+            TransactionTable txTable = invocation.getArgument(0);
+            Object plaidTxObj = invocation.getArgument(1);
+            if (plaidTxObj instanceof com.plaid.client.model.Transaction) {
+                com.plaid.client.model.Transaction plaidTx = (com.plaid.client.model.Transaction) plaidTxObj;
+                txTable.setMerchantName(plaidTx.getMerchantName());
+                txTable.setDescription(plaidTx.getName());
+                if (plaidTx.getDate() != null) {
+                    txTable.setTransactionDate(plaidTx.getDate().format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE));
+                }
+                if (plaidTx.getCategory() != null && !plaidTx.getCategory().isEmpty()) {
+                    txTable.setCategoryPrimary(plaidTx.getCategory().get(0));
+                } else {
+                    txTable.setCategoryPrimary("other");
+                }
+                if (plaidTx.getAmount() != null) {
+                    txTable.setAmount(java.math.BigDecimal.valueOf(plaidTx.getAmount()));
+                }
+            }
+            return null;
+        }).when(dataExtractor).updateTransactionFromPlaid(any(TransactionTable.class), any());
         
         // Mock account lookup
         AccountTable account = new AccountTable();
         account.setAccountId(UUID.randomUUID().toString());
         account.setPlaidAccountId(testPlaidAccountId);
+        account.setLastSyncedAt(null); // Ensure sync isn't skipped
         when(accountRepository.findByPlaidAccountId(testPlaidAccountId))
                 .thenReturn(Optional.of(account));
         when(accountRepository.findByUserId(testUserId)).thenReturn(Collections.singletonList(account));
+        when(transactionRepository.saveIfPlaidTransactionNotExists(any(TransactionTable.class))).thenReturn(true);
 
         // When - Sync transactions
         plaidSyncService.syncTransactions(testUser, "test-access-token");
@@ -207,14 +304,49 @@ class PlaidDeduplicationTest {
         transactionsResponse.setTotalTransactions(1);
 
         when(plaidService.getTransactions(anyString(), any(), any())).thenReturn(transactionsResponse);
+        // Mock dataExtractor to return account ID for transaction grouping and transaction ID
+        when(dataExtractor.extractAccountIdFromTransaction(any()))
+                .thenReturn(testPlaidAccountId);
+        when(dataExtractor.extractTransactionId(any()))
+                .thenAnswer(invocation -> {
+                    Object plaidTxObj = invocation.getArgument(0);
+                    if (plaidTxObj instanceof com.plaid.client.model.Transaction) {
+                        return ((com.plaid.client.model.Transaction) plaidTxObj).getTransactionId();
+                    }
+                    return null;
+                });
+        // Mock updateTransactionFromPlaid to actually populate transaction fields
+        doAnswer(invocation -> {
+            TransactionTable txTable = invocation.getArgument(0);
+            Object plaidTxObj = invocation.getArgument(1);
+            if (plaidTxObj instanceof com.plaid.client.model.Transaction) {
+                com.plaid.client.model.Transaction plaidTx = (com.plaid.client.model.Transaction) plaidTxObj;
+                txTable.setMerchantName(plaidTx.getMerchantName());
+                txTable.setDescription(plaidTx.getName());
+                if (plaidTx.getDate() != null) {
+                    txTable.setTransactionDate(plaidTx.getDate().format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE));
+                }
+                if (plaidTx.getCategory() != null && !plaidTx.getCategory().isEmpty()) {
+                    txTable.setCategoryPrimary(plaidTx.getCategory().get(0));
+                } else {
+                    txTable.setCategoryPrimary("other");
+                }
+                if (plaidTx.getAmount() != null) {
+                    txTable.setAmount(java.math.BigDecimal.valueOf(plaidTx.getAmount()));
+                }
+            }
+            return null;
+        }).when(dataExtractor).updateTransactionFromPlaid(any(TransactionTable.class), any());
         
         // Mock account lookup
         AccountTable account = new AccountTable();
         account.setAccountId(UUID.randomUUID().toString());
         account.setPlaidAccountId(testPlaidAccountId);
+        account.setLastSyncedAt(null); // Ensure sync isn't skipped
         when(accountRepository.findByPlaidAccountId(testPlaidAccountId))
                 .thenReturn(Optional.of(account));
         when(accountRepository.findByUserId(testUserId)).thenReturn(Collections.singletonList(account));
+        when(transactionRepository.saveIfPlaidTransactionNotExists(any(TransactionTable.class))).thenReturn(true);
         when(transactionRepository.saveIfPlaidTransactionNotExists(any(TransactionTable.class))).thenReturn(true);
 
         // When - Sync transactions
@@ -254,6 +386,21 @@ class PlaidDeduplicationTest {
         accountsResponse.setItem(new com.plaid.client.model.Item());
 
         when(plaidService.getAccounts(anyString())).thenReturn(accountsResponse);
+        // Mock dataExtractor to extract account IDs and update accounts
+        when(dataExtractor.extractAccountId(any())).thenAnswer(invocation -> {
+            Object account = invocation.getArgument(0);
+            if (account instanceof com.plaid.client.model.AccountBase) {
+                return ((com.plaid.client.model.AccountBase) account).getAccountId();
+            }
+            return null;
+        });
+        // Mock updateAccountFromPlaid to actually set updatedAt
+        doAnswer(invocation -> {
+            AccountTable account = invocation.getArgument(0);
+            account.setUpdatedAt(java.time.Instant.now());
+            return null;
+        }).when(dataExtractor).updateAccountFromPlaid(any(AccountTable.class), any());
+        doNothing().when(accountRepository).save(any(AccountTable.class));
 
         // When - Sync accounts multiple times
         plaidSyncService.syncAccounts(testUser, "test-access-token", null);
@@ -305,6 +452,67 @@ class PlaidDeduplicationTest {
         transactionsResponse.setTotalTransactions(1);
 
         when(plaidService.getTransactions(anyString(), any(), any())).thenReturn(transactionsResponse);
+        
+        // Mock dataExtractor to return account ID for transaction grouping and transaction ID
+        when(dataExtractor.extractAccountIdFromTransaction(any()))
+                .thenReturn(testPlaidAccountId);
+        when(dataExtractor.extractTransactionId(any()))
+                .thenAnswer(invocation -> {
+                    Object plaidTxObj = invocation.getArgument(0);
+                    if (plaidTxObj instanceof com.plaid.client.model.Transaction) {
+                        return ((com.plaid.client.model.Transaction) plaidTxObj).getTransactionId();
+                    }
+                    return null;
+                });
+        // Mock updateTransactionFromPlaid to actually populate transaction fields
+        doAnswer(invocation -> {
+            TransactionTable txTable = invocation.getArgument(0);
+            Object plaidTxObj = invocation.getArgument(1);
+            if (plaidTxObj instanceof com.plaid.client.model.Transaction) {
+                com.plaid.client.model.Transaction plaidTx = (com.plaid.client.model.Transaction) plaidTxObj;
+                txTable.setMerchantName(plaidTx.getMerchantName());
+                txTable.setDescription(plaidTx.getName());
+                if (plaidTx.getDate() != null) {
+                    txTable.setTransactionDate(plaidTx.getDate().format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE));
+                }
+                if (plaidTx.getAmount() != null) {
+                    txTable.setAmount(java.math.BigDecimal.valueOf(plaidTx.getAmount()));
+                }
+                
+                // Extract PersonalFinanceCategory
+                String plaidCategoryPrimary = null;
+                String plaidCategoryDetailed = null;
+                try {
+                    var personalFinanceCategory = plaidTx.getPersonalFinanceCategory();
+                    if (personalFinanceCategory != null) {
+                        plaidCategoryPrimary = personalFinanceCategory.getPrimary();
+                        plaidCategoryDetailed = personalFinanceCategory.getDetailed();
+                    }
+                } catch (Exception e) {
+                    // Ignore
+                }
+                
+                // Use categoryMapper to map categories
+                PlaidCategoryMapper.CategoryMapping categoryMapping;
+                if (plaidCategoryPrimary != null || plaidCategoryDetailed != null) {
+                    categoryMapping = categoryMapper.mapPlaidCategory(
+                        plaidCategoryPrimary,
+                        plaidCategoryDetailed,
+                        txTable.getMerchantName(),
+                        txTable.getDescription()
+                    );
+                } else {
+                    categoryMapping = new PlaidCategoryMapper.CategoryMapping("other", "other", false);
+                }
+                
+                txTable.setPlaidCategoryPrimary(plaidCategoryPrimary);
+                txTable.setPlaidCategoryDetailed(plaidCategoryDetailed);
+                txTable.setCategoryPrimary(categoryMapping.getPrimary());
+                txTable.setCategoryDetailed(categoryMapping.getDetailed());
+                txTable.setCategoryOverridden(categoryMapping.isOverridden());
+            }
+            return null;
+        }).when(dataExtractor).updateTransactionFromPlaid(any(TransactionTable.class), any());
         
         // Mock account lookup - ensure lastSyncedAt is null initially so sync isn't skipped
         AccountTable account = new AccountTable();

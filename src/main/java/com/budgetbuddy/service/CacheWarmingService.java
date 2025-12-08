@@ -1,195 +1,143 @@
 package com.budgetbuddy.service;
 
-import com.budgetbuddy.repository.dynamodb.AccountRepository;
-import com.budgetbuddy.repository.dynamodb.TransactionRepository;
-import com.budgetbuddy.repository.dynamodb.UserRepository;
+import com.budgetbuddy.repository.dynamodb.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.cache.CacheManager;
-import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 /**
- * Cache Warming Service
- * Pre-loads frequently accessed data into cache to improve performance
+ * Service for pre-warming cache on app startup/login
+ * Improves initial app performance by loading frequently accessed data into cache
  */
 @Service
 public class CacheWarmingService {
 
     private static final Logger logger = LoggerFactory.getLogger(CacheWarmingService.class);
 
-    private final UserRepository userRepository;
     private final AccountRepository accountRepository;
     private final TransactionRepository transactionRepository;
-    private final CacheManager cacheManager;
-
-    @Value("${app.performance.cache.warming.enabled:true}")
-    private boolean cacheWarmingEnabled;
+    private final BudgetRepository budgetRepository;
+    private final GoalRepository goalRepository;
+    private final TransactionActionRepository transactionActionRepository;
 
     public CacheWarmingService(
-            final UserRepository userRepository,
             final AccountRepository accountRepository,
             final TransactionRepository transactionRepository,
-            final CacheManager cacheManager) {
-        this.userRepository = userRepository;
+            final BudgetRepository budgetRepository,
+            final GoalRepository goalRepository,
+            final TransactionActionRepository transactionActionRepository) {
         this.accountRepository = accountRepository;
         this.transactionRepository = transactionRepository;
-        this.cacheManager = cacheManager;
+        this.budgetRepository = budgetRepository;
+        this.goalRepository = goalRepository;
+        this.transactionActionRepository = transactionActionRepository;
     }
 
     /**
-     * Warm cache for active users
-     * Runs daily at 2 AM to pre-load frequently accessed user data
+     * Pre-warm cache for a user on app startup/login
+     * Loads all user data into cache asynchronously to improve initial app performance
+     * 
+     * @param userId The user ID to warm cache for
+     * @return CompletableFuture that completes when cache warming is done
      */
-    @Scheduled(cron = "0 0 2 * * ?") // 2 AM daily
-    public void warmUserCache() {
-        if (!cacheWarmingEnabled) {
-            logger.debug("Cache warming is disabled, skipping user cache warming");
-            return;
-        }
-        logger.info("Starting user cache warming");
-        try {
-            // Fetch list of active users (logged in within last 30 days)
-            List<String> activeUserIds = userRepository.findActiveUserIds(30, 1000);
-            logger.info("Found {} active users to warm cache", activeUserIds.size());
-            
-            int warmedCount = 0;
-            for (String userId : activeUserIds) {
-                try {
-                    userRepository.findById(userId).ifPresent(user -> {
-                        logger.debug("Warmed cache for user: {}", userId);
-                    });
-                    warmedCount++;
-                } catch (Exception e) {
-                    logger.warn("Failed to warm cache for user {}: {}", userId, e.getMessage());
-                }
-            }
-            
-            logger.info("User cache warming completed: {} users warmed", warmedCount);
-        } catch (Exception e) {
-            logger.error("Error warming user cache: {}", e.getMessage(), e);
-        }
-    }
-
-    /**
-     * Warm cache for frequently accessed accounts
-     * Runs every 6 hours
-     */
-    @Scheduled(cron = "0 0 */6 * * ?") // Every 6 hours
-    public void warmAccountCache() {
-        if (!cacheWarmingEnabled) {
-            logger.debug("Cache warming is disabled, skipping account cache warming");
-            return;
-        }
-        logger.info("Starting account cache warming");
-        try {
-            // Fetch list of active users (logged in within last 7 days)
-            List<String> activeUserIds = userRepository.findActiveUserIds(7, 500);
-            logger.info("Found {} active users for account cache warming", activeUserIds.size());
-            
-            int warmedCount = 0;
-            int totalAccounts = 0;
-            for (String userId : activeUserIds) {
-                try {
-                    List<com.budgetbuddy.model.dynamodb.AccountTable> accounts = 
-                            accountRepository.findByUserId(userId);
-                    totalAccounts += accounts.size();
-                    warmedCount++;
-                    logger.debug("Warmed cache for {} accounts of user: {}", accounts.size(), userId);
-                } catch (Exception e) {
-                    logger.warn("Failed to warm account cache for user {}: {}", userId, e.getMessage());
-                }
-            }
-            
-            logger.info("Account cache warming completed: {} users, {} accounts warmed", 
-                    warmedCount, totalAccounts);
-        } catch (Exception e) {
-            logger.error("Error warming account cache: {}", e.getMessage(), e);
-        }
-    }
-
-    /**
-     * Warm cache for recent transactions
-     * Runs every 4 hours
-     */
-    @Scheduled(cron = "0 0 */4 * * ?") // Every 4 hours
-    public void warmTransactionCache() {
-        if (!cacheWarmingEnabled) {
-            logger.debug("Cache warming is disabled, skipping transaction cache warming");
-            return;
-        }
-        logger.info("Starting transaction cache warming");
-        try {
-            // Fetch list of active users (logged in within last 3 days)
-            List<String> activeUserIds = userRepository.findActiveUserIds(3, 200);
-            logger.info("Found {} active users for transaction cache warming", activeUserIds.size());
-            
-            int warmedCount = 0;
-            int totalTransactions = 0;
-            for (String userId : activeUserIds) {
-                try {
-                    // Warm recent transactions cache (last 100 transactions per user)
-                    List<com.budgetbuddy.model.dynamodb.TransactionTable> transactions = 
-                            transactionRepository.findByUserId(userId, 0, 100);
-                    totalTransactions += transactions.size();
-                    warmedCount++;
-                    logger.debug("Warmed cache for {} transactions of user: {}", transactions.size(), userId);
-                } catch (Exception e) {
-                    logger.warn("Failed to warm transaction cache for user {}: {}", userId, e.getMessage());
-                }
-            }
-            
-            logger.info("Transaction cache warming completed: {} users, {} transactions warmed", 
-                    warmedCount, totalTransactions);
-        } catch (Exception e) {
-            logger.error("Error warming transaction cache: {}", e.getMessage(), e);
-        }
-    }
-
-    /**
-     * Manually warm cache for a specific user
-     * Useful for warming cache after user login
-     */
-    public void warmCacheForUser(final String userId) {
+    @Async
+    public CompletableFuture<Void> warmCacheForUser(String userId) {
         if (userId == null || userId.isEmpty()) {
-            return;
+            logger.warn("Cannot warm cache: userId is null or empty");
+            return CompletableFuture.completedFuture(null);
         }
 
+        logger.info("Starting cache warm-up for user: {}", userId);
+        long startTime = System.currentTimeMillis();
+
         try {
-            // Warm user cache
-            userRepository.findById(userId).ifPresent(user -> {
-                logger.debug("Warmed cache for user: {}", userId);
+            // Warm all caches in parallel for better performance
+            CompletableFuture<List<?>> accountsFuture = CompletableFuture.supplyAsync(() -> {
+                try {
+                    return accountRepository.findByUserId(userId);
+                } catch (Exception e) {
+                    logger.error("Error warming accounts cache for user {}: {}", userId, e.getMessage());
+                    return List.of();
+                }
             });
 
-            // Warm account cache
-            List<com.budgetbuddy.model.dynamodb.AccountTable> accounts = accountRepository.findByUserId(userId);
-            logger.debug("Warmed cache for {} accounts of user: {}", accounts.size(), userId);
+            CompletableFuture<List<?>> transactionsFuture = CompletableFuture.supplyAsync(() -> {
+                try {
+                    return transactionRepository.findByUserId(userId, 0, 50); // Load first 50 transactions
+                } catch (Exception e) {
+                    logger.error("Error warming transactions cache for user {}: {}", userId, e.getMessage());
+                    return List.of();
+                }
+            });
 
-            // Warm recent transactions cache (last 30 days)
-            List<com.budgetbuddy.model.dynamodb.TransactionTable> transactions = 
-                    transactionRepository.findByUserId(userId, 0, 100);
-            logger.debug("Warmed cache for {} transactions of user: {}", transactions.size(), userId);
+            CompletableFuture<List<?>> budgetsFuture = CompletableFuture.supplyAsync(() -> {
+                try {
+                    return budgetRepository.findByUserId(userId);
+                } catch (Exception e) {
+                    logger.error("Error warming budgets cache for user {}: {}", userId, e.getMessage());
+                    return List.of();
+                }
+            });
 
+            CompletableFuture<List<?>> goalsFuture = CompletableFuture.supplyAsync(() -> {
+                try {
+                    return goalRepository.findByUserId(userId);
+                } catch (Exception e) {
+                    logger.error("Error warming goals cache for user {}: {}", userId, e.getMessage());
+                    return List.of();
+                }
+            });
+
+            CompletableFuture<List<?>> actionsFuture = CompletableFuture.supplyAsync(() -> {
+                try {
+                    return transactionActionRepository.findByUserId(userId);
+                } catch (Exception e) {
+                    logger.error("Error warming transaction actions cache for user {}: {}", userId, e.getMessage());
+                    return List.of();
+                }
+            });
+
+            // Wait for all cache warming operations to complete
+            CompletableFuture.allOf(accountsFuture, transactionsFuture, budgetsFuture, goalsFuture, actionsFuture).join();
+
+            long duration = System.currentTimeMillis() - startTime;
+            logger.info("Cache warm-up completed for user {} in {}ms", userId, duration);
+
+            return CompletableFuture.completedFuture(null);
         } catch (Exception e) {
-            logger.error("Error warming cache for user {}: {}", userId, e.getMessage(), e);
+            logger.error("Error during cache warm-up for user {}: {}", userId, e.getMessage(), e);
+            return CompletableFuture.completedFuture(null);
         }
     }
 
     /**
-     * Clear all caches
-     * Useful for cache invalidation
+     * Pre-warm cache for multiple users (useful for batch operations)
+     * 
+     * @param userIds List of user IDs to warm cache for
      */
-    public void clearAllCaches() {
-        logger.info("Clearing all caches");
-        cacheManager.getCacheNames().forEach(cacheName -> {
-            if (cacheManager.getCache(cacheName) != null) {
-                cacheManager.getCache(cacheName).clear();
-            }
-        });
-        logger.info("All caches cleared");
+    @Async
+    public void warmCacheForUsers(List<String> userIds) {
+        if (userIds == null || userIds.isEmpty()) {
+            logger.warn("Cannot warm cache: userIds list is null or empty");
+            return;
+        }
+
+        logger.info("Starting cache warm-up for {} users", userIds.size());
+        long startTime = System.currentTimeMillis();
+
+        // Warm cache for all users in parallel
+        List<CompletableFuture<Void>> futures = userIds.stream()
+                .map(this::warmCacheForUser)
+                .toList();
+
+        // Wait for all to complete
+        CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
+
+        long duration = System.currentTimeMillis() - startTime;
+        logger.info("Cache warm-up completed for {} users in {}ms", userIds.size(), duration);
     }
 }
-

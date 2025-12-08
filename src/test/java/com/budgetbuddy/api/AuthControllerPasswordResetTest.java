@@ -17,7 +17,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
-import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -30,7 +29,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 @Import(AWSTestConfiguration.class)
-@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 class AuthControllerPasswordResetTest {
 
     @Autowired
@@ -122,6 +120,9 @@ class AuthControllerPasswordResetTest {
     @Test
     void testForgotPassword_EmailServiceFailure() throws Exception {
         // Given
+        // Intentionally throw AppException with INTERNAL_SERVER_ERROR to test error handling
+        // Note: EnhancedGlobalExceptionHandler will log this at ERROR level, which is correct
+        // for system errors (INTERNAL_SERVER_ERROR is a system error, not a business logic error)
         doThrow(new com.budgetbuddy.exception.AppException(
                 com.budgetbuddy.exception.ErrorCode.INTERNAL_SERVER_ERROR,
                 "Failed to send verification email. Please try again later."))
@@ -137,6 +138,9 @@ class AuthControllerPasswordResetTest {
                 .andExpect(status().isInternalServerError());
 
         verify(passwordResetService).requestPasswordReset(testEmail);
+        
+        // Note: EnhancedGlobalExceptionHandler will log an ERROR for INTERNAL_SERVER_ERROR
+        // This is expected and correct behavior - system errors should be logged at ERROR level
     }
 
     @Test

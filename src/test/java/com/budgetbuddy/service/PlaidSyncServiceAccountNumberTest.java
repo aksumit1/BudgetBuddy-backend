@@ -41,6 +41,15 @@ class PlaidSyncServiceAccountNumberTest {
     @Mock
     private TransactionRepository transactionRepository;
 
+    @Mock
+    private com.budgetbuddy.service.PlaidCategoryMapper categoryMapper;
+
+    @Mock
+    private com.budgetbuddy.service.plaid.PlaidDataExtractor dataExtractor;
+
+    @Mock
+    private com.budgetbuddy.service.plaid.PlaidSyncOrchestrator syncOrchestrator;
+
     @InjectMocks
     private PlaidSyncService plaidSyncService;
 
@@ -55,18 +64,42 @@ class PlaidSyncServiceAccountNumberTest {
 
         // Create mock Plaid account with account number (mask)
         mockPlaidAccount = mock(AccountBase.class);
-        when(mockPlaidAccount.getAccountId()).thenReturn("plaid-account-123");
-        when(mockPlaidAccount.getName()).thenReturn("Checking Account");
-        when(mockPlaidAccount.getOfficialName()).thenReturn(null);
-        when(mockPlaidAccount.getMask()).thenReturn("1234"); // Account number/mask
-        when(mockPlaidAccount.getType()).thenReturn(AccountType.DEPOSITORY);
-        when(mockPlaidAccount.getSubtype()).thenReturn(AccountSubtype.CHECKING);
+        // Use lenient stubbing to avoid unnecessary stubbing warnings
+        lenient().when(mockPlaidAccount.getAccountId()).thenReturn("plaid-account-123");
+        lenient().when(mockPlaidAccount.getName()).thenReturn("Checking Account");
+        lenient().when(mockPlaidAccount.getOfficialName()).thenReturn(null);
+        lenient().when(mockPlaidAccount.getMask()).thenReturn("1234"); // Account number/mask
+        lenient().when(mockPlaidAccount.getType()).thenReturn(AccountType.DEPOSITORY);
+        lenient().when(mockPlaidAccount.getSubtype()).thenReturn(AccountSubtype.CHECKING);
         
         AccountBalance balance = new AccountBalance();
         balance.setAvailable(1000.0);
         balance.setCurrent(1000.0);
         balance.setIsoCurrencyCode("USD");
-        when(mockPlaidAccount.getBalances()).thenReturn(balance);
+        lenient().when(mockPlaidAccount.getBalances()).thenReturn(balance);
+
+        // Create real services with mocked dependencies so the actual sync logic runs
+        com.budgetbuddy.service.plaid.PlaidAccountSyncService accountSyncService = 
+            new com.budgetbuddy.service.plaid.PlaidAccountSyncService(
+                plaidService, accountRepository, categoryMapper, dataExtractor);
+        com.budgetbuddy.service.plaid.PlaidTransactionSyncService transactionSyncService = 
+            new com.budgetbuddy.service.plaid.PlaidTransactionSyncService(
+                plaidService, accountRepository, transactionRepository, dataExtractor);
+        com.budgetbuddy.service.plaid.PlaidSyncOrchestrator realOrchestrator = 
+            new com.budgetbuddy.service.plaid.PlaidSyncOrchestrator(accountSyncService, transactionSyncService);
+        
+        // Use doAnswer to call the real orchestrator methods so repository calls are made
+        // Use nullable() for itemId since it can be null
+        // Use lenient stubbing to avoid issues with tests that throw exceptions early
+        lenient().doAnswer(invocation -> {
+            realOrchestrator.syncAccountsOnly(invocation.getArgument(0), invocation.getArgument(1), invocation.getArgument(2));
+            return null;
+        }).when(syncOrchestrator).syncAccountsOnly(any(UserTable.class), anyString(), nullable(String.class));
+        
+        lenient().doAnswer(invocation -> {
+            realOrchestrator.syncTransactionsOnly(invocation.getArgument(0), invocation.getArgument(1));
+            return null;
+        }).when(syncOrchestrator).syncTransactionsOnly(any(UserTable.class), anyString());
     }
 
     @Test
@@ -81,6 +114,28 @@ class PlaidSyncServiceAccountNumberTest {
         accountsResponse.setItem(item);
 
         when(plaidService.getAccounts(anyString())).thenReturn(accountsResponse);
+        // Mock dataExtractor to extract account IDs and update accounts
+        when(dataExtractor.extractAccountId(any())).thenAnswer(invocation -> {
+            Object account = invocation.getArgument(0);
+            if (account instanceof AccountBase) {
+                return ((AccountBase) account).getAccountId();
+            }
+            return null;
+        });
+        // Mock updateAccountFromPlaid to actually set accountNumber from mask
+        doAnswer(invocation -> {
+            AccountTable account = invocation.getArgument(0);
+            Object plaidAccount = invocation.getArgument(1);
+            if (plaidAccount instanceof AccountBase) {
+                AccountBase accountBase = (AccountBase) plaidAccount;
+                String mask = accountBase.getMask();
+                if (mask != null && !mask.isEmpty()) {
+                    account.setAccountNumber(mask);
+                }
+                account.setUpdatedAt(java.time.Instant.now());
+            }
+            return null;
+        }).when(dataExtractor).updateAccountFromPlaid(any(AccountTable.class), any());
         when(accountRepository.findByPlaidAccountId(anyString())).thenReturn(Optional.empty());
         when(accountRepository.saveIfNotExists(any(AccountTable.class))).thenReturn(true);
 
@@ -116,9 +171,32 @@ class PlaidSyncServiceAccountNumberTest {
         accountsResponse.setItem(item);
 
         when(plaidService.getAccounts(anyString())).thenReturn(accountsResponse);
+        // Mock dataExtractor to extract account IDs and update accounts
+        when(dataExtractor.extractAccountId(any())).thenAnswer(invocation -> {
+            Object account = invocation.getArgument(0);
+            if (account instanceof AccountBase) {
+                return ((AccountBase) account).getAccountId();
+            }
+            return null;
+        });
+        // Mock updateAccountFromPlaid to actually set accountNumber from mask
+        doAnswer(invocation -> {
+            AccountTable account = invocation.getArgument(0);
+            Object plaidAccount = invocation.getArgument(1);
+            if (plaidAccount instanceof AccountBase) {
+                AccountBase accountBase = (AccountBase) plaidAccount;
+                String mask = accountBase.getMask();
+                if (mask != null && !mask.isEmpty()) {
+                    account.setAccountNumber(mask);
+                }
+                account.setUpdatedAt(java.time.Instant.now());
+            }
+            return null;
+        }).when(dataExtractor).updateAccountFromPlaid(any(AccountTable.class), any());
         when(accountRepository.findByPlaidAccountId(plaidAccountId)).thenReturn(Optional.empty());
         when(accountRepository.findByAccountNumberAndInstitution(accountNumber, institutionName, testUser.getUserId()))
                 .thenReturn(Optional.of(existingAccount));
+        doNothing().when(accountRepository).save(any(AccountTable.class));
 
         // When - Sync accounts
         plaidSyncService.syncAccounts(testUser, "test-access-token", null);
@@ -152,7 +230,30 @@ class PlaidSyncServiceAccountNumberTest {
         accountsResponse.setItem(item);
 
         when(plaidService.getAccounts(anyString())).thenReturn(accountsResponse);
+        // Mock dataExtractor to extract account IDs and update accounts
+        when(dataExtractor.extractAccountId(any())).thenAnswer(invocation -> {
+            Object account = invocation.getArgument(0);
+            if (account instanceof AccountBase) {
+                return ((AccountBase) account).getAccountId();
+            }
+            return null;
+        });
+        // Mock updateAccountFromPlaid to actually set accountNumber from mask
+        doAnswer(invocation -> {
+            AccountTable account = invocation.getArgument(0);
+            Object plaidAccount = invocation.getArgument(1);
+            if (plaidAccount instanceof AccountBase) {
+                AccountBase accountBase = (AccountBase) plaidAccount;
+                String mask = accountBase.getMask();
+                if (mask != null && !mask.isEmpty()) {
+                    account.setAccountNumber(mask);
+                }
+                account.setUpdatedAt(java.time.Instant.now());
+            }
+            return null;
+        }).when(dataExtractor).updateAccountFromPlaid(any(AccountTable.class), any());
         when(accountRepository.findByPlaidAccountId(plaidAccountId)).thenReturn(Optional.of(existingAccount));
+        doNothing().when(accountRepository).save(any(AccountTable.class));
 
         // When - Sync accounts
         plaidSyncService.syncAccounts(testUser, "test-access-token", null);

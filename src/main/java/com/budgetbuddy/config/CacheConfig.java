@@ -19,16 +19,25 @@ import java.util.concurrent.TimeUnit;
 public class CacheConfig {
 
     /**
-     * Primary cache manager for general caching
+     * Primary cache manager for all caching
+     * Handles all caches: users, accounts, transactions, budgets, goals, transactionActions, fido2Credentials
+     * Uses balanced TTL settings suitable for all cache types
      */
     @Bean
     @Primary
     public CacheManager cacheManager() {
-        CaffeineCacheManager cacheManager = new CaffeineCacheManager();
+        CaffeineCacheManager cacheManager = new CaffeineCacheManager(
+                "users", "userProfiles",           // User caches
+                "accounts", "accountBalances",      // Account caches
+                "transactions", "transactionSummaries", // Transaction caches
+                "budgets", "goals",                 // Budget/Goal caches
+                "transactionActions",               // Transaction action cache
+                "fido2Credentials",                // FIDO2 credential cache
+                "analytics");                       // Analytics cache
         cacheManager.setCaffeine(Caffeine.newBuilder()
-                .maximumSize(10_000)
-                .expireAfterWrite(30, TimeUnit.MINUTES)
-                .expireAfterAccess(15, TimeUnit.MINUTES)
+                .maximumSize(50_000) // Increased to handle all cache types
+                .expireAfterWrite(15, TimeUnit.MINUTES) // Balanced TTL for all cache types
+                .expireAfterAccess(10, TimeUnit.MINUTES)
                 .recordStats());
         return cacheManager;
     }

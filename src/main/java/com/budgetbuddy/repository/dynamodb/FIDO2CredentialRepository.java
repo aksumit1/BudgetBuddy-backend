@@ -1,6 +1,8 @@
 package com.budgetbuddy.repository.dynamodb;
 
 import com.budgetbuddy.model.dynamodb.FIDO2CredentialTable;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Repository;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbIndex;
@@ -33,6 +35,7 @@ public class FIDO2CredentialRepository {
         this.userIdIndex = credentialTable.index("UserIdIndex");
     }
 
+    @CacheEvict(value = "fido2Credentials", key = "#credential.userId")
     public void save(final FIDO2CredentialTable credential) {
         if (credential == null) {
             throw new IllegalArgumentException("Credential cannot be null");
@@ -49,6 +52,7 @@ public class FIDO2CredentialRepository {
         return Optional.ofNullable(credential);
     }
 
+    @Cacheable(value = "fido2Credentials", key = "#userId", unless = "#result == null || #result.isEmpty()")
     public List<FIDO2CredentialTable> findByUserId(final String userId) {
         if (userId == null || userId.isEmpty()) {
             return List.of();
@@ -68,6 +72,7 @@ public class FIDO2CredentialRepository {
         return credentials;
     }
 
+    @CacheEvict(value = "fido2Credentials", allEntries = true)
     public void delete(final String credentialId) {
         if (credentialId == null || credentialId.isEmpty()) {
             throw new IllegalArgumentException("Credential ID cannot be null or empty");

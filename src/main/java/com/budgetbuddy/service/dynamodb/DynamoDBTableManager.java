@@ -69,6 +69,14 @@ public class DynamoDBTableManager {
                             AttributeDefinition.builder()
                                     .attributeName("email")
                                     .attributeType(ScalarAttributeType.S)
+                                    .build(),
+                            AttributeDefinition.builder()
+                                    .attributeName("lastLoginAtTimestamp")
+                                    .attributeType(ScalarAttributeType.N)
+                                    .build(),
+                            AttributeDefinition.builder()
+                                    .attributeName("activeStatus")
+                                    .attributeType(ScalarAttributeType.S)
                                     .build())
                     .keySchema(
                             KeySchemaElement.builder()
@@ -82,6 +90,23 @@ public class DynamoDBTableManager {
                                             KeySchemaElement.builder()
                                                     .attributeName("email")
                                                     .keyType(KeyType.HASH)
+                                                    .build())
+                                    .projection(Projection.builder()
+                                            .projectionType(ProjectionType.ALL)
+                                            .build())
+                                    .build(),
+                            GlobalSecondaryIndex.builder()
+                                    .indexName("ActiveUsersIndex")
+                                    .keySchema(
+                                            // Use activeStatus (String) as partition key (ACTIVE/INACTIVE)
+                                            // Use lastLoginAtTimestamp as sort key for range queries
+                                            KeySchemaElement.builder()
+                                                    .attributeName("activeStatus")
+                                                    .keyType(KeyType.HASH)
+                                                    .build(),
+                                            KeySchemaElement.builder()
+                                                    .attributeName("lastLoginAtTimestamp")
+                                                    .keyType(KeyType.RANGE)
                                                     .build())
                                     .projection(Projection.builder()
                                             .projectionType(ProjectionType.ALL)
@@ -114,6 +139,14 @@ public class DynamoDBTableManager {
                             AttributeDefinition.builder()
                                     .attributeName("plaidAccountId")
                                     .attributeType(ScalarAttributeType.S)
+                                    .build(),
+                            AttributeDefinition.builder()
+                                    .attributeName("plaidItemId")
+                                    .attributeType(ScalarAttributeType.S)
+                                    .build(),
+                            AttributeDefinition.builder()
+                                    .attributeName("updatedAtTimestamp")
+                                    .attributeType(ScalarAttributeType.N)
                                     .build())
                     .keySchema(
                             KeySchemaElement.builder()
@@ -138,6 +171,32 @@ public class DynamoDBTableManager {
                                             KeySchemaElement.builder()
                                                     .attributeName("plaidAccountId")
                                                     .keyType(KeyType.HASH)
+                                                    .build())
+                                    .projection(Projection.builder()
+                                            .projectionType(ProjectionType.ALL)
+                                            .build())
+                                    .build(),
+                            GlobalSecondaryIndex.builder()
+                                    .indexName("PlaidItemIdIndex")
+                                    .keySchema(
+                                            KeySchemaElement.builder()
+                                                    .attributeName("plaidItemId")
+                                                    .keyType(KeyType.HASH)
+                                                    .build())
+                                    .projection(Projection.builder()
+                                            .projectionType(ProjectionType.ALL)
+                                            .build())
+                                    .build(),
+                            GlobalSecondaryIndex.builder()
+                                    .indexName("UserIdUpdatedAtIndex")
+                                    .keySchema(
+                                            KeySchemaElement.builder()
+                                                    .attributeName("userId")
+                                                    .keyType(KeyType.HASH)
+                                                    .build(),
+                                            KeySchemaElement.builder()
+                                                    .attributeName("updatedAtTimestamp")
+                                                    .keyType(KeyType.RANGE)
                                                     .build())
                                     .projection(Projection.builder()
                                             .projectionType(ProjectionType.ALL)
@@ -178,6 +237,10 @@ public class DynamoDBTableManager {
                             AttributeDefinition.builder()
                                     .attributeName("accountId")
                                     .attributeType(ScalarAttributeType.S)
+                                    .build(),
+                            AttributeDefinition.builder()
+                                    .attributeName("updatedAtTimestamp")
+                                    .attributeType(ScalarAttributeType.N)
                                     .build())
                     .keySchema(
                             KeySchemaElement.builder()
@@ -225,6 +288,21 @@ public class DynamoDBTableManager {
                                     .projection(Projection.builder()
                                             .projectionType(ProjectionType.ALL)
                                             .build())
+                                    .build(),
+                            GlobalSecondaryIndex.builder()
+                                    .indexName("UserIdUpdatedAtIndex")
+                                    .keySchema(
+                                            KeySchemaElement.builder()
+                                                    .attributeName("userId")
+                                                    .keyType(KeyType.HASH)
+                                                    .build(),
+                                            KeySchemaElement.builder()
+                                                    .attributeName("updatedAtTimestamp")
+                                                    .keyType(KeyType.RANGE)
+                                                    .build())
+                                    .projection(Projection.builder()
+                                            .projectionType(ProjectionType.ALL)
+                                            .build())
                                     .build())
                     .build());
             logger.info("Created table: {}", tableName);
@@ -249,6 +327,10 @@ public class DynamoDBTableManager {
                             AttributeDefinition.builder()
                                     .attributeName("userId")
                                     .attributeType(ScalarAttributeType.S)
+                                    .build(),
+                            AttributeDefinition.builder()
+                                    .attributeName("updatedAtTimestamp")
+                                    .attributeType(ScalarAttributeType.N)
                                     .build())
                     .keySchema(
                             KeySchemaElement.builder()
@@ -262,6 +344,21 @@ public class DynamoDBTableManager {
                                             KeySchemaElement.builder()
                                                     .attributeName("userId")
                                                     .keyType(KeyType.HASH)
+                                                    .build())
+                                    .projection(Projection.builder()
+                                            .projectionType(ProjectionType.ALL)
+                                            .build())
+                                    .build(),
+                            GlobalSecondaryIndex.builder()
+                                    .indexName("UserIdUpdatedAtIndex")
+                                    .keySchema(
+                                            KeySchemaElement.builder()
+                                                    .attributeName("userId")
+                                                    .keyType(KeyType.HASH)
+                                                    .build(),
+                                            KeySchemaElement.builder()
+                                                    .attributeName("updatedAtTimestamp")
+                                                    .keyType(KeyType.RANGE)
                                                     .build())
                                     .projection(Projection.builder()
                                             .projectionType(ProjectionType.ALL)
@@ -290,6 +387,10 @@ public class DynamoDBTableManager {
                             AttributeDefinition.builder()
                                     .attributeName("userId")
                                     .attributeType(ScalarAttributeType.S)
+                                    .build(),
+                            AttributeDefinition.builder()
+                                    .attributeName("updatedAtTimestamp")
+                                    .attributeType(ScalarAttributeType.N)
                                     .build())
                     .keySchema(
                             KeySchemaElement.builder()
@@ -303,6 +404,21 @@ public class DynamoDBTableManager {
                                             KeySchemaElement.builder()
                                                     .attributeName("userId")
                                                     .keyType(KeyType.HASH)
+                                                    .build())
+                                    .projection(Projection.builder()
+                                            .projectionType(ProjectionType.ALL)
+                                            .build())
+                                    .build(),
+                            GlobalSecondaryIndex.builder()
+                                    .indexName("UserIdUpdatedAtIndex")
+                                    .keySchema(
+                                            KeySchemaElement.builder()
+                                                    .attributeName("userId")
+                                                    .keyType(KeyType.HASH)
+                                                    .build(),
+                                            KeySchemaElement.builder()
+                                                    .attributeName("updatedAtTimestamp")
+                                                    .keyType(KeyType.RANGE)
                                                     .build())
                                     .projection(Projection.builder()
                                             .projectionType(ProjectionType.ALL)
@@ -343,6 +459,10 @@ public class DynamoDBTableManager {
                             AttributeDefinition.builder()
                                     .attributeName("reminderDate")
                                     .attributeType(ScalarAttributeType.S)
+                                    .build(),
+                            AttributeDefinition.builder()
+                                    .attributeName("updatedAtTimestamp")
+                                    .attributeType(ScalarAttributeType.N)
                                     .build())
                     .keySchema(
                             KeySchemaElement.builder()
@@ -381,6 +501,21 @@ public class DynamoDBTableManager {
                                                     .build(),
                                             KeySchemaElement.builder()
                                                     .attributeName("reminderDate")
+                                                    .keyType(KeyType.RANGE)
+                                                    .build())
+                                    .projection(Projection.builder()
+                                            .projectionType(ProjectionType.ALL)
+                                            .build())
+                                    .build(),
+                            GlobalSecondaryIndex.builder()
+                                    .indexName("UserIdUpdatedAtIndex")
+                                    .keySchema(
+                                            KeySchemaElement.builder()
+                                                    .attributeName("userId")
+                                                    .keyType(KeyType.HASH)
+                                                    .build(),
+                                            KeySchemaElement.builder()
+                                                    .attributeName("updatedAtTimestamp")
                                                     .keyType(KeyType.RANGE)
                                                     .build())
                                     .projection(Projection.builder()

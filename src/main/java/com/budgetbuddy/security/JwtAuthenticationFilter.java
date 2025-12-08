@@ -49,10 +49,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
         try {
             String jwt = getJwtFromRequest(request);
+            String requestURI = request != null ? request.getRequestURI() : null;
 
             if (StringUtils.hasText(jwt)) {
                 logger.debug("JWT token extracted from request | CorrelationId: {} | Token length: {} | Endpoint: {}", 
-                        MDC.get("correlationId"), jwt.length(), request.getRequestURI());
+                        MDC.get("correlationId"), jwt.length(), requestURI);
                 try {
                     // Validate token first
                     if (tokenProvider.validateToken(jwt)) {
@@ -60,13 +61,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                         
                         if (username == null || username.isEmpty()) {
                             logger.warn("JWT token contains empty username. Token will be ignored. | CorrelationId: {} | Endpoint: {}", 
-                                    MDC.get("correlationId"), request.getRequestURI());
+                                    MDC.get("correlationId"), requestURI);
                             filterChain.doFilter(request, response);
                             return;
                         }
 
                         logger.debug("JWT token validated successfully for user: {} | CorrelationId: {} | Endpoint: {}", 
-                                username, MDC.get("correlationId"), request.getRequestURI());
+                                username, MDC.get("correlationId"), requestURI);
 
                         // Load user details
                         UserDetails userDetails;
@@ -75,7 +76,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                         } catch (UsernameNotFoundException ex) {
                             // User not found - token is valid but user was deleted or doesn't exist
                             logger.warn("JWT token valid but user not found: {} | CorrelationId: {} | Endpoint: {}", 
-                                    username, MDC.get("correlationId"), request.getRequestURI());
+                                    username, MDC.get("correlationId"), requestURI);
                             filterChain.doFilter(request, response);
                             return;
                         }
@@ -83,7 +84,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                         // Validate userDetails is not null
                         if (userDetails == null) {
                             logger.warn("UserDetailsService returned null for username: {} | CorrelationId: {} | Endpoint: {}", 
-                                    username, MDC.get("correlationId"), request.getRequestURI());
+                                    username, MDC.get("correlationId"), requestURI);
                             filterChain.doFilter(request, response);
                             return;
                         }
@@ -96,12 +97,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                         // Set authentication in security context
                         SecurityContextHolder.getContext().setAuthentication(authentication);
                         logger.debug("Successfully authenticated user: {} | CorrelationId: {} | Endpoint: {}", 
-                                username, MDC.get("correlationId"), request.getRequestURI());
+                                username, MDC.get("correlationId"), requestURI);
                     } else {
                         // Token validation failed - log at WARN level with endpoint for debugging
                         logger.warn("JWT token validation failed | CorrelationId: {} | Token length: {} | Endpoint: {} | " +
                                 "Check JwtTokenProvider logs for specific validation error (expired, malformed, signature mismatch, etc.)", 
-                                MDC.get("correlationId"), jwt != null ? jwt.length() : 0, request.getRequestURI());
+                                MDC.get("correlationId"), jwt != null ? jwt.length() : 0, requestURI);
                     }
                 } catch (io.jsonwebtoken.JwtException ex) {
                     // Invalid or malformed token - log at WARN level to diagnose authentication issues
@@ -113,6 +114,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     logger.warn("Invalid JWT token format: {} | CorrelationId: {} | Token preview: {}", 
                             ex.getMessage(), MDC.get("correlationId"),
                             jwt != null && jwt.length() > 20 ? jwt.substring(0, 20) + "..." : "null");
+                } catch (RuntimeException ex) {
+                    // Unexpected runtime exception during token validation - log at ERROR level
+                    // This could indicate a bug or configuration issue
+                    logger.error("Unexpected runtime error during JWT token validation: {} | CorrelationId: {} | Token preview: {}", 
+                            ex.getMessage(), MDC.get("correlationId"),
+                            jwt != null && jwt.length() > 20 ? jwt.substring(0, 20) + "..." : "null", ex);
                 }
             }
         } catch (UsernameNotFoundException ex) {
@@ -135,6 +142,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return null;
         }
         
+        // Get request URI once and handle null case
+        String requestURI = request.getRequestURI();
+        String requestURIDisplay = requestURI != null ? requestURI : "null";
+        
         String bearerToken = request.getHeader(AUTHORIZATION_HEADER);
         if (StringUtils.hasText(bearerToken)) {
             if (bearerToken.startsWith(BEARER_PREFIX)) {
@@ -143,23 +154,24 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 // This fixes issues with malformed tokens containing control characters
                 token = cleanControlCharacters(token);
                 logger.debug("Extracted JWT token from Authorization header | Token length: {} | Endpoint: {}", 
-                        token.length(), request.getRequestURI());
+                        token.length(), requestURIDisplay);
                 return token;
             } else {
                 logger.warn("Authorization header does not start with 'Bearer ' prefix | Header value preview: {} | Endpoint: {}", 
                         bearerToken.length() > 50 ? bearerToken.substring(0, 50) + "..." : bearerToken, 
-                        request.getRequestURI());
+                        requestURIDisplay);
             }
-            } else {
-                logger.debug("No Authorization header found in request | Endpoint: {}", request.getRequestURI());
-            }
-            
-            // Log at WARN level if this is a protected endpoint to help diagnose authentication issues
-            if (request.getRequestURI().startsWith("/api/") && 
-                !request.getRequestURI().startsWith("/api/auth/") &&
-                !request.getRequestURI().startsWith("/api/public/")) {
-                logger.debug("Protected endpoint accessed without Authorization header | Endpoint: {}", request.getRequestURI());
-            }
+        } else {
+            logger.debug("No Authorization header found in request | Endpoint: {}", requestURIDisplay);
+        }
+        
+        // Log at WARN level if this is a protected endpoint to help diagnose authentication issues
+        if (requestURI != null && 
+            requestURI.startsWith("/api/") && 
+            !requestURI.startsWith("/api/auth/") &&
+            !requestURI.startsWith("/api/public/")) {
+            logger.debug("Protected endpoint accessed without Authorization header | Endpoint: {}", requestURI);
+        }
         return null;
     }
     

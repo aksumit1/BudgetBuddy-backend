@@ -10,6 +10,12 @@ spring:
   dynamodb:
     endpoint: http://localhost:4566 # LocalStack endpoint for testing
     region: us-east-1
+
+# Server Configuration for Tests
+# Use port 0 to get a random available port, or specify a different port
+# This prevents conflicts when the main application is running on 8080
+server:
+  port: 0  # Random port - Spring Boot will find an available port automatically
   
   # Redis Configuration (Optional for tests - will use in-memory if not available)
   data:

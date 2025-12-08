@@ -1,10 +1,15 @@
 package com.budgetbuddy.deployment;
 
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -34,6 +39,9 @@ class DeploymentSafetyServiceTest {
     private RestTemplateBuilder restTemplateBuilder;
 
     private DeploymentSafetyService service;
+    
+    private ListAppender<ILoggingEvent> logAppender;
+    private Logger logger;
 
     @BeforeEach
     void setUp() {
@@ -49,6 +57,12 @@ class DeploymentSafetyServiceTest {
         ReflectionTestUtils.setField(service, "healthCheckIntervalSeconds", 5);
         ReflectionTestUtils.setField(service, "maxHealthCheckAttempts", 3);
         ReflectionTestUtils.setField(service, "smokeTestEndpoints", Collections.emptyList());
+        
+        // Set up log appender to capture log events for verification
+        logger = (Logger) LoggerFactory.getLogger(DeploymentSafetyService.class);
+        logAppender = new ListAppender<>();
+        logAppender.start();
+        logger.addAppender(logAppender);
     }
 
     @Test
@@ -79,6 +93,15 @@ class DeploymentSafetyServiceTest {
         assertNotNull(result);
         assertFalse(result.isHealthy());
         assertEquals("Base URL is null or empty", result.getErrorMessage());
+        
+        // Verify logging behavior - should log ERROR for null/empty base URL (configuration error)
+        List<ILoggingEvent> logEvents = logAppender.list;
+        long errorLogs = logEvents.stream()
+                .filter(event -> event.getLevel() == Level.ERROR 
+                        && event.getMessage().contains("Base URL is null or empty"))
+                .count();
+        
+        assertEquals(1, errorLogs, "Should log ERROR when base URL is empty");
     }
 
     @Test
@@ -197,6 +220,21 @@ class DeploymentSafetyServiceTest {
         assertFalse(result.isPassed());
         assertEquals(0, result.getPassedTests());
         assertEquals(1, result.getFailedTests());
+        
+        // Verify logging behavior - should log WARN for smoke test failures (handled gracefully)
+        List<ILoggingEvent> logEvents = logAppender.list;
+        long warnLogs = logEvents.stream()
+                .filter(event -> event.getLevel() == Level.WARN 
+                        && event.getMessage().contains("Smoke test error"))
+                .count();
+        
+        assertEquals(1, warnLogs, "Should log WARN for smoke test connection errors");
+        
+        // Verify INFO log for completion
+        boolean foundInfoLog = logEvents.stream()
+                .anyMatch(event -> event.getLevel() == Level.INFO 
+                        && event.getMessage().contains("Smoke tests completed"));
+        assertTrue(foundInfoLog, "Should log INFO when smoke tests complete");
     }
 
     @Test
@@ -208,6 +246,15 @@ class DeploymentSafetyServiceTest {
         // Then
         assertNotNull(result);
         assertFalse(result.isPassed());
+        
+        // Verify logging behavior - should log ERROR for null/empty base URL (configuration error)
+        List<ILoggingEvent> logEvents = logAppender.list;
+        long errorLogs = logEvents.stream()
+                .filter(event -> event.getLevel() == Level.ERROR 
+                        && event.getMessage().contains("Base URL is null or empty for smoke tests"))
+                .count();
+        
+        assertEquals(1, errorLogs, "Should log ERROR when base URL is empty for smoke tests");
     }
 
     @Test

@@ -36,12 +36,14 @@ public class AuthService {
     private final UserService userService;
     private final PasswordHashingService passwordHashingService;
     private final UserRepository userRepository;
+    private final CacheWarmingService cacheWarmingService;
 
-    public AuthService(final JwtTokenProvider tokenProvider, final UserService userService, final PasswordHashingService passwordHashingService, final UserRepository userRepository) {
+    public AuthService(final JwtTokenProvider tokenProvider, final UserService userService, final PasswordHashingService passwordHashingService, final UserRepository userRepository, final CacheWarmingService cacheWarmingService) {
         this.tokenProvider = tokenProvider;
         this.userService = userService;
         this.passwordHashingService = passwordHashingService;
         this.userRepository = userRepository;
+        this.cacheWarmingService = cacheWarmingService;
     }
 
     /**
@@ -169,6 +171,15 @@ public class AuthService {
         // Update last login
         user.setLastLoginAt(java.time.Instant.now());
         userRepository.save(user);
+
+        // Pre-warm cache for user on login (async, non-blocking)
+        try {
+            cacheWarmingService.warmCacheForUser(user.getUserId());
+            logger.debug("Cache warming initiated for user: {}", user.getUserId());
+        } catch (Exception e) {
+            logger.warn("Failed to warm cache for user {}: {}", user.getUserId(), e.getMessage());
+            // Don't fail login if cache warming fails
+        }
 
         AuthResponse.UserInfo userInfo = new AuthResponse.UserInfo(
                 user.getUserId(),

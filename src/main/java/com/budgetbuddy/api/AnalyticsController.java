@@ -1,6 +1,8 @@
 package com.budgetbuddy.api;
 
 import com.budgetbuddy.analytics.AnalyticsService;
+import com.budgetbuddy.exception.AppException;
+import com.budgetbuddy.exception.ErrorCode;
 import com.budgetbuddy.service.UserService;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
@@ -31,8 +33,12 @@ public class AnalyticsController {
             @AuthenticationPrincipal UserDetails userDetails,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        if (userDetails == null || userDetails.getUsername() == null) {
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+        }
+        
         com.budgetbuddy.model.dynamodb.UserTable userTable = userService.findByEmail(userDetails.getUsername())
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
 
         AnalyticsService.SpendingSummary summary = analyticsService.getSpendingSummary(userTable, startDate, endDate);
         return ResponseEntity.ok(summary);
@@ -43,8 +49,12 @@ public class AnalyticsController {
             @AuthenticationPrincipal UserDetails userDetails,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        if (userDetails == null || userDetails.getUsername() == null) {
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+        }
+        
         com.budgetbuddy.model.dynamodb.UserTable userTable = userService.findByEmail(userDetails.getUsername())
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
 
         Map<String, java.math.BigDecimal> categorySpending =
                 analyticsService.getSpendingByCategory(userTable, startDate, endDate);

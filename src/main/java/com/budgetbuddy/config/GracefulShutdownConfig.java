@@ -14,6 +14,8 @@ import org.springframework.context.annotation.Configuration;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.Set;
+import java.util.HashSet;
 
 /**
  * Graceful Shutdown Configuration
@@ -70,6 +72,9 @@ public class GracefulShutdownConfig {
             } else {
                 log.warn("Executor is not a ThreadPoolExecutor, cannot perform graceful shutdown");
             }
+
+            // Wait for AWS SDK threads to terminate
+            waitForAwsSdkThreads();
         }
 
         /**
@@ -98,6 +103,69 @@ public class GracefulShutdownConfig {
                 threadPoolExecutor.shutdownNow();
                 Thread.currentThread().interrupt();
             }
+        }
+
+        /**
+         * Wait for AWS SDK internal threads to terminate
+         * AWS SDK v2 creates threads like "sdk-ScheduledExecutor-0-*" and "idle-connection-reaper"
+         * These should be cleaned up when clients are closed, but we give them a moment
+         */
+        private void waitForAwsSdkThreads() {
+            try {
+                log.info("Waiting for AWS SDK threads to terminate...");
+                Thread.sleep(2000); // Give AWS SDK threads 2 seconds to clean up
+
+                // Check for remaining AWS SDK threads
+                Set<Thread> awsThreads = findAwsSdkThreads();
+                if (!awsThreads.isEmpty()) {
+                    log.warn("Found {} AWS SDK threads still running after shutdown. They should terminate automatically.",
+                            awsThreads.size());
+                    for (Thread thread : awsThreads) {
+                        log.debug("AWS SDK thread still running: {} (state: {})", thread.getName(), thread.getState());
+                    }
+                } else {
+                    log.info("All AWS SDK threads terminated successfully");
+                }
+            } catch (InterruptedException ex) {
+                log.warn("Interrupted while waiting for AWS SDK threads", ex);
+                Thread.currentThread().interrupt();
+            }
+        }
+
+        /**
+         * Find AWS SDK-related threads that might still be running
+         */
+        private Set<Thread> findAwsSdkThreads() {
+            Set<Thread> awsThreads = new HashSet<>();
+            ThreadGroup rootGroup = Thread.currentThread().getThreadGroup();
+            while (rootGroup.getParent() != null) {
+                rootGroup = rootGroup.getParent();
+            }
+
+            Thread[] threads = new Thread[rootGroup.activeCount() * 2];
+            int count = rootGroup.enumerate(threads, true);
+
+            for (int i = 0; i < count; i++) {
+                Thread thread = threads[i];
+                if (thread != null && isAwsSdkThread(thread)) {
+                    awsThreads.add(thread);
+                }
+            }
+
+            return awsThreads;
+        }
+
+        /**
+         * Check if a thread is an AWS SDK internal thread
+         */
+        private boolean isAwsSdkThread(Thread thread) {
+            String name = thread.getName();
+            return name != null && (
+                    name.startsWith("sdk-") ||
+                    name.startsWith("idle-connection-reaper") ||
+                    name.contains("aws-sdk") ||
+                    name.contains("ApacheHttpClient")
+            );
         }
     }
 }

@@ -26,6 +26,7 @@ import static org.mockito.Mockito.*;
  * Unit Tests for SyncService
  */
 @ExtendWith(MockitoExtension.class)
+@org.mockito.junit.jupiter.MockitoSettings(strictness = org.mockito.quality.Strictness.LENIENT)
 class SyncServiceTest {
 
     @Mock
@@ -196,6 +197,7 @@ class SyncServiceTest {
         recentTransaction.setCategoryDetailed("groceries");
         recentTransaction.setCreatedAt(now.minusSeconds(3600)); // 1 hour ago
         recentTransaction.setUpdatedAt(now.minusSeconds(900)); // 15 minutes ago (AFTER sinceTimestamp)
+        recentTransaction.setUpdatedAtTimestamp(now.minusSeconds(900).getEpochSecond()); // Set timestamp for GSI query
 
         // Items updated BEFORE sinceTimestamp should NOT be included
         BudgetTable oldBudget = new BudgetTable();
@@ -205,6 +207,7 @@ class SyncServiceTest {
         oldBudget.setMonthlyLimit(new BigDecimal("500.00"));
         oldBudget.setCreatedAt(now.minusSeconds(172800)); // 2 days ago
         oldBudget.setUpdatedAt(now.minusSeconds(10800)); // 3 hours ago (BEFORE sinceTimestamp)
+        oldBudget.setUpdatedAtTimestamp(now.minusSeconds(10800).getEpochSecond()); // Set timestamp for GSI query
 
         List<AccountTable> allAccounts = Arrays.asList(recentAccount);
         List<TransactionTable> allTransactions = Arrays.asList(recentTransaction);
@@ -212,11 +215,17 @@ class SyncServiceTest {
         List<GoalTable> allGoals = Collections.emptyList(); // No goals
         List<TransactionActionTable> allActions = Collections.emptyList(); // No actions
 
-        when(accountRepository.findByUserId(testUserId)).thenReturn(allAccounts);
-        when(transactionRepository.findByUserId(testUserId, 0, Integer.MAX_VALUE)).thenReturn(allTransactions);
-        when(budgetRepository.findByUserId(testUserId)).thenReturn(allBudgets);
-        when(goalRepository.findByUserId(testUserId)).thenReturn(allGoals);
-        when(transactionActionRepository.findByUserId(testUserId)).thenReturn(allActions);
+        // Mock GSI-based queries for incremental sync (the service uses findByUserIdAndUpdatedAfter)
+        when(accountRepository.findByUserIdAndUpdatedAfter(testUserId, sinceTimestamp))
+                .thenReturn(allAccounts);
+        when(transactionRepository.findByUserIdAndUpdatedAfter(testUserId, sinceTimestamp, 100))
+                .thenReturn(allTransactions);
+        when(budgetRepository.findByUserIdAndUpdatedAfter(testUserId, sinceTimestamp))
+                .thenReturn(Collections.emptyList()); // Budget updated before sinceTimestamp
+        when(goalRepository.findByUserIdAndUpdatedAfter(testUserId, sinceTimestamp))
+                .thenReturn(allGoals);
+        when(transactionActionRepository.findByUserIdAndUpdatedAfter(testUserId, sinceTimestamp))
+                .thenReturn(allActions);
 
         // When
         IncrementalSyncResponse response = syncService.getIncrementalChanges(testUserId, sinceTimestamp);

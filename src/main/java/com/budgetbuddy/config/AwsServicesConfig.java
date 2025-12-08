@@ -61,7 +61,7 @@ public class AwsServicesConfig {
         }
     }
 
-    @Bean
+    @Bean(destroyMethod = "close")
     public CloudWatchClient cloudWatchClient() {
         var builder = CloudWatchClient.builder()
                 .region(Region.of(awsRegion))
@@ -75,7 +75,7 @@ public class AwsServicesConfig {
         return builder.build();
     }
 
-    @Bean
+    @Bean(destroyMethod = "close")
     public CloudTrailClient cloudTrailClient() {
         return CloudTrailClient.builder()
                 .region(Region.of(awsRegion))
@@ -83,7 +83,7 @@ public class AwsServicesConfig {
                 .build();
     }
 
-    @Bean
+    @Bean(destroyMethod = "close")
     public CloudFormationClient cloudFormationClient() {
         return CloudFormationClient.builder()
                 .region(Region.of(awsRegion))
@@ -91,7 +91,7 @@ public class AwsServicesConfig {
                 .build();
     }
 
-    @Bean
+    @Bean(destroyMethod = "close")
     public CodePipelineClient codePipelineClient() {
         return CodePipelineClient.builder()
                 .region(Region.of(awsRegion))
@@ -99,7 +99,7 @@ public class AwsServicesConfig {
                 .build();
     }
 
-    @Bean
+    @Bean(destroyMethod = "close")
     public CognitoIdentityProviderClient cognitoIdentityProviderClient() {
         return CognitoIdentityProviderClient.builder()
                 .region(Region.of(awsRegion))
@@ -107,7 +107,7 @@ public class AwsServicesConfig {
                 .build();
     }
 
-    @Bean
+    @Bean(destroyMethod = "close")
     public KmsClient kmsClient() {
         return KmsClient.builder()
                 .region(Region.of(awsRegion))
@@ -115,7 +115,7 @@ public class AwsServicesConfig {
                 .build();
     }
 
-    @Bean
+    @Bean(destroyMethod = "close")
     public SecretsManagerClient secretsManagerClient() {
         var builder = SecretsManagerClient.builder()
                 .region(Region.of(awsRegion))

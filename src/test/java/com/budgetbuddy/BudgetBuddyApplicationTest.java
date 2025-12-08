@@ -90,59 +90,64 @@ class BudgetBuddyApplicationTest {
 
     @Test
     void testBudgetBuddyApplication_MainMethodCanBeInvoked() throws Exception {
-        // Test that main method can be invoked (will fail to start Spring, but covers the line)
-        Method mainMethod = BudgetBuddyApplication.class.getMethod("main", String[].class);
-        assertNotNull(mainMethod);
-        
-        // Try to invoke with empty args - will fail but covers the method
-        // We catch the exception since we're not actually starting Spring
-        try {
+        // Test that main method can be invoked using mocked SpringApplication
+        // This prevents the Spring context from starting
+        try (MockedStatic<SpringApplication> mockedSpringApplication = mockStatic(SpringApplication.class)) {
+            org.springframework.context.ConfigurableApplicationContext mockContext = 
+                    mock(org.springframework.context.ConfigurableApplicationContext.class);
+            mockedSpringApplication.when(() -> SpringApplication.run(
+                    eq(BudgetBuddyApplication.class), 
+                    any(String[].class)))
+                    .thenReturn(mockContext);
+            
+            Method mainMethod = BudgetBuddyApplication.class.getMethod("main", String[].class);
+            assertNotNull(mainMethod);
+            
+            // Invoke with empty args - should succeed with mocked SpringApplication
             mainMethod.invoke(null, (Object) new String[0]);
-        } catch (Exception e) {
-            // Expected - main method tries to start Spring which fails in test environment
-            // This is fine - we just want to cover the line
-            assertTrue(e.getCause() instanceof org.springframework.context.ApplicationContextException ||
-                       e.getCause() instanceof java.lang.IllegalStateException ||
-                       e.getMessage() != null);
+            
+            // Verify SpringApplication.run was called
+            mockedSpringApplication.verify(() -> SpringApplication.run(
+                    eq(BudgetBuddyApplication.class), 
+                    any(String[].class)), 
+                    times(1));
         }
     }
 
     @Test
     void testBudgetBuddyApplication_MainMethodWithArgs() throws Exception {
-        // Test main method with various argument combinations
-        Method mainMethod = BudgetBuddyApplication.class.getMethod("main", String[].class);
-        
-        // Test with null args - covers the line even if it fails
-        try {
-            mainMethod.invoke(null, (Object) null);
-        } catch (Exception e) {
-            // Expected to fail - SpringApplication.run will fail in test environment
-            // But this covers the main method line
-            assertNotNull(e);
-        }
-        
-        // Test with empty args - covers the line
-        try {
+        // Test main method with various argument combinations using mocked SpringApplication
+        try (MockedStatic<SpringApplication> mockedSpringApplication = mockStatic(SpringApplication.class)) {
+            org.springframework.context.ConfigurableApplicationContext mockContext = 
+                    mock(org.springframework.context.ConfigurableApplicationContext.class);
+            mockedSpringApplication.when(() -> SpringApplication.run(
+                    eq(BudgetBuddyApplication.class), 
+                    any(String[].class)))
+                    .thenReturn(mockContext);
+            
+            Method mainMethod = BudgetBuddyApplication.class.getMethod("main", String[].class);
+            
+            // Test with empty args
             mainMethod.invoke(null, (Object) new String[0]);
-        } catch (Exception e) {
-            // Expected to fail - but covers the line
-            assertNotNull(e);
-        }
-        
-        // Test with some args - covers the line
-        try {
+            mockedSpringApplication.verify(() -> SpringApplication.run(
+                    eq(BudgetBuddyApplication.class), 
+                    eq(new String[0])), 
+                    times(1));
+            
+            // Test with some args
             mainMethod.invoke(null, (Object) new String[]{"--test"});
-        } catch (Exception e) {
-            // Expected to fail - but covers the line
-            assertNotNull(e);
-        }
-        
-        // Test with multiple args - covers the line
-        try {
-            mainMethod.invoke(null, (Object) new String[]{"--spring.profiles.active=test", "--server.port=0"});
-        } catch (Exception e) {
-            // Expected to fail - but covers the line
-            assertNotNull(e);
+            mockedSpringApplication.verify(() -> SpringApplication.run(
+                    eq(BudgetBuddyApplication.class), 
+                    eq(new String[]{"--test"})), 
+                    atLeastOnce());
+            
+            // Test with multiple args
+            String[] testArgs = new String[]{"--spring.profiles.active=test", "--server.port=0"};
+            mainMethod.invoke(null, (Object) testArgs);
+            mockedSpringApplication.verify(() -> SpringApplication.run(
+                    eq(BudgetBuddyApplication.class), 
+                    eq(testArgs)), 
+                    atLeastOnce());
         }
     }
 
@@ -163,55 +168,68 @@ class BudgetBuddyApplicationTest {
 
     @Test
     void testBudgetBuddyApplication_MainMethodExecution() {
-        // Test that main method can be executed (will fail but covers the line)
-        // This is the only way to cover the SpringApplication.run line without starting Spring
-        // We invoke it multiple times with different args to ensure the line is executed
-        Method mainMethod;
-        try {
-            mainMethod = BudgetBuddyApplication.class.getMethod("main", String[].class);
-        } catch (NoSuchMethodException e) {
-            fail("Main method should exist");
-            return;
-        }
-        
-        // Invoke multiple times to ensure line 26 is executed
-        // Each invocation will execute SpringApplication.run() even if it throws
-        for (int i = 0; i < 5; i++) {
+        // Test that main method can be executed multiple times using mocked SpringApplication
+        try (MockedStatic<SpringApplication> mockedSpringApplication = mockStatic(SpringApplication.class)) {
+            org.springframework.context.ConfigurableApplicationContext mockContext = 
+                    mock(org.springframework.context.ConfigurableApplicationContext.class);
+            mockedSpringApplication.when(() -> SpringApplication.run(
+                    eq(BudgetBuddyApplication.class), 
+                    any(String[].class)))
+                    .thenReturn(mockContext);
+            
+            Method mainMethod;
             try {
-                mainMethod.invoke(null, (Object) new String[0]);
-                // If we get here, Spring started (unlikely in test environment)
-            } catch (Exception e) {
-                // Expected - SpringApplication.run fails in test environment
-                // But the line IS executed before the exception is thrown
-                assertNotNull(e);
-                // Verify it's a Spring-related exception or reflection exception
-                assertTrue(e instanceof java.lang.reflect.InvocationTargetException ||
-                           e.getCause() instanceof org.springframework.context.ApplicationContextException ||
-                           e.getCause() instanceof java.lang.IllegalStateException ||
-                           e.getMessage() != null);
+                mainMethod = BudgetBuddyApplication.class.getMethod("main", String[].class);
+            } catch (NoSuchMethodException e) {
+                fail("Main method should exist");
+                return;
             }
+            
+            // Invoke multiple times to ensure the line is executed
+            for (int i = 0; i < 5; i++) {
+                mainMethod.invoke(null, (Object) new String[0]);
+            }
+            
+            // Verify SpringApplication.run was called 5 times
+            mockedSpringApplication.verify(() -> SpringApplication.run(
+                    eq(BudgetBuddyApplication.class), 
+                    any(String[].class)), 
+                    times(5));
+        } catch (Exception e) {
+            fail("Should not throw exception when SpringApplication is mocked: " + e.getMessage());
         }
     }
     
     @Test
     void testBudgetBuddyApplication_MainMethodExecutionWithSystemExit() {
-        // Test main method execution - this will execute the SpringApplication.run line
-        // even though it will fail, the line itself is executed
-        Method mainMethod;
-        try {
-            mainMethod = BudgetBuddyApplication.class.getMethod("main", String[].class);
-        } catch (NoSuchMethodException e) {
-            fail("Main method should exist");
-            return;
-        }
-        
-        // Execute the main method - this will execute line 26
-        // The line is executed even if SpringApplication.run throws an exception
-        try {
-            mainMethod.invoke(null, (Object) new String[]{"--spring.main.web-application-type=none", "--server.port=0"});
+        // Test main method execution with mocked SpringApplication
+        try (MockedStatic<SpringApplication> mockedSpringApplication = mockStatic(SpringApplication.class)) {
+            org.springframework.context.ConfigurableApplicationContext mockContext = 
+                    mock(org.springframework.context.ConfigurableApplicationContext.class);
+            mockedSpringApplication.when(() -> SpringApplication.run(
+                    eq(BudgetBuddyApplication.class), 
+                    any(String[].class)))
+                    .thenReturn(mockContext);
+            
+            Method mainMethod;
+            try {
+                mainMethod = BudgetBuddyApplication.class.getMethod("main", String[].class);
+            } catch (NoSuchMethodException e) {
+                fail("Main method should exist");
+                return;
+            }
+            
+            // Execute the main method with test args
+            String[] testArgs = new String[]{"--spring.main.web-application-type=none", "--server.port=0"};
+            mainMethod.invoke(null, (Object) testArgs);
+            
+            // Verify SpringApplication.run was called
+            mockedSpringApplication.verify(() -> SpringApplication.run(
+                    eq(BudgetBuddyApplication.class), 
+                    eq(testArgs)), 
+                    times(1));
         } catch (Exception e) {
-            // Expected - but line 26 was executed
-            assertNotNull(e);
+            fail("Should not throw exception when SpringApplication is mocked: " + e.getMessage());
         }
     }
 
@@ -310,127 +328,229 @@ class BudgetBuddyApplicationTest {
 
     @Test
     void testBudgetBuddyApplication_MainMethodWithNullArgs() {
-        // Test main method with null args
-        try {
+        // Test main method with null args using mocked SpringApplication
+        try (MockedStatic<SpringApplication> mockedSpringApplication = mockStatic(SpringApplication.class)) {
+            org.springframework.context.ConfigurableApplicationContext mockContext = 
+                    mock(org.springframework.context.ConfigurableApplicationContext.class);
+            mockedSpringApplication.when(() -> SpringApplication.run(
+                    eq(BudgetBuddyApplication.class), 
+                    any(String[].class)))
+                    .thenReturn(mockContext);
+            
             Method mainMethod = BudgetBuddyApplication.class.getMethod("main", String[].class);
             mainMethod.invoke(null, (Object) null);
+            
+            // Verify SpringApplication.run was called
+            mockedSpringApplication.verify(() -> SpringApplication.run(
+                    eq(BudgetBuddyApplication.class), 
+                    isNull()), 
+                    times(1));
         } catch (Exception e) {
-            // Expected to fail
-            assertNotNull(e);
+            fail("Should not throw exception when SpringApplication is mocked: " + e.getMessage());
         }
     }
 
     @Test
     void testBudgetBuddyApplication_MainMethodMultipleInvocations() {
-        // Test main method with multiple invocations to cover the line multiple times
-        Method mainMethod;
-        try {
-            mainMethod = BudgetBuddyApplication.class.getMethod("main", String[].class);
-        } catch (NoSuchMethodException e) {
-            fail("Main method should exist");
-            return;
-        }
-        
-        // Invoke multiple times with different args
-        for (int i = 0; i < 3; i++) {
+        // Test main method with multiple invocations using mocked SpringApplication
+        try (MockedStatic<SpringApplication> mockedSpringApplication = mockStatic(SpringApplication.class)) {
+            org.springframework.context.ConfigurableApplicationContext mockContext = 
+                    mock(org.springframework.context.ConfigurableApplicationContext.class);
+            mockedSpringApplication.when(() -> SpringApplication.run(
+                    eq(BudgetBuddyApplication.class), 
+                    any(String[].class)))
+                    .thenReturn(mockContext);
+            
+            Method mainMethod;
             try {
-                mainMethod.invoke(null, (Object) new String[]{"--test=" + i});
-            } catch (Exception e) {
-                // Expected to fail - but covers the line
-                assertNotNull(e);
+                mainMethod = BudgetBuddyApplication.class.getMethod("main", String[].class);
+            } catch (NoSuchMethodException e) {
+                fail("Main method should exist");
+                return;
             }
+            
+            // Invoke multiple times with different args
+            for (int i = 0; i < 3; i++) {
+                mainMethod.invoke(null, (Object) new String[]{"--test=" + i});
+            }
+            
+            // Verify SpringApplication.run was called 3 times
+            mockedSpringApplication.verify(() -> SpringApplication.run(
+                    eq(BudgetBuddyApplication.class), 
+                    any(String[].class)), 
+                    times(3));
+        } catch (Exception e) {
+            fail("Should not throw exception when SpringApplication is mocked: " + e.getMessage());
         }
     }
 
     @Test
     void testBudgetBuddyApplication_MainMethodWithSpringArgs() {
-        // Test main method with Spring-specific arguments
-        try {
+        // Test main method with Spring-specific arguments using mocked SpringApplication
+        try (MockedStatic<SpringApplication> mockedSpringApplication = mockStatic(SpringApplication.class)) {
+            org.springframework.context.ConfigurableApplicationContext mockContext = 
+                    mock(org.springframework.context.ConfigurableApplicationContext.class);
+            mockedSpringApplication.when(() -> SpringApplication.run(
+                    eq(BudgetBuddyApplication.class), 
+                    any(String[].class)))
+                    .thenReturn(mockContext);
+            
             Method mainMethod = BudgetBuddyApplication.class.getMethod("main", String[].class);
-            mainMethod.invoke(null, (Object) new String[]{
+            String[] testArgs = new String[]{
                 "--spring.profiles.active=test",
                 "--server.port=0",
                 "--spring.main.web-application-type=none"
-            });
+            };
+            mainMethod.invoke(null, (Object) testArgs);
+            
+            // Verify SpringApplication.run was called
+            mockedSpringApplication.verify(() -> SpringApplication.run(
+                    eq(BudgetBuddyApplication.class), 
+                    eq(testArgs)), 
+                    times(1));
         } catch (Exception e) {
-            // Expected to fail in test environment
-            assertNotNull(e);
+            fail("Should not throw exception when SpringApplication is mocked: " + e.getMessage());
         }
     }
 
     @Test
     void testBudgetBuddyApplication_MainMethodWithJvmArgs() {
-        // Test main method with JVM-like arguments
-        try {
+        // Test main method with JVM-like arguments using mocked SpringApplication
+        try (MockedStatic<SpringApplication> mockedSpringApplication = mockStatic(SpringApplication.class)) {
+            org.springframework.context.ConfigurableApplicationContext mockContext = 
+                    mock(org.springframework.context.ConfigurableApplicationContext.class);
+            mockedSpringApplication.when(() -> SpringApplication.run(
+                    eq(BudgetBuddyApplication.class), 
+                    any(String[].class)))
+                    .thenReturn(mockContext);
+            
             Method mainMethod = BudgetBuddyApplication.class.getMethod("main", String[].class);
-            mainMethod.invoke(null, (Object) new String[]{
-                "-Dtest.property=value",
-                "--debug"
-            });
+            String[] testArgs = new String[]{
+                "--spring.profiles.active=test",
+                "--server.port=0",
+                "--spring.main.web-application-type=none"
+            };
+            mainMethod.invoke(null, (Object) testArgs);
+            
+            // Verify SpringApplication.run was called
+            mockedSpringApplication.verify(() -> SpringApplication.run(
+                    eq(BudgetBuddyApplication.class), 
+                    eq(testArgs)), 
+                    times(1));
         } catch (Exception e) {
-            // Expected to fail
-            assertNotNull(e);
+            fail("Should not throw exception when SpringApplication is mocked: " + e.getMessage());
         }
     }
 
     @Test
     void testBudgetBuddyApplication_MainMethodWithSpecialCharacters() {
-        // Test main method with special characters in args
-        try {
+        // Test main method with special characters in args using mocked SpringApplication
+        try (MockedStatic<SpringApplication> mockedSpringApplication = mockStatic(SpringApplication.class)) {
+            org.springframework.context.ConfigurableApplicationContext mockContext = 
+                    mock(org.springframework.context.ConfigurableApplicationContext.class);
+            mockedSpringApplication.when(() -> SpringApplication.run(
+                    eq(BudgetBuddyApplication.class), 
+                    any(String[].class)))
+                    .thenReturn(mockContext);
+            
             Method mainMethod = BudgetBuddyApplication.class.getMethod("main", String[].class);
-            mainMethod.invoke(null, (Object) new String[]{
+            String[] testArgs = new String[]{
                 "--test=value with spaces",
                 "--test=value\"with\"quotes",
                 "--test=value\\with\\backslashes"
-            });
+            };
+            mainMethod.invoke(null, (Object) testArgs);
+            
+            // Verify SpringApplication.run was called
+            mockedSpringApplication.verify(() -> SpringApplication.run(
+                    eq(BudgetBuddyApplication.class), 
+                    eq(testArgs)), 
+                    times(1));
         } catch (Exception e) {
-            // Expected to fail
-            assertNotNull(e);
+            fail("Should not throw exception when SpringApplication is mocked: " + e.getMessage());
         }
     }
 
     @Test
     void testBudgetBuddyApplication_MainMethodWithUnicodeArgs() {
-        // Test main method with Unicode characters in args
-        try {
+        // Test main method with Unicode characters in args using mocked SpringApplication
+        try (MockedStatic<SpringApplication> mockedSpringApplication = mockStatic(SpringApplication.class)) {
+            org.springframework.context.ConfigurableApplicationContext mockContext = 
+                    mock(org.springframework.context.ConfigurableApplicationContext.class);
+            mockedSpringApplication.when(() -> SpringApplication.run(
+                    eq(BudgetBuddyApplication.class), 
+                    any(String[].class)))
+                    .thenReturn(mockContext);
+            
             Method mainMethod = BudgetBuddyApplication.class.getMethod("main", String[].class);
-            mainMethod.invoke(null, (Object) new String[]{
+            String[] testArgs = new String[]{
                 "--test=测试",
                 "--test=тест",
                 "--test=テスト"
-            });
+            };
+            mainMethod.invoke(null, (Object) testArgs);
+            
+            // Verify SpringApplication.run was called
+            mockedSpringApplication.verify(() -> SpringApplication.run(
+                    eq(BudgetBuddyApplication.class), 
+                    eq(testArgs)), 
+                    times(1));
         } catch (Exception e) {
-            // Expected to fail
-            assertNotNull(e);
+            fail("Should not throw exception when SpringApplication is mocked: " + e.getMessage());
         }
     }
 
     @Test
     void testBudgetBuddyApplication_MainMethodWithVeryLongArgs() {
-        // Test main method with very long arguments
-        try {
+        // Test main method with very long arguments using mocked SpringApplication
+        try (MockedStatic<SpringApplication> mockedSpringApplication = mockStatic(SpringApplication.class)) {
+            org.springframework.context.ConfigurableApplicationContext mockContext = 
+                    mock(org.springframework.context.ConfigurableApplicationContext.class);
+            mockedSpringApplication.when(() -> SpringApplication.run(
+                    eq(BudgetBuddyApplication.class), 
+                    any(String[].class)))
+                    .thenReturn(mockContext);
+            
             Method mainMethod = BudgetBuddyApplication.class.getMethod("main", String[].class);
             String longArg = "--test=" + "a".repeat(10000);
-            mainMethod.invoke(null, (Object) new String[]{longArg});
+            String[] testArgs = new String[]{longArg};
+            mainMethod.invoke(null, (Object) testArgs);
+            
+            // Verify SpringApplication.run was called
+            mockedSpringApplication.verify(() -> SpringApplication.run(
+                    eq(BudgetBuddyApplication.class), 
+                    eq(testArgs)), 
+                    times(1));
         } catch (Exception e) {
-            // Expected to fail
-            assertNotNull(e);
+            fail("Should not throw exception when SpringApplication is mocked: " + e.getMessage());
         }
     }
 
     @Test
     void testBudgetBuddyApplication_MainMethodWithManyArgs() {
-        // Test main method with many arguments
-        try {
+        // Test main method with many arguments using mocked SpringApplication
+        try (MockedStatic<SpringApplication> mockedSpringApplication = mockStatic(SpringApplication.class)) {
+            org.springframework.context.ConfigurableApplicationContext mockContext = 
+                    mock(org.springframework.context.ConfigurableApplicationContext.class);
+            mockedSpringApplication.when(() -> SpringApplication.run(
+                    eq(BudgetBuddyApplication.class), 
+                    any(String[].class)))
+                    .thenReturn(mockContext);
+            
             Method mainMethod = BudgetBuddyApplication.class.getMethod("main", String[].class);
             String[] manyArgs = new String[100];
             for (int i = 0; i < 100; i++) {
                 manyArgs[i] = "--arg" + i + "=value" + i;
             }
             mainMethod.invoke(null, (Object) manyArgs);
+            
+            // Verify SpringApplication.run was called
+            mockedSpringApplication.verify(() -> SpringApplication.run(
+                    eq(BudgetBuddyApplication.class), 
+                    eq(manyArgs)), 
+                    times(1));
         } catch (Exception e) {
-            // Expected to fail
-            assertNotNull(e);
+            fail("Should not throw exception when SpringApplication is mocked: " + e.getMessage());
         }
     }
 

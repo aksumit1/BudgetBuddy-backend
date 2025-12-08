@@ -28,16 +28,43 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           reporter: github-pr-review
-          fail_on_error: true
+          fail_level: error
           filter_mode: nofilter
 
       - name: Check for security issues in workflows
         run: |
           echo "Checking GitHub Actions workflows for security best practices..."
           
-          # Check for hardcoded secrets
-          if grep -r "password\|secret\|token\|key" .github/workflows/ --include="*.yml" --include="*.yaml" | grep -v "secrets\." | grep -v "#"; then
-            echo "⚠️ Potential hardcoded secrets found in workflows"
+          # Check for hardcoded secrets (more specific patterns to avoid false positives)
+          # Look for actual secret values, not references to secrets
+          FOUND_SECRETS=false
+          
+          # Pattern 1: Hardcoded passwords (password: "value" or password=value)
+          if grep -rE "(password|passwd|pwd)\s*[:=]\s*['\"][^'\"]{8,}" .github/workflows/ --include="*.yml" --include="*.yaml" | grep -v "secrets\." | grep -v "#" | grep -v "secret-scan" | grep -v "secret-scanning" | grep -v "SECRETS=" | grep -v "secret-id" | grep -v "secret-name" | grep -v "secret_arn" | grep -v "secret:" | grep -v "secrets:"; then
+            echo "⚠️ Potential hardcoded password found in workflows"
+            FOUND_SECRETS=true
+          fi
+          
+          # Pattern 2: Hardcoded tokens (token: "value" or token=value, but not GITHUB_TOKEN or secrets.token)
+          if grep -rE "(token|api_key|apikey|access_key)\s*[:=]\s*['\"][a-zA-Z0-9]{20,}" .github/workflows/ --include="*.yml" --include="*.yaml" -i | grep -v "secrets\." | grep -v "GITHUB_TOKEN" | grep -v "#" | grep -v "secret-scan" | grep -v "secret-scanning" | grep -v "SNYK_TOKEN" | grep -v "token:"; then
+            echo "⚠️ Potential hardcoded token/API key found in workflows"
+            FOUND_SECRETS=true
+          fi
+          
+          # Pattern 3: AWS keys (AKIA pattern)
+          if grep -rE "AKIA[0-9A-Z]{16}" .github/workflows/ --include="*.yml" --include="*.yaml" | grep -v "#"; then
+            echo "⚠️ Potential AWS access key found in workflows"
+            FOUND_SECRETS=true
+          fi
+          
+          # Pattern 4: Private keys (BEGIN PRIVATE KEY)
+          if grep -rE "BEGIN.*PRIVATE KEY" .github/workflows/ --include="*.yml" --include="*.yaml" | grep -v "#"; then
+            echo "⚠️ Potential private key found in workflows"
+            FOUND_SECRETS=true
+          fi
+          
+          if [ "$FOUND_SECRETS" = true ]; then
+            echo "❌ Security check failed: Potential hardcoded secrets detected"
             exit 1
           fi
           

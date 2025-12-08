@@ -26,12 +26,15 @@ public class UserService {
 
     private final com.budgetbuddy.repository.dynamodb.UserRepository dynamoDBUserRepository; // DynamoDB repository
     private final PasswordHashingService passwordHashingService; // New PBKDF2 service
+    private final com.budgetbuddy.repository.dynamodb.AccountRepository accountRepository; // For Plaid item lookup
 
     public UserService(
             final com.budgetbuddy.repository.dynamodb.UserRepository dynamoDBUserRepository,
-            final PasswordHashingService passwordHashingService) {
+            final PasswordHashingService passwordHashingService,
+            final com.budgetbuddy.repository.dynamodb.AccountRepository accountRepository) {
         this.dynamoDBUserRepository = dynamoDBUserRepository;
         this.passwordHashingService = passwordHashingService;
+        this.accountRepository = accountRepository;
     }
 
     /**
@@ -274,14 +277,36 @@ public class UserService {
 
     /**
      * Find user by Plaid Item ID (for webhook processing)
+     * Uses AccountRepository with GSI on plaidItemId to find accounts, then gets user from first account
+     * OPTIMIZED: Uses GSI query instead of table scan
      */
     public Optional<UserTable> findByPlaidItemId(String itemId) {
         if (itemId == null || itemId.isEmpty()) {
             return Optional.empty();
         }
-        // This would require a GSI on plaidItemId
-        // For now, return empty - implement when needed
-        return Optional.empty();
+        
+        try {
+            // Find accounts by item ID using GSI (optimized)
+            List<com.budgetbuddy.model.dynamodb.AccountTable> accounts = accountRepository.findByPlaidItemId(itemId);
+            
+            if (accounts.isEmpty()) {
+                logger.debug("No accounts found for Plaid item ID: {}", itemId);
+                return Optional.empty();
+            }
+            
+            // Get user ID from first account (all accounts for same item belong to same user)
+            String userId = accounts.get(0).getUserId();
+            if (userId == null || userId.isEmpty()) {
+                logger.warn("Account has no user ID for Plaid item: {}", itemId);
+                return Optional.empty();
+            }
+            
+            // Find user by ID
+            return dynamoDBUserRepository.findById(userId);
+        } catch (Exception e) {
+            logger.error("Error finding user by Plaid item ID {}: {}", itemId, e.getMessage(), e);
+            return Optional.empty();
+        }
     }
 
     /**

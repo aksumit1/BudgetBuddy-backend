@@ -21,6 +21,7 @@ import org.springframework.web.bind.annotation.*;
 public class ComplianceController {
 
     private final GDPRComplianceService gdprComplianceService;
+    @SuppressWarnings("unused") // Reserved for future DMA compliance features
     private final DMAComplianceService dmaComplianceService;
     private final com.budgetbuddy.service.UserService userService;
 
@@ -103,25 +104,6 @@ public class ComplianceController {
         return ResponseEntity.ok().build();
     }
 
-    /**
-     * DMA Article 6: Data Portability
-     * Export data in standardized format
-     * 
-     * @deprecated Use /api/dma/export instead. This endpoint is kept for backward compatibility.
-     */
-    @Deprecated
-    @GetMapping(value = "/dma/export", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<String> exportDataDMA(
-            @AuthenticationPrincipal UserDetails userDetails,
-            @RequestParam(defaultValue = "JSON") String format) {
-        com.budgetbuddy.model.dynamodb.UserTable user = userService.findByEmail(userDetails.getUsername())
-                .orElseThrow(() -> new RuntimeException("User not found"));
-
-        String data = dmaComplianceService.exportDataPortable(user.getUserId(), format);
-        return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=user-data." + format.toLowerCase())
-                .body(data);
-    }
 
     public static class UpdateDataRequest {
         private String firstName;

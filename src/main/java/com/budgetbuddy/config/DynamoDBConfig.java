@@ -30,7 +30,7 @@ public class DynamoDBConfig {
     @Value("${app.aws.dynamodb.timeout-seconds:10}")
     private int timeoutSeconds;
 
-    @Bean
+    @Bean(destroyMethod = "close")
     public DynamoDbClient dynamoDbClient() {
         // Configure client with timeouts to prevent long hangs
         ClientOverrideConfiguration clientConfig = ClientOverrideConfiguration.builder()

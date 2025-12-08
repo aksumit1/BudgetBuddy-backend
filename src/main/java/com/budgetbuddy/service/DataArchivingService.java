@@ -2,15 +2,18 @@ package com.budgetbuddy.service;
 
 import com.budgetbuddy.model.dynamodb.TransactionTable;
 import com.budgetbuddy.repository.dynamodb.TransactionRepository;
+import com.budgetbuddy.repository.dynamodb.UserRepository;
 import com.budgetbuddy.service.aws.S3Service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.ObjectOutputStream;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -28,39 +31,97 @@ public class DataArchivingService {
     private static final int ARCHIVE_DAYS = 365; // Archive data older than 1 year
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ISO_LOCAL_DATE;
 
-    @SuppressWarnings("unused") // Reserved for future transaction archiving
     private final TransactionRepository transactionRepository;
+    private final UserRepository userRepository;
     private final S3Service s3Service;
+    private final ObjectMapper objectMapper;
 
-    public DataArchivingService(final TransactionRepository transactionRepository, final S3Service s3Service) {
+    public DataArchivingService(final TransactionRepository transactionRepository,
+                               final UserRepository userRepository,
+                               final S3Service s3Service,
+                               final ObjectMapper objectMapper) {
         this.transactionRepository = transactionRepository;
+        this.userRepository = userRepository;
         this.s3Service = s3Service;
+        this.objectMapper = objectMapper;
     }
 
     /**
      * Archive old transactions to S3 Glacier
      * Runs monthly to minimize storage costs
-     * Note: DynamoDB doesn't support date-based queries efficiently, so we use scan with filter
+     * 
+     * IMPLEMENTATION: Uses GSI-based queries per user for efficient archiving
+     * For production at scale, consider implementing DynamoDB TTL + Streams:
+     * 1. Set TTL attribute on transactions older than ARCHIVE_DAYS
+     * 2. Configure DynamoDB Streams to capture deletions
+     * 3. Stream handler calls archiveTransactions() for deleted items
+     * 
+     * Current implementation: Per-user GSI queries (efficient for moderate scale)
      */
     @Scheduled(cron = "0 0 2 1 * ?") // First day of month at 2 AM
     public void archiveOldTransactions() {
         LocalDate cutoffDate = LocalDate.now().minusDays(ARCHIVE_DAYS);
         logger.info("Starting transaction archiving for data before {}", cutoffDate);
 
-        // Note: DynamoDB scan is expensive, consider using DynamoDB Streams or TTL for automatic archiving
-        // For now, we'll need to scan all transactions and filter by date
-        // This is a limitation - in production, consider using DynamoDB TTL feature
-        logger.warn("DynamoDB scan operation is expensive. Consider using DynamoDB TTL for automatic archiving.");
-
-        // Since DynamoDB doesn't support efficient date range queries without GSI,
-        // we would need to implement a different strategy:
-        // 1. Use DynamoDB TTL to automatically expire old items
-        // 2. Use DynamoDB Streams to capture deletions and archive to S3
-        // 3. Or maintain a separate archive table with TTL
-
-        // For now, this method is a placeholder - actual implementation would require
-        // DynamoDB Streams or a scheduled job that processes items with TTL
-        logger.info("Transaction archiving requires DynamoDB Streams or TTL implementation");
+        try {
+            // IMPLEMENTATION: Archive transactions per user using GSI
+            // This is more efficient than scanning the entire table
+            // For each user, query transactions older than cutoff date using GSI
+            
+            // Note: This requires getting all user IDs first
+            // In production, you might want to:
+            // 1. Maintain a list of active users
+            // 2. Or use a separate scheduled job that processes users in batches
+            // 3. Or implement TTL + Streams for automatic archiving
+            
+            // Get all active user IDs for per-user archiving
+            // Note: For very large user bases, consider batching or using pagination
+            // Using 365 days (1 year) to get users active in the last year, with a high limit
+            List<String> activeUserIds = userRepository.findActiveUserIds(365, 10000);
+            logger.info("Found {} active users for transaction archiving", activeUserIds.size());
+            
+            int totalArchived = 0;
+            int usersProcessed = 0;
+            int usersWithErrors = 0;
+            
+            // Process each user's old transactions
+            for (String userId : activeUserIds) {
+                try {
+                    // Query transactions older than cutoff date for this user
+                    // Using "1970-01-01" as start date to get all transactions up to cutoff
+                    String startDate = "1970-01-01";
+                    String endDateStr = cutoffDate.format(DATE_FORMATTER);
+                    
+                    List<TransactionTable> oldTransactions = transactionRepository.findByUserIdAndDateRange(
+                            userId, startDate, endDateStr);
+                    
+                    if (!oldTransactions.isEmpty()) {
+                        logger.info("Found {} transactions to archive for user {}", oldTransactions.size(), userId);
+                        archiveTransactions(oldTransactions);
+                        totalArchived += oldTransactions.size();
+                    }
+                    
+                    usersProcessed++;
+                    
+                    // Log progress every 100 users
+                    if (usersProcessed % 100 == 0) {
+                        logger.info("Archiving progress: {} users processed, {} transactions archived", 
+                                usersProcessed, totalArchived);
+                    }
+                } catch (Exception e) {
+                    logger.error("Error archiving transactions for user {}: {}", userId, e.getMessage(), e);
+                    usersWithErrors++;
+                }
+            }
+            
+            logger.info("Transaction archiving completed: {} users processed, {} transactions archived, {} errors", 
+                    usersProcessed, totalArchived, usersWithErrors);
+            
+            // Note: For production scale, consider implementing DynamoDB TTL + Streams for automatic archiving
+            // This would be more efficient than per-user queries for very large datasets
+        } catch (Exception e) {
+            logger.error("Error during transaction archiving: {}", e.getMessage(), e);
+        }
     }
 
     /**
@@ -94,17 +155,20 @@ public class DataArchivingService {
 
     /**
      * Compress transactions using GZIP to minimize storage
+     * Uses JSON serialization with Jackson ObjectMapper (injected from Spring)
      */
     private byte[] compressTransactions(List<TransactionTable> transactions) {
         try {
+            // Use injected ObjectMapper (configured in JacksonConfig)
+            String json = objectMapper.writeValueAsString(transactions);
+            
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            try (GZIPOutputStream gzos = new GZIPOutputStream(baos);
-                 ObjectOutputStream oos = new ObjectOutputStream(gzos)) {
-                oos.writeObject(transactions);
+            try (GZIPOutputStream gzos = new GZIPOutputStream(baos)) {
+                gzos.write(json.getBytes(StandardCharsets.UTF_8));
             }
             return baos.toByteArray();
         } catch (Exception e) {
-            logger.error("Error compressing transactions: {}", e.getMessage());
+            logger.error("Error compressing transactions: {}", e.getMessage(), e);
             throw new RuntimeException("Failed to compress transactions", e);
         }
     }

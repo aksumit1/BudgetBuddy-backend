@@ -57,7 +57,10 @@ public class CertificatePinningService {
                 return true;
             }
 
-            logger.error("Certificate validation failed - certificate not in pinned set. Hash: {}", certHash);
+            // Log at WARN level - this is a security check failure, not necessarily an error
+            // In production, this would be caught and handled appropriately
+            // In tests, this is expected behavior when testing non-matching certificates
+            logger.warn("Certificate validation failed - certificate not in pinned set. Hash: {}", certHash);
             return false;
         } catch (Exception e) {
             logger.error("Failed to validate certificate: {}", e.getMessage());

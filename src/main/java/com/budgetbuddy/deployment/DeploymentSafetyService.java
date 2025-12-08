@@ -186,7 +186,9 @@ public class DeploymentSafetyService {
                 }
             } catch (RestClientException e) {
                 failed++;
-                logger.error("Smoke test error for {}: {}", endpoint, e.getMessage());
+                // Log at WARN level - this is a handled failure (test continues and reports failure)
+                // ERROR would be more appropriate for unexpected/unhandled errors
+                logger.warn("Smoke test error for {}: {}", endpoint, e.getMessage());
             }
         }
 

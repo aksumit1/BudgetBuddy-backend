@@ -32,7 +32,7 @@ public class DDoSProtectionService {
     @Value("${app.rate-limit.ddos.max-requests-per-minute:100000}")
     private long maxRequestsPerMinute;
 
-    @SuppressWarnings("unused") // Reserved for future implementation
+    @SuppressWarnings({"unused", "FieldCanBeLocal"}) // Reserved for future implementation
     @Value("${app.rate-limit.ddos.max-requests-per-hour:5000000}")
     private long maxRequestsPerHour;
     private static final int BLOCK_DURATION_SECONDS = 3600; // 1 hour block
@@ -186,6 +186,19 @@ public class DDoSProtectionService {
      * @return true if table was created or already exists, false if DynamoDB is unavailable
      */
     private boolean initializeTable() {
+        // Check if table already exists before attempting to create it
+        try {
+            dynamoDbClient.describeTable(DescribeTableRequest.builder().tableName(tableName).build());
+            // Table exists, no need to create it
+            dynamoDbAvailable = true;
+            return true;
+        } catch (ResourceNotFoundException e) {
+            // Table doesn't exist, proceed with creation
+        } catch (Exception e) {
+            logger.warn("Failed to check if DDoS protection table exists: {}", e.getMessage());
+            // Continue with creation attempt
+        }
+
         try {
             dynamoDbClient.createTable(CreateTableRequest.builder()
                     .tableName(tableName)
@@ -218,7 +231,8 @@ public class DDoSProtectionService {
             dynamoDbAvailable = true;
             return true;
         } catch (ResourceInUseException e) {
-            logger.debug("DDoS protection table already exists");
+            // Table was created by another instance between check and create - this is fine
+            logger.debug("DDoS protection table already exists (race condition)");
             dynamoDbAvailable = true;
             return true;
         } catch (Exception e) {

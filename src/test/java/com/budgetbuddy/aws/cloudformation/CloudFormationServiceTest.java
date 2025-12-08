@@ -1,10 +1,15 @@
 package com.budgetbuddy.aws.cloudformation;
 
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.services.cloudformation.CloudFormationClient;
 import software.amazon.awssdk.services.cloudformation.model.*;
 
@@ -25,10 +30,19 @@ class CloudFormationServiceTest {
     private CloudFormationClient cloudFormationClient;
 
     private CloudFormationService service;
+    
+    private ListAppender<ILoggingEvent> logAppender;
+    private Logger logger;
 
     @BeforeEach
     void setUp() {
         service = new CloudFormationService(cloudFormationClient);
+        
+        // Set up log appender to capture log events for verification
+        logger = (Logger) LoggerFactory.getLogger(CloudFormationService.class);
+        logAppender = new ListAppender<>();
+        logAppender.start();
+        logger.addAppender(logAppender);
     }
 
     @Test
@@ -138,6 +152,23 @@ class CloudFormationServiceTest {
         // Then
         assertNotNull(stacks);
         assertTrue(stacks.isEmpty());
+        
+        // Verify logging behavior - should log WARN for handled failures (returns empty list gracefully)
+        List<ILoggingEvent> logEvents = logAppender.list;
+        long warnLogs = logEvents.stream()
+                .filter(event -> event.getLevel() == Level.WARN 
+                        && event.getMessage().contains("Failed to list stacks"))
+                .count();
+        
+        assertEquals(1, warnLogs, "Should log WARN when listStacks fails (handled gracefully)");
+        
+        // Verify WARN log contains expected message
+        // Use getFormattedMessage() to get the actual formatted message, not the template
+        boolean foundWarnLog = logEvents.stream()
+                .anyMatch(event -> event.getLevel() == Level.WARN 
+                        && event.getFormattedMessage().contains("Failed to list stacks")
+                        && event.getFormattedMessage().contains("Test exception"));
+        assertTrue(foundWarnLog, "Should log WARN with exception message");
     }
 
     @Test

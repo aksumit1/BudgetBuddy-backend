@@ -94,6 +94,8 @@ class EnhancedGlobalExceptionHandlerLoggingTest {
     @Test
     void testHandleAppException_SystemError_LogsAtErrorLevel() {
         // Arrange
+        // Note: This test intentionally creates a system error (INTERNAL_SERVER_ERROR) to verify
+        // that system errors are logged at ERROR level (not WARN). The ERROR log is EXPECTED and CORRECT.
         AppException exception = new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "Internal server error");
 
         // Act
@@ -104,6 +106,7 @@ class EnhancedGlobalExceptionHandlerLoggingTest {
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
         
         // Check that ERROR level was used for system errors
+        // This is the correct behavior - system errors should be logged at ERROR level
         List<ILoggingEvent> logEvents = logAppender.list;
         boolean foundErrorLog = logEvents.stream()
                 .anyMatch(event -> event.getLevel() == Level.ERROR 

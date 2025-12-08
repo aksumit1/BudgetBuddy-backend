@@ -1,6 +1,7 @@
 package com.budgetbuddy.compliance.hipaa;
 
 import com.budgetbuddy.compliance.AuditLogService;
+import com.budgetbuddy.security.zerotrust.identity.IdentityVerificationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -32,9 +33,16 @@ class HIPAAComplianceServiceTest {
     private String testUserId;
     private String testPhiId;
 
+    @Mock
+    private IdentityVerificationService identityVerificationService;
+
     @BeforeEach
     void setUp() {
-        hipaaComplianceService = new HIPAAComplianceService(auditLogService, cloudWatchClient);
+        hipaaComplianceService = new HIPAAComplianceService(
+                auditLogService,
+                cloudWatchClient,
+                identityVerificationService
+        );
         testUserId = "user-123";
         testPhiId = "phi-123";
         
@@ -184,16 +192,48 @@ class HIPAAComplianceServiceTest {
     }
 
     @Test
-    void testCheckPHIAccessPolicy_WithValidInput_ReturnsTrue() {
-        // Given
+    void testCheckPHIAccessPolicy_AdminUser_HasFullAccess() {
+        // Given - Admin user
+        when(identityVerificationService.getUserRoles(testUserId))
+                .thenReturn(java.util.Set.of("ADMIN", "USER"));
         doNothing().when(auditLogService).logPHIAccess(anyString(), anyString(), anyString(), anyBoolean());
 
         // When
-        boolean result = hipaaComplianceService.checkPHIAccessPolicy(testUserId, "MEDICAL_RECORD");
+        boolean result = hipaaComplianceService.checkPHIAccessPolicy(testUserId, "financial");
 
         // Then
-        assertTrue(result);
-        verify(auditLogService).logPHIAccess(testUserId, "MEDICAL_RECORD", "READ", true);
+        assertTrue(result, "Admin should have full access");
+        verify(auditLogService).logPHIAccess(testUserId, "financial", "READ", true);
+    }
+
+    @Test
+    void testCheckPHIAccessPolicy_RegularUser_HasAccessToOwnData() {
+        // Given - Regular user
+        when(identityVerificationService.getUserRoles(testUserId))
+                .thenReturn(java.util.Set.of("USER"));
+        doNothing().when(auditLogService).logPHIAccess(anyString(), anyString(), anyString(), anyBoolean());
+
+        // When
+        boolean result = hipaaComplianceService.checkPHIAccessPolicy(testUserId, "financial");
+
+        // Then
+        assertTrue(result, "Regular user should have access to their own financial data");
+        verify(auditLogService).logPHIAccess(testUserId, "financial", "READ", true);
+    }
+
+    @Test
+    void testCheckPHIAccessPolicy_UserWithNoRoles_DeniedAccess() {
+        // Given - User with no roles
+        when(identityVerificationService.getUserRoles(testUserId))
+                .thenReturn(java.util.Set.of());
+        doNothing().when(auditLogService).logPHIAccess(anyString(), anyString(), anyString(), anyBoolean());
+
+        // When
+        boolean result = hipaaComplianceService.checkPHIAccessPolicy(testUserId, "financial");
+
+        // Then
+        assertFalse(result, "User with no roles should be denied access");
+        verify(auditLogService).logPHIAccess(testUserId, "financial", "READ", false);
     }
 
     @Test

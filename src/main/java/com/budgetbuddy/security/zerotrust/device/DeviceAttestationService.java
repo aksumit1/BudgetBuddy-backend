@@ -2,6 +2,7 @@ package com.budgetbuddy.security.zerotrust.device;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 import software.amazon.awssdk.services.dynamodb.model.*;
@@ -21,10 +22,12 @@ public class DeviceAttestationService {
     private static final Logger logger = LoggerFactory.getLogger(DeviceAttestationService.class);
 
     private final DynamoDbClient dynamoDbClient;
-    private final String tableName = "BudgetBuddy-DeviceAttestations";
+    private final String tableName;
 
-    public DeviceAttestationService(final DynamoDbClient dynamoDbClient) {
+    public DeviceAttestationService(final DynamoDbClient dynamoDbClient,
+            @Value("${app.aws.dynamodb.table-prefix:BudgetBuddy}") String tablePrefix) {
         this.dynamoDbClient = dynamoDbClient;
+        this.tableName = tablePrefix + "-DeviceAttestations";
         initializeTable();
     }
 
@@ -243,6 +246,18 @@ public class DeviceAttestationService {
     }
 
     private void initializeTable() {
+        // Check if table already exists before attempting to create it
+        try {
+            dynamoDbClient.describeTable(DescribeTableRequest.builder().tableName(tableName).build());
+            // Table exists, no need to create it
+            return;
+        } catch (ResourceNotFoundException e) {
+            // Table doesn't exist, proceed with creation
+        } catch (Exception e) {
+            logger.warn("Failed to check if device attestation table exists: {}", e.getMessage());
+            // Continue with creation attempt
+        }
+
         try {
             dynamoDbClient.createTable(CreateTableRequest.builder()
                     .tableName(tableName)
@@ -281,7 +296,8 @@ public class DeviceAttestationService {
             }
             logger.info("Device attestation table created");
         } catch (ResourceInUseException e) {
-            logger.debug("Device attestation table already exists");
+            // Table was created by another instance between check and create - this is fine
+            logger.debug("Device attestation table already exists (race condition)");
         } catch (Exception e) {
             logger.error("Failed to create device attestation table: {}", e.getMessage());
         }

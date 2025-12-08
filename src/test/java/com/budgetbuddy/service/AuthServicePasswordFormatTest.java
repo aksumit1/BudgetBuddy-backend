@@ -39,6 +39,9 @@ class AuthServicePasswordFormatTest {
     @Mock
     private com.budgetbuddy.service.UserService userService;
 
+    @Mock
+    private CacheWarmingService cacheWarmingService;
+
     private AuthService authService;
     private UserTable testUser;
     private String testEmail;
@@ -47,7 +50,7 @@ class AuthServicePasswordFormatTest {
 
     @BeforeEach
     void setUp() {
-        authService = new AuthService(jwtTokenProvider, userService, passwordHashingService, userRepository);
+        authService = new AuthService(jwtTokenProvider, userService, passwordHashingService, userRepository, cacheWarmingService);
         testEmail = "test@example.com";
         testPasswordHash = "hashed-password";
         testClientSalt = "client-salt";

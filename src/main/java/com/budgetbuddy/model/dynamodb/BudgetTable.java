@@ -4,6 +4,7 @@ import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbAttri
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbBean;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbPartitionKey;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbSecondaryPartitionKey;
+import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbSecondarySortKey;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -22,6 +23,7 @@ public class BudgetTable {
     private String currencyCode;
     private Instant createdAt;
     private Instant updatedAt;
+    private Long updatedAtTimestamp; // GSI sort key (epoch seconds) for incremental sync
 
     @DynamoDbPartitionKey
     @DynamoDbAttribute("budgetId")
@@ -33,7 +35,7 @@ public class BudgetTable {
         this.budgetId = budgetId;
     }
 
-    @DynamoDbSecondaryPartitionKey(indexNames = "UserIdIndex")
+    @DynamoDbSecondaryPartitionKey(indexNames = {"UserIdIndex", "UserIdUpdatedAtIndex"})
     @DynamoDbAttribute("userId")
     public String getUserId() {
         return userId;
@@ -95,6 +97,18 @@ public class BudgetTable {
 
     public void setUpdatedAt(final Instant updatedAt) {
         this.updatedAt = updatedAt;
+        // Auto-populate timestamp for GSI sort key
+        this.updatedAtTimestamp = updatedAt != null ? updatedAt.getEpochSecond() : null;
+    }
+
+    @DynamoDbSecondarySortKey(indexNames = "UserIdUpdatedAtIndex")
+    @DynamoDbAttribute("updatedAtTimestamp")
+    public Long getUpdatedAtTimestamp() {
+        return updatedAtTimestamp;
+    }
+
+    public void setUpdatedAtTimestamp(final Long updatedAtTimestamp) {
+        this.updatedAtTimestamp = updatedAtTimestamp;
     }
 }
 

@@ -73,7 +73,9 @@ public class CloudFormationService {
             List<StackSummary> summaries = response.stackSummaries();
             return summaries != null ? summaries : Collections.emptyList();
         } catch (Exception e) {
-            logger.error("Failed to list stacks: {}", e.getMessage(), e);
+            // Log at WARN level - this is a handled failure (returns empty list gracefully)
+            // ERROR would be more appropriate for unhandled errors that cause service failure
+            logger.warn("Failed to list stacks: {}", e.getMessage(), e);
             return Collections.emptyList();
         }
     }

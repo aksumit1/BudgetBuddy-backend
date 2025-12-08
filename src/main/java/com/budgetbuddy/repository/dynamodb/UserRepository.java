@@ -5,6 +5,7 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Repository;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
+import software.amazon.awssdk.enhanced.dynamodb.DynamoDbIndex;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable;
 import software.amazon.awssdk.enhanced.dynamodb.Key;
 import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
@@ -15,6 +16,7 @@ import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 import software.amazon.awssdk.services.dynamodb.model.ConditionalCheckFailedException;
 import software.amazon.awssdk.services.dynamodb.model.GetItemRequest;
 import software.amazon.awssdk.services.dynamodb.model.GetItemResponse;
+import software.amazon.awssdk.services.dynamodb.model.ResourceNotFoundException;
 import software.amazon.awssdk.core.pagination.sync.SdkIterable;
 
 import java.time.Instant;
@@ -27,26 +29,59 @@ import java.util.Optional;
 /**
  * DynamoDB Repository for Users
  * Uses GSI for email lookup (cost-optimized)
+ * 
+ * Note: Depends on DynamoDBTableManager to ensure tables are created before use
  */
 @Repository
+@org.springframework.context.annotation.DependsOn({"dynamoDBTableManager", "dynamoDbEnhancedClient", "dynamoDbClient"})
 public class UserRepository {
 
     private final DynamoDbTable<UserTable> userTable;
+    private final DynamoDbIndex<UserTable> emailIndex;
+    private final DynamoDbIndex<UserTable> activeUsersIndex;
     private final DynamoDbClient dynamoDbClient;
     private final String tableName;
     private static final String EMAIL_INDEX = "EmailIndex";
+    private static final String ACTIVE_USERS_INDEX = "ActiveUsersIndex";
 
     public UserRepository(
             final DynamoDbEnhancedClient enhancedClient,
             final DynamoDbClient dynamoDbClient,
             @org.springframework.beans.factory.annotation.Value("${app.aws.dynamodb.table-prefix:BudgetBuddy}") final String tablePrefix) {
+        if (enhancedClient == null) {
+            throw new IllegalArgumentException("DynamoDbEnhancedClient cannot be null");
+        }
+        if (dynamoDbClient == null) {
+            throw new IllegalArgumentException("DynamoDbClient cannot be null");
+        }
+        if (tablePrefix == null || tablePrefix.isEmpty()) {
+            throw new IllegalArgumentException("tablePrefix cannot be null or empty");
+        }
         this.tableName = tablePrefix + "-Users";
-        this.userTable = enhancedClient.table(this.tableName, TableSchema.fromBean(UserTable.class));
         this.dynamoDbClient = dynamoDbClient;
+        
+        try {
+            // Create table reference - this doesn't validate table existence
+            this.userTable = enhancedClient.table(this.tableName, TableSchema.fromBean(UserTable.class));
+            // Note: index() doesn't validate existence - it just creates a reference
+            // Actual validation happens when querying the index
+            this.emailIndex = userTable.index(EMAIL_INDEX);
+            this.activeUsersIndex = userTable.index(ACTIVE_USERS_INDEX);
+        } catch (Exception e) {
+            // Wrap any exception with more context
+            throw new IllegalStateException(
+                    String.format("Failed to initialize UserRepository for table '%s'. " +
+                            "This may happen if DynamoDB is not available or table schema is invalid. " +
+                            "Original error: %s", tableName, e.getMessage()), e);
+        }
     }
 
     @CacheEvict(value = "users", allEntries = true)
     public void save(final UserTable user) {
+        // Ensure activeStatus is set for GSI (computed from enabled if not set)
+        if (user.getActiveStatus() == null && user.getEnabled() != null) {
+            user.setActiveStatus(user.getEnabled() ? "ACTIVE" : "INACTIVE");
+        }
         userTable.putItem(user);
     }
 
@@ -64,16 +99,23 @@ public class UserRepository {
         try {
             // Query GSI for email lookup
             SdkIterable<software.amazon.awssdk.enhanced.dynamodb.model.Page<UserTable>> pages =
-                    userTable.index(EMAIL_INDEX).query(QueryConditional.keyEqualTo(Key.builder().partitionValue(email).build()));
+                    emailIndex.query(QueryConditional.keyEqualTo(Key.builder().partitionValue(email).build()));
             for (software.amazon.awssdk.enhanced.dynamodb.model.Page<UserTable> page : pages) {
                 for (UserTable item : page.items()) {
                     return Optional.of(item);
                 }
             }
             return Optional.empty();
+        } catch (ResourceNotFoundException e) {
+            // GSI doesn't exist yet - this can happen during startup before tables are created
+            org.slf4j.LoggerFactory.getLogger(UserRepository.class)
+                    .warn("GSI EmailIndex not found for table {}. This may happen during startup. Error: {}", tableName, e.getMessage());
+            return Optional.empty();
         } catch (Exception e) {
             // Log error but don't fail - return empty to allow registration to proceed
             // The conditional write will catch duplicates anyway
+            org.slf4j.LoggerFactory.getLogger(UserRepository.class)
+                    .warn("Error querying user by email: {} - {}", email, e.getMessage());
             return Optional.empty();
         }
     }
@@ -91,7 +133,7 @@ public class UserRepository {
             // Query GSI for email lookup (bypasses cache)
             // Use consistent read to avoid eventual consistency issues
             SdkIterable<software.amazon.awssdk.enhanced.dynamodb.model.Page<UserTable>> pages =
-                    userTable.index(EMAIL_INDEX).query(QueryConditional.keyEqualTo(Key.builder().partitionValue(email).build()));
+                    emailIndex.query(QueryConditional.keyEqualTo(Key.builder().partitionValue(email).build()));
             for (software.amazon.awssdk.enhanced.dynamodb.model.Page<UserTable> page : pages) {
                 for (UserTable item : page.items()) {
                     // Log when user is found for debugging
@@ -103,6 +145,11 @@ public class UserRepository {
             // Log when no user is found for debugging
             org.slf4j.LoggerFactory.getLogger(UserRepository.class)
                     .debug("No user found by email (bypass cache): {}", email);
+            return Optional.empty();
+        } catch (ResourceNotFoundException e) {
+            // GSI doesn't exist yet - this can happen during startup before tables are created
+            org.slf4j.LoggerFactory.getLogger(UserRepository.class)
+                    .warn("GSI EmailIndex not found for table {} (bypass cache). This may happen during startup. Error: {}", tableName, e.getMessage());
             return Optional.empty();
         } catch (Exception e) {
             // Log error but don't fail - return empty to allow registration to proceed
@@ -126,11 +173,16 @@ public class UserRepository {
         try {
             // Query GSI for all users with this email
             SdkIterable<software.amazon.awssdk.enhanced.dynamodb.model.Page<UserTable>> pages =
-                    userTable.index(EMAIL_INDEX).query(QueryConditional.keyEqualTo(Key.builder().partitionValue(email).build()));
+                    emailIndex.query(QueryConditional.keyEqualTo(Key.builder().partitionValue(email).build()));
             for (software.amazon.awssdk.enhanced.dynamodb.model.Page<UserTable> page : pages) {
                 users.addAll(page.items());
             }
             return users;
+        } catch (ResourceNotFoundException e) {
+            // GSI doesn't exist yet - this can happen during startup before tables are created
+            org.slf4j.LoggerFactory.getLogger(UserRepository.class)
+                    .warn("GSI EmailIndex not found for table {} (findAllByEmail). This may happen during startup. Error: {}", tableName, e.getMessage());
+            return List.of();
         } catch (Exception e) {
             org.slf4j.LoggerFactory.getLogger(UserRepository.class)
                     .warn("Error querying all users by email: {} - {}", email, e.getMessage());
@@ -370,8 +422,7 @@ public class UserRepository {
 
     /**
      * Find active users (users who logged in within the specified days)
-     * Uses scan with filter expression (cost-optimized for small datasets)
-     * For large datasets, consider adding a GSI on lastLoginAt
+     * OPTIMIZED: Uses GSI on enabled + lastLoginAtTimestamp for efficient queries
      * 
      * @param days Number of days to look back (e.g., 30 for users active in last 30 days)
      * @param limit Maximum number of users to return
@@ -390,27 +441,24 @@ public class UserRepository {
         long cutoffTimestamp = cutoffDate.getEpochSecond();
 
         try {
-            // Scan table with filter expression for active users
-            // Note: For production with large datasets, consider using a GSI on lastLoginAt
-            software.amazon.awssdk.enhanced.dynamodb.model.ScanEnhancedRequest scanRequest =
-                    software.amazon.awssdk.enhanced.dynamodb.model.ScanEnhancedRequest.builder()
-                            .filterExpression(
-                                    software.amazon.awssdk.enhanced.dynamodb.Expression.builder()
-                                            .expression("lastLoginAt >= :cutoff AND enabled = :enabled")
-                                            .putExpressionValue(":cutoff", 
-                                                    software.amazon.awssdk.services.dynamodb.model.AttributeValue.builder()
-                                                            .n(String.valueOf(cutoffTimestamp))
-                                                            .build())
-                                            .putExpressionValue(":enabled",
-                                                    software.amazon.awssdk.services.dynamodb.model.AttributeValue.builder()
-                                                            .bool(true)
-                                                            .build())
-                                            .build())
-                            .limit(limit)
-                            .build();
-
+            // OPTIMIZED: Use GSI with activeStatus="ACTIVE" as partition key
+            // and lastLoginAtTimestamp >= cutoff as sort key range query
+            // Query by partition key "ACTIVE" and filter by sort key range
             SdkIterable<software.amazon.awssdk.enhanced.dynamodb.model.Page<UserTable>> pages =
-                    userTable.scan(scanRequest);
+                    activeUsersIndex.query(
+                            software.amazon.awssdk.enhanced.dynamodb.model.QueryEnhancedRequest.builder()
+                                    .queryConditional(QueryConditional.keyEqualTo(
+                                            Key.builder().partitionValue("ACTIVE").build()))
+                                    .filterExpression(
+                                            software.amazon.awssdk.enhanced.dynamodb.Expression.builder()
+                                                    .expression("lastLoginAtTimestamp >= :cutoff")
+                                                    .putExpressionValue(":cutoff",
+                                                            software.amazon.awssdk.services.dynamodb.model.AttributeValue.builder()
+                                                                    .n(String.valueOf(cutoffTimestamp))
+                                                                    .build())
+                                                    .build())
+                                    .limit(limit)
+                                    .build());
 
             for (software.amazon.awssdk.enhanced.dynamodb.model.Page<UserTable> page : pages) {
                 for (UserTable user : page.items()) {
@@ -422,6 +470,10 @@ public class UserRepository {
                     }
                 }
             }
+        } catch (ResourceNotFoundException e) {
+            // GSI doesn't exist yet - this can happen during startup before tables are created
+            org.slf4j.LoggerFactory.getLogger(UserRepository.class)
+                    .warn("GSI ActiveUsersIndex not found for table {}. This may happen during startup. Error: {}", tableName, e.getMessage());
         } catch (Exception e) {
             org.slf4j.LoggerFactory.getLogger(UserRepository.class)
                     .error("Error finding active users: {}", e.getMessage(), e);

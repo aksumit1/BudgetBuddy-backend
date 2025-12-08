@@ -8,6 +8,7 @@ import com.budgetbuddy.model.dynamodb.UserTable;
 import com.budgetbuddy.plaid.PlaidService;
 import com.budgetbuddy.repository.dynamodb.AccountRepository;
 import com.budgetbuddy.repository.dynamodb.TransactionRepository;
+import com.budgetbuddy.service.plaid.PlaidSyncOrchestrator;
 import com.plaid.client.model.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -39,6 +40,15 @@ class PlaidSyncServiceTest {
     @Mock
     private TransactionRepository transactionRepository;
 
+    @Mock
+    private com.budgetbuddy.service.PlaidCategoryMapper categoryMapper;
+
+    @Mock
+    private com.budgetbuddy.service.plaid.PlaidDataExtractor dataExtractor;
+
+    @Mock
+    private PlaidSyncOrchestrator syncOrchestrator;
+
     @InjectMocks
     private PlaidSyncService plaidSyncService;
 
@@ -53,6 +63,30 @@ class PlaidSyncServiceTest {
         testUser.setUserId(testUserId);
         testUser.setEmail("test@example.com");
         testAccessToken = "test-access-token";
+
+        // Create real services with mocked dependencies so the actual sync logic runs
+        com.budgetbuddy.service.plaid.PlaidAccountSyncService accountSyncService = 
+            new com.budgetbuddy.service.plaid.PlaidAccountSyncService(
+                plaidService, accountRepository, categoryMapper, dataExtractor);
+        com.budgetbuddy.service.plaid.PlaidTransactionSyncService transactionSyncService = 
+            new com.budgetbuddy.service.plaid.PlaidTransactionSyncService(
+                plaidService, accountRepository, transactionRepository, dataExtractor);
+        com.budgetbuddy.service.plaid.PlaidSyncOrchestrator realOrchestrator = 
+            new com.budgetbuddy.service.plaid.PlaidSyncOrchestrator(accountSyncService, transactionSyncService);
+        
+        // Use doAnswer to call the real orchestrator methods so repository calls are made
+        // Use nullable() for itemId since it can be null
+        // Use lenient stubbing to avoid issues with tests that throw exceptions early
+        // Use lenient stubbing to avoid unnecessary stubbing warnings for tests that throw exceptions early
+        lenient().doAnswer(invocation -> {
+            realOrchestrator.syncAccountsOnly(invocation.getArgument(0), invocation.getArgument(1), invocation.getArgument(2));
+            return null;
+        }).when(syncOrchestrator).syncAccountsOnly(any(UserTable.class), anyString(), nullable(String.class));
+        
+        lenient().doAnswer(invocation -> {
+            realOrchestrator.syncTransactionsOnly(invocation.getArgument(0), invocation.getArgument(1));
+            return null;
+        }).when(syncOrchestrator).syncTransactionsOnly(any(UserTable.class), anyString());
     }
 
     @Test
@@ -60,6 +94,20 @@ class PlaidSyncServiceTest {
         // Given
         AccountsGetResponse accountsResponse = createMockAccountsResponse();
         when(plaidService.getAccounts(testAccessToken)).thenReturn(accountsResponse);
+        // Mock dataExtractor to extract account IDs and update accounts
+        when(dataExtractor.extractAccountId(any())).thenAnswer(invocation -> {
+            Object account = invocation.getArgument(0);
+            if (account instanceof AccountBase) {
+                return ((AccountBase) account).getAccountId();
+            }
+            return null;
+        });
+        // Mock updateAccountFromPlaid to actually set updatedAt
+        doAnswer(invocation -> {
+            AccountTable account = invocation.getArgument(0);
+            account.setUpdatedAt(java.time.Instant.now());
+            return null;
+        }).when(dataExtractor).updateAccountFromPlaid(any(AccountTable.class), any());
         when(accountRepository.findByPlaidAccountId(anyString())).thenReturn(Optional.empty());
         when(accountRepository.saveIfNotExists(any(AccountTable.class))).thenReturn(true);
 
@@ -82,7 +130,22 @@ class PlaidSyncServiceTest {
         existingAccount.setActive(true);
 
         when(plaidService.getAccounts(testAccessToken)).thenReturn(accountsResponse);
+        // Mock dataExtractor to extract account IDs and update accounts
+        when(dataExtractor.extractAccountId(any())).thenAnswer(invocation -> {
+            Object account = invocation.getArgument(0);
+            if (account instanceof AccountBase) {
+                return ((AccountBase) account).getAccountId();
+            }
+            return null;
+        });
+        // Mock updateAccountFromPlaid to actually set updatedAt
+        doAnswer(invocation -> {
+            AccountTable account = invocation.getArgument(0);
+            account.setUpdatedAt(java.time.Instant.now());
+            return null;
+        }).when(dataExtractor).updateAccountFromPlaid(any(AccountTable.class), any());
         when(accountRepository.findByPlaidAccountId("plaid-account-1")).thenReturn(Optional.of(existingAccount));
+        doNothing().when(accountRepository).save(any(AccountTable.class));
 
         // When
         assertDoesNotThrow(() -> plaidSyncService.syncAccounts(testUser, testAccessToken, null));
@@ -101,6 +164,20 @@ class PlaidSyncServiceTest {
         // Given
         AccountsGetResponse accountsResponse = createMockAccountsResponse();
         when(plaidService.getAccounts(testAccessToken)).thenReturn(accountsResponse);
+        // Mock dataExtractor to extract account IDs and update accounts
+        when(dataExtractor.extractAccountId(any())).thenAnswer(invocation -> {
+            Object account = invocation.getArgument(0);
+            if (account instanceof AccountBase) {
+                return ((AccountBase) account).getAccountId();
+            }
+            return null;
+        });
+        // Mock updateAccountFromPlaid to actually set updatedAt
+        doAnswer(invocation -> {
+            AccountTable account = invocation.getArgument(0);
+            account.setUpdatedAt(java.time.Instant.now());
+            return null;
+        }).when(dataExtractor).updateAccountFromPlaid(any(AccountTable.class), any());
         when(accountRepository.findByPlaidAccountId(anyString())).thenReturn(Optional.empty());
         when(accountRepository.saveIfNotExists(any(AccountTable.class))).thenReturn(true);
 
@@ -117,7 +194,7 @@ class PlaidSyncServiceTest {
 
     @Test
     void testSyncAccounts_WithNullUser_ThrowsException() {
-        // When/Then
+        // When/Then - Exception thrown before orchestrator is called, so no stubbing needed
         AppException exception = assertThrows(AppException.class, () -> {
             plaidSyncService.syncAccounts(null, testAccessToken, null);
         });
@@ -126,7 +203,7 @@ class PlaidSyncServiceTest {
 
     @Test
     void testSyncAccounts_WithNullAccessToken_ThrowsException() {
-        // When/Then
+        // When/Then - Exception thrown before orchestrator is called, so no stubbing needed
         AppException exception = assertThrows(AppException.class, () -> {
             plaidSyncService.syncAccounts(testUser, null, null);
         });
@@ -135,7 +212,7 @@ class PlaidSyncServiceTest {
 
     @Test
     void testSyncAccounts_WithEmptyAccessToken_ThrowsException() {
-        // When/Then
+        // When/Then - Exception thrown before orchestrator is called, so no stubbing needed
         AppException exception = assertThrows(AppException.class, () -> {
             plaidSyncService.syncAccounts(testUser, "", null);
         });
@@ -163,13 +240,25 @@ class PlaidSyncServiceTest {
         testAccount.setAccountId(UUID.randomUUID().toString());
         testAccount.setUserId(testUser.getUserId());
         testAccount.setPlaidAccountId("plaid-account-1");
-        testAccount.setLastSyncedAt(null); // First sync
+        testAccount.setLastSyncedAt(null); // First sync - ensure sync isn't skipped
+        testAccount.setActive(true);
         
         TransactionsGetResponse transactionsResponse = createMockTransactionsResponse();
         when(accountRepository.findByUserId(testUser.getUserId()))
                 .thenReturn(Collections.singletonList(testAccount));
         when(plaidService.getTransactions(eq(testAccessToken), anyString(), anyString()))
                 .thenReturn(transactionsResponse);
+        // Mock dataExtractor to return account ID for transaction grouping and transaction ID
+        when(dataExtractor.extractAccountIdFromTransaction(any()))
+                .thenReturn("plaid-account-1");
+        when(dataExtractor.extractTransactionId(any()))
+                .thenAnswer(invocation -> {
+                    Object transaction = invocation.getArgument(0);
+                    if (transaction instanceof com.plaid.client.model.Transaction) {
+                        return ((com.plaid.client.model.Transaction) transaction).getTransactionId();
+                    }
+                    return null;
+                });
         when(transactionRepository.findByPlaidTransactionId(anyString()))
                 .thenReturn(Optional.empty());
         when(transactionRepository.saveIfPlaidTransactionNotExists(any(TransactionTable.class)))

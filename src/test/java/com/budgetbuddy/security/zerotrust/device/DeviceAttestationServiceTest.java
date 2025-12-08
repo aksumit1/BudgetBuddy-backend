@@ -3,7 +3,6 @@ package com.budgetbuddy.security.zerotrust.device;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
@@ -25,7 +24,6 @@ class DeviceAttestationServiceTest {
     @Mock
     private DynamoDbClient dynamoDbClient;
 
-    @InjectMocks
     private DeviceAttestationService deviceAttestationService;
 
     private String testUserId;
@@ -36,13 +34,18 @@ class DeviceAttestationServiceTest {
         testUserId = "user-123";
         testDeviceId = "device-123";
         
+        // Mock table existence check - table doesn't exist, so creation will be attempted
+        when(dynamoDbClient.describeTable(any(DescribeTableRequest.class)))
+                .thenThrow(ResourceNotFoundException.builder().build());
+        
         // Mock table creation to avoid errors
         when(dynamoDbClient.createTable(any(CreateTableRequest.class)))
                 .thenReturn(CreateTableResponse.builder().build());
         when(dynamoDbClient.updateTimeToLive(any(UpdateTimeToLiveRequest.class)))
                 .thenReturn(UpdateTimeToLiveResponse.builder().build());
         
-        deviceAttestationService = new DeviceAttestationService(dynamoDbClient);
+        // Create service instance with test table prefix
+        deviceAttestationService = new DeviceAttestationService(dynamoDbClient, "TestBudgetBuddy");
     }
 
     @Test
@@ -124,6 +127,7 @@ class DeviceAttestationServiceTest {
 
         // Then
         verify(dynamoDbClient, times(1)).putItem(any(PutItemRequest.class));
+        assertTrue(result, "Device with valid attestation token should be trusted");
     }
 
     @Test
@@ -157,6 +161,8 @@ class DeviceAttestationServiceTest {
 
         // Then
         verify(dynamoDbClient, times(1)).putItem(any(PutItemRequest.class));
+        // Note: Result may be true or false depending on token validation, but device should be registered
+        assertNotNull(result, "Result should not be null");
     }
 
     @Test

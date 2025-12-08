@@ -4,6 +4,7 @@ import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbAttri
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbBean;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbPartitionKey;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbSecondaryPartitionKey;
+import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbSecondarySortKey;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -23,12 +24,13 @@ public class AccountTable {
     private BigDecimal balance;
     private String currencyCode;
     private String plaidAccountId; // GSI for Plaid lookup
-    private String plaidItemId;
+    private String plaidItemId; // GSI for Plaid item lookup
     private String accountNumber; // Account number/mask (last 4 digits) for deduplication
     private Boolean active;
     private Instant lastSyncedAt;
     private Instant createdAt;
     private Instant updatedAt;
+    private Long updatedAtTimestamp; // GSI sort key (epoch seconds) for incremental sync
 
     @DynamoDbPartitionKey
     @DynamoDbAttribute("accountId")
@@ -40,7 +42,7 @@ public class AccountTable {
         this.accountId = accountId;
     }
 
-    @DynamoDbSecondaryPartitionKey(indexNames = "UserIdIndex")
+    @DynamoDbSecondaryPartitionKey(indexNames = {"UserIdIndex", "UserIdUpdatedAtIndex"})
     @DynamoDbAttribute("userId")
     public String getUserId() {
         return userId;
@@ -58,6 +60,16 @@ public class AccountTable {
 
     public void setPlaidAccountId(final String plaidAccountId) {
         this.plaidAccountId = plaidAccountId;
+    }
+
+    @DynamoDbSecondaryPartitionKey(indexNames = "PlaidItemIdIndex")
+    @DynamoDbAttribute("plaidItemId")
+    public String getPlaidItemId() {
+        return plaidItemId;
+    }
+
+    public void setPlaidItemId(final String plaidItemId) {
+        this.plaidItemId = plaidItemId;
     }
 
     @DynamoDbAttribute("accountName")
@@ -114,15 +126,6 @@ public class AccountTable {
         this.currencyCode = currencyCode;
     }
 
-    @DynamoDbAttribute("plaidItemId")
-    public String getPlaidItemId() {
-        return plaidItemId;
-    }
-
-    public void setPlaidItemId(final String plaidItemId) {
-        this.plaidItemId = plaidItemId;
-    }
-
     @DynamoDbAttribute("accountNumber")
     public String getAccountNumber() {
         return accountNumber;
@@ -166,6 +169,18 @@ public class AccountTable {
 
     public void setUpdatedAt(final Instant updatedAt) {
         this.updatedAt = updatedAt;
+        // Auto-populate timestamp for GSI sort key
+        this.updatedAtTimestamp = updatedAt != null ? updatedAt.getEpochSecond() : null;
+    }
+
+    @DynamoDbSecondarySortKey(indexNames = "UserIdUpdatedAtIndex")
+    @DynamoDbAttribute("updatedAtTimestamp")
+    public Long getUpdatedAtTimestamp() {
+        return updatedAtTimestamp;
+    }
+
+    public void setUpdatedAtTimestamp(final Long updatedAtTimestamp) {
+        this.updatedAtTimestamp = updatedAtTimestamp;
     }
 }
 

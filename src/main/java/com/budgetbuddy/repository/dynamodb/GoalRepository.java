@@ -1,6 +1,8 @@
 package com.budgetbuddy.repository.dynamodb;
 
 import com.budgetbuddy.model.dynamodb.GoalTable;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Repository;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbIndex;
@@ -32,6 +34,7 @@ public class GoalRepository {
 
     private final DynamoDbTable<GoalTable> goalTable;
     private final DynamoDbIndex<GoalTable> userIdIndex;
+    private final DynamoDbIndex<GoalTable> userIdUpdatedAtIndex;
     private final DynamoDbClient dynamoDbClient;
     private final String tableName;
 
@@ -42,9 +45,11 @@ public class GoalRepository {
         this.tableName = tablePrefix + "-Goals";
         this.goalTable = enhancedClient.table(this.tableName, TableSchema.fromBean(GoalTable.class));
         this.userIdIndex = goalTable.index("UserIdIndex");
+        this.userIdUpdatedAtIndex = goalTable.index("UserIdUpdatedAtIndex");
         this.dynamoDbClient = dynamoDbClient;
     }
 
+    @CacheEvict(value = "goals", key = "#goal.userId")
     public void save(final GoalTable goal) {
         goalTable.putItem(goal);
     }
@@ -63,6 +68,7 @@ public class GoalRepository {
         return Optional.ofNullable(goal);
     }
 
+    @Cacheable(value = "goals", key = "#userId", unless = "#result == null || #result.isEmpty()")
     public List<GoalTable> findByUserId(final String userId) {
         List<GoalTable> results = new ArrayList<>();
         SdkIterable<software.amazon.awssdk.enhanced.dynamodb.model.Page<GoalTable>> pages =
@@ -78,6 +84,47 @@ public class GoalRepository {
         return results;
     }
 
+    /**
+     * Find goals updated after a specific timestamp using GSI
+     * Optimized for incremental sync - queries only changed items
+     */
+    @Cacheable(value = "goals", key = "'user:' + #userId + ':updatedAfter:' + #updatedAfterTimestamp", unless = "#result == null || #result.isEmpty()")
+    public List<GoalTable> findByUserIdAndUpdatedAfter(String userId, Long updatedAfterTimestamp) {
+        if (userId == null || userId.isEmpty() || updatedAfterTimestamp == null) {
+            return List.of();
+        }
+        
+        List<GoalTable> results = new ArrayList<>();
+        try {
+            // CRITICAL FIX: Cannot use filter expression on sort key (updatedAtTimestamp is GSI sort key)
+            // Query all items for user, then filter in application code
+            // This is still efficient because we're using the GSI partition key
+            SdkIterable<software.amazon.awssdk.enhanced.dynamodb.model.Page<GoalTable>> pages =
+                    userIdUpdatedAtIndex.query(
+                            QueryConditional.keyEqualTo(Key.builder().partitionValue(userId).build()));
+
+            for (software.amazon.awssdk.enhanced.dynamodb.model.Page<GoalTable> page : pages) {
+                for (GoalTable goal : page.items()) {
+                    // Filter in application code: updatedAtTimestamp >= updatedAfterTimestamp
+                    // Use >= to include items updated exactly at the timestamp
+                    if (goal.getUpdatedAtTimestamp() != null && 
+                        goal.getUpdatedAtTimestamp() >= updatedAfterTimestamp) {
+                        if (goal.getActive() == null || goal.getActive()) {
+                            results.add(goal);
+                        }
+                    }
+                }
+            }
+            results.sort((g1, g2) -> g1.getTargetDate().compareTo(g2.getTargetDate()));
+        } catch (Exception e) {
+            org.slf4j.LoggerFactory.getLogger(GoalRepository.class)
+                    .error("Error finding goals by userId and updatedAfter {}: {}", userId, e.getMessage(), e);
+        }
+        
+        return results;
+    }
+
+    @CacheEvict(value = "goals", allEntries = true)
     public void delete(final String goalId) {
         goalTable.deleteItem(Key.builder().partitionValue(goalId).build());
     }

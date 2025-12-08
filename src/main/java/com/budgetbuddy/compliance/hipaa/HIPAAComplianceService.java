@@ -1,6 +1,7 @@
 package com.budgetbuddy.compliance.hipaa;
 
 import com.budgetbuddy.compliance.AuditLogService;
+import com.budgetbuddy.security.zerotrust.identity.IdentityVerificationService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -28,12 +29,15 @@ public class HIPAAComplianceService {
 
     private final AuditLogService auditLogService;
     private final CloudWatchClient cloudWatchClient;
+    private final IdentityVerificationService identityVerificationService;
 
     public HIPAAComplianceService(
             final AuditLogService auditLogService,
-            final CloudWatchClient cloudWatchClient) {
+            final CloudWatchClient cloudWatchClient,
+            final IdentityVerificationService identityVerificationService) {
         this.auditLogService = auditLogService;
         this.cloudWatchClient = cloudWatchClient;
+        this.identityVerificationService = identityVerificationService;
     }
 
     /**
@@ -186,11 +190,41 @@ public class HIPAAComplianceService {
     /**
      * §164.308(a)(4) - Information Access Management
      * Implement policies for access to PHI
+     * Uses role-based access control to determine if user can access specific PHI type
      */
     public boolean checkPHIAccessPolicy(final String userId, final String phiType) {
-        // Check if user has access to specific PHI type
-        // In production, this would check role-based access policies
-        boolean hasAccess = true; // Placeholder
+        // Check role-based access policies
+        // PHI types: "financial", "personal", "health" (if applicable)
+        // Admin users have full access
+        // Regular users can only access their own financial/personal data
+        
+        boolean hasAccess = false;
+        
+        // Get user roles
+        java.util.Set<String> roles = identityVerificationService.getUserRoles(userId);
+        
+        if (roles == null || roles.isEmpty()) {
+            logger.warn("User {} has no roles assigned - denying PHI access", userId);
+            hasAccess = false;
+        } else if (roles.contains("ADMIN")) {
+            // Admin has full access to all PHI types
+            hasAccess = true;
+        } else if (roles.contains("USER")) {
+            // Regular users can access their own financial and personal data
+            // Health data requires additional permissions (not currently used)
+            if ("financial".equals(phiType) || "personal".equals(phiType)) {
+                hasAccess = true; // Users can access their own data
+            } else if ("health".equals(phiType)) {
+                // Health data requires explicit permission (future enhancement)
+                hasAccess = roles.contains("HEALTH_ACCESS");
+            } else {
+                // Unknown PHI type - deny by default
+                hasAccess = false;
+            }
+        } else {
+            // Unknown role - deny access
+            hasAccess = false;
+        }
 
         logPHIAccess(userId, phiType, "READ", hasAccess);
         return hasAccess;

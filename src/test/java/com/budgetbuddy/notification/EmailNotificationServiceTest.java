@@ -1,16 +1,21 @@
 package com.budgetbuddy.notification;
 
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.services.ses.SesClient;
 import software.amazon.awssdk.services.ses.model.*;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -34,10 +39,19 @@ class EmailNotificationServiceTest {
     private String testFromEmail = "noreply@budgetbuddy.com";
     private String testToEmail = "user@example.com";
     private String testUserId = "user-123";
+    
+    private ListAppender<ILoggingEvent> logAppender;
+    private Logger logger;
 
     @BeforeEach
     void setUp() {
         emailService = new EmailNotificationService(sesClient, testFromEmail, objectMapper);
+        
+        // Set up log appender to capture log events for verification
+        logger = (Logger) LoggerFactory.getLogger(EmailNotificationService.class);
+        logAppender = new ListAppender<>();
+        logAppender.start();
+        logger.addAppender(logAppender);
     }
 
     @Test
@@ -112,6 +126,22 @@ class EmailNotificationServiceTest {
 
         // Then
         assertFalse(result, "Should return false on template error");
+        
+        // Verify logging behavior - should log ERROR when JSON serialization fails
+        List<ILoggingEvent> logEvents = logAppender.list;
+        long errorLogs = logEvents.stream()
+                .filter(event -> event.getLevel() == Level.ERROR)
+                .count();
+        
+        assertEquals(1, errorLogs, "Should log ERROR when template JSON serialization fails");
+        
+        // Verify ERROR log contains expected message
+        // Use getFormattedMessage() to get the actual formatted message, not the template
+        boolean foundErrorLog = logEvents.stream()
+                .anyMatch(event -> event.getLevel() == Level.ERROR 
+                        && event.getFormattedMessage().contains("Failed to send templated email")
+                        && event.getFormattedMessage().contains("JSON error"));
+        assertTrue(foundErrorLog, "Should log ERROR with template failure message");
     }
 
     @Test

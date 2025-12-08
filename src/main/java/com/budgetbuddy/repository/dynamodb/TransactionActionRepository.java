@@ -1,6 +1,8 @@
 package com.budgetbuddy.repository.dynamodb;
 
 import com.budgetbuddy.model.dynamodb.TransactionActionTable;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Repository;
 import software.amazon.awssdk.core.pagination.sync.SdkIterable;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
@@ -26,6 +28,7 @@ public class TransactionActionRepository {
     private final DynamoDbIndex<TransactionActionTable> transactionIdIndex;
     private final DynamoDbIndex<TransactionActionTable> userIdIndex;
     private final DynamoDbIndex<TransactionActionTable> reminderDateIndex;
+    private final DynamoDbIndex<TransactionActionTable> userIdUpdatedAtIndex;
     private final String tableName;
 
     public TransactionActionRepository(
@@ -37,8 +40,10 @@ public class TransactionActionRepository {
         this.transactionIdIndex = actionTable.index("TransactionIdIndex");
         this.userIdIndex = actionTable.index("UserIdIndex");
         this.reminderDateIndex = actionTable.index("ReminderDateIndex");
+        this.userIdUpdatedAtIndex = actionTable.index("UserIdUpdatedAtIndex");
     }
 
+    @CacheEvict(value = "transactionActions", key = "#action.userId")
     public void save(final TransactionActionTable action) {
         if (action == null) {
             throw new IllegalArgumentException("Transaction action cannot be null");
@@ -93,6 +98,7 @@ public class TransactionActionRepository {
     /**
      * Find all actions for a user using GSI
      */
+    @Cacheable(value = "transactionActions", key = "#userId", unless = "#result == null || #result.isEmpty()")
     public List<TransactionActionTable> findByUserId(final String userId) {
         if (userId == null || userId.isEmpty()) {
             return List.of();
@@ -107,6 +113,43 @@ public class TransactionActionRepository {
         return results;
     }
 
+    /**
+     * Find transaction actions updated after a specific timestamp using GSI
+     * Optimized for incremental sync - queries only changed items
+     */
+    @Cacheable(value = "transactionActions", key = "'user:' + #userId + ':updatedAfter:' + #updatedAfterTimestamp", unless = "#result == null || #result.isEmpty()")
+    public List<TransactionActionTable> findByUserIdAndUpdatedAfter(String userId, Long updatedAfterTimestamp) {
+        if (userId == null || userId.isEmpty() || updatedAfterTimestamp == null) {
+            return List.of();
+        }
+        
+        List<TransactionActionTable> results = new ArrayList<>();
+        try {
+            // CRITICAL FIX: Cannot use filter expression on sort key (updatedAtTimestamp is GSI sort key)
+            // Query all items for user, then filter in application code
+            // This is still efficient because we're using the GSI partition key
+            SdkIterable<Page<TransactionActionTable>> pages = userIdUpdatedAtIndex.query(
+                    QueryConditional.keyEqualTo(Key.builder().partitionValue(userId).build()));
+
+            for (Page<TransactionActionTable> page : pages) {
+                for (TransactionActionTable action : page.items()) {
+                    // Filter in application code: updatedAtTimestamp >= updatedAfterTimestamp
+                    // Use >= to include items updated exactly at the timestamp
+                    if (action.getUpdatedAtTimestamp() != null && 
+                        action.getUpdatedAtTimestamp() >= updatedAfterTimestamp) {
+                        results.add(action);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            org.slf4j.LoggerFactory.getLogger(TransactionActionRepository.class)
+                    .error("Error finding transaction actions by userId and updatedAfter {}: {}", userId, e.getMessage(), e);
+        }
+        
+        return results;
+    }
+
+    @CacheEvict(value = "transactionActions", allEntries = true)
     public void delete(final String actionId) {
         if (actionId == null || actionId.isEmpty()) {
             throw new IllegalArgumentException("Action ID cannot be null or empty");

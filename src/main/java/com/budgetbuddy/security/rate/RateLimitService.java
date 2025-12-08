@@ -63,7 +63,7 @@ public class RateLimitService {
     private static final long CACHE_CLEANUP_INTERVAL_MS = 300000; // 5 minutes
 
     private final DynamoDbClient dynamoDbClient;
-    private final String tableName = "BudgetBuddy-RateLimits";
+    private final String tableName;
 
     // In-memory cache for hot paths
     private final Map<String, TokenBucket> inMemoryCache = new ConcurrentHashMap<>();
@@ -71,11 +71,13 @@ public class RateLimitService {
     private static final long CACHE_TTL_MS = 60000; // 1 minute
     private volatile long lastCacheCleanup = System.currentTimeMillis();
 
-    public RateLimitService(final DynamoDbClient dynamoDbClient) {
+    public RateLimitService(final DynamoDbClient dynamoDbClient,
+            @Value("${app.aws.dynamodb.table-prefix:BudgetBuddy}") String tablePrefix) {
         if (dynamoDbClient == null) {
             throw new IllegalArgumentException("DynamoDbClient cannot be null");
         }
         this.dynamoDbClient = dynamoDbClient;
+        this.tableName = tablePrefix + "-RateLimits";
         initializeTable();
     }
 
@@ -244,6 +246,18 @@ public class RateLimitService {
     }
 
     private void initializeTable() {
+        // Check if table already exists before attempting to create it
+        try {
+            dynamoDbClient.describeTable(DescribeTableRequest.builder().tableName(tableName).build());
+            // Table exists, no need to create it
+            return;
+        } catch (ResourceNotFoundException e) {
+            // Table doesn't exist, proceed with creation
+        } catch (Exception e) {
+            logger.warn("Failed to check if rate limit table exists: {}", e.getMessage());
+            // Continue with creation attempt
+        }
+
         try {
             dynamoDbClient.createTable(CreateTableRequest.builder()
                     .tableName(tableName)
@@ -263,7 +277,7 @@ public class RateLimitService {
             // Configure TTL separately
             try {
                 dynamoDbClient.updateTimeToLive(UpdateTimeToLiveRequest.builder()
-                        .tableName("BudgetBuddy-RateLimits")
+                        .tableName(tableName)
                         .timeToLiveSpecification(TimeToLiveSpecification.builder()
                                 .enabled(true)
                                 .attributeName("ttl")
@@ -274,7 +288,8 @@ public class RateLimitService {
             }
             logger.info("Rate limit table created");
         } catch (ResourceInUseException e) {
-            logger.debug("Rate limit table already exists");
+            // Table was created by another instance between check and create - this is fine
+            logger.debug("Rate limit table already exists (race condition)");
         } catch (Exception e) {
             logger.error("Failed to create rate limit table: {}", e.getMessage());
         }

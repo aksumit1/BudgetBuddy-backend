@@ -117,7 +117,7 @@ public class AppConfigIntegration {
         }
     }
 
-    @Bean
+    @Bean(destroyMethod = "close")
     @org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(
             name = "app.aws.appconfig.enabled", 
             havingValue = "true", 
@@ -145,7 +145,7 @@ public class AppConfigIntegration {
         }
     }
 
-    @Bean
+    @Bean(destroyMethod = "close")
     @org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(
             name = "app.aws.appconfig.enabled", 
             havingValue = "true", 

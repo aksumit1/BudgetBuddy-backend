@@ -1,8 +1,11 @@
 package com.budgetbuddy.config;
 
+import com.budgetbuddy.AWSTestConfiguration;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -12,12 +15,15 @@ import static org.junit.jupiter.api.Assertions.*;
  * Tests feature flag configuration
  */
 @SpringBootTest(classes = com.budgetbuddy.BudgetBuddyApplication.class)
+@ActiveProfiles("test")
+@Import(AWSTestConfiguration.class)
 @TestPropertySource(properties = {
     "app.features.enable-plaid=true",
     "app.features.enable-stripe=true",
     "app.features.enable-oauth2=false",
     "app.features.enable-advanced-analytics=false",
-    "app.features.enable-notifications=true"
+    "app.features.enable-notifications=true",
+    "app.aws.dynamodb.table-prefix=TestBudgetBuddy"
 })
 class FeatureFlagConfigTest {
 

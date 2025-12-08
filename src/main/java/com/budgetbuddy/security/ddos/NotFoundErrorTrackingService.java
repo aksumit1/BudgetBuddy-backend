@@ -44,18 +44,20 @@ public class NotFoundErrorTrackingService {
     private static final int MAX_CACHE_SIZE = 10000;
 
     private final DynamoDbClient dynamoDbClient;
-    private final String tableName = "BudgetBuddy-NotFoundTracking";
+    private final String tableName;
 
     // In-memory cache for hot paths
     private final Map<String, NotFoundCounter> inMemoryCache = new ConcurrentHashMap<>();
     private volatile long lastCacheCleanup = System.currentTimeMillis();
     private volatile boolean dynamoDbAvailable = true;
 
-    public NotFoundErrorTrackingService(final DynamoDbClient dynamoDbClient) {
+    public NotFoundErrorTrackingService(final DynamoDbClient dynamoDbClient,
+            @Value("${app.aws.dynamodb.table-prefix:BudgetBuddy}") String tablePrefix) {
         if (dynamoDbClient == null) {
             throw new IllegalArgumentException("DynamoDbClient cannot be null");
         }
         this.dynamoDbClient = dynamoDbClient;
+        this.tableName = tablePrefix + "-NotFoundTracking";
         // Initialize table lazily to avoid blocking application startup
         // Table will be created on first use if needed
         try {
@@ -187,6 +189,19 @@ public class NotFoundErrorTrackingService {
     }
 
     private boolean initializeTable() {
+        // Check if table already exists before attempting to create it
+        try {
+            dynamoDbClient.describeTable(DescribeTableRequest.builder().tableName(tableName).build());
+            // Table exists, no need to create it
+            dynamoDbAvailable = true;
+            return true;
+        } catch (ResourceNotFoundException e) {
+            // Table doesn't exist, proceed with creation
+        } catch (Exception e) {
+            logger.debug("Failed to check if 404 tracking table exists: {}", e.getMessage());
+            // Continue with creation attempt
+        }
+
         try {
             dynamoDbClient.createTable(CreateTableRequest.builder()
                     .tableName(tableName)
@@ -219,7 +234,8 @@ public class NotFoundErrorTrackingService {
             dynamoDbAvailable = true;
             return true;
         } catch (ResourceInUseException e) {
-            logger.debug("404 tracking table already exists");
+            // Table was created by another instance between check and create - this is fine
+            logger.debug("404 tracking table already exists (race condition)");
             dynamoDbAvailable = true;
             return true;
         } catch (Exception e) {

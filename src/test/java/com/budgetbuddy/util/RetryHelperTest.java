@@ -1,8 +1,15 @@
 package com.budgetbuddy.util;
 
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -11,6 +18,22 @@ import static org.junit.jupiter.api.Assertions.*;
  * Comprehensive tests for RetryHelper utility class
  */
 class RetryHelperTest {
+
+    private ListAppender<ILoggingEvent> logAppender;
+    private Logger logger;
+
+    @BeforeEach
+    void setUp() {
+        // Set up log appender to capture log events for verification
+        logger = (Logger) LoggerFactory.getLogger(RetryHelper.class);
+        
+        // Remove any existing appenders to avoid duplicates
+        logger.detachAndStopAllAppenders();
+        
+        logAppender = new ListAppender<>();
+        logAppender.start();
+        logger.addAppender(logAppender);
+    }
 
     @Test
     void testExecuteWithRetry_WithSuccessfulOperation_ReturnsResult() {
@@ -203,6 +226,27 @@ class RetryHelperTest {
 
         // Then
         assertEquals(1, attempts.get(), "Should execute only once with zero retries");
+        
+        // Verify logging behavior - with zero retries, should log ERROR immediately (no WARN logs)
+        List<ILoggingEvent> logEvents = logAppender.list;
+        long warnLogs = logEvents.stream()
+                .filter(event -> event.getLevel() == Level.WARN)
+                .count();
+        long errorLogs = logEvents.stream()
+                .filter(event -> event.getLevel() == Level.ERROR)
+                .count();
+        
+        // Should have 0 WARN logs (no retries) and 1 ERROR log (immediate failure)
+        assertEquals(0, warnLogs, "Should not log WARN with zero retries");
+        assertEquals(1, errorLogs, "Should log ERROR when max retries is 0");
+        
+        // Verify ERROR log contains expected message
+        // Use getFormattedMessage() to get the actual formatted message, not the template
+        boolean foundErrorLog = logEvents.stream()
+                .anyMatch(event -> event.getLevel() == Level.ERROR 
+                        && event.getFormattedMessage().contains("Operation failed after 0 retries"));
+        
+        assertTrue(foundErrorLog, "Should log ERROR with retry count message");
     }
 
     @Test
@@ -226,6 +270,27 @@ class RetryHelperTest {
 
         // Then
         assertEquals(3, attempts.get(), "Should retry for all exception types");
+        
+        // Verify logging behavior - should log WARN for retries and ERROR for final failure
+        List<ILoggingEvent> logEvents = logAppender.list;
+        long warnLogs = logEvents.stream()
+                .filter(event -> event.getLevel() == Level.WARN)
+                .count();
+        long errorLogs = logEvents.stream()
+                .filter(event -> event.getLevel() == Level.ERROR)
+                .count();
+        
+        // Should have 2 WARN logs (for 2 retries) and 1 ERROR log (for final failure)
+        assertEquals(2, warnLogs, "Should log WARN for each retry attempt");
+        assertEquals(1, errorLogs, "Should log ERROR when all retries exhausted");
+        
+        // Verify ERROR log contains expected message
+        // Use getFormattedMessage() to get the actual formatted message, not the template
+        boolean foundErrorLog = logEvents.stream()
+                .anyMatch(event -> event.getLevel() == Level.ERROR 
+                        && event.getFormattedMessage().contains("Operation failed after 2 retries"));
+        
+        assertTrue(foundErrorLog, "Should log ERROR with retry count message");
     }
 }
 

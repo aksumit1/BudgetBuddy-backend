@@ -1,5 +1,9 @@
 package com.budgetbuddy.plaid;
 
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import com.budgetbuddy.aws.secrets.SecretsManagerService;
 import com.budgetbuddy.model.dynamodb.AccountTable;
 import com.budgetbuddy.model.dynamodb.TransactionTable;
@@ -16,6 +20,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
+import org.slf4j.LoggerFactory;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
@@ -54,6 +59,9 @@ class PlaidWebhookServiceTest {
 
     private PlaidWebhookService service;
     private String webhookSecret = "test-webhook-secret";
+    
+    private ListAppender<ILoggingEvent> logAppender;
+    private Logger logger;
 
     @BeforeEach
     void setUp() throws Exception {
@@ -68,6 +76,12 @@ class PlaidWebhookServiceTest {
         
         // Use lenient stubbing to avoid unnecessary stubbing errors
         lenient().when(secretsManagerService.getSecret("plaid/webhook_secret", "")).thenReturn(webhookSecret);
+        
+        // Set up log appender to capture log events for verification
+        logger = (Logger) LoggerFactory.getLogger(PlaidWebhookService.class);
+        logAppender = new ListAppender<>();
+        logAppender.start();
+        logger.addAppender(logAppender);
     }
 
     @Test
@@ -585,6 +599,22 @@ class PlaidWebhookServiceTest {
         
         // Then
         assertFalse(isValid);
+        
+        // Verify logging behavior - should log WARN for handled failures (returns false gracefully)
+        List<ILoggingEvent> logEvents = logAppender.list;
+        long warnLogs = logEvents.stream()
+                .filter(event -> event.getLevel() == Level.WARN 
+                        && event.getMessage().contains("Error verifying webhook signature"))
+                .count();
+        
+        assertEquals(1, warnLogs, "Should log WARN when webhook signature verification fails (handled gracefully)");
+        
+        // Verify WARN log contains expected message
+        boolean foundWarnLog = logEvents.stream()
+                .anyMatch(event -> event.getLevel() == Level.WARN 
+                        && event.getMessage().contains("Error verifying webhook signature")
+                        && event.getMessage().contains("Error"));
+        assertTrue(foundWarnLog, "Should log WARN with exception message");
     }
 
     @Test

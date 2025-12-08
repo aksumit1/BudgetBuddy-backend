@@ -1,5 +1,9 @@
 package com.budgetbuddy.api;
 
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import com.budgetbuddy.exception.AppException;
 import com.budgetbuddy.exception.ErrorCode;
 import com.budgetbuddy.model.dynamodb.UserTable;
@@ -11,10 +15,12 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.userdetails.UserDetails;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -45,6 +51,9 @@ class UserDeletionControllerTest {
     private UserTable testUser;
     private String testUserId;
     private String testEmail;
+    
+    private ListAppender<ILoggingEvent> logAppender;
+    private Logger logger;
 
     @BeforeEach
     void setUp() {
@@ -54,6 +63,12 @@ class UserDeletionControllerTest {
         testUser = new UserTable();
         testUser.setUserId(testUserId);
         testUser.setEmail(testEmail);
+        
+        // Set up log appender to capture log events for verification
+        logger = (Logger) LoggerFactory.getLogger(UserDeletionController.class);
+        logAppender = new ListAppender<>();
+        logAppender.start();
+        logger.addAppender(logAppender);
     }
 
     @Test
@@ -225,6 +240,23 @@ class UserDeletionControllerTest {
             userDeletionController.deleteAccount(userDetails, true);
         });
         assertEquals(ErrorCode.INTERNAL_SERVER_ERROR, exception.getErrorCode());
+        
+        // Verify logging behavior - should log ERROR when account deletion fails
+        List<ILoggingEvent> logEvents = logAppender.list;
+        long errorLogs = logEvents.stream()
+                .filter(event -> event.getLevel() == Level.ERROR 
+                        && event.getMessage().contains("Failed to delete account"))
+                .count();
+        
+        assertEquals(1, errorLogs, "Should log ERROR when account deletion fails");
+        
+        // Verify ERROR log contains expected message
+        // Use getFormattedMessage() to get the actual formatted message, not the template
+        boolean foundErrorLog = logEvents.stream()
+                .anyMatch(event -> event.getLevel() == Level.ERROR 
+                        && event.getFormattedMessage().contains("Failed to delete account")
+                        && event.getFormattedMessage().contains("Service error"));
+        assertTrue(foundErrorLog, "Should log ERROR with service error message");
     }
 }
 

@@ -117,7 +117,9 @@ public class PlaidWebhookService {
             logger.error("Invalid webhook secret key", e);
             return false;
         } catch (Exception e) {
-            logger.error("Error verifying webhook signature: {}", e.getMessage(), e);
+            // Log at WARN level - this is a handled failure (returns false gracefully)
+            // ERROR would be more appropriate for unhandled errors that cause service failure
+            logger.warn("Error verifying webhook signature: {}", e.getMessage(), e);
             return false;
         }
     }

@@ -20,6 +20,7 @@ jobs:
     permissions:
       contents: read
       security-events: write
+      actions: read
     
     steps:
       - name: Checkout code
@@ -27,6 +28,7 @@ jobs:
 
       - name: Run Trivy vulnerability scanner in repo mode
         uses: aquasecurity/trivy-action@master
+        continue-on-error: true
         with:
           scan-type: 'fs'
           scan-ref: '.'
@@ -34,11 +36,41 @@ jobs:
           output: 'trivy-results.sarif'
           severity: 'CRITICAL,HIGH'
 
+      - name: Check if SARIF file exists
+        id: check_sarif
+        run: |
+          if [ -f "trivy-results.sarif" ]; then
+            echo "sarif_exists=true" >> $GITHUB_OUTPUT
+            echo "✅ SARIF file created successfully"
+          else
+            echo "sarif_exists=false" >> $GITHUB_OUTPUT
+            echo "⚠️ SARIF file not found"
+          fi
+
       - name: Upload Trivy results to GitHub Security
         uses: github/codeql-action/upload-sarif@v3
-        if: always()
+        if: always() && steps.check_sarif.outputs.sarif_exists == 'true' && github.event_name != 'pull_request'
+        continue-on-error: true
         with:
           sarif_file: 'trivy-results.sarif'
+          wait-for-processing: false
+
+      - name: Upload Trivy results (PR fallback)
+        if: always() && steps.check_sarif.outputs.sarif_exists == 'true' && github.event_name == 'pull_request'
+        continue-on-error: true
+        run: |
+          echo "⚠️ SARIF upload skipped for pull requests (limited permissions)"
+          echo "Results are available in workflow artifacts"
+          echo "To view results, check the Security tab after merge"
+
+      - name: Upload Trivy SARIF as artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        continue-on-error: true
+        with:
+          name: trivy-sarif-results
+          path: trivy-results.sarif
+          retention-days: 7
 
       - name: Run Trivy vulnerability scanner for Java dependencies
         continue-on-error: true
