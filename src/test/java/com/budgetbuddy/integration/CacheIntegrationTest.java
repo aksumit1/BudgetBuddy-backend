@@ -1,6 +1,7 @@
 package com.budgetbuddy.integration;
 
 import com.budgetbuddy.AWSTestConfiguration;
+import com.budgetbuddy.dto.IncrementalSyncResponse;
 import com.budgetbuddy.model.dynamodb.AccountTable;
 import com.budgetbuddy.model.dynamodb.BudgetTable;
 import com.budgetbuddy.model.dynamodb.GoalTable;
