@@ -125,20 +125,28 @@ public class CacheIntegrationTest {
         
         // CRITICAL: Capture sync time AFTER getAllData and add a small delay
         // to ensure any subsequent updates have a timestamp that's clearly after this
-        Thread.sleep(200); // Increased delay to ensure timestamp difference
+        Thread.sleep(500); // Increased delay to ensure timestamp difference
         long firstSyncTime = Instant.now().getEpochSecond();
 
         // Additional delay to ensure update timestamp is clearly after firstSyncTime
-        Thread.sleep(200);
+        // Use at least 1 second to ensure timestamp difference (epoch seconds have 1-second granularity)
+        Thread.sleep(1000);
         
         // Update account with a timestamp clearly after firstSyncTime
         account.setAccountName("Updated Account");
         Instant updateTime = Instant.now(); // Capture time before setting
-        account.setUpdatedAt(updateTime); // This will set updatedAtTimestamp automatically
-        // CRITICAL: Explicitly ensure updatedAtTimestamp is set correctly
-        if (account.getUpdatedAtTimestamp() == null || account.getUpdatedAtTimestamp() < firstSyncTime) {
-            account.setUpdatedAtTimestamp(updateTime.getEpochSecond());
+        long updateTimestamp = updateTime.getEpochSecond();
+        
+        // CRITICAL: Ensure update timestamp is strictly greater than firstSyncTime
+        // If they're equal, add 1 second to ensure it's definitely after
+        if (updateTimestamp <= firstSyncTime) {
+            updateTimestamp = firstSyncTime + 1;
+            updateTime = Instant.ofEpochSecond(updateTimestamp);
         }
+        
+        account.setUpdatedAt(updateTime); // This will set updatedAtTimestamp automatically
+        // CRITICAL: Explicitly ensure updatedAtTimestamp is set correctly and is greater than firstSyncTime
+        account.setUpdatedAtTimestamp(updateTimestamp);
         accountRepository.save(account); // This should evict cache
 
         // CRITICAL: Clear cache explicitly to ensure fresh data is fetched
@@ -150,29 +158,62 @@ public class CacheIntegrationTest {
             }
         }
 
-        // Small delay to ensure DynamoDB has processed the update and GSI is updated
-        Thread.sleep(300); // Increased delay for DynamoDB eventual consistency
-
-        // Incremental sync - should get only changed items
-        var incrementalResponse = syncService.getIncrementalChanges(testUserId, firstSyncTime);
-        assertNotNull(incrementalResponse);
+        // CRITICAL: Wait for DynamoDB eventual consistency - GSI updates can take time in CI
+        // Use retry logic to handle eventual consistency
+        IncrementalSyncResponse incrementalResponse = null;
+        int maxRetries = 10;
+        int retryCount = 0;
+        long baseDelay = 500; // Start with 500ms delay
         
-        // Debug: Log actual values if assertion fails
-        if (incrementalResponse.getAccounts().size() != 1) {
-            // Reload account from DB to verify it was actually updated
-            var reloadedAccount = accountRepository.findById(account.getAccountId());
-            if (reloadedAccount.isPresent()) {
-                AccountTable reloaded = reloadedAccount.get();
-                System.out.println("DEBUG: Reloaded account - updatedAtTimestamp=" + reloaded.getUpdatedAtTimestamp() + 
-                        ", firstSyncTime=" + firstSyncTime + 
-                        ", comparison=" + (reloaded.getUpdatedAtTimestamp() != null && reloaded.getUpdatedAtTimestamp() >= firstSyncTime));
+        while (retryCount < maxRetries) {
+            // Wait before querying (exponential backoff)
+            long delay = baseDelay * (1L << Math.min(retryCount, 3)); // Cap at 4 seconds
+            Thread.sleep(delay);
+            
+            // Incremental sync - should get only changed items
+            incrementalResponse = syncService.getIncrementalChanges(testUserId, firstSyncTime);
+            assertNotNull(incrementalResponse);
+            
+            // Check if we found the updated account
+            if (incrementalResponse.getAccounts().size() == 1) {
+                // Success - account found
+                break;
+            }
+            
+            retryCount++;
+            
+            // Debug: Log actual values if still not found
+            if (retryCount < maxRetries) {
+                // Reload account from DB to verify it was actually updated
+                var reloadedAccount = accountRepository.findById(account.getAccountId());
+                if (reloadedAccount.isPresent()) {
+                    AccountTable reloaded = reloadedAccount.get();
+                    System.out.println("DEBUG: Retry " + retryCount + " - Reloaded account - updatedAtTimestamp=" + 
+                            reloaded.getUpdatedAtTimestamp() + 
+                            ", firstSyncTime=" + firstSyncTime + 
+                            ", comparison=" + (reloaded.getUpdatedAtTimestamp() != null && reloaded.getUpdatedAtTimestamp() >= firstSyncTime) +
+                            ", incrementalResponse.accounts.size()=" + incrementalResponse.getAccounts().size());
+                }
             }
         }
         
-        assertEquals(1, incrementalResponse.getAccounts().size(), 
-                "Should find 1 updated account. firstSyncTime=" + firstSyncTime + 
-                ", account.updatedAtTimestamp=" + account.getUpdatedAtTimestamp() +
-                ", incrementalResponse.accounts.size()=" + incrementalResponse.getAccounts().size());
+        // Final assertion with detailed error message
+        if (incrementalResponse.getAccounts().size() != 1) {
+            // Reload account one more time for final debug info
+            var reloadedAccount = accountRepository.findById(account.getAccountId());
+            String debugInfo = "firstSyncTime=" + firstSyncTime + 
+                    ", account.updatedAtTimestamp=" + account.getUpdatedAtTimestamp() +
+                    ", incrementalResponse.accounts.size()=" + incrementalResponse.getAccounts().size();
+            if (reloadedAccount.isPresent()) {
+                AccountTable reloaded = reloadedAccount.get();
+                debugInfo += ", reloaded.updatedAtTimestamp=" + reloaded.getUpdatedAtTimestamp();
+            }
+            debugInfo += ", retries=" + retryCount;
+            
+            assertEquals(1, incrementalResponse.getAccounts().size(), 
+                    "Should find 1 updated account after " + retryCount + " retries. " + debugInfo);
+        }
+        
         assertEquals("Updated Account", incrementalResponse.getAccounts().get(0).getAccountName());
     }
 
