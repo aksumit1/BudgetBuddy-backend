@@ -29,7 +29,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 /**
  * Tests for AnalyticsController
  */
-@SpringBootTest(classes = com.budgetbuddy.BudgetBuddyApplication.class)
+@SpringBootTest(
+    classes = com.budgetbuddy.BudgetBuddyApplication.class,
+    webEnvironment = org.springframework.boot.test.context.SpringBootTest.WebEnvironment.MOCK
+)
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 @Import(AWSTestConfiguration.class)

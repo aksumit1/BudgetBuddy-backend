@@ -32,8 +32,10 @@ public class DDoSProtectionService {
     @Value("${app.rate-limit.ddos.max-requests-per-minute:100000}")
     private long maxRequestsPerMinute;
 
-    @SuppressWarnings({"unused", "FieldCanBeLocal"}) // Reserved for future implementation
+    // TODO: Implement hourly rate limiting - currently only per-minute rate limiting is implemented
+    // Reserved for future implementation of hourly rate limits
     @Value("${app.rate-limit.ddos.max-requests-per-hour:5000000}")
+    @SuppressWarnings("unused") // Field reserved for future hourly rate limiting implementation
     private long maxRequestsPerHour;
     private static final int BLOCK_DURATION_SECONDS = 3600; // 1 hour block
     private static final int MAX_CACHE_SIZE = 10000; // Prevent unbounded growth

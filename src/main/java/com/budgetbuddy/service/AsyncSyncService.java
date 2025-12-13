@@ -76,7 +76,7 @@ public class AsyncSyncService {
                 .collect(Collectors.toList());
 
         // Combine all batch results
-        return CompletableFuture.allOf(batchFutures.toArray(new CompletableFuture[0]))
+        return CompletableFuture.allOf(batchFutures.toArray(new CompletableFuture<?>[0]))
                 .thenApply(v -> batchFutures.stream()
                         .flatMap(future -> {
                             try {

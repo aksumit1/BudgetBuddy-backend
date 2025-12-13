@@ -8,7 +8,7 @@ spring:
   
   # Test Database Configuration
   dynamodb:
-    endpoint: http://localhost:4566 # LocalStack endpoint for testing
+    endpoint: ${DYNAMODB_ENDPOINT:http://localhost:4566} # LocalStack endpoint for testing (can be overridden via env var)
     region: us-east-1
 
 # Server Configuration for Tests
@@ -35,7 +35,7 @@ app:
     region: us-east-1
     dynamodb:
       table-prefix: TestBudgetBuddy
-      endpoint: http://localhost:4566
+      endpoint: ${DYNAMODB_ENDPOINT:http://localhost:4566} # Can be overridden via env var for different LocalStack instances
       auto-create-tables: true # Enable table auto-creation in tests - ensures tables exist for proper testing
     s3:
       bucket-name: test-budgetbuddy-storage

@@ -7,8 +7,11 @@ import java.util.Map;
  * Application Exception with comprehensive error context
  */
 public class AppException extends RuntimeException {
+    private static final long serialVersionUID = 1L;
+    
     private final ErrorCode errorCode;
     private final Instant timestamp;
+    @SuppressWarnings("serial") // Map is serializable, but Object values might not be - acceptable for error context
     private final Map<String, Object> context;
     private final String userMessage;
     private final String technicalMessage;

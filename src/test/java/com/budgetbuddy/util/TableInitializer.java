@@ -5,6 +5,9 @@ import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 import software.amazon.awssdk.services.dynamodb.model.*;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * Standalone utility to initialize DynamoDB tables before tests run
  * This can be called directly from CI/CD pipelines or test setup
@@ -259,7 +262,8 @@ public class TableInitializer {
                     .attributeDefinitions(
                             AttributeDefinition.builder().attributeName("accountId").attributeType(ScalarAttributeType.S).build(),
                             AttributeDefinition.builder().attributeName("userId").attributeType(ScalarAttributeType.S).build(),
-                            AttributeDefinition.builder().attributeName("plaidAccountId").attributeType(ScalarAttributeType.S).build())
+                            AttributeDefinition.builder().attributeName("plaidAccountId").attributeType(ScalarAttributeType.S).build(),
+                            AttributeDefinition.builder().attributeName("updatedAtTimestamp").attributeType(ScalarAttributeType.N).build())
                     .keySchema(KeySchemaElement.builder().attributeName("accountId").keyType(KeyType.HASH).build())
                     .globalSecondaryIndexes(
                             GlobalSecondaryIndex.builder()
@@ -270,6 +274,13 @@ public class TableInitializer {
                             GlobalSecondaryIndex.builder()
                                     .indexName("PlaidAccountIdIndex")
                                     .keySchema(KeySchemaElement.builder().attributeName("plaidAccountId").keyType(KeyType.HASH).build())
+                                    .projection(Projection.builder().projectionType(ProjectionType.ALL).build())
+                                    .build(),
+                            GlobalSecondaryIndex.builder()
+                                    .indexName("UserIdUpdatedAtIndex")
+                                    .keySchema(
+                                            KeySchemaElement.builder().attributeName("userId").keyType(KeyType.HASH).build(),
+                                            KeySchemaElement.builder().attributeName("updatedAtTimestamp").keyType(KeyType.RANGE).build())
                                     .projection(Projection.builder().projectionType(ProjectionType.ALL).build())
                                     .build())
                     .build();
@@ -290,8 +301,32 @@ public class TableInitializer {
         String tableName = TABLE_PREFIX + "-Transactions";
         try {
             try {
-                dynamoDbClient.describeTable(DescribeTableRequest.builder().tableName(tableName).build());
+                DescribeTableResponse existingTable = dynamoDbClient.describeTable(DescribeTableRequest.builder().tableName(tableName).build());
                 logger.info("✅ Table {} already exists", tableName);
+                
+                // CRITICAL: Verify all required GSIs exist
+                // If table exists but GSIs are missing, we need to add them
+                List<String> existingGSINames = existingTable.table().globalSecondaryIndexes() != null ?
+                    existingTable.table().globalSecondaryIndexes().stream()
+                        .map(gsi -> gsi.indexName())
+                        .collect(java.util.stream.Collectors.toList()) : new ArrayList<>();
+                
+                List<String> requiredGSIs = List.of("UserIdDateIndex", "AccountIdTransactionDateIndex", 
+                    "PlaidTransactionIdIndex", "UserIdUpdatedAtIndex");
+                List<String> missingGSIs = requiredGSIs.stream()
+                    .filter(gsiName -> !existingGSINames.contains(gsiName))
+                    .collect(java.util.stream.Collectors.toList());
+                
+                if (!missingGSIs.isEmpty()) {
+                    logger.warn("⚠️ Table {} exists but is missing GSIs: {}. This can happen if table was created before GSIs were added.", 
+                        tableName, missingGSIs);
+                    logger.warn("⚠️ Note: DynamoDB doesn't support adding GSIs to existing tables via UpdateTable in LocalStack.");
+                    logger.warn("⚠️ Please delete the table and recreate it, or the fallback logic will handle missing GSIs.");
+                    // Note: We can't add GSIs to existing tables - DynamoDB requires table recreation
+                    // The fallback logic in repositories will handle this gracefully
+                } else {
+                    logger.debug("✅ Table {} has all required GSIs: {}", tableName, existingGSINames);
+                }
                 return;
             } catch (ResourceNotFoundException e) {}
 
@@ -303,7 +338,8 @@ public class TableInitializer {
                             AttributeDefinition.builder().attributeName("userId").attributeType(ScalarAttributeType.S).build(),
                             AttributeDefinition.builder().attributeName("transactionDate").attributeType(ScalarAttributeType.S).build(),
                             AttributeDefinition.builder().attributeName("plaidTransactionId").attributeType(ScalarAttributeType.S).build(),
-                            AttributeDefinition.builder().attributeName("accountId").attributeType(ScalarAttributeType.S).build())
+                            AttributeDefinition.builder().attributeName("accountId").attributeType(ScalarAttributeType.S).build(),
+                            AttributeDefinition.builder().attributeName("updatedAtTimestamp").attributeType(ScalarAttributeType.N).build())
                     .keySchema(KeySchemaElement.builder().attributeName("transactionId").keyType(KeyType.HASH).build())
                     .globalSecondaryIndexes(
                             GlobalSecondaryIndex.builder()
@@ -323,6 +359,13 @@ public class TableInitializer {
                             GlobalSecondaryIndex.builder()
                                     .indexName("PlaidTransactionIdIndex")
                                     .keySchema(KeySchemaElement.builder().attributeName("plaidTransactionId").keyType(KeyType.HASH).build())
+                                    .projection(Projection.builder().projectionType(ProjectionType.ALL).build())
+                                    .build(),
+                            GlobalSecondaryIndex.builder()
+                                    .indexName("UserIdUpdatedAtIndex")
+                                    .keySchema(
+                                            KeySchemaElement.builder().attributeName("userId").keyType(KeyType.HASH).build(),
+                                            KeySchemaElement.builder().attributeName("updatedAtTimestamp").keyType(KeyType.RANGE).build())
                                     .projection(Projection.builder().projectionType(ProjectionType.ALL).build())
                                     .build())
                     .build();
@@ -366,7 +409,8 @@ public class TableInitializer {
                             AttributeDefinition.builder().attributeName("transactionId").attributeType(ScalarAttributeType.S).build(),
                             AttributeDefinition.builder().attributeName("userId").attributeType(ScalarAttributeType.S).build(),
                             AttributeDefinition.builder().attributeName("reminderDatePartition").attributeType(ScalarAttributeType.S).build(),
-                            AttributeDefinition.builder().attributeName("reminderDate").attributeType(ScalarAttributeType.S).build())
+                            AttributeDefinition.builder().attributeName("reminderDate").attributeType(ScalarAttributeType.S).build(),
+                            AttributeDefinition.builder().attributeName("updatedAtTimestamp").attributeType(ScalarAttributeType.N).build())
                     .keySchema(KeySchemaElement.builder().attributeName("actionId").keyType(KeyType.HASH).build())
                     .globalSecondaryIndexes(
                             GlobalSecondaryIndex.builder()
@@ -384,6 +428,13 @@ public class TableInitializer {
                                     .keySchema(
                                             KeySchemaElement.builder().attributeName("reminderDatePartition").keyType(KeyType.HASH).build(),
                                             KeySchemaElement.builder().attributeName("reminderDate").keyType(KeyType.RANGE).build())
+                                    .projection(Projection.builder().projectionType(ProjectionType.ALL).build())
+                                    .build(),
+                            GlobalSecondaryIndex.builder()
+                                    .indexName("UserIdUpdatedAtIndex")
+                                    .keySchema(
+                                            KeySchemaElement.builder().attributeName("userId").keyType(KeyType.HASH).build(),
+                                            KeySchemaElement.builder().attributeName("updatedAtTimestamp").keyType(KeyType.RANGE).build())
                                     .projection(Projection.builder().projectionType(ProjectionType.ALL).build())
                                     .build())
                     .build();
@@ -632,12 +683,20 @@ public class TableInitializer {
                     .billingMode(BillingMode.PAY_PER_REQUEST)
                     .attributeDefinitions(
                             AttributeDefinition.builder().attributeName(keyName).attributeType(ScalarAttributeType.S).build(),
-                            AttributeDefinition.builder().attributeName("userId").attributeType(ScalarAttributeType.S).build())
+                            AttributeDefinition.builder().attributeName("userId").attributeType(ScalarAttributeType.S).build(),
+                            AttributeDefinition.builder().attributeName("updatedAtTimestamp").attributeType(ScalarAttributeType.N).build())
                     .keySchema(KeySchemaElement.builder().attributeName(keyName).keyType(KeyType.HASH).build())
                     .globalSecondaryIndexes(
                             GlobalSecondaryIndex.builder()
                                     .indexName("UserIdIndex")
                                     .keySchema(KeySchemaElement.builder().attributeName("userId").keyType(KeyType.HASH).build())
+                                    .projection(Projection.builder().projectionType(ProjectionType.ALL).build())
+                                    .build(),
+                            GlobalSecondaryIndex.builder()
+                                    .indexName("UserIdUpdatedAtIndex")
+                                    .keySchema(
+                                            KeySchemaElement.builder().attributeName("userId").keyType(KeyType.HASH).build(),
+                                            KeySchemaElement.builder().attributeName("updatedAtTimestamp").keyType(KeyType.RANGE).build())
                                     .projection(Projection.builder().projectionType(ProjectionType.ALL).build())
                                     .build())
                     .build();
@@ -706,8 +765,31 @@ public class TableInitializer {
                         .tableName(tableName)
                         .build());
                 
-                if (response.table().tableStatus() == TableStatus.ACTIVE) {
-                    logger.debug("Table {} is now active", tableName);
+                TableDescription table = response.table();
+                
+                // Check if table is ACTIVE
+                if (table.tableStatus() != TableStatus.ACTIVE) {
+                    logger.debug("Table {} status: {}, waiting...", tableName, table.tableStatus());
+                    Thread.sleep(500);
+                    attempt++;
+                    continue;
+                }
+                
+                // CRITICAL: Also check if all GSIs are ACTIVE
+                // GSIs can still be CREATING even when table is ACTIVE
+                boolean allGSIsActive = true;
+                if (table.globalSecondaryIndexes() != null && !table.globalSecondaryIndexes().isEmpty()) {
+                    for (GlobalSecondaryIndexDescription gsi : table.globalSecondaryIndexes()) {
+                        if (gsi.indexStatus() != IndexStatus.ACTIVE) {
+                            allGSIsActive = false;
+                            logger.debug("Table {} GSI {} status: {}, waiting...", tableName, gsi.indexName(), gsi.indexStatus());
+                            break;
+                        }
+                    }
+                }
+                
+                if (allGSIsActive) {
+                    logger.debug("Table {} and all GSIs are now active", tableName);
                     return;
                 }
                 
@@ -718,6 +800,6 @@ public class TableInitializer {
                 attempt++;
             }
         }
-        logger.warn("Table {} may not be fully active yet (checked {} times)", tableName, maxAttempts);
+        logger.warn("Table {} or its GSIs may not be fully active yet (checked {} times)", tableName, maxAttempts);
     }
 }

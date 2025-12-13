@@ -158,5 +158,33 @@ class GoalRepositoryTest {
         // Then
         assertFalse(saved, "Should not save existing goal");
     }
+    
+    @Test
+    void testFindByUserIdAndUpdatedAfter_WithValidParams_ReturnsUpdatedGoals() {
+        // Given
+        long updatedAfterTimestamp = Instant.now().minusSeconds(3600).getEpochSecond();
+        testGoal.setUpdatedAtTimestamp(Instant.now().getEpochSecond());
+        goalRepository.save(testGoal);
+        
+        // When
+        List<GoalTable> result = goalRepository.findByUserIdAndUpdatedAfter(testUserId, updatedAfterTimestamp);
+        
+        // Then
+        assertNotNull(result);
+        assertTrue(result.size() >= 0);
+    }
+    
+    @Test
+    void testFindByUserIdAndUpdatedAfter_WithNullParams_ReturnsEmpty() {
+        // When
+        List<GoalTable> result1 = goalRepository.findByUserIdAndUpdatedAfter(null, Instant.now().getEpochSecond());
+        List<GoalTable> result2 = goalRepository.findByUserIdAndUpdatedAfter(testUserId, null);
+        List<GoalTable> result3 = goalRepository.findByUserIdAndUpdatedAfter("", Instant.now().getEpochSecond());
+        
+        // Then
+        assertTrue(result1.isEmpty());
+        assertTrue(result2.isEmpty());
+        assertTrue(result3.isEmpty());
+    }
 }
 

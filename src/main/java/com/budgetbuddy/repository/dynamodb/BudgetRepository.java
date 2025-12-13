@@ -11,6 +11,7 @@ import software.amazon.awssdk.enhanced.dynamodb.Key;
 import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
 import software.amazon.awssdk.enhanced.dynamodb.model.QueryConditional;
 import software.amazon.awssdk.core.pagination.sync.SdkIterable;
+import software.amazon.awssdk.services.dynamodb.model.ResourceNotFoundException;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -78,7 +79,11 @@ public class BudgetRepository {
      * Find budgets updated after a specific timestamp using GSI
      * Optimized for incremental sync - queries only changed items
      */
-    @Cacheable(value = "budgets", key = "'user:' + #userId + ':updatedAfter:' + #updatedAfterTimestamp", unless = "#result == null || #result.isEmpty()")
+    /**
+     * CRITICAL: Do NOT cache this method - incremental sync queries must always be fresh
+     * to handle DynamoDB GSI eventual consistency. Caching empty results would prevent
+     * finding updated items until cache expires.
+     */
     public List<BudgetTable> findByUserIdAndUpdatedAfter(String userId, Long updatedAfterTimestamp) {
         if (userId == null || userId.isEmpty() || updatedAfterTimestamp == null) {
             return List.of();
@@ -102,6 +107,22 @@ public class BudgetRepository {
                         results.add(budget);
                     }
                 }
+            }
+        } catch (ResourceNotFoundException e) {
+            // GSI not available - fallback to findByUserId and filter in memory
+            org.slf4j.LoggerFactory.getLogger(BudgetRepository.class)
+                    .warn("UserIdUpdatedAtIndex GSI not found for userId {}. Falling back to findByUserId and filtering in memory.", userId);
+            try {
+                List<BudgetTable> allBudgets = findByUserId(userId);
+                for (BudgetTable budget : allBudgets) {
+                    if (budget.getUpdatedAtTimestamp() != null && 
+                        budget.getUpdatedAtTimestamp() >= updatedAfterTimestamp) {
+                        results.add(budget);
+                    }
+                }
+            } catch (Exception fallbackException) {
+                org.slf4j.LoggerFactory.getLogger(BudgetRepository.class)
+                        .error("Error in fallback query for userId {}: {}", userId, fallbackException.getMessage(), fallbackException);
             }
         } catch (Exception e) {
             org.slf4j.LoggerFactory.getLogger(BudgetRepository.class)

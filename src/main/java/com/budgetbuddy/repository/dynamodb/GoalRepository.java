@@ -14,6 +14,7 @@ import software.amazon.awssdk.enhanced.dynamodb.Expression;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 import software.amazon.awssdk.services.dynamodb.model.ConditionalCheckFailedException;
+import software.amazon.awssdk.services.dynamodb.model.ResourceNotFoundException;
 import software.amazon.awssdk.services.dynamodb.model.UpdateItemRequest;
 import software.amazon.awssdk.core.pagination.sync.SdkIterable;
 
@@ -88,7 +89,11 @@ public class GoalRepository {
      * Find goals updated after a specific timestamp using GSI
      * Optimized for incremental sync - queries only changed items
      */
-    @Cacheable(value = "goals", key = "'user:' + #userId + ':updatedAfter:' + #updatedAfterTimestamp", unless = "#result == null || #result.isEmpty()")
+    /**
+     * CRITICAL: Do NOT cache this method - incremental sync queries must always be fresh
+     * to handle DynamoDB GSI eventual consistency. Caching empty results would prevent
+     * finding updated items until cache expires.
+     */
     public List<GoalTable> findByUserIdAndUpdatedAfter(String userId, Long updatedAfterTimestamp) {
         if (userId == null || userId.isEmpty() || updatedAfterTimestamp == null) {
             return List.of();
@@ -116,6 +121,25 @@ public class GoalRepository {
                 }
             }
             results.sort((g1, g2) -> g1.getTargetDate().compareTo(g2.getTargetDate()));
+        } catch (ResourceNotFoundException e) {
+            // GSI not available - fallback to findByUserId and filter in memory
+            org.slf4j.LoggerFactory.getLogger(GoalRepository.class)
+                    .warn("UserIdUpdatedAtIndex GSI not found for userId {}. Falling back to findByUserId and filtering in memory.", userId);
+            try {
+                List<GoalTable> allGoals = findByUserId(userId);
+                for (GoalTable goal : allGoals) {
+                    if (goal.getUpdatedAtTimestamp() != null && 
+                        goal.getUpdatedAtTimestamp() >= updatedAfterTimestamp) {
+                        if (goal.getActive() == null || goal.getActive()) {
+                            results.add(goal);
+                        }
+                    }
+                }
+                results.sort((g1, g2) -> g1.getTargetDate().compareTo(g2.getTargetDate()));
+            } catch (Exception fallbackException) {
+                org.slf4j.LoggerFactory.getLogger(GoalRepository.class)
+                        .error("Error in fallback query for userId {}: {}", userId, fallbackException.getMessage(), fallbackException);
+            }
         } catch (Exception e) {
             org.slf4j.LoggerFactory.getLogger(GoalRepository.class)
                     .error("Error finding goals by userId and updatedAfter {}: {}", userId, e.getMessage(), e);

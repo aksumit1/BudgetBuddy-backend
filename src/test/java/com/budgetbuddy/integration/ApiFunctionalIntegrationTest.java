@@ -38,7 +38,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * Comprehensive Functional Integration Tests for All APIs
  * Tests all endpoints used by the iOS app
  */
-@SpringBootTest(classes = com.budgetbuddy.BudgetBuddyApplication.class)
+@SpringBootTest(
+    classes = com.budgetbuddy.BudgetBuddyApplication.class,
+    webEnvironment = org.springframework.boot.test.context.SpringBootTest.WebEnvironment.MOCK
+)
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 @Import(AWSTestConfiguration.class)

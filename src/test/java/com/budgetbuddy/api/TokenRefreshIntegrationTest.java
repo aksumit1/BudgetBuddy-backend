@@ -28,7 +28,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * Comprehensive Integration Tests for Token Refresh Endpoint
  * Tests the full flow from registration -> login -> token refresh
  */
-@SpringBootTest(classes = com.budgetbuddy.BudgetBuddyApplication.class)
+@SpringBootTest(
+    classes = com.budgetbuddy.BudgetBuddyApplication.class,
+    webEnvironment = org.springframework.boot.test.context.SpringBootTest.WebEnvironment.MOCK
+)
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 @Import(AWSTestConfiguration.class)

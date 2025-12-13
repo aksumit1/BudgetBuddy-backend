@@ -209,6 +209,7 @@ public class DistributedLock {
      * Exception thrown when lock acquisition fails
      */
     public static class LockAcquisitionException extends RuntimeException {
+        private static final long serialVersionUID = 1L;
         public LockAcquisitionException(final String message) {
             super(message);
         }

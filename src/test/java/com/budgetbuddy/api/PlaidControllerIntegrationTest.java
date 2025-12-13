@@ -33,7 +33,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * Tests the /api/plaid/accounts endpoint with and without accessToken parameter
  * 
  */
-@SpringBootTest(classes = com.budgetbuddy.BudgetBuddyApplication.class)
+@SpringBootTest(
+    classes = com.budgetbuddy.BudgetBuddyApplication.class,
+    webEnvironment = org.springframework.boot.test.context.SpringBootTest.WebEnvironment.MOCK
+)
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 @Import(AWSTestConfiguration.class)

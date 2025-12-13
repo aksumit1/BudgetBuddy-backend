@@ -12,6 +12,7 @@ import software.amazon.awssdk.enhanced.dynamodb.Key;
 import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
 import software.amazon.awssdk.enhanced.dynamodb.model.Page;
 import software.amazon.awssdk.enhanced.dynamodb.model.QueryConditional;
+import software.amazon.awssdk.services.dynamodb.model.ResourceNotFoundException;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -117,7 +118,11 @@ public class TransactionActionRepository {
      * Find transaction actions updated after a specific timestamp using GSI
      * Optimized for incremental sync - queries only changed items
      */
-    @Cacheable(value = "transactionActions", key = "'user:' + #userId + ':updatedAfter:' + #updatedAfterTimestamp", unless = "#result == null || #result.isEmpty()")
+    /**
+     * CRITICAL: Do NOT cache this method - incremental sync queries must always be fresh
+     * to handle DynamoDB GSI eventual consistency. Caching empty results would prevent
+     * finding updated items until cache expires.
+     */
     public List<TransactionActionTable> findByUserIdAndUpdatedAfter(String userId, Long updatedAfterTimestamp) {
         if (userId == null || userId.isEmpty() || updatedAfterTimestamp == null) {
             return List.of();
@@ -140,6 +145,22 @@ public class TransactionActionRepository {
                         results.add(action);
                     }
                 }
+            }
+        } catch (ResourceNotFoundException e) {
+            // GSI not available - fallback to findByUserId and filter in memory
+            org.slf4j.LoggerFactory.getLogger(TransactionActionRepository.class)
+                    .warn("UserIdUpdatedAtIndex GSI not found for userId {}. Falling back to findByUserId and filtering in memory.", userId);
+            try {
+                List<TransactionActionTable> allActions = findByUserId(userId);
+                for (TransactionActionTable action : allActions) {
+                    if (action.getUpdatedAtTimestamp() != null && 
+                        action.getUpdatedAtTimestamp() >= updatedAfterTimestamp) {
+                        results.add(action);
+                    }
+                }
+            } catch (Exception fallbackException) {
+                org.slf4j.LoggerFactory.getLogger(TransactionActionRepository.class)
+                        .error("Error in fallback query for userId {}: {}", userId, fallbackException.getMessage(), fallbackException);
             }
         } catch (Exception e) {
             org.slf4j.LoggerFactory.getLogger(TransactionActionRepository.class)

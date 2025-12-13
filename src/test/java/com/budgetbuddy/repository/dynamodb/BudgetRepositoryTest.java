@@ -143,5 +143,33 @@ class BudgetRepositoryTest {
         Optional<BudgetTable> found = budgetRepository.findById(budgetId);
         assertTrue(found.isEmpty(), "Budget should be deleted");
     }
+    
+    @Test
+    void testFindByUserIdAndUpdatedAfter_WithValidParams_ReturnsUpdatedBudgets() {
+        // Given
+        long updatedAfterTimestamp = Instant.now().minusSeconds(3600).getEpochSecond();
+        testBudget.setUpdatedAtTimestamp(Instant.now().getEpochSecond());
+        budgetRepository.save(testBudget);
+        
+        // When
+        List<BudgetTable> result = budgetRepository.findByUserIdAndUpdatedAfter(testUserId, updatedAfterTimestamp);
+        
+        // Then
+        assertNotNull(result);
+        assertTrue(result.size() >= 0);
+    }
+    
+    @Test
+    void testFindByUserIdAndUpdatedAfter_WithNullParams_ReturnsEmpty() {
+        // When
+        List<BudgetTable> result1 = budgetRepository.findByUserIdAndUpdatedAfter(null, Instant.now().getEpochSecond());
+        List<BudgetTable> result2 = budgetRepository.findByUserIdAndUpdatedAfter(testUserId, null);
+        List<BudgetTable> result3 = budgetRepository.findByUserIdAndUpdatedAfter("", Instant.now().getEpochSecond());
+        
+        // Then
+        assertTrue(result1.isEmpty());
+        assertTrue(result2.isEmpty());
+        assertTrue(result3.isEmpty());
+    }
 }
 

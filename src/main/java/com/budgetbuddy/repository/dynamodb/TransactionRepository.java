@@ -20,6 +20,7 @@ import software.amazon.awssdk.services.dynamodb.model.BatchWriteItemResponse;
 import software.amazon.awssdk.services.dynamodb.model.ConditionalCheckFailedException;
 import software.amazon.awssdk.services.dynamodb.model.KeysAndAttributes;
 import software.amazon.awssdk.services.dynamodb.model.PutRequest;
+import software.amazon.awssdk.services.dynamodb.model.ResourceNotFoundException;
 import software.amazon.awssdk.services.dynamodb.model.WriteRequest;
 import software.amazon.awssdk.core.pagination.sync.SdkIterable;
 
@@ -116,67 +117,195 @@ public class TransactionRepository {
         int duplicateCount = 0;
         int uniqueItemCount = 0; // Track unique items (after deduplication) for skip logic
         
-        SdkIterable<software.amazon.awssdk.enhanced.dynamodb.model.Page<TransactionTable>>
-                pages = userIdDateIndex.query(
-                        QueryConditional.keyEqualTo(
-                                Key.builder().partitionValue(userId).build()));
-        for (software.amazon.awssdk.enhanced.dynamodb.model.Page<TransactionTable>
-                page : pages) {
-            for (TransactionTable item : page.items()) {
-                // CRITICAL FIX: Check for duplicates FIRST, before skip logic
-                // This ensures all items are tracked in seen sets, preventing duplicates
-                // from appearing after skip point
-                String transactionId = item.getTransactionId();
-                String plaidTransactionId = item.getPlaidTransactionId();
-                boolean isDuplicate = false;
-                
-                // Check for duplicates by transactionId
-                if (transactionId != null && seenTransactionIds.contains(transactionId)) {
-                    duplicateCount++;
-                    org.slf4j.LoggerFactory.getLogger(TransactionRepository.class)
-                            .warn("Duplicate transaction detected by transactionId and filtered: transactionId={}, plaidTransactionId={}, description={}", 
-                                    transactionId, plaidTransactionId, item.getDescription());
-                    isDuplicate = true;
-                }
-                
-                // Check for duplicates by plaidTransactionId (if present)
-                if (!isDuplicate && plaidTransactionId != null && !plaidTransactionId.isEmpty()) {
-                    if (seenPlaidTransactionIds.contains(plaidTransactionId)) {
+        try {
+            SdkIterable<software.amazon.awssdk.enhanced.dynamodb.model.Page<TransactionTable>>
+                    pages = userIdDateIndex.query(
+                            QueryConditional.keyEqualTo(
+                                    Key.builder().partitionValue(userId).build()));
+            for (software.amazon.awssdk.enhanced.dynamodb.model.Page<TransactionTable>
+                    page : pages) {
+                for (TransactionTable item : page.items()) {
+                    // CRITICAL FIX: Check for duplicates FIRST, before skip logic
+                    // This ensures all items are tracked in seen sets, preventing duplicates
+                    // from appearing after skip point
+                    String transactionId = item.getTransactionId();
+                    String plaidTransactionId = item.getPlaidTransactionId();
+                    boolean isDuplicate = false;
+                    
+                    // Check for duplicates by transactionId
+                    if (transactionId != null && seenTransactionIds.contains(transactionId)) {
                         duplicateCount++;
                         org.slf4j.LoggerFactory.getLogger(TransactionRepository.class)
-                                .warn("Duplicate transaction detected by plaidTransactionId and filtered: transactionId={}, plaidTransactionId={}, description={}", 
+                                .warn("Duplicate transaction detected by transactionId and filtered: transactionId={}, plaidTransactionId={}, description={}", 
                                         transactionId, plaidTransactionId, item.getDescription());
                         isDuplicate = true;
                     }
-                }
-                
-                // If duplicate, skip to next item (but continue tracking in seen sets if needed)
-                if (isDuplicate) {
-                    continue;
-                }
-                
-                // Transaction is unique - track it in seen sets
-                if (transactionId != null) {
-                    seenTransactionIds.add(transactionId);
-                }
-                if (plaidTransactionId != null && !plaidTransactionId.isEmpty()) {
-                    seenPlaidTransactionIds.add(plaidTransactionId);
-                }
-                
-                // Now apply skip logic after deduplication
-                if (uniqueItemCount >= adjustedSkip) {
-                    // Add to results (this is after skip point and unique)
-                    results.add(item);
-                    if (results.size() >= adjustedLimit) {
-                        if (duplicateCount > 0) {
+                    
+                    // Check for duplicates by plaidTransactionId (if present)
+                    if (!isDuplicate && plaidTransactionId != null && !plaidTransactionId.isEmpty()) {
+                        if (seenPlaidTransactionIds.contains(plaidTransactionId)) {
+                            duplicateCount++;
                             org.slf4j.LoggerFactory.getLogger(TransactionRepository.class)
-                                    .info("findByUserId({}): Filtered {} duplicate transactions, returning {} unique transactions",
-                                            userId, duplicateCount, results.size());
+                                    .warn("Duplicate transaction detected by plaidTransactionId and filtered: transactionId={}, plaidTransactionId={}, description={}", 
+                                            transactionId, plaidTransactionId, item.getDescription());
+                            isDuplicate = true;
                         }
-                        return results;
+                    }
+                    
+                    // If duplicate, skip to next item (but continue tracking in seen sets if needed)
+                    if (isDuplicate) {
+                        continue;
+                    }
+                    
+                    // Transaction is unique - track it in seen sets
+                    if (transactionId != null) {
+                        seenTransactionIds.add(transactionId);
+                    }
+                    if (plaidTransactionId != null && !plaidTransactionId.isEmpty()) {
+                        seenPlaidTransactionIds.add(plaidTransactionId);
+                    }
+                    
+                    // Now apply skip logic after deduplication
+                    if (uniqueItemCount >= adjustedSkip) {
+                        // Add to results (this is after skip point and unique)
+                        results.add(item);
+                        if (results.size() >= adjustedLimit) {
+                            if (duplicateCount > 0) {
+                                org.slf4j.LoggerFactory.getLogger(TransactionRepository.class)
+                                        .info("findByUserId({}): Filtered {} duplicate transactions, returning {} unique transactions",
+                                                userId, duplicateCount, results.size());
+                            }
+                            return results;
+                        }
+                    }
+                    uniqueItemCount++; // Count unique items for skip logic
+                }
+            }
+        } catch (ResourceNotFoundException e) {
+            // GSI not available - fallback to scan and filter in memory
+            org.slf4j.LoggerFactory.getLogger(TransactionRepository.class)
+                    .warn("UserIdDateIndex GSI not found for userId {}. Falling back to scan and filtering in memory.", userId);
+            try {
+                // Fallback: scan table and filter by userId
+                SdkIterable<software.amazon.awssdk.enhanced.dynamodb.model.Page<TransactionTable>> scanPages = transactionTable.scan();
+                for (software.amazon.awssdk.enhanced.dynamodb.model.Page<TransactionTable> page : scanPages) {
+                    for (TransactionTable item : page.items()) {
+                        if (item == null || !userId.equals(item.getUserId())) {
+                            continue;
+                        }
+                        
+                        // Deduplicate
+                        String transactionId = item.getTransactionId();
+                        String plaidTransactionId = item.getPlaidTransactionId();
+                        boolean isDuplicate = false;
+                        
+                        if (transactionId != null && seenTransactionIds.contains(transactionId)) {
+                            duplicateCount++;
+                            isDuplicate = true;
+                        }
+                        if (!isDuplicate && plaidTransactionId != null && !plaidTransactionId.isEmpty() &&
+                            seenPlaidTransactionIds.contains(plaidTransactionId)) {
+                            duplicateCount++;
+                            isDuplicate = true;
+                        }
+                        
+                        if (!isDuplicate) {
+                            if (transactionId != null) {
+                                seenTransactionIds.add(transactionId);
+                            }
+                            if (plaidTransactionId != null && !plaidTransactionId.isEmpty()) {
+                                seenPlaidTransactionIds.add(plaidTransactionId);
+                            }
+                            
+                            // Apply skip logic
+                            if (uniqueItemCount >= adjustedSkip) {
+                                results.add(item);
+                                if (results.size() >= adjustedLimit) {
+                                    if (duplicateCount > 0) {
+                                        org.slf4j.LoggerFactory.getLogger(TransactionRepository.class)
+                                                .info("findByUserId({}): Filtered {} duplicate transactions, returning {} unique transactions (fallback scan)",
+                                                        userId, duplicateCount, results.size());
+                                    }
+                                    return results;
+                                }
+                            }
+                            uniqueItemCount++;
+                        }
                     }
                 }
-                uniqueItemCount++; // Count unique items for skip logic
+            } catch (Exception fallbackException) {
+                org.slf4j.LoggerFactory.getLogger(TransactionRepository.class)
+                        .error("Error in fallback scan for userId {}: {}", userId, fallbackException.getMessage(), fallbackException);
+                // Return empty list if fallback also fails
+                return List.of();
+            }
+        } catch (RuntimeException e) {
+            // Check if the RuntimeException wraps a ResourceNotFoundException
+            Throwable cause = e.getCause();
+            String errorMessage = e.getMessage() != null ? e.getMessage().toLowerCase() : "";
+            if (cause instanceof ResourceNotFoundException ||
+                errorMessage.contains("index not found") ||
+                errorMessage.contains("resource not found")) {
+                // GSI not available - fallback to scan and filter in memory
+                org.slf4j.LoggerFactory.getLogger(TransactionRepository.class)
+                        .warn("UserIdDateIndex GSI not found for userId {} (wrapped exception). Falling back to scan and filtering in memory.", userId);
+                try {
+                    // Fallback: scan table and filter by userId
+                    SdkIterable<software.amazon.awssdk.enhanced.dynamodb.model.Page<TransactionTable>> scanPages = transactionTable.scan();
+                    for (software.amazon.awssdk.enhanced.dynamodb.model.Page<TransactionTable> page : scanPages) {
+                        for (TransactionTable item : page.items()) {
+                            if (item == null || !userId.equals(item.getUserId())) {
+                                continue;
+                            }
+                            
+                            // Deduplicate
+                            String transactionId = item.getTransactionId();
+                            String plaidTransactionId = item.getPlaidTransactionId();
+                            boolean isDuplicate = false;
+                            
+                            if (transactionId != null && seenTransactionIds.contains(transactionId)) {
+                                duplicateCount++;
+                                isDuplicate = true;
+                            }
+                            if (!isDuplicate && plaidTransactionId != null && !plaidTransactionId.isEmpty() &&
+                                seenPlaidTransactionIds.contains(plaidTransactionId)) {
+                                duplicateCount++;
+                                isDuplicate = true;
+                            }
+                            
+                            if (!isDuplicate) {
+                                if (transactionId != null) {
+                                    seenTransactionIds.add(transactionId);
+                                }
+                                if (plaidTransactionId != null && !plaidTransactionId.isEmpty()) {
+                                    seenPlaidTransactionIds.add(plaidTransactionId);
+                                }
+                                
+                                // Apply skip logic
+                                if (uniqueItemCount >= adjustedSkip) {
+                                    results.add(item);
+                                    if (results.size() >= adjustedLimit) {
+                                        if (duplicateCount > 0) {
+                                            org.slf4j.LoggerFactory.getLogger(TransactionRepository.class)
+                                                    .info("findByUserId({}): Filtered {} duplicate transactions, returning {} unique transactions (fallback scan)",
+                                                            userId, duplicateCount, results.size());
+                                        }
+                                        return results;
+                                    }
+                                }
+                                uniqueItemCount++;
+                            }
+                        }
+                    }
+                } catch (Exception fallbackException) {
+                    org.slf4j.LoggerFactory.getLogger(TransactionRepository.class)
+                            .error("Error in fallback scan for userId {}: {}", userId, fallbackException.getMessage(), fallbackException);
+                    // Return empty list if fallback also fails
+                    return List.of();
+                }
+            } else {
+                // Re-throw if it's not a ResourceNotFoundException
+                throw e;
             }
         }
         
@@ -220,79 +349,179 @@ public class TransactionRepository {
         Set<String> seenPlaidTransactionIds = new HashSet<>();
         int duplicateCount = 0;
         
-        SdkIterable<software.amazon.awssdk.enhanced.dynamodb.model.Page<TransactionTable>>
-                pages = userIdDateIndex.query(
-                        QueryConditional.keyEqualTo(
-                                Key.builder().partitionValue(userId).build()));
-        for (software.amazon.awssdk.enhanced.dynamodb.model.Page<TransactionTable>
-                page : pages) {
-            for (TransactionTable t : page.items()) {
-                if (t == null) {
-                    continue;
-                }
-                
-                // CRITICAL FIX: Check for duplicates FIRST, before date range filtering
-                // This ensures all items are tracked in seen sets, preventing duplicates
-                // even if they appear outside the date range
-                String transactionId = t.getTransactionId();
-                String plaidTransactionId = t.getPlaidTransactionId();
-                boolean isDuplicate = false;
-                
-                // Check for duplicates by transactionId
-                if (transactionId != null && seenTransactionIds.contains(transactionId)) {
-                    duplicateCount++;
-                    org.slf4j.LoggerFactory.getLogger(TransactionRepository.class)
-                            .warn("Duplicate transaction detected by transactionId and filtered: transactionId={}, plaidTransactionId={}, date={}, description={}", 
-                                    transactionId, plaidTransactionId, t.getTransactionDate(), t.getDescription());
-                    isDuplicate = true;
-                }
-                
-                // Check for duplicates by plaidTransactionId (if present)
-                if (!isDuplicate && plaidTransactionId != null && !plaidTransactionId.isEmpty()) {
-                    if (seenPlaidTransactionIds.contains(plaidTransactionId)) {
+        try {
+            SdkIterable<software.amazon.awssdk.enhanced.dynamodb.model.Page<TransactionTable>>
+                    pages = userIdDateIndex.query(
+                            QueryConditional.keyEqualTo(
+                                    Key.builder().partitionValue(userId).build()));
+            for (software.amazon.awssdk.enhanced.dynamodb.model.Page<TransactionTable>
+                    page : pages) {
+                for (TransactionTable t : page.items()) {
+                    if (t == null) {
+                        continue;
+                    }
+                    
+                    // CRITICAL FIX: Check for duplicates FIRST, before date range filtering
+                    // This ensures all items are tracked in seen sets, preventing duplicates
+                    // even if they appear outside the date range
+                    String transactionId = t.getTransactionId();
+                    String plaidTransactionId = t.getPlaidTransactionId();
+                    boolean isDuplicate = false;
+                    
+                    // Check for duplicates by transactionId
+                    if (transactionId != null && seenTransactionIds.contains(transactionId)) {
                         duplicateCount++;
                         org.slf4j.LoggerFactory.getLogger(TransactionRepository.class)
-                                .warn("Duplicate transaction detected by plaidTransactionId and filtered: transactionId={}, plaidTransactionId={}, date={}, description={}", 
+                                .warn("Duplicate transaction detected by transactionId and filtered: transactionId={}, plaidTransactionId={}, date={}, description={}", 
                                         transactionId, plaidTransactionId, t.getTransactionDate(), t.getDescription());
                         isDuplicate = true;
                     }
-                }
-                
-                // Track transaction in seen sets (even if duplicate or outside date range)
-                // This ensures proper deduplication across all transactions
-                if (!isDuplicate) {
-                    if (transactionId != null) {
-                        seenTransactionIds.add(transactionId);
-                    }
-                    if (plaidTransactionId != null && !plaidTransactionId.isEmpty()) {
-                        seenPlaidTransactionIds.add(plaidTransactionId);
-                    }
-                }
-                
-                // If duplicate, skip to next item
-                if (isDuplicate) {
-                    continue;
-                }
-                
-                // Now check date range after deduplication
-                if (t.getTransactionDate() != null) {
-                    String txDate = t.getTransactionDate();
-                    // Compare dates as strings (ISO-8601 format allows
-                    // lexicographic comparison)
-                    if (txDate.compareTo(startDate) >= 0
-                            && txDate.compareTo(endDate) <= 0) {
-                        // Transaction is unique and within date range, add to results
-                        results.add(t);
-                        
-                        final int safetyLimit = 1000;
-                        if (results.size() >= safetyLimit) {
+                    
+                    // Check for duplicates by plaidTransactionId (if present)
+                    if (!isDuplicate && plaidTransactionId != null && !plaidTransactionId.isEmpty()) {
+                        if (seenPlaidTransactionIds.contains(plaidTransactionId)) {
+                            duplicateCount++;
                             org.slf4j.LoggerFactory.getLogger(TransactionRepository.class)
-                                    .warn("Reached safety limit of {} transactions for user {} in date range {} to {} ({} duplicates filtered)",
-                                            safetyLimit, userId, startDate, endDate, duplicateCount);
-                            return results;
+                                    .warn("Duplicate transaction detected by plaidTransactionId and filtered: transactionId={}, plaidTransactionId={}, date={}, description={}", 
+                                            transactionId, plaidTransactionId, t.getTransactionDate(), t.getDescription());
+                            isDuplicate = true;
+                        }
+                    }
+                    
+                    // Track transaction in seen sets (even if duplicate or outside date range)
+                    // This ensures proper deduplication across all transactions
+                    if (!isDuplicate) {
+                        if (transactionId != null) {
+                            seenTransactionIds.add(transactionId);
+                        }
+                        if (plaidTransactionId != null && !plaidTransactionId.isEmpty()) {
+                            seenPlaidTransactionIds.add(plaidTransactionId);
+                        }
+                    }
+                    
+                    // If duplicate, skip to next item
+                    if (isDuplicate) {
+                        continue;
+                    }
+                    
+                    // Now check date range after deduplication
+                    if (t.getTransactionDate() != null) {
+                        String txDate = t.getTransactionDate();
+                        // Compare dates as strings (ISO-8601 format allows
+                        // lexicographic comparison)
+                        if (txDate.compareTo(startDate) >= 0
+                                && txDate.compareTo(endDate) <= 0) {
+                            // Transaction is unique and within date range, add to results
+                            results.add(t);
+                            
+                            final int safetyLimit = 1000;
+                            if (results.size() >= safetyLimit) {
+                                org.slf4j.LoggerFactory.getLogger(TransactionRepository.class)
+                                        .warn("Reached safety limit of {} transactions for user {} in date range {} to {} ({} duplicates filtered)",
+                                                safetyLimit, userId, startDate, endDate, duplicateCount);
+                                return results;
+                            }
                         }
                     }
                 }
+            }
+        } catch (ResourceNotFoundException e) {
+            // GSI not available - fallback to findByUserId and filter in memory
+            org.slf4j.LoggerFactory.getLogger(TransactionRepository.class)
+                    .warn("UserIdDateIndex GSI not found for userId {}. Falling back to findByUserId and filtering in memory.", userId);
+            try {
+                List<TransactionTable> allTransactions = findByUserId(userId, 0, Integer.MAX_VALUE);
+                Set<String> seenTransactionIdsFallback = new HashSet<>();
+                Set<String> seenPlaidTransactionIdsFallback = new HashSet<>();
+                for (TransactionTable t : allTransactions) {
+                    if (t == null) {
+                        continue;
+                    }
+                    // Deduplicate
+                    String transactionId = t.getTransactionId();
+                    String plaidTransactionId = t.getPlaidTransactionId();
+                    boolean isDuplicate = false;
+                    if (transactionId != null && seenTransactionIdsFallback.contains(transactionId)) {
+                        isDuplicate = true;
+                    }
+                    if (!isDuplicate && plaidTransactionId != null && !plaidTransactionId.isEmpty() && 
+                        seenPlaidTransactionIdsFallback.contains(plaidTransactionId)) {
+                        isDuplicate = true;
+                    }
+                    if (!isDuplicate) {
+                        if (transactionId != null) {
+                            seenTransactionIdsFallback.add(transactionId);
+                        }
+                        if (plaidTransactionId != null && !plaidTransactionId.isEmpty()) {
+                            seenPlaidTransactionIdsFallback.add(plaidTransactionId);
+                        }
+                        // Filter by date range
+                        if (t.getTransactionDate() != null) {
+                            String txDate = t.getTransactionDate();
+                            if (txDate.compareTo(startDate) >= 0 && txDate.compareTo(endDate) <= 0) {
+                                results.add(t);
+                            }
+                        }
+                    }
+                }
+            } catch (Exception fallbackException) {
+                org.slf4j.LoggerFactory.getLogger(TransactionRepository.class)
+                        .error("Error in fallback query for userId {}: {}", userId, fallbackException.getMessage(), fallbackException);
+            }
+        } catch (RuntimeException e) {
+            // Check if the RuntimeException wraps a ResourceNotFoundException or indicates missing index
+            Throwable cause = e.getCause();
+            String errorMessage = e.getMessage() != null ? e.getMessage().toLowerCase() : "";
+            if (cause instanceof ResourceNotFoundException || 
+                errorMessage.contains("index not found") || 
+                errorMessage.contains("resource not found")) {
+                // GSI not available - fallback to findByUserId and filter in memory
+                org.slf4j.LoggerFactory.getLogger(TransactionRepository.class)
+                        .warn("UserIdDateIndex GSI not found for userId {} (wrapped exception). Falling back to findByUserId and filtering in memory.", userId);
+                try {
+                    List<TransactionTable> allTransactions = findByUserId(userId, 0, Integer.MAX_VALUE);
+                    Set<String> seenTransactionIdsFallback = new HashSet<>();
+                    Set<String> seenPlaidTransactionIdsFallback = new HashSet<>();
+                    for (TransactionTable t : allTransactions) {
+                        if (t == null) {
+                            continue;
+                        }
+                        // Deduplicate
+                        String transactionId = t.getTransactionId();
+                        String plaidTransactionId = t.getPlaidTransactionId();
+                        boolean isDuplicate = false;
+                        if (transactionId != null && seenTransactionIdsFallback.contains(transactionId)) {
+                            isDuplicate = true;
+                        }
+                        if (!isDuplicate && plaidTransactionId != null && !plaidTransactionId.isEmpty() && 
+                            seenPlaidTransactionIdsFallback.contains(plaidTransactionId)) {
+                            isDuplicate = true;
+                        }
+                        if (!isDuplicate) {
+                            if (transactionId != null) {
+                                seenTransactionIdsFallback.add(transactionId);
+                            }
+                            if (plaidTransactionId != null && !plaidTransactionId.isEmpty()) {
+                                seenPlaidTransactionIdsFallback.add(plaidTransactionId);
+                            }
+                            // Filter by date range
+                            if (t.getTransactionDate() != null) {
+                                String txDate = t.getTransactionDate();
+                                if (txDate.compareTo(startDate) >= 0 && txDate.compareTo(endDate) <= 0) {
+                                    results.add(t);
+                                }
+                            }
+                        }
+                    }
+                } catch (Exception fallbackException) {
+                    org.slf4j.LoggerFactory.getLogger(TransactionRepository.class)
+                            .error("Error in fallback query for userId {}: {}", userId, fallbackException.getMessage(), fallbackException);
+                    // Return empty list if fallback fails
+                    return results;
+                }
+            } else {
+                // Not a ResourceNotFoundException - rethrow
+                throw e;
             }
         }
         
@@ -308,7 +537,11 @@ public class TransactionRepository {
      * Find transactions updated after a specific timestamp using GSI
      * Optimized for incremental sync - queries only changed items
      */
-    @Cacheable(value = "transactions", key = "'user:' + #userId + ':updatedAfter:' + #updatedAfterTimestamp + ':limit:' + #limit", unless = "#result == null || #result.isEmpty()")
+    /**
+     * CRITICAL: Do NOT cache this method - incremental sync queries must always be fresh
+     * to handle DynamoDB GSI eventual consistency. Caching empty results would prevent
+     * finding updated items until cache expires.
+     */
     public List<TransactionTable> findByUserIdAndUpdatedAfter(String userId, Long updatedAfterTimestamp, int limit) {
         if (userId == null || userId.isEmpty() || updatedAfterTimestamp == null) {
             return List.of();
@@ -349,9 +582,91 @@ public class TransactionRepository {
                     break;
                 }
             }
-        } catch (Exception e) {
+        } catch (ResourceNotFoundException e) {
+            // GSI not available - fallback to findByUserId and filter in memory
             org.slf4j.LoggerFactory.getLogger(TransactionRepository.class)
-                    .error("Error finding transactions by userId and updatedAfter {}: {}", userId, e.getMessage(), e);
+                    .warn("UserIdUpdatedAtIndex GSI not found for userId {}. Falling back to findByUserId and filtering in memory.", userId);
+            try {
+                List<TransactionTable> allTransactions = findByUserId(userId, 0, Integer.MAX_VALUE);
+                int count = 0;
+                for (TransactionTable transaction : allTransactions) {
+                    if (transaction.getUpdatedAtTimestamp() != null && 
+                        transaction.getUpdatedAtTimestamp() >= updatedAfterTimestamp) {
+                        if (count >= adjustedLimit) {
+                            break;
+                        }
+                        results.add(transaction);
+                        count++;
+                    }
+                }
+            } catch (Exception fallbackException) {
+                org.slf4j.LoggerFactory.getLogger(TransactionRepository.class)
+                        .error("Error in fallback query for userId {}: {}", userId, fallbackException.getMessage(), fallbackException);
+            }
+        } catch (RuntimeException e) {
+            // Check if the RuntimeException wraps a ResourceNotFoundException or indicates missing index
+            Throwable cause = e.getCause();
+            String errorMessage = e.getMessage() != null ? e.getMessage().toLowerCase() : "";
+            if (cause instanceof ResourceNotFoundException || 
+                errorMessage.contains("index not found") || 
+                errorMessage.contains("resource not found")) {
+                // GSI not available - fallback to findByUserId and filter in memory
+                org.slf4j.LoggerFactory.getLogger(TransactionRepository.class)
+                        .warn("UserIdUpdatedAtIndex GSI not found for userId {} (wrapped exception). Falling back to findByUserId and filtering in memory.", userId);
+                try {
+                    List<TransactionTable> allTransactions = findByUserId(userId, 0, Integer.MAX_VALUE);
+                    int count = 0;
+                    for (TransactionTable transaction : allTransactions) {
+                        if (transaction.getUpdatedAtTimestamp() != null && 
+                            transaction.getUpdatedAtTimestamp() >= updatedAfterTimestamp) {
+                            if (count >= adjustedLimit) {
+                                break;
+                            }
+                            results.add(transaction);
+                            count++;
+                        }
+                    }
+                } catch (Exception fallbackException) {
+                    org.slf4j.LoggerFactory.getLogger(TransactionRepository.class)
+                            .error("Error in fallback query for userId {}: {}", userId, fallbackException.getMessage(), fallbackException);
+                    // Return empty list if fallback fails
+                    return results;
+                }
+            } else {
+                // Not a ResourceNotFoundException - log as error
+                org.slf4j.LoggerFactory.getLogger(TransactionRepository.class)
+                        .error("Error finding transactions by userId and updatedAfter {}: {}", userId, e.getMessage(), e);
+            }
+        } catch (Exception e) {
+            // Check if the exception message indicates missing index
+            String errorMessage = e.getMessage() != null ? e.getMessage().toLowerCase() : "";
+            if (errorMessage.contains("index not found") || errorMessage.contains("resource not found")) {
+                // GSI not available - fallback to findByUserId and filter in memory
+                org.slf4j.LoggerFactory.getLogger(TransactionRepository.class)
+                        .warn("UserIdUpdatedAtIndex GSI not found for userId {} (detected from error message). Falling back to findByUserId and filtering in memory.", userId);
+                try {
+                    List<TransactionTable> allTransactions = findByUserId(userId, 0, Integer.MAX_VALUE);
+                    int count = 0;
+                    for (TransactionTable transaction : allTransactions) {
+                        if (transaction.getUpdatedAtTimestamp() != null && 
+                            transaction.getUpdatedAtTimestamp() >= updatedAfterTimestamp) {
+                            if (count >= adjustedLimit) {
+                                break;
+                            }
+                            results.add(transaction);
+                            count++;
+                        }
+                    }
+                } catch (Exception fallbackException) {
+                    org.slf4j.LoggerFactory.getLogger(TransactionRepository.class)
+                            .error("Error in fallback query for userId {}: {}", userId, fallbackException.getMessage(), fallbackException);
+                    // Return empty list if fallback fails
+                    return results;
+                }
+            } else {
+                org.slf4j.LoggerFactory.getLogger(TransactionRepository.class)
+                        .error("Error finding transactions by userId and updatedAfter {}: {}", userId, e.getMessage(), e);
+            }
         }
         
         return results;

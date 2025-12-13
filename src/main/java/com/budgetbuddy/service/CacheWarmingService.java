@@ -135,7 +135,7 @@ public class CacheWarmingService {
                 .toList();
 
         // Wait for all to complete
-        CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
+        CompletableFuture.allOf(futures.toArray(new CompletableFuture<?>[0])).join();
 
         long duration = System.currentTimeMillis() - startTime;
         logger.info("Cache warm-up completed for {} users in {}ms", userIds.size(), duration);

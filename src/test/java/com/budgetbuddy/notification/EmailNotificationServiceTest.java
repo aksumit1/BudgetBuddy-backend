@@ -45,7 +45,7 @@ class EmailNotificationServiceTest {
 
     @BeforeEach
     void setUp() {
-        emailService = new EmailNotificationService(sesClient, testFromEmail, objectMapper);
+        emailService = new EmailNotificationService(sesClient, testFromEmail, objectMapper, true, null);
         
         // Set up log appender to capture log events for verification
         logger = (Logger) LoggerFactory.getLogger(EmailNotificationService.class);

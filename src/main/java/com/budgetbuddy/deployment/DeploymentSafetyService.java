@@ -4,6 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.client.RestTemplateBuilder;
+import org.springframework.core.env.Environment;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
@@ -44,8 +45,11 @@ public class DeploymentSafetyService {
     private List<String> smokeTestEndpoints;
 
     private final RestTemplate restTemplate;
+    private final boolean isTestEnvironment;
 
-    public DeploymentSafetyService(final RestTemplateBuilder restTemplateBuilder) {
+    public DeploymentSafetyService(
+            final RestTemplateBuilder restTemplateBuilder,
+            final Environment environment) {
         // Use request factory to set timeouts (replacement for deprecated setConnectTimeout/setReadTimeout)
         // Configure connection pool limits to prevent connection leaks
         final SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
@@ -59,6 +63,22 @@ public class DeploymentSafetyService {
         this.restTemplate = restTemplateBuilder
                 .requestFactory(() -> requestFactory)
                 .build();
+        
+        // Detect test environment
+        boolean isTest = false;
+        if (environment != null) {
+            try {
+                isTest = environment.acceptsProfiles(org.springframework.core.env.Profiles.of("test"));
+            } catch (Exception e) {
+                String activeProfiles = environment.getProperty("spring.profiles.active", "");
+                isTest = activeProfiles.contains("test");
+            }
+        }
+        if (!isTest) {
+            String sysProp = System.getProperty("spring.profiles.active", "");
+            isTest = sysProp.contains("test");
+        }
+        this.isTestEnvironment = isTest;
     }
 
     /**
@@ -66,7 +86,13 @@ public class DeploymentSafetyService {
      */
     public DeploymentValidationResult validateDeployment(final String baseUrl) {
         if (baseUrl == null || baseUrl.isEmpty()) {
-            logger.error("Base URL is null or empty");
+            // In test environments, this is expected - log at DEBUG level
+            // In production, log at WARN level (not ERROR, as this is a handled condition)
+            if (isTestEnvironment) {
+                logger.debug("Base URL is null or empty (expected in test environment)");
+            } else {
+                logger.warn("Base URL is null or empty");
+            }
             DeploymentValidationResult result = new DeploymentValidationResult();
             result.setHealthy(false);
             result.setErrorMessage("Base URL is null or empty");
@@ -96,7 +122,12 @@ public class DeploymentSafetyService {
                     }
                 }
             } catch (Exception e) {
-                logger.warn("Health check attempt {} failed: {}", attempt, e.getMessage());
+                // In test environments, connection refused is expected - log at DEBUG
+                if (isTestEnvironment && (e.getMessage() != null && e.getMessage().contains("Connection refused"))) {
+                    logger.debug("Health check attempt {} failed (expected in test): {}", attempt, e.getMessage());
+                } else {
+                    logger.warn("Health check attempt {} failed: {}", attempt, e.getMessage());
+                }
                 errorMessage = e.getMessage();
             }
 
@@ -143,7 +174,12 @@ public class DeploymentSafetyService {
      */
     public SmokeTestResult runSmokeTests(final String baseUrl) {
         if (baseUrl == null || baseUrl.isEmpty()) {
-            logger.error("Base URL is null or empty for smoke tests");
+            // In test environments, this is expected - log at DEBUG level
+            if (isTestEnvironment) {
+                logger.debug("Base URL is null or empty for smoke tests (expected in test environment)");
+            } else {
+                logger.warn("Base URL is null or empty for smoke tests");
+            }
             SmokeTestResult result = new SmokeTestResult();
             result.setBaseUrl(baseUrl);
             result.setPassed(false);
@@ -206,14 +242,24 @@ public class DeploymentSafetyService {
      */
     public boolean isDeploymentReady(final String baseUrl) {
         if (baseUrl == null || baseUrl.isEmpty()) {
-            logger.error("Base URL is null or empty");
+            // In test environments, this is expected - log at DEBUG level
+            if (isTestEnvironment) {
+                logger.debug("Base URL is null or empty (expected in test environment)");
+            } else {
+                logger.warn("Base URL is null or empty");
+            }
             return false;
         }
 
         DeploymentValidationResult healthResult = validateDeployment(baseUrl);
 
         if (!healthResult.isHealthy()) {
-            logger.error("Deployment health check failed: {}", healthResult.getErrorMessage());
+            // In test environments, health check failures are expected - log at DEBUG
+            if (isTestEnvironment) {
+                logger.debug("Deployment health check failed (expected in test): {}", healthResult.getErrorMessage());
+            } else {
+                logger.error("Deployment health check failed: {}", healthResult.getErrorMessage());
+            }
             return false;
         }
 

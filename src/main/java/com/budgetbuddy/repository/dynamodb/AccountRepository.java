@@ -18,6 +18,7 @@ import software.amazon.awssdk.services.dynamodb.model.BatchWriteItemRequest;
 import software.amazon.awssdk.services.dynamodb.model.BatchWriteItemResponse;
 import software.amazon.awssdk.services.dynamodb.model.ConditionalCheckFailedException;
 import software.amazon.awssdk.services.dynamodb.model.PutRequest;
+import software.amazon.awssdk.services.dynamodb.model.ResourceNotFoundException;
 import software.amazon.awssdk.services.dynamodb.model.WriteRequest;
 
 import java.util.ArrayList;
@@ -276,8 +277,15 @@ public class AccountRepository {
     /**
      * Find accounts updated after a specific timestamp using GSI
      * Optimized for incremental sync - queries only changed items
+     * 
+     * CRITICAL: Do NOT cache this method - incremental sync queries must always be fresh
+     * to handle DynamoDB GSI eventual consistency. Caching empty results would prevent
+     * finding updated items until cache expires.
+     * 
+     * FALLBACK: If GSI is not available (e.g., in test environments), falls back to
+     * findByUserId and filters in memory. This is less efficient but ensures the method
+     * works even when the index hasn't been created yet.
      */
-    @Cacheable(value = "accounts", key = "'user:' + #userId + ':updatedAfter:' + #updatedAfterTimestamp", unless = "#result == null || #result.isEmpty()")
     public List<AccountTable> findByUserIdAndUpdatedAfter(String userId, Long updatedAfterTimestamp) {
         if (userId == null || userId.isEmpty() || updatedAfterTimestamp == null) {
             return List.of();
@@ -301,6 +309,24 @@ public class AccountRepository {
                         results.add(account);
                     }
                 }
+            }
+        } catch (ResourceNotFoundException e) {
+            // GSI not available - fallback to findByUserId and filter in memory
+            // This can happen in test environments where the index hasn't been created
+            org.slf4j.LoggerFactory.getLogger(AccountRepository.class)
+                    .warn("UserIdUpdatedAtIndex GSI not found for userId {}. Falling back to findByUserId and filtering in memory. " +
+                            "This is less efficient but ensures functionality when the index is not available.", userId);
+            try {
+                List<AccountTable> allAccounts = findByUserId(userId);
+                for (AccountTable account : allAccounts) {
+                    if (account.getUpdatedAtTimestamp() != null && 
+                        account.getUpdatedAtTimestamp() >= updatedAfterTimestamp) {
+                        results.add(account);
+                    }
+                }
+            } catch (Exception fallbackException) {
+                org.slf4j.LoggerFactory.getLogger(AccountRepository.class)
+                        .error("Error in fallback query for userId {}: {}", userId, fallbackException.getMessage(), fallbackException);
             }
         } catch (Exception e) {
             org.slf4j.LoggerFactory.getLogger(AccountRepository.class)

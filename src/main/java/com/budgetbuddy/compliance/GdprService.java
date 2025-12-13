@@ -404,6 +404,7 @@ public class GdprService {
     }
 
     // Inner class for data export
+    @SuppressWarnings("serial") // All model classes (User, Account, Transaction, Budget, Goal, AuditLog) implement Serializable
     public static class UserDataExport implements java.io.Serializable {
         private static final long serialVersionUID = 1L;
         private User user;

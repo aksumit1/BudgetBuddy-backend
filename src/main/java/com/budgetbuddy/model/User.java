@@ -41,6 +41,7 @@ public class User implements java.io.Serializable {
 
     private String timezone = "UTC";
 
+    @SuppressWarnings("serial") // Role is an enum, which is serializable
     private Set<Role> roles = new HashSet<>();
 
     private LocalDateTime createdAt;

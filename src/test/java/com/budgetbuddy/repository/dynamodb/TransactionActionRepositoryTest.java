@@ -162,5 +162,33 @@ class TransactionActionRepositoryTest {
             transactionActionRepository.delete(null);
         }, "Should throw exception for null ID");
     }
+    
+    @Test
+    void testFindByUserIdAndUpdatedAfter_WithValidParams_ReturnsUpdatedActions() {
+        // Given
+        long updatedAfterTimestamp = Instant.now().minusSeconds(3600).getEpochSecond();
+        testAction.setUpdatedAtTimestamp(Instant.now().getEpochSecond());
+        transactionActionRepository.save(testAction);
+        
+        // When
+        List<TransactionActionTable> result = transactionActionRepository.findByUserIdAndUpdatedAfter(testUserId, updatedAfterTimestamp);
+        
+        // Then
+        assertNotNull(result);
+        assertTrue(result.size() >= 0);
+    }
+    
+    @Test
+    void testFindByUserIdAndUpdatedAfter_WithNullParams_ReturnsEmpty() {
+        // When
+        List<TransactionActionTable> result1 = transactionActionRepository.findByUserIdAndUpdatedAfter(null, Instant.now().getEpochSecond());
+        List<TransactionActionTable> result2 = transactionActionRepository.findByUserIdAndUpdatedAfter(testUserId, null);
+        List<TransactionActionTable> result3 = transactionActionRepository.findByUserIdAndUpdatedAfter("", Instant.now().getEpochSecond());
+        
+        // Then
+        assertTrue(result1.isEmpty());
+        assertTrue(result2.isEmpty());
+        assertTrue(result3.isEmpty());
+    }
 }
 

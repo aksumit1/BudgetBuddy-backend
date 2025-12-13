@@ -38,7 +38,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * Integration Tests for TransactionActionController
  * Tests REST API endpoints with MockMvc
  */
-@SpringBootTest(classes = com.budgetbuddy.BudgetBuddyApplication.class)
+@SpringBootTest(
+    classes = com.budgetbuddy.BudgetBuddyApplication.class,
+    webEnvironment = org.springframework.boot.test.context.SpringBootTest.WebEnvironment.MOCK
+)
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 @Import(AWSTestConfiguration.class)

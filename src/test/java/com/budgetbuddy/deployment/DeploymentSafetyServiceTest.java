@@ -37,6 +37,9 @@ class DeploymentSafetyServiceTest {
 
     @Mock
     private RestTemplateBuilder restTemplateBuilder;
+    
+    @Mock
+    private org.springframework.core.env.Environment environment;
 
     private DeploymentSafetyService service;
     
@@ -50,7 +53,12 @@ class DeploymentSafetyServiceTest {
         when(restTemplateBuilder.requestFactory(supplier)).thenReturn(restTemplateBuilder);
         when(restTemplateBuilder.build()).thenReturn(restTemplate);
         
-        service = new DeploymentSafetyService(restTemplateBuilder);
+        // Mock environment to return false for test profile (unit tests run without test profile)
+        // Use lenient stubbing since not all tests use the environment
+        lenient().when(environment.acceptsProfiles(any(org.springframework.core.env.Profiles.class))).thenReturn(false);
+        lenient().when(environment.getProperty("spring.profiles.active", "")).thenReturn("");
+        
+        service = new DeploymentSafetyService(restTemplateBuilder, environment);
         
         // Set test values using reflection
         ReflectionTestUtils.setField(service, "healthCheckTimeoutSeconds", 60);
@@ -94,14 +102,14 @@ class DeploymentSafetyServiceTest {
         assertFalse(result.isHealthy());
         assertEquals("Base URL is null or empty", result.getErrorMessage());
         
-        // Verify logging behavior - should log ERROR for null/empty base URL (configuration error)
+        // Verify logging behavior - should log WARN for null/empty base URL (configuration issue, not critical error)
         List<ILoggingEvent> logEvents = logAppender.list;
-        long errorLogs = logEvents.stream()
-                .filter(event -> event.getLevel() == Level.ERROR 
+        long warnLogs = logEvents.stream()
+                .filter(event -> event.getLevel() == Level.WARN 
                         && event.getMessage().contains("Base URL is null or empty"))
                 .count();
         
-        assertEquals(1, errorLogs, "Should log ERROR when base URL is empty");
+        assertEquals(1, warnLogs, "Should log WARN when base URL is empty");
     }
 
     @Test
@@ -247,14 +255,14 @@ class DeploymentSafetyServiceTest {
         assertNotNull(result);
         assertFalse(result.isPassed());
         
-        // Verify logging behavior - should log ERROR for null/empty base URL (configuration error)
+        // Verify logging behavior - should log WARN for null/empty base URL (configuration issue, not critical error)
         List<ILoggingEvent> logEvents = logAppender.list;
-        long errorLogs = logEvents.stream()
-                .filter(event -> event.getLevel() == Level.ERROR 
+        long warnLogs = logEvents.stream()
+                .filter(event -> event.getLevel() == Level.WARN 
                         && event.getMessage().contains("Base URL is null or empty for smoke tests"))
                 .count();
         
-        assertEquals(1, errorLogs, "Should log ERROR when base URL is empty for smoke tests");
+        assertEquals(1, warnLogs, "Should log WARN when base URL is empty for smoke tests");
     }
 
     @Test
