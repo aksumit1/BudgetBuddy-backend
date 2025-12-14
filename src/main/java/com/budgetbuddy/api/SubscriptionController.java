@@ -6,7 +6,6 @@ import com.budgetbuddy.model.Subscription;
 import com.budgetbuddy.model.dynamodb.UserTable;
 import com.budgetbuddy.service.SubscriptionService;
 import com.budgetbuddy.service.UserService;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
