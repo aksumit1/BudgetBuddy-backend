@@ -33,6 +33,7 @@ public class CacheConfig {
                 "budgets", "goals",                 // Budget/Goal caches
                 "transactionActions",               // Transaction action cache
                 "fido2Credentials",                // FIDO2 credential cache
+                "subscriptions",                    // Subscription cache
                 "analytics");                       // Analytics cache
         cacheManager.setCaffeine(Caffeine.newBuilder()
                 .maximumSize(50_000) // Increased to handle all cache types

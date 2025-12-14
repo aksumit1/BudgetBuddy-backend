@@ -38,6 +38,7 @@ public class TableInitializer {
             createBudgetsTable(dynamoDbClient);
             createGoalsTable(dynamoDbClient);
             createTransactionActionsTable(dynamoDbClient);
+            createSubscriptionsTable(dynamoDbClient);
             createAuditLogsTable(dynamoDbClient);
             
             // Create supporting tables
@@ -448,6 +449,42 @@ public class TableInitializer {
             logger.error("❌ Failed to create table {}: {}", tableName, e.getMessage(), e);
             // Re-throw for critical tables to fail fast
             throw new RuntimeException("Failed to create table " + tableName + ": " + e.getMessage(), e);
+        }
+    }
+
+    private static void createSubscriptionsTable(DynamoDbClient dynamoDbClient) {
+        String tableName = TABLE_PREFIX + "-Subscriptions";
+        try {
+            try {
+                dynamoDbClient.describeTable(DescribeTableRequest.builder().tableName(tableName).build());
+                logger.info("✅ Table {} already exists", tableName);
+                return;
+            } catch (ResourceNotFoundException e) {
+                // Table doesn't exist, proceed with creation
+            }
+
+            CreateTableRequest request = CreateTableRequest.builder()
+                    .tableName(tableName)
+                    .billingMode(BillingMode.PAY_PER_REQUEST)
+                    .attributeDefinitions(
+                            AttributeDefinition.builder().attributeName("subscriptionId").attributeType(ScalarAttributeType.S).build(),
+                            AttributeDefinition.builder().attributeName("userId").attributeType(ScalarAttributeType.S).build())
+                    .keySchema(KeySchemaElement.builder().attributeName("subscriptionId").keyType(KeyType.HASH).build())
+                    .globalSecondaryIndexes(
+                            GlobalSecondaryIndex.builder()
+                                    .indexName("UserIdIndex")
+                                    .keySchema(KeySchemaElement.builder().attributeName("userId").keyType(KeyType.HASH).build())
+                                    .projection(Projection.builder().projectionType(ProjectionType.ALL).build())
+                                    .build())
+                    .build();
+
+            dynamoDbClient.createTable(request);
+            waitForTableActive(dynamoDbClient, tableName);
+            logger.info("✅ Created table: {}", tableName);
+        } catch (ResourceInUseException e) {
+            logger.info("✅ Table {} already exists", tableName);
+        } catch (Exception e) {
+            logger.error("❌ Failed to create table {}: {}", tableName, e.getMessage(), e);
         }
     }
 

@@ -305,17 +305,36 @@ public class PlaidDataExtractor {
                     logger.debug("Could not extract personal_finance_category: {}", e.getMessage());
                 }
                 
-                // Map categories
+                // Extract payment channel BEFORE category mapping (needed for ACH credit detection)
+                String paymentChannel = null;
+                if (plaidTx.getPaymentChannel() != null) {
+                    paymentChannel = plaidTx.getPaymentChannel().toString();
+                    transaction.setPaymentChannel(paymentChannel);
+                }
+                
+                // Extract amount BEFORE category mapping (needed for ACH credit detection)
+                java.math.BigDecimal transactionAmount = transaction.getAmount();
+                
+                // Map categories (now with paymentChannel and amount for ACH credit detection)
                 PlaidCategoryMapper.CategoryMapping categoryMapping;
                 if (plaidCategoryPrimary != null || plaidCategoryDetailed != null) {
                     categoryMapping = categoryMapper.mapPlaidCategory(
                         plaidCategoryPrimary,
                         plaidCategoryDetailed,
                         transaction.getMerchantName(),
-                        transaction.getDescription()
+                        transaction.getDescription(),
+                        paymentChannel,
+                        transactionAmount
                     );
                 } else {
-                    categoryMapping = new PlaidCategoryMapper.CategoryMapping("other", "other", false);
+                    categoryMapping = categoryMapper.mapPlaidCategory(
+                        null,
+                        null,
+                        transaction.getMerchantName(),
+                        transaction.getDescription(),
+                        paymentChannel,
+                        transactionAmount
+                    );
                 }
                 
                 transaction.setPlaidCategoryPrimary(plaidCategoryPrimary);
@@ -343,11 +362,6 @@ public class PlaidDataExtractor {
                 // Extract pending status
                 if (plaidTx.getPending() != null) {
                     transaction.setPending(plaidTx.getPending());
-                }
-                
-                // Extract payment channel
-                if (plaidTx.getPaymentChannel() != null) {
-                    transaction.setPaymentChannel(plaidTx.getPaymentChannel().toString());
                 }
                 
                 // Extract account ID

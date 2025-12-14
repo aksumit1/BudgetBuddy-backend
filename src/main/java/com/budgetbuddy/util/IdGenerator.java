@@ -15,6 +15,7 @@ public class IdGenerator {
     private static final UUID TRANSACTION_NAMESPACE = UUID.fromString("6ba7b811-9dad-11d1-80b4-00c04fd430c8");
     private static final UUID BUDGET_NAMESPACE = UUID.fromString("6ba7b812-9dad-11d1-80b4-00c04fd430c8");
     private static final UUID GOAL_NAMESPACE = UUID.fromString("6ba7b813-9dad-11d1-80b4-00c04fd430c8");
+    private static final UUID SUBSCRIPTION_NAMESPACE = UUID.fromString("6ba7b814-9dad-11d1-80b4-00c04fd430c8");
 
     /**
      * Generate account ID from bank name and Plaid account ID using UUID v5
@@ -109,6 +110,35 @@ public class IdGenerator {
         // For true consistency, consider including a creation timestamp or unique identifier
         String compositeKey = userId.trim().toLowerCase() + ":" + goalName.trim().toLowerCase();
         return generateDeterministicUUID(GOAL_NAMESPACE, compositeKey);
+    }
+
+    /**
+     * Generate subscription ID from user ID, merchant name, and amount using UUID v5
+     * This ensures the same user + merchant + amount always gets the same UUID
+     * 
+     * @param userId User ID
+     * @param merchantName Merchant/company name
+     * @param amount Subscription amount
+     * @return Deterministic UUID as string
+     */
+    public static String generateSubscriptionId(final String userId, final String merchantName, final java.math.BigDecimal amount) {
+        if (userId == null || userId.trim().isEmpty()) {
+            throw new IllegalArgumentException("User ID is required");
+        }
+        if (merchantName == null || merchantName.trim().isEmpty()) {
+            throw new IllegalArgumentException("Merchant name is required");
+        }
+        if (amount == null) {
+            throw new IllegalArgumentException("Amount is required");
+        }
+        
+        // Create composite key: userId:merchantName:amount
+        // Round amount to 2 decimal places for consistency
+        String amountStr = amount.setScale(2, java.math.RoundingMode.HALF_UP).toString();
+        String compositeKey = userId.trim().toLowerCase() + ":" + 
+                             merchantName.trim().toLowerCase() + ":" + 
+                             amountStr;
+        return generateDeterministicUUID(SUBSCRIPTION_NAMESPACE, compositeKey);
     }
 
     /**

@@ -40,6 +40,7 @@ public class DynamoDBTableManager {
         createBudgetsTable();
         createGoalsTable();
         createTransactionActionsTable();
+        createSubscriptionsTable();
         createAuditLogsTable();
         createNotFoundTrackingTable();
         createRateLimitTable();
@@ -517,6 +518,47 @@ public class DynamoDBTableManager {
                                             KeySchemaElement.builder()
                                                     .attributeName("updatedAtTimestamp")
                                                     .keyType(KeyType.RANGE)
+                                                    .build())
+                                    .projection(Projection.builder()
+                                            .projectionType(ProjectionType.ALL)
+                                            .build())
+                                    .build())
+                    .build());
+            logger.info("Created table: {}", tableName);
+        } catch (ResourceInUseException e) {
+            logger.debug("Table {} already exists", tableName);
+        } catch (Exception e) {
+            logger.error("Failed to create table {}: {}", tableName, e.getMessage());
+        }
+    }
+
+    private void createSubscriptionsTable() {
+        String tableName = tablePrefix + "-Subscriptions";
+        try {
+            dynamoDbClient.createTable(CreateTableRequest.builder()
+                    .tableName(tableName)
+                    .billingMode(BillingMode.PAY_PER_REQUEST)
+                    .attributeDefinitions(
+                            AttributeDefinition.builder()
+                                    .attributeName("subscriptionId")
+                                    .attributeType(ScalarAttributeType.S)
+                                    .build(),
+                            AttributeDefinition.builder()
+                                    .attributeName("userId")
+                                    .attributeType(ScalarAttributeType.S)
+                                    .build())
+                    .keySchema(
+                            KeySchemaElement.builder()
+                                    .attributeName("subscriptionId")
+                                    .keyType(KeyType.HASH)
+                                    .build())
+                    .globalSecondaryIndexes(
+                            GlobalSecondaryIndex.builder()
+                                    .indexName("UserIdIndex")
+                                    .keySchema(
+                                            KeySchemaElement.builder()
+                                                    .attributeName("userId")
+                                                    .keyType(KeyType.HASH)
                                                     .build())
                                     .projection(Projection.builder()
                                             .projectionType(ProjectionType.ALL)

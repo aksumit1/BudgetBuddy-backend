@@ -73,6 +73,7 @@ public class PlaidCategoryMapper {
         PRIMARY_CATEGORY_MAP.put("GROCERIES", "groceries");
         PRIMARY_CATEGORY_MAP.put("SUBSCRIPTIONS", "subscriptions");
         PRIMARY_CATEGORY_MAP.put("INVESTMENT", "investment");
+        PRIMARY_CATEGORY_MAP.put("PAYMENT", "payment"); // Credit card payments and recurring ACH payments
 
         // Initialize detailed category mappings (more specific)
         // Food and Drink
@@ -132,10 +133,10 @@ public class PlaidCategoryMapper {
         DETAILED_CATEGORY_MAP.put("SALARY", "income");
         DETAILED_CATEGORY_MAP.put("PAYROLL", "income");
         DETAILED_CATEGORY_MAP.put("DIVIDENDS", "income");
-        DETAILED_CATEGORY_MAP.put("INTEREST_EARNED", "income");
+        DETAILED_CATEGORY_MAP.put("INTEREST_EARNED", "income"); // Note: CD interest will be overridden to investment by enhanced logic
         DETAILED_CATEGORY_MAP.put("GIG_ECONOMY", "income");
         DETAILED_CATEGORY_MAP.put("RENTAL_INCOME", "income");
-        DETAILED_CATEGORY_MAP.put("INVESTMENT_INCOME", "income");
+        DETAILED_CATEGORY_MAP.put("INVESTMENT_INCOME", "income"); // Note: Investment income from CD deposits will be overridden to investment by enhanced logic
         
         // Healthcare
         DETAILED_CATEGORY_MAP.put("PRIMARY_CARE", "healthcare");
@@ -153,6 +154,10 @@ public class PlaidCategoryMapper {
         DETAILED_CATEGORY_MAP.put("ETF", "investment");
         DETAILED_CATEGORY_MAP.put("BROKERAGE", "investment");
         DETAILED_CATEGORY_MAP.put("RETIREMENT", "investment");
+        
+        // Payment
+        DETAILED_CATEGORY_MAP.put("CREDIT_CARD_PAYMENT", "payment");
+        DETAILED_CATEGORY_MAP.put("LOAN_PAYMENT", "payment");
     }
 
     /**
@@ -170,6 +175,28 @@ public class PlaidCategoryMapper {
                                            final String plaidCategoryDetailed,
                                            final String merchantName,
                                            final String description) {
+        return mapPlaidCategory(plaidCategoryPrimary, plaidCategoryDetailed, merchantName, description, null, null);
+    }
+    
+    /**
+     * Maps Plaid's personal finance category to our category structure
+     * Returns both primary and detailed categories, preserving Plaid's hierarchy
+     * Uses merchant name and description for enhanced categorization when needed
+     * 
+     * @param plaidCategoryPrimary Plaid's primary category (e.g., "FOOD_AND_DRINK")
+     * @param plaidCategoryDetailed Plaid's detailed category (e.g., "RESTAURANTS")
+     * @param merchantName Merchant name for additional context
+     * @param description Transaction description for additional context
+     * @param paymentChannel Payment channel (e.g., "ach", "online", "in_store") - optional, used for ACH credit detection
+     * @param amount Transaction amount - optional, used for ACH credit detection (positive = credit)
+     * @return CategoryMapping with primary, detailed, and override flag
+     */
+    public CategoryMapping mapPlaidCategory(final String plaidCategoryPrimary, 
+                                           final String plaidCategoryDetailed,
+                                           final String merchantName,
+                                           final String description,
+                                           final String paymentChannel,
+                                           final java.math.BigDecimal amount) {
         String mappedPrimary = null;
         String mappedDetailed = null;
         
@@ -206,8 +233,8 @@ public class PlaidCategoryMapper {
         String combinedText = ((merchantName != null ? merchantName : "") + " " + 
                               (description != null ? description : "")).toLowerCase();
         
-        // CRITICAL: Check for investment-related transactions FIRST (before entertainment)
-        // CD deposits, stocks, bonds, etc. should be categorized as investment, not entertainment
+        // CRITICAL: Check for investment-related transactions FIRST (before entertainment and income)
+        // CD deposits, stocks, bonds, etc. should be categorized as investment, not entertainment or income
         if (combinedText.contains("cd deposit") || combinedText.contains("certificate of deposit") ||
             combinedText.contains("cd maturity") || combinedText.contains("cd interest") ||
             combinedText.contains(" stock") || combinedText.contains(" bond") ||
@@ -215,10 +242,48 @@ public class PlaidCategoryMapper {
             combinedText.contains("401k") || combinedText.contains(" ira") ||
             combinedText.contains("retirement") || combinedText.contains("brokerage")) {
             mappedDetailed = "investment";
-            if (mappedPrimary == null || "entertainment".equals(mappedPrimary)) {
+            if (mappedPrimary == null || "entertainment".equals(mappedPrimary) || "income".equals(mappedPrimary)) {
                 mappedPrimary = "investment";
             }
             logger.debug("Enhanced mapping: detected investment (CD deposit/investment) from merchant/description");
+        }
+        
+        // CRITICAL: Check for payments BEFORE other categorizations
+        // Credit card payments: transactions with "credit card payment" in description
+        String descriptionLower = (description != null ? description : "").toLowerCase();
+        String merchantLower = (merchantName != null ? merchantName : "").toLowerCase();
+        String combinedTextLower = (merchantLower + " " + descriptionLower).toLowerCase();
+        
+        boolean isCreditCardPayment = (descriptionLower.contains("credit card") || descriptionLower.contains("creditcard") ||
+                                      descriptionLower.contains("cc payment") || descriptionLower.contains("card payment")) &&
+                                      (descriptionLower.contains("payment") || descriptionLower.contains("pay") || 
+                                       descriptionLower.contains("transfer"));
+        
+        // Recurring ACH payments: negative ACH transactions with recurring keywords
+        boolean isRecurringACHPayment = paymentChannel != null && "ach".equalsIgnoreCase(paymentChannel) &&
+                                        amount != null && amount.compareTo(java.math.BigDecimal.ZERO) < 0 &&
+                                        (combinedTextLower.contains("recurring") || combinedTextLower.contains("monthly") ||
+                                         combinedTextLower.contains("subscription") || combinedTextLower.contains("autopay") ||
+                                         combinedTextLower.contains("auto pay") || combinedTextLower.contains("auto-pay") ||
+                                         combinedTextLower.contains("bill pay") || combinedTextLower.contains("billpay") ||
+                                         combinedTextLower.contains("automatic payment") || combinedTextLower.contains("recurring charge"));
+        
+        if (isCreditCardPayment || isRecurringACHPayment) {
+            mappedDetailed = "payment";
+            mappedPrimary = "payment";
+            logger.debug("Enhanced mapping: {} detected - overriding category to payment", 
+                    isCreditCardPayment ? "Credit card payment" : "Recurring ACH payment");
+        }
+        
+        // CRITICAL: ACH credits (positive amounts with paymentChannel == "ach") should be income, not rent/expense
+        // This overrides any category that might have been incorrectly assigned (e.g., "rent" from Plaid)
+        // BUT: Skip if already categorized as payment
+        if (!"payment".equals(mappedPrimary) && paymentChannel != null && "ach".equalsIgnoreCase(paymentChannel) && 
+            amount != null && amount.compareTo(java.math.BigDecimal.ZERO) > 0) {
+            // ACH credit is income, not expense
+            mappedDetailed = "income";
+            mappedPrimary = "income";
+            logger.debug("Enhanced mapping: ACH credit detected - overriding category to income");
         }
         
         // Enhanced categorization based on merchant/description
