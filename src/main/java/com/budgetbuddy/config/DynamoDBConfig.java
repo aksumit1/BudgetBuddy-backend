@@ -53,7 +53,9 @@ public class DynamoDBConfig {
      */
     private AwsCredentialsProvider getCredentialsProvider() {
         // For LocalStack, use static credentials if provided
-        if (!accessKeyId.isEmpty() && !secretAccessKey.isEmpty()) {
+        // Handle null values (can occur in tests or when env vars are not set)
+        if (accessKeyId != null && !accessKeyId.isEmpty() && 
+            secretAccessKey != null && !secretAccessKey.isEmpty()) {
             logger.debug("Using static credentials for DynamoDB (LocalStack mode)");
             return StaticCredentialsProvider.create(
                     AwsBasicCredentials.create(accessKeyId, secretAccessKey)
