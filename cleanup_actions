@@ -1,0 +1,8 @@
+OWNER=skumit1
+REPO=BudgetBuddy-backend
+WORKFLOW_ID=<workflow id>
+
+# Delete all runs for the specified workflow
+gh api -X GET /repos/$OWNER/$REPO/actions/workflows/$WORKFLOW_ID/runs \
+| jq '.workflow_runs[] | .id' \
+| xargs -I{} gh api -X DELETE /repos/$OWNER/$REPO/actions/runs/{}

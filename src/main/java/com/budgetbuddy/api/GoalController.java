@@ -20,7 +20,6 @@ import java.util.List;
 
 /**
  * Goal REST Controller
- * Migrated to DynamoDB
  *
  * Thread-safe with proper error handling
  */

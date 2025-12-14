@@ -16,8 +16,7 @@ import java.util.UUID;
 
 /**
  * Service for user management
- * Supports both secure client-side hashed passwords and legacy plaintext passwords
- * Migrated to DynamoDB - @Transactional removed as DynamoDB doesn't support transactions
+ * @Transactional removed as DynamoDB doesn't support transactions
  */
 @Service
 public class UserService {

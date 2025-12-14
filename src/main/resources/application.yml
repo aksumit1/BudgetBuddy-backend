@@ -16,14 +16,17 @@ spring:
       connect-timeout: 1000ms  # Reduced from 2000ms for faster connection establishment
       lettuce:
         pool:
-          max-active: 16  # Increased from 8 to handle concurrent health checks
-          max-idle: 8
-          min-idle: 2  # Pre-warm pool with 2 connections (avoids cold start delays)
-          max-wait: 1000ms  # Reduced from 2000ms - fail fast if pool exhausted
-          # Connection validation and reuse
+          max-active: 32  # Increased to handle concurrent health checks and Maven tests
+          max-idle: 16
+          min-idle: 4  # Pre-warm pool with 4 connections (avoids cold start delays)
+          max-wait: 500ms  # Reduced to 500ms - fail fast if pool exhausted
+          # Connection validation and reuse - critical for handling Redis restarts
           test-on-borrow: true  # Test connections before using (detect stale connections)
           test-while-idle: true  # Test idle connections periodically
-          time-between-eviction-runs: 30s  # Check idle connections every 30s
+          test-on-return: true  # Test connections when returning to pool (catch stale connections)
+          time-between-eviction-runs: 10s  # Check idle connections every 10s (faster detection of stale connections)
+          min-evictable-idle-time: 30s  # Evict connections idle for 30s (removes stale connections faster)
+          num-tests-per-eviction-run: 3  # Test 3 connections per eviction run (faster cleanup)
         shutdown-timeout: 100ms  # Fast shutdown for health checks
   
   # Jackson Configuration
@@ -34,7 +37,24 @@ spring:
 
 # Server Configuration
 server:
-  port: ${SERVER_PORT:8080}
+  port: ${SERVER_PORT:8080}  # Fixed port - do not change
+
+# DNS Cache Configuration
+# Resilience strategy: Keep cached addresses during DNS outages, don't cache errors
+app:
+  dns:
+    cache:
+      # Long positive TTL: Keep successful DNS lookups cached for extended periods
+      # If DNS server becomes unavailable, continue using cached addresses
+      # Default: 3600 seconds (1 hour) - allows operation during DNS outages
+      ttl-seconds: 3600
+      # Very short negative TTL: Don't cache DNS lookup failures
+      # Failed lookups expire quickly, allowing retry when DNS/server recovers
+      # Default: 1 second - minimal caching of errors for quick recovery
+      negative-ttl-seconds: 1
+  aws:
+    dynamodb:
+      # AWS SDK v2 has built-in retry (default: 3 attempts with exponential backoff)
   address: ${SERVER_ADDRESS:0.0.0.0}  # Bind to all interfaces (0.0.0.0) to allow network access, use 127.0.0.1 for localhost only
   # SSL/HTTPS Configuration (optional for local development)
   ssl:
@@ -241,9 +261,21 @@ management:
         enabled: true
   health:
     # Configure timeouts for health contributors to prevent slow health checks
+    # Redis is optional for caching/locking - failures should not affect overall health
     redis:
       enabled: true
-      timeout: 2s  # 2 seconds (matches Redis connection timeout)
+      timeout: 1s  # Reduced to 1 second for faster failure detection
+    # Health groups - Redis failures should not affect liveness/readiness
+    # Redis is optional for caching/locking - app can function without it
+    group:
+      liveness:
+        include: liveness
+      readiness:
+        include: readiness
+        exclude: redis  # Exclude Redis from readiness check (optional dependency)
+    # Circuit breaker for health checks - prevent cascading failures
+    circuitbreakers:
+      enabled: false  # Disable circuit breakers for health checks (they can cause false negatives)
   metrics:
     export:
       cloudwatch:

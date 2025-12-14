@@ -186,7 +186,6 @@ public class IdGenerator {
     /**
      * Generate UUID for manual entities (transactions, budgets, goals)
      * For app-generated entities, the app will generate UUID and send to backend
-     * This method is for backward compatibility when app doesn't send ID
      * 
      * @return Random UUID as string (normalized to lowercase for case-insensitive matching)
      */

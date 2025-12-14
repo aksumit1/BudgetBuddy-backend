@@ -24,7 +24,7 @@ import java.util.Date;
 /**
  * Authentication service
  * Supports secure client-side hashed passwords
- * Migrated to DynamoDB - @Transactional removed as DynamoDB doesn't support transactions
+ * @Transactional removed as DynamoDB doesn't support transactions
  */
 @Service
 public class AuthService {

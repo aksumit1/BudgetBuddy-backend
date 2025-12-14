@@ -19,7 +19,6 @@ import java.util.List;
 
 /**
  * Transaction REST Controller
- * Migrated to DynamoDB
  * Optimized with pagination to minimize data transfer
  *
  * Thread-safe with proper error handling
@@ -194,10 +193,12 @@ public class TransactionController {
                 user,
                 id,
                 request.getPlaidTransactionId(), // Pass Plaid ID for fallback lookup
+                request.getAmount(), // Pass amount (for type changes)
                 request.getNotes(),
                 request.getCategoryPrimary(),
                 request.getCategoryDetailed(),
-                request.getIsAudited() // Pass audit state
+                request.getIsAudited(), // Pass audit state
+                request.getIsHidden() // Pass hidden state
         );
 
         return ResponseEntity.ok(transaction);
@@ -298,12 +299,17 @@ public class TransactionController {
     }
 
     public static class UpdateTransactionRequest {
+        private BigDecimal amount; // Optional: transaction amount (for type changes)
         private String notes;
         private String categoryPrimary; // Optional: override primary category
         private String categoryDetailed; // Optional: override detailed category
         private String plaidTransactionId; // Optional: for fallback lookup if transactionId not found
         private Boolean isAudited; // Optional: audit checkmark state
+        private Boolean isHidden; // Optional: whether transaction is hidden from view
 
+        public BigDecimal getAmount() { return amount; }
+        public void setAmount(final BigDecimal amount) { this.amount = amount; }
+        
         public String getNotes() { return notes; }
         public void setNotes(final String notes) { this.notes = notes; }
         
@@ -318,6 +324,9 @@ public class TransactionController {
         
         public Boolean getIsAudited() { return isAudited; }
         public void setIsAudited(final Boolean isAudited) { this.isAudited = isAudited; }
+        
+        public Boolean getIsHidden() { return isHidden; }
+        public void setIsHidden(final Boolean isHidden) { this.isHidden = isHidden; }
     }
 
     public static class VerifyTransactionRequest {

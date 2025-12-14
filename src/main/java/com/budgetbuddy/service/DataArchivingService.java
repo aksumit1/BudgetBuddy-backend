@@ -21,7 +21,6 @@ import java.util.zip.GZIPOutputStream;
 
 /**
  * Data Archiving Service
- * Migrated to DynamoDB
  * Archives old data to S3 Glacier to minimize database storage costs
  */
 @Service

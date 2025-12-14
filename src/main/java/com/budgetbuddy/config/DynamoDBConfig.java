@@ -1,5 +1,7 @@
 package com.budgetbuddy.config;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -16,10 +18,17 @@ import java.time.Duration;
  * DynamoDB Configuration
  * Uses IAM roles for authentication (no credentials needed)
  * Optimized for cost: on-demand billing, minimal provisioned capacity
+ * 
+ * Resilience Features:
+ * - DNS cache TTL configured via DnsCacheConfig (prevents stale DNS entries)
+ * - Retry policy with exponential backoff (handles transient failures)
+ * - Connection timeouts (prevents hanging connections)
  */
 @Configuration
 @org.springframework.context.annotation.Profile("!test") // Don't load in tests - use AWSTestConfiguration instead
 public class DynamoDBConfig {
+
+    private static final Logger logger = LoggerFactory.getLogger(DynamoDBConfig.class);
 
     @Value("${app.aws.region:us-east-1}")
     private String awsRegion;
@@ -32,10 +41,15 @@ public class DynamoDBConfig {
 
     @Bean(destroyMethod = "close")
     public DynamoDbClient dynamoDbClient() {
-        // Configure client with timeouts to prevent long hangs
+        // Configure client with timeouts for resilience
+        // AWS SDK v2 has built-in retry logic with exponential backoff (default: 3 attempts)
+        // This handles transient failures (network errors, DNS failures, etc.)
+        // DNS cache TTL (configured in DnsCacheConfig) ensures quick recovery from DNS failures
         ClientOverrideConfiguration clientConfig = ClientOverrideConfiguration.builder()
                 .apiCallTimeout(Duration.ofSeconds(timeoutSeconds))
                 .apiCallAttemptTimeout(Duration.ofSeconds(timeoutSeconds))
+                // Note: AWS SDK v2 has default retry logic (3 attempts with exponential backoff)
+                // Additional retry configuration can be done via system properties if needed
                 .build();
 
         var builder = DynamoDbClient.builder()
@@ -46,7 +60,13 @@ public class DynamoDBConfig {
         // For local development with LocalStack
         if (!dynamoDbEndpoint.isEmpty()) {
             builder.endpointOverride(URI.create(dynamoDbEndpoint));
+            logger.info("DynamoDB client configured with endpoint: {} (LocalStack)", dynamoDbEndpoint);
+        } else {
+            logger.info("DynamoDB client configured for AWS (no endpoint override)");
         }
+
+        logger.info("DynamoDB client configured: timeout={}s (default retry: 3 attempts with exponential backoff)", 
+                timeoutSeconds);
 
         return builder.build();
     }

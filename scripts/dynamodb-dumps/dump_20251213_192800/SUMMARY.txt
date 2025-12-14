@@ -1,0 +1,49 @@
+DynamoDB Table Dump Summary
+===========================
+Timestamp: Sat Dec 13 19:28:05 PST 2025
+Endpoint: http://localhost:4566
+Output Directory: ./dynamodb-dumps/dump_20251213_192800
+
+Tables Found: 18
+Successfully Dumped: 18
+Failed: 0
+
+Tables:
+ 1. BudgetBuddy-Accounts
+ 2. BudgetBuddy-AuditLogs
+ 3. BudgetBuddy-Budgets
+ 4. BudgetBuddy-DDoSProtection
+ 5. BudgetBuddy-DeviceAttestation
+ 6. BudgetBuddy-DeviceAttestations
+ 7. BudgetBuddy-FIDO2Challenges
+ 8. BudgetBuddy-FIDO2Credentials
+ 9. BudgetBuddy-Goals
+10. BudgetBuddy-MFABackupCodes
+11. BudgetBuddy-MFACredentials
+12. BudgetBuddy-MFAOTPCodes
+13. BudgetBuddy-NotFoundTracking
+14. BudgetBuddy-RateLimits
+15. BudgetBuddy-Subscriptions
+16. BudgetBuddy-TransactionActions
+17. BudgetBuddy-Transactions
+18. BudgetBuddy-Users
+
+Files:
+./dynamodb-dumps/dump_20251213_192800/BudgetBuddy-Accounts.json (16K)
+./dynamodb-dumps/dump_20251213_192800/BudgetBuddy-AuditLogs.json (89B)
+./dynamodb-dumps/dump_20251213_192800/BudgetBuddy-Budgets.json (89B)
+./dynamodb-dumps/dump_20251213_192800/BudgetBuddy-DDoSProtection.json (728B)
+./dynamodb-dumps/dump_20251213_192800/BudgetBuddy-DeviceAttestation.json (89B)
+./dynamodb-dumps/dump_20251213_192800/BudgetBuddy-DeviceAttestations.json (89B)
+./dynamodb-dumps/dump_20251213_192800/BudgetBuddy-FIDO2Challenges.json (89B)
+./dynamodb-dumps/dump_20251213_192800/BudgetBuddy-FIDO2Credentials.json (89B)
+./dynamodb-dumps/dump_20251213_192800/BudgetBuddy-Goals.json (89B)
+./dynamodb-dumps/dump_20251213_192800/BudgetBuddy-MFABackupCodes.json (89B)
+./dynamodb-dumps/dump_20251213_192800/BudgetBuddy-MFACredentials.json (89B)
+./dynamodb-dumps/dump_20251213_192800/BudgetBuddy-MFAOTPCodes.json (89B)
+./dynamodb-dumps/dump_20251213_192800/BudgetBuddy-NotFoundTracking.json (89B)
+./dynamodb-dumps/dump_20251213_192800/BudgetBuddy-RateLimits.json (468B)
+./dynamodb-dumps/dump_20251213_192800/BudgetBuddy-Subscriptions.json (89B)
+./dynamodb-dumps/dump_20251213_192800/BudgetBuddy-TransactionActions.json (89B)
+./dynamodb-dumps/dump_20251213_192800/BudgetBuddy-Transactions.json (81K)
+./dynamodb-dumps/dump_20251213_192800/BudgetBuddy-Users.json (1.2K)

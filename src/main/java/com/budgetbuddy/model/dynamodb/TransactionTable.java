@@ -35,6 +35,7 @@ public class TransactionTable {
     private String paymentChannel; // online, in_store, ach, etc.
     private String notes; // User notes for the transaction
     private Boolean isAudited; // Audit checkmark state (client-side UI state)
+    private Boolean isHidden; // Whether transaction is hidden from view
     private Instant createdAt;
     private Instant updatedAt;
     private Long updatedAtTimestamp; // GSI sort key (epoch seconds) for incremental sync
@@ -215,6 +216,15 @@ public class TransactionTable {
 
     public void setIsAudited(final Boolean isAudited) {
         this.isAudited = isAudited;
+    }
+
+    @DynamoDbAttribute("isHidden")
+    public Boolean getIsHidden() {
+        return isHidden;
+    }
+
+    public void setIsHidden(final Boolean isHidden) {
+        this.isHidden = isHidden;
     }
 
     @DynamoDbAttribute("createdAt")

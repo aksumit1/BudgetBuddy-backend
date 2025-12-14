@@ -86,11 +86,13 @@ class PlaidCategoryIntegrationTest {
         TransactionTable updated = transactionService.updateTransaction(
                 testUser,
                 transaction.getTransactionId(),
-                null,
-                null,
-                "groceries",
-                "groceries",
-                null
+                null, // plaidTransactionId
+                null, // amount
+                null, // notes
+                "groceries", // categoryPrimary
+                "groceries", // categoryDetailed
+                null, // isAudited
+                null  // isHidden
         );
 
         // Then - Verify override is applied

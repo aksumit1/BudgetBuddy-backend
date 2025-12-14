@@ -79,11 +79,6 @@ public class TransactionRepository {
         String normalizedId = com.budgetbuddy.util.IdGenerator.normalizeUUID(transactionId);
         TransactionTable transaction = transactionTable.getItem(
                 Key.builder().partitionValue(normalizedId).build());
-        // If not found with normalized ID, try original (for backward compatibility with mixed-case IDs)
-        if (transaction == null && !normalizedId.equals(transactionId)) {
-            transaction = transactionTable.getItem(
-                    Key.builder().partitionValue(transactionId).build());
-        }
         return Optional.ofNullable(transaction);
     }
 
@@ -1032,19 +1027,12 @@ public class TransactionRepository {
         if (item.containsKey("merchantName")) {
             transaction.setMerchantName(item.get("merchantName").s());
         }
-        // Handle new category structure (categoryPrimary, categoryDetailed)
+        // Handle category structure (categoryPrimary, categoryDetailed)
         if (item.containsKey("categoryPrimary")) {
             transaction.setCategoryPrimary(item.get("categoryPrimary").s());
         }
         if (item.containsKey("categoryDetailed")) {
             transaction.setCategoryDetailed(item.get("categoryDetailed").s());
-        }
-        // Handle legacy category field for backward compatibility during migration
-        if (item.containsKey("category") && !item.containsKey("categoryPrimary")) {
-            // If only legacy category exists, use it for both primary and detailed
-            String legacyCategory = item.get("category").s();
-            transaction.setCategoryPrimary(legacyCategory);
-            transaction.setCategoryDetailed(legacyCategory);
         }
         if (item.containsKey("plaidCategoryPrimary")) {
             transaction.setPlaidCategoryPrimary(item.get("plaidCategoryPrimary").s());

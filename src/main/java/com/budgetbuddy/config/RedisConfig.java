@@ -22,8 +22,9 @@ import java.time.Duration;
  * Key fixes:
  * - Socket timeouts (prevents hanging connections)
  * - Command timeout (prevents slow commands from blocking)
- * - Fast fail on connection errors (REJECT_COMMANDS when disconnected)
+ * - Queue commands during reconnection (ACCEPT_COMMANDS) - allows graceful recovery from Redis restarts
  * - Connection pool max-wait configured in application.yml
+ * - Aggressive connection validation and eviction to handle Redis restarts
  */
 @Configuration
 public class RedisConfig {
@@ -56,12 +57,14 @@ public class RedisConfig {
                     .fixedTimeout(redisTimeout)
                     .build();
 
-            // Client options optimized for speed
+            // Client options optimized for speed and resilience
             ClientOptions clientOptions = ClientOptions.builder()
                     .socketOptions(socketOptions)
                     .timeoutOptions(timeoutOptions)
                     .autoReconnect(true)  // Auto-reconnect for resilience
-                    .disconnectedBehavior(ClientOptions.DisconnectedBehavior.REJECT_COMMANDS) // Fail fast if disconnected
+                    // ACCEPT_COMMANDS allows commands to queue during reconnection (better for Redis restarts)
+                    // Commands will timeout per timeoutOptions, preventing indefinite hangs
+                    .disconnectedBehavior(ClientOptions.DisconnectedBehavior.ACCEPT_COMMANDS) // Queue commands during reconnection
                     .pingBeforeActivateConnection(true)  // Validate connections before use (prevents stale connections)
                     .build();
 

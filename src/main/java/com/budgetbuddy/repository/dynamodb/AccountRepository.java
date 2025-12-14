@@ -69,11 +69,6 @@ public class AccountRepository {
         String normalizedId = com.budgetbuddy.util.IdGenerator.normalizeUUID(accountId);
         AccountTable account = accountTable.getItem(
                 Key.builder().partitionValue(normalizedId).build());
-        // If not found with normalized ID, try original (for backward compatibility with mixed-case IDs)
-        if (account == null && !normalizedId.equals(accountId)) {
-            account = accountTable.getItem(
-                    Key.builder().partitionValue(accountId).build());
-        }
         return Optional.ofNullable(account);
     }
 
@@ -128,12 +123,12 @@ public class AccountRepository {
                     seenAccountIds.add(accountId);
                 }
                 
-                if (account.getActive() == null) {
-                    nullActiveCount++;
-                    // Include accounts with null active (treat as active for backward compatibility)
-                    results.add(account);
-                } else if (account.getActive()) {
-                    activeCount++;
+                if (account.getActive() == null || account.getActive()) {
+                    if (account.getActive() == null) {
+                        nullActiveCount++;
+                    } else {
+                        activeCount++;
+                    }
                     results.add(account);
                 } else {
                     inactiveCount++;

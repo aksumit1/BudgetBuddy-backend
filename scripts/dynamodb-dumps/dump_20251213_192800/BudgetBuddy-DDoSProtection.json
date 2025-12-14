@@ -1,0 +1,35 @@
+{
+    "Items": [
+        {
+            "ipAddress": {
+                "S": "192.168.65.1"
+            },
+            "userId": {
+                "S": "anonymous"
+            },
+            "ttl": {
+                "N": "1765768860"
+            },
+            "timestamp": {
+                "N": "1765682460"
+            }
+        },
+        {
+            "ipAddress": {
+                "S": "0:0:0:0:0:0:0:1"
+            },
+            "userId": {
+                "S": "anonymous"
+            },
+            "ttl": {
+                "N": "1765769269"
+            },
+            "timestamp": {
+                "N": "1765682869"
+            }
+        }
+    ],
+    "Count": 2,
+    "ScannedCount": 2,
+    "ConsumedCapacity": null
+}

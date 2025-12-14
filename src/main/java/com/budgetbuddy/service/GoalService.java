@@ -18,7 +18,6 @@ import java.util.Optional;
 
 /**
  * Goal Service
- * Migrated to DynamoDB
  */
 @Service
 public class GoalService {

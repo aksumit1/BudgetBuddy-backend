@@ -19,7 +19,6 @@ import java.util.Map;
 
 /**
  * Analytics Service
- * Migrated to DynamoDB
  * Computes aggregated metrics to minimize database queries and data transfer
  */
 @Service

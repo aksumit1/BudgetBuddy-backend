@@ -19,7 +19,6 @@ import java.util.UUID;
 
 /**
  * Account REST Controller
- * Migrated to DynamoDB
  *
  * Thread-safe with proper error handling
  */

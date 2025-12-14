@@ -248,7 +248,21 @@ public class PlaidCategoryMapper {
             logger.debug("Enhanced mapping: detected investment (CD deposit/investment) from merchant/description");
         }
         
-        // CRITICAL: Check for payments BEFORE other categorizations
+        // CRITICAL: ACH credits (positive amounts with paymentChannel == "ach") should be income, not rent/expense
+        // This MUST happen BEFORE payment detection to ensure ACH credits are income, not payments
+        // This overrides any category that might have been incorrectly assigned (e.g., "rent" or "utilities" from Plaid)
+        boolean isACHCredit = paymentChannel != null && "ach".equalsIgnoreCase(paymentChannel) && 
+                              amount != null && amount.compareTo(java.math.BigDecimal.ZERO) > 0;
+        
+        if (isACHCredit) {
+            // ACH credit is income, not expense - override any existing category
+            mappedDetailed = "income";
+            mappedPrimary = "income";
+            logger.debug("Enhanced mapping: ACH credit detected (paymentChannel={}, amount={}) - overriding category to income", 
+                    paymentChannel, amount);
+        }
+        
+        // CRITICAL: Check for payments AFTER ACH credit check (so ACH credits are income, not payments)
         // Credit card payments: transactions with "credit card payment" in description
         String descriptionLower = (description != null ? description : "").toLowerCase();
         String merchantLower = (merchantName != null ? merchantName : "").toLowerCase();
@@ -260,7 +274,9 @@ public class PlaidCategoryMapper {
                                        descriptionLower.contains("transfer"));
         
         // Recurring ACH payments: negative ACH transactions with recurring keywords
-        boolean isRecurringACHPayment = paymentChannel != null && "ach".equalsIgnoreCase(paymentChannel) &&
+        // NOTE: Only for negative ACH transactions (debits), not credits
+        boolean isRecurringACHPayment = !isACHCredit && // Don't treat ACH credits as payments
+                                        paymentChannel != null && "ach".equalsIgnoreCase(paymentChannel) &&
                                         amount != null && amount.compareTo(java.math.BigDecimal.ZERO) < 0 &&
                                         (combinedTextLower.contains("recurring") || combinedTextLower.contains("monthly") ||
                                          combinedTextLower.contains("subscription") || combinedTextLower.contains("autopay") ||
@@ -273,17 +289,6 @@ public class PlaidCategoryMapper {
             mappedPrimary = "payment";
             logger.debug("Enhanced mapping: {} detected - overriding category to payment", 
                     isCreditCardPayment ? "Credit card payment" : "Recurring ACH payment");
-        }
-        
-        // CRITICAL: ACH credits (positive amounts with paymentChannel == "ach") should be income, not rent/expense
-        // This overrides any category that might have been incorrectly assigned (e.g., "rent" from Plaid)
-        // BUT: Skip if already categorized as payment
-        if (!"payment".equals(mappedPrimary) && paymentChannel != null && "ach".equalsIgnoreCase(paymentChannel) && 
-            amount != null && amount.compareTo(java.math.BigDecimal.ZERO) > 0) {
-            // ACH credit is income, not expense
-            mappedDetailed = "income";
-            mappedPrimary = "income";
-            logger.debug("Enhanced mapping: ACH credit detected - overriding category to income");
         }
         
         // Enhanced categorization based on merchant/description

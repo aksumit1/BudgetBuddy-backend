@@ -21,7 +21,6 @@ import java.util.stream.Collectors;
 
 /**
  * Transaction service with cost optimization
- * Migrated to DynamoDB
  * Uses pagination and date filtering to minimize data transfer
  */
 @Service
@@ -320,18 +319,20 @@ public class TransactionService {
      * Supports lookup by transactionId or plaidTransactionId (fallback)
      */
     public TransactionTable updateTransaction(final UserTable user, final String transactionId, final String notes) {
-        return updateTransaction(user, transactionId, null, notes, null, null, null);
+        return updateTransaction(user, transactionId, null, null, notes, null, null, null, null);
     }
     
     /**
-     * Update transaction (e.g., notes, category override, audit state)
+     * Update transaction (e.g., amount, notes, category override, audit state, hidden state)
      * Supports lookup by transactionId or plaidTransactionId (fallback)
      * @param plaidTransactionId Optional Plaid transaction ID for fallback lookup if transactionId not found
+     * @param amount Optional: transaction amount (for type changes)
      * @param categoryPrimary Optional: override primary category
      * @param categoryDetailed Optional: override detailed category
      * @param isAudited Optional: audit checkmark state
+     * @param isHidden Optional: whether transaction is hidden from view
      */
-    public TransactionTable updateTransaction(final UserTable user, final String transactionId, final String plaidTransactionId, final String notes, final String categoryPrimary, final String categoryDetailed, final Boolean isAudited) {
+    public TransactionTable updateTransaction(final UserTable user, final String transactionId, final String plaidTransactionId, final BigDecimal amount, final String notes, final String categoryPrimary, final String categoryDetailed, final Boolean isAudited, final Boolean isHidden) {
         if (user == null || user.getUserId() == null || user.getUserId().isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "User is required");
         }
@@ -358,6 +359,12 @@ public class TransactionService {
             throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "Transaction does not belong to user");
         }
 
+        // Update amount if provided (for type changes)
+        if (amount != null) {
+            transaction.setAmount(amount);
+            logger.info("Amount updated: {}", amount);
+        }
+
         // Update notes: if notes is null or empty string, clear it; if notes is provided, set it (trimming whitespace)
         // Note: null explicitly means "clear notes", empty string also means "clear notes"
         if (notes == null) {
@@ -382,6 +389,12 @@ public class TransactionService {
         if (isAudited != null) {
             transaction.setIsAudited(isAudited);
             logger.info("Audit state updated: isAudited={}", isAudited);
+        }
+        
+        // Update hidden state if provided
+        if (isHidden != null) {
+            transaction.setIsHidden(isHidden);
+            logger.info("Hidden state updated: isHidden={}", isHidden);
         }
         
         transaction.setUpdatedAt(java.time.Instant.now());

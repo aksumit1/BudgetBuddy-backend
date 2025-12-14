@@ -15,7 +15,6 @@ import java.util.stream.Collectors;
 
 /**
  * Custom UserDetailsService implementation
- * Migrated to DynamoDB
  */
 @Service
 public class CustomUserDetailsService implements UserDetailsService {

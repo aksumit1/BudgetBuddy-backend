@@ -114,6 +114,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/mfa/**").permitAll() // MFA endpoints (some require auth, handled in controller)
                 .requestMatchers("/api/fido2/**").permitAll() // FIDO2 endpoints (some require auth, handled in controller)
                 .requestMatchers("/api/device/attestation/**").authenticated() // Device attestation requires authentication
+                .requestMatchers("/api/system/**").hasRole("ADMIN") // System management endpoints - admin only
                 // BREAKING CHANGE: PIN endpoints removed - PIN is now local-only
                 // .requestMatchers("/api/pin/**").permitAll() // REMOVED - PIN backend endpoints deleted
                 .anyRequest().authenticated()
