@@ -1,0 +1,47 @@
+{
+    "Items": [
+        {
+            "challenge": {
+                "S": "UprmEvqZKv5QJIspmFZicl6-9-RymoD39Sjy2FAEbjw"
+            },
+            "challengeType": {
+                "S": "registration"
+            },
+            "ttl": {
+                "N": "1765692196"
+            },
+            "userId": {
+                "S": "c04d32a3-121c-4ffe-9961-e710b4a307f2"
+            },
+            "challengeKey": {
+                "S": "c04d32a3-121c-4ffe-9961-e710b4a307f2:registration"
+            },
+            "expiresAt": {
+                "S": "2025-12-14T06:03:16.680707Z"
+            }
+        },
+        {
+            "challenge": {
+                "S": "hQGpqcmJmSC2PQX8U2g2dljgIfAFOUhzP-sWndJ0cCM"
+            },
+            "challengeType": {
+                "S": "registration"
+            },
+            "ttl": {
+                "N": "1765692739"
+            },
+            "userId": {
+                "S": "0efa76f9-33d2-466e-b828-1ca60d320946"
+            },
+            "challengeKey": {
+                "S": "0efa76f9-33d2-466e-b828-1ca60d320946:registration"
+            },
+            "expiresAt": {
+                "S": "2025-12-14T06:12:19.289473Z"
+            }
+        }
+    ],
+    "Count": 2,
+    "ScannedCount": 2,
+    "ConsumedCapacity": null
+}

@@ -301,6 +301,10 @@ logging:
     zipkin: WARN
     brave: WARN
     io.lettuce.core: WARN
+    # Suppress ConnectionWatchdog warnings during Redis restarts
+    # These are expected when Redis restarts - Lettuce will automatically reconnect
+    # once Redis is available again. The warning is informational, not an error.
+    io.lettuce.core.protocol.ConnectionWatchdog: INFO  # Reduce WARN to INFO for reconnection attempts
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] [%X{correlationId}] %-5level %logger{36} - %msg%n"
     file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] [%X{correlationId}] %-5level %logger{36} - %msg%n"

@@ -1,0 +1,50 @@
+{
+    "Items": [
+        {
+            "roles": {
+                "SS": [
+                    "USER"
+                ]
+            },
+            "userId": {
+                "S": "1d168f5d-4fb7-4426-a6c0-a00afeaa3ac2"
+            },
+            "enabled": {
+                "BOOL": true
+            },
+            "passwordHash": {
+                "S": "hNe3N6XLJ643mBn+7ijEzYRzzPcZ/j9nGVSRQ7HKD9E="
+            },
+            "createdAt": {
+                "S": "2025-12-14T05:49:07.867833925Z"
+            },
+            "emailVerified": {
+                "BOOL": false
+            },
+            "twoFactorEnabled": {
+                "BOOL": false
+            },
+            "lastLoginAt": {
+                "S": "2025-12-14T07:08:28.845952795Z"
+            },
+            "serverSalt": {
+                "S": "jRUNOMfXWPSNPGI6G2GVPQ=="
+            },
+            "activeStatus": {
+                "S": "ACTIVE"
+            },
+            "lastLoginAtTimestamp": {
+                "N": "1765696108"
+            },
+            "email": {
+                "S": "ska@yahoo.com"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T05:49:07.867839008Z"
+            }
+        }
+    ],
+    "Count": 1,
+    "ScannedCount": 1,
+    "ConsumedCapacity": null
+}

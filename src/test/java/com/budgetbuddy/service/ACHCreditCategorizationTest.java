@@ -1,6 +1,5 @@
 package com.budgetbuddy.service;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -109,6 +108,139 @@ class ACHCreditCategorizationTest {
         // Then: Should not be affected by ACH credit logic
         assertNotNull(mapping);
         assertNotEquals("income", mapping.getPrimary(), "Non-ACH transaction should not be income");
+    }
+
+    @Test
+    void testACHElectronicCredit_WithGustoPay_CategorizedAsIncome() {
+        // Given: ACH Electronic Credit with GUSTO PAY (no space between Credit and GUSTO)
+        String description = "ACH Electronic CreditGUSTO PAY 123456";
+        String merchantName = null;
+        String paymentChannel = null; // Payment channel might not be set
+        BigDecimal amount = new BigDecimal("5000.00");
+
+        // When
+        PlaidCategoryMapper.CategoryMapping mapping = categoryMapper.mapPlaidCategory(
+            "RENT_AND_UTILITIES", "RENT_AND_UTILITIES_WATER", merchantName, description, paymentChannel, amount
+        );
+
+        // Then
+        assertNotNull(mapping);
+        assertEquals("income", mapping.getPrimary(), "ACH Electronic Credit should be income, even with GUSTO PAY");
+        assertEquals("income", mapping.getDetailed());
+    }
+
+    @Test
+    void testACHElectronicCredit_ByDescription_CategorizedAsIncome() {
+        // Given: ACH Electronic Credit in description (case-insensitive)
+        String description = "ACH ELECTRONIC CREDIT - Salary Payment";
+        String merchantName = null;
+        String paymentChannel = null;
+        BigDecimal amount = new BigDecimal("3000.00");
+
+        // When
+        PlaidCategoryMapper.CategoryMapping mapping = categoryMapper.mapPlaidCategory(
+            "RENT_AND_UTILITIES", "UTILITIES", merchantName, description, paymentChannel, amount
+        );
+
+        // Then
+        assertNotNull(mapping);
+        assertEquals("income", mapping.getPrimary(), "ACH Electronic Credit should be income by description");
+        assertEquals("income", mapping.getDetailed());
+    }
+
+    @Test
+    void testACHCredit_ByDescription_CategorizedAsIncome() {
+        // Given: ACH Credit in description (without "Electronic")
+        String description = "ACH Credit - Direct Deposit";
+        String merchantName = null;
+        String paymentChannel = null;
+        BigDecimal amount = new BigDecimal("2000.00");
+
+        // When
+        PlaidCategoryMapper.CategoryMapping mapping = categoryMapper.mapPlaidCategory(
+            "TRANSFER_IN", "TRANSFER_IN", merchantName, description, paymentChannel, amount
+        );
+
+        // Then
+        assertNotNull(mapping);
+        assertEquals("income", mapping.getPrimary(), "ACH Credit should be income by description");
+        assertEquals("income", mapping.getDetailed());
+    }
+
+    @Test
+    void testACHDebit_ByDescription_CategorizedAsPayment() {
+        // Given: ACH Debit in description
+        String description = "ACH Debit - Bill Payment";
+        String merchantName = null;
+        String paymentChannel = null;
+        BigDecimal amount = new BigDecimal("-150.00");
+
+        // When
+        PlaidCategoryMapper.CategoryMapping mapping = categoryMapper.mapPlaidCategory(
+            "RENT_AND_UTILITIES", "UTILITIES", merchantName, description, paymentChannel, amount
+        );
+
+        // Then
+        assertNotNull(mapping);
+        assertEquals("payment", mapping.getPrimary(), "ACH Debit should be payment, not expense");
+        assertEquals("payment", mapping.getDetailed());
+    }
+
+    @Test
+    void testACHElectronicDebit_ByDescription_CategorizedAsPayment() {
+        // Given: ACH Electronic Debit in description
+        String description = "ACH Electronic Debit - Credit Card Payment";
+        String merchantName = null;
+        String paymentChannel = null;
+        BigDecimal amount = new BigDecimal("-500.00");
+
+        // When
+        PlaidCategoryMapper.CategoryMapping mapping = categoryMapper.mapPlaidCategory(
+            "LOAN_PAYMENTS", "LOAN_PAYMENT", merchantName, description, paymentChannel, amount
+        );
+
+        // Then
+        assertNotNull(mapping);
+        assertEquals("payment", mapping.getPrimary(), "ACH Electronic Debit should be payment");
+        assertEquals("payment", mapping.getDetailed());
+    }
+
+    @Test
+    void testACHDebit_ByChannel_CategorizedAsPayment() {
+        // Given: ACH debit by paymentChannel (negative amount)
+        String description = "Monthly Bill Payment";
+        String merchantName = "Utility Company";
+        String paymentChannel = "ach";
+        BigDecimal amount = new BigDecimal("-200.00");
+
+        // When
+        PlaidCategoryMapper.CategoryMapping mapping = categoryMapper.mapPlaidCategory(
+            "RENT_AND_UTILITIES", "UTILITIES", merchantName, description, paymentChannel, amount
+        );
+
+        // Then
+        assertNotNull(mapping);
+        assertEquals("payment", mapping.getPrimary(), "ACH debit (by channel) should be payment");
+        assertEquals("payment", mapping.getDetailed());
+    }
+
+    @Test
+    void testACHCredit_NotCategorizedAsPayment() {
+        // Given: ACH credit should be income, not payment
+        String description = "ACH Electronic CreditGUSTO PAY 123456";
+        String merchantName = null;
+        String paymentChannel = "ach";
+        BigDecimal amount = new BigDecimal("5000.00");
+
+        // When
+        PlaidCategoryMapper.CategoryMapping mapping = categoryMapper.mapPlaidCategory(
+            "RENT_AND_UTILITIES", "RENT", merchantName, description, paymentChannel, amount
+        );
+
+        // Then
+        assertNotNull(mapping);
+        assertEquals("income", mapping.getPrimary(), "ACH credit should be income, not payment");
+        assertNotEquals("payment", mapping.getPrimary(), "ACH credit should not be payment");
     }
 }
 

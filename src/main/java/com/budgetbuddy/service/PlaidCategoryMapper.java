@@ -129,14 +129,14 @@ public class PlaidCategoryMapper {
         DETAILED_CATEGORY_MAP.put("INTERNET_AND_PHONE", "utilities");
         DETAILED_CATEGORY_MAP.put("CABLE", "utilities");
         
-        // Income
-        DETAILED_CATEGORY_MAP.put("SALARY", "income");
-        DETAILED_CATEGORY_MAP.put("PAYROLL", "income");
-        DETAILED_CATEGORY_MAP.put("DIVIDENDS", "income");
-        DETAILED_CATEGORY_MAP.put("INTEREST_EARNED", "income"); // Note: CD interest will be overridden to investment by enhanced logic
-        DETAILED_CATEGORY_MAP.put("GIG_ECONOMY", "income");
-        DETAILED_CATEGORY_MAP.put("RENTAL_INCOME", "income");
-        DETAILED_CATEGORY_MAP.put("INVESTMENT_INCOME", "income"); // Note: Investment income from CD deposits will be overridden to investment by enhanced logic
+        // Income - map to specific income categories instead of generic "income"
+        DETAILED_CATEGORY_MAP.put("SALARY", "salary");
+        DETAILED_CATEGORY_MAP.put("PAYROLL", "salary");
+        DETAILED_CATEGORY_MAP.put("DIVIDENDS", "dividend");
+        DETAILED_CATEGORY_MAP.put("INTEREST_EARNED", "interest"); // Note: CD interest will be overridden to investment by enhanced logic
+        DETAILED_CATEGORY_MAP.put("GIG_ECONOMY", "otherIncome");
+        DETAILED_CATEGORY_MAP.put("RENTAL_INCOME", "rentIncome");
+        DETAILED_CATEGORY_MAP.put("INVESTMENT_INCOME", "dividend"); // Note: Investment income from CD deposits will be overridden to investment by enhanced logic
         
         // Healthcare
         DETAILED_CATEGORY_MAP.put("PRIMARY_CARE", "healthcare");
@@ -233,6 +233,11 @@ public class PlaidCategoryMapper {
         String combinedText = ((merchantName != null ? merchantName : "") + " " + 
                               (description != null ? description : "")).toLowerCase();
         
+        // Prepare lowercase versions for pattern matching
+        String descriptionLower = (description != null ? description : "").toLowerCase();
+        String merchantLower = (merchantName != null ? merchantName : "").toLowerCase();
+        String combinedTextLower = (merchantLower + " " + descriptionLower).toLowerCase();
+        
         // CRITICAL: Check for investment-related transactions FIRST (before entertainment and income)
         // CD deposits, stocks, bonds, etc. should be categorized as investment, not entertainment or income
         if (combinedText.contains("cd deposit") || combinedText.contains("certificate of deposit") ||
@@ -248,30 +253,47 @@ public class PlaidCategoryMapper {
             logger.debug("Enhanced mapping: detected investment (CD deposit/investment) from merchant/description");
         }
         
-        // CRITICAL: ACH credits (positive amounts with paymentChannel == "ach") should be income, not rent/expense
+        // CRITICAL: ACH credits should be income, not rent/expense
         // This MUST happen BEFORE payment detection to ensure ACH credits are income, not payments
         // This overrides any category that might have been incorrectly assigned (e.g., "rent" or "utilities" from Plaid)
-        boolean isACHCredit = paymentChannel != null && "ach".equalsIgnoreCase(paymentChannel) && 
-                              amount != null && amount.compareTo(java.math.BigDecimal.ZERO) > 0;
+        // Check for "ACH Electronic Credit" in description/merchant name (case-insensitive)
+        // This handles cases like "ACH Electronic CreditGUSTO PAY 123456" where paymentChannel might not be set correctly
+        boolean isACHCreditByDescription = combinedTextLower.contains("ach electronic credit") || 
+                                           combinedTextLower.contains("ach credit") ||
+                                           (combinedTextLower.contains("ach") && combinedTextLower.contains("credit") && 
+                                            amount != null && amount.compareTo(java.math.BigDecimal.ZERO) > 0);
+        
+        // Also check by paymentChannel and amount (original logic)
+        boolean isACHCreditByChannel = paymentChannel != null && "ach".equalsIgnoreCase(paymentChannel) && 
+                                       amount != null && amount.compareTo(java.math.BigDecimal.ZERO) > 0;
+        
+        boolean isACHCredit = isACHCreditByDescription || isACHCreditByChannel;
         
         if (isACHCredit) {
-            // ACH credit is income, not expense - override any existing category
-            mappedDetailed = "income";
-            mappedPrimary = "income";
-            logger.debug("Enhanced mapping: ACH credit detected (paymentChannel={}, amount={}) - overriding category to income", 
-                    paymentChannel, amount);
+            // ACH credit is income, not expense - determine specific income type from description
+            // Scan description to determine specific income category
+            String incomeCategory = determineIncomeCategory(description, merchantName);
+            mappedDetailed = incomeCategory;
+            mappedPrimary = "income"; // Keep primary as "income" for backward compatibility
+            logger.debug("Enhanced mapping: ACH credit detected (description={}, paymentChannel={}, amount={}) - categorized as {}", 
+                    description, paymentChannel, amount, incomeCategory);
         }
         
         // CRITICAL: Check for payments AFTER ACH credit check (so ACH credits are income, not payments)
         // Credit card payments: transactions with "credit card payment" in description
-        String descriptionLower = (description != null ? description : "").toLowerCase();
-        String merchantLower = (merchantName != null ? merchantName : "").toLowerCase();
-        String combinedTextLower = (merchantLower + " " + descriptionLower).toLowerCase();
         
         boolean isCreditCardPayment = (descriptionLower.contains("credit card") || descriptionLower.contains("creditcard") ||
                                       descriptionLower.contains("cc payment") || descriptionLower.contains("card payment")) &&
                                       (descriptionLower.contains("payment") || descriptionLower.contains("pay") || 
                                        descriptionLower.contains("transfer"));
+        
+        // ACH Debit: Check for "ACH Debit" or "ACH Electronic Debit" in description/merchant name
+        // This should be categorized as payment, not expense
+        boolean isACHDebitByDescription = !isACHCredit && // Don't treat ACH credits as debits
+                                          (combinedTextLower.contains("ach electronic debit") || 
+                                           combinedTextLower.contains("ach debit") ||
+                                           (combinedTextLower.contains("ach") && combinedTextLower.contains("debit") && 
+                                            amount != null && amount.compareTo(java.math.BigDecimal.ZERO) < 0));
         
         // Recurring ACH payments: negative ACH transactions with recurring keywords
         // NOTE: Only for negative ACH transactions (debits), not credits
@@ -284,11 +306,20 @@ public class PlaidCategoryMapper {
                                          combinedTextLower.contains("bill pay") || combinedTextLower.contains("billpay") ||
                                          combinedTextLower.contains("automatic payment") || combinedTextLower.contains("recurring charge"));
         
-        if (isCreditCardPayment || isRecurringACHPayment) {
+        // Also check for ACH debit by paymentChannel and negative amount
+        boolean isACHDebitByChannel = !isACHCredit && // Don't treat ACH credits as debits
+                                      paymentChannel != null && "ach".equalsIgnoreCase(paymentChannel) &&
+                                      amount != null && amount.compareTo(java.math.BigDecimal.ZERO) < 0;
+        
+        boolean isACHDebit = isACHDebitByDescription || isACHDebitByChannel;
+        
+        if (isCreditCardPayment || isRecurringACHPayment || isACHDebit) {
             mappedDetailed = "payment";
             mappedPrimary = "payment";
-            logger.debug("Enhanced mapping: {} detected - overriding category to payment", 
-                    isCreditCardPayment ? "Credit card payment" : "Recurring ACH payment");
+            String paymentType = isCreditCardPayment ? "Credit card payment" : 
+                                isACHDebit ? "ACH debit" : "Recurring ACH payment";
+            logger.debug("Enhanced mapping: {} detected (description={}, paymentChannel={}, amount={}) - overriding category to payment", 
+                    paymentType, description, paymentChannel, amount);
         }
         
         // Enhanced categorization based on merchant/description
@@ -336,7 +367,78 @@ public class PlaidCategoryMapper {
             mappedDetailed = mappedPrimary != null ? mappedPrimary : "UNKNOWN_CATEGORY";
         }
         
+        // CRITICAL: If mappedDetailed is "income", determine specific income category from description
+        // This ensures income transactions use specific categories (salary, interest, dividend, etc.) instead of generic "income"
+        if ("income".equals(mappedDetailed) || "income".equals(mappedPrimary)) {
+            String specificIncomeCategory = determineIncomeCategory(description, merchantName);
+            if (specificIncomeCategory != null && !specificIncomeCategory.equals("income")) {
+                mappedDetailed = specificIncomeCategory;
+                logger.debug("Enhanced mapping: determined specific income category '{}' from description/merchant", specificIncomeCategory);
+            }
+        }
+        
         return new CategoryMapping(mappedPrimary, mappedDetailed, false);
+    }
+    
+    /**
+     * Determines specific income category from transaction description and merchant name
+     * Scans for keywords to categorize income as: salary, interest, dividend, stipend, rentIncome, tips, or otherIncome
+     * 
+     * @param description Transaction description
+     * @param merchantName Merchant name
+     * @return Specific income category string, or "income" if no specific match found
+     */
+    private String determineIncomeCategory(final String description, final String merchantName) {
+        if (description == null && merchantName == null) {
+            return "income"; // Default to generic income if no description
+        }
+        
+        String combinedText = ((merchantName != null ? merchantName : "") + " " + 
+                              (description != null ? description : "")).toLowerCase();
+        
+        // Salary/Payroll - check for salary, payroll, paycheck, direct deposit, wages
+        if (combinedText.contains("salary") || combinedText.contains("payroll") || 
+            combinedText.contains("paycheck") || combinedText.contains("direct deposit") ||
+            combinedText.contains("wages") || combinedText.contains("pay stub") ||
+            combinedText.contains("payroll deposit") || combinedText.contains("payroll direct")) {
+            return "salary";
+        }
+        
+        // Interest - check for interest, interest payment, interest earned, savings interest
+        if (combinedText.contains("interest") && 
+            !combinedText.contains("cd interest") && // CD interest is handled separately (investment)
+            !combinedText.contains("certificate")) {
+            return "interest";
+        }
+        
+        // Dividend - check for dividend, dividend payment, stock dividend
+        if (combinedText.contains("dividend") || combinedText.contains("stock dividend") ||
+            combinedText.contains("dividend payment")) {
+            return "dividend";
+        }
+        
+        // Stipend - check for stipend, scholarship, grant, fellowship
+        if (combinedText.contains("stipend") || combinedText.contains("scholarship") ||
+            combinedText.contains("grant") || combinedText.contains("fellowship") ||
+            combinedText.contains("bursary")) {
+            return "stipend";
+        }
+        
+        // Rental Income - check for rent received, rental income, property income
+        if (combinedText.contains("rent received") || combinedText.contains("rental income") ||
+            combinedText.contains("property income") || combinedText.contains("rent payment received") ||
+            (combinedText.contains("rent") && (combinedText.contains("received") || combinedText.contains("income")))) {
+            return "rentIncome";
+        }
+        
+        // Tips - check for tips, gratuity, tip income
+        if (combinedText.contains("tip") || combinedText.contains("gratuity") ||
+            combinedText.contains("tip income") || combinedText.contains("tips received")) {
+            return "tips";
+        }
+        
+        // Default to generic income if no specific match
+        return "income";
     }
     
     /**
