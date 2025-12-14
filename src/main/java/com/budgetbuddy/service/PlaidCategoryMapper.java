@@ -72,6 +72,7 @@ public class PlaidCategoryMapper {
         PRIMARY_CATEGORY_MAP.put("GAS_STATIONS", "transportation");
         PRIMARY_CATEGORY_MAP.put("GROCERIES", "groceries");
         PRIMARY_CATEGORY_MAP.put("SUBSCRIPTIONS", "subscriptions");
+        PRIMARY_CATEGORY_MAP.put("INVESTMENT", "investment");
 
         // Initialize detailed category mappings (more specific)
         // Food and Drink
@@ -142,6 +143,16 @@ public class PlaidCategoryMapper {
         DETAILED_CATEGORY_MAP.put("PHARMACIES", "healthcare");
         DETAILED_CATEGORY_MAP.put("HOSPITALS", "healthcare");
         DETAILED_CATEGORY_MAP.put("HEALTH_INSURANCE", "healthcare");
+        
+        // Investment
+        DETAILED_CATEGORY_MAP.put("CD_DEPOSIT", "investment");
+        DETAILED_CATEGORY_MAP.put("CERTIFICATE_OF_DEPOSIT", "investment");
+        DETAILED_CATEGORY_MAP.put("STOCKS", "investment");
+        DETAILED_CATEGORY_MAP.put("BONDS", "investment");
+        DETAILED_CATEGORY_MAP.put("MUTUAL_FUNDS", "investment");
+        DETAILED_CATEGORY_MAP.put("ETF", "investment");
+        DETAILED_CATEGORY_MAP.put("BROKERAGE", "investment");
+        DETAILED_CATEGORY_MAP.put("RETIREMENT", "investment");
     }
 
     /**
@@ -194,6 +205,21 @@ public class PlaidCategoryMapper {
         // Enhanced logic: Check merchant name and description for better categorization
         String combinedText = ((merchantName != null ? merchantName : "") + " " + 
                               (description != null ? description : "")).toLowerCase();
+        
+        // CRITICAL: Check for investment-related transactions FIRST (before entertainment)
+        // CD deposits, stocks, bonds, etc. should be categorized as investment, not entertainment
+        if (combinedText.contains("cd deposit") || combinedText.contains("certificate of deposit") ||
+            combinedText.contains("cd maturity") || combinedText.contains("cd interest") ||
+            combinedText.contains(" stock") || combinedText.contains(" bond") ||
+            combinedText.contains("mutual fund") || combinedText.contains(" etf") ||
+            combinedText.contains("401k") || combinedText.contains(" ira") ||
+            combinedText.contains("retirement") || combinedText.contains("brokerage")) {
+            mappedDetailed = "investment";
+            if (mappedPrimary == null || "entertainment".equals(mappedPrimary)) {
+                mappedPrimary = "investment";
+            }
+            logger.debug("Enhanced mapping: detected investment (CD deposit/investment) from merchant/description");
+        }
         
         // Enhanced categorization based on merchant/description
         if (mappedDetailed == null) {
