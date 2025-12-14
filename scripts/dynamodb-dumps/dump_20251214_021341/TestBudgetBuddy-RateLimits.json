@@ -1,0 +1,329 @@
+{
+    "Items": [
+        {
+            "tokens": {
+                "N": "0"
+            },
+            "lastRefill": {
+                "N": "1765705411291"
+            },
+            "ttl": {
+                "N": "1765709011"
+            },
+            "key": {
+                "S": "unknown-test-53cc1005-9cec-43b7-a0f0-5b720468d0e4:/api/unknown"
+            }
+        },
+        {
+            "tokens": {
+                "N": "802"
+            },
+            "lastRefill": {
+                "N": "1765705860880"
+            },
+            "ttl": {
+                "N": "1765709460"
+            },
+            "key": {
+                "S": "test-user-021de805-57a4-4a35-8972-3d23f5ac8ba5:/api/transactions"
+            }
+        },
+        {
+            "tokens": {
+                "N": "0"
+            },
+            "lastRefill": {
+                "N": "1765705860030"
+            },
+            "ttl": {
+                "N": "1765709460"
+            },
+            "key": {
+                "S": "unknown-test-24ffc6a4-5823-46a4-9ea5-e4af69d29e62:/api/unknown"
+            }
+        },
+        {
+            "tokens": {
+                "N": "0"
+            },
+            "lastRefill": {
+                "N": "1765705573778"
+            },
+            "ttl": {
+                "N": "1765709173"
+            },
+            "key": {
+                "S": "unknown-test-4802132a-033d-46b7-a2cf-bb0a7e930857:/api/unknown"
+            }
+        },
+        {
+            "tokens": {
+                "N": "0"
+            },
+            "lastRefill": {
+                "N": "1765705574257"
+            },
+            "ttl": {
+                "N": "1765709174"
+            },
+            "key": {
+                "S": "test-user-ff2edeb4-2922-456d-8796-39613574eaf0:/api/transactions"
+            }
+        },
+        {
+            "tokens": {
+                "N": "0"
+            },
+            "lastRefill": {
+                "N": "1765705574560"
+            },
+            "ttl": {
+                "N": "1765709174"
+            },
+            "key": {
+                "S": "reset-test-0fb09ad2-e664-4925-9827-8655d6f85cfc:/api/auth/login"
+            }
+        },
+        {
+            "tokens": {
+                "N": "0"
+            },
+            "lastRefill": {
+                "N": "1765705573886"
+            },
+            "ttl": {
+                "N": "1765709173"
+            },
+            "key": {
+                "S": "analytics-test-b2205d21-b226-4779-a7a3-c493bb186a6f:/api/analytics"
+            }
+        },
+        {
+            "tokens": {
+                "N": "0"
+            },
+            "lastRefill": {
+                "N": "1765705411657"
+            },
+            "ttl": {
+                "N": "1765709011"
+            },
+            "key": {
+                "S": "retry-test-2ff4df21-5a73-4aea-b840-16056df915d1:/api/auth/login"
+            }
+        },
+        {
+            "tokens": {
+                "N": "0"
+            },
+            "lastRefill": {
+                "N": "1765705860332"
+            },
+            "ttl": {
+                "N": "1765709460"
+            },
+            "key": {
+                "S": "analytics-test-8865c148-1d3c-48e4-ab09-b87328d53e7d:/api/analytics"
+            }
+        },
+        {
+            "tokens": {
+                "N": "0"
+            },
+            "lastRefill": {
+                "N": "1765705412132"
+            },
+            "ttl": {
+                "N": "1765709012"
+            },
+            "key": {
+                "S": "plaid-test-c0d60779-2b8b-472c-afde-2531f56aa0f1:/api/plaid"
+            }
+        },
+        {
+            "tokens": {
+                "N": "858"
+            },
+            "lastRefill": {
+                "N": "1765705574251"
+            },
+            "ttl": {
+                "N": "1765709174"
+            },
+            "key": {
+                "S": "test-user-480858b8-ba28-47da-9b8f-b3ac9cc146ca:/api/transactions"
+            }
+        },
+        {
+            "tokens": {
+                "N": "0"
+            },
+            "lastRefill": {
+                "N": "1765705411477"
+            },
+            "ttl": {
+                "N": "1765709011"
+            },
+            "key": {
+                "S": "analytics-test-02a02118-aae5-4594-a7f6-628ed2629ab9:/api/analytics"
+            }
+        },
+        {
+            "tokens": {
+                "N": "0"
+            },
+            "lastRefill": {
+                "N": "1765705860998"
+            },
+            "ttl": {
+                "N": "1765709461"
+            },
+            "key": {
+                "S": "test-user-1498d3e9-5a70-4181-bd6b-d6c9127ab998:/api/auth/login"
+            }
+        },
+        {
+            "tokens": {
+                "N": "0"
+            },
+            "lastRefill": {
+                "N": "1765705574534"
+            },
+            "ttl": {
+                "N": "1765709174"
+            },
+            "key": {
+                "S": "plaid-test-c9876dbe-d2ed-46ca-aff2-9a4256d16f00:/api/plaid"
+            }
+        },
+        {
+            "tokens": {
+                "N": "0"
+            },
+            "lastRefill": {
+                "N": "1765705411786"
+            },
+            "ttl": {
+                "N": "1765709011"
+            },
+            "key": {
+                "S": "test-user-392b0c08-7073-4c38-ba79-5773deec8d3d:/api/transactions"
+            }
+        },
+        {
+            "tokens": {
+                "N": "0"
+            },
+            "lastRefill": {
+                "N": "1765705411804"
+            },
+            "ttl": {
+                "N": "1765709011"
+            },
+            "key": {
+                "S": "test-user-1d0c9beb-eed0-4b9f-846d-2ce99d1ec1b9:/api/auth/login"
+            }
+        },
+        {
+            "tokens": {
+                "N": "0"
+            },
+            "lastRefill": {
+                "N": "1765705574188"
+            },
+            "ttl": {
+                "N": "1765709174"
+            },
+            "key": {
+                "S": "retry-test-ccee3733-81e3-49bb-b82c-da338c67847d:/api/auth/login"
+            }
+        },
+        {
+            "tokens": {
+                "N": "0"
+            },
+            "lastRefill": {
+                "N": "1765705861646"
+            },
+            "ttl": {
+                "N": "1765709461"
+            },
+            "key": {
+                "S": "reset-test-5163f6d6-95ea-48e4-b766-78d6a2fd8616:/api/auth/login"
+            }
+        },
+        {
+            "tokens": {
+                "N": "0"
+            },
+            "lastRefill": {
+                "N": "1765705860925"
+            },
+            "ttl": {
+                "N": "1765709460"
+            },
+            "key": {
+                "S": "test-user-64944747-e7d1-4a8e-a4ef-09acdb12308f:/api/transactions"
+            }
+        },
+        {
+            "tokens": {
+                "N": "0"
+            },
+            "lastRefill": {
+                "N": "1765705412159"
+            },
+            "ttl": {
+                "N": "1765709012"
+            },
+            "key": {
+                "S": "reset-test-840788b0-fbe8-42cc-a061-8756af9ddf46:/api/auth/login"
+            }
+        },
+        {
+            "tokens": {
+                "N": "0"
+            },
+            "lastRefill": {
+                "N": "1765705574275"
+            },
+            "ttl": {
+                "N": "1765709174"
+            },
+            "key": {
+                "S": "test-user-320f2561-5a36-41ad-8f7d-c249c52a6f0c:/api/auth/login"
+            }
+        },
+        {
+            "tokens": {
+                "N": "0"
+            },
+            "lastRefill": {
+                "N": "1765705861615"
+            },
+            "ttl": {
+                "N": "1765709461"
+            },
+            "key": {
+                "S": "plaid-test-a736dc74-9ab9-423d-b225-e3c874152ab5:/api/plaid"
+            }
+        },
+        {
+            "tokens": {
+                "N": "0"
+            },
+            "lastRefill": {
+                "N": "1765705860604"
+            },
+            "ttl": {
+                "N": "1765709460"
+            },
+            "key": {
+                "S": "retry-test-16db86d9-28dc-496a-86df-eaf0561bb1f3:/api/auth/login"
+            }
+        }
+    ],
+    "Count": 23,
+    "ScannedCount": 23,
+    "ConsumedCapacity": null
+}

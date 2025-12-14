@@ -5,7 +5,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
+import software.amazon.awssdk.auth.credentials.AwsCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
+import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.core.client.config.ClientOverrideConfiguration;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
 import software.amazon.awssdk.regions.Region;
@@ -39,6 +42,28 @@ public class DynamoDBConfig {
     @Value("${app.aws.dynamodb.timeout-seconds:10}")
     private int timeoutSeconds;
 
+    @Value("${AWS_ACCESS_KEY_ID:}")
+    private String accessKeyId;
+
+    @Value("${AWS_SECRET_ACCESS_KEY:}")
+    private String secretAccessKey;
+
+    /**
+     * Credentials provider that uses IAM role in ECS/EKS, or static credentials for LocalStack
+     */
+    private AwsCredentialsProvider getCredentialsProvider() {
+        // For LocalStack, use static credentials if provided
+        if (!accessKeyId.isEmpty() && !secretAccessKey.isEmpty()) {
+            logger.debug("Using static credentials for DynamoDB (LocalStack mode)");
+            return StaticCredentialsProvider.create(
+                    AwsBasicCredentials.create(accessKeyId, secretAccessKey)
+            );
+        }
+        // For production, use IAM role or default credentials provider
+        logger.debug("Using default credentials provider for DynamoDB (AWS mode)");
+        return DefaultCredentialsProvider.create();
+    }
+
     @Bean(destroyMethod = "close")
     public DynamoDbClient dynamoDbClient() {
         // Configure client with timeouts for resilience
@@ -54,13 +79,19 @@ public class DynamoDBConfig {
 
         var builder = DynamoDbClient.builder()
                 .region(Region.of(awsRegion))
-                .credentialsProvider(DefaultCredentialsProvider.create()) // Uses IAM role in ECS/EKS
+                .credentialsProvider(getCredentialsProvider())
                 .overrideConfiguration(clientConfig);
 
         // For local development with LocalStack
         if (!dynamoDbEndpoint.isEmpty()) {
-            builder.endpointOverride(URI.create(dynamoDbEndpoint));
-            logger.info("DynamoDB client configured with endpoint: {} (LocalStack)", dynamoDbEndpoint);
+            try {
+                URI endpointUri = URI.create(dynamoDbEndpoint);
+                builder.endpointOverride(endpointUri);
+                logger.info("DynamoDB client configured with endpoint: {} (LocalStack)", dynamoDbEndpoint);
+            } catch (IllegalArgumentException e) {
+                logger.error("Invalid DynamoDB endpoint URI: {}. Error: {}", dynamoDbEndpoint, e.getMessage());
+                throw new IllegalStateException("Invalid DynamoDB endpoint configuration: " + dynamoDbEndpoint, e);
+            }
         } else {
             logger.info("DynamoDB client configured for AWS (no endpoint override)");
         }

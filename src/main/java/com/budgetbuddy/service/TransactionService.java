@@ -376,13 +376,32 @@ public class TransactionService {
         
         // Update category override if provided
         if (categoryPrimary != null && !categoryPrimary.trim().isEmpty()) {
-            transaction.setCategoryPrimary(categoryPrimary.trim());
-            transaction.setCategoryDetailed(categoryDetailed != null && !categoryDetailed.trim().isEmpty() 
+            String trimmedPrimary = categoryPrimary.trim();
+            String trimmedDetailed = categoryDetailed != null && !categoryDetailed.trim().isEmpty() 
                     ? categoryDetailed.trim() 
-                    : categoryPrimary.trim());
+                    : trimmedPrimary;
+            
+            transaction.setCategoryPrimary(trimmedPrimary);
+            transaction.setCategoryDetailed(trimmedDetailed);
+            
+            // CRITICAL: Always set categoryOverridden=true when category is changed
+            // Additionally, ensure it's set for income, investment, and loan categories
+            boolean isIncomeInvestmentOrLoan = isIncomeCategory(trimmedPrimary) || 
+                                               isInvestmentCategory(trimmedPrimary) || 
+                                               isLoanCategory(trimmedPrimary) ||
+                                               isIncomeCategory(trimmedDetailed) || 
+                                               isInvestmentCategory(trimmedDetailed) || 
+                                               isLoanCategory(trimmedDetailed);
+            
             transaction.setCategoryOverridden(true);
-            logger.info("Category override applied: primary={}, detailed={}", 
-                    transaction.getCategoryPrimary(), transaction.getCategoryDetailed());
+            
+            if (isIncomeInvestmentOrLoan) {
+                logger.info("Category override applied for income/investment/loan: primary={}, detailed={}", 
+                        trimmedPrimary, trimmedDetailed);
+            } else {
+                logger.info("Category override applied: primary={}, detailed={}", 
+                        trimmedPrimary, trimmedDetailed);
+            }
         }
         
         // Update audit state if provided
@@ -467,5 +486,83 @@ public class TransactionService {
 
         transactionRepository.delete(transactionId);
         logger.info("Deleted transaction {} for user {}", transactionId, user.getEmail());
+    }
+    
+    /**
+     * Check if a category is an income category
+     */
+    private boolean isIncomeCategory(String category) {
+        if (category == null || category.isEmpty()) {
+            return false;
+        }
+        String lower = category.toLowerCase();
+        return lower.equals("income") || 
+               lower.equals("salary") || 
+               lower.equals("interest") || 
+               lower.equals("dividend") || 
+               lower.equals("stipend") || 
+               lower.equals("rentincome") || 
+               lower.equals("rental_income") || 
+               lower.equals("rental income") ||
+               lower.equals("tips") || 
+               lower.equals("otherincome") || 
+               lower.equals("other_income") || 
+               lower.equals("other income");
+    }
+    
+    /**
+     * Check if a category is an investment category
+     */
+    private boolean isInvestmentCategory(String category) {
+        if (category == null || category.isEmpty()) {
+            return false;
+        }
+        String lower = category.toLowerCase();
+        return lower.equals("investment") || 
+               lower.equals("cd") || 
+               lower.equals("bonds") || 
+               lower.equals("municipalbonds") || 
+               lower.equals("municipal_bonds") ||
+               lower.equals("tbills") || 
+               lower.equals("t_bills") || 
+               lower.equals("treasury bills") ||
+               lower.equals("stocks") || 
+               lower.equals("401k") || 
+               lower.equals("fourzeroonek") ||
+               lower.equals("529") || 
+               lower.equals("fivetwonine") ||
+               lower.equals("ira") || 
+               lower.equals("mutualfunds") || 
+               lower.equals("mutual_funds") ||
+               lower.equals("etf") || 
+               lower.equals("moneymarket") || 
+               lower.equals("money_market") ||
+               lower.equals("preciousmetals") || 
+               lower.equals("precious_metals") ||
+               lower.equals("crypto") || 
+               lower.equals("otherinvestment") || 
+               lower.equals("other_investment");
+    }
+    
+    /**
+     * Check if a category is a loan category
+     * Note: Loan categories are typically identified by account type, not transaction category
+     * But we check for loan-related categories that might be used
+     */
+    private boolean isLoanCategory(String category) {
+        if (category == null || category.isEmpty()) {
+            return false;
+        }
+        String lower = category.toLowerCase();
+        return lower.contains("loan") || 
+               lower.equals("mortgage") || 
+               lower.equals("autoloan") || 
+               lower.equals("auto_loan") ||
+               lower.equals("personalloan") || 
+               lower.equals("personal_loan") ||
+               lower.equals("studentloan") || 
+               lower.equals("student_loan") ||
+               lower.equals("creditline") || 
+               lower.equals("credit_line");
     }
 }

@@ -17,14 +17,17 @@ spring:
 server:
   port: 0  # Random port - Spring Boot will find an available port automatically
   
-  # Redis Configuration (Optional for tests - will use in-memory if not available)
+  # Redis Configuration for Tests
+  # CRITICAL: Tests use a separate Redis container (budgetbuddy-redis-test) on port 6380
+  # This ensures test isolation - tests won't affect local development Redis data
   data:
     redis:
       host: ${SPRING_DATA_REDIS_HOST:localhost}
-      port: ${SPRING_DATA_REDIS_PORT:6379}
+      port: ${SPRING_DATA_REDIS_PORT:6380}  # Test Redis uses port 6380 (separate from local stack on 6379)
       timeout: 2000ms
       # In tests, Redis is optional - tests will work without it
       # If Redis is not available, some features may be disabled but tests should still pass
+      # Tests use budgetbuddy-redis-test container (isolated from budgetbuddy-redis used by local stack)
 
 # Test Application Configuration
 app:

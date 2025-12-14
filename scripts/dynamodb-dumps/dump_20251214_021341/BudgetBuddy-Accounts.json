@@ -1,0 +1,571 @@
+{
+    "Items": [
+        {
+            "accountName": {
+                "S": "Plaid Platinum Small Business Credit Card"
+            },
+            "accountType": {
+                "S": "credit"
+            },
+            "lastSyncedAt": {
+                "S": "2025-12-14T09:47:48.887981720Z"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "accountNumber": {
+                "S": "9999"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765705668"
+            },
+            "userId": {
+                "S": "0f3abe0f-51be-4028-8fb8-70774f0b6f65"
+            },
+            "plaidAccountId": {
+                "S": "j9MWokxP38ienKQ1d1j3C8MxbdVrX1Cv458Dj"
+            },
+            "accountId": {
+                "S": "6056c1f2-327d-359b-ac69-7200ba20feb6"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:47:47.709536011Z"
+            },
+            "accountSubtype": {
+                "S": "credit card"
+            },
+            "balance": {
+                "N": "4980"
+            },
+            "institutionName": {
+                "S": "ins_127989"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:47:48.887981720Z"
+            }
+        },
+        {
+            "accountName": {
+                "S": "Plaid Gold Standard 0% Interest Checking"
+            },
+            "accountType": {
+                "S": "depository"
+            },
+            "lastSyncedAt": {
+                "S": "2025-12-14T09:47:48.887981720Z"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "accountNumber": {
+                "S": "0000"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765705668"
+            },
+            "userId": {
+                "S": "0f3abe0f-51be-4028-8fb8-70774f0b6f65"
+            },
+            "plaidAccountId": {
+                "S": "KKjogyMZwlczoJr6v68nHnaJvRDZ7XfE8PaMX"
+            },
+            "accountId": {
+                "S": "ab2c1033-e389-3616-8921-787132fb063c"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:47:47.503795261Z"
+            },
+            "accountSubtype": {
+                "S": "checking"
+            },
+            "balance": {
+                "N": "100"
+            },
+            "institutionName": {
+                "S": "ins_127989"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:47:48.887981720Z"
+            }
+        },
+        {
+            "accountName": {
+                "S": "Plaid Cares Health Savings Account"
+            },
+            "accountType": {
+                "S": "depository"
+            },
+            "lastSyncedAt": {
+                "S": "2025-12-14T09:47:48.887981720Z"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "accountNumber": {
+                "S": "9001"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765705668"
+            },
+            "userId": {
+                "S": "0f3abe0f-51be-4028-8fb8-70774f0b6f65"
+            },
+            "plaidAccountId": {
+                "S": "NBQEWMpgVrIxJA9EnEvgfgMAxrqjdWfXZvq9d"
+            },
+            "accountId": {
+                "S": "adafabd1-ef09-373a-a2f5-771fe66c18fc"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:47:47.681935928Z"
+            },
+            "accountSubtype": {
+                "S": "hsa"
+            },
+            "balance": {
+                "N": "6009"
+            },
+            "institutionName": {
+                "S": "ins_127989"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:47:48.887981720Z"
+            }
+        },
+        {
+            "accountName": {
+                "S": "Plaid Growth Cash Management"
+            },
+            "accountType": {
+                "S": "depository"
+            },
+            "lastSyncedAt": {
+                "S": "2025-12-14T09:47:48.887981720Z"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "accountNumber": {
+                "S": "9002"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765705668"
+            },
+            "userId": {
+                "S": "0f3abe0f-51be-4028-8fb8-70774f0b6f65"
+            },
+            "plaidAccountId": {
+                "S": "PxMlGjgoRBsamq6pepBrCrBowz9kJMFXdDrgR"
+            },
+            "accountId": {
+                "S": "ebf6199e-cf67-374e-9b18-74da6dc5793f"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:47:47.694112261Z"
+            },
+            "accountSubtype": {
+                "S": "cash management"
+            },
+            "balance": {
+                "N": "12060"
+            },
+            "institutionName": {
+                "S": "ins_127989"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:47:48.887981720Z"
+            }
+        },
+        {
+            "accountName": {
+                "S": "Plaid Diamond 12.5% APR Interest Credit Card"
+            },
+            "accountType": {
+                "S": "credit"
+            },
+            "lastSyncedAt": {
+                "S": "2025-12-14T09:47:48.887981720Z"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "accountNumber": {
+                "S": "3333"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765705668"
+            },
+            "userId": {
+                "S": "0f3abe0f-51be-4028-8fb8-70774f0b6f65"
+            },
+            "plaidAccountId": {
+                "S": "BMzj7va9N3CMb39dAdkQfWXnrzN8vQuzyPNrK"
+            },
+            "accountId": {
+                "S": "440e59da-da8e-3c8c-b563-51c5bf287880"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:47:47.564764636Z"
+            },
+            "accountSubtype": {
+                "S": "credit card"
+            },
+            "balance": {
+                "N": "410"
+            },
+            "institutionName": {
+                "S": "ins_127989"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:47:48.887981720Z"
+            }
+        },
+        {
+            "accountName": {
+                "S": "Plaid Bronze Standard 0.2% Interest CD"
+            },
+            "accountType": {
+                "S": "depository"
+            },
+            "lastSyncedAt": {
+                "S": "2025-12-14T09:47:48.887981720Z"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "accountNumber": {
+                "S": "2222"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765705668"
+            },
+            "userId": {
+                "S": "0f3abe0f-51be-4028-8fb8-70774f0b6f65"
+            },
+            "plaidAccountId": {
+                "S": "zGde3Ag9BDTV53B7z71oSyPwNvAGrDU3a91pG"
+            },
+            "accountId": {
+                "S": "de4b7f45-e446-3694-b2c3-5c7d3a3e4e10"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:47:47.546914511Z"
+            },
+            "accountSubtype": {
+                "S": "cd"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "institutionName": {
+                "S": "ins_127989"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:47:48.887981720Z"
+            }
+        },
+        {
+            "accountName": {
+                "S": "Plaid Mortgage"
+            },
+            "accountType": {
+                "S": "loan"
+            },
+            "lastSyncedAt": {
+                "S": "2025-12-14T09:47:48.887981720Z"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "accountNumber": {
+                "S": "8888"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765705668"
+            },
+            "userId": {
+                "S": "0f3abe0f-51be-4028-8fb8-70774f0b6f65"
+            },
+            "plaidAccountId": {
+                "S": "4zQRlpXGwJTZKw1dGdBJsybN3jg5JoUl5ewB5"
+            },
+            "accountId": {
+                "S": "8a168eb5-b644-3f61-b204-4f9cdda78a9e"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:47:47.668129344Z"
+            },
+            "accountSubtype": {
+                "S": "mortgage"
+            },
+            "balance": {
+                "N": "56302.06"
+            },
+            "institutionName": {
+                "S": "ins_127989"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:47:48.887981720Z"
+            }
+        },
+        {
+            "accountName": {
+                "S": "Plaid Silver Standard 0.1% Interest Saving"
+            },
+            "accountType": {
+                "S": "depository"
+            },
+            "lastSyncedAt": {
+                "S": "2025-12-14T09:47:48.887981720Z"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "accountNumber": {
+                "S": "1111"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765705668"
+            },
+            "userId": {
+                "S": "0f3abe0f-51be-4028-8fb8-70774f0b6f65"
+            },
+            "plaidAccountId": {
+                "S": "rGlxbKe9XmTj6v8DyDpqfDPkL4ER1BfdwxVEe"
+            },
+            "accountId": {
+                "S": "868f133b-e805-3428-8423-d60d502265b6"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:47:47.527442636Z"
+            },
+            "accountSubtype": {
+                "S": "savings"
+            },
+            "balance": {
+                "N": "200"
+            },
+            "institutionName": {
+                "S": "ins_127989"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:47:48.887981720Z"
+            }
+        },
+        {
+            "accountName": {
+                "S": "Plaid 401k"
+            },
+            "accountType": {
+                "S": "investment"
+            },
+            "lastSyncedAt": {
+                "S": "2025-12-14T09:47:48.887981720Z"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "accountNumber": {
+                "S": "6666"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765705668"
+            },
+            "userId": {
+                "S": "0f3abe0f-51be-4028-8fb8-70774f0b6f65"
+            },
+            "plaidAccountId": {
+                "S": "dkPLQNq8emin934KEKmptplVeKjQZ7uBNwx7b"
+            },
+            "accountId": {
+                "S": "bf16a87a-f75f-3159-844f-bbcbc4a8672e"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:47:47.623205844Z"
+            },
+            "accountSubtype": {
+                "S": "401k"
+            },
+            "balance": {
+                "N": "23631.9805"
+            },
+            "institutionName": {
+                "S": "ins_127989"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:47:48.887981720Z"
+            }
+        },
+        {
+            "accountName": {
+                "S": "Plaid Platinum Standard 1.85% Interest Money Market"
+            },
+            "accountType": {
+                "S": "depository"
+            },
+            "lastSyncedAt": {
+                "S": "2025-12-14T09:47:48.887981720Z"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "accountNumber": {
+                "S": "4444"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765705668"
+            },
+            "userId": {
+                "S": "0f3abe0f-51be-4028-8fb8-70774f0b6f65"
+            },
+            "plaidAccountId": {
+                "S": "3reRmL6dV9HXqv5DGDlZsylZKWw1eRUmJpezp"
+            },
+            "accountId": {
+                "S": "953db00b-93df-3f18-85b6-c5a7ce2de5a4"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:47:47.586363511Z"
+            },
+            "accountSubtype": {
+                "S": "money market"
+            },
+            "balance": {
+                "N": "43200"
+            },
+            "institutionName": {
+                "S": "ins_127989"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:47:48.887981720Z"
+            }
+        },
+        {
+            "accountName": {
+                "S": "Plaid IRA"
+            },
+            "accountType": {
+                "S": "investment"
+            },
+            "lastSyncedAt": {
+                "S": "2025-12-14T09:47:48.887981720Z"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "accountNumber": {
+                "S": "5555"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765705668"
+            },
+            "userId": {
+                "S": "0f3abe0f-51be-4028-8fb8-70774f0b6f65"
+            },
+            "plaidAccountId": {
+                "S": "xG3jzRp5LQTJ71bGxG9Qtp7ajle4PvuywoR81"
+            },
+            "accountId": {
+                "S": "c69f7175-5e03-33e3-83f7-8a01297a8ffe"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:47:47.601634344Z"
+            },
+            "accountSubtype": {
+                "S": "ira"
+            },
+            "balance": {
+                "N": "320.76"
+            },
+            "institutionName": {
+                "S": "ins_127989"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:47:48.887981720Z"
+            }
+        },
+        {
+            "accountName": {
+                "S": "Plaid Student Loan"
+            },
+            "accountType": {
+                "S": "loan"
+            },
+            "lastSyncedAt": {
+                "S": "2025-12-14T09:47:48.887981720Z"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "accountNumber": {
+                "S": "7777"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765705668"
+            },
+            "userId": {
+                "S": "0f3abe0f-51be-4028-8fb8-70774f0b6f65"
+            },
+            "plaidAccountId": {
+                "S": "a8aZjPw9JmsWg9xplpBafaAXELBM4gUk4qxra"
+            },
+            "accountId": {
+                "S": "3dfd1854-527b-36b2-8076-b6c10a1826e8"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:47:47.649272428Z"
+            },
+            "accountSubtype": {
+                "S": "student"
+            },
+            "balance": {
+                "N": "65262"
+            },
+            "institutionName": {
+                "S": "ins_127989"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:47:48.887981720Z"
+            }
+        }
+    ],
+    "Count": 12,
+    "ScannedCount": 12,
+    "ConsumedCapacity": null
+}

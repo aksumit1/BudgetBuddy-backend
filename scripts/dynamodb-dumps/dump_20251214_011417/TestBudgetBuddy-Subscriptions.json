@@ -1,0 +1,209 @@
+{
+    "Items": [
+        {
+            "accountId": {
+                "S": "feb3c98a-252c-4378-bd08-8b2363a637df"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:11:07.498404Z"
+            },
+            "amount": {
+                "N": "15.99"
+            },
+            "nextPaymentDate": {
+                "S": "2024-02-15"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "category": {
+                "S": "subscriptions"
+            },
+            "subscriptionId": {
+                "S": "da783eef-f82c-40ea-a488-1d6968446568"
+            },
+            "userId": {
+                "S": "528ede33-1ca2-496f-9928-fa252eebd09f"
+            },
+            "startDate": {
+                "S": "2024-01-15"
+            },
+            "frequency": {
+                "S": "MONTHLY"
+            },
+            "merchantName": {
+                "S": "Netflix"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:11:07.498404Z"
+            }
+        },
+        {
+            "amount": {
+                "N": "52.99"
+            },
+            "nextPaymentDate": {
+                "S": "2024-10-01"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Adobe subscription"
+            },
+            "userId": {
+                "S": "cb3159e3-799c-44ee-8338-b324a8d14943"
+            },
+            "frequency": {
+                "S": "QUARTERLY"
+            },
+            "merchantName": {
+                "S": "adobe"
+            },
+            "accountId": {
+                "S": "781c284f-29c5-4e39-8cd0-c06774ccaf14"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:11:08.756630Z"
+            },
+            "lastPaymentDate": {
+                "S": "2024-07-01"
+            },
+            "category": {
+                "S": "subscriptions"
+            },
+            "subscriptionId": {
+                "S": "07320950-e05a-33bc-923c-9cf95f57276b"
+            },
+            "startDate": {
+                "S": "2024-01-01"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:11:08.756630Z"
+            }
+        },
+        {
+            "amount": {
+                "N": "15.99"
+            },
+            "nextPaymentDate": {
+                "S": "2024-04-15"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Netflix subscription"
+            },
+            "userId": {
+                "S": "a0e1bcf6-ecc0-4d99-a292-3bd1b30d9495"
+            },
+            "frequency": {
+                "S": "MONTHLY"
+            },
+            "merchantName": {
+                "S": "netflix"
+            },
+            "accountId": {
+                "S": "22364860-c962-47a3-9bb5-e8b19a944ccd"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:11:06.861503Z"
+            },
+            "lastPaymentDate": {
+                "S": "2024-03-15"
+            },
+            "category": {
+                "S": "subscriptions"
+            },
+            "subscriptionId": {
+                "S": "fdde73cc-c340-3b2b-9a08-40d3520e8d83"
+            },
+            "startDate": {
+                "S": "2024-01-15"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:11:06.861503Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "feb3c98a-252c-4378-bd08-8b2363a637df"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:11:07.503994Z"
+            },
+            "amount": {
+                "N": "15.99"
+            },
+            "nextPaymentDate": {
+                "S": "2024-02-15"
+            },
+            "active": {
+                "BOOL": false
+            },
+            "category": {
+                "S": "subscriptions"
+            },
+            "subscriptionId": {
+                "S": "a5ea33e2-a4ed-412e-aa7d-919179dd8e3a"
+            },
+            "userId": {
+                "S": "528ede33-1ca2-496f-9928-fa252eebd09f"
+            },
+            "startDate": {
+                "S": "2024-01-15"
+            },
+            "frequency": {
+                "S": "MONTHLY"
+            },
+            "merchantName": {
+                "S": "Cancelled"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:11:07.503995Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "cf465fa6-ed94-4512-a9b2-8ea7a131cac7"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:11:06.181884Z"
+            },
+            "amount": {
+                "N": "15.99"
+            },
+            "nextPaymentDate": {
+                "S": "2024-02-15"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "category": {
+                "S": "subscriptions"
+            },
+            "subscriptionId": {
+                "S": "e6e168df-6289-4299-9d53-7b0569dee1d2"
+            },
+            "userId": {
+                "S": "62ae8562-f68a-439d-9115-18e276674a09"
+            },
+            "startDate": {
+                "S": "2024-01-15"
+            },
+            "frequency": {
+                "S": "MONTHLY"
+            },
+            "merchantName": {
+                "S": "Netflix"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:11:06.181885Z"
+            }
+        }
+    ],
+    "Count": 5,
+    "ScannedCount": 5,
+    "ConsumedCapacity": null
+}

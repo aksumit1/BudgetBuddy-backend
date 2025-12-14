@@ -163,15 +163,33 @@ class IOSAppBackendIntegrationTest {
         nullActiveAccount.setActive(null); // BUG FIX: null active should be included
         nullActiveAccount.setCreatedAt(Instant.now());
         nullActiveAccount.setUpdatedAt(Instant.now());
+        // Set updatedAtTimestamp for GSI (UserIdUpdatedAtIndex) to work properly
+        nullActiveAccount.setUpdatedAtTimestamp(Instant.now().getEpochSecond());
         accountRepository.save(nullActiveAccount);
 
+        // Verify account was saved correctly by retrieving it directly
+        var savedAccount = accountRepository.findById(nullActiveAccount.getAccountId());
+        org.junit.jupiter.api.Assertions.assertTrue(savedAccount.isPresent(), 
+                "Null active account should be saved to database");
+        org.junit.jupiter.api.Assertions.assertNull(savedAccount.get().getActive(), 
+                "Saved account should have null active field");
+
+        // Verify account can be found by userId (this tests the GSI query)
+        var accountsByUserId = accountRepository.findByUserId(testUser.getUserId());
+        org.junit.jupiter.api.Assertions.assertTrue(
+                accountsByUserId.stream().anyMatch(a -> "Null Active Account".equals(a.getAccountName())),
+                "Null active account should be found by findByUserId. Found accounts: " + 
+                accountsByUserId.stream().map(AccountTable::getAccountName).toList());
+
         // When - iOS app calls GET /api/plaid/accounts
+        // Use a more reliable JSONPath assertion that checks if any account in the array has the expected name
         mockMvc.perform(withAuth(get("/api/plaid/accounts"))
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.accounts").isArray())
                 // BUG FIX: Should include account with null active
-                .andExpect(jsonPath("$.accounts[?(@.accountName == 'Null Active Account')]").exists());
+                // Use hasItem matcher which is more reliable than filter expression
+                .andExpect(jsonPath("$.accounts[*].accountName", org.hamcrest.Matchers.hasItem("Null Active Account")));
     }
 
     @Test

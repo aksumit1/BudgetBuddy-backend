@@ -339,9 +339,58 @@ public class PlaidDataExtractor {
                 
                 transaction.setPlaidCategoryPrimary(plaidCategoryPrimary);
                 transaction.setPlaidCategoryDetailed(plaidCategoryDetailed);
-                transaction.setCategoryPrimary(categoryMapping.getPrimary());
-                transaction.setCategoryDetailed(categoryMapping.getDetailed());
-                transaction.setCategoryOverridden(categoryMapping.isOverridden());
+                
+                // CRITICAL: Check if this is an HSA account transaction
+                // HSA deposits (positive amounts) should be investment, debits (negative amounts) should be expenses
+                String accountType = null;
+                if (transaction.getAccountId() != null) {
+                    Optional<AccountTable> accountOpt = accountRepository.findById(transaction.getAccountId());
+                    if (accountOpt.isPresent()) {
+                        accountType = accountOpt.get().getAccountType();
+                    }
+                }
+                
+                // If account type lookup failed, try by Plaid account ID
+                if (accountType == null || accountType.isEmpty()) {
+                    String plaidAccountId = extractAccountIdFromTransaction(plaidTransaction);
+                    if (plaidAccountId != null && !plaidAccountId.isEmpty()) {
+                        Optional<AccountTable> accountOpt = accountRepository.findByPlaidAccountId(plaidAccountId);
+                        if (accountOpt.isPresent()) {
+                            accountType = accountOpt.get().getAccountType();
+                        }
+                    }
+                }
+                
+                // Apply HSA-specific categorization
+                if (accountType != null && ("hsa".equalsIgnoreCase(accountType) || "healthsavingsaccount".equalsIgnoreCase(accountType))) {
+                    if (transactionAmount != null && transactionAmount.compareTo(java.math.BigDecimal.ZERO) > 0) {
+                        // HSA deposit (positive amount) → investment
+                        transaction.setCategoryPrimary("investment");
+                        transaction.setCategoryDetailed("otherInvestment"); // Generic investment category for HSA deposits
+                        transaction.setCategoryOverridden(false); // Not user-overridden, system-determined
+                        logger.debug("HSA deposit detected - categorized as investment: accountId={}, amount={}", 
+                                transaction.getAccountId(), transactionAmount);
+                    } else {
+                        // HSA debit (negative amount) → expense (keep existing category or use healthcare)
+                        // If category is already set to something appropriate, keep it; otherwise use healthcare
+                        if (categoryMapping.getPrimary() == null || "other".equals(categoryMapping.getPrimary())) {
+                            transaction.setCategoryPrimary("healthcare");
+                            transaction.setCategoryDetailed("healthcare");
+                        } else {
+                            // Keep the mapped category (might be healthcare, groceries, etc.)
+                            transaction.setCategoryPrimary(categoryMapping.getPrimary());
+                            transaction.setCategoryDetailed(categoryMapping.getDetailed());
+                        }
+                        transaction.setCategoryOverridden(categoryMapping.isOverridden());
+                        logger.debug("HSA debit detected - categorized as expense: accountId={}, amount={}, category={}", 
+                                transaction.getAccountId(), transactionAmount, transaction.getCategoryPrimary());
+                    }
+                } else {
+                    // Not an HSA account - use normal categorization
+                    transaction.setCategoryPrimary(categoryMapping.getPrimary());
+                    transaction.setCategoryDetailed(categoryMapping.getDetailed());
+                    transaction.setCategoryOverridden(categoryMapping.isOverridden());
+                }
                 
                 // Extract date
                 if (plaidTx.getDate() != null) {

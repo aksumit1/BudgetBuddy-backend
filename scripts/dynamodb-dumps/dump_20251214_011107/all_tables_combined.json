@@ -1,0 +1,101 @@
+{
+  "dump_timestamp": "2025-12-14T01:11:56-08:00",
+  "endpoint": "http://localhost:4566",
+  "tables": {
+-n     "BudgetBuddy-Accounts": 
+{
+    "Items": [],
+    "Count": 0,
+    "ScannedCount": 0,
+    "ConsumedCapacity": null
+}
+,
+-n     "BudgetBuddy-AuditLogs": 
+{
+    "Items": [],
+    "Count": 0,
+    "ScannedCount": 0,
+    "ConsumedCapacity": null
+}
+,
+-n     "BudgetBuddy-Budgets": 
+{
+    "Items": [],
+    "Count": 0,
+    "ScannedCount": 0,
+    "ConsumedCapacity": null
+}
+,
+-n     "BudgetBuddy-DDoSProtection": 
+{
+    "Items": [
+        {
+            "ipAddress": {
+                "S": "0:0:0:0:0:0:0:1"
+            },
+            "userId": {
+                "S": "anonymous"
+            },
+            "ttl": {
+                "N": "1765789852"
+            },
+            "timestamp": {
+                "N": "1765703452"
+            }
+        }
+    ],
+    "Count": 1,
+    "ScannedCount": 1,
+    "ConsumedCapacity": null
+}
+,
+-n     "BudgetBuddy-DeviceAttestation": 
+{
+    "Items": [],
+    "Count": 0,
+    "ScannedCount": 0,
+    "ConsumedCapacity": null
+}
+,
+-n     "BudgetBuddy-DeviceAttestations": 
+{
+    "Items": [],
+    "Count": 0,
+    "ScannedCount": 0,
+    "ConsumedCapacity": null
+}
+,
+-n     "BudgetBuddy-FIDO2Challenges": 
+{
+    "Items": [],
+    "Count": 0,
+    "ScannedCount": 0,
+    "ConsumedCapacity": null
+}
+,
+-n     "BudgetBuddy-FIDO2Credentials": 
+{
+    "Items": [],
+    "Count": 0,
+    "ScannedCount": 0,
+    "ConsumedCapacity": null
+}
+,
+-n     "BudgetBuddy-Goals": 
+{
+    "Items": [],
+    "Count": 0,
+    "ScannedCount": 0,
+    "ConsumedCapacity": null
+}
+,
+-n     "BudgetBuddy-MFABackupCodes": 
+{
+    "Items": [],
+    "Count": 0,
+    "ScannedCount": 0,
+    "ConsumedCapacity": null
+}
+
+  }
+}

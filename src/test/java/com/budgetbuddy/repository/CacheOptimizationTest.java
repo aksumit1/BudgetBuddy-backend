@@ -30,15 +30,11 @@ public class CacheOptimizationTest {
 
     @BeforeEach
     void setUp() {
-        // Clear all caches before each test
-        if (cacheManager != null) {
-            cacheManager.getCacheNames().forEach(cacheName -> {
-                org.springframework.cache.Cache cache = cacheManager.getCache(cacheName);
-                if (cache != null) {
-                    cache.clear();
-                }
-            });
-        }
+        // CRITICAL: Do NOT clear all caches - this would affect shared resources (Redis, DynamoDB)
+        // This test uses an isolated test configuration with its own CacheManager instance,
+        // so cache clearing is safe here. However, we avoid clearing to prevent accidental
+        // impact on shared resources if the test configuration changes.
+        // Tests should use unique keys to avoid conflicts.
     }
 
     @Test

@@ -3,6 +3,7 @@ spring:
     name: budgetbuddy-backend
   
   # Redis Configuration
+  # CRITICAL: Redis is optional - application will automatically fall back to backend (DynamoDB) when Redis is unavailable
   data:
     # Configure Spring Data to handle multiple repository types
     # We use DynamoDB repositories (custom @Repository) and Redis (for caching/locking only)
@@ -14,6 +15,8 @@ spring:
       port: ${SPRING_DATA_REDIS_PORT:6379}
       timeout: 1000ms  # Reduced from 2000ms for faster failure detection
       connect-timeout: 1000ms  # Reduced from 2000ms for faster connection establishment
+      # Make Redis optional - don't fail startup if Redis is unavailable
+      # Application will automatically fall back to backend (DynamoDB) operations
       lettuce:
         pool:
           max-active: 32  # Increased to handle concurrent health checks and Maven tests
@@ -38,23 +41,6 @@ spring:
 # Server Configuration
 server:
   port: ${SERVER_PORT:8080}  # Fixed port - do not change
-
-# DNS Cache Configuration
-# Resilience strategy: Keep cached addresses during DNS outages, don't cache errors
-app:
-  dns:
-    cache:
-      # Long positive TTL: Keep successful DNS lookups cached for extended periods
-      # If DNS server becomes unavailable, continue using cached addresses
-      # Default: 3600 seconds (1 hour) - allows operation during DNS outages
-      ttl-seconds: 3600
-      # Very short negative TTL: Don't cache DNS lookup failures
-      # Failed lookups expire quickly, allowing retry when DNS/server recovers
-      # Default: 1 second - minimal caching of errors for quick recovery
-      negative-ttl-seconds: 1
-  aws:
-    dynamodb:
-      # AWS SDK v2 has built-in retry (default: 3 attempts with exponential backoff)
   address: ${SERVER_ADDRESS:0.0.0.0}  # Bind to all interfaces (0.0.0.0) to allow network access, use 127.0.0.1 for localhost only
   # SSL/HTTPS Configuration (optional for local development)
   ssl:
@@ -77,6 +63,18 @@ app:
 
 # Application Configuration
 app:
+  # DNS Cache Configuration
+  # Resilience strategy: Keep cached addresses during DNS outages, don't cache errors
+  dns:
+    cache:
+      # Long positive TTL: Keep successful DNS lookups cached for extended periods
+      # If DNS server becomes unavailable, continue using cached addresses
+      # Default: 3600 seconds (1 hour) - allows operation during DNS outages
+      ttl-seconds: 3600
+      # Very short negative TTL: Don't cache DNS lookup failures
+      # Failed lookups expire quickly, allowing retry when DNS/server recovers
+      # Default: 1 second - minimal caching of errors for quick recovery
+      negative-ttl-seconds: 1
   name: BudgetBuddy Backend
   version: 1.0.0
   
@@ -301,10 +299,13 @@ logging:
     zipkin: WARN
     brave: WARN
     io.lettuce.core: WARN
-    # Suppress ConnectionWatchdog warnings during Redis restarts
-    # These are expected when Redis restarts - Lettuce will automatically reconnect
-    # once Redis is available again. The warning is informational, not an error.
-    io.lettuce.core.protocol.ConnectionWatchdog: INFO  # Reduce WARN to INFO for reconnection attempts
+    # Suppress ConnectionWatchdog warnings during Redis restarts and DNS resolution failures
+    # These are expected when Redis restarts or DNS is temporarily unavailable - Lettuce will automatically reconnect
+    # once Redis/DNS is available again. The warning is informational, not an error.
+    io.lettuce.core.protocol.ConnectionWatchdog: DEBUG  # Suppress WARN/INFO - only show at DEBUG level
+    # Suppress DNS resolution errors during Redis reconnection attempts
+    # These are transient and will resolve once DNS/server is available
+    java.net: INFO  # Reduce UnknownHostException noise during Redis reconnection
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] [%X{correlationId}] %-5level %logger{36} - %msg%n"
     file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] [%X{correlationId}] %-5level %logger{36} - %msg%n"

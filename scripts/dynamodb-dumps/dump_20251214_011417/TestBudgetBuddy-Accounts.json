@@ -1,0 +1,5578 @@
+{
+    "Items": [
+        {
+            "accountId": {
+                "S": "a79c1b43-f11e-437e-9098-a2da321b6b01"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:51.765297Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703451"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "0113028d-2550-4c77-8a48-008b8fa3587d"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:51.765297Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "92a08ece-ea77-4d83-8677-756e79d8c54b"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:11:03.393937Z"
+            },
+            "balance": {
+                "N": "500"
+            },
+            "accountName": {
+                "S": "Second Account"
+            },
+            "accountType": {
+                "S": "SAVINGS"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703463"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "1dbfe8ff-968e-411f-be47-537167ee6687"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:11:03.393937Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "385a6223-8063-405f-8590-79a206785b2c"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:11:03.834016Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "lastSyncedAt": {
+                "S": "2025-12-14T09:11:03.884699Z"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703463"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "5b9c7e2e-75f7-4afb-bca0-447e28e4b75c"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:11:03.834016Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "2f62c78f-b993-4b96-9332-d1b8b6615e05"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:51.949886Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Checking Account"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "accountNumber": {
+                "S": "1234"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703451"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "d2a955b8-d47a-4d2e-9101-c4e1d41d3ff7"
+            },
+            "plaidAccountId": {
+                "S": "plaid-old-f249e3de-2e55-4405-949a-6860ea734965"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:51.949886Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "2d345cb4-4fee-4d3f-a355-93fdd1fc798a"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:10.199125Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "accountType": {
+                "S": "checking"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703410"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "e4ed71df-7d4a-4571-a73d-fb962a78b8c9"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:10.199125Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "ff0212c9-3e95-41e8-8afd-3d29ef079e1b"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:11:03.759959Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "lastSyncedAt": {
+                "S": "2025-12-14T09:11:03.807024Z"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703463"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "7cdc488c-c86e-410c-98df-aa8c7c1c68ae"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:11:03.759959Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "267a0d5d-72e4-4311-9641-63e88c4a7d92"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "551220cd-84c3-4146-83f4-af4c36c4658e"
+            }
+        },
+        {
+            "accountId": {
+                "S": "9ce60958-e29b-407e-8700-341e686ef7b9"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:20.390102Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703420"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "2e6dd430-5c9e-4d42-a5b2-90416527be18"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:20.390102Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "7c1ee8db-83c2-48ea-9014-c53b1cc0d324"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:31.267777Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703431"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "6bec2c84-b7a6-4fd4-ade2-9830edf56103"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:31.267777Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "a62fd66c-b453-4108-a29c-7626bf6f9b3b"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:11:04.444234Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703464"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "ba0a49bb-5cc5-4051-9c11-b0f6a3a458f2"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:11:04.444234Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "0cc26f7c-5f68-4556-88d8-21d428fd4498"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:21.252422Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703421"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "3b857417-334e-4c7d-bc95-580ee6497830"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:21.252422Z"
+            }
+        },
+        {
+            "accountName": {
+                "S": "Checking Account"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "accountNumber": {
+                "S": "5678"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703451"
+            },
+            "userId": {
+                "S": "be4bed22-f117-43fa-aa0a-0dd6b1905a08"
+            },
+            "plaidAccountId": {
+                "S": "plaid-new-224eba60-5b92-4f2c-8bb5-49364ea65a14"
+            },
+            "accountId": {
+                "S": "53557e12-835b-4613-936c-c5b4cbd9c1f9"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:51.808716Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:51.808716Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "bec6b57d-05c5-44cc-854f-e8d8d46d83e5"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:51.864483Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Checking"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "accountNumber": {
+                "S": "1111"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703451"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "46fdb5cc-2d18-4fdd-9e8b-86cd656ade7f"
+            },
+            "plaidAccountId": {
+                "S": "plaid-new-ee3e3741-1626-43b7-8266-a246bbb037fd"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:51.864483Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "155bc7fb-a57e-4ec7-a848-558af02f1656"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:50.421413Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703450"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "638c30ee-ebbc-49e8-9804-f738017037b6"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:50.421414Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "9bbc3b28-5e5c-44b1-9ae2-af2cfe5f08fd"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:01.677854Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703401"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "3e335551-ee86-42c7-b883-d074ab84eec7"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:01.677854Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "922d540e-cf6d-4c1b-b6af-4dde592ba149"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:31.208693Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703431"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "b3211e3c-d834-4b1c-a8b3-c1ca308df608"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:31.208693Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "22d4960c-ec5d-432b-ad10-c4131c76f3ce"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:03.489105Z"
+            },
+            "balance": {
+                "N": "500"
+            },
+            "accountName": {
+                "S": "Old Account"
+            },
+            "accountType": {
+                "S": "SAVINGS"
+            },
+            "institutionName": {
+                "S": "Old Bank"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703403"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "60bcb260-c078-4984-8a0f-05cc760df11f"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:03.489105Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "c420204d-1680-4c57-a64b-d56ab7681169"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:20.024688Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703420"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "b9d27766-61d5-4abf-bcee-b64bcd108b1a"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:20.024688Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "6d9754d7-71e9-484a-b54d-d95b4d7564ec"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:11:04.313006Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703464"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "0fb3b3eb-29c1-44a6-9bb2-2cdfe834979f"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:11:04.313006Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "test-account-1765703451197"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "userId": {
+                "S": "test-user-1765703451197"
+            },
+            "plaidAccountId": {
+                "S": "plaid-account-test"
+            }
+        },
+        {
+            "accountId": {
+                "S": "27520a58-9d33-4b06-99d0-7c8d9af16385"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:50.452759Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703450"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "4f214c65-a9d1-4308-b122-0f992c6f2e6e"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:50.452759Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "b1df633a-8732-4967-a20f-7e1f8a6f932f"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:05.872824Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703405"
+            },
+            "userId": {
+                "S": "661bb77a-21ce-4d26-8489-2706e69017d2"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:05.872825Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "b2efcb1f-ad2f-4800-9aff-afeabfa0e968"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:01.581039Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703401"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "372f85df-30e8-4233-915f-5a81e0247c64"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:01.581039Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "dc01d360-7cea-4dd8-ad94-6b71ab804bbc"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:20.948812Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703420"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "572c5880-3679-4831-8a88-dd2736e73b6d"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:20.948813Z"
+            }
+        },
+        {
+            "accountName": {
+                "S": "iOS Test Account"
+            },
+            "accountType": {
+                "S": "depository"
+            },
+            "lastSyncedAt": {
+                "S": "2025-12-14T09:10:09.279996Z"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703409"
+            },
+            "userId": {
+                "S": "fb58812c-7370-48fd-b3a8-bdca5906cbb2"
+            },
+            "plaidAccountId": {
+                "S": "plaid-account-ios-test"
+            },
+            "accountId": {
+                "S": "a81d9a6b-a1e1-4709-b321-3725b70d0e7e"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:09.279995Z"
+            },
+            "accountSubtype": {
+                "S": "checking"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:09.279996Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "568ca77c-ca9f-4881-a32b-4c20eea4ad63"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:30.774022Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703430"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "133bbf2e-bf28-4856-9e0a-e2c1ad3a2028"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:30.774022Z"
+            }
+        },
+        {
+            "accountName": {
+                "S": "iOS Test Account"
+            },
+            "accountType": {
+                "S": "depository"
+            },
+            "lastSyncedAt": {
+                "S": "2025-12-14T09:10:09.512639Z"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703409"
+            },
+            "userId": {
+                "S": "4151fe0e-3d01-41d0-9ca4-114e81539119"
+            },
+            "plaidAccountId": {
+                "S": "plaid-account-ios-test"
+            },
+            "accountId": {
+                "S": "3d2f8933-013e-44d6-b218-0881f8011656"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:09.512638Z"
+            },
+            "accountSubtype": {
+                "S": "checking"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:09.512638Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "9f31e842-fd83-4436-8f09-6d5a8040cb97"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:18.882668Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Checking"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703418"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "041e4670-fbb2-485f-ab4b-62a54d1771d5"
+            },
+            "plaidAccountId": {
+                "S": "plaid-account-6d2109a3-cf42-42d0-bfc6-3433577eefdc"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:18.882668Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "2ab2d1ca-4692-4ea0-ae24-ceddecf8e142"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:30.900687Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703430"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "049bc1b2-f721-4166-88ed-417f5f5d39f4"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:30.900687Z"
+            }
+        },
+        {
+            "accountName": {
+                "S": "Checking Account"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "lastSyncedAt": {
+                "S": "2025-12-14T09:10:10.850148Z"
+            },
+            "plaidItemId": {
+                "S": "test-item-id-c0ac99ec-03ab-409d-afa7-dc187a815128"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "accountNumber": {
+                "S": "1234"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703410"
+            },
+            "userId": {
+                "S": "a4c57915-1c33-4912-9dce-582937c523b5"
+            },
+            "plaidAccountId": {
+                "S": "plaid-acc-1-a8a6714a-9c5b-464f-be98-04165f5ea392"
+            },
+            "accountId": {
+                "S": "25619c3d-4603-4576-bca3-15303d68cb8e"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:10.850145Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:10.850146Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "48328891-91f8-485d-b3c2-efec788d51a7"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:06.125634Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "accountType": {
+                "S": "checking"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703406"
+            },
+            "userId": {
+                "S": "b231de66-883e-42b6-b2ab-61315558d6fa"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:06.125635Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "test-account-1765703451214"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "userId": {
+                "S": "test-user-1765703451214"
+            },
+            "plaidAccountId": {
+                "S": "plaid-account-test"
+            }
+        },
+        {
+            "accountId": {
+                "S": "ad754d6b-a2f0-4d41-8c03-aead7cea45a2"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:10.030332Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "accountType": {
+                "S": "checking"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703410"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "1d6c22cf-15f2-4add-9d68-3ffe4d345087"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:10.030332Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "6280b622-7ac4-4be9-bd6f-52de95c0547b"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:06.171182Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "New Name"
+            },
+            "accountType": {
+                "S": "checking"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703406"
+            },
+            "userId": {
+                "S": "dfc62d3f-84d4-4f94-a885-85ead35f7c3f"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:06.171183Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "705bf28d-c2f7-46e7-81bb-1bd9e793395c"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:20.527860Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703420"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "d771463f-5559-40c7-a3be-d3a713d827c2"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:20.527860Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "feb3c98a-252c-4378-bd08-8b2363a637df"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "userId": {
+                "S": "528ede33-1ca2-496f-9928-fa252eebd09f"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            }
+        },
+        {
+            "accountId": {
+                "S": "edff30d7-501e-4365-9fb4-96f7cd99af23"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:11:03.371895Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "lastSyncedAt": {
+                "S": "2025-12-14T08:11:03Z"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703463"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "1dbfe8ff-968e-411f-be47-537167ee6687"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:11:03.371896Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "test-account-1765703451083"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "userId": {
+                "S": "test-user-1765703451083"
+            },
+            "plaidAccountId": {
+                "S": "plaid-account-test"
+            }
+        },
+        {
+            "accountId": {
+                "S": "92bdc020-a698-4aee-aa3d-62602f78da78"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:21.020557Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703421"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "1296c3c5-a71a-4483-933f-b84c39945753"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:21.020558Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "e7bc0555-62dd-43e5-a494-67c09be4c243"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:03.640697Z"
+            },
+            "balance": {
+                "N": "2000"
+            },
+            "accountName": {
+                "S": "Plaid Account"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Plaid Bank"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703403"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "fc589d76-dcd5-4d08-bd55-e0747979347d"
+            },
+            "plaidAccountId": {
+                "S": "plaid-test-1003592b-f6ab-4697-a1ae-07683e388a8a"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:03.640697Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "0f8aa25e-5a37-442c-8254-af5e6250c317"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:09.856393Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "accountType": {
+                "S": "checking"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703409"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "6545a81d-6ae0-473b-9a6e-5032c68fb54b"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:09.856393Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "1ee773e2-f076-4ca4-857a-6a7c7406fa82"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:54.568960Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703454"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "4809c0d6-23ae-4a35-8613-bfbfafa666b4"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:54.568961Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "735f1370-7a7a-4747-bf22-b974552f337d"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "e545d839-8f71-43c8-9af7-6bc6b16fc831"
+            }
+        },
+        {
+            "accountName": {
+                "S": "Plaid E2E Test Account"
+            },
+            "accountType": {
+                "S": "depository"
+            },
+            "lastSyncedAt": {
+                "S": "2025-12-14T09:10:32.007311Z"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703432"
+            },
+            "userId": {
+                "S": "e78ce62b-2551-4487-87e1-8058b2dcee4d"
+            },
+            "plaidAccountId": {
+                "S": "plaid-e2e-account-2d310e5d-0cc0-47e7-bbfe-60557ed48765"
+            },
+            "accountId": {
+                "S": "06b66a08-e0d8-48f7-9407-3e7905587784"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:32.007310Z"
+            },
+            "accountSubtype": {
+                "S": "checking"
+            },
+            "balance": {
+                "N": "2000"
+            },
+            "institutionName": {
+                "S": "Plaid Bank"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:32.007310Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "a0eb3d23-2831-4f89-a747-04e6b4279fd6"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:50.793473Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703450"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "4cf30a93-4296-47f2-a5b2-9620aebddde6"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:50.793473Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "c433e9ef-df28-4246-a88d-9b6b95c6ced0"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:09.393308Z"
+            },
+            "balance": {
+                "N": "500"
+            },
+            "accountName": {
+                "S": "Null Active Account"
+            },
+            "accountType": {
+                "S": "depository"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703409"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "9f3f06e8-aaff-4a61-b6e9-7bf585fbe8a6"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:09.393308Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "6f0f3d9f-3f6d-4932-95cd-31aa1be9c99e"
+            },
+            "createdAt": {
+                "S": "2025-12-14T08:10:03.719139Z"
+            },
+            "balance": {
+                "N": "1500"
+            },
+            "accountName": {
+                "S": "Updated Name"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703403"
+            },
+            "userId": {
+                "S": "42f6cf2d-067c-4ddf-ba53-72ae3a92e78f"
+            },
+            "plaidAccountId": {
+                "S": "plaid-update-0d6f5773-5897-49be-96df-dd2d839f56c2"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:03.733936Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "c4116c53-f3f3-423c-be2a-62e7bf67df22"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:18.970591Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Checking"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703418"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "0ca4b365-262d-4204-b8d7-144b72f14570"
+            },
+            "plaidAccountId": {
+                "S": "plaid-account-e375801b-790c-4219-b4f1-f966300becec"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:18.970591Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "b9b2286f-7961-4057-b2cd-8eb9a083778a"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:11:04.607662Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703464"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "3a59e848-68b4-4bbf-a37c-ef6913521384"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:11:04.607662Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "26077aec-837b-4b33-8477-25f4da061e3c"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:11:03.213192Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "lastSyncedAt": {
+                "S": "2025-12-14T09:11:03.282201Z"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703463"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "31011579-7a33-4738-8c63-5bbd88296ae2"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:11:03.213192Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "09d1cfcc-946b-49f0-9207-4e74983d68f9"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:51.388523Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Checking"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "accountNumber": {
+                "S": "1111"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703451"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "472adde9-1c65-43da-8c55-e721368e79af"
+            },
+            "plaidAccountId": {
+                "S": "plaid-new-67ad450d-a759-4791-88cf-843eb917e56f"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:51.388523Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "df02a23c-d877-4baa-a9f5-0effbfb5a1a3"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:52.019146Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Checking Account"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "accountNumber": {
+                "S": "0000"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703452"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "4a7fca28-f02b-4479-9401-016668238b85"
+            },
+            "plaidAccountId": {
+                "S": "plaid-old-41a6c9bd-f704-41d8-81f5-a6266ae63890"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:52.019147Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "ca40a172-bc78-472b-b641-14bbbb00b895"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:20.093676Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703420"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "8a9675fc-431b-49b3-b0c1-d2b5099648cd"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:20.093676Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "9e89c3d1-355e-41c4-bf37-8c825f73b107"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:20.327363Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703420"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "95c77561-64d9-4321-b0b5-3edd0fa34eef"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:20.327364Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "33738ba8-cade-472c-a72e-8cb4ecc9d864"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:11:03.990399Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703463"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "3514b30e-65b8-4e67-8ef6-2eef35ae3d33"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:11:03.990399Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "87fad0d7-97fb-49ca-b06a-2ccfc8f1e8d2"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:51.735432Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Checking Account"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "accountNumber": {
+                "S": "0000"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703451"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "15ae0f05-2ae1-4a6b-867a-d122caf4a0d4"
+            },
+            "plaidAccountId": {
+                "S": "plaid-old-68da635a-65e2-4287-aab9-f189e4d42af0"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:51.735432Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "test-account-1765703450982"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "userId": {
+                "S": "test-user-1765703450982"
+            },
+            "plaidAccountId": {
+                "S": "plaid-account-test"
+            }
+        },
+        {
+            "accountId": {
+                "S": "8bfe8bd3-fa2d-48f5-ab31-4f5590335e31"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "userId": {
+                "S": "bd0c0ad8-c3fe-46c6-98bc-a9fb3cb962ef"
+            }
+        },
+        {
+            "accountId": {
+                "S": "a98ae56a-7947-402c-bb46-d46627318639"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "79d42fd6-88df-435f-b9f9-0e592fe360e4"
+            }
+        },
+        {
+            "accountId": {
+                "S": "29afe4e5-ede3-42d6-bddd-7a3a121aa11e"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:11:04.690657Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703464"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "bcab5718-2a5e-4c1a-87d7-90f4830e9fd1"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:11:04.690657Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "50bbee0d-6d1b-4c39-abe6-d7a4b27ea56e"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:09.973025Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "accountType": {
+                "S": "checking"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703409"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "8123c5ae-44d4-4591-8557-b7cb501b5baf"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:09.973025Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "23ae11dc-93c8-4bdf-91eb-df4e2aab655f"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:01.517659Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703401"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "ac9d4711-e96f-4354-a81e-e9eb668c6c5f"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:01.517660Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "c07a792c-a5f9-4d9f-be3b-3b97805548c7"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:55.020549Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703455"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "6181c912-cc17-48a3-8798-8a1d4cfe6fa4"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:55.020549Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "9333f271-2422-466d-bede-8ca3d1d6ee67"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:19.006019Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Checking"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703419"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "0a39d247-e4e1-4411-b436-a6807741dbee"
+            },
+            "plaidAccountId": {
+                "S": "plaid-account-707d7bf3-7dfb-4306-9ae4-3b99b435df8a"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:19.006019Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "test-account-1765703451143"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "userId": {
+                "S": "test-user-1765703451143"
+            },
+            "plaidAccountId": {
+                "S": "plaid-account-test"
+            }
+        },
+        {
+            "accountId": {
+                "S": "d61cb9c8-5789-47d8-aa6e-93bd5ea0c1bc"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:51.700015Z"
+            },
+            "balance": {
+                "N": "2000"
+            },
+            "accountName": {
+                "S": "Duplicate Account"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703451"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "b124758a-4253-47e4-8629-dedca5ea3bd4"
+            },
+            "plaidAccountId": {
+                "S": "plaid-account-380b4ec5-8ea5-4006-a464-b8801b743253"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:51.700015Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "eb189ee2-c1d3-473d-b772-d42c7f08d790"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:11:03.682427Z"
+            },
+            "balance": {
+                "N": "500"
+            },
+            "accountName": {
+                "S": "Second Account"
+            },
+            "accountType": {
+                "S": "SAVINGS"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "lastSyncedAt": {
+                "S": "2025-12-14T07:11:03Z"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703463"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "3b95c389-c5cf-40f2-8ba9-11e20b9ad005"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:11:03.682428Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "2f0ddc9d-9eb1-4c03-8897-64f5f8fd1885"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:50.668534Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703450"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "2af77ea3-ca9c-4dda-9e0b-b3e888f29cb9"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:50.668534Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "a7db01ac-e4ea-4cb8-8449-680cc46c8121"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:31.086675Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703431"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "9b76690f-56fa-49db-9442-5ad821bb6271"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:31.086675Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "d75565b0-e066-4b75-afa9-a644e793a27a"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:11:04.051033Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703464"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "0a5ed933-018c-436e-8391-34820188a6c3"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:11:04.051033Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "db7e4f4c-8958-4dbf-b6da-de449524b320"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "userId": {
+                "S": "ff368a3f-bd25-4385-af29-9f1e5db57967"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            }
+        },
+        {
+            "accountName": {
+                "S": "iOS Test Account"
+            },
+            "accountType": {
+                "S": "depository"
+            },
+            "lastSyncedAt": {
+                "S": "2025-12-14T09:10:09.573316Z"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703409"
+            },
+            "userId": {
+                "S": "d6df4281-8e37-4380-a6f0-2f92dd2f6f55"
+            },
+            "plaidAccountId": {
+                "S": "plaid-account-ios-test"
+            },
+            "accountId": {
+                "S": "014f6ce0-c6fc-42ee-b8c1-c8521371c24b"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:09.573316Z"
+            },
+            "accountSubtype": {
+                "S": "checking"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:09.573316Z"
+            }
+        },
+        {
+            "accountName": {
+                "S": "Old Checking"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "plaidItemId": {
+                "S": "old-item-id"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765617010"
+            },
+            "userId": {
+                "S": "16cf3f30-735e-422a-a342-ee8d1868782f"
+            },
+            "plaidAccountId": {
+                "S": "plaid-acc-existing"
+            },
+            "accountId": {
+                "S": "453f0d57-8ac5-4f1c-8be9-b1a76f1be06f"
+            },
+            "createdAt": {
+                "S": "2025-12-13T09:10:10.997796Z"
+            },
+            "balance": {
+                "N": "500"
+            },
+            "institutionName": {
+                "S": "Old Bank"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "updatedAt": {
+                "S": "2025-12-13T09:10:10.997798Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "7d04279c-68a3-4816-bf5f-436bf51b0475"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:20.890546Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703420"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "5c089ef2-410c-413b-8edf-3b5b069a35f8"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:20.890546Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "c81e7fff-3cca-4f55-a809-ded3f4024951"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:21.167643Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703421"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "6d37e54c-c228-4e0b-ac96-0f41ac0ec3c3"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:21.167643Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "0792068c-519c-4284-b2c5-9cd60b8cf630"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:20.586620Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703420"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "703bbaf9-a24a-4878-a9a3-982c5733a599"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:20.586621Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "b099133d-0156-400d-9c50-24dcf93fe5c6"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:20.645491Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703420"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "8f602dbf-42d4-4654-bd90-b5f23a6697bc"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:20.645491Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "a2c17705-4d4f-4eb0-8041-aed74fa3a610"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:01.733986Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703401"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "c22bfbc9-5f23-42d3-afec-00d5514d4851"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:01.733986Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "0c288850-6fb1-4ff9-a035-28f8100139a2"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:50.596701Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703450"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "92c79ab5-fd5e-4080-a7ff-e73bde433f4f"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:50.596701Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "c3af90b3-4acc-44ad-add3-c1f0724b5572"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "b6792d08-ac9f-47d9-acce-11f19e628fe3"
+            }
+        },
+        {
+            "accountName": {
+                "S": "New Checking"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "lastSyncedAt": {
+                "S": "2025-12-14T09:10:11.002775Z"
+            },
+            "plaidItemId": {
+                "S": "test-item-id-37b37257-e66a-43a5-a872-34479c7764f6"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703411"
+            },
+            "userId": {
+                "S": "16cf3f30-735e-422a-a342-ee8d1868782f"
+            },
+            "plaidAccountId": {
+                "S": "plaid-acc-new-1"
+            },
+            "accountId": {
+                "S": "86e7e2e0-c54d-432f-aee4-5db342640741"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:11.002774Z"
+            },
+            "balance": {
+                "N": "2000"
+            },
+            "institutionName": {
+                "S": "New Bank"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:11.002774Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "573d0f83-8a8f-4312-95c3-67c3374d1a0b"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:30.838109Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703430"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "5c8db3dd-d46d-4d10-9ed2-cf54dac7c3ae"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:30.838109Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "8a2d9020-45b0-4f80-b3ee-2d0e4194bb05"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:01.836703Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703401"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "41c84c20-be3b-4ce4-bc09-2ab66a49001e"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:01.836703Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "e2835e9d-d209-4b10-a5ca-bfc992949f7e"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:50.694707Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703450"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "9d213532-73a0-4e99-a2d9-0e95137e792e"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:50.694707Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "79e2e854-d7b3-478b-a07e-0de4b9f37f53"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:11:03.591971Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703463"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "eedbdab8-b0a0-4f44-b83c-50288b611a92"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:11:03.591971Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "a5a98c06-9e52-4694-8497-7f7af9eca022"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:54.969021Z"
+            },
+            "balance": {
+                "N": "0"
+            },
+            "accountName": {
+                "S": "Inactive Account"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "active": {
+                "BOOL": false
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703454"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "31eabb91-e209-4d35-b60c-7d44fe4f0c20"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:54.969021Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "edd09695-3e43-4869-8782-afd1d63063cf"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:08.267750Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "accountType": {
+                "S": "checking"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703408"
+            },
+            "userId": {
+                "S": "4f20f745-8ce4-4dc1-9e05-750d26b0b0fd"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:08.267750Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "fbb01caf-3a7e-4dfe-beb4-c7fa9a6605b4"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:54.945603Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703454"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "31eabb91-e209-4d35-b60c-7d44fe4f0c20"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:54.945603Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "d892374e-0bd4-4f4a-9ebf-3fcd20b8232a"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:51.524068Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Existing Account"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "accountNumber": {
+                "S": "1234"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703451"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "c67bbedd-cd58-4118-86de-e372e2c80f69"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:51.524068Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "57dd2d2e-2a5c-488a-b7a4-de01f40dd2cd"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:51.555808Z"
+            },
+            "balance": {
+                "N": "1200"
+            },
+            "accountName": {
+                "S": "Existing Account"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703451"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "ee3f454b-2d01-4545-bcaa-d0cdb36139ae"
+            },
+            "plaidAccountId": {
+                "S": "plaid-account-1018c66a-df25-4596-887f-9874833e2462"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:51.584768Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "e172c7f1-d0df-4f8c-8666-8797a62c7a11"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:20.218694Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703420"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "277b5080-968d-405f-9931-870f18217366"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:20.218694Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "d03dc9fd-96e0-4784-9718-dfb710d718c1"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:31.026415Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703431"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "59bf5e06-7476-4720-8b17-53eff16eec11"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:31.026415Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "55ddfe9d-14a7-457b-b67f-73ccf508ed5f"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:03.431052Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703403"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "5405bcea-a6de-416e-b51a-92d63f913c2a"
+            },
+            "plaidAccountId": {
+                "S": "test-plaid-account-b56ce1c8-cbe6-4e35-870a-dd318daa6387"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:03.431052Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "22364860-c962-47a3-9bb5-e8b19a944ccd"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "userId": {
+                "S": "a0e1bcf6-ecc0-4d99-a292-3bd1b30d9495"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            }
+        },
+        {
+            "accountId": {
+                "S": "b1863ff0-c091-475e-8f74-7c9a2f0a89db"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "68d12810-4030-41ed-b14c-9ce5eec89403"
+            }
+        },
+        {
+            "accountId": {
+                "S": "c5e64806-6b38-486b-b129-5aaa4e111c97"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:51.495857Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Existing Account"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703451"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "eb80b0fc-99b4-4093-bd34-c31065b3fbcf"
+            },
+            "plaidAccountId": {
+                "S": "plaid-account-bbdf68f1-d01e-49cd-b384-61465908f80c"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:51.495857Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "f750f5e7-7a9c-4f2d-ba57-ee6c18aa0efc"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "userId": {
+                "S": "b73f5682-394f-42c0-9a55-1566573b133a"
+            }
+        },
+        {
+            "accountId": {
+                "S": "03afad8c-6b2b-46a3-9aae-daf6d4dab5be"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:09.983541Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "accountType": {
+                "S": "checking"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703409"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "8123c5ae-44d4-4591-8557-b7cb501b5baf"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:09.983541Z"
+            }
+        },
+        {
+            "accountName": {
+                "S": "New Savings"
+            },
+            "accountType": {
+                "S": "SAVINGS"
+            },
+            "lastSyncedAt": {
+                "S": "2025-12-14T09:10:11.002779Z"
+            },
+            "plaidItemId": {
+                "S": "test-item-id-37b37257-e66a-43a5-a872-34479c7764f6"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703411"
+            },
+            "userId": {
+                "S": "16cf3f30-735e-422a-a342-ee8d1868782f"
+            },
+            "plaidAccountId": {
+                "S": "plaid-acc-new-2"
+            },
+            "accountId": {
+                "S": "8948f09d-59f9-4227-90cb-894c9aea6731"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:11.002779Z"
+            },
+            "balance": {
+                "N": "10000"
+            },
+            "institutionName": {
+                "S": "New Bank"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:11.002779Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "13fb77cd-f500-4126-a464-299b6223c6d9"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:11:03.660524Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "lastSyncedAt": {
+                "S": "2025-12-14T08:11:03Z"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703463"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "3b95c389-c5cf-40f2-8ba9-11e20b9ad005"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:11:03.660524Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "c6ae238e-898d-44a1-ad01-268cbf1d0410"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:31.327253Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703431"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "d64a0c08-b852-4ffa-a111-567fd4fa47f9"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:31.327253Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "92c348e7-79d1-45e0-a6fb-7f37e57c7359"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:03.554829Z"
+            },
+            "balance": {
+                "N": "0"
+            },
+            "accountName": {
+                "S": "Inactive Account"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Inactive Bank"
+            },
+            "active": {
+                "BOOL": false
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703403"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "df80ce35-3dd5-4034-a753-b319d04f6516"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:03.554829Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "73bc3ef4-d8d6-4f7d-9aff-1643a4215015"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:54.871937Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703454"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "26f89334-8804-46b8-b90a-4801516f4262"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:54.871938Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "847c1971-3c24-40ff-a1e3-9f23226caf70"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:10.150401Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "accountType": {
+                "S": "checking"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703410"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "ace516b2-1889-4a78-a423-e8ad8fcd7dec"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:10.150401Z"
+            }
+        },
+        {
+            "accountName": {
+                "S": "Savings Account"
+            },
+            "accountType": {
+                "S": "SAVINGS"
+            },
+            "lastSyncedAt": {
+                "S": "2025-12-14T09:10:10.850171Z"
+            },
+            "plaidItemId": {
+                "S": "test-item-id-c0ac99ec-03ab-409d-afa7-dc187a815128"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "accountNumber": {
+                "S": "5678"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703410"
+            },
+            "userId": {
+                "S": "a4c57915-1c33-4912-9dce-582937c523b5"
+            },
+            "plaidAccountId": {
+                "S": "plaid-acc-2-874d4f55-c7c8-42c9-973b-f73d61382210"
+            },
+            "accountId": {
+                "S": "6e1fffc6-c8a8-4f29-b492-0db89a63d4a1"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:10.850170Z"
+            },
+            "balance": {
+                "N": "5000"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:10.850170Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "2df7d5d5-d9f3-437e-9778-bf0eae6cfd13"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:20.705434Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703420"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "97e68691-5190-40e0-93b6-fa3c9abe6ee7"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:20.705435Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "a525179e-f3fd-4908-a5bb-668f6688d959"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:19.961240Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703419"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "02c7eb4f-13e4-47b3-857a-91651141ff7f"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:19.961240Z"
+            }
+        },
+        {
+            "accountName": {
+                "S": "Test Account"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "lastSyncedAt": {
+                "S": "2025-12-14T09:10:10.913809Z"
+            },
+            "plaidItemId": {
+                "S": "test-item-id-659dc240-b16b-4df0-bc4f-1d6d73d16793"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703410"
+            },
+            "userId": {
+                "S": "d66ffb7b-372c-44ff-b5da-985c263ca03b"
+            },
+            "plaidAccountId": {
+                "S": "plaid-acc-49d95950-9e9c-4978-bfdd-0b4f444cee48"
+            },
+            "accountId": {
+                "S": "80979e0b-41ef-4bbf-9307-a8c2e6556368"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:10.913808Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:10.913808Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "06119af5-dd07-4330-acdb-188b5daaeca5"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:11:04.375346Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703464"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "674b6b36-8eaf-4c2b-838b-faeee974f6d2"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:11:04.375346Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "0e1e737a-7b22-46cb-8407-5f2a6ca918ab"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:51.657222Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Existing Account"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "accountNumber": {
+                "S": "5678"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703451"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "9cdf89d9-a28f-4c37-9db9-3dfb157145e8"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:51.657222Z"
+            }
+        },
+        {
+            "accountName": {
+                "S": "iOS Test Account"
+            },
+            "accountType": {
+                "S": "depository"
+            },
+            "lastSyncedAt": {
+                "S": "2025-12-14T09:10:09.363819Z"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703409"
+            },
+            "userId": {
+                "S": "9f3f06e8-aaff-4a61-b6e9-7bf585fbe8a6"
+            },
+            "plaidAccountId": {
+                "S": "plaid-account-ios-test"
+            },
+            "accountId": {
+                "S": "7a5124b3-ed27-4afd-a669-6ecbf2ca3263"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:09.363819Z"
+            },
+            "accountSubtype": {
+                "S": "checking"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:09.363819Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "6d2eb1ec-f571-4f3f-8aad-67966642e447"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:51.990546Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "accountNumber": {
+                "S": "9999"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703451"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "ccc37b50-adc6-421a-b2f8-205938c9c4a4"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:51.990546Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "e85589c1-11c3-40c0-89a3-7f0b04cadae3"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:18.935143Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Checking"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703418"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "b7619000-06b4-4091-bd16-90ef04bd8bc2"
+            },
+            "plaidAccountId": {
+                "S": "plaid-account-b27dccea-9e88-4c36-b817-7ba37f6f0018"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:18.935143Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "654dec9b-992e-43c3-bfc2-1f9ec573bb20"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:19.040373Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Checking"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703419"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "ba2ca652-5d26-4276-be7b-77b5c52a4a16"
+            },
+            "plaidAccountId": {
+                "S": "plaid-account-6323e484-ec09-4762-8dd1-529d7047210a"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:19.040373Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "2a81ff31-5a73-429c-8769-108eb2771811"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:07:27.683430Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Checking Account"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "accountNumber": {
+                "S": "1234"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703247"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "814e3184-85cd-4a9d-94da-0b1abaa2215f"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:07:27.683430Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "3128b95a-e34b-4401-932e-b8e775da45f9"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:21.105786Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703421"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "34600837-ee45-4984-88c4-ef4fba63ad8f"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:21.105786Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "cd04888b-7592-4142-a0d0-3719bc968efb"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "eba54426-548d-4343-a966-3aa545ec2b34"
+            }
+        },
+        {
+            "accountId": {
+                "S": "f51dc9e7-f402-4f91-99de-39567f6b818b"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:30.967721Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703430"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "0772da29-f961-43c7-9d56-496aedb4cfa7"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:30.967721Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "29d4a9b8-3647-43f8-984a-bdd9d70609d3"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:51.694398Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Existing Account"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703451"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "b124758a-4253-47e4-8629-dedca5ea3bd4"
+            },
+            "plaidAccountId": {
+                "S": "plaid-account-380b4ec5-8ea5-4006-a464-b8801b743253"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:51.694399Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "e2edbb72-73a6-4b8c-ad76-fb038826eed9"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:07:27.641655Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Checking Account"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "accountNumber": {
+                "S": "1234"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703247"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "7b5a9036-6013-489f-a8db-4251e582fef0"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:07:27.641657Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "68212996-3b29-4d62-ac7e-0776dc557693"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:20.268733Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703420"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "d8e1d573-6b74-4f98-96a4-e0e8c941e642"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:20.268733Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "bf1217f6-a517-4925-888e-d51cce194421"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:19.891754Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703419"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "518441e5-3859-4226-8a43-dfe93f766819"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:19.891755Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "49073929-ec73-4018-bace-5d3ead2fbbd5"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "fab69bee-7689-4987-9fe7-e9bdccbfa52b"
+            }
+        },
+        {
+            "accountId": {
+                "S": "c5a602e3-76f4-4e8b-b32d-c3b8be17727e"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:11:03.524659Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703463"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "a54e0483-f736-4071-b5ce-b9dfb0a8ad72"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:11:03.524659Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "781c284f-29c5-4e39-8cd0-c06774ccaf14"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "userId": {
+                "S": "cb3159e3-799c-44ee-8338-b324a8d14943"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            }
+        },
+        {
+            "accountId": {
+                "S": "20002474-b789-4ffa-8bda-b55583a278af"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "6e9b9008-c2ba-4163-9665-3663ba455368"
+            }
+        },
+        {
+            "accountId": {
+                "S": "f1e15a5f-fe05-442d-9715-8dd273da35bb"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:11:04.527909Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703464"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "efb30ba3-1950-4e71-9abd-ff5ee4338075"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:11:04.527909Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "bc6f3ae8-427b-4290-8f61-ef8f066109f1"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:05.774411Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703405"
+            },
+            "userId": {
+                "S": "7d671b90-f22f-4430-bcbc-481c7adcd96c"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:05.774412Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "e2e6c842-e6e6-4bf3-9cb6-0395f6a89866"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:54.668785Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703454"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "92766c54-0185-4f54-aba6-c0c4f3033918"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:54.668785Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "b13c7cbe-c72f-44ec-8e2d-cec071173eb7"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:20.457530Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703420"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "5c166dd9-5140-452c-941e-09e7a48d978f"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:20.457530Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "2209234f-cf92-4162-bb4d-c8812c19445f"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:50.494733Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703450"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "451a5653-89e5-421a-819c-8bf91b91ac30"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:50.494733Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "f49a8287-7734-4be8-b738-1af0eedd634b"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:30.700276Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703430"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "66d6bc76-9b79-41f3-9196-031096c7777d"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:30.700276Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "28278a6a-a66a-49ee-bddd-87d3932c45f7"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:19.072773Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Checking"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703419"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "3c1c8450-1c41-4d15-aeee-f523341fcdd5"
+            },
+            "plaidAccountId": {
+                "S": "plaid-account-4d4aff28-b81c-4e47-8872-8949288798ac"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:19.072773Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "ccc5756a-e9b2-4701-84ce-31f468396518"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:05.963944Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703405"
+            },
+            "userId": {
+                "S": "b83dd608-895c-4371-a39e-7934b07341b8"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:05.963944Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "d054ec3a-1fa5-4611-a396-6c0686b1637f"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:50.896806Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703450"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "a8ac30c0-129c-4e55-8c93-240123335004"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:50.896806Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "ad115a07-9b54-49ff-b63e-af8f444b4c8f"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:54.779917Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "lastSyncedAt": {
+                "S": "2025-12-14T09:10:54.840829Z"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703454"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "6d7ac3b6-41de-434f-89aa-6212d8c884f9"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:54.779917Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "24ed81cb-e92d-395a-a22b-165b7fe82375"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:09:57.831872Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703397"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "dd7c8ce7-401d-48b7-b041-55adc3aa2530"
+            },
+            "plaidAccountId": {
+                "S": "plaid_acc_123"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:09:57.831872Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "ab413d13-6188-487a-a856-05b3fc03e768"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:11:03.455992Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703463"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "ce560679-b656-4d5e-8899-e942f41409af"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:11:03.455993Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "04d782d9-e88c-493e-ad8a-3f4240e83366"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "userId": {
+                "S": "c113d34d-1a1f-4813-9a92-6e9a8fed9bfe"
+            }
+        },
+        {
+            "accountId": {
+                "S": "8b175e12-54fc-408b-aea4-be1911dcd49a"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:54.597291Z"
+            },
+            "balance": {
+                "N": "500"
+            },
+            "accountName": {
+                "S": "Null Active Account"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703454"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "4809c0d6-23ae-4a35-8613-bfbfafa666b4"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:54.597291Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "d4b5bf3b-6c40-48b3-90fa-2670b979f072"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:06.192401Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Updated Account"
+            },
+            "accountType": {
+                "S": "checking"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703407"
+            },
+            "userId": {
+                "S": "8ceccd09-e357-41c6-8d8b-07496bc2fd81"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:07.717601Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "cf465fa6-ed94-4512-a9b2-8ea7a131cac7"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "userId": {
+                "S": "62ae8562-f68a-439d-9115-18e276674a09"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            }
+        },
+        {
+            "accountId": {
+                "S": "d601a972-1dd7-48e9-ae63-7bd587ef7b42"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:07:27.668480Z"
+            },
+            "balance": {
+                "N": "5000"
+            },
+            "accountName": {
+                "S": "Savings Account"
+            },
+            "accountType": {
+                "S": "SAVINGS"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "accountNumber": {
+                "S": "5678"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703247"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "37941864-8446-427a-a0d7-3a9ad9f40011"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:07:27.668481Z"
+            }
+        },
+        {
+            "accountName": {
+                "S": "Checking Account"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "plaidItemId": {
+                "S": "test-item-id-cfb8e346-c971-4ed8-91ef-532aacb109ca"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703410"
+            },
+            "userId": {
+                "S": "40a668e0-9416-439a-a4fd-530026b3e9d4"
+            },
+            "plaidAccountId": {
+                "S": "plaid-acc-c68a8f63-b361-45fd-8480-9258ec267574"
+            },
+            "accountId": {
+                "S": "cc33fd69-5956-4165-be52-10e39ba2f0e1"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:10.953179Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:10.953179Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "fab959b7-c63c-448d-ae87-fc2798ec479a"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:31.147818Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703431"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "1cd0e34d-65e2-41eb-a90d-ac8b95c9c814"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:31.147819Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "f05eae0b-0759-4873-8cea-9039702f6ba6"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:01.781774Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703401"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "d9d1694c-10b4-4a19-bec1-0eefc44fcdf6"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:01.781774Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "3727671e-f382-4f4a-9551-08d9dbd4797f"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:50.754612Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703450"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "65460329-60b6-48b3-ae02-e12ed5f3ef0c"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:50.754612Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "3d2e5ec4-7aa0-4232-9c1c-7bf9602b69ed"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:01.916720Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703401"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "ed7eed00-5144-4745-985a-19a5d27165ef"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:01.916720Z"
+            }
+        },
+        {
+            "accountName": {
+                "S": "iOS Test Account"
+            },
+            "accountType": {
+                "S": "depository"
+            },
+            "lastSyncedAt": {
+                "S": "2025-12-14T09:10:09.444852Z"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703409"
+            },
+            "userId": {
+                "S": "abafe2c8-5d89-4ba0-81ff-004471001eb4"
+            },
+            "plaidAccountId": {
+                "S": "plaid-account-ios-test"
+            },
+            "accountId": {
+                "S": "e5a53798-8622-4c09-960a-252611e6ef5a"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:09.444852Z"
+            },
+            "accountSubtype": {
+                "S": "checking"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:09.444852Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "75f9fc52-cb6c-4451-81ed-84742fb58aa8"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:20.769827Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703420"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "c162452d-0154-44c9-b8b1-5320f54bfeb2"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:20.769827Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "e581d323-b55e-41f8-be35-f4453326a4e8"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:51.621826Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703451"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "3a6936e0-208d-48d0-8f20-cb2615124e32"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:51.621826Z"
+            }
+        },
+        {
+            "accountName": {
+                "S": "iOS Test Account"
+            },
+            "accountType": {
+                "S": "depository"
+            },
+            "lastSyncedAt": {
+                "S": "2025-12-14T09:10:09.639649Z"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703409"
+            },
+            "userId": {
+                "S": "56d6f66e-3fb7-4905-9441-843d86bc64ba"
+            },
+            "plaidAccountId": {
+                "S": "plaid-account-ios-test"
+            },
+            "accountId": {
+                "S": "72ff8941-30a4-49a7-85f9-01b43d6927df"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:09.639649Z"
+            },
+            "accountSubtype": {
+                "S": "checking"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:09.639649Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "5bdd994d-c7bd-4ac7-8e51-e8fc076dd493"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:08.262567Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "accountType": {
+                "S": "checking"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703408"
+            },
+            "userId": {
+                "S": "27d1d78f-bfd9-4844-bfa2-2dbd240337df"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:08.262567Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "ab886108-ea03-40fa-92fc-3b5b1558f710"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:01.881962Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703401"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "fbf4bfc6-1984-4482-ac4e-e2a2e8349b89"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:01.881962Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "d4b1ae65-bee3-484f-b45d-a9ee917fd87c"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:20.832647Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703420"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "e567f2d6-b009-401f-9f71-03ddbc81f1c6"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:20.832647Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "8582c562-69ca-4a28-b1b0-efc57a8a4c24"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:09.801253Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "accountType": {
+                "S": "checking"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703409"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "472e7ba7-15c9-41e1-9d0b-90423bb6ed85"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:09.801253Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "c4eab508-08c7-4d4b-8169-f61a44db1229"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "userId": {
+                "S": "06613ddc-6747-4327-b467-0515c91fa54e"
+            }
+        },
+        {
+            "accountId": {
+                "S": "52afa9d2-f62d-4b10-a02c-ffbfa8d4cc24"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:31.979866Z"
+            },
+            "balance": {
+                "N": "500"
+            },
+            "accountName": {
+                "S": "Null Active Account"
+            },
+            "accountType": {
+                "S": "depository"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703431"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "4db9b634-dda7-44d6-a4de-e1fea31035e3"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:31.979866Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "4de37978-160b-43f9-8aca-4e24af89828d"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:51.434739Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703451"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "10c0359d-033b-4888-845c-3c89c51c0698"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:51.434739Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "0d96ff82-d596-49c6-a19c-ee7f742ebf19"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:51.920951Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "accountNumber": {
+                "S": "8888"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703451"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "6aa8a752-b549-47d4-9301-e51a6226d6b8"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:51.920951Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "118fb300-722e-4eb4-a59a-972a45dee33b"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "710a688a-57bb-4e9d-a76b-2b3068af55d2"
+            }
+        },
+        {
+            "accountId": {
+                "S": "2626d0df-8701-4ae8-a359-6c5c6e5939fa"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "userId": {
+                "S": "972193db-1df3-46bb-910d-6ce8a3f02c3f"
+            }
+        },
+        {
+            "accountId": {
+                "S": "1fa0b37c-d04c-4402-8e20-0ed1b2f0d9e0"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:06.066104Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703406"
+            },
+            "userId": {
+                "S": "374a9c6a-1949-497f-b97a-d06ebce50fc5"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:06.066105Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "8b260536-292f-4aa6-9545-82c51f08efee"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:20.158393Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703420"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "ec4d1e22-0348-48e2-a01d-22486faa3601"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:20.158393Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "4baf1f9b-9a94-42a8-9a46-f2a1aa10e479"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:11:04.254871Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703464"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "cc589b07-498d-46dc-a9f8-c33036abbacc"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:11:04.254871Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "bd810eb4-b697-49d0-9945-d3075d290c2f"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:11:03.309580Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703463"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "93ae179d-4d74-4fcf-8dc3-cd2cb338a9ba"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:11:03.309580Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "5906f495-32b8-48fe-8477-18ca5b568820"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:50.530794Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703450"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "bb766072-d151-4224-8990-397822405db6"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:50.530794Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "ad86c72d-d836-45df-95ea-d98fb553e213"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:10:50.572728Z"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1765703450"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "d8161b6b-a0c1-4b5f-ae29-e41113f4a25b"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:10:50.572729Z"
+            }
+        }
+    ],
+    "Count": 168,
+    "ScannedCount": 168,
+    "ConsumedCapacity": null
+}

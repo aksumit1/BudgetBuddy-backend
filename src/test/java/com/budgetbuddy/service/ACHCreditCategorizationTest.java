@@ -21,7 +21,7 @@ class ACHCreditCategorizationTest {
 
     @Test
     void testACHCredit_CategorizedAsIncome() {
-        // Given: ACH credit transaction
+        // Given: ACH credit transaction without specific salary indicators
         String description = "ACH Credit";
         String merchantName = null;
         String paymentChannel = "ach";
@@ -35,7 +35,8 @@ class ACHCreditCategorizationTest {
         // Then
         assertNotNull(mapping);
         assertEquals("income", mapping.getPrimary(), "ACH credit should be income, not rent");
-        assertEquals("income", mapping.getDetailed());
+        // CRITICAL: ACH credits without clear salary indicators should use "deposit" not "salary"
+        assertEquals("deposit", mapping.getDetailed(), "ACH credit without salary indicators should be deposit, not salary");
     }
 
     @Test
@@ -126,7 +127,9 @@ class ACHCreditCategorizationTest {
         // Then
         assertNotNull(mapping);
         assertEquals("income", mapping.getPrimary(), "ACH Electronic Credit should be income, even with GUSTO PAY");
-        assertEquals("income", mapping.getDetailed());
+        // CRITICAL: "GUSTO PAY" doesn't contain explicit salary keywords, so should use "deposit"
+        // Only use "salary" if description explicitly contains "salary", "payroll", "paycheck", or "wages"
+        assertEquals("deposit", mapping.getDetailed(), "ACH Electronic Credit with GUSTO PAY should be deposit (no explicit salary keywords)");
     }
 
     @Test
@@ -145,7 +148,8 @@ class ACHCreditCategorizationTest {
         // Then
         assertNotNull(mapping);
         assertEquals("income", mapping.getPrimary(), "ACH Electronic Credit should be income by description");
-        assertEquals("income", mapping.getDetailed());
+        // Description contains "Salary Payment", so should be categorized as salary
+        assertEquals("salary", mapping.getDetailed(), "ACH credit with salary in description should be salary");
     }
 
     @Test
@@ -164,7 +168,8 @@ class ACHCreditCategorizationTest {
         // Then
         assertNotNull(mapping);
         assertEquals("income", mapping.getPrimary(), "ACH Credit should be income by description");
-        assertEquals("income", mapping.getDetailed());
+        // Description contains "Direct Deposit", so should be categorized as salary
+        assertEquals("salary", mapping.getDetailed(), "ACH credit with direct deposit should be salary");
     }
 
     @Test
@@ -241,6 +246,65 @@ class ACHCreditCategorizationTest {
         assertNotNull(mapping);
         assertEquals("income", mapping.getPrimary(), "ACH credit should be income, not payment");
         assertNotEquals("payment", mapping.getPrimary(), "ACH credit should not be payment");
+    }
+
+    @Test
+    void testACHCredit_WithSalaryKeywords_CategorizedAsSalary() {
+        // Given: ACH credit with explicit salary keywords
+        String description = "ACH Credit - Salary Payment";
+        String merchantName = "Employer Corp";
+        String paymentChannel = "ach";
+        BigDecimal amount = new BigDecimal("5000.00");
+
+        // When
+        PlaidCategoryMapper.CategoryMapping mapping = categoryMapper.mapPlaidCategory(
+            "RENT_AND_UTILITIES", "RENT", merchantName, description, paymentChannel, amount
+        );
+
+        // Then
+        assertNotNull(mapping);
+        assertEquals("income", mapping.getPrimary(), "ACH credit should be income");
+        // Description contains "Salary", so should be categorized as salary
+        assertEquals("salary", mapping.getDetailed(), "ACH credit with salary keywords should be salary");
+    }
+
+    @Test
+    void testACHCredit_WithPayrollKeywords_CategorizedAsSalary() {
+        // Given: ACH credit with payroll keywords
+        String description = "ACH Credit - Payroll Deposit";
+        String merchantName = null;
+        String paymentChannel = "ach";
+        BigDecimal amount = new BigDecimal("3000.00");
+
+        // When
+        PlaidCategoryMapper.CategoryMapping mapping = categoryMapper.mapPlaidCategory(
+            "TRANSFER_IN", "TRANSFER_IN", merchantName, description, paymentChannel, amount
+        );
+
+        // Then
+        assertNotNull(mapping);
+        assertEquals("income", mapping.getPrimary());
+        // Description contains "Payroll", so should be categorized as salary
+        assertEquals("salary", mapping.getDetailed(), "ACH credit with payroll keywords should be salary");
+    }
+
+    @Test
+    void testACHCredit_Generic_CategorizedAsDeposit() {
+        // Given: Generic ACH credit without salary/payroll keywords
+        String description = "ACH Electronic Credit";
+        String merchantName = null;
+        String paymentChannel = "ach";
+        BigDecimal amount = new BigDecimal("1000.00");
+
+        // When
+        PlaidCategoryMapper.CategoryMapping mapping = categoryMapper.mapPlaidCategory(
+            "TRANSFER_IN", "TRANSFER_IN", merchantName, description, paymentChannel, amount
+        );
+
+        // Then
+        assertNotNull(mapping);
+        assertEquals("income", mapping.getPrimary());
+        assertEquals("deposit", mapping.getDetailed(), "Generic ACH credit should be deposit, not salary");
     }
 }
 

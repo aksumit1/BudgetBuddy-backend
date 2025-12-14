@@ -5,6 +5,7 @@ import com.budgetbuddy.model.dynamodb.AccountTable;
 import com.budgetbuddy.repository.dynamodb.TransactionRepository;
 import com.budgetbuddy.repository.dynamodb.AccountRepository;
 import com.budgetbuddy.plaid.PlaidService;
+import com.budgetbuddy.service.plaid.PlaidDataExtractor;
 import com.budgetbuddy.util.IdGenerator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,14 +37,17 @@ public class TransactionSyncService {
     private final PlaidService plaidService;
     private final TransactionRepository transactionRepository;
     private final AccountRepository accountRepository;
+    private final PlaidDataExtractor dataExtractor;
 
     public TransactionSyncService(
             final PlaidService plaidService,
             final TransactionRepository transactionRepository,
-            final AccountRepository accountRepository) {
+            final AccountRepository accountRepository,
+            final PlaidDataExtractor dataExtractor) {
         this.plaidService = plaidService;
         this.transactionRepository = transactionRepository;
         this.accountRepository = accountRepository;
+        this.dataExtractor = dataExtractor;
     }
 
     /**
@@ -366,20 +370,25 @@ public class TransactionSyncService {
         
         transaction.setUserId(userId);
         transaction.setPlaidTransactionId(plaidTransactionId); // CRITICAL: Set Plaid ID for deduplication
-        // Map other fields from plaidTransaction
-        // In production, properly map all fields from Plaid transaction
         transaction.setCreatedAt(java.time.Instant.now());
         transaction.setUpdatedAt(java.time.Instant.now());
+        
+        // CRITICAL: Use PlaidDataExtractor to properly extract and map transaction fields
+        // This ensures categories are properly mapped (including ACH credit detection)
+        dataExtractor.updateTransactionFromPlaid(transaction, plaidTransaction);
+        
         return transaction;
     }
 
     /**
      * Update TransactionTable from Plaid transaction
+     * CRITICAL: Recalculates categories to ensure ACH credits are properly categorized as income
      */
     private void updateTransactionFromPlaid(final TransactionTable transaction, final Object plaidTransaction) {
-        // Update transaction fields from Plaid
-        // In production, properly map all fields from Plaid transaction
-        transaction.setUpdatedAt(java.time.Instant.now());
+        // CRITICAL: Use PlaidDataExtractor to properly update transaction fields and recalculate categories
+        // This ensures that if a transaction was initially saved with wrong category (e.g., expense),
+        // it will be re-categorized correctly (e.g., income for ACH credits) when updated
+        dataExtractor.updateTransactionFromPlaid(transaction, plaidTransaction);
     }
 
     /**

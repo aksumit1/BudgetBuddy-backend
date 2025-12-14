@@ -132,7 +132,8 @@ class PlaidCategoryIntegrationTest {
         PlaidCategoryMapper.CategoryMapping income = mapper.mapPlaidCategory(
                 "INCOME", "SALARY", "Employer", "Salary");
         assertEquals("income", income.getPrimary());
-        assertEquals("income", income.getDetailed());
+        // Description contains "Salary", so should be categorized as specific income type "salary"
+        assertEquals("salary", income.getDetailed(), "Income with salary description should be categorized as salary");
 
         // Subscriptions
         PlaidCategoryMapper.CategoryMapping subscription = mapper.mapPlaidCategory(

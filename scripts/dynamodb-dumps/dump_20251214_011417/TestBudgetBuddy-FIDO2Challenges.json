@@ -1,0 +1,27 @@
+{
+    "Items": [
+        {
+            "challenge": {
+                "S": "zU0wGekfBy5Os-cQLoduL1K3yHDwnOxpqyMTX0GcL9w"
+            },
+            "challengeType": {
+                "S": "registration"
+            },
+            "ttl": {
+                "N": "1765703702"
+            },
+            "userId": {
+                "S": "52f19d2c-8020-4c88-84df-c1818d78cc08"
+            },
+            "challengeKey": {
+                "S": "52f19d2c-8020-4c88-84df-c1818d78cc08:registration"
+            },
+            "expiresAt": {
+                "S": "2025-12-14T09:15:02.714870Z"
+            }
+        }
+    ],
+    "Count": 1,
+    "ScannedCount": 1,
+    "ConsumedCapacity": null
+}

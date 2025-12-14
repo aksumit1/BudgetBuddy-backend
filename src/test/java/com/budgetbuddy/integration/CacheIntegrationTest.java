@@ -65,15 +65,9 @@ public class CacheIntegrationTest {
     @BeforeEach
     void setUp() {
         testUserId = UUID.randomUUID().toString();
-        // Clear all caches
-        if (cacheManager != null) {
-            cacheManager.getCacheNames().forEach(cacheName -> {
-                org.springframework.cache.Cache cache = cacheManager.getCache(cacheName);
-                if (cache != null) {
-                    cache.clear();
-                }
-            });
-        }
+        // CRITICAL: Do NOT clear caches - this would affect shared resources (Redis, DynamoDB)
+        // Tests use unique testUserId (UUID), so cache entries are naturally isolated
+        // Cache entries will expire naturally based on TTL, no manual cleanup needed
     }
 
     @Test
@@ -148,16 +142,11 @@ public class CacheIntegrationTest {
         account.setUpdatedAt(updateTime); // This will set updatedAtTimestamp automatically
         // CRITICAL: Explicitly ensure updatedAtTimestamp is set correctly and is greater than firstSyncTime
         account.setUpdatedAtTimestamp(updateTimestamp);
-        accountRepository.save(account); // This should evict cache
+        accountRepository.save(account); // This should evict cache via @CacheEvict annotation
 
-        // CRITICAL: Clear cache explicitly to ensure fresh data is fetched
-        // The @CacheEvict annotation should handle this, but clear manually for test reliability
-        if (cacheManager != null) {
-            org.springframework.cache.Cache accountsCache = cacheManager.getCache("accounts");
-            if (accountsCache != null) {
-                accountsCache.clear();
-            }
-        }
+        // CRITICAL: Do NOT clear entire cache - this would affect shared resources (Redis, DynamoDB)
+        // The @CacheEvict annotation on save() should handle cache eviction automatically
+        // Clearing entire cache would affect all users, not just test data
 
         // CRITICAL: Wait for DynamoDB eventual consistency - GSI updates can take time in CI
         // Use retry logic to handle eventual consistency

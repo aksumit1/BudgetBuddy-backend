@@ -53,7 +53,7 @@ services:
     networks:
       - budgetbuddy-network
     ports:
-      - "6379:6379"
+      - "6379:6379"  # Local development stack uses port 6379
     # Auto-restart on failure (unless explicitly stopped)
     restart: unless-stopped
     # Optimize Redis for fast connections
@@ -67,6 +67,34 @@ services:
       --tcp-keepalive 300
     volumes:
       - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  # Separate Redis instance for tests - isolated from local development stack
+  redis-test:
+    image: redis:7-alpine
+    container_name: budgetbuddy-redis-test
+    networks:
+      - budgetbuddy-network
+    ports:
+      - "6380:6379"  # Tests use port 6380 to avoid conflicts with local stack
+    # Do NOT auto-restart - tests manage this container lifecycle
+    restart: "no"
+    # Optimize Redis for fast connections (same as main Redis)
+    command: >
+      redis-server
+      --appendonly yes
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+      --tcp-backlog 511
+      --timeout 0
+      --tcp-keepalive 300
+    volumes:
+      - redis_test_data:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -164,4 +192,5 @@ services:
 
 volumes:
   localstack_data:
-  redis_data:
+  redis_data:  # Local development Redis data
+  redis_test_data:  # Test Redis data (isolated from local development)

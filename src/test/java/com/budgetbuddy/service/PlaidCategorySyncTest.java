@@ -361,7 +361,8 @@ class PlaidCategorySyncTest {
         assertFalse(result2.isOverridden());
 
         assertEquals("income", result3.getPrimary());
-        assertEquals("income", result3.getDetailed());
+        // Description contains "salary", so should be categorized as salary, not generic income
+        assertEquals("salary", result3.getDetailed(), "Income with salary description should be salary");
         assertFalse(result3.isOverridden());
     }
 

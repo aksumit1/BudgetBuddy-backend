@@ -1,0 +1,1005 @@
+{
+    "Items": [
+        {
+            "budgetId": {
+                "S": "483bbc0d-4e7a-3ad6-8401-2675e0ab8f18"
+            },
+            "category": {
+                "S": "groceries"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "monthlyLimit": {
+                "N": "500"
+            },
+            "userId": {
+                "S": "82c1cc78-869c-4ebe-90e7-bcc9c677f305"
+            },
+            "currentSpent": {
+                "N": "0"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-14T09:53:28.929460Z"
+            },
+            "currentSpent": {
+                "N": "100"
+            },
+            "budgetId": {
+                "S": "229c323c-e2b4-4193-a73f-55a5519071a8"
+            },
+            "category": {
+                "S": "Food"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765706008"
+            },
+            "monthlyLimit": {
+                "N": "500"
+            },
+            "userId": {
+                "S": "00c95adb-d784-4bb5-857d-e83ac42120e4"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:53:28.929460Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-14T09:43:17.952043Z"
+            },
+            "currentSpent": {
+                "N": "0"
+            },
+            "budgetId": {
+                "S": "845e1789-81c4-49ac-8dc7-2cd60997e187"
+            },
+            "category": {
+                "S": "FOOD_AND_DRINK"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765705397"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "monthlyLimit": {
+                "N": "500"
+            },
+            "userId": {
+                "S": "06e257dd-e0b4-4d9a-a2c4-e7c6a13f94ac"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:43:17.952044Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-14T09:48:36.061044Z"
+            },
+            "budgetId": {
+                "S": "f8af859a-ca1a-4b48-8a61-f3a956efc86d"
+            },
+            "category": {
+                "S": "FOOD"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765705716"
+            },
+            "monthlyLimit": {
+                "N": "500"
+            },
+            "userId": {
+                "S": "e328d22d-a1cd-451e-966c-e1c08ba357de"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:48:36.061044Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-14T09:46:01.020889Z"
+            },
+            "currentSpent": {
+                "N": "0"
+            },
+            "budgetId": {
+                "S": "a40edaf9-e8bf-47af-a326-46d91917e781"
+            },
+            "category": {
+                "S": "FOOD_AND_DRINK"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765705561"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "monthlyLimit": {
+                "N": "500"
+            },
+            "userId": {
+                "S": "6f7366df-784b-473d-964b-2b4f60b9d05f"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:46:01.020892Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-14T09:46:01.125600Z"
+            },
+            "currentSpent": {
+                "N": "0"
+            },
+            "budgetId": {
+                "S": "b1597d69-f3d1-464f-baf9-40e9369385e5"
+            },
+            "category": {
+                "S": "FOOD_AND_DRINK"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765705561"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "monthlyLimit": {
+                "N": "500"
+            },
+            "userId": {
+                "S": "ef02a61d-39b6-4acf-8f67-6560d00c7217"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:46:01.125600Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-14T09:48:36.098328Z"
+            },
+            "currentSpent": {
+                "N": "100"
+            },
+            "budgetId": {
+                "S": "bf54fdda-8bb1-4b90-993e-d427cdd4065b"
+            },
+            "category": {
+                "S": "Food"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765705716"
+            },
+            "monthlyLimit": {
+                "N": "500"
+            },
+            "userId": {
+                "S": "491f2846-0b63-458a-b6fe-70146a9b69f0"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:48:36.098328Z"
+            }
+        },
+        {
+            "budgetId": {
+                "S": "24af7a02-e8f1-36a4-b395-7d58bfa42e41"
+            },
+            "category": {
+                "S": "TRANSPORTATION"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "monthlyLimit": {
+                "N": "300"
+            },
+            "userId": {
+                "S": "ee72549f-fa61-4475-a255-d989579797a2"
+            },
+            "currentSpent": {
+                "N": "0"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-14T09:50:47.080771Z"
+            },
+            "currentSpent": {
+                "N": "0"
+            },
+            "budgetId": {
+                "S": "eb032ea9-5bc5-4067-894a-0e8331eac66a"
+            },
+            "category": {
+                "S": "FOOD_AND_DRINK"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765705847"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "monthlyLimit": {
+                "N": "500"
+            },
+            "userId": {
+                "S": "b0f05b05-00dc-427e-963c-850279a8bbb1"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:50:47.080772Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-14T09:46:01.131095Z"
+            },
+            "currentSpent": {
+                "N": "0"
+            },
+            "budgetId": {
+                "S": "de10880e-1b1b-439b-bb53-8eb8e0755e97"
+            },
+            "category": {
+                "S": "TRANSPORTATION"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765705561"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "monthlyLimit": {
+                "N": "200"
+            },
+            "userId": {
+                "S": "ef02a61d-39b6-4acf-8f67-6560d00c7217"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:46:01.131095Z"
+            }
+        },
+        {
+            "budgetId": {
+                "S": "21762f4a-ea15-3a80-a134-566b452ddb0b"
+            },
+            "category": {
+                "S": "TRANSPORTATION"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "monthlyLimit": {
+                "N": "300"
+            },
+            "userId": {
+                "S": "0b950353-4028-4147-89b0-e58675fe9045"
+            },
+            "currentSpent": {
+                "N": "0"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-14T09:46:01.145584Z"
+            },
+            "currentSpent": {
+                "N": "0"
+            },
+            "budgetId": {
+                "S": "7e27703e-0060-4bc7-a2bd-af31ddb92560"
+            },
+            "category": {
+                "S": "FOOD_AND_DRINK"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765705561"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "monthlyLimit": {
+                "N": "500"
+            },
+            "userId": {
+                "S": "732b3f8b-e8d9-4d76-84d5-4218309eb883"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:46:01.145584Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-14T09:50:47.104798Z"
+            },
+            "currentSpent": {
+                "N": "0"
+            },
+            "budgetId": {
+                "S": "8a4a2518-25b9-44c9-8d13-ce110e1bfd3b"
+            },
+            "category": {
+                "S": "FOOD_AND_DRINK"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765705847"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "monthlyLimit": {
+                "N": "500"
+            },
+            "userId": {
+                "S": "d718817f-cb9c-4600-bf39-a9b138f24cd6"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:50:47.104799Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-14T09:50:47.041182Z"
+            },
+            "currentSpent": {
+                "N": "0"
+            },
+            "budgetId": {
+                "S": "ad4da8d0-8d74-486a-996f-164cb636c375"
+            },
+            "category": {
+                "S": "FOOD_AND_DRINK"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765705847"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "monthlyLimit": {
+                "N": "500"
+            },
+            "userId": {
+                "S": "c5118723-a21d-4656-a634-c7187189ec26"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:50:47.041182Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-14T09:53:28.577044Z"
+            },
+            "budgetId": {
+                "S": "283bacfd-62b2-4027-b627-5f1535a7df2c"
+            },
+            "category": {
+                "S": "FOOD"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765706008"
+            },
+            "monthlyLimit": {
+                "N": "500"
+            },
+            "userId": {
+                "S": "1dcf28e3-f326-4dca-b1d3-e80523abdd6c"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:53:28.577046Z"
+            }
+        },
+        {
+            "budgetId": {
+                "S": "38d9ff16-8ee8-388a-b535-25a674ac7c4f"
+            },
+            "category": {
+                "S": "ENTERTAINMENT"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "monthlyLimit": {
+                "N": "200"
+            },
+            "userId": {
+                "S": "4a15432d-9604-42bf-84cc-6b4122d66fdb"
+            },
+            "currentSpent": {
+                "N": "0"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-14T09:53:28.691930Z"
+            },
+            "budgetId": {
+                "S": "5cd088af-4290-4c76-a678-6c0174339fae"
+            },
+            "category": {
+                "S": "FOOD"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765706008"
+            },
+            "monthlyLimit": {
+                "N": "500"
+            },
+            "userId": {
+                "S": "098c133f-9ae7-48a3-96f6-deedb6fcb266"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:53:28.691930Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-14T09:46:01.108047Z"
+            },
+            "currentSpent": {
+                "N": "0"
+            },
+            "budgetId": {
+                "S": "8f327ce8-160d-43d5-8a2e-fd5dfae32950"
+            },
+            "category": {
+                "S": "FOOD_AND_DRINK"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765705561"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "monthlyLimit": {
+                "N": "500"
+            },
+            "userId": {
+                "S": "13918bf5-b329-4b5b-bb4a-64d3714c0170"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:46:01.108047Z"
+            }
+        },
+        {
+            "budgetId": {
+                "S": "1b40a787-886c-38ee-9fe5-a2350d769803"
+            },
+            "category": {
+                "S": "FOOD"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "monthlyLimit": {
+                "N": "500"
+            },
+            "userId": {
+                "S": "41aa4ba6-2528-431c-b176-4aa0bd014207"
+            },
+            "currentSpent": {
+                "N": "0"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-14T09:43:17.928927Z"
+            },
+            "currentSpent": {
+                "N": "0"
+            },
+            "budgetId": {
+                "S": "8222fcf0-b9f5-4692-afee-7f28bd8a67b3"
+            },
+            "category": {
+                "S": "FOOD_AND_DRINK"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765705397"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "monthlyLimit": {
+                "N": "500"
+            },
+            "userId": {
+                "S": "774c24d5-5fcd-422c-b994-f1485f49fb0c"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:43:17.928927Z"
+            }
+        },
+        {
+            "budgetId": {
+                "S": "c7da2cbf-d8b5-3afd-9480-610282932e1a"
+            },
+            "category": {
+                "S": "ENTERTAINMENT"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "monthlyLimit": {
+                "N": "200"
+            },
+            "userId": {
+                "S": "fe2db8f2-5594-44fe-af3c-000925900f60"
+            },
+            "currentSpent": {
+                "N": "0"
+            }
+        },
+        {
+            "budgetId": {
+                "S": "026197e6-c091-354a-9206-6bf27b62d77d"
+            },
+            "category": {
+                "S": "FOOD"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "monthlyLimit": {
+                "N": "1500"
+            },
+            "userId": {
+                "S": "b78bbb86-f3a9-411f-9f73-0f7ba7fea2d7"
+            },
+            "currentSpent": {
+                "N": "0"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-14T09:43:17.935Z"
+            },
+            "currentSpent": {
+                "N": "0"
+            },
+            "budgetId": {
+                "S": "4a34ae61-46a2-49e7-935b-9122031343d8"
+            },
+            "category": {
+                "S": "TRANSPORTATION"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765705397"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "monthlyLimit": {
+                "N": "200"
+            },
+            "userId": {
+                "S": "774c24d5-5fcd-422c-b994-f1485f49fb0c"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:43:17.935001Z"
+            }
+        },
+        {
+            "budgetId": {
+                "S": "73754260-5b5e-386a-aff3-d0c45da1f372"
+            },
+            "category": {
+                "S": "groceries"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "monthlyLimit": {
+                "N": "500"
+            },
+            "userId": {
+                "S": "96751238-feef-48a4-a0a8-9819e37da727"
+            },
+            "currentSpent": {
+                "N": "0"
+            }
+        },
+        {
+            "budgetId": {
+                "S": "264b0f95-6753-3f34-bd1a-9607a5b6f39a"
+            },
+            "category": {
+                "S": "FOOD"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "monthlyLimit": {
+                "N": "1500"
+            },
+            "userId": {
+                "S": "ec15f3fa-45b7-434a-b00f-ddbdd3608304"
+            },
+            "currentSpent": {
+                "N": "0"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-14T09:50:47.087686Z"
+            },
+            "currentSpent": {
+                "N": "0"
+            },
+            "budgetId": {
+                "S": "cf3fdce0-1b69-45c9-8533-032fc96ec62b"
+            },
+            "category": {
+                "S": "TRANSPORTATION"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765705847"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "monthlyLimit": {
+                "N": "200"
+            },
+            "userId": {
+                "S": "b0f05b05-00dc-427e-963c-850279a8bbb1"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:50:47.087687Z"
+            }
+        },
+        {
+            "budgetId": {
+                "S": "99324667-8180-3178-8dd9-6fe33018b02d"
+            },
+            "category": {
+                "S": "FOOD"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "monthlyLimit": {
+                "N": "500"
+            },
+            "userId": {
+                "S": "6067af17-7efd-4a3c-a6cb-c6ebcce59fbb"
+            },
+            "currentSpent": {
+                "N": "0"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-14T09:48:35.876639Z"
+            },
+            "budgetId": {
+                "S": "1febc110-1a07-4d9c-af30-9380422c6f45"
+            },
+            "category": {
+                "S": "FOOD"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765705715"
+            },
+            "monthlyLimit": {
+                "N": "500"
+            },
+            "userId": {
+                "S": "4e7c0680-fe18-42f7-b44b-6834ec5fef9a"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:48:35.876639Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-14T09:48:35.784494Z"
+            },
+            "budgetId": {
+                "S": "9cf02446-8c03-4d94-aaad-7523c0db1afd"
+            },
+            "category": {
+                "S": "FOOD"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765705715"
+            },
+            "monthlyLimit": {
+                "N": "500"
+            },
+            "userId": {
+                "S": "8a062238-8a02-4ad4-8be4-08f6fd746a3d"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:48:35.784495Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-14T09:53:28.889066Z"
+            },
+            "budgetId": {
+                "S": "6f04785b-68fa-425e-af7a-f4a1327ce915"
+            },
+            "category": {
+                "S": "FOOD"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765706008"
+            },
+            "monthlyLimit": {
+                "N": "500"
+            },
+            "userId": {
+                "S": "1c24fc81-7ea9-4510-becf-6db53510c65a"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:53:28.889066Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-14T09:43:17.909651Z"
+            },
+            "currentSpent": {
+                "N": "0"
+            },
+            "budgetId": {
+                "S": "18fdc8ab-4190-4319-9a4e-f01cda961c67"
+            },
+            "category": {
+                "S": "FOOD_AND_DRINK"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765705397"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "monthlyLimit": {
+                "N": "500"
+            },
+            "userId": {
+                "S": "6f86b911-c826-4328-a1f0-38cc19432f5b"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:43:17.909651Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-14T09:53:28.797598Z"
+            },
+            "budgetId": {
+                "S": "6a2de2d1-e425-4fc7-aa7f-fa02b8da4187"
+            },
+            "category": {
+                "S": "FOOD"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765706008"
+            },
+            "monthlyLimit": {
+                "N": "500"
+            },
+            "userId": {
+                "S": "2fa7a72a-d9b3-4927-9032-e9bd00697f4a"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:53:28.797598Z"
+            }
+        },
+        {
+            "budgetId": {
+                "S": "9b010183-c313-3068-9a6c-ea13549da094"
+            },
+            "category": {
+                "S": "FOOD"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "monthlyLimit": {
+                "N": "1000"
+            },
+            "userId": {
+                "S": "a074ab7b-64a7-4acc-8880-fb3bf31518ed"
+            },
+            "currentSpent": {
+                "N": "0"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-14T09:50:47.056893Z"
+            },
+            "currentSpent": {
+                "N": "0"
+            },
+            "budgetId": {
+                "S": "eef33131-b9ed-46ed-848d-af59aa16921c"
+            },
+            "category": {
+                "S": "FOOD_AND_DRINK"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765705847"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "monthlyLimit": {
+                "N": "500"
+            },
+            "userId": {
+                "S": "575b27a1-35e7-4ddd-8296-725faa86599a"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:50:47.056893Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-14T09:43:17.894832Z"
+            },
+            "currentSpent": {
+                "N": "0"
+            },
+            "budgetId": {
+                "S": "770d3ccd-4d03-44ce-81c3-9ee5ef7ed8f3"
+            },
+            "category": {
+                "S": "FOOD_AND_DRINK"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765705397"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "monthlyLimit": {
+                "N": "500"
+            },
+            "userId": {
+                "S": "496d71a2-8f78-42d9-bb69-a4e8e6cbdf80"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:43:17.894832Z"
+            }
+        },
+        {
+            "budgetId": {
+                "S": "53617b2c-3556-3e41-9c57-46c8507fe802"
+            },
+            "category": {
+                "S": "FOOD"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "monthlyLimit": {
+                "N": "1000"
+            },
+            "userId": {
+                "S": "82a9f549-3685-4705-9dc7-7443e34ce4a1"
+            },
+            "currentSpent": {
+                "N": "0"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-14T09:43:17.763241Z"
+            },
+            "currentSpent": {
+                "N": "0"
+            },
+            "budgetId": {
+                "S": "f6f6e88e-1e0f-4f7a-825c-adf7dca2060a"
+            },
+            "category": {
+                "S": "FOOD_AND_DRINK"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765705397"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "monthlyLimit": {
+                "N": "500"
+            },
+            "userId": {
+                "S": "a50dc528-16be-4790-9e7d-3b9ea269fbd6"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:43:17.763244Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-14T09:48:35.963298Z"
+            },
+            "budgetId": {
+                "S": "cb54b347-e507-4b9d-8d0a-5028b5034d6f"
+            },
+            "category": {
+                "S": "FOOD"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765705715"
+            },
+            "monthlyLimit": {
+                "N": "500"
+            },
+            "userId": {
+                "S": "4cb98928-ad2c-451a-8ca5-0cd5f3e8a7ae"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:48:35.963298Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-14T09:46:01.094114Z"
+            },
+            "currentSpent": {
+                "N": "0"
+            },
+            "budgetId": {
+                "S": "c2ead931-c01c-4e52-9937-193065437063"
+            },
+            "category": {
+                "S": "FOOD_AND_DRINK"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765705561"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "monthlyLimit": {
+                "N": "500"
+            },
+            "userId": {
+                "S": "b18c7e5f-ab1e-4bc1-9420-37058eb1f279"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:46:01.094114Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-14T09:50:46.872958Z"
+            },
+            "currentSpent": {
+                "N": "0"
+            },
+            "budgetId": {
+                "S": "c11e03ba-96b2-4b19-93d1-28a6585fdd21"
+            },
+            "category": {
+                "S": "FOOD_AND_DRINK"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765705846"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "monthlyLimit": {
+                "N": "500"
+            },
+            "userId": {
+                "S": "3849f95b-3be0-4260-a0ba-75a42c90ba9f"
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:50:46.872960Z"
+            }
+        }
+    ],
+    "Count": 40,
+    "ScannedCount": 40,
+    "ConsumedCapacity": null
+}

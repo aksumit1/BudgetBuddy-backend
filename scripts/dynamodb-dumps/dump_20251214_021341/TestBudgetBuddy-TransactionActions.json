@@ -1,0 +1,1808 @@
+{
+    "Items": [
+        {
+            "createdAt": {
+                "S": "2025-12-14T09:46:01.783047Z"
+            },
+            "reminderDatePartition": {
+                "S": "2025-12-20"
+            },
+            "dueDate": {
+                "S": "2025-12-21"
+            },
+            "actionId": {
+                "S": "9fb33cc1-006b-4537-98f4-faa4131e6186"
+            },
+            "priority": {
+                "S": "HIGH"
+            },
+            "title": {
+                "S": "Test Action"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765705561"
+            },
+            "reminderDate": {
+                "S": "2025-12-20"
+            },
+            "userId": {
+                "S": "da4d2485-15ff-41cc-acaf-96ffbe3766ca"
+            },
+            "transactionId": {
+                "S": "d282897c-415f-42f5-ad9b-7f2029ac5545"
+            },
+            "isCompleted": {
+                "BOOL": false
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:46:01.783047Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-14T09:48:32.010703Z"
+            },
+            "actionId": {
+                "S": "f510f8b0-6190-4c7a-a432-f42282f1b24c"
+            },
+            "description": {
+                "S": "Check if correct"
+            },
+            "priority": {
+                "S": "HIGH"
+            },
+            "title": {
+                "S": "Review transaction"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765705712"
+            },
+            "userId": {
+                "S": "2906f413-af5f-4746-8e66-b80a1802d5de"
+            },
+            "transactionId": {
+                "S": "e8fdb1b1-69c7-4047-96b6-16edc7ca4c92"
+            },
+            "isCompleted": {
+                "BOOL": false
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:48:32.010706Z"
+            }
+        },
+        {
+            "reminderDatePartition": {
+                "S": "2024-12-30"
+            },
+            "dueDate": {
+                "S": "2024-12-31"
+            },
+            "description": {
+                "S": "Description"
+            },
+            "priority": {
+                "S": "MEDIUM"
+            },
+            "title": {
+                "S": "Action with due date"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765705759"
+            },
+            "userId": {
+                "S": "0ff7ed65-1b30-4823-a25a-996f716159a0"
+            },
+            "transactionId": {
+                "S": "9336b5c7-ab40-40b4-a0a2-c3be25b39bb1"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:49:19.822691Z"
+            },
+            "actionId": {
+                "S": "03a9b3d7-44c3-4c7d-a81b-d147f20f5b9a"
+            },
+            "reminderDate": {
+                "S": "2024-12-30T10:00:00Z"
+            },
+            "isCompleted": {
+                "BOOL": false
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:49:19.822691Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-14T09:49:32.257456Z"
+            },
+            "actionId": {
+                "S": "9f406c97-7a72-4943-8b91-c7dccb45aa9c"
+            },
+            "priority": {
+                "S": "HIGH"
+            },
+            "title": {
+                "S": "Updated Title"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765705772"
+            },
+            "userId": {
+                "S": "5826bc94-94ae-4cd6-8dd4-29123b878d83"
+            },
+            "transactionId": {
+                "S": "19422f0c-2027-499d-b9dc-e36a69dfb081"
+            },
+            "isCompleted": {
+                "BOOL": true
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:49:32.272621Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-14T09:54:15.015618Z"
+            },
+            "actionId": {
+                "S": "33b05a68-ac8e-4b34-a9c9-f0fe98cc9105"
+            },
+            "priority": {
+                "S": "MEDIUM"
+            },
+            "title": {
+                "S": "Action 1"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765706055"
+            },
+            "userId": {
+                "S": "6dc6d9ee-9dae-4a40-a8d5-3e8b43163404"
+            },
+            "transactionId": {
+                "S": "49c7f90c-9a33-4330-a09b-67a103c16654"
+            },
+            "isCompleted": {
+                "BOOL": false
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:54:15.015618Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-14T09:50:47.774258Z"
+            },
+            "reminderDatePartition": {
+                "S": "2025-12-20"
+            },
+            "dueDate": {
+                "S": "2025-12-21"
+            },
+            "actionId": {
+                "S": "12928d42-0fb2-479f-b205-a431d957e1b1"
+            },
+            "priority": {
+                "S": "HIGH"
+            },
+            "title": {
+                "S": "Test Action"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765705847"
+            },
+            "reminderDate": {
+                "S": "2025-12-20"
+            },
+            "userId": {
+                "S": "29091948-4b65-41f2-83b1-ce248537dd36"
+            },
+            "transactionId": {
+                "S": "1ba2b118-4fd0-4f83-b4dd-eab667187e26"
+            },
+            "isCompleted": {
+                "BOOL": false
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:50:47.774258Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-14T09:49:19.755422Z"
+            },
+            "actionId": {
+                "S": "9283ad2b-0617-4077-901e-2ab9d5da5c1d"
+            },
+            "priority": {
+                "S": "MEDIUM"
+            },
+            "title": {
+                "S": "Action 2"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765705759"
+            },
+            "userId": {
+                "S": "43c2939a-5934-4bf2-9257-ba0b04cec109"
+            },
+            "transactionId": {
+                "S": "eeec6ec9-4b17-419d-8098-c944357af63e"
+            },
+            "isCompleted": {
+                "BOOL": false
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:49:19.755422Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-14T09:50:47.846027Z"
+            },
+            "reminderDatePartition": {
+                "S": "2025-12-20"
+            },
+            "dueDate": {
+                "S": "2025-12-21"
+            },
+            "actionId": {
+                "S": "c6e5d69a-4dbd-4b3e-9e8a-b01115cd241e"
+            },
+            "priority": {
+                "S": "HIGH"
+            },
+            "title": {
+                "S": "Test Action"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765705847"
+            },
+            "reminderDate": {
+                "S": "2025-12-20"
+            },
+            "userId": {
+                "S": "9024d824-0002-4151-b0e3-e92ef6267c3f"
+            },
+            "transactionId": {
+                "S": "4f02a140-d6a7-485d-aa82-a8e0816d43b0"
+            },
+            "isCompleted": {
+                "BOOL": false
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:50:47.846027Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-14T09:50:47.801214Z"
+            },
+            "reminderDatePartition": {
+                "S": "2025-12-20"
+            },
+            "dueDate": {
+                "S": "2025-12-21"
+            },
+            "actionId": {
+                "S": "4fd79d78-8e5b-492b-a17b-814eab3d19ed"
+            },
+            "priority": {
+                "S": "HIGH"
+            },
+            "title": {
+                "S": "Test Action"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765705847"
+            },
+            "reminderDate": {
+                "S": "2025-12-20"
+            },
+            "userId": {
+                "S": "e062b96d-d58c-4100-ac6a-5ef19c62ed91"
+            },
+            "transactionId": {
+                "S": "b02d7a72-7183-4821-a73e-fc595ce4a21c"
+            },
+            "isCompleted": {
+                "BOOL": false
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:50:47.801214Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-14T09:53:24.753112Z"
+            },
+            "actionId": {
+                "S": "631b3e30-5492-454d-871d-0c62f4acc99c"
+            },
+            "priority": {
+                "S": "MEDIUM"
+            },
+            "title": {
+                "S": "Action for TX1"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765706004"
+            },
+            "userId": {
+                "S": "8c9617ce-53e7-4728-872b-761101524206"
+            },
+            "transactionId": {
+                "S": "18b2f97a-0b20-4886-9ae2-a824610a548a"
+            },
+            "isCompleted": {
+                "BOOL": false
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:53:24.753112Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-14T09:54:28.251228Z"
+            },
+            "actionId": {
+                "S": "1cf58df7-20c3-4b7e-97eb-8f9edfd1409b"
+            },
+            "priority": {
+                "S": "HIGH"
+            },
+            "title": {
+                "S": "Updated Title"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765706068"
+            },
+            "userId": {
+                "S": "4da36980-0ad2-48dc-8bb6-6a6d4068f16e"
+            },
+            "transactionId": {
+                "S": "28796413-703e-4371-b190-950d638be5e1"
+            },
+            "isCompleted": {
+                "BOOL": true
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:54:28.267176Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-14T09:54:14.930336Z"
+            },
+            "actionId": {
+                "S": "d5f3e6d7-3af7-41e6-b676-959ec3b24766"
+            },
+            "priority": {
+                "S": "MEDIUM"
+            },
+            "title": {
+                "S": "Action 1"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765706054"
+            },
+            "userId": {
+                "S": "30477cd0-222a-4fa7-ac19-97bf64ff3828"
+            },
+            "transactionId": {
+                "S": "a8a89af6-db9c-45dd-9b33-88abdf0b0c41"
+            },
+            "isCompleted": {
+                "BOOL": false
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:54:14.930336Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-14T09:46:01.765072Z"
+            },
+            "actionId": {
+                "S": "d5ebf070-6a67-4aeb-aedf-bc7e31ead94c"
+            },
+            "priority": {
+                "S": "MEDIUM"
+            },
+            "title": {
+                "S": "Action 2"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765705561"
+            },
+            "userId": {
+                "S": "fadb03d5-8ce4-4eb7-92e5-4d74c971a60f"
+            },
+            "transactionId": {
+                "S": "c8732360-a3a0-4ebc-8e3b-4ed333491701"
+            },
+            "isCompleted": {
+                "BOOL": false
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:46:01.765073Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-14T09:43:18.586712Z"
+            },
+            "reminderDatePartition": {
+                "S": "2025-12-20"
+            },
+            "dueDate": {
+                "S": "2025-12-21"
+            },
+            "actionId": {
+                "S": "cd685492-8861-4521-8387-e01b29001ce1"
+            },
+            "priority": {
+                "S": "HIGH"
+            },
+            "title": {
+                "S": "Test Action"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765705398"
+            },
+            "reminderDate": {
+                "S": "2025-12-20"
+            },
+            "userId": {
+                "S": "6367a844-9b08-4e46-8fca-b252e0ae246e"
+            },
+            "transactionId": {
+                "S": "2872161c-c889-426c-aca0-ac6fb3e74b53"
+            },
+            "isCompleted": {
+                "BOOL": false
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:43:18.586712Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-14T09:48:32.143821Z"
+            },
+            "actionId": {
+                "S": "0fa234f4-5c45-4171-812d-0956a3b0a4dc"
+            },
+            "priority": {
+                "S": "MEDIUM"
+            },
+            "title": {
+                "S": "Action for TX1"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765705712"
+            },
+            "userId": {
+                "S": "68750f0c-351d-485a-9d28-2fc8940ef93b"
+            },
+            "transactionId": {
+                "S": "71d0da96-5a9b-4fb9-a0ec-9185a32a6ffc"
+            },
+            "isCompleted": {
+                "BOOL": false
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:48:32.143822Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-14T09:53:24.894939Z"
+            },
+            "actionId": {
+                "S": "b4808e19-9c48-4a03-8c04-5e8bb6ee4752"
+            },
+            "priority": {
+                "S": "LOW"
+            },
+            "title": {
+                "S": "Action 1"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765706004"
+            },
+            "userId": {
+                "S": "f809f361-7ea8-49f2-b4fd-c55ee2ce6084"
+            },
+            "transactionId": {
+                "S": "6a2bf4c5-80a0-4a2b-9c4c-64bd2041b36e"
+            },
+            "isCompleted": {
+                "BOOL": false
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:53:24.894939Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-14T09:46:01.836342Z"
+            },
+            "reminderDatePartition": {
+                "S": "2025-12-20"
+            },
+            "dueDate": {
+                "S": "2025-12-21"
+            },
+            "actionId": {
+                "S": "7aead814-ca4e-4149-a0bd-5d41279341f4"
+            },
+            "priority": {
+                "S": "HIGH"
+            },
+            "title": {
+                "S": "Test Action"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765705561"
+            },
+            "reminderDate": {
+                "S": "2025-12-20"
+            },
+            "userId": {
+                "S": "32630e2a-17a9-4c63-9206-353fb394c8ee"
+            },
+            "transactionId": {
+                "S": "d3598d36-ec59-4723-84c8-8409917c7479"
+            },
+            "isCompleted": {
+                "BOOL": false
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:46:01.836342Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-14T09:43:18.625355Z"
+            },
+            "reminderDatePartition": {
+                "S": "2025-12-20"
+            },
+            "dueDate": {
+                "S": "2025-12-21"
+            },
+            "actionId": {
+                "S": "5752b2d2-d4bd-4df3-875d-5ebeb45fee47"
+            },
+            "priority": {
+                "S": "HIGH"
+            },
+            "title": {
+                "S": "Test Action"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765705398"
+            },
+            "reminderDate": {
+                "S": "2025-12-20"
+            },
+            "userId": {
+                "S": "f3986301-2a19-466b-8dfd-c2ee546952ac"
+            },
+            "transactionId": {
+                "S": "e10a08ed-b750-4cab-b71d-d74fc9206ccb"
+            },
+            "isCompleted": {
+                "BOOL": false
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:43:18.625355Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-14T09:43:18.681070Z"
+            },
+            "reminderDatePartition": {
+                "S": "2025-12-20"
+            },
+            "dueDate": {
+                "S": "2025-12-21"
+            },
+            "actionId": {
+                "S": "35155b68-d45b-4fbc-ae1f-1b13643b18bd"
+            },
+            "priority": {
+                "S": "HIGH"
+            },
+            "title": {
+                "S": "Test Action"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765705398"
+            },
+            "reminderDate": {
+                "S": "2025-12-20"
+            },
+            "userId": {
+                "S": "7584ec95-b555-43a9-9143-b8d72fb94735"
+            },
+            "transactionId": {
+                "S": "76745a0c-f81f-460b-8907-55418358c1bd"
+            },
+            "isCompleted": {
+                "BOOL": false
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:43:18.681070Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-14T09:53:24.680443Z"
+            },
+            "actionId": {
+                "S": "b4ea37f3-f0e2-47c1-9d1c-6f22c8551ef0"
+            },
+            "priority": {
+                "S": "LOW"
+            },
+            "title": {
+                "S": "Action 1"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765706004"
+            },
+            "userId": {
+                "S": "5f294659-972f-4f2c-a943-afddaa09a56c"
+            },
+            "transactionId": {
+                "S": "dd70770d-2c5f-48cb-893e-6bd44ab52c0d"
+            },
+            "isCompleted": {
+                "BOOL": false
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:53:24.680443Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-14T09:43:18.695820Z"
+            },
+            "reminderDatePartition": {
+                "S": "2025-12-20"
+            },
+            "dueDate": {
+                "S": "2025-12-21"
+            },
+            "actionId": {
+                "S": "632267cb-aa8e-4fe5-945f-c1d145e86c63"
+            },
+            "priority": {
+                "S": "HIGH"
+            },
+            "title": {
+                "S": "Test Action"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765705398"
+            },
+            "reminderDate": {
+                "S": "2025-12-20"
+            },
+            "userId": {
+                "S": "bf67d715-0f51-4c3f-b645-d1a9c696c101"
+            },
+            "transactionId": {
+                "S": "e081d3a7-402d-43c4-a3cb-e00b8bb25a13"
+            },
+            "isCompleted": {
+                "BOOL": false
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:43:18.695820Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-14T09:50:47.741634Z"
+            },
+            "actionId": {
+                "S": "ef83df3c-40c1-438e-9764-734e03e7bd07"
+            },
+            "priority": {
+                "S": "MEDIUM"
+            },
+            "title": {
+                "S": "Action 2"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765705847"
+            },
+            "userId": {
+                "S": "b27e4451-29ad-4eb5-873f-acbd0221673c"
+            },
+            "transactionId": {
+                "S": "712dab4c-3946-481f-8fb9-c14132c545a2"
+            },
+            "isCompleted": {
+                "BOOL": false
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:50:47.741635Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-14T09:49:32.334100Z"
+            },
+            "actionId": {
+                "S": "ddae47c1-5732-40d0-9405-97043d4eadcc"
+            },
+            "priority": {
+                "S": "MEDIUM"
+            },
+            "title": {
+                "S": "Test Action"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765705772"
+            },
+            "userId": {
+                "S": "0e02484e-fee4-4b9f-a1bf-5baf802f6d87"
+            },
+            "transactionId": {
+                "S": "89dc8187-8899-4f16-9a6c-6b8a3e206a03"
+            },
+            "isCompleted": {
+                "BOOL": false
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:49:32.334100Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-14T09:53:24.902239Z"
+            },
+            "actionId": {
+                "S": "635f33e0-1ef7-4cd6-858d-da912fbbbfd9"
+            },
+            "priority": {
+                "S": "HIGH"
+            },
+            "title": {
+                "S": "Action 2"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765706004"
+            },
+            "userId": {
+                "S": "f809f361-7ea8-49f2-b4fd-c55ee2ce6084"
+            },
+            "transactionId": {
+                "S": "6a2bf4c5-80a0-4a2b-9c4c-64bd2041b36e"
+            },
+            "isCompleted": {
+                "BOOL": false
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:53:24.902239Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-14T09:49:19.662265Z"
+            },
+            "actionId": {
+                "S": "3c086dd7-7022-402b-b838-a59f9b78cb59"
+            },
+            "priority": {
+                "S": "MEDIUM"
+            },
+            "title": {
+                "S": "Action 1"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765705759"
+            },
+            "userId": {
+                "S": "a5e1b980-e84b-42ae-b02e-f6fe53205c89"
+            },
+            "transactionId": {
+                "S": "1e7a1109-2a25-4b1c-86bf-8ba1396e31c7"
+            },
+            "isCompleted": {
+                "BOOL": false
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:49:19.662266Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-14T09:48:32.297296Z"
+            },
+            "actionId": {
+                "S": "cae34cac-a665-4f37-bed9-5bd85998379c"
+            },
+            "priority": {
+                "S": "LOW"
+            },
+            "title": {
+                "S": "Action 1"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765705712"
+            },
+            "userId": {
+                "S": "1d9a9f94-4eea-4673-b3b2-7bc802580adf"
+            },
+            "transactionId": {
+                "S": "c0b1dd97-a35f-45bd-b6d2-08edf3312944"
+            },
+            "isCompleted": {
+                "BOOL": false
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:48:32.297297Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-14T09:43:18.599542Z"
+            },
+            "actionId": {
+                "S": "8eb03bc3-f17e-4a90-a9c1-59314c67344c"
+            },
+            "priority": {
+                "S": "MEDIUM"
+            },
+            "title": {
+                "S": "Action 2"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765705398"
+            },
+            "userId": {
+                "S": "6367a844-9b08-4e46-8fca-b252e0ae246e"
+            },
+            "transactionId": {
+                "S": "2872161c-c889-426c-aca0-ac6fb3e74b53"
+            },
+            "isCompleted": {
+                "BOOL": false
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:43:18.599543Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-14T09:48:32.077733Z"
+            },
+            "actionId": {
+                "S": "e5e1ae6a-7b17-4d1a-aa10-5912b824c534"
+            },
+            "priority": {
+                "S": "LOW"
+            },
+            "title": {
+                "S": "Action 1"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765705712"
+            },
+            "userId": {
+                "S": "2cd33743-67d4-4bcd-9d5f-c9bfd91724b7"
+            },
+            "transactionId": {
+                "S": "1a4ee136-6cf6-4a13-aab9-b4b98cc4441d"
+            },
+            "isCompleted": {
+                "BOOL": false
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:48:32.077733Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-14T09:48:32.085833Z"
+            },
+            "actionId": {
+                "S": "23cd6e6e-7250-4c60-9bfd-e2b8d0f25ec0"
+            },
+            "priority": {
+                "S": "HIGH"
+            },
+            "title": {
+                "S": "Action 2"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765705712"
+            },
+            "userId": {
+                "S": "2cd33743-67d4-4bcd-9d5f-c9bfd91724b7"
+            },
+            "transactionId": {
+                "S": "722154ca-f852-4555-a1c1-bb5987f91ccf"
+            },
+            "isCompleted": {
+                "BOOL": false
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:48:32.085833Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-14T09:46:01.755169Z"
+            },
+            "reminderDatePartition": {
+                "S": "2025-12-20"
+            },
+            "dueDate": {
+                "S": "2025-12-21"
+            },
+            "actionId": {
+                "S": "0d12f4a3-7524-451b-8332-4eaf4e84ba6f"
+            },
+            "priority": {
+                "S": "HIGH"
+            },
+            "title": {
+                "S": "Test Action"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765705561"
+            },
+            "reminderDate": {
+                "S": "2025-12-20"
+            },
+            "userId": {
+                "S": "fadb03d5-8ce4-4eb7-92e5-4d74c971a60f"
+            },
+            "transactionId": {
+                "S": "c8732360-a3a0-4ebc-8e3b-4ed333491701"
+            },
+            "isCompleted": {
+                "BOOL": false
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:46:01.755170Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-14T09:48:32.383993Z"
+            },
+            "actionId": {
+                "S": "69f355a3-94a7-4b6c-8cf1-924498d1535f"
+            },
+            "priority": {
+                "S": "HIGH"
+            },
+            "title": {
+                "S": "Updated Title"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765705712"
+            },
+            "userId": {
+                "S": "34229187-28bc-478b-9e77-9ca36ab196e6"
+            },
+            "transactionId": {
+                "S": "10d12929-46b3-44d7-907f-12ce6a4ce37f"
+            },
+            "isCompleted": {
+                "BOOL": true
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:48:32.392176Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-14T09:48:32.150342Z"
+            },
+            "actionId": {
+                "S": "4c81e6b1-c260-48ac-aecc-54551ea3aa9e"
+            },
+            "priority": {
+                "S": "MEDIUM"
+            },
+            "title": {
+                "S": "Action for TX2"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765705712"
+            },
+            "userId": {
+                "S": "68750f0c-351d-485a-9d28-2fc8940ef93b"
+            },
+            "transactionId": {
+                "S": "9e7c4b73-487c-46ce-9089-db4ce54017ac"
+            },
+            "isCompleted": {
+                "BOOL": false
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:48:32.150343Z"
+            }
+        },
+        {
+            "reminderDatePartition": {
+                "S": "2024-12-30"
+            },
+            "dueDate": {
+                "S": "2024-12-31"
+            },
+            "description": {
+                "S": "Description"
+            },
+            "priority": {
+                "S": "MEDIUM"
+            },
+            "title": {
+                "S": "Action with due date"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765706055"
+            },
+            "userId": {
+                "S": "7dcab1a2-8f1e-4ca2-a9d9-df5c58263043"
+            },
+            "transactionId": {
+                "S": "2babcabb-26f0-4e6a-9c02-4a448002d43e"
+            },
+            "createdAt": {
+                "S": "2025-12-14T09:54:15.090549Z"
+            },
+            "actionId": {
+                "S": "1e84b4f3-3f37-4f06-a3e4-073ea5fc5545"
+            },
+            "reminderDate": {
+                "S": "2024-12-30T10:00:00Z"
+            },
+            "isCompleted": {
+                "BOOL": false
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:54:15.090549Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-14T09:54:15.024876Z"
+            },
+            "actionId": {
+                "S": "dfa53b1c-cc5f-4dc4-a07c-74ee98e4321b"
+            },
+            "priority": {
+                "S": "MEDIUM"
+            },
+            "title": {
+                "S": "Action 2"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765706055"
+            },
+            "userId": {
+                "S": "6dc6d9ee-9dae-4a40-a8d5-3e8b43163404"
+            },
+            "transactionId": {
+                "S": "4a78ada9-7e9a-4441-b446-6f664f05b160"
+            },
+            "isCompleted": {
+                "BOOL": false
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:54:15.024877Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-14T09:50:47.861670Z"
+            },
+            "reminderDatePartition": {
+                "S": "2025-12-20"
+            },
+            "dueDate": {
+                "S": "2025-12-21"
+            },
+            "actionId": {
+                "S": "cb36339c-34f8-49fc-8678-d23c53423b3e"
+            },
+            "priority": {
+                "S": "HIGH"
+            },
+            "title": {
+                "S": "Test Action"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765705847"
+            },
+            "reminderDate": {
+                "S": "2025-12-20"
+            },
+            "userId": {
+                "S": "b4bf83c8-e270-4164-8c20-008b0ea5e3e2"
+            },
+            "transactionId": {
+                "S": "0a9a97ac-fd44-45a0-a0ad-9a851b7a77ae"
+            },
+            "isCompleted": {
+                "BOOL": false
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:50:47.861671Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-14T09:43:18.644137Z"
+            },
+            "reminderDatePartition": {
+                "S": "2025-12-20"
+            },
+            "dueDate": {
+                "S": "2025-12-21"
+            },
+            "actionId": {
+                "S": "00865b6d-0ca6-453f-be0b-3678de8504ac"
+            },
+            "priority": {
+                "S": "HIGH"
+            },
+            "title": {
+                "S": "Test Action"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765705398"
+            },
+            "reminderDate": {
+                "S": "2025-12-20"
+            },
+            "userId": {
+                "S": "d47eb8b3-527c-442f-98c7-3b1d9d31d11f"
+            },
+            "transactionId": {
+                "S": "7616d454-e40d-4c36-8fcf-62bff61de697"
+            },
+            "isCompleted": {
+                "BOOL": false
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:43:18.644137Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-14T09:49:19.668470Z"
+            },
+            "actionId": {
+                "S": "2b601d70-113f-44ff-b2cf-61511c80c7d4"
+            },
+            "priority": {
+                "S": "MEDIUM"
+            },
+            "title": {
+                "S": "Action 2"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765705759"
+            },
+            "userId": {
+                "S": "a5e1b980-e84b-42ae-b02e-f6fe53205c89"
+            },
+            "transactionId": {
+                "S": "5589f0e5-037a-4ef9-9803-5e7404eda7aa"
+            },
+            "isCompleted": {
+                "BOOL": false
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:49:19.668470Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-14T09:53:24.512818Z"
+            },
+            "actionId": {
+                "S": "285e11a7-1ffb-4bf6-8bed-497ab9299b3c"
+            },
+            "description": {
+                "S": "Check if correct"
+            },
+            "priority": {
+                "S": "HIGH"
+            },
+            "title": {
+                "S": "Review transaction"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765706004"
+            },
+            "userId": {
+                "S": "a70ca181-5173-4975-953b-330600c478ae"
+            },
+            "transactionId": {
+                "S": "b2289aba-9136-4c4e-a9de-d2876a460b33"
+            },
+            "isCompleted": {
+                "BOOL": false
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:53:24.512819Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-14T09:54:15.057927Z"
+            },
+            "actionId": {
+                "S": "c602434d-2edf-4d8a-b557-884145496853"
+            },
+            "priority": {
+                "S": "LOW"
+            },
+            "title": {
+                "S": "Action to complete"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765706055"
+            },
+            "userId": {
+                "S": "1047e5e5-4476-4bce-963e-0c68d312b4b0"
+            },
+            "transactionId": {
+                "S": "de37e69d-9693-45e8-bccf-b209e9805be5"
+            },
+            "isCompleted": {
+                "BOOL": true
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:54:15.065955Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-14T09:53:24.977502Z"
+            },
+            "actionId": {
+                "S": "75246b83-35c1-4b12-ba6f-98f885068699"
+            },
+            "priority": {
+                "S": "HIGH"
+            },
+            "title": {
+                "S": "Updated Title"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765706004"
+            },
+            "userId": {
+                "S": "96b52610-cc27-4eef-8fff-18ef56881db9"
+            },
+            "transactionId": {
+                "S": "b6b82123-c3f4-44ce-ba5f-45f06ec3669f"
+            },
+            "isCompleted": {
+                "BOOL": true
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:53:24.986411Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-14T09:54:14.824481Z"
+            },
+            "actionId": {
+                "S": "894772e3-86bb-4b58-99a7-ba225cd3e81a"
+            },
+            "description": {
+                "S": "Check if this transaction is correct"
+            },
+            "priority": {
+                "S": "HIGH"
+            },
+            "title": {
+                "S": "Review transaction"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765706054"
+            },
+            "userId": {
+                "S": "604e92ce-afcd-435e-8392-1d21ba8ba607"
+            },
+            "transactionId": {
+                "S": "18d5a744-f74e-4050-bf41-57727b8c6e7f"
+            },
+            "isCompleted": {
+                "BOOL": false
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:54:14.824481Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-14T09:53:24.761405Z"
+            },
+            "actionId": {
+                "S": "325130d7-9287-419e-814d-d1d7221a4560"
+            },
+            "priority": {
+                "S": "MEDIUM"
+            },
+            "title": {
+                "S": "Action for TX2"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765706004"
+            },
+            "userId": {
+                "S": "8c9617ce-53e7-4728-872b-761101524206"
+            },
+            "transactionId": {
+                "S": "55005acc-f627-4bf9-8440-fa2dd2af94d0"
+            },
+            "isCompleted": {
+                "BOOL": false
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:53:24.761405Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-14T09:49:19.497118Z"
+            },
+            "actionId": {
+                "S": "aa41e5f5-7fe2-4ed0-9f31-2864ac719588"
+            },
+            "priority": {
+                "S": "HIGH"
+            },
+            "title": {
+                "S": "Updated title"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765705759"
+            },
+            "userId": {
+                "S": "cbbc0da6-e845-4441-aea5-eafc9373a185"
+            },
+            "transactionId": {
+                "S": "dcf3e0ff-7af1-41fa-a3eb-089b314b724c"
+            },
+            "isCompleted": {
+                "BOOL": false
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:49:19.507438Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-14T09:49:19.748400Z"
+            },
+            "actionId": {
+                "S": "0e63e232-66c1-4ef3-8526-ab9e4d590a7d"
+            },
+            "priority": {
+                "S": "MEDIUM"
+            },
+            "title": {
+                "S": "Action 1"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765705759"
+            },
+            "userId": {
+                "S": "43c2939a-5934-4bf2-9257-ba0b04cec109"
+            },
+            "transactionId": {
+                "S": "642a8d63-d8d7-46ae-8678-67601390d46b"
+            },
+            "isCompleted": {
+                "BOOL": false
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:49:19.748400Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-14T09:54:14.940213Z"
+            },
+            "actionId": {
+                "S": "12600102-44cf-45cf-8a4d-91107e4bf3f7"
+            },
+            "priority": {
+                "S": "MEDIUM"
+            },
+            "title": {
+                "S": "Action 2"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765706054"
+            },
+            "userId": {
+                "S": "30477cd0-222a-4fa7-ac19-97bf64ff3828"
+            },
+            "transactionId": {
+                "S": "9765aeaf-adaa-4948-a72d-bb3968798b41"
+            },
+            "isCompleted": {
+                "BOOL": false
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:54:14.940213Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-14T09:49:32.193925Z"
+            },
+            "actionId": {
+                "S": "89341cdf-6591-4794-b12a-984dec20d59b"
+            },
+            "description": {
+                "S": "Check if correct"
+            },
+            "priority": {
+                "S": "HIGH"
+            },
+            "title": {
+                "S": "Review transaction"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765705772"
+            },
+            "userId": {
+                "S": "ad93f767-f169-44e4-ba2d-850fbd34470f"
+            },
+            "transactionId": {
+                "S": "7948ff54-d453-4ac1-ac79-bfde0d795534"
+            },
+            "isCompleted": {
+                "BOOL": false
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:49:32.193925Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-14T09:49:19.538691Z"
+            },
+            "actionId": {
+                "S": "5a6a0878-25dc-4b3e-a264-521760e05746"
+            },
+            "description": {
+                "S": "Check if this transaction is correct"
+            },
+            "priority": {
+                "S": "HIGH"
+            },
+            "title": {
+                "S": "Review transaction"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765705759"
+            },
+            "userId": {
+                "S": "d9b3d193-fc37-41f7-9a52-b33d82f18732"
+            },
+            "transactionId": {
+                "S": "053569ad-851a-463c-b8ed-4134e1c9883d"
+            },
+            "isCompleted": {
+                "BOOL": false
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:49:19.538691Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-14T09:46:01.799104Z"
+            },
+            "reminderDatePartition": {
+                "S": "2025-12-20"
+            },
+            "dueDate": {
+                "S": "2025-12-21"
+            },
+            "actionId": {
+                "S": "dc889c49-f060-445f-8f91-2fc16807be67"
+            },
+            "priority": {
+                "S": "HIGH"
+            },
+            "title": {
+                "S": "Test Action"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765705561"
+            },
+            "reminderDate": {
+                "S": "2025-12-20"
+            },
+            "userId": {
+                "S": "849f2046-a9ee-4d8b-a8b9-84c0b353df37"
+            },
+            "transactionId": {
+                "S": "b97f08c8-5076-45ae-b07b-d210afcb0cfb"
+            },
+            "isCompleted": {
+                "BOOL": false
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:46:01.799104Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-14T09:53:24.691054Z"
+            },
+            "actionId": {
+                "S": "18f70f9d-db7b-4716-8da6-5b982a8e9fb7"
+            },
+            "priority": {
+                "S": "HIGH"
+            },
+            "title": {
+                "S": "Action 2"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765706004"
+            },
+            "userId": {
+                "S": "5f294659-972f-4f2c-a943-afddaa09a56c"
+            },
+            "transactionId": {
+                "S": "d313485a-baab-423c-bcef-5a0642f38fed"
+            },
+            "isCompleted": {
+                "BOOL": false
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:53:24.691054Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-14T09:54:14.780134Z"
+            },
+            "actionId": {
+                "S": "23457b75-1023-428b-ae11-81a4c01d1552"
+            },
+            "priority": {
+                "S": "HIGH"
+            },
+            "title": {
+                "S": "Updated title"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765706054"
+            },
+            "userId": {
+                "S": "35c90255-262f-4ca9-a7c9-34971ad6f33c"
+            },
+            "transactionId": {
+                "S": "d2ce0cf3-51e5-4992-ab5c-4dee76dce1bf"
+            },
+            "isCompleted": {
+                "BOOL": false
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:54:14.789260Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-14T09:50:47.728002Z"
+            },
+            "reminderDatePartition": {
+                "S": "2025-12-20"
+            },
+            "dueDate": {
+                "S": "2025-12-21"
+            },
+            "actionId": {
+                "S": "1f028ebc-4cf7-4204-974d-4d341c56b604"
+            },
+            "priority": {
+                "S": "HIGH"
+            },
+            "title": {
+                "S": "Test Action"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765705847"
+            },
+            "reminderDate": {
+                "S": "2025-12-20"
+            },
+            "userId": {
+                "S": "b27e4451-29ad-4eb5-873f-acbd0221673c"
+            },
+            "transactionId": {
+                "S": "712dab4c-3946-481f-8fb9-c14132c545a2"
+            },
+            "isCompleted": {
+                "BOOL": false
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:50:47.728002Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-14T09:49:19.789010Z"
+            },
+            "actionId": {
+                "S": "67fd4b08-f5c1-4b37-ae98-5d78dedf9816"
+            },
+            "priority": {
+                "S": "LOW"
+            },
+            "title": {
+                "S": "Action to complete"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765705759"
+            },
+            "userId": {
+                "S": "0d3f5fda-9c8b-4626-b187-b0e0891cecbb"
+            },
+            "transactionId": {
+                "S": "80c920d9-94cb-40c3-b89a-738b79a43703"
+            },
+            "isCompleted": {
+                "BOOL": true
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:49:19.795031Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-14T09:54:28.342641Z"
+            },
+            "actionId": {
+                "S": "1ce3a851-89cc-4391-96fd-4e129a03f1f7"
+            },
+            "priority": {
+                "S": "MEDIUM"
+            },
+            "title": {
+                "S": "Test Action"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765706068"
+            },
+            "userId": {
+                "S": "f4823030-e8d8-47ec-ad54-2097536937cf"
+            },
+            "transactionId": {
+                "S": "f92c7113-4f58-490c-8eee-7daaab72a8a5"
+            },
+            "isCompleted": {
+                "BOOL": false
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:54:28.342641Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-14T09:48:32.305501Z"
+            },
+            "actionId": {
+                "S": "09874d48-63c4-400e-a131-841200cc82b9"
+            },
+            "priority": {
+                "S": "HIGH"
+            },
+            "title": {
+                "S": "Action 2"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765705712"
+            },
+            "userId": {
+                "S": "1d9a9f94-4eea-4673-b3b2-7bc802580adf"
+            },
+            "transactionId": {
+                "S": "c0b1dd97-a35f-45bd-b6d2-08edf3312944"
+            },
+            "isCompleted": {
+                "BOOL": false
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:48:32.305501Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-14T09:54:28.172841Z"
+            },
+            "actionId": {
+                "S": "ed40e7fa-cdf9-45e3-ab96-ede169f07a1c"
+            },
+            "description": {
+                "S": "Check if correct"
+            },
+            "priority": {
+                "S": "HIGH"
+            },
+            "title": {
+                "S": "Review transaction"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765706068"
+            },
+            "userId": {
+                "S": "ebe939ab-1605-43cc-a22a-ed3aaa5635aa"
+            },
+            "transactionId": {
+                "S": "ad415e17-5fe0-40bb-a16b-5056038aa35b"
+            },
+            "isCompleted": {
+                "BOOL": false
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:54:28.172841Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-14T09:46:01.825712Z"
+            },
+            "reminderDatePartition": {
+                "S": "2025-12-20"
+            },
+            "dueDate": {
+                "S": "2025-12-21"
+            },
+            "actionId": {
+                "S": "61baf743-0f44-41f9-89ad-e151d8f76f6e"
+            },
+            "priority": {
+                "S": "HIGH"
+            },
+            "title": {
+                "S": "Test Action"
+            },
+            "updatedAtTimestamp": {
+                "N": "1765705561"
+            },
+            "reminderDate": {
+                "S": "2025-12-20"
+            },
+            "userId": {
+                "S": "f3d4db66-2b10-4a36-9bdd-846cf407863a"
+            },
+            "transactionId": {
+                "S": "f86489eb-5268-4b3c-ba1d-2a0820763239"
+            },
+            "isCompleted": {
+                "BOOL": false
+            },
+            "updatedAt": {
+                "S": "2025-12-14T09:46:01.825712Z"
+            }
+        }
+    ],
+    "Count": 56,
+    "ScannedCount": 56,
+    "ConsumedCapacity": null
+}

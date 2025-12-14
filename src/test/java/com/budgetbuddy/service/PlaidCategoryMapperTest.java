@@ -161,7 +161,81 @@ class PlaidCategoryMapperTest {
         // Then
         assertNotNull(result);
         assertEquals("income", result.getPrimary());
-        assertEquals("income", result.getDetailed());
+        // CRITICAL: "income" is ONLY a primary category, not a detailed category
+        // Description contains "Payroll", so should be categorized as salary, not generic income
+        assertEquals("salary", result.getDetailed(), "Income with payroll description should be salary (not generic income)");
+    }
+
+    @Test
+    void testMapPlaidCategory_WithInterestMisspelling_INTRST_DetectedAsInterest() {
+        // Given: Interest payment with misspelling "INTRST"
+        String primary = "INCOME";
+        String detailed = "INTEREST_EARNED";
+        String merchantName = null;
+        String description = "INTRST payment";
+
+        // When
+        PlaidCategoryMapper.CategoryMapping result = plaidCategoryMapper.mapPlaidCategory(
+                primary, detailed, merchantName, description);
+
+        // Then
+        assertNotNull(result);
+        assertEquals("income", result.getPrimary());
+        assertEquals("interest", result.getDetailed(), "INTRST payment should be detected as interest");
+    }
+
+    @Test
+    void testMapPlaidCategory_WithInterestMisspelling_INTR_DetectedAsInterest() {
+        // Given: Interest payment with misspelling "INTR"
+        String primary = "INCOME";
+        String detailed = null;
+        String merchantName = null;
+        String description = "INTR payment";
+
+        // When
+        PlaidCategoryMapper.CategoryMapping result = plaidCategoryMapper.mapPlaidCategory(
+                primary, detailed, merchantName, description);
+
+        // Then
+        assertNotNull(result);
+        assertEquals("income", result.getPrimary());
+        assertEquals("interest", result.getDetailed(), "INTR payment should be detected as interest");
+    }
+
+    @Test
+    void testMapPlaidCategory_WithInterestMisspelling_INTREST_DetectedAsInterest() {
+        // Given: Interest payment with misspelling "INTREST"
+        String primary = "INCOME";
+        String detailed = null;
+        String merchantName = null;
+        String description = "INTREST payment";
+
+        // When
+        PlaidCategoryMapper.CategoryMapping result = plaidCategoryMapper.mapPlaidCategory(
+                primary, detailed, merchantName, description);
+
+        // Then
+        assertNotNull(result);
+        assertEquals("income", result.getPrimary());
+        assertEquals("interest", result.getDetailed(), "INTREST payment should be detected as interest");
+    }
+
+    @Test
+    void testMapPlaidCategory_WithInterestMisspelling_INTRSTPayment_DetectedAsInterest() {
+        // Given: Interest payment with misspelling "INTRST payment"
+        String primary = "INCOME";
+        String detailed = null;
+        String merchantName = null;
+        String description = "INTRST payment";
+
+        // When
+        PlaidCategoryMapper.CategoryMapping result = plaidCategoryMapper.mapPlaidCategory(
+                primary, detailed, merchantName, description);
+
+        // Then
+        assertNotNull(result);
+        assertEquals("income", result.getPrimary());
+        assertEquals("interest", result.getDetailed(), "INTRST payment should be detected as interest");
     }
 
     @Test
