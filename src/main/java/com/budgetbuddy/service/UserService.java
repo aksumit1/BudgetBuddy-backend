@@ -129,6 +129,17 @@ public class UserService {
         // Note: If usersWithEmail.size() == 1, it's the user we just created (expected)
         // If usersWithEmail.size() == 0, GSI eventual consistency hasn't updated yet (acceptable)
         
+        // CRITICAL FIX: Create pseudo account at registration time (proactive creation)
+        // This ensures the pseudo account exists before the user creates their first transaction
+        // The getOrCreatePseudoAccount method is thread-safe and will return existing if already created
+        try {
+            accountRepository.getOrCreatePseudoAccount(userId);
+            logger.info("Created pseudo account for new user: {}", userId);
+        } catch (Exception e) {
+            // Log error but don't fail registration - pseudo account can be created lazily later
+            logger.warn("Failed to create pseudo account for user {} during registration: {}", userId, e.getMessage());
+        }
+        
         logger.info("Created new user with email: {} (secure format)", email);
         return user;
     }

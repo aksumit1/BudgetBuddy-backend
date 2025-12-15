@@ -157,11 +157,16 @@ public class IdGenerator {
             throw new IllegalArgumentException("Name is required");
         }
         
+        // CRITICAL: Trim the name to ensure consistency with iOS app
+        // iOS app trims plaidTransactionId before passing to generateDeterministicUUID
+        // This prevents UUID mismatches when input has leading/trailing whitespace
+        String trimmedName = name.trim();
+        
         // UUID v5 uses SHA-1 hash of namespace + name
         // This ensures deterministic UUIDs that handle special characters robustly
         // Normalize to lowercase for case-insensitive matching
         return UUID.nameUUIDFromBytes(
-            (namespace.toString() + ":" + name).getBytes(StandardCharsets.UTF_8)
+            (namespace.toString() + ":" + trimmedName).getBytes(StandardCharsets.UTF_8)
         ).toString().toLowerCase();
     }
 

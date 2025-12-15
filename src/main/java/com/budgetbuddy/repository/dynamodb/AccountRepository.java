@@ -21,11 +21,13 @@ import software.amazon.awssdk.services.dynamodb.model.PutRequest;
 import software.amazon.awssdk.services.dynamodb.model.ResourceNotFoundException;
 import software.amazon.awssdk.services.dynamodb.model.WriteRequest;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
@@ -61,6 +63,89 @@ public class AccountRepository {
         accountTable.putItem(account);
     }
 
+    /**
+     * Get or create a pseudo account for transactions without an account
+     * This creates a system account that can be used for manual transactions
+     * where the user doesn't select an existing account
+     * 
+     * CRITICAL: Uses conditional write to ensure only one pseudo account is created
+     * even if multiple requests come in simultaneously (thread-safe)
+     * 
+     * @param userId User ID to create pseudo account for
+     * @return The pseudo account (created if it doesn't exist)
+     */
+    public AccountTable getOrCreatePseudoAccount(final String userId) {
+        if (userId == null || userId.isEmpty()) {
+            throw new IllegalArgumentException("User ID is required");
+        }
+        
+        // Generate deterministic UUID for pseudo account based on userId
+        // Use a special namespace for pseudo accounts
+        UUID pseudoAccountNamespace = UUID.fromString("6ba7b815-9dad-11d1-80b4-00c04fd430c8"); // Pseudo account namespace
+        String pseudoAccountId = com.budgetbuddy.util.IdGenerator.generateDeterministicUUID(
+            pseudoAccountNamespace, 
+            "pseudo-account:" + userId.toLowerCase()
+        );
+        
+        // Try to find existing pseudo account
+        Optional<AccountTable> existing = findById(pseudoAccountId);
+        if (existing.isPresent()) {
+            AccountTable account = existing.get();
+            // Verify it belongs to the user
+            if (userId.equals(account.getUserId())) {
+                return account;
+            }
+        }
+        
+        // Create new pseudo account
+        AccountTable pseudoAccount = new AccountTable();
+        pseudoAccount.setAccountId(pseudoAccountId);
+        pseudoAccount.setUserId(userId);
+        pseudoAccount.setAccountName("Manual Transactions");
+        pseudoAccount.setInstitutionName("BudgetBuddy");
+        pseudoAccount.setAccountType("other");
+        pseudoAccount.setAccountSubtype("manual");
+        pseudoAccount.setBalance(BigDecimal.ZERO);
+        pseudoAccount.setCurrencyCode("USD");
+        pseudoAccount.setActive(true);
+        pseudoAccount.setPlaidAccountId(null); // No Plaid ID for pseudo accounts
+        pseudoAccount.setPlaidItemId(null);
+        pseudoAccount.setAccountNumber(null);
+        pseudoAccount.setCreatedAt(java.time.Instant.now());
+        pseudoAccount.setUpdatedAt(java.time.Instant.now());
+        
+        // CRITICAL FIX: Use conditional write to ensure only one pseudo account is created
+        // This prevents race conditions when multiple requests try to create the account simultaneously
+        try {
+            // Use conditional write: only create if account doesn't exist
+            Expression conditionExpression = Expression.builder()
+                .expression("attribute_not_exists(accountId)")
+                .build();
+            
+            accountTable.putItem(
+                software.amazon.awssdk.enhanced.dynamodb.model.PutItemEnhancedRequest.builder(AccountTable.class)
+                    .item(pseudoAccount)
+                    .conditionExpression(conditionExpression)
+                    .build()
+            );
+            
+            org.slf4j.LoggerFactory.getLogger(AccountRepository.class)
+                .info("Created pseudo account for user {}: {}", userId, pseudoAccountId);
+        } catch (ConditionalCheckFailedException e) {
+            // Account was created by another request - fetch and return it
+            org.slf4j.LoggerFactory.getLogger(AccountRepository.class)
+                .debug("Pseudo account already exists (created by another request), fetching existing: {}", pseudoAccountId);
+            Optional<AccountTable> existingAccount = findById(pseudoAccountId);
+            if (existingAccount.isPresent()) {
+                return existingAccount.get();
+            }
+            // If still not found, throw exception (shouldn't happen)
+            throw new IllegalStateException("Failed to create or retrieve pseudo account: " + pseudoAccountId);
+        }
+        
+        return pseudoAccount;
+    }
+
     public Optional<AccountTable> findById(String accountId) {
         if (accountId == null || accountId.isEmpty()) {
             return Optional.empty();
@@ -94,6 +179,12 @@ public class AccountRepository {
                 page : pages) {
             for (AccountTable account : page.items()) {
                 totalFound++;
+                
+                // CRITICAL FIX: Filter out pseudo accounts (accountSubtype == "manual")
+                // Pseudo accounts are system accounts and should not be returned to users
+                if (account.getAccountSubtype() != null && "manual".equalsIgnoreCase(account.getAccountSubtype())) {
+                    continue; // Skip pseudo accounts
+                }
                 
                 // Check for duplicates by accountId
                 String accountId = account.getAccountId();

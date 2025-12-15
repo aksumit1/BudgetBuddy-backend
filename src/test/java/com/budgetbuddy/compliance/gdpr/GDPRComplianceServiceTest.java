@@ -9,7 +9,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import software.amazon.awssdk.services.s3.S3Client;
+import com.budgetbuddy.service.aws.S3Service;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -45,7 +45,7 @@ class GDPRComplianceServiceTest {
     private AuditLogRepository auditLogRepository;
 
     @Mock
-    private S3Client s3Client;
+    private S3Service s3Service;
 
     @Mock
     private AuditLogService auditLogService;
@@ -63,7 +63,7 @@ class GDPRComplianceServiceTest {
                 budgetRepository,
                 goalRepository,
                 auditLogRepository,
-                s3Client,
+                s3Service,
                 auditLogService
         );
         

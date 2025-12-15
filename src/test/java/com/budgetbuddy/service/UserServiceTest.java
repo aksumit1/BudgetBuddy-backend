@@ -32,6 +32,9 @@ class UserServiceTest {
     @Mock
     private PasswordHashingService passwordHashingService;
 
+    @Mock
+    private com.budgetbuddy.repository.dynamodb.AccountRepository accountRepository;
+
     @InjectMocks
     private UserService userService;
 
@@ -99,6 +102,65 @@ class UserServiceTest {
                         "User"
                 ));
         assertEquals(ErrorCode.USER_ALREADY_EXISTS, exception.getErrorCode());
+        verify(userRepository).delete(anyString());
+    }
+
+    @Test
+    void testCreateUserSecure_CreatesPseudoAccount() {
+        // Given
+        PasswordHashingService.PasswordHashResult serverHash =
+                new PasswordHashingService.PasswordHashResult("server-hash", "server-salt");
+        when(passwordHashingService.hashClientPassword(anyString(), isNull()))
+                .thenReturn(serverHash);
+        when(userRepository.saveIfNotExists(any(UserTable.class))).thenReturn(true);
+        when(userRepository.findAllByEmail(testEmail)).thenReturn(java.util.Collections.emptyList());
+        
+        // Mock pseudo account creation
+        com.budgetbuddy.model.dynamodb.AccountTable pseudoAccount = new com.budgetbuddy.model.dynamodb.AccountTable();
+        pseudoAccount.setAccountId("pseudo-account-id");
+        pseudoAccount.setAccountName("Manual Transactions");
+        when(accountRepository.getOrCreatePseudoAccount(anyString())).thenReturn(pseudoAccount);
+
+        // When
+        UserTable result = userService.createUserSecure(
+                testEmail,
+                testPasswordHash,
+                "Test",
+                "User"
+        );
+
+        // Then
+        assertNotNull(result);
+        // Verify pseudo account was created
+        verify(accountRepository).getOrCreatePseudoAccount(result.getUserId());
+    }
+
+    @Test
+    void testCreateUserSecure_WithPseudoAccountCreationFailure_StillCreatesUser() {
+        // Given - Pseudo account creation fails, but user creation should still succeed
+        PasswordHashingService.PasswordHashResult serverHash =
+                new PasswordHashingService.PasswordHashResult("server-hash", "server-salt");
+        when(passwordHashingService.hashClientPassword(anyString(), isNull()))
+                .thenReturn(serverHash);
+        when(userRepository.saveIfNotExists(any(UserTable.class))).thenReturn(true);
+        when(userRepository.findAllByEmail(testEmail)).thenReturn(java.util.Collections.emptyList());
+        
+        // Mock pseudo account creation failure
+        when(accountRepository.getOrCreatePseudoAccount(anyString()))
+                .thenThrow(new RuntimeException("Failed to create pseudo account"));
+
+        // When - Should still create user (pseudo account creation is best-effort)
+        UserTable result = userService.createUserSecure(
+                testEmail,
+                testPasswordHash,
+                "Test",
+                "User"
+        );
+
+        // Then - User should still be created
+        assertNotNull(result);
+        assertEquals(testEmail, result.getEmail());
+        verify(userRepository).saveIfNotExists(any(UserTable.class));
     }
 
     @Test

@@ -141,9 +141,8 @@ public class TransactionController {
             throw new AppException(ErrorCode.INVALID_INPUT, "Transaction request is required");
         }
 
-        if (request.getAccountId() == null || request.getAccountId().isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "Account ID is required");
-        }
+        // CRITICAL FIX: Account ID is now optional - if not provided, backend will use pseudo account
+        // No validation needed here - TransactionService will handle it
         if (request.getAmount() == null) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Amount is required");
         }

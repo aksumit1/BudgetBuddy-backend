@@ -1,6 +1,5 @@
 package com.budgetbuddy.api;
 
-import com.budgetbuddy.compliance.dma.DMAComplianceService;
 import com.budgetbuddy.compliance.gdpr.GDPRComplianceService;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -21,16 +20,12 @@ import org.springframework.web.bind.annotation.*;
 public class ComplianceController {
 
     private final GDPRComplianceService gdprComplianceService;
-    @SuppressWarnings("unused") // Reserved for future DMA compliance features
-    private final DMAComplianceService dmaComplianceService;
     private final com.budgetbuddy.service.UserService userService;
 
     public ComplianceController(
             final GDPRComplianceService gdprComplianceService,
-            final DMAComplianceService dmaComplianceService,
             final com.budgetbuddy.service.UserService userService) {
         this.gdprComplianceService = gdprComplianceService;
-        this.dmaComplianceService = dmaComplianceService;
         this.userService = userService;
     }
 

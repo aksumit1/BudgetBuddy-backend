@@ -2,10 +2,10 @@ package com.budgetbuddy.compliance.gdpr;
 
 import com.budgetbuddy.model.dynamodb.UserTable;
 import com.budgetbuddy.repository.dynamodb.*;
+import com.budgetbuddy.service.aws.S3Service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
-import software.amazon.awssdk.services.s3.S3Client;
 
 import java.time.Instant;
 import java.util.List;
@@ -31,8 +31,7 @@ public class GDPRComplianceService {
     private final BudgetRepository budgetRepository;
     private final GoalRepository goalRepository;
     private final AuditLogRepository auditLogRepository;
-    @SuppressWarnings("unused") // Reserved for future S3 operations
-    private final S3Client s3Client;
+    private final S3Service s3Service;
     private final com.budgetbuddy.compliance.AuditLogService auditLogService;
 
     public GDPRComplianceService(
@@ -42,7 +41,7 @@ public class GDPRComplianceService {
             final BudgetRepository budgetRepository,
             final GoalRepository goalRepository,
             final AuditLogRepository auditLogRepository,
-            final S3Client s3Client,
+            final S3Service s3Service,
             final com.budgetbuddy.compliance.AuditLogService auditLogService) {
         this.userRepository = userRepository;
         this.transactionRepository = transactionRepository;
@@ -50,7 +49,7 @@ public class GDPRComplianceService {
         this.budgetRepository = budgetRepository;
         this.goalRepository = goalRepository;
         this.auditLogRepository = auditLogRepository;
-        this.s3Client = s3Client;
+        this.s3Service = s3Service;
         this.auditLogService = auditLogService;
     }
 
@@ -113,10 +112,13 @@ public class GDPRComplianceService {
 
         // Delete accounts
         List<com.budgetbuddy.model.dynamodb.AccountTable> accounts = accountRepository.findByUserId(userId);
-        accounts.forEach(a -> {
-            // Delete from S3 if applicable
-            deleteFromS3(userId, a.getAccountId());
+        accounts.forEach(account -> {
+            // Delete account-specific S3 files if any
+            deleteAccountFromS3(userId, account.getAccountId());
         });
+        
+        // Delete user export files from S3
+        deleteUserExportsFromS3(userId);
 
         // Delete budgets
         List<com.budgetbuddy.model.dynamodb.BudgetTable> budgets = budgetRepository.findByUserId(userId);
@@ -263,13 +265,40 @@ public class GDPRComplianceService {
                 userId, breachType, affectedUsers);
     }
 
-    private void deleteFromS3(final String userId, final String accountId) {
+    /**
+     * Delete account-specific files from S3
+     * Removes any S3 objects associated with a specific account
+     */
+    private void deleteAccountFromS3(final String userId, final String accountId) {
         try {
-            // List and delete all objects with this prefix
-            // Implementation depends on S3 bucket structure
-            logger.debug("Deleting S3 objects for user: {} account: {}", userId, accountId);
+            // Delete account-specific files (e.g., "accounts/{userId}/{accountId}/...")
+            String accountPrefix = String.format("accounts/%s/%s/", userId, accountId);
+            int deletedCount = s3Service.deleteFilesByPrefix(accountPrefix);
+            if (deletedCount > 0) {
+                logger.info("Deleted {} S3 objects for account: {} (user: {})", deletedCount, accountId, userId);
+            }
         } catch (Exception e) {
-            logger.error("Failed to delete from S3: {}", e.getMessage());
+            // Log error but don't fail the entire deletion process
+            logger.error("Failed to delete account files from S3 for account {} (user {}): {}", 
+                    accountId, userId, e.getMessage());
+        }
+    }
+
+    /**
+     * Delete all user export files from S3
+     * Removes GDPR export files created for the user (e.g., "exports/user_{userId}_*.gz")
+     */
+    private void deleteUserExportsFromS3(final String userId) {
+        try {
+            // Delete export files (e.g., "exports/user_{userId}_*.gz")
+            String exportPrefix = String.format("exports/user_%s_", userId);
+            int deletedCount = s3Service.deleteFilesByPrefix(exportPrefix);
+            if (deletedCount > 0) {
+                logger.info("Deleted {} export files from S3 for user: {}", deletedCount, userId);
+            }
+        } catch (Exception e) {
+            // Log error but don't fail the entire deletion process
+            logger.error("Failed to delete export files from S3 for user {}: {}", userId, e.getMessage());
         }
     }
 

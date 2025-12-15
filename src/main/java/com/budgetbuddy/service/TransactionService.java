@@ -200,9 +200,6 @@ public class TransactionService {
         if (user == null || user.getUserId() == null || user.getUserId().isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "User is required");
         }
-        if (accountId == null || accountId.isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "Account ID is required");
-        }
         if (amount == null) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Amount is required");
         }
@@ -213,24 +210,68 @@ public class TransactionService {
             throw new AppException(ErrorCode.INVALID_INPUT, "Category primary is required");
         }
 
-        // Try to find account by accountId first
-        Optional<AccountTable> accountOpt = accountRepository.findById(accountId);
+        AccountTable account;
         
-        // If not found and plaidAccountId is provided, try lookup by Plaid account ID (fallback)
-        // This handles cases where account IDs don't match between app and backend
-        if (accountOpt.isEmpty() && plaidAccountId != null && !plaidAccountId.isEmpty()) {
-            logger.debug("Account {} not found by ID, trying Plaid account ID: {}", accountId, plaidAccountId);
-            accountOpt = accountRepository.findByPlaidAccountId(plaidAccountId);
-            if (accountOpt.isPresent()) {
-                logger.info("Found account by Plaid ID {} (requested accountId: {})", plaidAccountId, accountId);
+        // CRITICAL FIX: Plaid transactions should NEVER use pseudo account
+        // If plaidAccountId is provided, this is a Plaid transaction and must use a real account
+        if (plaidAccountId != null && !plaidAccountId.isEmpty()) {
+            // This is a Plaid transaction - must find account by Plaid ID or accountId
+            Optional<AccountTable> accountOpt = null;
+            
+            // Try to find account by accountId first (if provided)
+            if (accountId != null && !accountId.isEmpty()) {
+                accountOpt = accountRepository.findById(accountId);
             }
+            
+            // If not found by accountId, try lookup by Plaid account ID (required for Plaid transactions)
+            if (accountOpt == null || accountOpt.isEmpty()) {
+                logger.debug("Account {} not found by ID, trying Plaid account ID: {}", accountId, plaidAccountId);
+                accountOpt = accountRepository.findByPlaidAccountId(plaidAccountId);
+                if (accountOpt.isPresent()) {
+                    AccountTable foundAccount = accountOpt.get();
+                    // CRITICAL: Verify the account belongs to the user
+                    if (foundAccount.getUserId() == null || !foundAccount.getUserId().equals(user.getUserId())) {
+                        logger.warn("Account found by Plaid ID {} belongs to different user (found: {}, requested: {})", 
+                                plaidAccountId, foundAccount.getUserId(), user.getUserId());
+                        accountOpt = Optional.empty(); // Clear the result - account doesn't belong to user
+                    } else {
+                        logger.info("Found account by Plaid ID {} (requested accountId: {})", plaidAccountId, accountId);
+                    }
+                }
+                
+                // FALLBACK: If PlaidAccountIdIndex lookup failed, search user's accounts
+                // This handles cases where the GSI isn't immediately consistent or isn't available
+                if (accountOpt.isEmpty()) {
+                    logger.debug("Account not found by Plaid ID index, trying fallback: searching user's accounts");
+                    List<AccountTable> userAccounts = accountRepository.findByUserId(user.getUserId());
+                    accountOpt = userAccounts.stream()
+                            .filter(acc -> plaidAccountId != null && plaidAccountId.equals(acc.getPlaidAccountId()))
+                            .findFirst();
+                    if (accountOpt.isPresent()) {
+                        logger.info("Found account by Plaid ID {} using fallback method (searching user's accounts)", plaidAccountId);
+                    }
+                }
+            }
+            
+            // CRITICAL: Plaid transactions must have a real account - never use pseudo account
+            account = accountOpt
+                    .orElseThrow(() -> new AppException(ErrorCode.ACCOUNT_NOT_FOUND, 
+                        "Plaid transaction requires a valid account. Account not found for Plaid account ID: " + plaidAccountId));
+        } else if (accountId == null || accountId.isEmpty()) {
+            // Manual transaction without account - use pseudo account
+            logger.info("No account ID provided for manual transaction - using pseudo account for user {}", user.getUserId());
+            account = accountRepository.getOrCreatePseudoAccount(user.getUserId());
+        } else {
+            // Manual transaction with accountId - find account by ID
+            Optional<AccountTable> accountOpt = accountRepository.findById(accountId);
+            account = accountOpt
+                    .orElseThrow(() -> new AppException(ErrorCode.ACCOUNT_NOT_FOUND, "Account not found"));
         }
-        
-        AccountTable account = accountOpt
-                .orElseThrow(() -> new AppException(ErrorCode.ACCOUNT_NOT_FOUND, "Account not found"));
 
+        // CRITICAL: Verify account belongs to user (already checked for Plaid accounts above, but double-check for safety)
         if (account.getUserId() == null || !account.getUserId().equals(user.getUserId())) {
-            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "Account does not belong to user");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, 
+                    "Account does not belong to user. Account userId: " + account.getUserId() + ", User userId: " + user.getUserId());
         }
 
         TransactionTable transaction = new TransactionTable();
@@ -286,7 +327,8 @@ public class TransactionService {
         }
         
         transaction.setUserId(user.getUserId());
-        transaction.setAccountId(accountId);
+        // CRITICAL FIX: Use the account's ID (which may be the pseudo account ID if accountId was null/empty)
+        transaction.setAccountId(account.getAccountId());
         transaction.setAmount(amount);
         transaction.setTransactionDate(transactionDate.format(DATE_FORMATTER));
         transaction.setDescription(description != null ? description : "");

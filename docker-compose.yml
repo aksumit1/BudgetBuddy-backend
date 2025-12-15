@@ -13,6 +13,8 @@ networks:
 
 services:
   # LocalStack for local DynamoDB development
+  # CRITICAL: This is a shared infrastructure service - DO NOT stop manually
+  # Use 'docker-compose stop localstack' only if you own this container
   localstack:
     image: localstack/localstack:latest
     container_name: budgetbuddy-localstack
@@ -20,8 +22,13 @@ services:
       - budgetbuddy-network
     ports:
       - "4566:4566"  # Fixed port - do not change
-    # Auto-restart on failure (unless explicitly stopped)
-    restart: unless-stopped
+    # CRITICAL: Use 'always' restart policy to ensure LocalStack restarts even if stopped
+    # This prevents tests or other processes from accidentally stopping the service
+    restart: always
+    labels:
+      - "com.budgetbuddy.service=infrastructure"
+      - "com.budgetbuddy.warning=DO_NOT_STOP_MANUALLY"
+      - "com.budgetbuddy.description=Shared LocalStack service for DynamoDB - required by backend"
     environment:
       - SERVICES=dynamodb,s3,secretsmanager,cloudwatch,iam,sts,appconfig
       - DEBUG=0

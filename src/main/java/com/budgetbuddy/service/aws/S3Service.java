@@ -11,6 +11,7 @@ import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.s3.presigner.model.PresignedGetObjectRequest;
 
 import java.io.InputStream;
+import java.util.List;
 
 /**
  * AWS S3 Service for file storage
@@ -117,6 +118,68 @@ public class S3Service {
         } catch (Exception e) {
             logger.error("Error deleting file from S3: {}", e.getMessage());
             throw new RuntimeException("Failed to delete file from S3", e);
+        }
+    }
+
+    /**
+     * Delete all files with a given prefix from S3
+     * Used for GDPR data deletion - removes all user-related files
+     * 
+     * @param prefix The prefix to match (e.g., "exports/user_123" or "accounts/user_123/")
+     * @return Number of files deleted
+     */
+    public int deleteFilesByPrefix(final String prefix) {
+        try {
+            int deletedCount = 0;
+            String continuationToken = null;
+
+            do {
+                ListObjectsV2Request.Builder listRequestBuilder = ListObjectsV2Request.builder()
+                        .bucket(bucketName)
+                        .prefix(prefix);
+
+                if (continuationToken != null) {
+                    listRequestBuilder.continuationToken(continuationToken);
+                }
+
+                ListObjectsV2Response listResponse = s3Client.listObjectsV2(listRequestBuilder.build());
+
+                if (listResponse.contents() != null && !listResponse.contents().isEmpty()) {
+                    // Delete objects in batches (max 1000 per batch)
+                    List<ObjectIdentifier> objectsToDelete = 
+                            listResponse.contents().stream()
+                                    .map(s3Object -> ObjectIdentifier.builder()
+                                            .key(s3Object.key())
+                                            .build())
+                                    .collect(java.util.stream.Collectors.toList());
+
+                    if (!objectsToDelete.isEmpty()) {
+                        DeleteObjectsRequest deleteRequest = DeleteObjectsRequest.builder()
+                                .bucket(bucketName)
+                                .delete(Delete.builder()
+                                        .objects(objectsToDelete)
+                                        .build())
+                                .build();
+
+                        DeleteObjectsResponse deleteResponse = s3Client.deleteObjects(deleteRequest);
+                        deletedCount += deleteResponse.deleted().size();
+                        
+                        if (deleteResponse.errors() != null && !deleteResponse.errors().isEmpty()) {
+                            deleteResponse.errors().forEach(error -> 
+                                    logger.error("Error deleting S3 object {}: {}", error.key(), error.message())
+                            );
+                        }
+                    }
+                }
+
+                continuationToken = listResponse.nextContinuationToken();
+            } while (continuationToken != null);
+
+            logger.info("Deleted {} files from S3 with prefix: {}", deletedCount, prefix);
+            return deletedCount;
+        } catch (Exception e) {
+            logger.error("Error deleting files from S3 with prefix {}: {}", prefix, e.getMessage(), e);
+            throw new RuntimeException("Failed to delete files from S3", e);
         }
     }
 

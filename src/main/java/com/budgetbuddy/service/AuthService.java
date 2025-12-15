@@ -32,15 +32,12 @@ public class AuthService {
     private static final Logger logger = LoggerFactory.getLogger(AuthService.class);
 
     private final JwtTokenProvider tokenProvider;
-    @SuppressWarnings("unused") // Reserved for future use
-    private final UserService userService;
     private final PasswordHashingService passwordHashingService;
     private final UserRepository userRepository;
     private final CacheWarmingService cacheWarmingService;
 
-    public AuthService(final JwtTokenProvider tokenProvider, final UserService userService, final PasswordHashingService passwordHashingService, final UserRepository userRepository, final CacheWarmingService cacheWarmingService) {
+    public AuthService(final JwtTokenProvider tokenProvider, final PasswordHashingService passwordHashingService, final UserRepository userRepository, final CacheWarmingService cacheWarmingService) {
         this.tokenProvider = tokenProvider;
-        this.userService = userService;
         this.passwordHashingService = passwordHashingService;
         this.userRepository = userRepository;
         this.cacheWarmingService = cacheWarmingService;

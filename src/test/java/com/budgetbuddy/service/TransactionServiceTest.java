@@ -196,6 +196,198 @@ class TransactionServiceTest {
     }
 
     @Test
+    void testCreateTransaction_WithNullAccountId_UsesPseudoAccount() {
+        // Given - No accountId provided, should use pseudo account
+        AccountTable pseudoAccount = createPseudoAccount(testUser.getUserId());
+        when(accountRepository.getOrCreatePseudoAccount(testUser.getUserId())).thenReturn(pseudoAccount);
+        doNothing().when(transactionRepository).save(any(TransactionTable.class));
+
+        // When
+        TransactionTable result = transactionService.createTransaction(
+                testUser,
+                null, // No accountId
+                BigDecimal.valueOf(100.00),
+                LocalDate.now(),
+                "Manual transaction",
+                "FOOD",
+                "RESTAURANTS",
+                null,
+                null,
+                null,
+                null
+        );
+
+        // Then
+        assertNotNull(result);
+        assertEquals(pseudoAccount.getAccountId(), result.getAccountId());
+        verify(accountRepository).getOrCreatePseudoAccount(testUser.getUserId());
+        verify(accountRepository, never()).findById(anyString());
+    }
+
+    @Test
+    void testCreateTransaction_WithEmptyAccountId_UsesPseudoAccount() {
+        // Given - Empty accountId provided, should use pseudo account
+        AccountTable pseudoAccount = createPseudoAccount(testUser.getUserId());
+        when(accountRepository.getOrCreatePseudoAccount(testUser.getUserId())).thenReturn(pseudoAccount);
+        doNothing().when(transactionRepository).save(any(TransactionTable.class));
+
+        // When
+        TransactionTable result = transactionService.createTransaction(
+                testUser,
+                "", // Empty accountId
+                BigDecimal.valueOf(100.00),
+                LocalDate.now(),
+                "Manual transaction",
+                "FOOD",
+                "RESTAURANTS",
+                null,
+                null,
+                null,
+                null
+        );
+
+        // Then
+        assertNotNull(result);
+        assertEquals(pseudoAccount.getAccountId(), result.getAccountId());
+        verify(accountRepository).getOrCreatePseudoAccount(testUser.getUserId());
+    }
+
+    @Test
+    void testCreateTransaction_WithPlaidAccountId_NeverUsesPseudoAccount() {
+        // Given - Plaid transaction with plaidAccountId but no accountId
+        // Should find account by Plaid ID, NOT use pseudo account
+        AccountTable plaidAccount = new AccountTable();
+        plaidAccount.setAccountId("plaid-account-123");
+        plaidAccount.setUserId(testUser.getUserId());
+        plaidAccount.setPlaidAccountId("plaid-acc-123");
+        
+        when(accountRepository.findById(null)).thenReturn(Optional.empty());
+        when(accountRepository.findByPlaidAccountId("plaid-acc-123")).thenReturn(Optional.of(plaidAccount));
+        doNothing().when(transactionRepository).save(any(TransactionTable.class));
+
+        // When - Plaid transaction without accountId
+        TransactionTable result = transactionService.createTransaction(
+                testUser,
+                null, // No accountId
+                BigDecimal.valueOf(100.00),
+                LocalDate.now(),
+                "Plaid transaction",
+                "FOOD",
+                "RESTAURANTS",
+                null,
+                null,
+                "plaid-acc-123", // Plaid account ID
+                "plaid-tx-123"   // Plaid transaction ID
+        );
+
+        // Then - Should use Plaid account, NOT pseudo account
+        assertNotNull(result);
+        assertEquals(plaidAccount.getAccountId(), result.getAccountId());
+        verify(accountRepository).findByPlaidAccountId("plaid-acc-123");
+        verify(accountRepository, never()).getOrCreatePseudoAccount(anyString());
+    }
+
+    @Test
+    void testCreateTransaction_WithPlaidAccountIdAndAccountId_UsesAccountId() {
+        // Given - Plaid transaction with both accountId and plaidAccountId
+        AccountTable account = new AccountTable();
+        account.setAccountId("account-123");
+        account.setUserId(testUser.getUserId());
+        account.setPlaidAccountId("plaid-acc-123");
+        
+        when(accountRepository.findById("account-123")).thenReturn(Optional.of(account));
+        doNothing().when(transactionRepository).save(any(TransactionTable.class));
+
+        // When
+        TransactionTable result = transactionService.createTransaction(
+                testUser,
+                "account-123", // Account ID provided
+                BigDecimal.valueOf(100.00),
+                LocalDate.now(),
+                "Plaid transaction",
+                "FOOD",
+                "RESTAURANTS",
+                null,
+                null,
+                "plaid-acc-123", // Plaid account ID
+                "plaid-tx-123"
+        );
+
+        // Then - Should use provided accountId
+        assertNotNull(result);
+        assertEquals("account-123", result.getAccountId());
+        verify(accountRepository).findById("account-123");
+        verify(accountRepository, never()).getOrCreatePseudoAccount(anyString());
+    }
+
+    @Test
+    void testCreateTransaction_WithPlaidAccountIdButAccountNotFound_ThrowsException() {
+        // Given - Plaid transaction but account not found
+        when(accountRepository.findById(null)).thenReturn(Optional.empty());
+        when(accountRepository.findByPlaidAccountId("plaid-acc-123")).thenReturn(Optional.empty());
+
+        // When/Then - Should throw exception, NOT use pseudo account
+        AppException exception = assertThrows(AppException.class,
+                () -> transactionService.createTransaction(
+                        testUser,
+                        null,
+                        BigDecimal.valueOf(100.00),
+                        LocalDate.now(),
+                        "Plaid transaction",
+                        "FOOD",
+                        "RESTAURANTS",
+                        null,
+                        null,
+                        "plaid-acc-123",
+                        "plaid-tx-123"
+                ));
+        assertEquals(ErrorCode.ACCOUNT_NOT_FOUND, exception.getErrorCode());
+        verify(accountRepository, never()).getOrCreatePseudoAccount(anyString());
+    }
+
+    @Test
+    void testCreateTransaction_WithAccountId_UsesProvidedAccount() {
+        // Given - Manual transaction with accountId
+        when(accountRepository.findById("account-123")).thenReturn(Optional.of(testAccount));
+        doNothing().when(transactionRepository).save(any(TransactionTable.class));
+
+        // When
+        TransactionTable result = transactionService.createTransaction(
+                testUser,
+                "account-123", // Account ID provided
+                BigDecimal.valueOf(100.00),
+                LocalDate.now(),
+                "Manual transaction",
+                "FOOD",
+                "RESTAURANTS",
+                null,
+                null,
+                null,
+                null
+        );
+
+        // Then - Should use provided account, NOT pseudo account
+        assertNotNull(result);
+        assertEquals("account-123", result.getAccountId());
+        verify(accountRepository).findById("account-123");
+        verify(accountRepository, never()).getOrCreatePseudoAccount(anyString());
+    }
+
+    // Helper method
+    private AccountTable createPseudoAccount(String userId) {
+        AccountTable account = new AccountTable();
+        account.setAccountId("pseudo-account-" + userId);
+        account.setUserId(userId);
+        account.setAccountName("Manual Transactions");
+        account.setInstitutionName("BudgetBuddy");
+        account.setAccountType("other");
+        account.setAccountSubtype("manual");
+        account.setBalance(BigDecimal.ZERO);
+        account.setActive(true);
+        return account;
+    }
+
+    @Test
     void testDeleteTransaction_WithValidTransaction_DeletesTransaction() {
         // Given
         TransactionTable transaction = createTransaction("tx-1", "user-123", BigDecimal.valueOf(100.00));
