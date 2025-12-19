@@ -101,7 +101,10 @@ public class SubscriptionService {
                     
                     if (startDate != null) {
                         Subscription subscription = new Subscription();
-                        subscription.setSubscriptionId(IdGenerator.generateSubscriptionId(userId, merchant, amount));
+                        // CRITICAL FIX: Normalize generated subscription ID to lowercase for consistency
+                        String generatedId = IdGenerator.generateSubscriptionId(userId, merchant, amount);
+                        String normalizedId = IdGenerator.normalizeUUID(generatedId);
+                        subscription.setSubscriptionId(normalizedId);
                         subscription.setUserId(userId);
                         subscription.setAccountId(firstTransaction.getAccountId());
                         subscription.setMerchantName(merchant);
@@ -295,7 +298,9 @@ public class SubscriptionService {
      */
     private SubscriptionTable toSubscriptionTable(final Subscription subscription) {
         SubscriptionTable table = new SubscriptionTable();
-        table.setSubscriptionId(subscription.getSubscriptionId());
+        // CRITICAL FIX: Normalize subscription ID to lowercase when saving to match lookup behavior
+        String normalizedId = com.budgetbuddy.util.IdGenerator.normalizeUUID(subscription.getSubscriptionId());
+        table.setSubscriptionId(normalizedId);
         table.setUserId(subscription.getUserId());
         table.setAccountId(subscription.getAccountId());
         table.setMerchantName(subscription.getMerchantName());

@@ -256,7 +256,7 @@ public class AuthService {
         Authentication authentication = new UsernamePasswordAuthenticationToken(
                 userDetails, null, authorities);
         
-        // Zero Trust: Generate short-lived access token (15 minutes)
+        // Zero Trust: Generate short-lived access token (30 minutes - balanced for user workflow)
         String newAccessToken = tokenProvider.generateToken(authentication);
         
         // Zero Trust: Generate new refresh token (30 days, will be encrypted in keychain)
@@ -264,8 +264,8 @@ public class AuthService {
 
         Date expirationDate = tokenProvider.getExpirationDateFromToken(newAccessToken);
         if (expirationDate == null) {
-            // Fallback: set expiration to 15 minutes from now (matches Zero Trust config)
-            expirationDate = new Date(System.currentTimeMillis() + 900000L);
+            // Fallback: set expiration to 30 minutes from now (matches Zero Trust config)
+            expirationDate = new Date(System.currentTimeMillis() + 1800000L);
         }
         LocalDateTime expiresAt = expirationDate.toInstant()
                 .atZone(ZoneId.systemDefault())
@@ -278,7 +278,7 @@ public class AuthService {
                 user.getLastName() != null ? user.getLastName() : ""
         );
 
-        logger.info("Token refreshed successfully for user: {} | New access token expires in 15 minutes", email);
+        logger.info("Token refreshed successfully for user: {} | New access token expires in 30 minutes", email);
         return new AuthResponse(newAccessToken, newRefreshToken, expiresAt, userInfo);
     }
 

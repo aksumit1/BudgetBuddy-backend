@@ -171,13 +171,17 @@ public class PlaidAccountSyncService {
                                     account.getInstitutionName(),
                                     accountId
                                 );
-                                account.setAccountId(generatedAccountId);
+                                // CRITICAL FIX: Normalize generated account ID to lowercase for consistency
+                                String normalizedId = IdGenerator.normalizeUUID(generatedAccountId);
+                                account.setAccountId(normalizedId);
                             } catch (IllegalArgumentException e) {
                                 logger.warn("Failed to generate account ID, using UUID fallback: {}", e.getMessage());
-                                account.setAccountId(java.util.UUID.randomUUID().toString());
+                                // CRITICAL FIX: Normalize generated UUID to lowercase for consistency
+                                account.setAccountId(java.util.UUID.randomUUID().toString().toLowerCase());
                             }
                         } else {
-                            account.setAccountId(java.util.UUID.randomUUID().toString());
+                            // CRITICAL FIX: Normalize generated UUID to lowercase for consistency
+                            account.setAccountId(java.util.UUID.randomUUID().toString().toLowerCase());
                         }
                         
                         ensureAccountRequiredFields(account);

@@ -47,8 +47,10 @@ public class SubscriptionRepository {
         if (subscriptionId == null || subscriptionId.isEmpty()) {
             return Optional.empty();
         }
+        // CRITICAL FIX: Normalize ID to lowercase for case-insensitive lookup
+        String normalizedId = com.budgetbuddy.util.IdGenerator.normalizeUUID(subscriptionId);
         SubscriptionTable subscription = subscriptionTable.getItem(
-                Key.builder().partitionValue(subscriptionId).build());
+                Key.builder().partitionValue(normalizedId).build());
         return Optional.ofNullable(subscription);
     }
 

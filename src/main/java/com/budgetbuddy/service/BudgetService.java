@@ -68,13 +68,18 @@ public class BudgetService {
                 if (existingById.isPresent()) {
                     throw new AppException(ErrorCode.RECORD_ALREADY_EXISTS, "Budget with ID " + budgetId + " already exists");
                 }
-                budget.setBudgetId(budgetId);
-                logger.debug("Using provided budget ID: {}", budgetId);
+                // CRITICAL FIX: Normalize ID to lowercase when saving to match lookup behavior
+                String normalizedId = com.budgetbuddy.util.IdGenerator.normalizeUUID(budgetId);
+                budget.setBudgetId(normalizedId);
+                logger.debug("Using provided budget ID (normalized): {} -> {}", budgetId, normalizedId);
             } else {
                 // Generate deterministic ID from user + category
-                budget.setBudgetId(com.budgetbuddy.util.IdGenerator.generateBudgetId(user.getUserId(), category));
-                logger.debug("Generated budget ID: {} from user: {} and category: {}", 
-                    budget.getBudgetId(), user.getUserId(), category);
+                String generatedId = com.budgetbuddy.util.IdGenerator.generateBudgetId(user.getUserId(), category);
+                // CRITICAL FIX: Normalize generated ID to lowercase for consistency
+                String normalizedId = com.budgetbuddy.util.IdGenerator.normalizeUUID(generatedId);
+                budget.setBudgetId(normalizedId);
+                logger.debug("Generated budget ID (normalized): {} from user: {} and category: {}", 
+                    normalizedId, user.getUserId(), category);
             }
             
             budget.setUserId(user.getUserId());

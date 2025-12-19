@@ -61,7 +61,7 @@ app:
   jwt:
     secret: ${JWT_SECRET:}
     secret-name: ${JWT_SECRET_NAME:budgetbuddy/jwt-secret}
-    expiration: 900000 # 15 minutes (short-lived for Zero Trust)
+    expiration: 1800000 # 30 minutes (short-lived for Zero Trust, balanced for user workflow)
     refresh-expiration: 2592000000 # 30 days (longer-lived, encrypted in keychain)
 
   # MFA Configuration

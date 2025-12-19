@@ -37,22 +37,33 @@ public class DDoSProtectionService {
     @Value("${app.rate-limit.ddos.max-requests-per-hour:5000000}")
     @SuppressWarnings("unused") // Field reserved for future hourly rate limiting implementation
     private long maxRequestsPerHour;
-    private static final int BLOCK_DURATION_SECONDS = 3600; // 1 hour block
-    private static final int MAX_CACHE_SIZE = 10000; // Prevent unbounded growth
-    private static final long CACHE_CLEANUP_INTERVAL_MS = 300000; // 5 minutes
+    
+    // LOW PRIORITY FIX: Make DDoS protection constants fully configurable
+    @Value("${app.rate-limit.ddos.block-duration-seconds:3600}")
+    private int blockDurationSeconds; // 1 hour block
+    
+    @Value("${app.rate-limit.ddos.max-cache-size:10000}")
+    private int maxCacheSize; // Prevent unbounded growth
+    
+    @Value("${app.rate-limit.ddos.cache-cleanup-interval-ms:300000}")
+    private long cacheCleanupIntervalMs; // 5 minutes
+    
+    @Value("${app.rate-limit.ddos.cache-ttl-ms:60000}")
+    private long cacheTtlMs; // 1 minute
+    
+    @Value("${app.rate-limit.ddos.dynamodb-check-interval-ms:60000}")
+    private long dynamoDbCheckIntervalMs; // Check every minute
 
     private final DynamoDbClient dynamoDbClient;
     private final String tableName; // Configured via table prefix for different environments
 
     // In-memory cache for hot paths (reduces DynamoDB costs)
     private final Map<String, RequestCounter> inMemoryCache = new ConcurrentHashMap<>();
-    private static final long CACHE_TTL_MS = 60000; // 1 minute
     private volatile long lastCacheCleanup = System.currentTimeMillis();
     
     // Track DynamoDB availability - if unavailable, fall back to in-memory only
     private volatile boolean dynamoDbAvailable = true;
     private volatile long lastDynamoDbCheck = 0;
-    private static final long DYNAMODB_CHECK_INTERVAL_MS = 60000; // Check every minute
 
     public DDoSProtectionService(
             final DynamoDbClient dynamoDbClient,
@@ -127,7 +138,7 @@ public class DDoSProtectionService {
         counter.increment();
 
         // Prevent cache from growing too large
-        if (inMemoryCache.size() >= MAX_CACHE_SIZE) {
+        if (inMemoryCache.size() >= maxCacheSize) {
             // Remove oldest entries (simple FIFO - in production, use LRU)
             String firstKey = inMemoryCache.keySet().iterator().next();
             inMemoryCache.remove(firstKey);
@@ -172,10 +183,10 @@ public class DDoSProtectionService {
      */
     private void cleanupCacheIfNeeded() {
         long now = System.currentTimeMillis();
-        if (now - lastCacheCleanup > CACHE_CLEANUP_INTERVAL_MS) {
+        if (now - lastCacheCleanup > cacheCleanupIntervalMs) {
             synchronized (this) {
                 // Double-check pattern
-                if (now - lastCacheCleanup > CACHE_CLEANUP_INTERVAL_MS) {
+                if (now - lastCacheCleanup > cacheCleanupIntervalMs) {
                     inMemoryCache.entrySet().removeIf((entry) -> entry.getValue().isExpired());
                     lastCacheCleanup = now;
                 }
@@ -251,12 +262,12 @@ public class DDoSProtectionService {
      */
     private void checkDynamoDbAvailability() {
         long now = System.currentTimeMillis();
-        if (now - lastDynamoDbCheck < DYNAMODB_CHECK_INTERVAL_MS) {
+        if (now - lastDynamoDbCheck < dynamoDbCheckIntervalMs) {
             return;
         }
         
         synchronized (this) {
-            if (now - lastDynamoDbCheck < DYNAMODB_CHECK_INTERVAL_MS) {
+            if (now - lastDynamoDbCheck < dynamoDbCheckIntervalMs) {
                 return;
             }
             lastDynamoDbCheck = now;
@@ -329,7 +340,7 @@ public class DDoSProtectionService {
         }
 
         try {
-            long blockedUntil = Instant.now().getEpochSecond() + BLOCK_DURATION_SECONDS;
+            long blockedUntil = Instant.now().getEpochSecond() + blockDurationSeconds;
             dynamoDbClient.putItem(PutItemRequest.builder()
                     .tableName(tableName)
                     .item(Map.of(
@@ -358,7 +369,7 @@ public class DDoSProtectionService {
     /**
      * Thread-safe in-memory request counter for hot path optimization
      */
-    private static class RequestCounter {
+    private class RequestCounter {
         private final AtomicInteger requestsPerMinute = new AtomicInteger(0);
         private final AtomicLong windowStart = new AtomicLong(System.currentTimeMillis());
         private final AtomicBoolean blocked = new AtomicBoolean(false);
@@ -367,7 +378,7 @@ public class DDoSProtectionService {
             long now = System.currentTimeMillis();
             long start = windowStart.get();
 
-            if (now - start > CACHE_TTL_MS) {
+            if (now - start > cacheTtlMs) {
                 // Reset window atomically
                 if (windowStart.compareAndSet(start, now)) {
                     requestsPerMinute.set(1);
@@ -393,7 +404,7 @@ public class DDoSProtectionService {
         }
 
         public boolean isExpired() {
-            return System.currentTimeMillis() - windowStart.get() > CACHE_TTL_MS;
+            return System.currentTimeMillis() - windowStart.get() > cacheTtlMs;
         }
     }
 }

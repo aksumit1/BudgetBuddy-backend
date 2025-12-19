@@ -19,18 +19,19 @@ spring:
       # Application will automatically fall back to backend (DynamoDB) operations
       lettuce:
         pool:
-          max-active: 32  # Increased to handle concurrent health checks and Maven tests
-          max-idle: 16
-          min-idle: 4  # Pre-warm pool with 4 connections (avoids cold start delays)
-          max-wait: 500ms  # Reduced to 500ms - fail fast if pool exhausted
+          # Redis connection pool configuration - now fully configurable
+          max-active: ${SPRING_DATA_REDIS_POOL_MAX_ACTIVE:32}  # Increased to handle concurrent health checks and Maven tests
+          max-idle: ${SPRING_DATA_REDIS_POOL_MAX_IDLE:16}
+          min-idle: ${SPRING_DATA_REDIS_POOL_MIN_IDLE:4}  # Pre-warm pool with 4 connections (avoids cold start delays)
+          max-wait: ${SPRING_DATA_REDIS_POOL_MAX_WAIT:500ms}  # Reduced to 500ms - fail fast if pool exhausted
           # Connection validation and reuse - critical for handling Redis restarts
-          test-on-borrow: true  # Test connections before using (detect stale connections)
-          test-while-idle: true  # Test idle connections periodically
-          test-on-return: true  # Test connections when returning to pool (catch stale connections)
-          time-between-eviction-runs: 10s  # Check idle connections every 10s (faster detection of stale connections)
-          min-evictable-idle-time: 30s  # Evict connections idle for 30s (removes stale connections faster)
-          num-tests-per-eviction-run: 3  # Test 3 connections per eviction run (faster cleanup)
-        shutdown-timeout: 100ms  # Fast shutdown for health checks
+          test-on-borrow: ${SPRING_DATA_REDIS_POOL_TEST_ON_BORROW:true}  # Test connections before using (detect stale connections)
+          test-while-idle: ${SPRING_DATA_REDIS_POOL_TEST_WHILE_IDLE:true}  # Test idle connections periodically
+          test-on-return: ${SPRING_DATA_REDIS_POOL_TEST_ON_RETURN:true}  # Test connections when returning to pool (catch stale connections)
+          time-between-eviction-runs: ${SPRING_DATA_REDIS_POOL_TIME_BETWEEN_EVICTION:10s}  # Check idle connections every 10s (faster detection of stale connections)
+          min-evictable-idle-time: ${SPRING_DATA_REDIS_POOL_MIN_EVICTABLE_IDLE:30s}  # Evict connections idle for 30s (removes stale connections faster)
+          num-tests-per-eviction-run: ${SPRING_DATA_REDIS_POOL_NUM_TESTS_PER_EVICTION:3}  # Test 3 connections per eviction run (faster cleanup)
+        shutdown-timeout: ${SPRING_DATA_REDIS_SHUTDOWN_TIMEOUT:100ms}  # Fast shutdown for health checks
   
   # Jackson Configuration
   jackson:
@@ -108,7 +109,7 @@ app:
   jwt:
     secret: ${JWT_SECRET:your-256-bit-secret-key-change-in-production}
     secret-name: ${JWT_SECRET_NAME:budgetbuddy/jwt-secret}
-    expiration: 900000 # 15 minutes (short-lived for Zero Trust)
+    expiration: 1800000 # 30 minutes (short-lived for Zero Trust, balanced for user workflow)
     refresh-expiration: 2592000000 # 30 days (longer-lived, encrypted in keychain)
   
   # Plaid Configuration
@@ -129,6 +130,11 @@ app:
   stripe:
     secret-key: ${STRIPE_SECRET_KEY:sk_test_placeholder}
   
+  # Pagination Configuration
+  pagination:
+    default-page-size: ${APP_PAGINATION_DEFAULT_SIZE:50}
+    max-page-size: ${APP_PAGINATION_MAX_SIZE:1000}
+  
   # Rate Limiting
   rate-limit:
     enabled: true
@@ -146,6 +152,12 @@ app:
     ddos:
       max-requests-per-minute: 200000 # Increased for heavy business users
       max-requests-per-hour: 10000000 # 10M per hour - supports heavy business operations
+      # DDoS protection configuration - now fully configurable
+      block-duration-seconds: ${APP_DDOS_BLOCK_DURATION:3600} # 1 hour block
+      max-cache-size: ${APP_DDOS_MAX_CACHE_SIZE:10000} # Prevent unbounded growth
+      cache-cleanup-interval-ms: ${APP_DDOS_CACHE_CLEANUP_INTERVAL:300000} # 5 minutes
+      cache-ttl-ms: ${APP_DDOS_CACHE_TTL:60000} # 1 minute
+      dynamodb-check-interval-ms: ${APP_DDOS_DYNAMODB_CHECK_INTERVAL:60000} # Check every minute
       # 404 Error Tracking - Plaid errors are common, don't block legitimate retries
       notfound:
         max-per-minute: 1000 # Allow many 404s (Plaid errors are common)

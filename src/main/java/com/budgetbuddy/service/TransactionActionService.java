@@ -136,12 +136,16 @@ public class TransactionActionService {
             if (existingById.isPresent()) {
                 throw new AppException(ErrorCode.RECORD_ALREADY_EXISTS, "Action with ID " + actionId + " already exists");
             }
-            action.setActionId(actionId);
-            logger.debug("Using provided action ID: {}", actionId);
+            // CRITICAL FIX: Normalize ID to lowercase when saving to match lookup behavior
+            String normalizedId = IdGenerator.normalizeUUID(actionId);
+            action.setActionId(normalizedId);
+            logger.debug("Using provided action ID (normalized): {} -> {}", actionId, normalizedId);
         } else {
             // Generate new UUID
-            action.setActionId(UUID.randomUUID().toString());
-            logger.debug("Generated new action ID: {}", action.getActionId());
+            // CRITICAL FIX: Normalize generated UUID to lowercase for consistency
+            String generatedId = UUID.randomUUID().toString().toLowerCase();
+            action.setActionId(generatedId);
+            logger.debug("Generated new action ID (normalized): {}", generatedId);
         }
         // Use the actual transaction ID (from the found transaction, which might differ from requested ID)
         action.setTransactionId(actualTransactionId);

@@ -141,6 +141,116 @@ public class AccountController {
     }
 
     /**
+     * Update account endpoint
+     * Allows updating account properties
+     */
+    @PutMapping("/{id}")
+    public ResponseEntity<AccountTable> updateAccount(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable String id,
+            @RequestBody UpdateAccountRequest request) {
+        if (userDetails == null || userDetails.getUsername() == null || userDetails.getUsername().isEmpty()) {
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+        }
+
+        if (id == null || id.isEmpty()) {
+            throw new AppException(ErrorCode.INVALID_INPUT, "Account ID is required");
+        }
+
+        UserTable user = userService.findByEmail(userDetails.getUsername())
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+
+        if (user.getUserId() == null || user.getUserId().isEmpty()) {
+            throw new AppException(ErrorCode.INVALID_INPUT, "User ID is invalid");
+        }
+
+        // Find existing account
+        AccountTable account = accountRepository.findById(id)
+                .orElseThrow(() -> new AppException(ErrorCode.ACCOUNT_NOT_FOUND, "Account not found"));
+
+        // Verify account belongs to user
+        if (account.getUserId() == null || !account.getUserId().equals(user.getUserId())) {
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "Account does not belong to user");
+        }
+
+        // Update account properties (only update provided fields)
+        if (request.getAccountName() != null && !request.getAccountName().isEmpty()) {
+            account.setAccountName(request.getAccountName());
+        }
+        if (request.getInstitutionName() != null) {
+            account.setInstitutionName(request.getInstitutionName());
+        }
+        if (request.getAccountType() != null && !request.getAccountType().isEmpty()) {
+            account.setAccountType(request.getAccountType());
+        }
+        if (request.getAccountSubtype() != null) {
+            account.setAccountSubtype(request.getAccountSubtype());
+        }
+        if (request.getBalance() != null) {
+            account.setBalance(request.getBalance());
+        }
+        if (request.getCurrencyCode() != null) {
+            account.setCurrencyCode(request.getCurrencyCode());
+        }
+        if (request.getPlaidAccountId() != null) {
+            account.setPlaidAccountId(request.getPlaidAccountId());
+        }
+        if (request.getPlaidItemId() != null) {
+            account.setPlaidItemId(request.getPlaidItemId());
+        }
+        if (request.getAccountNumber() != null) {
+            account.setAccountNumber(request.getAccountNumber());
+        }
+        if (request.getActive() != null) {
+            account.setActive(request.getActive());
+        }
+
+        Instant now = Instant.now();
+        account.setUpdatedAt(now);
+        account.setUpdatedAtTimestamp(now.getEpochSecond());
+
+        accountRepository.save(account);
+        return ResponseEntity.ok(account);
+    }
+
+    /**
+     * Delete account endpoint
+     * Allows deleting an account
+     */
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteAccount(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable String id) {
+        if (userDetails == null || userDetails.getUsername() == null || userDetails.getUsername().isEmpty()) {
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+        }
+
+        if (id == null || id.isEmpty()) {
+            throw new AppException(ErrorCode.INVALID_INPUT, "Account ID is required");
+        }
+
+        UserTable user = userService.findByEmail(userDetails.getUsername())
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+
+        if (user.getUserId() == null || user.getUserId().isEmpty()) {
+            throw new AppException(ErrorCode.INVALID_INPUT, "User ID is invalid");
+        }
+
+        // Find existing account
+        AccountTable account = accountRepository.findById(id)
+                .orElseThrow(() -> new AppException(ErrorCode.ACCOUNT_NOT_FOUND, "Account not found"));
+
+        // Verify account belongs to user
+        if (account.getUserId() == null || !account.getUserId().equals(user.getUserId())) {
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "Account does not belong to user");
+        }
+
+        // Delete account
+        accountRepository.delete(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
      * Request DTO for creating accounts
      */
     public static class CreateAccountRequest {
@@ -160,6 +270,53 @@ public class AccountController {
         public String getAccountId() { return accountId; }
         public void setAccountId(String accountId) { this.accountId = accountId; }
         
+        public String getAccountName() { return accountName; }
+        public void setAccountName(String accountName) { this.accountName = accountName; }
+        
+        public String getInstitutionName() { return institutionName; }
+        public void setInstitutionName(String institutionName) { this.institutionName = institutionName; }
+        
+        public String getAccountType() { return accountType; }
+        public void setAccountType(String accountType) { this.accountType = accountType; }
+        
+        public String getAccountSubtype() { return accountSubtype; }
+        public void setAccountSubtype(String accountSubtype) { this.accountSubtype = accountSubtype; }
+        
+        public BigDecimal getBalance() { return balance; }
+        public void setBalance(BigDecimal balance) { this.balance = balance; }
+        
+        public String getCurrencyCode() { return currencyCode; }
+        public void setCurrencyCode(String currencyCode) { this.currencyCode = currencyCode; }
+        
+        public String getPlaidAccountId() { return plaidAccountId; }
+        public void setPlaidAccountId(String plaidAccountId) { this.plaidAccountId = plaidAccountId; }
+        
+        public String getPlaidItemId() { return plaidItemId; }
+        public void setPlaidItemId(String plaidItemId) { this.plaidItemId = plaidItemId; }
+        
+        public String getAccountNumber() { return accountNumber; }
+        public void setAccountNumber(String accountNumber) { this.accountNumber = accountNumber; }
+        
+        public Boolean getActive() { return active; }
+        public void setActive(Boolean active) { this.active = active; }
+    }
+
+    /**
+     * Request DTO for updating accounts
+     */
+    public static class UpdateAccountRequest {
+        private String accountName;
+        private String institutionName;
+        private String accountType;
+        private String accountSubtype;
+        private BigDecimal balance;
+        private String currencyCode;
+        private String plaidAccountId;
+        private String plaidItemId;
+        private String accountNumber;
+        private Boolean active;
+
+        // Getters and setters
         public String getAccountName() { return accountName; }
         public void setAccountName(String accountName) { this.accountName = accountName; }
         

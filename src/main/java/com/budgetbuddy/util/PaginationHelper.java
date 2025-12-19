@@ -1,16 +1,44 @@
 package com.budgetbuddy.util;
 
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+
+import jakarta.annotation.PostConstruct;
 import java.util.List;
 
 /**
  * Pagination Helper Utility
  * Provides utilities for pagination of large result sets
+ * MEDIUM PRIORITY FIX: Now uses configurable default and max page sizes
+ * 
+ * Note: This is a Spring component but maintains static methods for backward compatibility
  */
+@Component
 public class PaginationHelper {
 
-    private PaginationHelper() {
-        // Utility class
+    private static int defaultPageSize = 50;
+    private static int maxPageSize = 1000;
+
+    // Inject configuration values (called by Spring)
+    public PaginationHelper(
+            @Value("${app.pagination.default-page-size:50}") final int defaultPageSize,
+            @Value("${app.pagination.max-page-size:1000}") final int maxPageSize) {
+        // Set static values for backward compatibility with existing static method calls
+        PaginationHelper.defaultPageSize = defaultPageSize;
+        PaginationHelper.maxPageSize = maxPageSize;
     }
+
+    // Static utility methods for backward compatibility
+    public static int getDefaultPageSize() {
+        return defaultPageSize;
+    }
+
+    public static int getMaxPageSize() {
+        return maxPageSize;
+    }
+
+    // Note: Spring will use the public constructor above for dependency injection
+    // Static methods are available for backward compatibility
 
     /**
      * Pagination result wrapper
@@ -79,12 +107,23 @@ public class PaginationHelper {
 
     /**
      * Validate and normalize page size
+     * Uses configured default and max page sizes if not provided
      */
-    public static int normalizePageSize(final int pageSize, final int defaultSize, final int maxSize) {
+    public static int normalizePageSize(final int pageSize, final Integer defaultSize, final Integer maxSize) {
+        int effectiveDefault = defaultSize != null ? defaultSize : getDefaultPageSize();
+        int effectiveMax = maxSize != null ? maxSize : getMaxPageSize();
+        
         if (pageSize <= 0) {
-            return defaultSize;
+            return effectiveDefault;
         }
-        return Math.min(pageSize, maxSize);
+        return Math.min(pageSize, effectiveMax);
+    }
+    
+    /**
+     * Validate and normalize page size using configured defaults
+     */
+    public static int normalizePageSize(final int pageSize) {
+        return normalizePageSize(pageSize, null, null);
     }
 
     /**

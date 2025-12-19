@@ -62,13 +62,18 @@ public class GoalService {
             if (existingById.isPresent()) {
                 throw new AppException(ErrorCode.RECORD_ALREADY_EXISTS, "Goal with ID " + goalId + " already exists");
             }
-            goal.setGoalId(goalId);
-            logger.debug("Using provided goal ID: {}", goalId);
+            // CRITICAL FIX: Normalize ID to lowercase when saving to match lookup behavior
+            String normalizedId = com.budgetbuddy.util.IdGenerator.normalizeUUID(goalId);
+            goal.setGoalId(normalizedId);
+            logger.debug("Using provided goal ID (normalized): {} -> {}", goalId, normalizedId);
         } else {
             // Generate deterministic ID from user + goal name
-            goal.setGoalId(com.budgetbuddy.util.IdGenerator.generateGoalId(user.getUserId(), name.trim()));
-            logger.debug("Generated goal ID: {} from user: {} and name: {}", 
-                goal.getGoalId(), user.getUserId(), name);
+            String generatedId = com.budgetbuddy.util.IdGenerator.generateGoalId(user.getUserId(), name.trim());
+            // CRITICAL FIX: Normalize generated ID to lowercase for consistency
+            String normalizedId = com.budgetbuddy.util.IdGenerator.normalizeUUID(generatedId);
+            goal.setGoalId(normalizedId);
+            logger.debug("Generated goal ID (normalized): {} from user: {} and name: {}", 
+                normalizedId, user.getUserId(), name);
         }
         
         goal.setUserId(user.getUserId());

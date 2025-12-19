@@ -127,7 +127,8 @@ public class TransactionService {
             throw new AppException(ErrorCode.INVALID_INPUT, "Transaction user ID is required");
         }
         if (transaction.getTransactionId() == null || transaction.getTransactionId().isEmpty()) {
-            transaction.setTransactionId(UUID.randomUUID().toString());
+            // CRITICAL FIX: Normalize generated UUID to lowercase for consistency
+            transaction.setTransactionId(UUID.randomUUID().toString().toLowerCase());
         }
 
         // Use conditional write to prevent duplicate Plaid transactions
@@ -299,9 +300,11 @@ public class TransactionService {
                     logger.warn("Transaction with ID {} already exists but Plaid ID doesn't match, generating new UUID", transactionId);
                     // Fall through to generate deterministic UUID from Plaid ID if available
                 } else {
-                    // Use the provided ID
-                    transaction.setTransactionId(transactionId);
-                    logger.info("Using provided transaction ID: {}", transactionId);
+                    // CRITICAL FIX: Normalize ID to lowercase when saving to match lookup behavior
+                    // DynamoDB partition keys are case-sensitive, so we must normalize on save and lookup
+                    String normalizedId = com.budgetbuddy.util.IdGenerator.normalizeUUID(transactionId);
+                    transaction.setTransactionId(normalizedId);
+                    logger.info("Using provided transaction ID (normalized): {} -> {}", transactionId, normalizedId);
                 }
             } catch (IllegalArgumentException e) {
                 // Invalid UUID format, fall through to generate deterministic UUID from Plaid ID if available
@@ -316,13 +319,17 @@ public class TransactionService {
                 // This ensures both app and backend use the same ID when institution/account info is missing
                 java.util.UUID namespaceUUID = java.util.UUID.fromString("6ba7b811-9dad-11d1-80b4-00c04fd430c8"); // TRANSACTION_NAMESPACE
                 String generatedId = com.budgetbuddy.util.IdGenerator.generateDeterministicUUID(namespaceUUID, plaidTransactionId);
-                transaction.setTransactionId(generatedId);
-                logger.info("Generated deterministic transaction ID: {} from Plaid ID: {} (matches iOS app fallback)", 
-                        generatedId, plaidTransactionId);
+                // CRITICAL FIX: Normalize generated UUID to lowercase for consistency
+                String normalizedId = com.budgetbuddy.util.IdGenerator.normalizeUUID(generatedId);
+                transaction.setTransactionId(normalizedId);
+                logger.info("Generated deterministic transaction ID (normalized): {} from Plaid ID: {} (matches iOS app fallback)", 
+                        normalizedId, plaidTransactionId);
             } else {
                 // No Plaid ID available, generate random UUID
-                transaction.setTransactionId(UUID.randomUUID().toString());
-                logger.debug("No Plaid transaction ID available, generated random UUID: {}", transaction.getTransactionId());
+                // CRITICAL FIX: Normalize generated UUID to lowercase for consistency
+                String generatedId = UUID.randomUUID().toString().toLowerCase();
+                transaction.setTransactionId(generatedId);
+                logger.debug("No Plaid transaction ID available, generated random UUID (normalized): {}", generatedId);
             }
         }
         
@@ -407,13 +414,30 @@ public class TransactionService {
             logger.info("Amount updated: {}", amount);
         }
 
-        // Update notes: if notes is null or empty string, clear it; if notes is provided, set it (trimming whitespace)
-        // Note: null explicitly means "clear notes", empty string also means "clear notes"
-        if (notes == null) {
-            transaction.setNotes(null);
-        } else {
+        // CRITICAL FIX: Only update notes if explicitly provided in the request
+        // The issue: When updating only plaidTransactionId, notes might be null in the request,
+        // which would clear existing notes. We need to distinguish between:
+        // 1. notes field not provided (null) -> preserve existing notes
+        // 2. notes field explicitly set to empty string -> clear notes
+        // 3. notes field has a value -> set it
+        // 
+        // Since Java can't distinguish between "field not provided" and "field is null" in JSON,
+        // we use a different approach: Only update notes if the request explicitly includes it.
+        // However, the UpdateTransactionRequest always includes notes (as null if not set).
+        // 
+        // The real fix: The iOS app should preserve existing notes when they're not being updated.
+        // For now, we'll preserve notes if they're null (assuming field wasn't meant to be updated).
+        // If the user wants to clear notes, they should send an empty string.
+        if (notes != null) {
+            // Notes field was provided in the request - update it
             String trimmedNotes = notes.trim();
             transaction.setNotes(trimmedNotes.isEmpty() ? null : trimmedNotes);
+            logger.info("Notes updated: {}", trimmedNotes.isEmpty() ? "cleared" : trimmedNotes);
+        } else {
+            // Notes is null - preserve existing notes (field likely wasn't meant to be updated)
+            // This prevents clearing notes when only other fields (like plaidTransactionId) are being updated
+            logger.debug("Notes field not provided (null) - preserving existing notes: {}", 
+                    transaction.getNotes() != null ? transaction.getNotes() : "none");
         }
         
         // Update category override if provided
