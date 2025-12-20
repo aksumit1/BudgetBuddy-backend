@@ -125,6 +125,9 @@ class IdNormalizationIntegrationTest {
         // Given - Transaction ID with mixed case
         String mixedCaseTransactionId = "4191D23A-5E02-4DA5-9FDC-268980951676";
         String lowercaseTransactionId = mixedCaseTransactionId.toLowerCase();
+        
+        // Clean up any existing transaction with this ID to ensure fresh test
+        transactionRepository.findById(lowercaseTransactionId).ifPresent(tx -> transactionRepository.delete(tx.getTransactionId()));
 
         // When - Create transaction with mixed case ID
         TransactionTable transaction = transactionService.createTransaction(
@@ -156,9 +159,12 @@ class IdNormalizationIntegrationTest {
     @Test
     @DisplayName("Budget ID should be normalized to lowercase when saving with mixed case")
     void testBudgetId_NormalizedWhenSaving_MixedCase() {
-        // Given - Budget ID with mixed case
-        String mixedCaseBudgetId = "BUDGET-1234-5678-ABCD-EFGH";
+        // Given - Budget ID with mixed case (must be valid UUID format)
+        String mixedCaseBudgetId = "BEC4DC42-CFFF-42DD-B038-D73831892422";
         String lowercaseBudgetId = mixedCaseBudgetId.toLowerCase();
+        
+        // Clean up any existing budget with this ID to ensure fresh test
+        budgetRepository.findById(lowercaseBudgetId).ifPresent(budget -> budgetRepository.delete(budget.getBudgetId()));
 
         // When - Create budget with mixed case ID
         BudgetTable budget = budgetService.createOrUpdateBudget(
@@ -185,9 +191,12 @@ class IdNormalizationIntegrationTest {
     @Test
     @DisplayName("Goal ID should be normalized to lowercase when saving with mixed case")
     void testGoalId_NormalizedWhenSaving_MixedCase() {
-        // Given - Goal ID with mixed case
-        String mixedCaseGoalId = "GOAL-1234-5678-ABCD-EFGH";
+        // Given - Goal ID with mixed case (must be valid UUID format)
+        String mixedCaseGoalId = "A1B2C3D4-E5F6-4789-A012-3456789ABCDE";
         String lowercaseGoalId = mixedCaseGoalId.toLowerCase();
+        
+        // Clean up any existing goal with this ID to ensure fresh test
+        goalRepository.findById(lowercaseGoalId).ifPresent(goal -> goalRepository.delete(goal.getGoalId()));
 
         // When - Create goal with mixed case ID
         GoalTable goal = goalService.createGoal(
@@ -227,9 +236,12 @@ class IdNormalizationIntegrationTest {
                 "FOOD"
         );
 
-        // Given - Action ID with mixed case
-        String mixedCaseActionId = "ACTION-1234-5678-ABCD-EFGH";
+        // Given - Action ID with mixed case (must be valid UUID format)
+        String mixedCaseActionId = "EBC9B5FF-F555-48A3-B1A9-F8A91A48AB15";
         String lowercaseActionId = mixedCaseActionId.toLowerCase();
+        
+        // Clean up any existing action with this ID to ensure fresh test
+        actionRepository.findById(lowercaseActionId).ifPresent(action -> actionRepository.delete(action.getActionId()));
 
         // When - Create action with mixed case ID
         TransactionActionTable action = actionService.createAction(

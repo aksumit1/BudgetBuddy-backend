@@ -647,7 +647,7 @@ class AccountRepositoryTest {
         // Then - Should handle exception gracefully (returns empty list on exception)
         assertNotNull(result);
         // The method catches the exception and returns empty list, so result should be empty
-        assertTrue(result.isEmpty() || result.size() >= 0);
+        assertTrue(result.isEmpty(), "Should return empty list when exception occurs");
     }
 
     @Test

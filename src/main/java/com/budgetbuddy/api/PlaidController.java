@@ -14,6 +14,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -24,6 +25,8 @@ import jakarta.validation.constraints.NotBlank;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 
 /**
  * Plaid Integration REST Controller
@@ -47,15 +50,18 @@ public class PlaidController {
     private final UserService userService;
     private final com.budgetbuddy.repository.dynamodb.AccountRepository accountRepository;
     private final com.budgetbuddy.service.TransactionService transactionService;
+    private final Executor taskExecutor;
 
     public PlaidController(final PlaidService plaidService, final PlaidSyncService plaidSyncService, 
             final UserService userService, final com.budgetbuddy.repository.dynamodb.AccountRepository accountRepository,
-            final com.budgetbuddy.service.TransactionService transactionService) {
+            final com.budgetbuddy.service.TransactionService transactionService,
+            @Qualifier("taskExecutor") final Executor taskExecutor) {
         this.plaidService = plaidService;
         this.plaidSyncService = plaidSyncService;
         this.userService = userService;
         this.accountRepository = accountRepository;
         this.transactionService = transactionService;
+        this.taskExecutor = taskExecutor;
     }
 
     /**
@@ -139,27 +145,17 @@ public class PlaidController {
                 throw new AppException(ErrorCode.PLAID_CONNECTION_FAILED, "Item ID is null or empty");
             }
 
-            // Sync accounts and transactions (don't fail the request if sync fails)
-            // CRITICAL: Pass itemId to syncAccounts to enable deduplication before API calls
-            try {
-                plaidSyncService.syncAccounts(user, accessToken, itemId);
-            } catch (Exception syncError) {
-                logger.warn("Account sync failed for user {} (non-fatal): {}", user.getUserId(), syncError.getMessage());
-                // Continue - token exchange succeeded even if sync failed
-            }
-
-            try {
-                plaidSyncService.syncTransactions(user, accessToken);
-            } catch (Exception syncError) {
-                logger.warn("Transaction sync failed for user {} (non-fatal): {}", user.getUserId(), syncError.getMessage());
-                // Continue - token exchange succeeded even if sync failed
-            }
-
+            // OPTIMIZATION: Return response immediately and sync asynchronously
+            // This prevents the user from waiting for sync to complete after bank connection
             ExchangeTokenResponse tokenResponse = new ExchangeTokenResponse();
             tokenResponse.setAccessToken(accessToken);
             tokenResponse.setItemId(itemId);
 
-            logger.info("Token exchanged successfully for user: {} (itemId: {})", user.getUserId(), itemId);
+            logger.info("Token exchanged successfully for user: {} (itemId: {}). Starting async sync...", user.getUserId(), itemId);
+            
+            // Trigger async sync (fire and forget) - don't block the response
+            syncAccountsAndTransactionsAsync(user, accessToken, itemId);
+
             return ResponseEntity.ok(tokenResponse);
         } catch (AppException e) {
             throw e;
@@ -409,6 +405,36 @@ public class PlaidController {
         public void setAccounts(final java.util.List<Object> accounts) { this.accounts = accounts; }
         public Object getItem() { return item; }
         public void setItem(final Object item) { this.item = item; }
+    }
+
+    /**
+     * Async sync accounts and transactions after token exchange
+     * This runs in the background so the response can return immediately
+     */
+    private void syncAccountsAndTransactionsAsync(UserTable user, String accessToken, String itemId) {
+        CompletableFuture.runAsync(() -> {
+            try {
+                logger.info("Starting async account sync for user: {} (itemId: {})", user.getUserId(), itemId);
+                // CRITICAL: Pass itemId to syncAccounts to enable deduplication before API calls
+                plaidSyncService.syncAccounts(user, accessToken, itemId);
+                logger.info("Async account sync completed for user: {}", user.getUserId());
+            } catch (Exception syncError) {
+                logger.warn("Async account sync failed for user {} (non-fatal): {}", user.getUserId(), syncError.getMessage(), syncError);
+                // Continue - token exchange succeeded even if sync failed
+            }
+
+            try {
+                logger.info("Starting async transaction sync for user: {}", user.getUserId());
+                plaidSyncService.syncTransactions(user, accessToken);
+                logger.info("Async transaction sync completed for user: {}", user.getUserId());
+            } catch (Exception syncError) {
+                logger.warn("Async transaction sync failed for user {} (non-fatal): {}", user.getUserId(), syncError.getMessage(), syncError);
+                // Continue - token exchange succeeded even if sync failed
+            }
+        }, taskExecutor).exceptionally(ex -> {
+            logger.error("Unexpected error in async sync for user {}: {}", user.getUserId(), ex.getMessage(), ex);
+            return null;
+        });
     }
 
     /**

@@ -102,8 +102,9 @@ class PlaidDeduplicationTest {
         existingAccount.setAccountName("Existing Account");
         existingAccount.setBalance(new BigDecimal("1000.00"));
 
-        when(accountRepository.findByPlaidAccountId(testPlaidAccountId))
-                .thenReturn(Optional.of(existingAccount));
+        // OPTIMIZATION: Service now loads all accounts once via findByUserId instead of per-account queries
+        when(accountRepository.findByUserId(testUserId))
+                .thenReturn(Collections.singletonList(existingAccount));
 
         // Mock Plaid response with same account
         com.plaid.client.model.AccountsGetResponse accountsResponse = new com.plaid.client.model.AccountsGetResponse();
@@ -143,7 +144,8 @@ class PlaidDeduplicationTest {
         plaidSyncService.syncAccounts(testUser, "test-access-token", null);
 
         // Then - Account should be updated, not duplicated
-        verify(accountRepository, times(1)).findByPlaidAccountId(testPlaidAccountId);
+        // OPTIMIZATION: Verify findByUserId is called once (not per account)
+        verify(accountRepository, times(1)).findByUserId(testUserId);
         verify(accountRepository, never()).saveIfNotExists(any(AccountTable.class));
         verify(accountRepository, atLeastOnce()).save(any(AccountTable.class));
     }
@@ -151,8 +153,9 @@ class PlaidDeduplicationTest {
     @Test
     void testSyncAccounts_WithNewPlaidAccountId_CreatesNewAccount() {
         // Given - No existing account with this plaidAccountId
-        when(accountRepository.findByPlaidAccountId(testPlaidAccountId))
-                .thenReturn(Optional.empty());
+        // OPTIMIZATION: Service now loads all accounts once via findByUserId instead of per-account queries
+        when(accountRepository.findByUserId(testUserId))
+                .thenReturn(Collections.emptyList());
 
         // Mock Plaid response
         com.plaid.client.model.AccountsGetResponse accountsResponse = new com.plaid.client.model.AccountsGetResponse();
@@ -191,7 +194,8 @@ class PlaidDeduplicationTest {
         plaidSyncService.syncAccounts(testUser, "test-access-token", null);
 
         // Then - New account should be created
-        verify(accountRepository, times(1)).findByPlaidAccountId(testPlaidAccountId);
+        // OPTIMIZATION: Verify findByUserId is called once (not per account)
+        verify(accountRepository, times(1)).findByUserId(testUserId);
         verify(accountRepository, times(1)).saveIfNotExists(any(AccountTable.class));
     }
 
@@ -366,8 +370,9 @@ class PlaidDeduplicationTest {
         existingAccount.setPlaidAccountId(testPlaidAccountId);
         existingAccount.setAccountName("Existing Account");
 
-        when(accountRepository.findByPlaidAccountId(testPlaidAccountId))
-                .thenReturn(Optional.of(existingAccount));
+        // OPTIMIZATION: Service now loads all accounts once via findByUserId instead of per-account queries
+        when(accountRepository.findByUserId(testUserId))
+                .thenReturn(Collections.singletonList(existingAccount));
 
         // Mock Plaid response
         com.plaid.client.model.AccountsGetResponse accountsResponse = new com.plaid.client.model.AccountsGetResponse();
@@ -408,7 +413,8 @@ class PlaidDeduplicationTest {
         plaidSyncService.syncAccounts(testUser, "test-access-token", null);
 
         // Then - Account should only be updated, never duplicated
-        verify(accountRepository, times(3)).findByPlaidAccountId(testPlaidAccountId);
+        // OPTIMIZATION: Verify findByUserId is called once per sync (3 times total), not per account
+        verify(accountRepository, times(3)).findByUserId(testUserId);
         verify(accountRepository, never()).saveIfNotExists(any(AccountTable.class));
         verify(accountRepository, atLeastOnce()).save(any(AccountTable.class));
     }

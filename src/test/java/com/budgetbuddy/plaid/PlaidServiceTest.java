@@ -140,6 +140,21 @@ class PlaidServiceTest {
     }
 
     @Test
+    void testCreateLinkToken_WithPlaceholderCredentials_ThrowsException() {
+        // Given - Service created with placeholder credentials (simulating missing configuration)
+        plaidService = new PlaidService("placeholder-client-id", "placeholder-secret", "sandbox", 
+                "https://app.budgetbuddy.com/plaid/callback", "", true, pciDSSComplianceService);
+
+        // When/Then - Should throw exception before making API call
+        AppException exception = assertThrows(AppException.class,
+                () -> plaidService.createLinkToken("user-123", "Test Client"));
+        assertEquals(ErrorCode.PLAID_CONNECTION_FAILED, exception.getErrorCode());
+        assertTrue(exception.getMessage().contains("Plaid client ID is not configured") ||
+                  exception.getMessage().contains("Plaid secret is not configured"),
+                "Error message should indicate missing credentials");
+    }
+
+    @Test
     void testExchangePublicToken_WithNullToken_ThrowsException() {
         // Given
         plaidService = new PlaidService("test-client-id", "test-secret", "sandbox", "https://app.budgetbuddy.com/plaid/callback", "", true, pciDSSComplianceService);

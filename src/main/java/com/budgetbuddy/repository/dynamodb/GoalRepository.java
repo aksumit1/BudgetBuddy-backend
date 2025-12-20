@@ -52,7 +52,11 @@ public class GoalRepository {
 
     @CacheEvict(value = "goals", key = "#goal.userId")
     public void save(final GoalTable goal) {
-        goalTable.putItem(goal);
+        // CRITICAL FIX: Add retry logic for DynamoDB throttling and transient errors
+        com.budgetbuddy.util.RetryHelper.executeDynamoDbWithRetry(() -> {
+            goalTable.putItem(goal);
+            return null;
+        });
     }
 
     public Optional<GoalTable> findById(final String goalId) {

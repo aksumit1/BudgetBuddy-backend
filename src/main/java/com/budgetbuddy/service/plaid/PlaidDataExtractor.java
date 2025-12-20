@@ -373,7 +373,7 @@ public class PlaidDataExtractor {
                     } else {
                         // HSA debit (negative amount) → expense (keep existing category or use healthcare)
                         // If category is already set to something appropriate, keep it; otherwise use healthcare
-                        if (categoryMapping.getPrimary() == null || "other".equals(categoryMapping.getPrimary())) {
+                        if (categoryMapping == null || categoryMapping.getPrimary() == null || "other".equals(categoryMapping.getPrimary())) {
                             transaction.setCategoryPrimary("healthcare");
                             transaction.setCategoryDetailed("healthcare");
                         } else {
@@ -381,15 +381,23 @@ public class PlaidDataExtractor {
                             transaction.setCategoryPrimary(categoryMapping.getPrimary());
                             transaction.setCategoryDetailed(categoryMapping.getDetailed());
                         }
-                        transaction.setCategoryOverridden(categoryMapping.isOverridden());
+                        transaction.setCategoryOverridden(categoryMapping != null && categoryMapping.isOverridden());
                         logger.debug("HSA debit detected - categorized as expense: accountId={}, amount={}, category={}", 
                                 transaction.getAccountId(), transactionAmount, transaction.getCategoryPrimary());
                     }
                 } else {
                     // Not an HSA account - use normal categorization
-                    transaction.setCategoryPrimary(categoryMapping.getPrimary());
-                    transaction.setCategoryDetailed(categoryMapping.getDetailed());
-                    transaction.setCategoryOverridden(categoryMapping.isOverridden());
+                    if (categoryMapping != null) {
+                        transaction.setCategoryPrimary(categoryMapping.getPrimary());
+                        transaction.setCategoryDetailed(categoryMapping.getDetailed());
+                        transaction.setCategoryOverridden(categoryMapping.isOverridden());
+                    } else {
+                        // Fallback to default category if mapping is null
+                        logger.warn("Category mapping is null for transaction, using default 'other' category");
+                        transaction.setCategoryPrimary("other");
+                        transaction.setCategoryDetailed("other");
+                        transaction.setCategoryOverridden(false);
+                    }
                 }
                 
                 // Extract date

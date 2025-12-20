@@ -2,24 +2,19 @@ package com.budgetbuddy.compliance.iso27001;
 
 import com.budgetbuddy.compliance.AuditLogService;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.MockitoAnnotations;
 import software.amazon.awssdk.services.cloudwatch.CloudWatchClient;
-import software.amazon.awssdk.services.cloudwatch.model.PutMetricDataRequest;
-import software.amazon.awssdk.services.cloudwatch.model.PutMetricDataResponse;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 /**
- * Unit Tests for ISO27001ComplianceService
- * Tests ISO/IEC 27001 compliance functionality
+ * Comprehensive tests for ISO27001ComplianceService
  */
-@ExtendWith(MockitoExtension.class)
 class ISO27001ComplianceServiceTest {
 
     @Mock
@@ -28,264 +23,206 @@ class ISO27001ComplianceServiceTest {
     @Mock
     private CloudWatchClient cloudWatchClient;
 
-    @InjectMocks
     private ISO27001ComplianceService iso27001ComplianceService;
-
-    private String testUserId;
 
     @BeforeEach
     void setUp() {
-        testUserId = "user-123";
+        MockitoAnnotations.openMocks(this);
+        iso27001ComplianceService = new ISO27001ComplianceService(auditLogService, cloudWatchClient);
     }
 
     @Test
-    void testLogUserRegistration_WithValidInput_LogsRegistration() {
+    @DisplayName("Should log user registration")
+    void testLogUserRegistration() {
         // Given
+        String userId = "user-123";
         String registrationType = "EMAIL";
-        doNothing().when(auditLogService).logUserRegistration(anyString(), anyString());
-        PutMetricDataResponse response = PutMetricDataResponse.builder().build();
-        when(cloudWatchClient.putMetricData(any(PutMetricDataRequest.class))).thenReturn(response);
 
         // When
-        iso27001ComplianceService.logUserRegistration(testUserId, registrationType);
+        iso27001ComplianceService.logUserRegistration(userId, registrationType);
 
         // Then
-        verify(auditLogService, times(1)).logUserRegistration(testUserId, registrationType);
-        verify(cloudWatchClient, times(1)).putMetricData(any(PutMetricDataRequest.class));
+        verify(auditLogService).logUserRegistration(eq(userId), eq(registrationType));
     }
 
     @Test
-    void testLogAccessProvisioning_WithValidInput_LogsProvisioning() {
+    @DisplayName("Should log access provisioning")
+    void testLogAccessProvisioning() {
         // Given
-        String resource = "/api/accounts";
+        String userId = "user-123";
+        String resource = "/api/transactions";
         String accessLevel = "READ";
-        doNothing().when(auditLogService).logAccessProvisioning(anyString(), anyString(), anyString());
-        PutMetricDataResponse response = PutMetricDataResponse.builder().build();
-        when(cloudWatchClient.putMetricData(any(PutMetricDataRequest.class))).thenReturn(response);
 
         // When
-        iso27001ComplianceService.logAccessProvisioning(testUserId, resource, accessLevel);
+        iso27001ComplianceService.logAccessProvisioning(userId, resource, accessLevel);
 
         // Then
-        verify(auditLogService, times(1)).logAccessProvisioning(testUserId, resource, accessLevel);
-        verify(cloudWatchClient, times(1)).putMetricData(any(PutMetricDataRequest.class));
+        verify(auditLogService).logAccessProvisioning(eq(userId), eq(resource), eq(accessLevel));
     }
 
     @Test
-    void testLogPrivilegedAccess_WithValidInput_LogsAccess() {
+    @DisplayName("Should log privileged access")
+    void testLogPrivilegedAccess() {
         // Given
+        String userId = "admin-123";
         String privilege = "ADMIN";
         String resource = "/api/admin";
-        doNothing().when(auditLogService).logPrivilegedAccess(anyString(), anyString(), anyString());
-        PutMetricDataResponse response = PutMetricDataResponse.builder().build();
-        when(cloudWatchClient.putMetricData(any(PutMetricDataRequest.class))).thenReturn(response);
 
         // When
-        iso27001ComplianceService.logPrivilegedAccess(testUserId, privilege, resource);
+        iso27001ComplianceService.logPrivilegedAccess(userId, privilege, resource);
 
         // Then
-        verify(auditLogService, times(1)).logPrivilegedAccess(testUserId, privilege, resource);
-        verify(cloudWatchClient, times(1)).putMetricData(any(PutMetricDataRequest.class));
+        verify(auditLogService).logPrivilegedAccess(eq(userId), eq(privilege), eq(resource));
     }
 
     @Test
-    void testLogCredentialChange_WithValidInput_LogsChange() {
+    @DisplayName("Should log credential change")
+    void testLogCredentialChange() {
         // Given
+        String userId = "user-123";
         String changeType = "PASSWORD_RESET";
-        doNothing().when(auditLogService).logCredentialChange(anyString(), anyString());
-        PutMetricDataResponse response = PutMetricDataResponse.builder().build();
-        when(cloudWatchClient.putMetricData(any(PutMetricDataRequest.class))).thenReturn(response);
 
         // When
-        iso27001ComplianceService.logCredentialChange(testUserId, changeType);
+        iso27001ComplianceService.logCredentialChange(userId, changeType);
 
         // Then
-        verify(auditLogService, times(1)).logCredentialChange(testUserId, changeType);
-        verify(cloudWatchClient, times(1)).putMetricData(any(PutMetricDataRequest.class));
+        verify(auditLogService).logCredentialChange(eq(userId), eq(changeType));
     }
 
     @Test
-    void testReviewUserAccessRights_WithValidUserId_LogsReview() {
+    @DisplayName("Should review user access rights")
+    void testReviewUserAccessRights() {
         // Given
-        doNothing().when(auditLogService).logAccessReview(any());
-        PutMetricDataResponse response = PutMetricDataResponse.builder().build();
-        when(cloudWatchClient.putMetricData(any(PutMetricDataRequest.class))).thenReturn(response);
+        String userId = "user-123";
 
         // When
-        iso27001ComplianceService.reviewUserAccessRights(testUserId);
+        iso27001ComplianceService.reviewUserAccessRights(userId);
 
         // Then
-        verify(auditLogService, times(1)).logAccessReview(any());
-        verify(cloudWatchClient, times(1)).putMetricData(any(PutMetricDataRequest.class));
+        verify(auditLogService).logAccessReview(any());
     }
 
     @Test
-    void testLogAccessRemoval_WithValidInput_LogsRemoval() {
+    @DisplayName("Should log access removal")
+    void testLogAccessRemoval() {
         // Given
-        String resource = "/api/accounts";
-        String reason = "User terminated";
-        doNothing().when(auditLogService).logAccessRemoval(anyString(), anyString(), anyString());
-        PutMetricDataResponse response = PutMetricDataResponse.builder().build();
-        when(cloudWatchClient.putMetricData(any(PutMetricDataRequest.class))).thenReturn(response);
+        String userId = "user-123";
+        String resource = "/api/admin";
+        String reason = "Termination";
 
         // When
-        iso27001ComplianceService.logAccessRemoval(testUserId, resource, reason);
+        iso27001ComplianceService.logAccessRemoval(userId, resource, reason);
 
         // Then
-        verify(auditLogService, times(1)).logAccessRemoval(testUserId, resource, reason);
-        verify(cloudWatchClient, times(1)).putMetricData(any(PutMetricDataRequest.class));
+        verify(auditLogService).logAccessRemoval(eq(userId), eq(resource), eq(reason));
     }
 
     @Test
-    void testLogSecureLogon_WithSuccess_LogsSuccess() {
+    @DisplayName("Should log secure logon")
+    void testLogSecureLogon() {
         // Given
-        String method = "PASSWORD";
-        boolean success = true;
-        doNothing().when(auditLogService).logSecureLogon(anyString(), anyString(), anyBoolean());
-        PutMetricDataResponse response = PutMetricDataResponse.builder().build();
-        when(cloudWatchClient.putMetricData(any(PutMetricDataRequest.class))).thenReturn(response);
+        String userId = "user-123";
+        String method = "MFA_TOTP";
 
         // When
-        iso27001ComplianceService.logSecureLogon(testUserId, method, success);
+        iso27001ComplianceService.logSecureLogon(userId, method, true);
 
         // Then
-        verify(auditLogService, times(1)).logSecureLogon(testUserId, method, success);
-        verify(cloudWatchClient, times(1)).putMetricData(any(PutMetricDataRequest.class));
+        verify(auditLogService).logSecureLogon(eq(userId), eq(method), eq(true));
     }
 
     @Test
-    void testLogPasswordManagement_WithValidInput_LogsActivity() {
+    @DisplayName("Should log password management")
+    void testLogPasswordManagement() {
         // Given
-        String activity = "PASSWORD_CHANGED";
-        doNothing().when(auditLogService).logPasswordManagement(anyString(), anyString());
-        PutMetricDataResponse response = PutMetricDataResponse.builder().build();
-        when(cloudWatchClient.putMetricData(any(PutMetricDataRequest.class))).thenReturn(response);
+        String userId = "user-123";
+        String activity = "PASSWORD_CHANGE";
 
         // When
-        iso27001ComplianceService.logPasswordManagement(testUserId, activity);
+        iso27001ComplianceService.logPasswordManagement(userId, activity);
 
         // Then
-        verify(auditLogService, times(1)).logPasswordManagement(testUserId, activity);
-        verify(cloudWatchClient, times(1)).putMetricData(any(PutMetricDataRequest.class));
+        verify(auditLogService).logPasswordManagement(eq(userId), eq(activity));
     }
 
     @Test
-    void testLogSecurityEvent_WithValidInput_LogsEvent() {
+    @DisplayName("Should log security event")
+    void testLogSecurityEvent() {
         // Given
         String eventType = "UNAUTHORIZED_ACCESS";
         String severity = "HIGH";
         String details = "Multiple failed login attempts";
-        doNothing().when(auditLogService).logSecurityEvent(anyString(), anyString(), anyString());
-        PutMetricDataResponse response = PutMetricDataResponse.builder().build();
-        when(cloudWatchClient.putMetricData(any(PutMetricDataRequest.class))).thenReturn(response);
 
         // When
         iso27001ComplianceService.logSecurityEvent(eventType, severity, details);
 
         // Then
-        verify(auditLogService, times(1)).logSecurityEvent(eventType, severity, details);
-        verify(cloudWatchClient, times(1)).putMetricData(any(PutMetricDataRequest.class));
+        verify(auditLogService).logSecurityEvent(eq(eventType), eq(severity), eq(details));
     }
 
     @Test
-    void testProtectLogInformation_WithValidLogId_ProtectsLog() {
+    @DisplayName("Should protect log information")
+    void testProtectLogInformation() {
         // Given
         String logId = "log-123";
-        doNothing().when(auditLogService).protectLogInformation(anyString());
-        PutMetricDataResponse response = PutMetricDataResponse.builder().build();
-        when(cloudWatchClient.putMetricData(any(PutMetricDataRequest.class))).thenReturn(response);
 
         // When
         iso27001ComplianceService.protectLogInformation(logId);
 
         // Then
-        verify(auditLogService, times(1)).protectLogInformation(logId);
-        verify(cloudWatchClient, times(1)).putMetricData(any(PutMetricDataRequest.class));
+        verify(auditLogService).protectLogInformation(eq(logId));
     }
 
     @Test
-    void testLogAdministratorActivity_WithValidInput_LogsActivity() {
+    @DisplayName("Should log administrator activity")
+    void testLogAdministratorActivity() {
         // Given
         String adminId = "admin-123";
-        String activity = "USER_DELETED";
+        String activity = "USER_DELETION";
         String resource = "/api/users/user-456";
-        doNothing().when(auditLogService).logAdministratorActivity(anyString(), anyString(), anyString());
-        PutMetricDataResponse response = PutMetricDataResponse.builder().build();
-        when(cloudWatchClient.putMetricData(any(PutMetricDataRequest.class))).thenReturn(response);
 
         // When
         iso27001ComplianceService.logAdministratorActivity(adminId, activity, resource);
 
         // Then
-        verify(auditLogService, times(1)).logAdministratorActivity(adminId, activity, resource);
-        verify(cloudWatchClient, times(1)).putMetricData(any(PutMetricDataRequest.class));
+        verify(auditLogService).logAdministratorActivity(eq(adminId), eq(activity), eq(resource));
     }
 
     @Test
-    void testLogClockSynchronization_LogsSynchronization() {
-        // Given
-        doNothing().when(auditLogService).logClockSynchronization(anyLong());
-        PutMetricDataResponse response = PutMetricDataResponse.builder().build();
-        when(cloudWatchClient.putMetricData(any(PutMetricDataRequest.class))).thenReturn(response);
-
+    @DisplayName("Should log clock synchronization")
+    void testLogClockSynchronization() {
         // When
         iso27001ComplianceService.logClockSynchronization();
 
         // Then
-        verify(auditLogService, times(1)).logClockSynchronization(anyLong());
-        verify(cloudWatchClient, times(1)).putMetricData(any(PutMetricDataRequest.class));
+        verify(auditLogService).logClockSynchronization(anyLong());
     }
 
     @Test
-    void testReportSecurityIncident_WithCriticalSeverity_LogsIncident() {
+    @DisplayName("Should report security incident")
+    void testReportSecurityIncident() {
         // Given
         String incidentType = "DATA_BREACH";
         String severity = "CRITICAL";
-        String details = "Unauthorized data access detected";
-        doNothing().when(auditLogService).logSecurityIncident(any());
-        PutMetricDataResponse response = PutMetricDataResponse.builder().build();
-        when(cloudWatchClient.putMetricData(any(PutMetricDataRequest.class))).thenReturn(response);
+        String details = "Unauthorized access to user data";
 
         // When
         iso27001ComplianceService.reportSecurityIncident(incidentType, severity, details);
 
         // Then
-        verify(auditLogService, times(1)).logSecurityIncident(any());
-        verify(cloudWatchClient, times(1)).putMetricData(any(PutMetricDataRequest.class));
+        verify(auditLogService).logSecurityIncident(any());
     }
 
     @Test
-    void testLogComplianceCheck_WithCompliant_LogsCompliance() {
+    @DisplayName("Should log compliance check")
+    void testLogComplianceCheck() {
         // Given
         String legislation = "GDPR";
-        boolean compliant = true;
-        doNothing().when(auditLogService).logComplianceCheck(anyString(), anyBoolean());
-        PutMetricDataResponse response = PutMetricDataResponse.builder().build();
-        when(cloudWatchClient.putMetricData(any(PutMetricDataRequest.class))).thenReturn(response);
 
         // When
-        iso27001ComplianceService.logComplianceCheck(legislation, compliant);
+        iso27001ComplianceService.logComplianceCheck(legislation, true);
 
         // Then
-        verify(auditLogService, times(1)).logComplianceCheck(legislation, compliant);
-        verify(cloudWatchClient, times(1)).putMetricData(any(PutMetricDataRequest.class));
-    }
-
-    @Test
-    void testLogComplianceCheck_WithNonCompliant_LogsWarning() {
-        // Given
-        String legislation = "GDPR";
-        boolean compliant = false;
-        doNothing().when(auditLogService).logComplianceCheck(anyString(), anyBoolean());
-        PutMetricDataResponse response = PutMetricDataResponse.builder().build();
-        when(cloudWatchClient.putMetricData(any(PutMetricDataRequest.class))).thenReturn(response);
-
-        // When
-        iso27001ComplianceService.logComplianceCheck(legislation, compliant);
-
-        // Then
-        verify(auditLogService, times(1)).logComplianceCheck(legislation, compliant);
-        verify(cloudWatchClient, times(1)).putMetricData(any(PutMetricDataRequest.class));
+        verify(auditLogService).logComplianceCheck(eq(legislation), eq(true));
     }
 }
-

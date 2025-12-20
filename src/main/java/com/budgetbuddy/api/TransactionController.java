@@ -197,7 +197,8 @@ public class TransactionController {
                 request.getCategoryPrimary(),
                 request.getCategoryDetailed(),
                 request.getIsAudited(), // Pass audit state
-                request.getIsHidden() // Pass hidden state
+                request.getIsHidden(), // Pass hidden state
+                false // Don't clear notes if null - preserve existing when doing partial updates
         );
 
         return ResponseEntity.ok(transaction);

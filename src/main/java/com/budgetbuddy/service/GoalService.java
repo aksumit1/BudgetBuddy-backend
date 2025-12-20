@@ -57,13 +57,31 @@ public class GoalService {
         
         // Use provided goalId if valid, otherwise generate deterministic ID
         if (goalId != null && !goalId.isEmpty() && com.budgetbuddy.util.IdGenerator.isValidUUID(goalId)) {
-            // Check if goal with this ID already exists
-            Optional<GoalTable> existingById = goalRepository.findById(goalId);
-            if (existingById.isPresent()) {
-                throw new AppException(ErrorCode.RECORD_ALREADY_EXISTS, "Goal with ID " + goalId + " already exists");
-            }
-            // CRITICAL FIX: Normalize ID to lowercase when saving to match lookup behavior
+            // CRITICAL FIX: Normalize ID to lowercase before checking for existing
+            // This ensures we check with the normalized ID that will be saved
             String normalizedId = com.budgetbuddy.util.IdGenerator.normalizeUUID(goalId);
+            
+            // Check if goal with this ID already exists (using normalized ID)
+            Optional<GoalTable> existingById = goalRepository.findById(normalizedId);
+            if (existingById.isPresent()) {
+                GoalTable existing = existingById.get();
+                // CRITICAL FIX: Verify the existing goal belongs to the same user and has same name
+                // This ensures idempotent behavior - return existing goal instead of throwing error
+                if (existing.getUserId().equals(user.getUserId()) && 
+                    existing.getName().equals(name.trim())) {
+                    // Same goal (same user, same name) - return existing (idempotent)
+                    logger.info("Goal with ID {} already exists for user {} with name {}. Returning existing for idempotency.", 
+                            normalizedId, user.getUserId(), name);
+                    return existing;
+                } else {
+                    // Goal exists but belongs to different user or has different name - throw exception
+                    logger.error("Goal with ID {} already exists but belongs to different user or has different name. User: {}, Name: {}", 
+                            normalizedId, existing.getUserId(), existing.getName());
+                    throw new AppException(ErrorCode.RECORD_ALREADY_EXISTS, 
+                            "Goal with ID already exists for different user or with different name");
+                }
+            }
+            // Set normalized ID
             goal.setGoalId(normalizedId);
             logger.debug("Using provided goal ID (normalized): {} -> {}", goalId, normalizedId);
         } else {

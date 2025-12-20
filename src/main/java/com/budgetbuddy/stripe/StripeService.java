@@ -27,12 +27,25 @@ public class StripeService {
     private static final Logger logger = LoggerFactory.getLogger(StripeService.class);
 
     private final PCIDSSComplianceService pciDSSComplianceService;
+    private final String secretKey; // Store for validation
 
     public StripeService(
             @Value("${app.stripe.secret-key:sk_test_placeholder}") final String secretKey,
+            @Value("${app.features.enable-stripe:true}") final boolean stripeEnabled,
             final PCIDSSComplianceService pciDSSComplianceService) {
+        this.secretKey = secretKey;
         Stripe.apiKey = secretKey;
         this.pciDSSComplianceService = pciDSSComplianceService;
+        
+        // Warn if using placeholder (but allow service creation for scripts/analysis)
+        if (secretKey == null || secretKey.isEmpty() || "sk_test_placeholder".equals(secretKey)) {
+            if (stripeEnabled) {
+                logger.warn("⚠️ Stripe secret key is not configured. Stripe API calls will fail. " +
+                        "Set STRIPE_SECRET_KEY environment variable or app.stripe.secret-key property.");
+            } else {
+                logger.debug("Stripe secret key not configured (Stripe feature is disabled).");
+            }
+        }
     }
 
     /**
@@ -41,6 +54,13 @@ public class StripeService {
     @CircuitBreaker(name = "stripe")
     @Retry(name = "stripe")
     public PaymentIntent createPaymentIntent(final String userId, final long amount, final String currency, final String description, final Map<String, String> metadata) {
+        // Validate Stripe credentials before making API call
+        if (secretKey == null || secretKey.isEmpty() || "sk_test_placeholder".equals(secretKey)) {
+            throw new AppException(ErrorCode.STRIPE_PAYMENT_FAILED,
+                    "Stripe secret key is not configured. Please set app.stripe.secret-key property or STRIPE_SECRET_KEY environment variable. " +
+                    "Get your Stripe credentials from https://dashboard.stripe.com/apikeys");
+        }
+        
         try {
             PaymentIntentCreateParams params = PaymentIntentCreateParams.builder()
                     .setAmount(amount)

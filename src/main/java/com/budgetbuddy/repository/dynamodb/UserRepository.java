@@ -82,7 +82,11 @@ public class UserRepository {
         if (user.getActiveStatus() == null && user.getEnabled() != null) {
             user.setActiveStatus(user.getEnabled() ? "ACTIVE" : "INACTIVE");
         }
-        userTable.putItem(user);
+        // CRITICAL FIX: Add retry logic for DynamoDB throttling and transient errors
+        com.budgetbuddy.util.RetryHelper.executeDynamoDbWithRetry(() -> {
+            userTable.putItem(user);
+            return null;
+        });
     }
 
     @Cacheable(value = "users", key = "#userId")

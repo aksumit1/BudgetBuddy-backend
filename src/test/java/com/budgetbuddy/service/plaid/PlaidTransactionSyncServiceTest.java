@@ -13,13 +13,11 @@ import com.plaid.client.model.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 
-import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.*;
@@ -91,6 +89,13 @@ class PlaidTransactionSyncServiceTest {
                 .thenReturn(transactionsResponse);
         when(transactionRepository.findByPlaidTransactionId(anyString())).thenReturn(Optional.empty());
         when(transactionRepository.saveIfPlaidTransactionNotExists(any(TransactionTable.class))).thenReturn(true);
+        
+        // Mock category mapper to return a valid CategoryMapping
+        PlaidCategoryMapper.CategoryMapping mockMapping = new PlaidCategoryMapper.CategoryMapping("other", "other", false);
+        when(categoryMapper.mapPlaidCategory(any(), any(), any(), any(), any(), any()))
+                .thenReturn(mockMapping);
+        when(categoryMapper.mapPlaidCategory(any(), any(), any(), any()))
+                .thenReturn(mockMapping);
 
         // When
         assertDoesNotThrow(() -> transactionSyncService.syncTransactions(testUser, testAccessToken));

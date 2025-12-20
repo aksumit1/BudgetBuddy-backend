@@ -12,13 +12,11 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 
-import java.math.BigDecimal;
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -78,9 +76,8 @@ class PlaidAccountSyncServiceTest {
         AccountsGetResponse accountsResponse = createMockAccountsResponse();
         when(plaidService.getAccounts(testAccessToken)).thenReturn(accountsResponse);
         when(accountRepository.findByPlaidItemId(testItemId)).thenReturn(Collections.emptyList());
-        when(accountRepository.findByPlaidAccountId("plaid-account-1")).thenReturn(Optional.empty());
-        when(accountRepository.findByAccountNumber(anyString(), eq(testUserId))).thenReturn(Optional.empty());
-        when(accountRepository.findByAccountNumberAndInstitution(anyString(), anyString(), eq(testUserId))).thenReturn(Optional.empty());
+        // OPTIMIZATION: Service now loads all accounts once via findByUserId instead of per-account queries
+        when(accountRepository.findByUserId(testUserId)).thenReturn(Collections.emptyList());
         when(accountRepository.saveIfNotExists(any(AccountTable.class))).thenReturn(true);
 
         // When
@@ -88,6 +85,8 @@ class PlaidAccountSyncServiceTest {
 
         // Then
         verify(plaidService, times(1)).getAccounts(testAccessToken);
+        // OPTIMIZATION: Verify findByUserId is called once (not per account)
+        verify(accountRepository, times(1)).findByUserId(testUserId);
         verify(accountRepository, atLeastOnce()).saveIfNotExists(any(AccountTable.class));
     }
 
@@ -103,18 +102,22 @@ class PlaidAccountSyncServiceTest {
 
         when(plaidService.getAccounts(testAccessToken)).thenReturn(accountsResponse);
         when(accountRepository.findByPlaidItemId(testItemId)).thenReturn(Collections.emptyList());
-        when(accountRepository.findByPlaidAccountId("plaid-account-1")).thenReturn(Optional.of(existingAccount));
-        when(accountRepository.findByAccountNumber(anyString(), eq(testUserId))).thenReturn(Optional.empty());
-        when(accountRepository.findByAccountNumberAndInstitution(anyString(), anyString(), eq(testUserId))).thenReturn(Optional.empty());
+        // OPTIMIZATION: Service now loads all accounts once via findByUserId instead of per-account queries
+        // The existing account should be in the list returned by findByUserId
+        when(accountRepository.findByUserId(testUserId)).thenReturn(Collections.singletonList(existingAccount));
+        doNothing().when(accountRepository).save(any(AccountTable.class));
 
         // When
         assertDoesNotThrow(() -> plaidAccountSyncService.syncAccounts(testUser, testAccessToken, testItemId));
 
         // Then
-        verify(accountRepository, times(1)).save(existingAccount);
+        // OPTIMIZATION: Verify findByUserId is called once (not per account)
+        verify(accountRepository, times(1)).findByUserId(testUserId);
+        // Account is saved in batch at the end
+        verify(accountRepository, atLeastOnce()).save(any(AccountTable.class));
         ArgumentCaptor<AccountTable> accountCaptor = ArgumentCaptor.forClass(AccountTable.class);
-        verify(accountRepository).save(accountCaptor.capture());
-        AccountTable savedAccount = accountCaptor.getValue();
+        verify(accountRepository, atLeastOnce()).save(accountCaptor.capture());
+        AccountTable savedAccount = accountCaptor.getAllValues().get(accountCaptor.getAllValues().size() - 1);
         assertTrue(savedAccount.getActive(), "Account should be marked as active");
     }
 
@@ -156,12 +159,14 @@ class PlaidAccountSyncServiceTest {
         // Given
         AccountTable existingAccount = new AccountTable();
         existingAccount.setPlaidItemId(testItemId);
+        existingAccount.setPlaidAccountId("plaid-account-1");
+        existingAccount.setUserId(testUserId);
         when(accountRepository.findByPlaidItemId(testItemId)).thenReturn(List.of(existingAccount));
         AccountsGetResponse accountsResponse = createMockAccountsResponse();
         when(plaidService.getAccounts(testAccessToken)).thenReturn(accountsResponse);
-        when(accountRepository.findByPlaidAccountId("plaid-account-1")).thenReturn(Optional.of(existingAccount));
-        when(accountRepository.findByAccountNumber(anyString(), eq(testUserId))).thenReturn(Optional.empty());
-        when(accountRepository.findByAccountNumberAndInstitution(anyString(), anyString(), eq(testUserId))).thenReturn(Optional.empty());
+        // OPTIMIZATION: Service now loads all accounts once via findByUserId instead of per-account queries
+        when(accountRepository.findByUserId(testUserId)).thenReturn(List.of(existingAccount));
+        doNothing().when(accountRepository).save(any(AccountTable.class));
 
         // When
         assertDoesNotThrow(() -> plaidAccountSyncService.syncAccounts(testUser, testAccessToken, testItemId));
@@ -169,6 +174,8 @@ class PlaidAccountSyncServiceTest {
         // Then
         verify(accountRepository, times(1)).findByPlaidItemId(testItemId);
         verify(plaidService, times(1)).getAccounts(testAccessToken);
+        // OPTIMIZATION: Verify findByUserId is called once (not per account)
+        verify(accountRepository, times(1)).findByUserId(testUserId);
     }
 
     private AccountsGetResponse createMockAccountsResponse() {
@@ -182,7 +189,7 @@ class PlaidAccountSyncServiceTest {
         // Note: TypeEnum and SubtypeEnum may not exist in the Plaid SDK version
         // Using reflection or setting directly if available
         try {
-            java.lang.reflect.Method setType = account.getClass().getMethod("setType", com.plaid.client.model.AccountType.class);
+            account.getClass().getMethod("setType", com.plaid.client.model.AccountType.class);
             // If method exists, we can set it, otherwise skip
         } catch (NoSuchMethodException e) {
             // Type enum not available in this SDK version - that's OK

@@ -113,11 +113,43 @@ public class AccountController {
             throw new AppException(ErrorCode.INVALID_INPUT, "Account name is required");
         }
 
+        // CRITICAL FIX: Check for existing account for idempotency
+        String accountId = request.getAccountId() != null && !request.getAccountId().isEmpty() 
+                ? request.getAccountId() 
+                : UUID.randomUUID().toString();
+        
+        // Normalize UUID to lowercase for consistency
+        if (com.budgetbuddy.util.IdGenerator.isValidUUID(accountId)) {
+            accountId = com.budgetbuddy.util.IdGenerator.normalizeUUID(accountId);
+            
+            // Check if account with this ID already exists
+            java.util.Optional<AccountTable> existingById = accountRepository.findById(accountId);
+            if (existingById.isPresent()) {
+                AccountTable existing = existingById.get();
+                // CRITICAL FIX: Verify the existing account belongs to the same user
+                // This ensures idempotent behavior - return existing account instead of creating duplicate
+                if (existing.getUserId().equals(user.getUserId())) {
+                    // Same account (same user) - return existing (idempotent)
+                    org.slf4j.LoggerFactory.getLogger(AccountController.class)
+                            .info("Account with ID {} already exists for user {}. Returning existing for idempotency.", 
+                                    accountId, user.getUserId());
+                    return ResponseEntity.status(HttpStatus.OK).body(existing);
+                } else {
+                    // Account exists but belongs to different user - security issue
+                    org.slf4j.LoggerFactory.getLogger(AccountController.class)
+                            .warn("Account with ID {} already exists but belongs to different user. Generating new UUID for security.", accountId);
+                    // Generate new UUID for security
+                    accountId = UUID.randomUUID().toString().toLowerCase();
+                }
+            }
+        } else {
+            // Invalid UUID format, generate new one
+            accountId = UUID.randomUUID().toString().toLowerCase();
+        }
+
         // Create account
         AccountTable account = new AccountTable();
-        account.setAccountId(request.getAccountId() != null && !request.getAccountId().isEmpty() 
-                ? request.getAccountId() 
-                : UUID.randomUUID().toString());
+        account.setAccountId(accountId);
         account.setUserId(user.getUserId());
         account.setAccountName(request.getAccountName());
         account.setInstitutionName(request.getInstitutionName() != null ? request.getInstitutionName() : "Manual");

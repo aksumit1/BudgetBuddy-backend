@@ -49,7 +49,7 @@ class StripeServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new StripeService(secretKey, pciDSSComplianceService);
+        service = new StripeService(secretKey, true, pciDSSComplianceService);
     }
 
     @Test

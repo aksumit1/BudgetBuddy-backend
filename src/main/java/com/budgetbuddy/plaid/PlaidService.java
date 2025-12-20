@@ -34,6 +34,8 @@ public class PlaidService {
     private final PCIDSSComplianceService pciDSSComplianceService;
     private final String redirectUri;
     private final String webhookUrl;
+    private final String clientId; // Store for validation
+    private final String secret; // Store for validation
 
     public PlaidService(@Value("${app.plaid.client-id}") String clientId,
             @Value("${app.plaid.secret}") String secret,
@@ -43,6 +45,10 @@ public class PlaidService {
             @Value("${app.features.enable-plaid:true}") boolean plaidEnabled,
             PCIDSSComplianceService pciDSSComplianceService) {
 
+        // Store original values for validation before modifying them
+        String originalClientId = clientId;
+        String originalSecret = secret;
+        
         // Allow Plaid service to be created even without credentials for scripts/analysis
         // The service will fail on actual API calls if credentials are missing
         // Only warn if Plaid feature is enabled (to avoid noise in local development)
@@ -74,6 +80,8 @@ public class PlaidService {
         this.pciDSSComplianceService = pciDSSComplianceService;
         this.redirectUri = redirectUri;
         this.webhookUrl = webhookUrl;
+        this.clientId = originalClientId; // Store original for validation
+        this.secret = originalSecret; // Store original for validation
 
         Map<String, String> apiKeys = new HashMap<>();
         apiKeys.put("clientId", clientId);
@@ -154,6 +162,23 @@ public class PlaidService {
         }
         if (clientName == null || clientName.isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Client name cannot be null or empty");
+        }
+        
+        // Validate Plaid credentials before making API call
+        // Check if we're using placeholder credentials (which will fail)
+        if (clientId == null || clientId.isEmpty() || "placeholder-client-id".equals(clientId)) {
+            throw new AppException(ErrorCode.PLAID_CONNECTION_FAILED, 
+                    "Plaid client ID is not configured. Please set app.plaid.client-id property or PLAID_CLIENT_ID environment variable. " +
+                    "Get your Plaid credentials from https://dashboard.plaid.com/developers/keys");
+        }
+        if (secret == null || secret.isEmpty() || "placeholder-secret".equals(secret)) {
+            throw new AppException(ErrorCode.PLAID_CONNECTION_FAILED, 
+                    "Plaid secret is not configured. Please set app.plaid.secret property or PLAID_SECRET environment variable. " +
+                    "Get your Plaid credentials from https://dashboard.plaid.com/developers/keys");
+        }
+        if (plaidApi == null) {
+            throw new AppException(ErrorCode.PLAID_CONNECTION_FAILED, 
+                    "Plaid API client is not initialized. Please check Plaid configuration.");
         }
 
         try {

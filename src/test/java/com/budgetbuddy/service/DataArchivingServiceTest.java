@@ -4,18 +4,15 @@ import com.budgetbuddy.model.dynamodb.TransactionTable;
 import com.budgetbuddy.repository.dynamodb.TransactionRepository;
 import com.budgetbuddy.repository.dynamodb.UserRepository;
 import com.budgetbuddy.service.aws.S3Service;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 
-import java.io.ByteArrayInputStream;
-import java.time.Instant;
+import java.io.InputStream;
+import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.List;
 
@@ -24,10 +21,8 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 /**
- * Unit tests for DataArchivingService
- * Tests transaction archiving functionality
+ * Comprehensive tests for DataArchivingService
  */
-@ExtendWith(MockitoExtension.class)
 class DataArchivingServiceTest {
 
     @Mock
@@ -39,136 +34,101 @@ class DataArchivingServiceTest {
     @Mock
     private S3Service s3Service;
 
-    private DataArchivingService dataArchivingService;
     private ObjectMapper objectMapper;
+    private DataArchivingService dataArchivingService;
 
     @BeforeEach
-    void setUp() throws Exception {
-        // Create real ObjectMapper for tests (same as Spring config)
+    void setUp() {
+        MockitoAnnotations.openMocks(this);
         objectMapper = new ObjectMapper();
-        objectMapper.registerModule(new JavaTimeModule());
-        objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-        
-        dataArchivingService = new DataArchivingService(transactionRepository, userRepository, s3Service, objectMapper);
+        dataArchivingService = new DataArchivingService(
+                transactionRepository, userRepository, s3Service, objectMapper);
     }
 
     @Test
-    void archiveTransactions_WithValidTransactions_ArchivesSuccessfully() {
-        // Given - List of transactions to archive
-        TransactionTable transaction1 = new TransactionTable();
-        transaction1.setTransactionId("txn-1");
-        transaction1.setUserId("user-1");
-        transaction1.setAmount(java.math.BigDecimal.valueOf(100.0));
-        transaction1.setUpdatedAt(Instant.now());
+    @DisplayName("Should archive old transactions successfully")
+    void testArchiveOldTransactions_Success() {
+        // Given
+        String userId = "user-123";
+        List<String> activeUserIds = Arrays.asList(userId);
+        when(userRepository.findActiveUserIds(365, 10000)).thenReturn(activeUserIds);
 
-        TransactionTable transaction2 = new TransactionTable();
-        transaction2.setTransactionId("txn-2");
-        transaction2.setUserId("user-1");
-        transaction2.setAmount(java.math.BigDecimal.valueOf(200.0));
-        transaction2.setUpdatedAt(Instant.now());
-
-        List<TransactionTable> transactions = Arrays.asList(transaction1, transaction2);
-
-        // Mock S3 service to succeed (returns String URL)
-        when(s3Service.uploadFileInfrequentAccess(
-                anyString(),
-                any(ByteArrayInputStream.class),
-                anyLong(),
-                anyString()
-        )).thenReturn("s3://bucket/archive/transactions/2024-01-01.gz");
-
-        // When - Archive transactions
-        assertDoesNotThrow(() -> {
-            dataArchivingService.archiveTransactions(transactions);
-        });
-
-        // Then - Should upload to S3
-        verify(s3Service, times(1)).uploadFileInfrequentAccess(
-                anyString(),
-                any(ByteArrayInputStream.class),
-                anyLong(),
-                eq("application/gzip")
-        );
-    }
-
-    @Test
-    void archiveTransactions_WithNullList_HandlesGracefully() {
-        // When - Archive null list
-        assertDoesNotThrow(() -> {
-            dataArchivingService.archiveTransactions(null);
-        });
-
-        // Then - Should not call S3 service
-        verify(s3Service, never()).uploadFileInfrequentAccess(
-                anyString(),
-                any(),
-                anyLong(),
-                anyString()
-        );
-    }
-
-    @Test
-    void archiveTransactions_WithEmptyList_HandlesGracefully() {
-        // When - Archive empty list
-        assertDoesNotThrow(() -> {
-            dataArchivingService.archiveTransactions(List.of());
-        });
-
-        // Then - Should not call S3 service
-        verify(s3Service, never()).uploadFileInfrequentAccess(
-                anyString(),
-                any(),
-                anyLong(),
-                anyString()
-        );
-    }
-
-    @Test
-    void archiveTransactions_WithS3Error_ThrowsException() {
-        // Given - Transactions and S3 service that throws exception
         TransactionTable transaction = new TransactionTable();
-        transaction.setTransactionId("txn-1");
-        transaction.setUserId("user-1");
-        transaction.setAmount(java.math.BigDecimal.valueOf(100.0));
-        transaction.setUpdatedAt(Instant.now());
+        transaction.setTransactionId("txn-123");
+        transaction.setUserId(userId);
+        transaction.setTransactionDate(LocalDate.now().minusDays(400).toString());
 
-        List<TransactionTable> transactions = List.of(transaction);
+        List<TransactionTable> oldTransactions = Arrays.asList(transaction);
+        when(transactionRepository.findByUserIdAndDateRange(
+                eq(userId), eq("1970-01-01"), anyString()))
+                .thenReturn(oldTransactions);
 
-        // Mock S3 service to throw exception during upload
-        when(s3Service.uploadFileInfrequentAccess(
-                anyString(),
-                any(ByteArrayInputStream.class),
-                anyLong(),
-                anyString()
-        )).thenThrow(new RuntimeException("S3 upload failed"));
-
-        // When/Then - Should throw RuntimeException (wrapped from S3 error)
-        RuntimeException exception = assertThrows(RuntimeException.class, () -> {
-            dataArchivingService.archiveTransactions(transactions);
-        });
-        
-        // Verify the exception message indicates archiving failure
-        assertTrue(exception.getMessage().contains("Failed to archive transactions"), 
-                   "Exception should indicate archiving failure");
-        
-        // Verify S3 service was called (compression succeeded, but upload failed)
-        verify(s3Service, times(1)).uploadFileInfrequentAccess(
-                anyString(),
-                any(ByteArrayInputStream.class),
-                anyLong(),
-                anyString()
-        );
-    }
-
-    @Test
-    void archiveOldTransactions_ScheduledJob_CompletesWithoutError() {
-        // When - Scheduled job runs (simulated by calling directly)
+        // When
         assertDoesNotThrow(() -> {
             dataArchivingService.archiveOldTransactions();
         });
 
-        // Then - Should complete without errors
-        // Note: Current implementation logs info but doesn't perform actual archiving
-        // This is expected behavior until per-user archiving is implemented
+        // Then
+        verify(transactionRepository).findByUserIdAndDateRange(anyString(), anyString(), anyString());
+        verify(s3Service, atLeastOnce()).uploadFileInfrequentAccess(anyString(), any(InputStream.class), anyLong(), anyString());
+    }
+
+    @Test
+    @DisplayName("Should handle empty user list")
+    void testArchiveOldTransactions_NoUsers() {
+        // Given
+        when(userRepository.findActiveUserIds(365, 10000)).thenReturn(Arrays.asList());
+
+        // When
+        assertDoesNotThrow(() -> {
+            dataArchivingService.archiveOldTransactions();
+        });
+
+        // Then
+        verify(transactionRepository, never()).findByUserIdAndDateRange(anyString(), anyString(), anyString());
+    }
+
+    @Test
+    @DisplayName("Should handle users with no old transactions")
+    void testArchiveOldTransactions_NoOldTransactions() {
+        // Given
+        String userId = "user-123";
+        when(userRepository.findActiveUserIds(365, 10000)).thenReturn(Arrays.asList(userId));
+        when(transactionRepository.findByUserIdAndDateRange(
+                eq(userId), eq("1970-01-01"), anyString()))
+                .thenReturn(Arrays.asList());
+
+        // When
+        assertDoesNotThrow(() -> {
+            dataArchivingService.archiveOldTransactions();
+        });
+
+        // Then
+        verify(transactionRepository).findByUserIdAndDateRange(anyString(), anyString(), anyString());
+        verify(s3Service, never()).uploadFileInfrequentAccess(anyString(), any(InputStream.class), anyLong(), anyString());
+    }
+
+    @Test
+    @DisplayName("Should handle S3 upload failure gracefully")
+    void testArchiveOldTransactions_S3Failure() {
+        // Given
+        String userId = "user-123";
+        when(userRepository.findActiveUserIds(365, 10000)).thenReturn(Arrays.asList(userId));
+
+        TransactionTable transaction = new TransactionTable();
+        transaction.setTransactionId("txn-123");
+        transaction.setUserId(userId);
+
+        when(transactionRepository.findByUserIdAndDateRange(
+                eq(userId), eq("1970-01-01"), anyString()))
+                .thenReturn(Arrays.asList(transaction));
+
+        doThrow(new RuntimeException("S3 error")).when(s3Service)
+                .uploadFileInfrequentAccess(anyString(), any(InputStream.class), anyLong(), anyString());
+
+        // When - Should not throw, should log error and continue
+        assertDoesNotThrow(() -> {
+            dataArchivingService.archiveOldTransactions();
+        });
     }
 }

@@ -136,7 +136,8 @@ class PlaidSyncServiceAccountNumberTest {
             }
             return null;
         }).when(dataExtractor).updateAccountFromPlaid(any(AccountTable.class), any());
-        when(accountRepository.findByPlaidAccountId(anyString())).thenReturn(Optional.empty());
+        // OPTIMIZATION: Service now loads all accounts once via findByUserId instead of per-account queries
+        when(accountRepository.findByUserId(testUser.getUserId())).thenReturn(Collections.emptyList());
         when(accountRepository.saveIfNotExists(any(AccountTable.class))).thenReturn(true);
 
         // When - Sync accounts
@@ -193,9 +194,9 @@ class PlaidSyncServiceAccountNumberTest {
             }
             return null;
         }).when(dataExtractor).updateAccountFromPlaid(any(AccountTable.class), any());
-        when(accountRepository.findByPlaidAccountId(plaidAccountId)).thenReturn(Optional.empty());
-        when(accountRepository.findByAccountNumberAndInstitution(accountNumber, institutionName, testUser.getUserId()))
-                .thenReturn(Optional.of(existingAccount));
+        // OPTIMIZATION: Service now loads all accounts once via findByUserId instead of per-account queries
+        // The existing account should be in the list returned by findByUserId
+        when(accountRepository.findByUserId(testUser.getUserId())).thenReturn(Collections.singletonList(existingAccount));
         doNothing().when(accountRepository).save(any(AccountTable.class));
 
         // When - Sync accounts
@@ -252,7 +253,9 @@ class PlaidSyncServiceAccountNumberTest {
             }
             return null;
         }).when(dataExtractor).updateAccountFromPlaid(any(AccountTable.class), any());
-        when(accountRepository.findByPlaidAccountId(plaidAccountId)).thenReturn(Optional.of(existingAccount));
+        // OPTIMIZATION: Service now loads all accounts once via findByUserId instead of per-account queries
+        // The existing account should be in the list returned by findByUserId
+        when(accountRepository.findByUserId(testUser.getUserId())).thenReturn(Collections.singletonList(existingAccount));
         doNothing().when(accountRepository).save(any(AccountTable.class));
 
         // When - Sync accounts

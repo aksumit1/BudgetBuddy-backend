@@ -27,6 +27,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.lenient;
 
 /**
  * Unit tests for TransactionActionService focusing on action creation
@@ -99,7 +100,9 @@ class TransactionActionServiceNewTransactionTest {
         // Given - Transaction exists with lowercase ID
         String transactionId = testTransaction.getTransactionId();
         when(transactionRepository.findById(transactionId)).thenReturn(Optional.of(testTransaction));
-        when(actionRepository.findById(anyString())).thenReturn(Optional.empty());
+        // CRITICAL FIX: Only stub if action ID is provided - if null, action ID is generated and findById won't be called
+        // Using lenient() to allow unused stubbing
+        lenient().when(actionRepository.findById(anyString())).thenReturn(Optional.empty());
         doNothing().when(actionRepository).save(any(TransactionActionTable.class));
 
         // When - Create action for the transaction
@@ -138,7 +141,8 @@ class TransactionActionServiceNewTransactionTest {
                 });
         when(transactionRepository.findById(lowercaseTransactionId))
                 .thenReturn(Optional.of(testTransaction));
-        when(actionRepository.findById(anyString())).thenReturn(Optional.empty());
+        // CRITICAL FIX: Use lenient() since findById might not be called if actionId is null
+        lenient().when(actionRepository.findById(anyString())).thenReturn(Optional.empty());
         doNothing().when(actionRepository).save(any(TransactionActionTable.class));
 
         // When - Create action with mixed case transaction ID
@@ -189,10 +193,13 @@ class TransactionActionServiceNewTransactionTest {
     void testCreateAction_WithMixedCaseActionId_Normalized() {
         // Given - Transaction exists
         String transactionId = testTransaction.getTransactionId();
-        String mixedCaseActionId = "ACTION-1234-5678-ABCD-EFGH";
+        // Use a valid UUID format (mixed case)
+        String mixedCaseActionId = "EBC9B5FF-F555-48A3-B1A9-F8A91A48AB15";
         String lowercaseActionId = mixedCaseActionId.toLowerCase();
 
         when(transactionRepository.findById(transactionId)).thenReturn(Optional.of(testTransaction));
+        // CRITICAL FIX: Stub with the normalized (lowercase) ID since the code normalizes before calling findById
+        // The service now normalizes the ID to lowercase before checking for existing actions
         when(actionRepository.findById(lowercaseActionId)).thenReturn(Optional.empty());
         doNothing().when(actionRepository).save(any(TransactionActionTable.class));
 
@@ -221,7 +228,8 @@ class TransactionActionServiceNewTransactionTest {
         // Given - Transaction exists
         String transactionId = testTransaction.getTransactionId();
         when(transactionRepository.findById(transactionId)).thenReturn(Optional.of(testTransaction));
-        when(actionRepository.findById(anyString())).thenReturn(Optional.empty());
+        // CRITICAL FIX: Use lenient() since findById won't be called when actionId is null (generated)
+        lenient().when(actionRepository.findById(anyString())).thenReturn(Optional.empty());
         doNothing().when(actionRepository).save(any(TransactionActionTable.class));
 
         // When - Create action without providing action ID (will generate random UUID)

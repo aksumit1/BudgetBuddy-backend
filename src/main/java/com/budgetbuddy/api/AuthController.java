@@ -73,6 +73,13 @@ public class AuthController {
                     "Registration requires password_hash. Legacy password format not supported.");
         }
 
+        // CRITICAL FIX: Check for duplicate email before creating user
+        // This provides synchronous duplicate detection for better UX
+        if (userService.findByEmail(signUpRequest.getEmail()).isPresent()) {
+            throw new AppException(ErrorCode.USER_ALREADY_EXISTS, 
+                    "User with this email already exists");
+        }
+
         // Create user with secure format
         // BREAKING CHANGE: No longer requires salt
         userService.createUserSecure(

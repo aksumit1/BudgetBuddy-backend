@@ -222,7 +222,7 @@ class PlaidCategorySyncTest {
         TransactionService transactionService = new TransactionService(
                 transactionRepository, accountRepository);
         TransactionTable updated = transactionService.updateTransaction(
-                testUser, "txn-123", null, null, null, "groceries", "groceries", null, null);
+                testUser, "txn-123", null, null, null, "groceries", "groceries", null, null, false);
 
         // Then - Verify override is stored
         assertNotNull(updated);

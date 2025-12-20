@@ -49,7 +49,11 @@ public class TransactionActionRepository {
         if (action == null) {
             throw new IllegalArgumentException("Transaction action cannot be null");
         }
-        actionTable.putItem(action);
+        // CRITICAL FIX: Add retry logic for DynamoDB throttling and transient errors
+        com.budgetbuddy.util.RetryHelper.executeDynamoDbWithRetry(() -> {
+            actionTable.putItem(action);
+            return null;
+        });
     }
 
     public Optional<TransactionActionTable> findById(final String actionId) {

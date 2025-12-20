@@ -12,6 +12,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -77,6 +78,29 @@ public class PlaidAccountSyncService {
 
             int syncedCount = 0;
             int errorCount = 0;
+            
+            // OPTIMIZATION: Load all existing accounts once to avoid repeated findByUserId calls
+            // This prevents N+1 query problem where findByAccountNumber calls findByUserId for each account
+            List<AccountTable> existingUserAccounts = accountRepository.findByUserId(user.getUserId());
+            java.util.Map<String, AccountTable> accountsByPlaidId = new java.util.HashMap<>();
+            java.util.Map<String, AccountTable> accountsByNumber = new java.util.HashMap<>();
+            
+            // Build lookup maps for efficient deduplication
+            for (AccountTable existing : existingUserAccounts) {
+                if (existing.getPlaidAccountId() != null && !existing.getPlaidAccountId().isEmpty()) {
+                    accountsByPlaidId.put(existing.getPlaidAccountId(), existing);
+                }
+                if (existing.getAccountNumber() != null && !existing.getAccountNumber().isEmpty()) {
+                    String key = existing.getAccountNumber() + ":" + 
+                                (existing.getInstitutionName() != null ? existing.getInstitutionName() : "");
+                    accountsByNumber.put(key, existing);
+                }
+            }
+            
+            // OPTIMIZATION: Collect accounts to save and batch them at the end
+            // Track which accounts are new (need saveIfNotExists) vs existing (need save)
+            java.util.List<AccountTable> accountsToSave = new java.util.ArrayList<>();
+            java.util.Set<String> newAccountIds = new java.util.HashSet<>();
 
             for (var plaidAccount : accountsResponse.getAccounts()) {
                 try {
@@ -90,10 +114,11 @@ public class PlaidAccountSyncService {
 
                     logger.debug("Extracted account ID: {}", accountId);
 
+                    // OPTIMIZATION: Use in-memory lookup maps instead of database queries
                     // Check if account exists by plaidAccountId first
-                    Optional<AccountTable> existingAccount = accountRepository.findByPlaidAccountId(accountId);
+                    Optional<AccountTable> existingAccount = Optional.ofNullable(accountsByPlaidId.get(accountId));
                     
-                    // If not found, check by account number + institution
+                    // If not found, check by account number + institution using in-memory map
                     if (existingAccount.isEmpty()) {
                         AccountTable tempAccount = new AccountTable();
                         dataExtractor.updateAccountFromPlaid(tempAccount, plaidAccount);
@@ -105,23 +130,25 @@ public class PlaidAccountSyncService {
                         }
                         
                         if (accountNumber != null && !accountNumber.isEmpty()) {
-                            if (institutionName != null && !institutionName.isEmpty()) {
-                                existingAccount = accountRepository.findByAccountNumberAndInstitution(
-                                        accountNumber, institutionName, user.getUserId());
-                            } else {
-                                existingAccount = accountRepository.findByAccountNumber(accountNumber, user.getUserId());
+                            // Try with institution name first, then without
+                            String keyWithInstitution = accountNumber + ":" + 
+                                    (institutionName != null ? institutionName : "");
+                            String keyWithoutInstitution = accountNumber + ":";
+                            
+                            AccountTable foundByNumber = accountsByNumber.get(keyWithInstitution);
+                            if (foundByNumber == null && institutionName != null && !institutionName.isEmpty()) {
+                                foundByNumber = accountsByNumber.get(keyWithoutInstitution);
                             }
                             
-                            if (existingAccount.isPresent()) {
-                                AccountTable foundAccount = existingAccount.get();
-                                if (foundAccount.getPlaidAccountId() == null || foundAccount.getPlaidAccountId().isEmpty()) {
-                                    foundAccount.setPlaidAccountId(accountId);
-                                    accountRepository.save(foundAccount);
+                            if (foundByNumber != null) {
+                                existingAccount = Optional.of(foundByNumber);
+                                // Update Plaid ID if missing (will save later in batch)
+                                if (foundByNumber.getPlaidAccountId() == null || foundByNumber.getPlaidAccountId().isEmpty()) {
+                                    foundByNumber.setPlaidAccountId(accountId);
                                 }
-                                if ((foundAccount.getInstitutionName() == null || foundAccount.getInstitutionName().isEmpty()) 
+                                if ((foundByNumber.getInstitutionName() == null || foundByNumber.getInstitutionName().isEmpty()) 
                                         && institutionName != null && !institutionName.isEmpty()) {
-                                    foundAccount.setInstitutionName(institutionName);
-                                    accountRepository.save(foundAccount);
+                                    foundByNumber.setInstitutionName(institutionName);
                                 }
                             }
                         }
@@ -150,7 +177,9 @@ public class PlaidAccountSyncService {
                             account.setPlaidAccountId(accountId);
                         }
                         ensureAccountRequiredFields(account);
-                        accountRepository.save(account);
+                        // Collect for batch save instead of saving immediately
+                        // This is an existing account, so it will use save() not saveIfNotExists()
+                        accountsToSave.add(account);
                     } else {
                         // Create new account
                         account = new AccountTable();
@@ -185,27 +214,61 @@ public class PlaidAccountSyncService {
                         }
                         
                         ensureAccountRequiredFields(account);
-                        if (!accountRepository.saveIfNotExists(account)) {
-                            Optional<AccountTable> raceConditionAccount = accountRepository.findById(account.getAccountId());
-                            if (raceConditionAccount.isPresent()) {
-                                account = raceConditionAccount.get();
-                                dataExtractor.updateAccountFromPlaid(account, plaidAccount);
-                                account.setActive(true);
-                                if (account.getPlaidAccountId() == null || account.getPlaidAccountId().isEmpty()) {
-                                    account.setPlaidAccountId(accountId);
-                                }
-                                accountRepository.save(account);
-                            } else {
-                                logger.warn("Account with ID {} already exists but could not be retrieved, skipping", 
-                                        account.getAccountId());
-                                continue;
-                            }
+                        // Check if account ID already exists in our in-memory map (race condition check)
+                        if (accountsByPlaidId.containsKey(accountId) || 
+                            (account.getAccountNumber() != null && 
+                             accountsByNumber.containsKey(account.getAccountNumber() + ":" + 
+                                 (account.getInstitutionName() != null ? account.getInstitutionName() : "")))) {
+                            logger.debug("Account {} already exists (race condition), skipping", accountId);
+                            continue;
                         }
+                        // Add to in-memory maps to prevent duplicates in this batch
+                        accountsByPlaidId.put(accountId, account);
+                        if (account.getAccountNumber() != null && !account.getAccountNumber().isEmpty()) {
+                            String key = account.getAccountNumber() + ":" + 
+                                        (account.getInstitutionName() != null ? account.getInstitutionName() : "");
+                            accountsByNumber.put(key, account);
+                        }
+                        // Collect for batch save
+                        // This is a new account, so it will use saveIfNotExists()
+                        newAccountIds.add(account.getAccountId());
+                        accountsToSave.add(account);
                     }
                     syncedCount++;
                 } catch (Exception e) {
                     logger.error("Error syncing account: {}", e.getMessage(), e);
                     errorCount++;
+                }
+            }
+            
+            // OPTIMIZATION: Batch save all accounts at once instead of one-by-one
+            // This reduces database round trips and cache evictions
+            if (!accountsToSave.isEmpty()) {
+                try {
+                    // Use individual saves for conditional writes (saveIfNotExists logic)
+                    // Batch save doesn't support conditional writes, so we save individually but in one transaction
+                    for (AccountTable accountToSave : accountsToSave) {
+                        // For new accounts, use saveIfNotExists; for existing, use save
+                        if (newAccountIds.contains(accountToSave.getAccountId())) {
+                            // New account - use conditional write
+                            accountRepository.saveIfNotExists(accountToSave);
+                        } else {
+                            // Existing account - regular save
+                            accountRepository.save(accountToSave);
+                        }
+                    }
+                    logger.debug("Batch saved {} accounts for user: {}", accountsToSave.size(), user.getUserId());
+                } catch (Exception e) {
+                    logger.error("Error batch saving accounts for user {}: {}", user.getUserId(), e.getMessage(), e);
+                    // Fall back to individual saves
+                    for (AccountTable accountToSave : accountsToSave) {
+                        try {
+                            accountRepository.save(accountToSave);
+                        } catch (Exception saveError) {
+                            logger.error("Error saving individual account {}: {}", 
+                                    accountToSave.getAccountId(), saveError.getMessage());
+                        }
+                    }
                 }
             }
 

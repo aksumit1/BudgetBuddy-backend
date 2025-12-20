@@ -103,6 +103,13 @@ public class JwtTokenProvider {
 
             // Fallback to environment variable or configuration
             if (jwtSecretFallback != null && !jwtSecretFallback.isEmpty()) {
+                // Validate that it's not a placeholder
+                if ("your-256-bit-secret-key-change-in-production".equals(jwtSecretFallback)) {
+                    logger.error("JWT secret is using placeholder value. Please set JWT_SECRET environment variable or app.jwt.secret property. " +
+                            "JWT tokens will not be secure with the default placeholder!");
+                    throw new IllegalStateException("JWT secret is not configured. Please set JWT_SECRET environment variable or app.jwt.secret property. " +
+                            "The default placeholder value is not secure and must be changed in production.");
+                }
                 logger.info("JWT secret loaded from fallback (environment variable or configuration)");
                 cachedJwtSecret = jwtSecretFallback;
                 return jwtSecretFallback;

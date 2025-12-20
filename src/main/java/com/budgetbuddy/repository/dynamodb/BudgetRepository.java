@@ -39,7 +39,11 @@ public class BudgetRepository {
 
     @CacheEvict(value = "budgets", key = "#budget.userId")
     public void save(final BudgetTable budget) {
-        budgetTable.putItem(budget);
+        // CRITICAL FIX: Add retry logic for DynamoDB throttling and transient errors
+        com.budgetbuddy.util.RetryHelper.executeDynamoDbWithRetry(() -> {
+            budgetTable.putItem(budget);
+            return null;
+        });
     }
 
     public Optional<BudgetTable> findById(String budgetId) {

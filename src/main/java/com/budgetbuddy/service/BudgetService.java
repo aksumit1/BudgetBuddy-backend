@@ -63,13 +63,33 @@ public class BudgetService {
             
             // Use provided budgetId if valid, otherwise generate deterministic ID
             if (budgetId != null && !budgetId.isEmpty() && com.budgetbuddy.util.IdGenerator.isValidUUID(budgetId)) {
-                // Check if budget with this ID already exists
-                Optional<BudgetTable> existingById = budgetRepository.findById(budgetId);
-                if (existingById.isPresent()) {
-                    throw new AppException(ErrorCode.RECORD_ALREADY_EXISTS, "Budget with ID " + budgetId + " already exists");
-                }
-                // CRITICAL FIX: Normalize ID to lowercase when saving to match lookup behavior
+                // CRITICAL FIX: Normalize ID to lowercase before checking for existing
+                // This ensures we check with the normalized ID that will be saved
                 String normalizedId = com.budgetbuddy.util.IdGenerator.normalizeUUID(budgetId);
+                
+                // Check if budget with this ID already exists (using normalized ID)
+                Optional<BudgetTable> existingById = budgetRepository.findById(normalizedId);
+                if (existingById.isPresent()) {
+                    BudgetTable existingByIdTable = existingById.get();
+                    // CRITICAL FIX: Verify the existing budget belongs to the same user and category
+                    // This ensures idempotent behavior - return existing budget instead of throwing error
+                    if (existingByIdTable.getUserId().equals(user.getUserId()) && 
+                        existingByIdTable.getCategory().equals(category)) {
+                        // Same budget (same user, same category) - update and return (idempotent)
+                        existingByIdTable.setMonthlyLimit(monthlyLimit);
+                        budgetRepository.save(existingByIdTable);
+                        logger.info("Budget with ID {} already exists for user {} and category {}. Updated and returning for idempotency.", 
+                                normalizedId, user.getUserId(), category);
+                        return existingByIdTable;
+                    } else {
+                        // Budget exists but belongs to different user or category - throw exception
+                        logger.error("Budget with ID {} already exists but belongs to different user or category. User: {}, Category: {}", 
+                                normalizedId, existingByIdTable.getUserId(), existingByIdTable.getCategory());
+                        throw new AppException(ErrorCode.RECORD_ALREADY_EXISTS, 
+                                "Budget with ID already exists for different user or category");
+                    }
+                }
+                // Set normalized ID
                 budget.setBudgetId(normalizedId);
                 logger.debug("Using provided budget ID (normalized): {} -> {}", budgetId, normalizedId);
             } else {

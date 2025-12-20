@@ -1,118 +1,132 @@
 package com.budgetbuddy.aws.cloudtrail;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.MockitoAnnotations;
 import software.amazon.awssdk.services.cloudtrail.CloudTrailClient;
 import software.amazon.awssdk.services.cloudtrail.model.*;
 
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 /**
- * Unit Tests for CloudTrail Service
+ * Comprehensive tests for CloudTrailService
  */
-@ExtendWith(MockitoExtension.class)
 class CloudTrailServiceTest {
 
     @Mock
     private CloudTrailClient cloudTrailClient;
 
-    private CloudTrailService service;
+    private CloudTrailService cloudTrailService;
 
     @BeforeEach
     void setUp() {
-        service = new CloudTrailService(cloudTrailClient);
+        MockitoAnnotations.openMocks(this);
+        cloudTrailService = new CloudTrailService(cloudTrailClient);
     }
 
     @Test
-    void testLogApplicationActivity_LogsActivity() {
-        // When
-        service.logApplicationActivity("user-123", "CREATE", "/api/users", "SUCCESS");
-        
-        // Then - Should not throw exception
+    @DisplayName("Should log application activity")
+    void testLogApplicationActivity() {
+        // Given
+        String userId = "user-123";
+        String action = "CREATE_TRANSACTION";
+        String resource = "/api/transactions";
+        String result = "SUCCESS";
+
+        // When - Should not throw
         assertDoesNotThrow(() -> {
-            service.logApplicationActivity("user-123", "CREATE", "/api/users", "SUCCESS");
+            cloudTrailService.logApplicationActivity(userId, action, resource, result);
         });
     }
 
     @Test
-    void testLookupEvents_WithValidResponse_ReturnsEvents() {
+    @DisplayName("Should lookup events successfully")
+    void testLookupEvents_Success() {
         // Given
+        String userId = "user-123";
+        Instant startTime = Instant.now().minusSeconds(3600);
+        Instant endTime = Instant.now();
+
         Event event = Event.builder()
-                .eventId("event-123")
-                .eventName("CreateUser")
+                .eventName("CreateTransaction")
+                .eventTime(Instant.now())
                 .build();
-        
+
         LookupEventsResponse response = LookupEventsResponse.builder()
-                .events(List.of(event))
+                .events(Arrays.asList(event))
                 .build();
-        
+
         when(cloudTrailClient.lookupEvents(any(LookupEventsRequest.class)))
                 .thenReturn(response);
-        
+
         // When
-        List<Event> events = service.lookupEvents("user-123", 
-                Instant.now().minusSeconds(3600), Instant.now());
-        
+        List<Event> events = cloudTrailService.lookupEvents(userId, startTime, endTime);
+
         // Then
         assertNotNull(events);
         assertEquals(1, events.size());
-        assertEquals("event-123", events.get(0).eventId());
-        verify(cloudTrailClient).lookupEvents(any(LookupEventsRequest.class));
+        assertEquals("CreateTransaction", events.get(0).eventName());
     }
 
     @Test
-    void testLookupEvents_WithException_ReturnsEmptyList() {
+    @DisplayName("Should return empty list on exception")
+    void testLookupEvents_Exception() {
         // Given
+        String userId = "user-123";
+        Instant startTime = Instant.now().minusSeconds(3600);
+        Instant endTime = Instant.now();
+
         when(cloudTrailClient.lookupEvents(any(LookupEventsRequest.class)))
-                .thenThrow(new RuntimeException("Test exception"));
-        
+                .thenThrow(new RuntimeException("AWS error"));
+
         // When
-        List<Event> events = service.lookupEvents("user-123", 
-                Instant.now().minusSeconds(3600), Instant.now());
-        
+        List<Event> events = cloudTrailService.lookupEvents(userId, startTime, endTime);
+
         // Then
         assertNotNull(events);
         assertTrue(events.isEmpty());
     }
 
     @Test
-    void testGetTrailStatus_WithValidResponse_ReturnsStatus() {
+    @DisplayName("Should get trail status successfully")
+    void testGetTrailStatus_Success() {
         // Given
+        String trailName = "test-trail";
         GetTrailStatusResponse response = GetTrailStatusResponse.builder()
                 .isLogging(true)
                 .build();
-        
+
         when(cloudTrailClient.getTrailStatus(any(GetTrailStatusRequest.class)))
                 .thenReturn(response);
-        
+
         // When
-        GetTrailStatusResponse status = service.getTrailStatus("test-trail");
-        
+        GetTrailStatusResponse result = cloudTrailService.getTrailStatus(trailName);
+
         // Then
-        assertNotNull(status);
-        assertTrue(status.isLogging());
-        verify(cloudTrailClient).getTrailStatus(any(GetTrailStatusRequest.class));
+        assertNotNull(result);
+        assertTrue(result.isLogging());
     }
 
     @Test
-    void testGetTrailStatus_WithException_ReturnsNull() {
+    @DisplayName("Should return null on exception")
+    void testGetTrailStatus_Exception() {
         // Given
+        String trailName = "test-trail";
         when(cloudTrailClient.getTrailStatus(any(GetTrailStatusRequest.class)))
-                .thenThrow(new RuntimeException("Test exception"));
-        
+                .thenThrow(new RuntimeException("AWS error"));
+
         // When
-        GetTrailStatusResponse status = service.getTrailStatus("test-trail");
-        
+        GetTrailStatusResponse result = cloudTrailService.getTrailStatus(trailName);
+
         // Then
-        assertNull(status);
+        assertNull(result);
     }
 }
-

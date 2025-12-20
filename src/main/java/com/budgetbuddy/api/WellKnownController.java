@@ -43,6 +43,12 @@ public class WellKnownController {
      */
     @GetMapping(value = "/apple-app-site-association", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Map<String, Object>> getAppleAppSiteAssociation() {
+        // Validate Apple Team ID is configured (not placeholder)
+        if (appleTeamId == null || appleTeamId.isEmpty() || "TEAM_ID".equals(appleTeamId)) {
+            logger.warn("Apple Team ID is not configured (using placeholder). Universal Links may not work correctly. " +
+                    "Set APPLE_TEAM_ID environment variable or app.apple.team-id property.");
+        }
+        
         logger.debug("Serving Apple App Site Association file for Team ID: {}, Bundle ID: {}", appleTeamId, bundleId);
 
         Map<String, Object> response = new HashMap<>();

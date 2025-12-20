@@ -131,13 +131,28 @@ public class TransactionActionService {
         
         // Use provided actionId if valid, otherwise generate new UUID
         if (actionId != null && !actionId.isEmpty() && IdGenerator.isValidUUID(actionId)) {
-            // Check if action with this ID already exists
-            Optional<TransactionActionTable> existingById = actionRepository.findById(actionId);
-            if (existingById.isPresent()) {
-                throw new AppException(ErrorCode.RECORD_ALREADY_EXISTS, "Action with ID " + actionId + " already exists");
-            }
-            // CRITICAL FIX: Normalize ID to lowercase when saving to match lookup behavior
+            // CRITICAL FIX: Normalize ID to lowercase before checking for existing
+            // This ensures we check with the normalized ID that will be saved
             String normalizedId = IdGenerator.normalizeUUID(actionId);
+            // Check if action with this ID already exists (using normalized ID)
+            Optional<TransactionActionTable> existingById = actionRepository.findById(normalizedId);
+            if (existingById.isPresent()) {
+                TransactionActionTable existing = existingById.get();
+                // CRITICAL FIX: Verify the existing action belongs to the same user and transaction
+                // This ensures idempotent behavior - return existing action instead of throwing error
+                if (existing.getUserId().equals(user.getUserId()) && 
+                    existing.getTransactionId().equals(actualTransactionId)) {
+                    // Same action (same user, same transaction) - return existing (idempotent)
+                    logger.info("Action with ID {} already exists for transaction {} and user {}. Returning existing for idempotency.", 
+                            normalizedId, actualTransactionId, user.getUserId());
+                    return existing;
+                } else {
+                    // Action exists but belongs to different user or transaction - security/conflict issue
+                    logger.warn("Action with ID {} already exists but belongs to different user or transaction. Generating new UUID.", normalizedId);
+                    // Fall through to generate new UUID
+                }
+            }
+            // Set normalized ID
             action.setActionId(normalizedId);
             logger.debug("Using provided action ID (normalized): {} -> {}", actionId, normalizedId);
         } else {

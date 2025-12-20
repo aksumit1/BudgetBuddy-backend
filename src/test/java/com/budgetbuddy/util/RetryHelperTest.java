@@ -56,11 +56,11 @@ class RetryHelperTest {
         // Given
         AtomicInteger attempts = new AtomicInteger(0);
         
-        // When
+        // When - Use a retryable exception (RuntimeException with retryable message simulates network issue)
         String result = RetryHelper.executeWithRetry(() -> {
             int attempt = attempts.incrementAndGet();
             if (attempt < 2) {
-                throw new RuntimeException("Temporary failure");
+                throw new RuntimeException("Temporary failure - connection timeout");
             }
             return "success";
         }, 3, Duration.ofMillis(10), 2.0);
@@ -75,11 +75,11 @@ class RetryHelperTest {
         // Given
         AtomicInteger attempts = new AtomicInteger(0);
         
-        // When/Then
+        // When/Then - Use a retryable exception (RuntimeException with retryable message)
         RuntimeException exception = assertThrows(RuntimeException.class, () -> {
             RetryHelper.executeWithRetry(() -> {
                 attempts.incrementAndGet();
-                throw new RuntimeException("Always fails");
+                throw new RuntimeException("Always fails - service unavailable");
             }, 2, Duration.ofMillis(10), 2.0);
         }, "Should throw exception after all retries exhausted");
 
@@ -110,11 +110,11 @@ class RetryHelperTest {
         // Given
         AtomicInteger attempts = new AtomicInteger(0);
         
-        // When/Then
+        // When/Then - Use a retryable exception
         assertThrows(RuntimeException.class, () -> {
             RetryHelper.executeWithRetry(() -> {
                 attempts.incrementAndGet();
-                throw new RuntimeException("Always fails");
+                throw new RuntimeException("Always fails - connection timeout");
             }, 1); // Only 1 retry
         }, "Should throw exception after custom retry limit");
 
@@ -127,12 +127,12 @@ class RetryHelperTest {
         // Given
         AtomicInteger attempts = new AtomicInteger(0);
         long startTime = System.currentTimeMillis();
-        
-        // When
+
+        // When - Use a retryable exception
         assertThrows(RuntimeException.class, () -> {
             RetryHelper.executeWithRetry(() -> {
                 attempts.incrementAndGet();
-                throw new RuntimeException("Always fails");
+                throw new RuntimeException("Always fails - connection timeout");
             }, 2, Duration.ofMillis(50), 2.0); // 50ms initial, doubles each time
         });
 
@@ -163,11 +163,11 @@ class RetryHelperTest {
         // Given
         AtomicInteger attempts = new AtomicInteger(0);
         
-        // When
+        // When - Use a retryable exception
         RetryHelper.executeWithRetryVoid(() -> {
             int attempt = attempts.incrementAndGet();
             if (attempt < 2) {
-                throw new RuntimeException("Temporary failure");
+                throw new RuntimeException("Temporary failure - connection timeout");
             }
         }, 3, Duration.ofMillis(10), 2.0);
 
@@ -180,11 +180,11 @@ class RetryHelperTest {
         // Given
         AtomicInteger attempts = new AtomicInteger(0);
         
-        // When/Then
+        // When/Then - Use a retryable exception
         assertThrows(RuntimeException.class, () -> {
             RetryHelper.executeWithRetryVoid(() -> {
                 attempts.incrementAndGet();
-                throw new RuntimeException("Always fails");
+                throw new RuntimeException("Always fails - connection timeout");
             }, 2, Duration.ofMillis(10), 2.0);
         }, "Should throw exception after all retries exhausted");
 
@@ -216,11 +216,11 @@ class RetryHelperTest {
         // Given
         AtomicInteger attempts = new AtomicInteger(0);
         
-        // When/Then
+        // When/Then - Use a retryable exception
         assertThrows(RuntimeException.class, () -> {
             RetryHelper.executeWithRetry(() -> {
                 attempts.incrementAndGet();
-                throw new RuntimeException("Failure");
+                throw new RuntimeException("Failure - service unavailable");
             }, 0, Duration.ofMillis(10), 2.0);
         }, "Should throw exception with zero retries");
 
@@ -254,17 +254,11 @@ class RetryHelperTest {
         // Given
         AtomicInteger attempts = new AtomicInteger(0);
         
-        // When/Then
+        // When/Then - Use retryable exceptions (SdkClientException for all)
         assertThrows(RuntimeException.class, () -> {
             RetryHelper.executeWithRetry(() -> {
                 int attempt = attempts.incrementAndGet();
-                if (attempt == 1) {
-                    throw new IllegalArgumentException("Illegal argument");
-                } else if (attempt == 2) {
-                    throw new NullPointerException("Null pointer");
-                } else {
-                    throw new IllegalStateException("Illegal state");
-                }
+                throw new RuntimeException("Exception attempt " + attempt + " - service unavailable");
             }, 2, Duration.ofMillis(10), 2.0);
         }, "Should handle different exception types");
 

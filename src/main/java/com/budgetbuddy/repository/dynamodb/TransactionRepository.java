@@ -68,7 +68,12 @@ public class TransactionRepository {
         if (transaction == null) {
             throw new IllegalArgumentException("Transaction cannot be null");
         }
-        transactionTable.putItem(transaction);
+        // CRITICAL FIX: Add retry logic for DynamoDB throttling and transient errors
+        // This improves data durability during transient failures
+        com.budgetbuddy.util.RetryHelper.executeDynamoDbWithRetry(() -> {
+            transactionTable.putItem(transaction);
+            return null;
+        });
     }
 
     public Optional<TransactionTable> findById(final String transactionId) {
@@ -718,6 +723,9 @@ public class TransactionRepository {
                             .build());
             return true;
         } catch (ConditionalCheckFailedException e) {
+            // MEDIUM PRIORITY: Conditional check failure indicates transaction already exists
+            // Note: Full monitoring integration should be done at service layer with dependency injection
+            // This is expected behavior for idempotent operations, so no logging needed here
             return false; // Transaction already exists
         }
     }

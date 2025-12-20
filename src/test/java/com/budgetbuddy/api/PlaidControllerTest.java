@@ -2,7 +2,10 @@ package com.budgetbuddy.api;
 
 import com.budgetbuddy.model.dynamodb.UserTable;
 import com.budgetbuddy.plaid.PlaidService;
+import com.budgetbuddy.service.PlaidSyncService;
 import com.budgetbuddy.service.UserService;
+import com.budgetbuddy.repository.dynamodb.AccountRepository;
+import com.budgetbuddy.service.TransactionService;
 import com.plaid.client.model.ItemPublicTokenExchangeResponse;
 import com.plaid.client.model.LinkTokenCreateResponse;
 import org.junit.jupiter.api.BeforeEach;
@@ -17,6 +20,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.Executor;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -34,7 +38,20 @@ class PlaidControllerTest {
     private PlaidService plaidService;
 
     @Mock
+    private PlaidSyncService plaidSyncService;
+
+    @Mock
     private UserService userService;
+
+    @Mock
+    private AccountRepository accountRepository;
+
+    @Mock
+    private TransactionService transactionService;
+
+    @Mock
+    @org.springframework.beans.factory.annotation.Qualifier("taskExecutor")
+    private Executor taskExecutor;
 
     @Mock
     private UserDetails userDetails;
@@ -52,6 +69,15 @@ class PlaidControllerTest {
 
         when(userDetails.getUsername()).thenReturn("test@example.com");
         when(userService.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
+        
+        // CRITICAL FIX: Mock taskExecutor to execute tasks synchronously in tests
+        // This ensures async operations complete before assertions
+        // Use doAnswer for void methods
+        doAnswer(invocation -> {
+            Runnable runnable = invocation.getArgument(0);
+            runnable.run(); // Execute synchronously in tests
+            return null;
+        }).when(taskExecutor).execute(any(Runnable.class));
     }
 
     @Test
@@ -89,13 +115,21 @@ class PlaidControllerTest {
         mockResponse.setAccessToken("access-token-123");
         mockResponse.setItemId("item-id-123");
         when(plaidService.exchangePublicToken(anyString())).thenReturn(mockResponse);
+        
+        // CRITICAL FIX: Mock PlaidSyncService methods to prevent exceptions in async sync
+        // The controller calls syncAccountsAndTransactionsAsync which uses these services
+        doNothing().when(plaidSyncService).syncAccounts(any(), anyString(), anyString());
+        doNothing().when(plaidSyncService).syncTransactions(any(), anyString());
 
         // When
         ResponseEntity<?> response = plaidController.exchangePublicToken(userDetails, request);
 
         // Then
         assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
         verify(plaidService, times(1)).exchangePublicToken(anyString());
+        // Note: Async sync methods are called but we don't verify them since they run asynchronously
+        // The important thing is that the response is returned successfully
     }
 }
 

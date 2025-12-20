@@ -60,7 +60,11 @@ public class AccountRepository {
 
     @CacheEvict(value = "accounts", key = "#account.userId")
     public void save(final AccountTable account) {
-        accountTable.putItem(account);
+        // CRITICAL FIX: Add retry logic for DynamoDB throttling and transient errors
+        com.budgetbuddy.util.RetryHelper.executeDynamoDbWithRetry(() -> {
+            accountTable.putItem(account);
+            return null;
+        });
     }
 
     /**
@@ -165,6 +169,7 @@ public class AccountRepository {
         int inactiveCount = 0;
         int nullActiveCount = 0;
         int duplicateCount = 0;
+        int pseudoAccountCount = 0;
         
         // CRITICAL: Deduplicate accounts by both accountId and plaidAccountId
         // Use Set to track seen accountIds and plaidAccountIds to prevent duplicates
@@ -183,6 +188,7 @@ public class AccountRepository {
                 // CRITICAL FIX: Filter out pseudo accounts (accountSubtype == "manual")
                 // Pseudo accounts are system accounts and should not be returned to users
                 if (account.getAccountSubtype() != null && "manual".equalsIgnoreCase(account.getAccountSubtype())) {
+                    pseudoAccountCount++;
                     continue; // Skip pseudo accounts
                 }
                 
@@ -230,8 +236,8 @@ public class AccountRepository {
         // Log for debugging
         if (totalFound > 0) {
             org.slf4j.LoggerFactory.getLogger(AccountRepository.class)
-                    .info("findByUserId({}): Found {} total accounts ({} active, {} inactive, {} null active, {} duplicates filtered). Returning {} unique accounts.",
-                            userId, totalFound, activeCount, inactiveCount, nullActiveCount, duplicateCount, results.size());
+                    .info("findByUserId({}): Found {} total accounts ({} active, {} inactive, {} null active, {} duplicates filtered, {} pseudo accounts filtered). Returning {} unique accounts.",
+                            userId, totalFound, activeCount, inactiveCount, nullActiveCount, duplicateCount, pseudoAccountCount, results.size());
         }
         
         return results;
@@ -415,8 +421,11 @@ public class AccountRepository {
                         .error("Error in fallback query for userId {}: {}", userId, fallbackException.getMessage(), fallbackException);
             }
         } catch (Exception e) {
+            // Log at WARN level since this is a graceful fallback (returns empty list)
+            // ERROR level is reserved for errors that prevent the method from completing its contract
+            // Here, we gracefully handle the error by returning an empty list, so WARN is appropriate
             org.slf4j.LoggerFactory.getLogger(AccountRepository.class)
-                    .error("Error finding accounts by userId and updatedAfter {}: {}", userId, e.getMessage(), e);
+                    .warn("Error finding accounts by userId and updatedAfter {}: {}. Returning empty list.", userId, e.getMessage());
         }
         
         return results;

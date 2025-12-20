@@ -12,6 +12,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -283,26 +284,61 @@ public class TransactionService {
             // Validate UUID format
             try {
                 UUID.fromString(transactionId); // Validates UUID format
-                // Check if transaction with this ID already exists
-                if (transactionRepository.findById(transactionId).isPresent()) {
-                    // Transaction already exists - check if it matches by Plaid ID
-                    Optional<TransactionTable> existingOpt = transactionRepository.findById(transactionId);
-                    if (existingOpt.isPresent() && plaidTransactionId != null && !plaidTransactionId.isEmpty()) {
-                        TransactionTable existing = existingOpt.get();
-                        if (plaidTransactionId.equals(existing.getPlaidTransactionId())) {
-                            // Same transaction (matched by Plaid ID) - return existing
-                            logger.info("Transaction with ID {} already exists and matches Plaid ID {}, returning existing", 
-                                    transactionId, plaidTransactionId);
+                // CRITICAL FIX: Normalize ID to lowercase before checking for existing
+                // This ensures we check with the normalized ID that will be saved
+                String normalizedId = com.budgetbuddy.util.IdGenerator.normalizeUUID(transactionId);
+                // Check if transaction with this ID already exists (using normalized ID)
+                Optional<TransactionTable> existingOpt = transactionRepository.findById(normalizedId);
+                if (existingOpt.isPresent()) {
+                    TransactionTable existing = existingOpt.get();
+                    
+                    // CRITICAL FIX: Verify the existing transaction belongs to the same user
+                    // This prevents unauthorized access and ensures idempotent behavior
+                    if (!existing.getUserId().equals(user.getUserId())) {
+                        // Transaction exists but belongs to a different user - security issue
+                        logger.warn("Transaction with ID {} already exists but belongs to different user. Generating new UUID for security.", normalizedId);
+                        // Fall through to generate new UUID
+                    } else {
+                        // Transaction exists and belongs to the same user - check Plaid ID matching
+                        String existingPlaidId = existing.getPlaidTransactionId();
+                        boolean existingHasPlaidId = existingPlaidId != null && !existingPlaidId.isEmpty();
+                        boolean requestHasPlaidId = plaidTransactionId != null && !plaidTransactionId.isEmpty();
+                        
+                        if (requestHasPlaidId && plaidTransactionId != null) {
+                            // Request provides Plaid ID - must match for idempotency
+                            final String providedPlaidId = plaidTransactionId; // Non-null due to check above
+                            if (existingHasPlaidId && providedPlaidId.equals(existingPlaidId)) {
+                                // Same transaction (matched by Plaid ID) - return existing (idempotent)
+                                logger.info("Transaction with ID {} already exists and matches Plaid ID {}, returning existing", 
+                                        normalizedId, providedPlaidId);
+                                return existing;
+                            } else if (existingHasPlaidId && !providedPlaidId.equals(existingPlaidId)) {
+                                // CRITICAL: Plaid ID provided but doesn't match existing - this is a conflict
+                                // Generate new UUID to prevent data corruption
+                                logger.warn("Transaction with ID {} already exists but Plaid ID doesn't match (existing: {}, provided: {}). " +
+                                        "Generating new UUID to prevent data conflict.", 
+                                        normalizedId, existingPlaidId, providedPlaidId);
+                                // Fall through to generate new UUID
+                            } else {
+                                // Request has Plaid ID but existing doesn't - update existing with Plaid ID
+                                // This handles the case where a manual transaction is later linked to Plaid
+                                logger.info("Transaction with ID {} exists without Plaid ID, but request provides Plaid ID {}. " +
+                                        "Will update existing transaction with Plaid ID.", 
+                                        normalizedId, providedPlaidId);
+                                // Continue to update the existing transaction with Plaid ID
+                                // Note: The transaction will be updated later in the method
+                                return existing;
+                            }
+                        } else {
+                            // No Plaid ID provided in request - return existing for idempotency
+                            // This handles both manual transactions and Plaid transactions without ID in request
+                            logger.info("Transaction with ID {} already exists (no Plaid ID in request). Returning existing for idempotency.", 
+                                    normalizedId);
                             return existing;
                         }
                     }
-                    // Transaction exists but doesn't match by Plaid ID - generate new UUID
-                    logger.warn("Transaction with ID {} already exists but Plaid ID doesn't match, generating new UUID", transactionId);
-                    // Fall through to generate deterministic UUID from Plaid ID if available
                 } else {
-                    // CRITICAL FIX: Normalize ID to lowercase when saving to match lookup behavior
-                    // DynamoDB partition keys are case-sensitive, so we must normalize on save and lookup
-                    String normalizedId = com.budgetbuddy.util.IdGenerator.normalizeUUID(transactionId);
+                    // Transaction doesn't exist - set normalized ID
                     transaction.setTransactionId(normalizedId);
                     logger.info("Using provided transaction ID (normalized): {} -> {}", transactionId, normalizedId);
                 }
@@ -355,6 +391,11 @@ public class TransactionService {
             transaction.setNotes(notes.trim().isEmpty() ? null : notes.trim());
         }
 
+        // CRITICAL: Set timestamps for data freshness and incremental sync
+        Instant now = Instant.now();
+        transaction.setCreatedAt(now);
+        transaction.setUpdatedAt(now);
+
         transactionRepository.save(transaction);
         logger.info("Created transaction {} for user {} with notes: {} (Plaid ID: {})", 
                 transaction.getTransactionId(), user.getEmail(), 
@@ -366,9 +407,12 @@ public class TransactionService {
     /**
      * Update transaction (e.g., notes)
      * Supports lookup by transactionId or plaidTransactionId (fallback)
+     * CRITICAL: When notes is null in this method, it means clear notes (explicit update)
      */
     public TransactionTable updateTransaction(final UserTable user, final String transactionId, final String notes) {
-        return updateTransaction(user, transactionId, null, null, notes, null, null, null, null);
+        // When this 3-parameter method is called, notes is explicitly provided (even if null)
+        // So null means clear notes, not preserve
+        return updateTransaction(user, transactionId, null, null, notes, null, null, null, null, true);
     }
     
     /**
@@ -380,8 +424,9 @@ public class TransactionService {
      * @param categoryDetailed Optional: override detailed category
      * @param isAudited Optional: audit checkmark state
      * @param isHidden Optional: whether transaction is hidden from view
+     * @param clearNotesIfNull If true, null notes means clear notes. If false, null notes means preserve existing.
      */
-    public TransactionTable updateTransaction(final UserTable user, final String transactionId, final String plaidTransactionId, final BigDecimal amount, final String notes, final String categoryPrimary, final String categoryDetailed, final Boolean isAudited, final Boolean isHidden) {
+    public TransactionTable updateTransaction(final UserTable user, final String transactionId, final String plaidTransactionId, final BigDecimal amount, final String notes, final String categoryPrimary, final String categoryDetailed, final Boolean isAudited, final Boolean isHidden, final boolean clearNotesIfNull) {
         if (user == null || user.getUserId() == null || user.getUserId().isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "User is required");
         }
@@ -414,27 +459,26 @@ public class TransactionService {
             logger.info("Amount updated: {}", amount);
         }
 
-        // CRITICAL FIX: Only update notes if explicitly provided in the request
-        // The issue: When updating only plaidTransactionId, notes might be null in the request,
-        // which would clear existing notes. We need to distinguish between:
-        // 1. notes field not provided (null) -> preserve existing notes
-        // 2. notes field explicitly set to empty string -> clear notes
-        // 3. notes field has a value -> set it
-        // 
-        // Since Java can't distinguish between "field not provided" and "field is null" in JSON,
-        // we use a different approach: Only update notes if the request explicitly includes it.
-        // However, the UpdateTransactionRequest always includes notes (as null if not set).
-        // 
-        // The real fix: The iOS app should preserve existing notes when they're not being updated.
-        // For now, we'll preserve notes if they're null (assuming field wasn't meant to be updated).
-        // If the user wants to clear notes, they should send an empty string.
+        // Update Plaid transaction ID if provided
+        if (plaidTransactionId != null && !plaidTransactionId.trim().isEmpty()) {
+            transaction.setPlaidTransactionId(plaidTransactionId.trim());
+            logger.info("Plaid transaction ID updated: {}", plaidTransactionId.trim());
+        }
+
+        // CRITICAL FIX: Handle notes update based on clearNotesIfNull flag
+        // - If clearNotesIfNull is true: null notes means clear notes (explicit update)
+        // - If clearNotesIfNull is false: null notes means preserve existing (partial update)
         if (notes != null) {
             // Notes field was provided in the request - update it
             String trimmedNotes = notes.trim();
             transaction.setNotes(trimmedNotes.isEmpty() ? null : trimmedNotes);
             logger.info("Notes updated: {}", trimmedNotes.isEmpty() ? "cleared" : trimmedNotes);
+        } else if (clearNotesIfNull) {
+            // Notes is null and clearNotesIfNull is true - clear notes (explicit update)
+            transaction.setNotes(null);
+            logger.info("Notes cleared (explicit null update)");
         } else {
-            // Notes is null - preserve existing notes (field likely wasn't meant to be updated)
+            // Notes is null and clearNotesIfNull is false - preserve existing notes
             // This prevents clearing notes when only other fields (like plaidTransactionId) are being updated
             logger.debug("Notes field not provided (null) - preserving existing notes: {}", 
                     transaction.getNotes() != null ? transaction.getNotes() : "none");

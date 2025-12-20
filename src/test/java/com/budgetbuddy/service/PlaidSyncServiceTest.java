@@ -108,7 +108,8 @@ class PlaidSyncServiceTest {
             account.setUpdatedAt(java.time.Instant.now());
             return null;
         }).when(dataExtractor).updateAccountFromPlaid(any(AccountTable.class), any());
-        when(accountRepository.findByPlaidAccountId(anyString())).thenReturn(Optional.empty());
+        // OPTIMIZATION: Service now loads all accounts once via findByUserId instead of per-account queries
+        when(accountRepository.findByUserId(testUserId)).thenReturn(Collections.emptyList());
         when(accountRepository.saveIfNotExists(any(AccountTable.class))).thenReturn(true);
 
         // When
@@ -144,7 +145,8 @@ class PlaidSyncServiceTest {
             account.setUpdatedAt(java.time.Instant.now());
             return null;
         }).when(dataExtractor).updateAccountFromPlaid(any(AccountTable.class), any());
-        when(accountRepository.findByPlaidAccountId("plaid-account-1")).thenReturn(Optional.of(existingAccount));
+        // OPTIMIZATION: Service now loads all accounts once via findByUserId instead of per-account queries
+        when(accountRepository.findByUserId(testUserId)).thenReturn(Collections.singletonList(existingAccount));
         doNothing().when(accountRepository).save(any(AccountTable.class));
 
         // When
@@ -178,7 +180,8 @@ class PlaidSyncServiceTest {
             account.setUpdatedAt(java.time.Instant.now());
             return null;
         }).when(dataExtractor).updateAccountFromPlaid(any(AccountTable.class), any());
-        when(accountRepository.findByPlaidAccountId(anyString())).thenReturn(Optional.empty());
+        // OPTIMIZATION: Service now loads all accounts once via findByUserId instead of per-account queries
+        when(accountRepository.findByUserId(testUserId)).thenReturn(Collections.emptyList());
         when(accountRepository.saveIfNotExists(any(AccountTable.class))).thenReturn(true);
 
         // When

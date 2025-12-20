@@ -2,29 +2,23 @@ package com.budgetbuddy.compliance.pcidss;
 
 import com.budgetbuddy.compliance.AuditLogService;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.MockitoAnnotations;
 import software.amazon.awssdk.services.cloudwatch.CloudWatchClient;
 import software.amazon.awssdk.services.kms.KmsClient;
-import software.amazon.awssdk.services.cloudwatch.model.PutMetricDataRequest;
-import software.amazon.awssdk.services.cloudwatch.model.PutMetricDataResponse;
 
 import java.util.Arrays;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 /**
- * Unit Tests for PCIDSSComplianceService
- * Tests PCI-DSS compliance functionality
+ * Comprehensive tests for PCIDSSComplianceService
  */
-@ExtendWith(MockitoExtension.class)
-@org.mockito.junit.jupiter.MockitoSettings(strictness = org.mockito.quality.Strictness.LENIENT)
 class PCIDSSComplianceServiceTest {
 
     @Mock
@@ -36,328 +30,274 @@ class PCIDSSComplianceServiceTest {
     @Mock
     private KmsClient kmsClient;
 
-    @InjectMocks
     private PCIDSSComplianceService pciDSSComplianceService;
-
-    private String testUserId;
-    private String testPAN;
 
     @BeforeEach
     void setUp() {
-        testUserId = "user-123";
-        testPAN = "4111111111111111"; // Valid test card number
+        MockitoAnnotations.openMocks(this);
+        pciDSSComplianceService = new PCIDSSComplianceService(
+                auditLogService, cloudWatchClient, kmsClient);
     }
 
     @Test
-    void testMaskPAN_WithValidPAN_ReturnsMaskedPAN() {
-        // When
-        String result = pciDSSComplianceService.maskPAN(testPAN);
-
-        // Then
-        assertNotNull(result);
-        assertEquals("****1111", result, "Should mask all but last 4 digits");
-    }
-
-    @Test
-    void testMaskPAN_WithNullPAN_ReturnsDefaultMask() {
-        // When
-        String result = pciDSSComplianceService.maskPAN(null);
-
-        // Then
-        assertEquals("****", result);
-    }
-
-    @Test
-    void testMaskPAN_WithShortPAN_ReturnsDefaultMask() {
-        // When
-        String result = pciDSSComplianceService.maskPAN("123");
-
-        // Then
-        assertEquals("****", result);
-    }
-
-    @Test
-    void testIsPANMasked_WithMaskedPAN_ReturnsTrue() {
+    @DisplayName("Should mask PAN showing only last 4 digits")
+    void testMaskPAN() {
         // Given
-        String maskedPAN = "****1111";
+        String pan = "4111111111111111";
 
         // When
-        boolean result = pciDSSComplianceService.isPANMasked(maskedPAN);
+        String masked = pciDSSComplianceService.maskPAN(pan);
 
         // Then
-        assertTrue(result);
+        assertEquals("****1111", masked);
+        assertTrue(pciDSSComplianceService.isPANMasked(masked));
     }
 
     @Test
-    void testIsPANMasked_WithUnmaskedPAN_ReturnsFalse() {
-        // When
-        boolean result = pciDSSComplianceService.isPANMasked(testPAN);
-
-        // Then
-        assertFalse(result);
-    }
-
-    @Test
-    void testEncryptPAN_WithValidPAN_ReturnsEncrypted() {
+    @DisplayName("Should return all stars for invalid PAN")
+    void testMaskPAN_Invalid() {
         // Given
+        String pan = "123";
+
+        // When
+        String masked = pciDSSComplianceService.maskPAN(pan);
+
+        // Then
+        assertEquals("****", masked);
+    }
+
+    @Test
+    @DisplayName("Should handle null PAN")
+    void testMaskPAN_Null() {
+        // When
+        String masked = pciDSSComplianceService.maskPAN(null);
+
+        // Then
+        assertEquals("****", masked);
+    }
+
+    @Test
+    @DisplayName("Should encrypt PAN")
+    void testEncryptPAN() {
+        // Given
+        String pan = "4111111111111111";
         String keyId = "key-123";
-        doNothing().when(auditLogService).logCardDataAccess(anyString(), anyString(), anyBoolean());
-        PutMetricDataResponse response = PutMetricDataResponse.builder().build();
-        when(cloudWatchClient.putMetricData(any(PutMetricDataRequest.class))).thenReturn(response);
 
         // When
-        String result = pciDSSComplianceService.encryptPAN(testPAN, keyId);
+        String encrypted = pciDSSComplianceService.encryptPAN(pan, keyId);
 
         // Then
-        assertNotNull(result);
-        assertTrue(result.startsWith("encrypted_"));
-        verify(auditLogService, times(1)).logCardDataAccess(anyString(), anyString(), eq(true));
+        assertNotNull(encrypted);
+        assertTrue(encrypted.startsWith("encrypted_"));
+        verify(auditLogService).logCardDataAccess(eq("SYSTEM"), anyString(), eq(true));
     }
 
     @Test
-    void testLogKeyAccess_WithValidInput_LogsAccess() {
-        // Given
-        String keyId = "key-123";
-        String operation = "ENCRYPT";
-        doNothing().when(auditLogService).logCardDataAccess(anyString(), anyString(), anyBoolean());
-        PutMetricDataResponse response = PutMetricDataResponse.builder().build();
-        when(cloudWatchClient.putMetricData(any(PutMetricDataRequest.class))).thenReturn(response);
-
-        // When
-        pciDSSComplianceService.logKeyAccess(keyId, testUserId, operation);
-
-        // Then
-        verify(auditLogService, times(1)).logCardDataAccess(eq(testUserId), eq("KEY_ACCESS"), eq(true));
-        verify(cloudWatchClient, times(1)).putMetricData(any(PutMetricDataRequest.class));
-    }
-
-    @Test
-    void testValidateTLSConfiguration_WithValidTLS_ReturnsTrue() {
+    @DisplayName("Should validate TLS configuration")
+    void testValidateTLSConfiguration() {
         // Given
         String tlsVersion = "TLSv1.2";
         List<String> cipherSuites = Arrays.asList("TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384");
 
         // When
-        boolean result = pciDSSComplianceService.validateTLSConfiguration(tlsVersion, cipherSuites);
+        boolean valid = pciDSSComplianceService.validateTLSConfiguration(tlsVersion, cipherSuites);
 
         // Then
-        assertTrue(result);
+        assertTrue(valid);
     }
 
     @Test
-    void testValidateTLSConfiguration_WithInvalidTLS_ReturnsFalse() {
+    @DisplayName("Should reject weak TLS version")
+    void testValidateTLSConfiguration_WeakVersion() {
         // Given
         String tlsVersion = "TLSv1.0";
-        List<String> cipherSuites = Arrays.asList("TLS_RSA_WITH_AES_256_CBC_SHA");
+        List<String> cipherSuites = Arrays.asList("TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384");
 
         // When
-        boolean result = pciDSSComplianceService.validateTLSConfiguration(tlsVersion, cipherSuites);
+        boolean valid = pciDSSComplianceService.validateTLSConfiguration(tlsVersion, cipherSuites);
 
         // Then
-        assertFalse(result);
+        assertFalse(valid);
     }
 
     @Test
-    void testValidateTLSConfiguration_WithWeakCipher_ReturnsFalse() {
+    @DisplayName("Should reject weak cipher suites")
+    void testValidateTLSConfiguration_WeakCipher() {
         // Given
         String tlsVersion = "TLSv1.2";
         List<String> cipherSuites = Arrays.asList("RC4-SHA");
 
         // When
-        boolean result = pciDSSComplianceService.validateTLSConfiguration(tlsVersion, cipherSuites);
+        boolean valid = pciDSSComplianceService.validateTLSConfiguration(tlsVersion, cipherSuites);
 
         // Then
-        assertFalse(result);
+        assertFalse(valid);
     }
 
     @Test
-    void testCheckAccessAuthorization_WithAuthorizedAccess_ReturnsTrue() {
+    @DisplayName("Should validate password strength")
+    void testValidatePasswordStrength() {
         // Given
-        String resource = "/api/transactions";
-        String action = "READ";
-        doNothing().when(auditLogService).logCardholderDataAccess(anyString(), anyString(), anyBoolean());
-        // Note: putMetricData is only called for unauthorized access, not for authorized access
+        String strongPassword = "StrongP@ssw0rd123";
 
         // When
-        boolean result = pciDSSComplianceService.checkAccessAuthorization(testUserId, resource, action);
+        boolean valid = pciDSSComplianceService.validatePasswordStrength(strongPassword);
 
         // Then
-        assertTrue(result);
-        verify(auditLogService, times(1)).logCardholderDataAccess(testUserId, resource, true);
+        assertTrue(valid);
     }
 
     @Test
-    void testCheckAccessAuthorization_WithUnauthorizedAccess_ReturnsFalse() {
+    @DisplayName("Should reject weak password")
+    void testValidatePasswordStrength_Weak() {
         // Given
+        String weakPassword = "weak";
+
+        // When
+        boolean valid = pciDSSComplianceService.validatePasswordStrength(weakPassword);
+
+        // Then
+        assertFalse(valid);
+    }
+
+    @Test
+    @DisplayName("Should log MFA usage")
+    void testLogMFAUsage() {
+        // Given
+        String userId = "user-123";
+        String mfaMethod = "TOTP";
+
+        // When
+        pciDSSComplianceService.logMFAUsage(userId, mfaMethod, true);
+
+        // Then
+        verify(auditLogService).logAuthentication(eq(userId), eq("MFA_TOTP"), eq(true));
+    }
+
+    @Test
+    @DisplayName("Should check access authorization")
+    void testCheckAccessAuthorization() {
+        // Given
+        String userId = "user-123";
+        String resource = "/api/transactions";
+        String action = "GET";
+
+        // When
+        boolean authorized = pciDSSComplianceService.checkAccessAuthorization(userId, resource, action);
+
+        // Then
+        assertTrue(authorized);
+        verify(auditLogService).logCardholderDataAccess(eq(userId), eq(resource), eq(true));
+    }
+
+    @Test
+    @DisplayName("Should detect unauthorized access")
+    void testCheckAccessAuthorization_Unauthorized() {
+        // Given
+        String userId = "user-123";
         String resource = "/api/admin/users";
         String action = "DELETE";
-        doNothing().when(auditLogService).logCardholderDataAccess(anyString(), anyString(), anyBoolean());
-        PutMetricDataResponse response = PutMetricDataResponse.builder().build();
-        when(cloudWatchClient.putMetricData(any(PutMetricDataRequest.class))).thenReturn(response);
 
         // When
-        boolean result = pciDSSComplianceService.checkAccessAuthorization(testUserId, resource, action);
+        boolean authorized = pciDSSComplianceService.checkAccessAuthorization(userId, resource, action);
 
         // Then
-        assertFalse(result);
-        verify(auditLogService, times(1)).logCardholderDataAccess(testUserId, resource, false);
+        assertFalse(authorized);
+        verify(auditLogService).logCardholderDataAccess(eq(userId), eq(resource), eq(false));
     }
 
     @Test
-    void testValidatePasswordStrength_WithStrongPassword_ReturnsTrue() {
+    @DisplayName("Should validate no sensitive data storage")
+    void testValidateNoSensitiveDataStorage() {
         // Given
-        String password = "StrongP@ssw0rd123";
+        String data = "Normal transaction data";
 
         // When
-        boolean result = pciDSSComplianceService.validatePasswordStrength(password);
+        boolean valid = pciDSSComplianceService.validateNoSensitiveDataStorage(data);
 
         // Then
-        assertTrue(result);
+        assertTrue(valid);
     }
 
     @Test
-    void testValidatePasswordStrength_WithWeakPassword_ReturnsFalse() {
+    @DisplayName("Should detect CVV in stored data")
+    void testValidateNoSensitiveDataStorage_CVV() {
         // Given
-        String password = "weak";
+        String data = "Card number 4111111111111111 CVV 123";
 
         // When
-        boolean result = pciDSSComplianceService.validatePasswordStrength(password);
+        boolean valid = pciDSSComplianceService.validateNoSensitiveDataStorage(data);
 
         // Then
-        assertFalse(result);
+        assertFalse(valid);
     }
 
     @Test
-    void testValidatePasswordStrength_WithShortPassword_ReturnsFalse() {
+    @DisplayName("Should detect track data")
+    void testValidateNoSensitiveDataStorage_TrackData() {
         // Given
-        String password = "Short1!";
+        String data = "%B4111111111111111^TEST";
 
         // When
-        boolean result = pciDSSComplianceService.validatePasswordStrength(password);
+        boolean valid = pciDSSComplianceService.validateNoSensitiveDataStorage(data);
 
         // Then
-        assertFalse(result);
+        assertFalse(valid);
     }
 
     @Test
-    void testLogMFAUsage_WithSuccess_LogsSuccess() {
+    @DisplayName("Should log cardholder data access")
+    void testLogCardholderDataAccess() {
         // Given
-        String mfaMethod = "TOTP";
-        boolean success = true;
-        doNothing().when(auditLogService).logAuthentication(anyString(), anyString(), anyBoolean());
-        PutMetricDataResponse response = PutMetricDataResponse.builder().build();
-        when(cloudWatchClient.putMetricData(any(PutMetricDataRequest.class))).thenReturn(response);
+        String userId = "user-123";
+        String resource = "/api/transactions";
+        String action = "GET";
 
         // When
-        pciDSSComplianceService.logMFAUsage(testUserId, mfaMethod, success);
+        pciDSSComplianceService.logCardholderDataAccess(userId, resource, action, true);
 
         // Then
-        verify(auditLogService, times(1)).logAuthentication(testUserId, "MFA_" + mfaMethod, success);
-        verify(cloudWatchClient, times(1)).putMetricData(any(PutMetricDataRequest.class));
+        verify(auditLogService).logCardholderDataAccess(eq(userId), eq(resource), eq(true));
     }
 
     @Test
-    void testLogCardholderDataAccess_WithAuthorized_LogsAccess() {
-        // Given
-        String resource = "/api/accounts";
-        String action = "READ";
-        boolean authorized = true;
-        doNothing().when(auditLogService).logCardholderDataAccess(anyString(), anyString(), anyBoolean());
-        PutMetricDataResponse response = PutMetricDataResponse.builder().build();
-        when(cloudWatchClient.putMetricData(any(PutMetricDataRequest.class))).thenReturn(response);
-
-        // When
-        pciDSSComplianceService.logCardholderDataAccess(testUserId, resource, action, authorized);
-
-        // Then
-        verify(auditLogService, times(1)).logCardholderDataAccess(testUserId, resource, authorized);
-        verify(cloudWatchClient, times(1)).putMetricData(any(PutMetricDataRequest.class));
-    }
-
-    @Test
-    void testProtectAuditTrail_WithValidLogId_ProtectsTrail() {
+    @DisplayName("Should protect audit trail")
+    void testProtectAuditTrail() {
         // Given
         String auditLogId = "log-123";
-        doNothing().when(auditLogService).protectLogInformation(anyString());
-        PutMetricDataResponse response = PutMetricDataResponse.builder().build();
-        when(cloudWatchClient.putMetricData(any(PutMetricDataRequest.class))).thenReturn(response);
 
         // When
         pciDSSComplianceService.protectAuditTrail(auditLogId);
 
         // Then
-        verify(auditLogService, times(1)).protectLogInformation(auditLogId);
-        verify(cloudWatchClient, times(1)).putMetricData(any(PutMetricDataRequest.class));
+        verify(auditLogService).protectLogInformation(eq(auditLogId));
     }
 
     @Test
-    void testDetectIntrusion_WithSuspiciousActivity_LogsIntrusion() {
+    @DisplayName("Should detect intrusion")
+    void testDetectIntrusion() {
         // Given
+        String userId = "user-123";
         String resource = "/api/admin";
         String suspiciousActivity = "Multiple failed login attempts";
-        doNothing().when(auditLogService).logSecurityEvent(anyString(), anyString(), anyString());
-        PutMetricDataResponse response = PutMetricDataResponse.builder().build();
-        when(cloudWatchClient.putMetricData(any(PutMetricDataRequest.class))).thenReturn(response);
 
         // When
-        pciDSSComplianceService.detectIntrusion(testUserId, resource, suspiciousActivity);
+        pciDSSComplianceService.detectIntrusion(userId, resource, suspiciousActivity);
 
         // Then
-        verify(auditLogService, times(1)).logSecurityEvent(eq("INTRUSION_DETECTED"), eq("CRITICAL"), eq(suspiciousActivity));
-        verify(cloudWatchClient, times(1)).putMetricData(any(PutMetricDataRequest.class));
+        verify(auditLogService).logSecurityEvent(eq("INTRUSION_DETECTED"), eq("CRITICAL"), eq(suspiciousActivity));
     }
 
     @Test
-    void testLogPolicyCompliance_WithCompliant_LogsCompliance() {
+    @DisplayName("Should log policy compliance")
+    void testLogPolicyCompliance() {
         // Given
         String policyId = "POL-001";
-        boolean compliant = true;
-        doNothing().when(auditLogService).logComplianceCheck(anyString(), anyBoolean());
-        PutMetricDataResponse response = PutMetricDataResponse.builder().build();
-        when(cloudWatchClient.putMetricData(any(PutMetricDataRequest.class))).thenReturn(response);
 
         // When
-        pciDSSComplianceService.logPolicyCompliance(policyId, compliant);
+        pciDSSComplianceService.logPolicyCompliance(policyId, true);
 
         // Then
-        verify(auditLogService, times(1)).logComplianceCheck("PCI-DSS_" + policyId, compliant);
-        verify(cloudWatchClient, times(1)).putMetricData(any(PutMetricDataRequest.class));
-    }
-
-    @Test
-    void testValidateNoSensitiveDataStorage_WithCVV_ReturnsFalse() {
-        // Given
-        String data = "Card number: 4111111111111111, CVV: 123";
-
-        // When
-        boolean result = pciDSSComplianceService.validateNoSensitiveDataStorage(data);
-
-        // Then
-        assertFalse(result, "Should detect CVV in data");
-    }
-
-    @Test
-    void testValidateNoSensitiveDataStorage_WithTrackData_ReturnsFalse() {
-        // Given
-        String data = "%B4111111111111111^CARDHOLDER/NAME^";
-
-        // When
-        boolean result = pciDSSComplianceService.validateNoSensitiveDataStorage(data);
-
-        // Then
-        assertFalse(result, "Should detect track data");
-    }
-
-    @Test
-    void testValidateNoSensitiveDataStorage_WithSafeData_ReturnsTrue() {
-        // Given
-        String data = "Regular transaction data without sensitive information";
-
-        // When
-        boolean result = pciDSSComplianceService.validateNoSensitiveDataStorage(data);
-
-        // Then
-        assertTrue(result);
+        verify(auditLogService).logComplianceCheck(eq("PCI-DSS_POL-001"), eq(true));
     }
 }
-

@@ -92,7 +92,8 @@ class PlaidCategoryIntegrationTest {
                 "groceries", // categoryPrimary
                 "groceries", // categoryDetailed
                 null, // isAudited
-                null  // isHidden
+                null, // isHidden
+                false // clearNotesIfNull = false means preserve existing notes
         );
 
         // Then - Verify override is applied
