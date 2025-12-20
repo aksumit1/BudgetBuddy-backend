@@ -290,29 +290,32 @@ public class PlaidCategoryMapper {
             // For generic ACH credits without clear indicators, use "deposit" instead of defaulting to "salary"
             String incomeCategory = determineIncomeCategory(description, merchantName);
             
-            // If determineIncomeCategory returns "salary" (default), check if there are explicit salary keywords
-            // Only use "salary" if there are explicit keywords; otherwise use "deposit"
+            // If determineIncomeCategory returns "salary", check if there are explicit salary indicators
+            // Only use "salary" if there are explicit keywords or payroll service names
+            // Generic ACH credits without indicators should default to "deposit"
             if ("salary".equals(incomeCategory)) {
-                // Check if description contains explicit salary keywords
-                // CRITICAL: Include payroll services like Gusto, ADP, Paychex, etc.
-                boolean hasExplicitSalaryKeywords = description != null && 
-                    (description.toLowerCase().contains("salary") || 
-                     description.toLowerCase().contains("payroll") ||
-                     description.toLowerCase().contains("paycheck") ||
-                     description.toLowerCase().contains("wages") ||
-                     description.toLowerCase().contains("direct deposit") ||
-                     description.toLowerCase().contains("gusto") ||
-                     description.toLowerCase().contains("adp") ||
-                     description.toLowerCase().contains("paychex") ||
-                     description.toLowerCase().contains("quickbooks payroll") ||
-                     description.toLowerCase().contains("paycom") ||
-                     description.toLowerCase().contains("bamboohr"));
+                // Check if description/merchant contains explicit salary keywords or payroll service names
+                // Use combinedTextLower which is already defined and lowercase
+                boolean hasSalaryIndicators = combinedTextLower.contains("salary") || 
+                                             combinedTextLower.contains("payroll") ||
+                                             combinedTextLower.contains("paycheck") ||
+                                             combinedTextLower.contains("direct deposit") ||
+                                             combinedTextLower.contains("wages") ||
+                                             combinedTextLower.contains("pay stub") ||
+                                             combinedTextLower.contains("payroll deposit") ||
+                                             combinedTextLower.contains("payroll direct") ||
+                                             combinedTextLower.contains("gusto") ||
+                                             combinedTextLower.contains("adp") ||
+                                             combinedTextLower.contains("paychex") ||
+                                             combinedTextLower.contains("quickbooks payroll") ||
+                                             combinedTextLower.contains("paycom") ||
+                                             combinedTextLower.contains("bamboohr");
                 
-                if (hasExplicitSalaryKeywords) {
-                    // Has explicit salary keywords - use "salary"
+                if (hasSalaryIndicators) {
+                    // Has explicit salary indicators - use "salary"
                     mappedDetailed = "salary";
                 } else {
-                    // No explicit salary keywords - use "deposit" instead
+                    // No explicit salary indicators - use "deposit" instead
                     mappedDetailed = "deposit";
                 }
             } else if ("interest".equals(incomeCategory) || "dividend".equals(incomeCategory) || 

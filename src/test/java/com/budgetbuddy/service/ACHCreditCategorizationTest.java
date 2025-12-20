@@ -127,9 +127,8 @@ class ACHCreditCategorizationTest {
         // Then
         assertNotNull(mapping);
         assertEquals("income", mapping.getPrimary(), "ACH Electronic Credit should be income, even with GUSTO PAY");
-        // CRITICAL: "GUSTO PAY" doesn't contain explicit salary keywords, so should use "deposit"
-        // Only use "salary" if description explicitly contains "salary", "payroll", "paycheck", or "wages"
-        assertEquals("deposit", mapping.getDetailed(), "ACH Electronic Credit with GUSTO PAY should be deposit (no explicit salary keywords)");
+        // CRITICAL: "GUSTO PAY" contains payroll service name (Gusto), so should be categorized as "salary"
+        assertEquals("salary", mapping.getDetailed(), "ACH Electronic Credit with GUSTO PAY should be salary (Gusto is a payroll service)");
     }
 
     @Test
