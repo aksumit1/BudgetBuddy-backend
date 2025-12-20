@@ -1,0 +1,3259 @@
+{
+    "Items": [
+        {
+            "createdAt": {
+                "N": "1766203240"
+            },
+            "resourceId": {
+                "S": "third-party-123"
+            },
+            "auditLogId": {
+                "S": "a5e24dd0-8ef3-419b-a881-5c1fe0cae5c9"
+            },
+            "action": {
+                "S": "THIRD_PARTY_AUTHORIZATION"
+            },
+            "details": {
+                "S": "{\"thirdPartyId\":\"third-party-123\",\"scope\":\"transactions\"}"
+            },
+            "userId": {
+                "S": "e932faf9-9e1e-4d16-a61e-a9fcd3ed816e"
+            },
+            "resourceType": {
+                "S": "DMA"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766206898"
+            },
+            "resourceId": {
+                "S": "f1d9975a-48c0-4ac6-966f-783d7087fb01"
+            },
+            "auditLogId": {
+                "S": "326619f0-d6b5-49a2-9ea4-27229b67d42f"
+            },
+            "action": {
+                "S": "DATA_EXPORT"
+            },
+            "details": {
+                "S": "{\"exportId\":\"f1d9975a-48c0-4ac6-966f-783d7087fb01\"}"
+            },
+            "userId": {
+                "S": "882985dc-7974-4abd-84d5-267b4d12f5f7"
+            },
+            "resourceType": {
+                "S": "DATA"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766206662"
+            },
+            "resourceId": {
+                "S": "customer-123"
+            },
+            "auditLogId": {
+                "S": "fa74674a-6442-4d87-810f-a0b8c74a4c30"
+            },
+            "action": {
+                "S": "COMMUNICATION"
+            },
+            "details": {
+                "S": "{\"content\":\"Test communication\"}"
+            },
+            "userId": {
+                "S": "96750f13-aad5-4b95-82b1-fb4bb1344c27"
+            },
+            "resourceType": {
+                "S": "EMAIL"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766206913"
+            },
+            "resourceId": {
+                "S": "third-party-123"
+            },
+            "auditLogId": {
+                "S": "eb3b9806-ab10-4ee9-8a5e-77a706141aee"
+            },
+            "action": {
+                "S": "THIRD_PARTY_AUTHORIZATION"
+            },
+            "details": {
+                "S": "{\"thirdPartyId\":\"third-party-123\",\"scope\":\"transactions\"}"
+            },
+            "userId": {
+                "S": "382f08c4-07f7-4a5a-8738-6e5722ca8b87"
+            },
+            "resourceType": {
+                "S": "DMA"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766206662"
+            },
+            "resourceId": {
+                "S": "third-party-123"
+            },
+            "auditLogId": {
+                "S": "e25aa56d-4610-4df7-8944-e104259da0a5"
+            },
+            "action": {
+                "S": "THIRD_PARTY_AUTHORIZATION"
+            },
+            "details": {
+                "S": "{\"thirdPartyId\":\"third-party-123\",\"scope\":\"read:transactions\"}"
+            },
+            "userId": {
+                "S": "ca8095f5-7262-4073-b571-53a796ef0a07"
+            },
+            "resourceType": {
+                "S": "DMA"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766203225"
+            },
+            "action": {
+                "S": "CONSENT"
+            },
+            "details": {
+                "S": "{\"purpose\":\"Email marketing\",\"consentType\":\"MARKETING\",\"granted\":true}"
+            },
+            "userId": {
+                "S": "cdeb64a2-942c-42d1-9195-d7e13a54ca12"
+            },
+            "auditLogId": {
+                "S": "5f0a5449-7887-443d-af1b-d27967f79a68"
+            },
+            "resourceType": {
+                "S": "CONSENT"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766206679"
+            },
+            "resourceId": {
+                "S": "third-party-123"
+            },
+            "auditLogId": {
+                "S": "d6baec61-155c-45d9-a4e6-62285f279947"
+            },
+            "action": {
+                "S": "THIRD_PARTY_AUTHORIZATION"
+            },
+            "details": {
+                "S": "{\"thirdPartyId\":\"third-party-123\",\"scope\":\"transactions\"}"
+            },
+            "userId": {
+                "S": "e7a946cc-3150-45d7-966f-2c39364417fb"
+            },
+            "resourceType": {
+                "S": "DMA"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766206663"
+            },
+            "resourceId": {
+                "S": "74e9bd06-2d32-42b9-b88c-325997611a0c"
+            },
+            "auditLogId": {
+                "S": "c178d4d5-ce81-4236-b23c-00c34203f58b"
+            },
+            "action": {
+                "S": "DATA_EXPORT"
+            },
+            "details": {
+                "S": "{\"exportId\":\"74e9bd06-2d32-42b9-b88c-325997611a0c\"}"
+            },
+            "userId": {
+                "S": "09778e9f-5003-4016-a4cd-5192108ece62"
+            },
+            "resourceType": {
+                "S": "DATA"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766203493"
+            },
+            "resourceId": {
+                "S": "84cbdd7d-3d65-442d-93e8-bde8c7af2a5e"
+            },
+            "auditLogId": {
+                "S": "8608b66d-ed2c-472b-992c-87fe6f405a4d"
+            },
+            "action": {
+                "S": "DATA_EXPORT"
+            },
+            "details": {
+                "S": "{\"exportId\":\"84cbdd7d-3d65-442d-93e8-bde8c7af2a5e\"}"
+            },
+            "userId": {
+                "S": "d618af81-93ad-40b5-8a91-a28fda08002d"
+            },
+            "resourceType": {
+                "S": "DATA"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766206680"
+            },
+            "resourceId": {
+                "S": "0f2acb3e-8bde-4e76-8357-37b27f6d196b"
+            },
+            "auditLogId": {
+                "S": "f1e99e7d-ed96-4b96-9fa3-ce72b3270398"
+            },
+            "action": {
+                "S": "DATA_EXPORT"
+            },
+            "details": {
+                "S": "{\"exportId\":\"0f2acb3e-8bde-4e76-8357-37b27f6d196b\"}"
+            },
+            "userId": {
+                "S": "2d910181-aa8e-4320-80dc-dab291bb0a32"
+            },
+            "resourceType": {
+                "S": "DATA"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766206663"
+            },
+            "resourceId": {
+                "S": "phi-123"
+            },
+            "auditLogId": {
+                "S": "c035483e-63cc-4c44-8252-9c026eb9468c"
+            },
+            "action": {
+                "S": "BREACH_NOTIFICATION"
+            },
+            "details": {
+                "S": "{\"details\":\"Test breach\",\"reported\":false,\"breachType\":\"UNAUTHORIZED_ACCESS\"}"
+            },
+            "userId": {
+                "S": "28f94d58-d010-4a7b-92b4-02bb5e4f6c5b"
+            },
+            "resourceType": {
+                "S": "BREACH"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766206663"
+            },
+            "resourceId": {
+                "S": "9cc25476-5cf8-4dab-914d-2c63ffee590e"
+            },
+            "auditLogId": {
+                "S": "a79d0a58-bb7b-4530-a2a4-36eda912b66e"
+            },
+            "action": {
+                "S": "DATA_EXPORT"
+            },
+            "details": {
+                "S": "{\"exportId\":\"9cc25476-5cf8-4dab-914d-2c63ffee590e\"}"
+            },
+            "userId": {
+                "S": "09778e9f-5003-4016-a4cd-5192108ece62"
+            },
+            "resourceType": {
+                "S": "DATA"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766203507"
+            },
+            "resourceId": {
+                "S": "304b8f10-3895-4f15-8991-1396eaa7910f"
+            },
+            "auditLogId": {
+                "S": "371a667f-9c2c-492b-b5c3-f6ba3a6c304d"
+            },
+            "action": {
+                "S": "DATA_EXPORT"
+            },
+            "details": {
+                "S": "{\"exportId\":\"304b8f10-3895-4f15-8991-1396eaa7910f\"}"
+            },
+            "userId": {
+                "S": "e90c95b4-a519-40ed-9b6d-14ba90c3da78"
+            },
+            "resourceType": {
+                "S": "DATA"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766203225"
+            },
+            "resourceId": {
+                "S": "2896a785-109d-407f-9142-63204158c5a7"
+            },
+            "auditLogId": {
+                "S": "2d5bea24-f033-4577-9189-823e7431d4da"
+            },
+            "action": {
+                "S": "DATA_EXPORT"
+            },
+            "details": {
+                "S": "{\"exportId\":\"2896a785-109d-407f-9142-63204158c5a7\"}"
+            },
+            "userId": {
+                "S": "855dfae6-5fe9-4ad6-832f-c05e698c2427"
+            },
+            "resourceType": {
+                "S": "DATA"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766206663"
+            },
+            "resourceId": {
+                "S": "third-party-123"
+            },
+            "auditLogId": {
+                "S": "01adbeee-eb3b-4291-8c47-7179224946d6"
+            },
+            "action": {
+                "S": "THIRD_PARTY_AUTHORIZATION"
+            },
+            "details": {
+                "S": "{\"thirdPartyId\":\"third-party-123\",\"scope\":\"transactions\"}"
+            },
+            "userId": {
+                "S": "09778e9f-5003-4016-a4cd-5192108ece62"
+            },
+            "resourceType": {
+                "S": "DMA"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766203495"
+            },
+            "resourceId": {
+                "S": "tx-123"
+            },
+            "auditLogId": {
+                "S": "300c8b51-4fb9-41b3-aed3-ebc2ae3f001e"
+            },
+            "action": {
+                "S": "RECORD_KEEPING"
+            },
+            "details": {
+                "S": "{\"retentionUntil\":\"2032-12-18T04:04:55.346624Z\"}"
+            },
+            "userId": {
+                "S": "SYSTEM"
+            },
+            "resourceType": {
+                "S": "TRANSACTION"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766203493"
+            },
+            "resourceId": {
+                "S": "f82777c7-b1ce-4d85-b5af-e7c4a6a092ff"
+            },
+            "auditLogId": {
+                "S": "60184e59-7ea7-4221-af3a-fc4680755fd1"
+            },
+            "action": {
+                "S": "DATA_EXPORT"
+            },
+            "details": {
+                "S": "{\"exportId\":\"f82777c7-b1ce-4d85-b5af-e7c4a6a092ff\"}"
+            },
+            "userId": {
+                "S": "d7b3c1a2-c468-4dc9-9645-bba18d445bcb"
+            },
+            "resourceType": {
+                "S": "DATA"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766203493"
+            },
+            "resourceId": {
+                "S": "tx-123"
+            },
+            "auditLogId": {
+                "S": "0a8c2bbe-b73f-4b60-90ce-bd9d0fff7598"
+            },
+            "action": {
+                "S": "RECORD_KEEPING"
+            },
+            "details": {
+                "S": "{\"retentionUntil\":\"2032-12-18T04:04:53.582996Z\"}"
+            },
+            "userId": {
+                "S": "SYSTEM"
+            },
+            "resourceType": {
+                "S": "TRANSACTION"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766203227"
+            },
+            "action": {
+                "S": "CONSENT"
+            },
+            "details": {
+                "S": "{\"purpose\":\"Email marketing\",\"consentType\":\"MARKETING\",\"granted\":true}"
+            },
+            "userId": {
+                "S": "user-123"
+            },
+            "auditLogId": {
+                "S": "922c36ec-4bfb-4bd5-8f03-7f0045f9cb9a"
+            },
+            "resourceType": {
+                "S": "CONSENT"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766203508"
+            },
+            "resourceId": {
+                "S": "c79e14e7-3b84-42cd-b875-78aa6286dad4"
+            },
+            "auditLogId": {
+                "S": "1b69e588-7175-4659-a750-26be9c499018"
+            },
+            "action": {
+                "S": "DATA_EXPORT"
+            },
+            "details": {
+                "S": "{\"exportId\":\"c79e14e7-3b84-42cd-b875-78aa6286dad4\"}"
+            },
+            "userId": {
+                "S": "01dbb5ca-a205-45df-ac91-883c22c474b5"
+            },
+            "resourceType": {
+                "S": "DATA"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766203226"
+            },
+            "resourceId": {
+                "S": "phi-123"
+            },
+            "auditLogId": {
+                "S": "f6f6023a-bdc7-4e38-8ad4-6bb26a36b641"
+            },
+            "action": {
+                "S": "PHI_BREACH"
+            },
+            "details": {
+                "S": "{\"details\":\"Test breach\",\"breachType\":\"UNAUTHORIZED_ACCESS\"}"
+            },
+            "userId": {
+                "S": "406be983-2da5-40f3-849e-2ed931f934ad"
+            },
+            "resourceType": {
+                "S": "PHI"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766206900"
+            },
+            "resourceId": {
+                "S": "phi-456"
+            },
+            "auditLogId": {
+                "S": "9d8ae079-b536-485b-94e6-f20aca247166"
+            },
+            "action": {
+                "S": "PHI_BREACH"
+            },
+            "details": {
+                "S": "{\"details\":\"Test breach\",\"breachType\":\"UNAUTHORIZED_ACCESS\"}"
+            },
+            "userId": {
+                "S": "user-123"
+            },
+            "resourceType": {
+                "S": "PHI"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766203493"
+            },
+            "resourceId": {
+                "S": "28a5641a-b01a-4d84-8604-2329104b0f43"
+            },
+            "auditLogId": {
+                "S": "0398df8c-6103-44b5-8ac1-6dd977374fc0"
+            },
+            "action": {
+                "S": "DATA_EXPORT"
+            },
+            "details": {
+                "S": "{\"exportId\":\"28a5641a-b01a-4d84-8604-2329104b0f43\"}"
+            },
+            "userId": {
+                "S": "d7b3c1a2-c468-4dc9-9645-bba18d445bcb"
+            },
+            "resourceType": {
+                "S": "DATA"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766203493"
+            },
+            "resourceId": {
+                "S": "37e0d244-ace4-474d-b3d3-b96733dec9bd"
+            },
+            "auditLogId": {
+                "S": "578ae267-e032-46c4-b7ed-bbd62126a70c"
+            },
+            "action": {
+                "S": "SUPERVISION"
+            },
+            "details": {
+                "S": "{\"activity\":\"TRADE_REVIEW\",\"approved\":true}"
+            },
+            "userId": {
+                "S": "supervisor-123"
+            },
+            "resourceType": {
+                "S": "SUPERVISION"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766203493"
+            },
+            "action": {
+                "S": "CONSENT"
+            },
+            "details": {
+                "S": "{\"consentType\":\"MARKETING\",\"purpose\":\"Email marketing\",\"granted\":true}"
+            },
+            "userId": {
+                "S": "4d6f71ed-5279-4f64-a165-38fa0b3b53c5"
+            },
+            "auditLogId": {
+                "S": "9264ecf9-57f9-4f69-bb80-534c02c4cac5"
+            },
+            "resourceType": {
+                "S": "CONSENT"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766203241"
+            },
+            "resourceId": {
+                "S": "df734003-baba-4e15-b3fb-e2ba85452ead"
+            },
+            "auditLogId": {
+                "S": "a381a153-33f6-4483-b228-089679894742"
+            },
+            "action": {
+                "S": "DATA_EXPORT"
+            },
+            "details": {
+                "S": "{\"exportId\":\"df734003-baba-4e15-b3fb-e2ba85452ead\"}"
+            },
+            "userId": {
+                "S": "ecb4a28e-0cc1-4079-bf89-dfe1f552e278"
+            },
+            "resourceType": {
+                "S": "DATA"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766203511"
+            },
+            "resourceId": {
+                "S": "5c3e0211-de16-4c66-9a8c-3c10cc118766"
+            },
+            "auditLogId": {
+                "S": "00bd421c-b730-44eb-a071-69fec674bd99"
+            },
+            "action": {
+                "S": "DATA_EXPORT"
+            },
+            "details": {
+                "S": "{\"exportId\":\"5c3e0211-de16-4c66-9a8c-3c10cc118766\"}"
+            },
+            "userId": {
+                "S": "7ece134f-cab3-4642-9fce-65a8d413ab68"
+            },
+            "resourceType": {
+                "S": "DATA"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766206679"
+            },
+            "resourceId": {
+                "S": "9e70fd2c-81a9-4182-af03-73bc55d39e09"
+            },
+            "auditLogId": {
+                "S": "eefaeb0d-d549-4fb9-abdc-8783e3ee2426"
+            },
+            "action": {
+                "S": "DATA_EXPORT"
+            },
+            "details": {
+                "S": "{\"exportId\":\"9e70fd2c-81a9-4182-af03-73bc55d39e09\"}"
+            },
+            "userId": {
+                "S": "e7a946cc-3150-45d7-966f-2c39364417fb"
+            },
+            "resourceType": {
+                "S": "DATA"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766206913"
+            },
+            "resourceId": {
+                "S": "1534dd5c-073e-4685-87f4-77fe0467f684"
+            },
+            "auditLogId": {
+                "S": "02156c4a-b70b-42e6-b3b5-1878c0116805"
+            },
+            "action": {
+                "S": "DATA_EXPORT"
+            },
+            "details": {
+                "S": "{\"exportId\":\"1534dd5c-073e-4685-87f4-77fe0467f684\"}"
+            },
+            "userId": {
+                "S": "382f08c4-07f7-4a5a-8738-6e5722ca8b87"
+            },
+            "resourceType": {
+                "S": "DATA"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766203509"
+            },
+            "resourceId": {
+                "S": "third-party-123"
+            },
+            "auditLogId": {
+                "S": "437b22dc-f148-4e85-8844-38b6cacee012"
+            },
+            "action": {
+                "S": "THIRD_PARTY_AUTHORIZATION"
+            },
+            "details": {
+                "S": "{\"thirdPartyId\":\"third-party-123\",\"scope\":\"read:transactions\"}"
+            },
+            "userId": {
+                "S": "87ee8bd9-ca0c-4054-80f2-18c49e632fa2"
+            },
+            "resourceType": {
+                "S": "DMA"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766206898"
+            },
+            "action": {
+                "S": "CONSENT"
+            },
+            "details": {
+                "S": "{\"purpose\":\"Email marketing\",\"consentType\":\"MARKETING\",\"granted\":true}"
+            },
+            "userId": {
+                "S": "b9e60c52-f3d4-4572-ad04-38c75b9a06ae"
+            },
+            "auditLogId": {
+                "S": "3f957f9b-6757-45ad-979f-a24974fd86df"
+            },
+            "resourceType": {
+                "S": "CONSENT"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766206913"
+            },
+            "resourceId": {
+                "S": "5bab6aa6-f6d5-4c46-8346-0fd8570478cc"
+            },
+            "auditLogId": {
+                "S": "562dfc13-8b55-405b-80f3-8f36534458e9"
+            },
+            "action": {
+                "S": "DATA_EXPORT"
+            },
+            "details": {
+                "S": "{\"exportId\":\"5bab6aa6-f6d5-4c46-8346-0fd8570478cc\"}"
+            },
+            "userId": {
+                "S": "382f08c4-07f7-4a5a-8738-6e5722ca8b87"
+            },
+            "resourceType": {
+                "S": "DATA"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766206898"
+            },
+            "action": {
+                "S": "CONSENT_WITHDRAWAL"
+            },
+            "details": {
+                "S": "{\"consentType\":\"MARKETING\"}"
+            },
+            "userId": {
+                "S": "b9e60c52-f3d4-4572-ad04-38c75b9a06ae"
+            },
+            "auditLogId": {
+                "S": "19fabd7f-0856-45dd-b3a2-6b69f6f6bdaf"
+            },
+            "resourceType": {
+                "S": "CONSENT"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766206679"
+            },
+            "resourceId": {
+                "S": "third-party-123"
+            },
+            "auditLogId": {
+                "S": "49ddfefe-2aed-4d13-aa7c-f5f7960c646b"
+            },
+            "action": {
+                "S": "DATA_SHARING"
+            },
+            "details": {
+                "S": "{\"thirdPartyId\":\"third-party-123\",\"dataType\":\"transactions\"}"
+            },
+            "userId": {
+                "S": "e7a946cc-3150-45d7-966f-2c39364417fb"
+            },
+            "resourceType": {
+                "S": "DMA"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766206662"
+            },
+            "resourceId": {
+                "S": "third-party-123"
+            },
+            "auditLogId": {
+                "S": "b096eee2-b391-4fa2-bd78-dc436fe9d1f2"
+            },
+            "action": {
+                "S": "THIRD_PARTY_AUTHORIZATION"
+            },
+            "details": {
+                "S": "{\"thirdPartyId\":\"third-party-123\",\"scope\":\"transactions\"}"
+            },
+            "userId": {
+                "S": "09778e9f-5003-4016-a4cd-5192108ece62"
+            },
+            "resourceType": {
+                "S": "DMA"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766206679"
+            },
+            "resourceId": {
+                "S": "third-party-123"
+            },
+            "auditLogId": {
+                "S": "6ee88c13-1651-4456-894a-f6b84009ec22"
+            },
+            "action": {
+                "S": "THIRD_PARTY_AUTHORIZATION"
+            },
+            "details": {
+                "S": "{\"thirdPartyId\":\"third-party-123\",\"scope\":\"read:transactions\"}"
+            },
+            "userId": {
+                "S": "e95192ab-b2c4-41a3-b162-f10516ea980b"
+            },
+            "resourceType": {
+                "S": "DMA"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766206898"
+            },
+            "resourceId": {
+                "S": "phi-123"
+            },
+            "auditLogId": {
+                "S": "cdf8141c-a191-46a8-accc-dcba78ceefea"
+            },
+            "action": {
+                "S": "BREACH_NOTIFICATION"
+            },
+            "details": {
+                "S": "{\"details\":\"Test breach\",\"reported\":false,\"breachType\":\"UNAUTHORIZED_ACCESS\"}"
+            },
+            "userId": {
+                "S": "eb4df862-dd9e-42f2-bd5f-33ec6edf8313"
+            },
+            "resourceType": {
+                "S": "BREACH"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766203493"
+            },
+            "resourceId": {
+                "S": "phi-123"
+            },
+            "auditLogId": {
+                "S": "27a11c9e-b1c5-453f-9541-7e8e9916d90d"
+            },
+            "action": {
+                "S": "PHI_BREACH"
+            },
+            "details": {
+                "S": "{\"details\":\"Test breach\",\"breachType\":\"UNAUTHORIZED_ACCESS\"}"
+            },
+            "userId": {
+                "S": "41b0fc1a-37cd-4bb7-bad1-5b8da56da279"
+            },
+            "resourceType": {
+                "S": "PHI"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766203493"
+            },
+            "resourceId": {
+                "S": "5ae2b866-2d47-4302-abd6-dc526858aeaf"
+            },
+            "auditLogId": {
+                "S": "92517b0c-cc8b-404b-b6e5-06ddac178ac2"
+            },
+            "action": {
+                "S": "DATA_EXPORT"
+            },
+            "details": {
+                "S": "{\"exportId\":\"5ae2b866-2d47-4302-abd6-dc526858aeaf\"}"
+            },
+            "userId": {
+                "S": "d7b3c1a2-c468-4dc9-9645-bba18d445bcb"
+            },
+            "resourceType": {
+                "S": "DATA"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766203225"
+            },
+            "resourceId": {
+                "S": "tx-123"
+            },
+            "auditLogId": {
+                "S": "7a966823-6261-418d-b7dd-05fca099d6dd"
+            },
+            "action": {
+                "S": "RECORD_KEEPING"
+            },
+            "details": {
+                "S": "{\"retentionUntil\":\"2032-12-18T04:00:25.992466Z\"}"
+            },
+            "userId": {
+                "S": "SYSTEM"
+            },
+            "resourceType": {
+                "S": "TRANSACTION"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766206664"
+            },
+            "action": {
+                "S": "CONSENT"
+            },
+            "details": {
+                "S": "{\"purpose\":\"Email marketing\",\"consentType\":\"MARKETING\",\"granted\":true}"
+            },
+            "userId": {
+                "S": "user-123"
+            },
+            "auditLogId": {
+                "S": "9330fd30-1cb5-41c2-a9e0-75725a64edca"
+            },
+            "resourceType": {
+                "S": "CONSENT"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766203493"
+            },
+            "action": {
+                "S": "SUSPICIOUS_ACTIVITY"
+            },
+            "details": {
+                "S": "{\"activityType\":\"UNUSUAL_TRANSACTION\",\"details\":\"Large transaction detected\"}"
+            },
+            "userId": {
+                "S": "0b576a74-fdcc-4848-a611-302e09669212"
+            },
+            "auditLogId": {
+                "S": "18b95d7b-b4b5-4238-a33d-e31e01b68914"
+            },
+            "resourceType": {
+                "S": "COMPLIANCE"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766203493"
+            },
+            "resourceId": {
+                "S": "third-party-123"
+            },
+            "auditLogId": {
+                "S": "24dcb6af-ec1c-46c9-92e4-84e93ccb39ec"
+            },
+            "action": {
+                "S": "DATA_SHARING"
+            },
+            "details": {
+                "S": "{\"thirdPartyId\":\"third-party-123\",\"dataType\":\"transactions\"}"
+            },
+            "userId": {
+                "S": "81cfefea-037d-40d0-b6a9-4cd5fc703418"
+            },
+            "resourceType": {
+                "S": "DMA"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766206898"
+            },
+            "action": {
+                "S": "SUSPICIOUS_ACTIVITY"
+            },
+            "details": {
+                "S": "{\"details\":\"Large transaction detected\",\"activityType\":\"UNUSUAL_TRANSACTION\"}"
+            },
+            "userId": {
+                "S": "804e6e99-90a3-4122-8d34-edde05017a6f"
+            },
+            "auditLogId": {
+                "S": "557efc08-1d97-4e61-98f9-777f30c11648"
+            },
+            "resourceType": {
+                "S": "COMPLIANCE"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766203495"
+            },
+            "action": {
+                "S": "CONSENT_WITHDRAWAL"
+            },
+            "details": {
+                "S": "{\"consentType\":\"MARKETING\"}"
+            },
+            "userId": {
+                "S": "user-123"
+            },
+            "auditLogId": {
+                "S": "2870fff6-37a2-42a5-b6cf-baa88757c499"
+            },
+            "resourceType": {
+                "S": "CONSENT"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766206898"
+            },
+            "resourceId": {
+                "S": "cf775e44-c4f3-43a8-a923-a7970c1a3ade"
+            },
+            "auditLogId": {
+                "S": "abd3457b-0df6-404a-871a-215e76939390"
+            },
+            "action": {
+                "S": "SUPERVISION"
+            },
+            "details": {
+                "S": "{\"approved\":true,\"activity\":\"TRADE_REVIEW\"}"
+            },
+            "userId": {
+                "S": "supervisor-123"
+            },
+            "resourceType": {
+                "S": "SUPERVISION"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766203508"
+            },
+            "resourceId": {
+                "S": "third-party-123"
+            },
+            "auditLogId": {
+                "S": "19e8942d-f7d1-4eb7-9869-3b1cac8ed118"
+            },
+            "action": {
+                "S": "DATA_SHARING"
+            },
+            "details": {
+                "S": "{\"thirdPartyId\":\"third-party-123\",\"dataType\":\"transactions\"}"
+            },
+            "userId": {
+                "S": "01dbb5ca-a205-45df-ac91-883c22c474b5"
+            },
+            "resourceType": {
+                "S": "DMA"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766203225"
+            },
+            "resourceId": {
+                "S": "54a4a22f-82f9-4241-b057-40b1e207ebf4"
+            },
+            "auditLogId": {
+                "S": "7394f912-1725-4d07-be42-cff9bf30e8ed"
+            },
+            "action": {
+                "S": "DATA_EXPORT"
+            },
+            "details": {
+                "S": "{\"exportId\":\"54a4a22f-82f9-4241-b057-40b1e207ebf4\"}"
+            },
+            "userId": {
+                "S": "93b047a5-3936-49f8-96c2-dbb5ff6969ea"
+            },
+            "resourceType": {
+                "S": "DATA"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766203240"
+            },
+            "resourceId": {
+                "S": "third-party-123"
+            },
+            "auditLogId": {
+                "S": "a7d7b28b-8127-4c34-911d-8f872f951a33"
+            },
+            "action": {
+                "S": "THIRD_PARTY_AUTHORIZATION"
+            },
+            "details": {
+                "S": "{\"thirdPartyId\":\"third-party-123\",\"scope\":\"transactions\"}"
+            },
+            "userId": {
+                "S": "e932faf9-9e1e-4d16-a61e-a9fcd3ed816e"
+            },
+            "resourceType": {
+                "S": "DMA"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766206898"
+            },
+            "resourceId": {
+                "S": "433178a8-ef4a-4620-93fa-5d3aa2b2eb61"
+            },
+            "auditLogId": {
+                "S": "7fabb79b-ce59-44b5-8625-d2dbeb0a34dd"
+            },
+            "action": {
+                "S": "DATA_EXPORT"
+            },
+            "details": {
+                "S": "{\"exportId\":\"433178a8-ef4a-4620-93fa-5d3aa2b2eb61\"}"
+            },
+            "userId": {
+                "S": "a3ce9f49-9755-4fef-90a1-40e11d56ed5a"
+            },
+            "resourceType": {
+                "S": "DATA"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766203493"
+            },
+            "resourceId": {
+                "S": "third-party-123"
+            },
+            "auditLogId": {
+                "S": "b47b546f-c48e-4cd4-a55e-13c88eb618ca"
+            },
+            "action": {
+                "S": "THIRD_PARTY_AUTHORIZATION"
+            },
+            "details": {
+                "S": "{\"thirdPartyId\":\"third-party-123\",\"scope\":\"read:transactions\"}"
+            },
+            "userId": {
+                "S": "a60d00ad-4e42-4a6d-8b1e-c666a6987196"
+            },
+            "resourceType": {
+                "S": "DMA"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766206662"
+            },
+            "resourceId": {
+                "S": "64f3aa72-5059-4032-b6dd-a375a77721e9"
+            },
+            "auditLogId": {
+                "S": "85bd9f65-9149-47a2-ad7d-d1078379d2d5"
+            },
+            "action": {
+                "S": "DATA_EXPORT"
+            },
+            "details": {
+                "S": "{\"exportId\":\"64f3aa72-5059-4032-b6dd-a375a77721e9\"}"
+            },
+            "userId": {
+                "S": "9d1f8261-fceb-49ed-91df-bf66e58fe79f"
+            },
+            "resourceType": {
+                "S": "DATA"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766206898"
+            },
+            "resourceId": {
+                "S": "f30affc4-72d5-4028-a608-b54800c4a3ba"
+            },
+            "auditLogId": {
+                "S": "8ad244c9-a2ec-4400-84aa-9542e68096a2"
+            },
+            "action": {
+                "S": "DATA_EXPORT"
+            },
+            "details": {
+                "S": "{\"exportId\":\"f30affc4-72d5-4028-a608-b54800c4a3ba\"}"
+            },
+            "userId": {
+                "S": "f3d368e3-4fd4-4080-8e13-e8044ff8ac02"
+            },
+            "resourceType": {
+                "S": "DATA"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766206898"
+            },
+            "resourceId": {
+                "S": "846874f3-4228-4e07-a2dc-10592dcb268a"
+            },
+            "auditLogId": {
+                "S": "467896a8-1e6b-48c5-8a5b-50b8d5cefa7a"
+            },
+            "action": {
+                "S": "DATA_EXPORT"
+            },
+            "details": {
+                "S": "{\"exportId\":\"846874f3-4228-4e07-a2dc-10592dcb268a\"}"
+            },
+            "userId": {
+                "S": "882985dc-7974-4abd-84d5-267b4d12f5f7"
+            },
+            "resourceType": {
+                "S": "DATA"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766206664"
+            },
+            "resourceId": {
+                "S": "phi-456"
+            },
+            "auditLogId": {
+                "S": "f3a06603-243a-4b85-9bc4-0c3c1dd0527b"
+            },
+            "action": {
+                "S": "PHI_BREACH"
+            },
+            "details": {
+                "S": "{\"details\":\"Test breach\",\"breachType\":\"UNAUTHORIZED_ACCESS\"}"
+            },
+            "userId": {
+                "S": "user-123"
+            },
+            "resourceType": {
+                "S": "PHI"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766203225"
+            },
+            "resourceId": {
+                "S": "third-party-123"
+            },
+            "auditLogId": {
+                "S": "94e6f3ba-7fcf-4bbe-a878-c1af574ae78e"
+            },
+            "action": {
+                "S": "THIRD_PARTY_AUTHORIZATION"
+            },
+            "details": {
+                "S": "{\"thirdPartyId\":\"third-party-123\",\"scope\":\"read:transactions\"}"
+            },
+            "userId": {
+                "S": "6731e0f5-7174-483f-9891-ecd6f193f7c9"
+            },
+            "resourceType": {
+                "S": "DMA"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766203227"
+            },
+            "resourceId": {
+                "S": "tx-123"
+            },
+            "auditLogId": {
+                "S": "2a13386b-aead-4485-93df-af1549255f8b"
+            },
+            "action": {
+                "S": "RECORD_KEEPING"
+            },
+            "details": {
+                "S": "{\"retentionUntil\":\"2032-12-18T04:00:27.830162Z\"}"
+            },
+            "userId": {
+                "S": "SYSTEM"
+            },
+            "resourceType": {
+                "S": "TRANSACTION"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766203493"
+            },
+            "resourceId": {
+                "S": "6f8c9e35-2644-4364-938a-01c9432f1596"
+            },
+            "auditLogId": {
+                "S": "6971aa7c-84ec-486f-a4b7-751ce2b0cb0f"
+            },
+            "action": {
+                "S": "DATA_EXPORT"
+            },
+            "details": {
+                "S": "{\"exportId\":\"6f8c9e35-2644-4364-938a-01c9432f1596\"}"
+            },
+            "userId": {
+                "S": "81cfefea-037d-40d0-b6a9-4cd5fc703418"
+            },
+            "resourceType": {
+                "S": "DATA"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766203225"
+            },
+            "resourceId": {
+                "S": "e58be66e-1086-4aa3-b6dc-418b5ae9624d"
+            },
+            "auditLogId": {
+                "S": "7c4bdcbe-ed9c-44df-8073-d76445c300d0"
+            },
+            "action": {
+                "S": "DATA_EXPORT"
+            },
+            "details": {
+                "S": "{\"exportId\":\"e58be66e-1086-4aa3-b6dc-418b5ae9624d\"}"
+            },
+            "userId": {
+                "S": "93b047a5-3936-49f8-96c2-dbb5ff6969ea"
+            },
+            "resourceType": {
+                "S": "DATA"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766203239"
+            },
+            "resourceId": {
+                "S": "1bdc63ca-1779-4233-94a6-ab715f8d033f"
+            },
+            "auditLogId": {
+                "S": "21fc109e-7015-477d-8672-1ec35f184259"
+            },
+            "action": {
+                "S": "DATA_EXPORT"
+            },
+            "details": {
+                "S": "{\"exportId\":\"1bdc63ca-1779-4233-94a6-ab715f8d033f\"}"
+            },
+            "userId": {
+                "S": "88ee1ff3-5a83-4a10-8088-3506982d5735"
+            },
+            "resourceType": {
+                "S": "DATA"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766206663"
+            },
+            "resourceId": {
+                "S": "tx-123"
+            },
+            "auditLogId": {
+                "S": "a21f9e72-2df7-415c-af1e-fa70ce8b3c20"
+            },
+            "action": {
+                "S": "RECORD_KEEPING"
+            },
+            "details": {
+                "S": "{\"retentionUntil\":\"2032-12-18T04:57:43.197712Z\"}"
+            },
+            "userId": {
+                "S": "SYSTEM"
+            },
+            "resourceType": {
+                "S": "TRANSACTION"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766203240"
+            },
+            "resourceId": {
+                "S": "third-party-123"
+            },
+            "auditLogId": {
+                "S": "df069ebc-10ea-4f06-9eb7-e28e0327b6de"
+            },
+            "action": {
+                "S": "DATA_SHARING"
+            },
+            "details": {
+                "S": "{\"thirdPartyId\":\"third-party-123\",\"dataType\":\"transactions\"}"
+            },
+            "userId": {
+                "S": "e932faf9-9e1e-4d16-a61e-a9fcd3ed816e"
+            },
+            "resourceType": {
+                "S": "DMA"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766203493"
+            },
+            "resourceId": {
+                "S": "customer-123"
+            },
+            "auditLogId": {
+                "S": "cab53d78-2d7c-4a3a-8aea-fdb395db054f"
+            },
+            "action": {
+                "S": "COMMUNICATION"
+            },
+            "details": {
+                "S": "{\"content\":\"Test communication\"}"
+            },
+            "userId": {
+                "S": "866b86f3-0921-43f8-a2e8-9e524b6f7243"
+            },
+            "resourceType": {
+                "S": "EMAIL"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766206898"
+            },
+            "resourceId": {
+                "S": "third-party-123"
+            },
+            "auditLogId": {
+                "S": "b37f0c01-b433-406c-97dc-7bdfe6e81e99"
+            },
+            "action": {
+                "S": "THIRD_PARTY_AUTHORIZATION"
+            },
+            "details": {
+                "S": "{\"thirdPartyId\":\"third-party-123\",\"scope\":\"read:transactions\"}"
+            },
+            "userId": {
+                "S": "a630303c-60ba-44d9-9cd8-88a08a5a2462"
+            },
+            "resourceType": {
+                "S": "DMA"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766206664"
+            },
+            "action": {
+                "S": "CONSENT_WITHDRAWAL"
+            },
+            "details": {
+                "S": "{\"consentType\":\"MARKETING\"}"
+            },
+            "userId": {
+                "S": "user-123"
+            },
+            "auditLogId": {
+                "S": "c488e2f6-6ec0-423c-8a7b-89b84055ba45"
+            },
+            "resourceType": {
+                "S": "CONSENT"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766203227"
+            },
+            "action": {
+                "S": "CONSENT_WITHDRAWAL"
+            },
+            "details": {
+                "S": "{\"consentType\":\"MARKETING\"}"
+            },
+            "userId": {
+                "S": "user-123"
+            },
+            "auditLogId": {
+                "S": "02ac3fd5-3b6a-423d-a0b0-8d925e282206"
+            },
+            "resourceType": {
+                "S": "CONSENT"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766206900"
+            },
+            "action": {
+                "S": "CONSENT_WITHDRAWAL"
+            },
+            "details": {
+                "S": "{\"consentType\":\"MARKETING\"}"
+            },
+            "userId": {
+                "S": "user-123"
+            },
+            "auditLogId": {
+                "S": "7a51434b-a221-41d0-b385-c2ee6635acd0"
+            },
+            "resourceType": {
+                "S": "CONSENT"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766203507"
+            },
+            "resourceId": {
+                "S": "4c19d4e9-e9f6-46fb-8634-c0ab56556187"
+            },
+            "auditLogId": {
+                "S": "c327ce61-7197-482e-b2c9-0644dde068ad"
+            },
+            "action": {
+                "S": "DATA_EXPORT"
+            },
+            "details": {
+                "S": "{\"exportId\":\"4c19d4e9-e9f6-46fb-8634-c0ab56556187\"}"
+            },
+            "userId": {
+                "S": "e90c95b4-a519-40ed-9b6d-14ba90c3da78"
+            },
+            "resourceType": {
+                "S": "DATA"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766203495"
+            },
+            "action": {
+                "S": "CONSENT"
+            },
+            "details": {
+                "S": "{\"consentType\":\"MARKETING\",\"purpose\":\"Email marketing\",\"granted\":true}"
+            },
+            "userId": {
+                "S": "user-123"
+            },
+            "auditLogId": {
+                "S": "164f919a-a442-48a8-984a-9f887777dac2"
+            },
+            "resourceType": {
+                "S": "CONSENT"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766206678"
+            },
+            "resourceId": {
+                "S": "9a02cfa7-6620-483f-952c-e8bcaf7e2687"
+            },
+            "auditLogId": {
+                "S": "d78a251a-2f19-4e54-a8a4-9392939569ec"
+            },
+            "action": {
+                "S": "DATA_EXPORT"
+            },
+            "details": {
+                "S": "{\"exportId\":\"9a02cfa7-6620-483f-952c-e8bcaf7e2687\"}"
+            },
+            "userId": {
+                "S": "960ce72b-6af9-4914-97d9-ab685922180b"
+            },
+            "resourceType": {
+                "S": "DATA"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766206912"
+            },
+            "resourceId": {
+                "S": "6fab7b13-8904-4a90-8944-5d1d25429c4b"
+            },
+            "auditLogId": {
+                "S": "31b54b98-2bce-4f27-8863-a44e5cf4832a"
+            },
+            "action": {
+                "S": "DATA_EXPORT"
+            },
+            "details": {
+                "S": "{\"exportId\":\"6fab7b13-8904-4a90-8944-5d1d25429c4b\"}"
+            },
+            "userId": {
+                "S": "6044aefa-56b5-4173-9d2a-eb9b38f3154a"
+            },
+            "resourceType": {
+                "S": "DATA"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766206681"
+            },
+            "resourceId": {
+                "S": "5a997687-461a-4cec-9972-95c10a08ecbf"
+            },
+            "auditLogId": {
+                "S": "056addad-6230-475f-be68-548a30d5ca80"
+            },
+            "action": {
+                "S": "DATA_EXPORT"
+            },
+            "details": {
+                "S": "{\"exportId\":\"5a997687-461a-4cec-9972-95c10a08ecbf\"}"
+            },
+            "userId": {
+                "S": "7c2945c1-7da1-4733-9778-e0899a2ad538"
+            },
+            "resourceType": {
+                "S": "DATA"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766206900"
+            },
+            "action": {
+                "S": "CONSENT"
+            },
+            "details": {
+                "S": "{\"purpose\":\"Email marketing\",\"consentType\":\"MARKETING\",\"granted\":true}"
+            },
+            "userId": {
+                "S": "user-123"
+            },
+            "auditLogId": {
+                "S": "29c84b1c-b271-417d-9601-0d12e5cd631b"
+            },
+            "resourceType": {
+                "S": "CONSENT"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766206912"
+            },
+            "resourceId": {
+                "S": "66d12ea3-714d-4159-85ff-472e1e374cce"
+            },
+            "auditLogId": {
+                "S": "f2e8f204-2219-41a5-9e28-932bfe47a3ac"
+            },
+            "action": {
+                "S": "DATA_EXPORT"
+            },
+            "details": {
+                "S": "{\"exportId\":\"66d12ea3-714d-4159-85ff-472e1e374cce\"}"
+            },
+            "userId": {
+                "S": "31c073e1-bafe-499c-840e-e69a6b98cef9"
+            },
+            "resourceType": {
+                "S": "DATA"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766203495"
+            },
+            "resourceId": {
+                "S": "phi-456"
+            },
+            "auditLogId": {
+                "S": "9303efd5-190b-4afc-b122-02d76dd0d0ed"
+            },
+            "action": {
+                "S": "BREACH_NOTIFICATION"
+            },
+            "details": {
+                "S": "{\"reported\":false,\"details\":\"Test breach\",\"breachType\":\"UNAUTHORIZED_ACCESS\"}"
+            },
+            "userId": {
+                "S": "user-123"
+            },
+            "resourceType": {
+                "S": "BREACH"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766203243"
+            },
+            "resourceId": {
+                "S": "d123291c-30a9-4082-8ec5-fe16b16cdff0"
+            },
+            "auditLogId": {
+                "S": "a6ef2a38-b043-4c2b-890b-200d3ca99f96"
+            },
+            "action": {
+                "S": "DATA_EXPORT"
+            },
+            "details": {
+                "S": "{\"exportId\":\"d123291c-30a9-4082-8ec5-fe16b16cdff0\"}"
+            },
+            "userId": {
+                "S": "382eb60c-b2c2-4eb1-8d67-a83ca44b10ca"
+            },
+            "resourceType": {
+                "S": "DATA"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766203241"
+            },
+            "resourceId": {
+                "S": "third-party-123"
+            },
+            "auditLogId": {
+                "S": "7b353911-4ec5-4d87-9120-900a0da1af91"
+            },
+            "action": {
+                "S": "THIRD_PARTY_AUTHORIZATION"
+            },
+            "details": {
+                "S": "{\"thirdPartyId\":\"third-party-123\",\"scope\":\"read:transactions\"}"
+            },
+            "userId": {
+                "S": "3e40b3ca-3c8f-4010-bc71-910647626756"
+            },
+            "resourceType": {
+                "S": "DMA"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766203225"
+            },
+            "resourceId": {
+                "S": "323a6141-c4cf-4d47-be4e-236f53a18026"
+            },
+            "auditLogId": {
+                "S": "44abda48-a24a-47ec-9a1b-4e77aef64dae"
+            },
+            "action": {
+                "S": "DATA_EXPORT"
+            },
+            "details": {
+                "S": "{\"exportId\":\"323a6141-c4cf-4d47-be4e-236f53a18026\"}"
+            },
+            "userId": {
+                "S": "2cb4160a-752a-48f6-8337-7dd0c7cfb1a9"
+            },
+            "resourceType": {
+                "S": "DATA"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766206664"
+            },
+            "resourceId": {
+                "S": "tx-123"
+            },
+            "auditLogId": {
+                "S": "07a99e98-0d17-4632-bcc9-46dc8b516b41"
+            },
+            "action": {
+                "S": "RECORD_KEEPING"
+            },
+            "details": {
+                "S": "{\"retentionUntil\":\"2032-12-18T04:57:44.998463Z\"}"
+            },
+            "userId": {
+                "S": "SYSTEM"
+            },
+            "resourceType": {
+                "S": "TRANSACTION"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766206663"
+            },
+            "resourceId": {
+                "S": "0b62866c-994f-4d14-9a15-ba738badb052"
+            },
+            "auditLogId": {
+                "S": "d8186ea4-8129-43fd-8af5-9c444900cf5a"
+            },
+            "action": {
+                "S": "DATA_EXPORT"
+            },
+            "details": {
+                "S": "{\"exportId\":\"0b62866c-994f-4d14-9a15-ba738badb052\"}"
+            },
+            "userId": {
+                "S": "da082ba6-aed2-4368-935d-801724711a14"
+            },
+            "resourceType": {
+                "S": "DATA"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766206898"
+            },
+            "resourceId": {
+                "S": "6073e2e4-7ea2-43fc-becc-f0acebd8ed6a"
+            },
+            "auditLogId": {
+                "S": "ac409579-d955-496d-adac-7e20c0846653"
+            },
+            "action": {
+                "S": "DATA_EXPORT"
+            },
+            "details": {
+                "S": "{\"exportId\":\"6073e2e4-7ea2-43fc-becc-f0acebd8ed6a\"}"
+            },
+            "userId": {
+                "S": "212eef7d-4f71-4727-b986-1845e609ea3d"
+            },
+            "resourceType": {
+                "S": "DATA"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766206913"
+            },
+            "resourceId": {
+                "S": "third-party-123"
+            },
+            "auditLogId": {
+                "S": "f8c59911-6e6a-4873-9fbf-5c82dc3e1723"
+            },
+            "action": {
+                "S": "THIRD_PARTY_AUTHORIZATION"
+            },
+            "details": {
+                "S": "{\"thirdPartyId\":\"third-party-123\",\"scope\":\"transactions\"}"
+            },
+            "userId": {
+                "S": "382f08c4-07f7-4a5a-8738-6e5722ca8b87"
+            },
+            "resourceType": {
+                "S": "DMA"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766203493"
+            },
+            "resourceId": {
+                "S": "phi-123"
+            },
+            "auditLogId": {
+                "S": "cdeb4e24-4f9a-452e-8d4b-d8929a8bd1d1"
+            },
+            "action": {
+                "S": "BREACH_NOTIFICATION"
+            },
+            "details": {
+                "S": "{\"reported\":false,\"details\":\"Test breach\",\"breachType\":\"UNAUTHORIZED_ACCESS\"}"
+            },
+            "userId": {
+                "S": "41b0fc1a-37cd-4bb7-bad1-5b8da56da279"
+            },
+            "resourceType": {
+                "S": "BREACH"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766206900"
+            },
+            "resourceId": {
+                "S": "tx-123"
+            },
+            "auditLogId": {
+                "S": "4ea89623-1dc3-4d59-bc97-bd9adcbcdd5f"
+            },
+            "action": {
+                "S": "RECORD_KEEPING"
+            },
+            "details": {
+                "S": "{\"retentionUntil\":\"2032-12-18T05:01:40.563717Z\"}"
+            },
+            "userId": {
+                "S": "SYSTEM"
+            },
+            "resourceType": {
+                "S": "TRANSACTION"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766203240"
+            },
+            "resourceId": {
+                "S": "c5f816c0-8a11-4a0e-84b8-b856b139f9d5"
+            },
+            "auditLogId": {
+                "S": "fe5b0bc2-c879-42a4-a363-7ebe6036c37d"
+            },
+            "action": {
+                "S": "DATA_EXPORT"
+            },
+            "details": {
+                "S": "{\"exportId\":\"c5f816c0-8a11-4a0e-84b8-b856b139f9d5\"}"
+            },
+            "userId": {
+                "S": "e932faf9-9e1e-4d16-a61e-a9fcd3ed816e"
+            },
+            "resourceType": {
+                "S": "DATA"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766203225"
+            },
+            "resourceId": {
+                "S": "096d9166-a56e-455c-b404-6fab27986c05"
+            },
+            "auditLogId": {
+                "S": "6c523918-aac8-48e9-a248-698fe16e140a"
+            },
+            "action": {
+                "S": "SUPERVISION"
+            },
+            "details": {
+                "S": "{\"approved\":true,\"activity\":\"TRADE_REVIEW\"}"
+            },
+            "userId": {
+                "S": "supervisor-123"
+            },
+            "resourceType": {
+                "S": "SUPERVISION"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766203240"
+            },
+            "resourceId": {
+                "S": "a6733bd4-0fbc-47c2-99f6-011785f60d33"
+            },
+            "auditLogId": {
+                "S": "8b0ddba1-c8cf-44b1-98a6-32bf45271480"
+            },
+            "action": {
+                "S": "DATA_EXPORT"
+            },
+            "details": {
+                "S": "{\"exportId\":\"a6733bd4-0fbc-47c2-99f6-011785f60d33\"}"
+            },
+            "userId": {
+                "S": "e932faf9-9e1e-4d16-a61e-a9fcd3ed816e"
+            },
+            "resourceType": {
+                "S": "DATA"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766203225"
+            },
+            "resourceId": {
+                "S": "third-party-123"
+            },
+            "auditLogId": {
+                "S": "cf4916b6-8012-4bbb-8589-05dd667d181f"
+            },
+            "action": {
+                "S": "DATA_SHARING"
+            },
+            "details": {
+                "S": "{\"thirdPartyId\":\"third-party-123\",\"dataType\":\"transactions\"}"
+            },
+            "userId": {
+                "S": "93b047a5-3936-49f8-96c2-dbb5ff6969ea"
+            },
+            "resourceType": {
+                "S": "DMA"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766203510"
+            },
+            "resourceId": {
+                "S": "331f1272-1806-49ef-957c-bb75307f3d9d"
+            },
+            "auditLogId": {
+                "S": "c192abcc-0f1e-486c-a7b1-5643a34d3d3e"
+            },
+            "action": {
+                "S": "DATA_EXPORT"
+            },
+            "details": {
+                "S": "{\"exportId\":\"331f1272-1806-49ef-957c-bb75307f3d9d\"}"
+            },
+            "userId": {
+                "S": "95ff6a5d-abbd-4788-bc60-c2ffe018d83b"
+            },
+            "resourceType": {
+                "S": "DATA"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766206898"
+            },
+            "resourceId": {
+                "S": "phi-123"
+            },
+            "auditLogId": {
+                "S": "15e53af9-3229-4b29-bb6c-c78d40acf06d"
+            },
+            "action": {
+                "S": "PHI_BREACH"
+            },
+            "details": {
+                "S": "{\"details\":\"Test breach\",\"breachType\":\"UNAUTHORIZED_ACCESS\"}"
+            },
+            "userId": {
+                "S": "eb4df862-dd9e-42f2-bd5f-33ec6edf8313"
+            },
+            "resourceType": {
+                "S": "PHI"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766203508"
+            },
+            "resourceId": {
+                "S": "third-party-123"
+            },
+            "auditLogId": {
+                "S": "42027093-a640-4e0e-aa48-13ce058eb0d3"
+            },
+            "action": {
+                "S": "THIRD_PARTY_AUTHORIZATION"
+            },
+            "details": {
+                "S": "{\"thirdPartyId\":\"third-party-123\",\"scope\":\"transactions\"}"
+            },
+            "userId": {
+                "S": "01dbb5ca-a205-45df-ac91-883c22c474b5"
+            },
+            "resourceType": {
+                "S": "DMA"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766206679"
+            },
+            "resourceId": {
+                "S": "third-party-123"
+            },
+            "auditLogId": {
+                "S": "6e924f8b-25cc-4fa8-96b8-bb6f3c14edf2"
+            },
+            "action": {
+                "S": "THIRD_PARTY_AUTHORIZATION"
+            },
+            "details": {
+                "S": "{\"thirdPartyId\":\"third-party-123\",\"scope\":\"transactions\"}"
+            },
+            "userId": {
+                "S": "e7a946cc-3150-45d7-966f-2c39364417fb"
+            },
+            "resourceType": {
+                "S": "DMA"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766203227"
+            },
+            "resourceId": {
+                "S": "phi-456"
+            },
+            "auditLogId": {
+                "S": "43e1752d-006a-4bb0-be6c-c87009027f90"
+            },
+            "action": {
+                "S": "BREACH_NOTIFICATION"
+            },
+            "details": {
+                "S": "{\"reported\":false,\"breachType\":\"UNAUTHORIZED_ACCESS\",\"details\":\"Test breach\"}"
+            },
+            "userId": {
+                "S": "user-123"
+            },
+            "resourceType": {
+                "S": "BREACH"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766206663"
+            },
+            "resourceId": {
+                "S": "c6065177-7666-4564-a187-cd9972917114"
+            },
+            "auditLogId": {
+                "S": "8abf3e3b-b4ee-4586-a259-6739df85181e"
+            },
+            "action": {
+                "S": "DATA_EXPORT"
+            },
+            "details": {
+                "S": "{\"exportId\":\"c6065177-7666-4564-a187-cd9972917114\"}"
+            },
+            "userId": {
+                "S": "da082ba6-aed2-4368-935d-801724711a14"
+            },
+            "resourceType": {
+                "S": "DATA"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766203225"
+            },
+            "resourceId": {
+                "S": "726ef78f-b4d2-40d3-a485-ce20f8f853ba"
+            },
+            "auditLogId": {
+                "S": "5f96631b-104c-4377-b37c-d25371c78f05"
+            },
+            "action": {
+                "S": "DATA_EXPORT"
+            },
+            "details": {
+                "S": "{\"exportId\":\"726ef78f-b4d2-40d3-a485-ce20f8f853ba\"}"
+            },
+            "userId": {
+                "S": "855dfae6-5fe9-4ad6-832f-c05e698c2427"
+            },
+            "resourceType": {
+                "S": "DATA"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766203225"
+            },
+            "resourceId": {
+                "S": "third-party-123"
+            },
+            "auditLogId": {
+                "S": "9e13ff1a-e205-4ef5-9262-96a1b6b35b05"
+            },
+            "action": {
+                "S": "THIRD_PARTY_AUTHORIZATION"
+            },
+            "details": {
+                "S": "{\"thirdPartyId\":\"third-party-123\",\"scope\":\"transactions\"}"
+            },
+            "userId": {
+                "S": "93b047a5-3936-49f8-96c2-dbb5ff6969ea"
+            },
+            "resourceType": {
+                "S": "DMA"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766206912"
+            },
+            "resourceId": {
+                "S": "34a0b0ec-1f04-4360-bcde-4411b74f3d15"
+            },
+            "auditLogId": {
+                "S": "6a63a0c2-4669-4832-ba9c-e414cfa0c686"
+            },
+            "action": {
+                "S": "DATA_EXPORT"
+            },
+            "details": {
+                "S": "{\"exportId\":\"34a0b0ec-1f04-4360-bcde-4411b74f3d15\"}"
+            },
+            "userId": {
+                "S": "6044aefa-56b5-4173-9d2a-eb9b38f3154a"
+            },
+            "resourceType": {
+                "S": "DATA"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766203493"
+            },
+            "resourceId": {
+                "S": "bcbaa91d-97c8-4ebf-b74c-3fb94049b90d"
+            },
+            "auditLogId": {
+                "S": "8e66f92e-c890-463e-a993-25c3055fbd9b"
+            },
+            "action": {
+                "S": "DATA_EXPORT"
+            },
+            "details": {
+                "S": "{\"exportId\":\"bcbaa91d-97c8-4ebf-b74c-3fb94049b90d\"}"
+            },
+            "userId": {
+                "S": "fc3f0d18-7f96-417c-9c64-c15c7ff1e854"
+            },
+            "resourceType": {
+                "S": "DATA"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766203225"
+            },
+            "action": {
+                "S": "SUSPICIOUS_ACTIVITY"
+            },
+            "details": {
+                "S": "{\"details\":\"Large transaction detected\",\"activityType\":\"UNUSUAL_TRANSACTION\"}"
+            },
+            "userId": {
+                "S": "d5fbb751-775c-4c9b-b588-40841171194d"
+            },
+            "auditLogId": {
+                "S": "74dfe0c3-11e0-4684-bf30-f7c816de4ac3"
+            },
+            "resourceType": {
+                "S": "COMPLIANCE"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766206914"
+            },
+            "resourceId": {
+                "S": "third-party-123"
+            },
+            "auditLogId": {
+                "S": "3ee8f043-2b9d-4c7c-b9f1-8e79cf65910b"
+            },
+            "action": {
+                "S": "THIRD_PARTY_AUTHORIZATION"
+            },
+            "details": {
+                "S": "{\"thirdPartyId\":\"third-party-123\",\"scope\":\"read:transactions\"}"
+            },
+            "userId": {
+                "S": "c664b6c4-b294-4d06-93a6-d710f5982e11"
+            },
+            "resourceType": {
+                "S": "DMA"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766206914"
+            },
+            "resourceId": {
+                "S": "c0cf8b3b-5fbd-41df-a48b-bbe4f194a38e"
+            },
+            "auditLogId": {
+                "S": "b9e226c3-ac92-4795-9543-37e5d03d9458"
+            },
+            "action": {
+                "S": "DATA_EXPORT"
+            },
+            "details": {
+                "S": "{\"exportId\":\"c0cf8b3b-5fbd-41df-a48b-bbe4f194a38e\"}"
+            },
+            "userId": {
+                "S": "6330c674-4184-46a1-b99b-c6e28db3dc8a"
+            },
+            "resourceType": {
+                "S": "DATA"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766206898"
+            },
+            "resourceId": {
+                "S": "tx-123"
+            },
+            "auditLogId": {
+                "S": "ae7cbf78-bdd9-4a5c-a0e4-507b22c2b1e6"
+            },
+            "action": {
+                "S": "RECORD_KEEPING"
+            },
+            "details": {
+                "S": "{\"retentionUntil\":\"2032-12-18T05:01:38.760420Z\"}"
+            },
+            "userId": {
+                "S": "SYSTEM"
+            },
+            "resourceType": {
+                "S": "TRANSACTION"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766203225"
+            },
+            "resourceId": {
+                "S": "02b49dd6-fc20-49c0-a4dc-320a2e0466bb"
+            },
+            "auditLogId": {
+                "S": "36470c78-d871-4a8f-88e3-82d8b254bcfd"
+            },
+            "action": {
+                "S": "DATA_EXPORT"
+            },
+            "details": {
+                "S": "{\"exportId\":\"02b49dd6-fc20-49c0-a4dc-320a2e0466bb\"}"
+            },
+            "userId": {
+                "S": "855dfae6-5fe9-4ad6-832f-c05e698c2427"
+            },
+            "resourceType": {
+                "S": "DATA"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766206898"
+            },
+            "resourceId": {
+                "S": "third-party-123"
+            },
+            "auditLogId": {
+                "S": "419add99-62c4-41fd-b1d7-057f336c5e6b"
+            },
+            "action": {
+                "S": "THIRD_PARTY_AUTHORIZATION"
+            },
+            "details": {
+                "S": "{\"thirdPartyId\":\"third-party-123\",\"scope\":\"transactions\"}"
+            },
+            "userId": {
+                "S": "a3ce9f49-9755-4fef-90a1-40e11d56ed5a"
+            },
+            "resourceType": {
+                "S": "DMA"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766203493"
+            },
+            "resourceId": {
+                "S": "third-party-123"
+            },
+            "auditLogId": {
+                "S": "36b68824-0d92-431c-a6dc-d46b06ec4f17"
+            },
+            "action": {
+                "S": "THIRD_PARTY_AUTHORIZATION"
+            },
+            "details": {
+                "S": "{\"thirdPartyId\":\"third-party-123\",\"scope\":\"transactions\"}"
+            },
+            "userId": {
+                "S": "81cfefea-037d-40d0-b6a9-4cd5fc703418"
+            },
+            "resourceType": {
+                "S": "DMA"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766206679"
+            },
+            "resourceId": {
+                "S": "29169130-c032-4945-8b0b-6901746f8b6f"
+            },
+            "auditLogId": {
+                "S": "b6aa72f2-fda4-46ab-8e04-9c9f4a7eeb8d"
+            },
+            "action": {
+                "S": "DATA_EXPORT"
+            },
+            "details": {
+                "S": "{\"exportId\":\"29169130-c032-4945-8b0b-6901746f8b6f\"}"
+            },
+            "userId": {
+                "S": "e7a946cc-3150-45d7-966f-2c39364417fb"
+            },
+            "resourceType": {
+                "S": "DATA"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766203227"
+            },
+            "resourceId": {
+                "S": "phi-456"
+            },
+            "auditLogId": {
+                "S": "84c466fa-ae27-444e-9987-954ba46cfc40"
+            },
+            "action": {
+                "S": "PHI_BREACH"
+            },
+            "details": {
+                "S": "{\"details\":\"Test breach\",\"breachType\":\"UNAUTHORIZED_ACCESS\"}"
+            },
+            "userId": {
+                "S": "user-123"
+            },
+            "resourceType": {
+                "S": "PHI"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766206662"
+            },
+            "action": {
+                "S": "CONSENT_WITHDRAWAL"
+            },
+            "details": {
+                "S": "{\"consentType\":\"MARKETING\"}"
+            },
+            "userId": {
+                "S": "acd6e2de-4306-43a1-9462-489ec5c19ea9"
+            },
+            "auditLogId": {
+                "S": "ec75e80b-28de-462c-a05a-c23ce87481d8"
+            },
+            "resourceType": {
+                "S": "CONSENT"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766203226"
+            },
+            "resourceId": {
+                "S": "phi-123"
+            },
+            "auditLogId": {
+                "S": "ad9b7c85-77c6-4a6a-8b68-834aa6a56eac"
+            },
+            "action": {
+                "S": "BREACH_NOTIFICATION"
+            },
+            "details": {
+                "S": "{\"reported\":false,\"breachType\":\"UNAUTHORIZED_ACCESS\",\"details\":\"Test breach\"}"
+            },
+            "userId": {
+                "S": "406be983-2da5-40f3-849e-2ed931f934ad"
+            },
+            "resourceType": {
+                "S": "BREACH"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766203239"
+            },
+            "resourceId": {
+                "S": "cf132047-ff2a-4fb2-b880-a31ebdf6fd76"
+            },
+            "auditLogId": {
+                "S": "23ea354c-a16b-40f9-b525-b75d8e799963"
+            },
+            "action": {
+                "S": "DATA_EXPORT"
+            },
+            "details": {
+                "S": "{\"exportId\":\"cf132047-ff2a-4fb2-b880-a31ebdf6fd76\"}"
+            },
+            "userId": {
+                "S": "88ee1ff3-5a83-4a10-8088-3506982d5735"
+            },
+            "resourceType": {
+                "S": "DATA"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766203225"
+            },
+            "resourceId": {
+                "S": "f6374682-59eb-4301-a5ac-a21e541c4130"
+            },
+            "auditLogId": {
+                "S": "465a28f6-9abb-471e-9a7a-1f5fb8a8ef02"
+            },
+            "action": {
+                "S": "DATA_EXPORT"
+            },
+            "details": {
+                "S": "{\"exportId\":\"f6374682-59eb-4301-a5ac-a21e541c4130\"}"
+            },
+            "userId": {
+                "S": "855dfae6-5fe9-4ad6-832f-c05e698c2427"
+            },
+            "resourceType": {
+                "S": "DATA"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766206678"
+            },
+            "resourceId": {
+                "S": "a226acd8-5aa4-4e28-9261-2a3ad5a3714a"
+            },
+            "auditLogId": {
+                "S": "20820671-bf10-4345-b1b7-af1d168fad6f"
+            },
+            "action": {
+                "S": "DATA_EXPORT"
+            },
+            "details": {
+                "S": "{\"exportId\":\"a226acd8-5aa4-4e28-9261-2a3ad5a3714a\"}"
+            },
+            "userId": {
+                "S": "488b5a7d-b10b-4a9c-b2ed-a75b4e95d0d5"
+            },
+            "resourceType": {
+                "S": "DATA"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766206663"
+            },
+            "resourceId": {
+                "S": "1b1284e8-411d-4647-ab7c-45b79219f178"
+            },
+            "auditLogId": {
+                "S": "1a6ac226-263f-46a9-a71b-04c9cb1456f9"
+            },
+            "action": {
+                "S": "DATA_EXPORT"
+            },
+            "details": {
+                "S": "{\"exportId\":\"1b1284e8-411d-4647-ab7c-45b79219f178\"}"
+            },
+            "userId": {
+                "S": "da082ba6-aed2-4368-935d-801724711a14"
+            },
+            "resourceType": {
+                "S": "DATA"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766206663"
+            },
+            "action": {
+                "S": "SUSPICIOUS_ACTIVITY"
+            },
+            "details": {
+                "S": "{\"details\":\"Large transaction detected\",\"activityType\":\"UNUSUAL_TRANSACTION\"}"
+            },
+            "userId": {
+                "S": "bda5c638-92b1-4b93-9fe8-4bb5fda96f90"
+            },
+            "auditLogId": {
+                "S": "f7a0aa47-b0f9-4b0e-ae23-1ac9be24e1df"
+            },
+            "resourceType": {
+                "S": "COMPLIANCE"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766206663"
+            },
+            "resourceId": {
+                "S": "0d223a8c-cad0-4983-8e0f-1737da6ca76b"
+            },
+            "auditLogId": {
+                "S": "5009c8cb-338c-4353-b9eb-2d96eaf028dc"
+            },
+            "action": {
+                "S": "SUPERVISION"
+            },
+            "details": {
+                "S": "{\"approved\":true,\"activity\":\"TRADE_REVIEW\"}"
+            },
+            "userId": {
+                "S": "supervisor-123"
+            },
+            "resourceType": {
+                "S": "SUPERVISION"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766203493"
+            },
+            "resourceId": {
+                "S": "bfdc0f8e-ac7e-4a4c-be0a-20457fc54ab5"
+            },
+            "auditLogId": {
+                "S": "c8e7b62d-a17e-4373-a8fc-333bece7075a"
+            },
+            "action": {
+                "S": "DATA_EXPORT"
+            },
+            "details": {
+                "S": "{\"exportId\":\"bfdc0f8e-ac7e-4a4c-be0a-20457fc54ab5\"}"
+            },
+            "userId": {
+                "S": "81cfefea-037d-40d0-b6a9-4cd5fc703418"
+            },
+            "resourceType": {
+                "S": "DATA"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766206678"
+            },
+            "resourceId": {
+                "S": "98707d23-ff7e-4a7c-92bf-c3e131e5cc1e"
+            },
+            "auditLogId": {
+                "S": "15962149-8148-4d8d-9619-ea85df6ff150"
+            },
+            "action": {
+                "S": "DATA_EXPORT"
+            },
+            "details": {
+                "S": "{\"exportId\":\"98707d23-ff7e-4a7c-92bf-c3e131e5cc1e\"}"
+            },
+            "userId": {
+                "S": "488b5a7d-b10b-4a9c-b2ed-a75b4e95d0d5"
+            },
+            "resourceType": {
+                "S": "DATA"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766206662"
+            },
+            "action": {
+                "S": "CONSENT"
+            },
+            "details": {
+                "S": "{\"purpose\":\"Email marketing\",\"consentType\":\"MARKETING\",\"granted\":true}"
+            },
+            "userId": {
+                "S": "acd6e2de-4306-43a1-9462-489ec5c19ea9"
+            },
+            "auditLogId": {
+                "S": "eb0dead8-b3a5-4f0d-bc0c-bbcf69c9ca3b"
+            },
+            "resourceType": {
+                "S": "CONSENT"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766203225"
+            },
+            "resourceId": {
+                "S": "customer-123"
+            },
+            "auditLogId": {
+                "S": "f7ad8547-c043-4ee8-a477-b2e8e31eafd6"
+            },
+            "action": {
+                "S": "COMMUNICATION"
+            },
+            "details": {
+                "S": "{\"content\":\"Test communication\"}"
+            },
+            "userId": {
+                "S": "83b60edd-e6e5-446d-b8a0-4dbc9c9c1cad"
+            },
+            "resourceType": {
+                "S": "EMAIL"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766203493"
+            },
+            "action": {
+                "S": "CONSENT_WITHDRAWAL"
+            },
+            "details": {
+                "S": "{\"consentType\":\"MARKETING\"}"
+            },
+            "userId": {
+                "S": "4d6f71ed-5279-4f64-a165-38fa0b3b53c5"
+            },
+            "auditLogId": {
+                "S": "b77c5765-09ea-4fbf-bc04-ad7211e567cd"
+            },
+            "resourceType": {
+                "S": "CONSENT"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766203508"
+            },
+            "resourceId": {
+                "S": "51b43630-c840-4aa1-ae68-8b3218fd42d7"
+            },
+            "auditLogId": {
+                "S": "717fc1e7-303e-478f-84a4-d2525ffa0584"
+            },
+            "action": {
+                "S": "DATA_EXPORT"
+            },
+            "details": {
+                "S": "{\"exportId\":\"51b43630-c840-4aa1-ae68-8b3218fd42d7\"}"
+            },
+            "userId": {
+                "S": "01dbb5ca-a205-45df-ac91-883c22c474b5"
+            },
+            "resourceType": {
+                "S": "DATA"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766206663"
+            },
+            "resourceId": {
+                "S": "third-party-123"
+            },
+            "auditLogId": {
+                "S": "cbbb82c7-62f4-4969-815f-324f42d0c911"
+            },
+            "action": {
+                "S": "DATA_SHARING"
+            },
+            "details": {
+                "S": "{\"thirdPartyId\":\"third-party-123\",\"dataType\":\"transactions\"}"
+            },
+            "userId": {
+                "S": "09778e9f-5003-4016-a4cd-5192108ece62"
+            },
+            "resourceType": {
+                "S": "DMA"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766206898"
+            },
+            "resourceId": {
+                "S": "cd22feba-930b-496d-b38d-524602e7e617"
+            },
+            "auditLogId": {
+                "S": "9e83bbd6-1b55-4388-8185-590fcc951d10"
+            },
+            "action": {
+                "S": "DATA_EXPORT"
+            },
+            "details": {
+                "S": "{\"exportId\":\"cd22feba-930b-496d-b38d-524602e7e617\"}"
+            },
+            "userId": {
+                "S": "882985dc-7974-4abd-84d5-267b4d12f5f7"
+            },
+            "resourceType": {
+                "S": "DATA"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766206915"
+            },
+            "resourceId": {
+                "S": "d5066672-7eca-473d-ba7d-b52d65d8597f"
+            },
+            "auditLogId": {
+                "S": "a35afb24-3e69-4690-8ba4-58fbe9d74e52"
+            },
+            "action": {
+                "S": "DATA_EXPORT"
+            },
+            "details": {
+                "S": "{\"exportId\":\"d5066672-7eca-473d-ba7d-b52d65d8597f\"}"
+            },
+            "userId": {
+                "S": "2470c342-090d-4f63-a417-acb5ba4a57dd"
+            },
+            "resourceType": {
+                "S": "DATA"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766206662"
+            },
+            "resourceId": {
+                "S": "afc6bd7c-9e47-44c9-93d9-7994a5f62de2"
+            },
+            "auditLogId": {
+                "S": "a99bd5b7-f4a1-45a2-84d3-dce82f322b2b"
+            },
+            "action": {
+                "S": "DATA_EXPORT"
+            },
+            "details": {
+                "S": "{\"exportId\":\"afc6bd7c-9e47-44c9-93d9-7994a5f62de2\"}"
+            },
+            "userId": {
+                "S": "a17f484f-4c89-40df-a7bd-eae2f2e3571e"
+            },
+            "resourceType": {
+                "S": "DATA"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766206663"
+            },
+            "resourceId": {
+                "S": "phi-123"
+            },
+            "auditLogId": {
+                "S": "eee4f0a4-59af-4ff9-8da5-a12081c4ddb5"
+            },
+            "action": {
+                "S": "PHI_BREACH"
+            },
+            "details": {
+                "S": "{\"details\":\"Test breach\",\"breachType\":\"UNAUTHORIZED_ACCESS\"}"
+            },
+            "userId": {
+                "S": "28f94d58-d010-4a7b-92b4-02bb5e4f6c5b"
+            },
+            "resourceType": {
+                "S": "PHI"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766206898"
+            },
+            "resourceId": {
+                "S": "19cece01-dca8-4304-bcf0-38f0a90e559f"
+            },
+            "auditLogId": {
+                "S": "3811d537-3275-4a82-906e-bbfbe61c9a46"
+            },
+            "action": {
+                "S": "DATA_EXPORT"
+            },
+            "details": {
+                "S": "{\"exportId\":\"19cece01-dca8-4304-bcf0-38f0a90e559f\"}"
+            },
+            "userId": {
+                "S": "a3ce9f49-9755-4fef-90a1-40e11d56ed5a"
+            },
+            "resourceType": {
+                "S": "DATA"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766203240"
+            },
+            "resourceId": {
+                "S": "a5c82397-45c7-46de-8d3e-fe19ea695cd4"
+            },
+            "auditLogId": {
+                "S": "fc334460-f537-4aca-8d24-76aa09136fe0"
+            },
+            "action": {
+                "S": "DATA_EXPORT"
+            },
+            "details": {
+                "S": "{\"exportId\":\"a5c82397-45c7-46de-8d3e-fe19ea695cd4\"}"
+            },
+            "userId": {
+                "S": "c6513c1e-c511-48f4-bd1f-04f4ba6be947"
+            },
+            "resourceType": {
+                "S": "DATA"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766206898"
+            },
+            "resourceId": {
+                "S": "third-party-123"
+            },
+            "auditLogId": {
+                "S": "df70ff6b-55a6-44a6-b556-dabb64065e60"
+            },
+            "action": {
+                "S": "DATA_SHARING"
+            },
+            "details": {
+                "S": "{\"thirdPartyId\":\"third-party-123\",\"dataType\":\"transactions\"}"
+            },
+            "userId": {
+                "S": "a3ce9f49-9755-4fef-90a1-40e11d56ed5a"
+            },
+            "resourceType": {
+                "S": "DMA"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766203508"
+            },
+            "resourceId": {
+                "S": "061dd6e0-25b3-4ff0-9fa2-861f94502ef6"
+            },
+            "auditLogId": {
+                "S": "1e93c95c-42b2-47a8-8491-f4dabad7a010"
+            },
+            "action": {
+                "S": "DATA_EXPORT"
+            },
+            "details": {
+                "S": "{\"exportId\":\"061dd6e0-25b3-4ff0-9fa2-861f94502ef6\"}"
+            },
+            "userId": {
+                "S": "2e585ecd-6985-47e8-8bb8-bc6ca82d0682"
+            },
+            "resourceType": {
+                "S": "DATA"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766206898"
+            },
+            "resourceId": {
+                "S": "be214817-381f-495e-972c-a358a807ed84"
+            },
+            "auditLogId": {
+                "S": "a321341c-282e-403c-bf3e-7f50ca26fa51"
+            },
+            "action": {
+                "S": "DATA_EXPORT"
+            },
+            "details": {
+                "S": "{\"exportId\":\"be214817-381f-495e-972c-a358a807ed84\"}"
+            },
+            "userId": {
+                "S": "882985dc-7974-4abd-84d5-267b4d12f5f7"
+            },
+            "resourceType": {
+                "S": "DATA"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766206663"
+            },
+            "resourceId": {
+                "S": "b66a7923-07fb-412a-bba7-dc0849d6e6e7"
+            },
+            "auditLogId": {
+                "S": "61ddc374-dafa-40a5-8fdd-6e9152a2dd78"
+            },
+            "action": {
+                "S": "DATA_EXPORT"
+            },
+            "details": {
+                "S": "{\"exportId\":\"b66a7923-07fb-412a-bba7-dc0849d6e6e7\"}"
+            },
+            "userId": {
+                "S": "da082ba6-aed2-4368-935d-801724711a14"
+            },
+            "resourceType": {
+                "S": "DATA"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766206913"
+            },
+            "resourceId": {
+                "S": "third-party-123"
+            },
+            "auditLogId": {
+                "S": "a1d71a21-f18b-4dfa-8d83-953bc4e22b0d"
+            },
+            "action": {
+                "S": "DATA_SHARING"
+            },
+            "details": {
+                "S": "{\"thirdPartyId\":\"third-party-123\",\"dataType\":\"transactions\"}"
+            },
+            "userId": {
+                "S": "382f08c4-07f7-4a5a-8738-6e5722ca8b87"
+            },
+            "resourceType": {
+                "S": "DMA"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766203225"
+            },
+            "resourceId": {
+                "S": "9380e95b-1080-4e55-91ce-a843ffb74c6e"
+            },
+            "auditLogId": {
+                "S": "eca483aa-c991-41ec-88ed-b80ca966ff6e"
+            },
+            "action": {
+                "S": "DATA_EXPORT"
+            },
+            "details": {
+                "S": "{\"exportId\":\"9380e95b-1080-4e55-91ce-a843ffb74c6e\"}"
+            },
+            "userId": {
+                "S": "0c9244c7-7385-4c67-91ea-4f42f0a28407"
+            },
+            "resourceType": {
+                "S": "DATA"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766203225"
+            },
+            "resourceId": {
+                "S": "third-party-123"
+            },
+            "auditLogId": {
+                "S": "1f843408-dfdd-4827-a97a-594df3573332"
+            },
+            "action": {
+                "S": "THIRD_PARTY_AUTHORIZATION"
+            },
+            "details": {
+                "S": "{\"thirdPartyId\":\"third-party-123\",\"scope\":\"transactions\"}"
+            },
+            "userId": {
+                "S": "93b047a5-3936-49f8-96c2-dbb5ff6969ea"
+            },
+            "resourceType": {
+                "S": "DMA"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766206900"
+            },
+            "resourceId": {
+                "S": "phi-456"
+            },
+            "auditLogId": {
+                "S": "ab4fc56c-9fb5-4280-8d2e-2eb33c55acf2"
+            },
+            "action": {
+                "S": "BREACH_NOTIFICATION"
+            },
+            "details": {
+                "S": "{\"details\":\"Test breach\",\"reported\":false,\"breachType\":\"UNAUTHORIZED_ACCESS\"}"
+            },
+            "userId": {
+                "S": "user-123"
+            },
+            "resourceType": {
+                "S": "BREACH"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766206898"
+            },
+            "resourceId": {
+                "S": "customer-123"
+            },
+            "auditLogId": {
+                "S": "38872e3e-cc1e-46cd-8d93-3d6c45b764c4"
+            },
+            "action": {
+                "S": "COMMUNICATION"
+            },
+            "details": {
+                "S": "{\"content\":\"Test communication\"}"
+            },
+            "userId": {
+                "S": "5c8547b2-67b9-4530-933f-9768d2a1731f"
+            },
+            "resourceType": {
+                "S": "EMAIL"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766206664"
+            },
+            "resourceId": {
+                "S": "phi-456"
+            },
+            "auditLogId": {
+                "S": "026af23d-4f84-4f91-a484-969ca0b34b5c"
+            },
+            "action": {
+                "S": "BREACH_NOTIFICATION"
+            },
+            "details": {
+                "S": "{\"details\":\"Test breach\",\"reported\":false,\"breachType\":\"UNAUTHORIZED_ACCESS\"}"
+            },
+            "userId": {
+                "S": "user-123"
+            },
+            "resourceType": {
+                "S": "BREACH"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766203493"
+            },
+            "resourceId": {
+                "S": "770672bb-9f5a-44fa-a3c9-79c235640782"
+            },
+            "auditLogId": {
+                "S": "580ad8b6-247c-4b46-b9b3-23193c48d220"
+            },
+            "action": {
+                "S": "DATA_EXPORT"
+            },
+            "details": {
+                "S": "{\"exportId\":\"770672bb-9f5a-44fa-a3c9-79c235640782\"}"
+            },
+            "userId": {
+                "S": "d7b3c1a2-c468-4dc9-9645-bba18d445bcb"
+            },
+            "resourceType": {
+                "S": "DATA"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766203508"
+            },
+            "resourceId": {
+                "S": "third-party-123"
+            },
+            "auditLogId": {
+                "S": "f50e5ed0-f34c-4fc2-b776-49cba29d4486"
+            },
+            "action": {
+                "S": "THIRD_PARTY_AUTHORIZATION"
+            },
+            "details": {
+                "S": "{\"thirdPartyId\":\"third-party-123\",\"scope\":\"transactions\"}"
+            },
+            "userId": {
+                "S": "01dbb5ca-a205-45df-ac91-883c22c474b5"
+            },
+            "resourceType": {
+                "S": "DMA"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766203495"
+            },
+            "resourceId": {
+                "S": "phi-456"
+            },
+            "auditLogId": {
+                "S": "9033bc49-8888-4ab1-ba7b-d7045ab08914"
+            },
+            "action": {
+                "S": "PHI_BREACH"
+            },
+            "details": {
+                "S": "{\"details\":\"Test breach\",\"breachType\":\"UNAUTHORIZED_ACCESS\"}"
+            },
+            "userId": {
+                "S": "user-123"
+            },
+            "resourceType": {
+                "S": "PHI"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766206898"
+            },
+            "resourceId": {
+                "S": "third-party-123"
+            },
+            "auditLogId": {
+                "S": "faa8a8fb-4496-4732-a17b-212327b2b8b9"
+            },
+            "action": {
+                "S": "THIRD_PARTY_AUTHORIZATION"
+            },
+            "details": {
+                "S": "{\"thirdPartyId\":\"third-party-123\",\"scope\":\"transactions\"}"
+            },
+            "userId": {
+                "S": "a3ce9f49-9755-4fef-90a1-40e11d56ed5a"
+            },
+            "resourceType": {
+                "S": "DMA"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766203493"
+            },
+            "resourceId": {
+                "S": "third-party-123"
+            },
+            "auditLogId": {
+                "S": "c58451dc-473c-4647-a292-f03eff133a97"
+            },
+            "action": {
+                "S": "THIRD_PARTY_AUTHORIZATION"
+            },
+            "details": {
+                "S": "{\"thirdPartyId\":\"third-party-123\",\"scope\":\"transactions\"}"
+            },
+            "userId": {
+                "S": "81cfefea-037d-40d0-b6a9-4cd5fc703418"
+            },
+            "resourceType": {
+                "S": "DMA"
+            }
+        },
+        {
+            "createdAt": {
+                "N": "1766203225"
+            },
+            "action": {
+                "S": "CONSENT_WITHDRAWAL"
+            },
+            "details": {
+                "S": "{\"consentType\":\"MARKETING\"}"
+            },
+            "userId": {
+                "S": "cdeb64a2-942c-42d1-9195-d7e13a54ca12"
+            },
+            "auditLogId": {
+                "S": "3e582465-b80a-4bf2-8c5d-d0054f635001"
+            },
+            "resourceType": {
+                "S": "CONSENT"
+            }
+        }
+    ],
+    "Count": 144,
+    "ScannedCount": 144,
+    "ConsumedCapacity": null
+}

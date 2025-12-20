@@ -258,6 +258,7 @@ class InvestmentSubcategoryIntegrationTest {
             "stocks", // categoryDetailed
             null, // isAudited
             null, // isHidden
+            null, // transactionType
             false // clearNotesIfNull = false means preserve existing notes
         );
 

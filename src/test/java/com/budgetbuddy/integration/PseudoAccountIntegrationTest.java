@@ -116,7 +116,8 @@ class PseudoAccountIntegrationTest {
                 null,
                 null,
                 null,
-                null
+                null,
+                null // transactionType
         );
         
         // Then - Should use pseudo account
@@ -149,7 +150,8 @@ class PseudoAccountIntegrationTest {
                 null,
                 null,
                 null,
-                null
+                null,
+                null // transactionType
         );
         
         // Then - Should use provided account, NOT pseudo account
@@ -194,7 +196,8 @@ class PseudoAccountIntegrationTest {
                 null,
                 null,
                 "plaid-acc-123", // Plaid account ID
-                "plaid-tx-123"   // Plaid transaction ID
+                "plaid-tx-123",   // Plaid transaction ID
+                null // transactionType
         );
         
         // Then - Should use Plaid account, NOT pseudo account

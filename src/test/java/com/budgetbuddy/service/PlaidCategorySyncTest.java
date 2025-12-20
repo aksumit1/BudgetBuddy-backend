@@ -220,9 +220,9 @@ class PlaidCategorySyncTest {
 
         // When - User overrides category via TransactionService
         TransactionService transactionService = new TransactionService(
-                transactionRepository, accountRepository);
+                transactionRepository, accountRepository, new com.budgetbuddy.service.TransactionTypeDeterminer());
         TransactionTable updated = transactionService.updateTransaction(
-                testUser, "txn-123", null, null, null, "groceries", "groceries", null, null, false);
+                testUser, "txn-123", null, null, null, "groceries", "groceries", null, null, null, false);
 
         // Then - Verify override is stored
         assertNotNull(updated);

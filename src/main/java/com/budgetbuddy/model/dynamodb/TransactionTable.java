@@ -28,6 +28,7 @@ public class TransactionTable {
     private String plaidCategoryPrimary; // Plaid's original primary personal finance category (e.g., "FOOD_AND_DRINK")
     private String plaidCategoryDetailed; // Plaid's original detailed personal finance category (e.g., "RESTAURANTS")
     private Boolean categoryOverridden; // Whether user has overridden Plaid's category
+    private Boolean transactionTypeOverridden; // Whether user has explicitly overridden transactionType (prevents Plaid sync from recalculating)
     private String transactionDate; // GSI sort key (YYYY-MM-DD format)
     private String currencyCode;
     private String plaidTransactionId; // GSI for deduplication
@@ -36,6 +37,7 @@ public class TransactionTable {
     private String notes; // User notes for the transaction
     private Boolean isAudited; // Audit checkmark state (client-side UI state)
     private Boolean isHidden; // Whether transaction is hidden from view
+    private String transactionType; // Transaction type: INCOME, INVESTMENT, LOAN, or EXPENSE
     private Instant createdAt;
     private Instant updatedAt;
     private Long updatedAtTimestamp; // GSI sort key (epoch seconds) for incremental sync
@@ -225,6 +227,24 @@ public class TransactionTable {
 
     public void setIsHidden(final Boolean isHidden) {
         this.isHidden = isHidden;
+    }
+
+    @DynamoDbAttribute("transactionType")
+    public String getTransactionType() {
+        return transactionType;
+    }
+
+    public void setTransactionType(final String transactionType) {
+        this.transactionType = transactionType;
+    }
+
+    @DynamoDbAttribute("transactionTypeOverridden")
+    public Boolean getTransactionTypeOverridden() {
+        return transactionTypeOverridden;
+    }
+
+    public void setTransactionTypeOverridden(final Boolean transactionTypeOverridden) {
+        this.transactionTypeOverridden = transactionTypeOverridden;
     }
 
     @DynamoDbAttribute("createdAt")

@@ -257,6 +257,43 @@ class PlaidCategoryMapperTest {
     }
 
     @Test
+    void testMapPlaidCategory_WithINTRSTPYMNT_OverridesOtherToInterest() {
+        // Given: Interest payment with "INTRST PYMNT" description but Plaid sent "other" category
+        // This tests the critical fix that ensures interest payments are always Income/Interest
+        String primary = "GENERAL_SERVICES"; // Plaid incorrectly categorizes as "other"
+        String detailed = null;
+        String merchantName = null;
+        String description = "INTRST PYMNT";
+
+        // When
+        PlaidCategoryMapper.CategoryMapping result = plaidCategoryMapper.mapPlaidCategory(
+                primary, detailed, merchantName, description);
+
+        // Then
+        assertNotNull(result);
+        assertEquals("income", result.getPrimary(), "INTRST PYMNT should override primary to income");
+        assertEquals("interest", result.getDetailed(), "INTRST PYMNT should override detailed to interest");
+    }
+
+    @Test
+    void testMapPlaidCategory_WithINTRSTPYMNT_OverridesUnknownCategoryToInterest() {
+        // Given: Interest payment with "INTRST PYMNT" description but Plaid sent "UNKNOWN_CATEGORY"
+        String primary = "UNKNOWN_CATEGORY";
+        String detailed = null;
+        String merchantName = null;
+        String description = "INTRST PYMNT";
+
+        // When
+        PlaidCategoryMapper.CategoryMapping result = plaidCategoryMapper.mapPlaidCategory(
+                primary, detailed, merchantName, description);
+
+        // Then
+        assertNotNull(result);
+        assertEquals("income", result.getPrimary(), "INTRST PYMNT should override UNKNOWN_CATEGORY to income");
+        assertEquals("interest", result.getDetailed(), "INTRST PYMNT should override UNKNOWN_CATEGORY to interest");
+    }
+
+    @Test
     void testMapPlaidCategory_WithNullInputs_HandlesGracefully() {
         // Given
         String primary = null;

@@ -14,6 +14,9 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.atLeastOnce;
+
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.*;
@@ -36,6 +39,9 @@ class TransactionServiceTest {
     @Mock
     private AccountRepository accountRepository;
 
+    @Mock
+    private TransactionTypeDeterminer transactionTypeDeterminer;
+
     @InjectMocks
     private TransactionService transactionService;
 
@@ -53,6 +59,10 @@ class TransactionServiceTest {
         testAccount.setAccountId("account-123");
         testAccount.setUserId("user-123");
         testAccount.setAccountName("Test Account");
+        
+        // Default mock for transactionTypeDeterminer (EXPENSE is the default)
+        lenient().when(transactionTypeDeterminer.determineTransactionType(any(), anyString(), anyString(), any()))
+                .thenReturn(com.budgetbuddy.model.TransactionType.EXPENSE);
     }
 
     @Test
@@ -214,7 +224,8 @@ class TransactionServiceTest {
                 null,
                 null,
                 null,
-                null
+                null,
+                null // transactionType
         );
 
         // Then
@@ -243,7 +254,8 @@ class TransactionServiceTest {
                 null,
                 null,
                 null,
-                null
+                null,
+                null // transactionType
         );
 
         // Then
@@ -277,7 +289,8 @@ class TransactionServiceTest {
                 null,
                 null,
                 "plaid-acc-123", // Plaid account ID
-                "plaid-tx-123"   // Plaid transaction ID
+                "plaid-tx-123",   // Plaid transaction ID
+                null // transactionType
         );
 
         // Then - Should use Plaid account, NOT pseudo account
@@ -310,7 +323,8 @@ class TransactionServiceTest {
                 null,
                 null,
                 "plaid-acc-123", // Plaid account ID
-                "plaid-tx-123"
+                "plaid-tx-123",
+                null // transactionType
         );
 
         // Then - Should use provided accountId
@@ -339,7 +353,8 @@ class TransactionServiceTest {
                         null,
                         null,
                         "plaid-acc-123",
-                        "plaid-tx-123"
+                        "plaid-tx-123",
+                        null // transactionType
                 ));
         assertEquals(ErrorCode.ACCOUNT_NOT_FOUND, exception.getErrorCode());
         verify(accountRepository, never()).getOrCreatePseudoAccount(anyString());
@@ -363,7 +378,8 @@ class TransactionServiceTest {
                 null,
                 null,
                 null,
-                null
+                null,
+                null // transactionType
         );
 
         // Then - Should use provided account, NOT pseudo account
@@ -458,7 +474,535 @@ class TransactionServiceTest {
         transaction.setTransactionDate(LocalDate.now().format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE));
         transaction.setCategoryPrimary("dining");
         transaction.setCategoryDetailed("dining");
+        transaction.setTransactionType("EXPENSE"); // Default transaction type
         return transaction;
+    }
+
+    // ========== TRANSACTION TYPE INTEGRATION TESTS ==========
+
+    @Test
+    void testCreateTransaction_WithUserProvidedTransactionType_RespectsUserSelection() {
+        // Given: User provides transactionType=INVESTMENT
+        when(accountRepository.findById("account-123")).thenReturn(Optional.of(testAccount));
+        when(transactionRepository.findById(anyString())).thenReturn(Optional.empty());
+        doNothing().when(transactionRepository).save(any(TransactionTable.class));
+        when(transactionTypeDeterminer.determineTransactionType(any(), anyString(), anyString(), any()))
+                .thenReturn(com.budgetbuddy.model.TransactionType.EXPENSE); // Would calculate EXPENSE, but user wants INVESTMENT
+
+        // When: Create transaction with user-provided transactionType
+        TransactionTable result = transactionService.createTransaction(
+                testUser,
+                "account-123",
+                BigDecimal.valueOf(100.00),
+                LocalDate.now(),
+                "Test transaction",
+                "FOOD",
+                "dining",
+                null, // transactionId
+                null, // notes
+                null, // plaidAccountId
+                null, // plaidTransactionId
+                "INVESTMENT" // User-provided transactionType
+        );
+
+        // Then: Should use user-provided type, not calculated type
+        assertNotNull(result);
+        assertEquals("INVESTMENT", result.getTransactionType());
+        verify(transactionRepository).save(any(TransactionTable.class));
+    }
+
+    @Test
+    void testCreateTransaction_WithExistingTransaction_UpdatesTransactionType() {
+        // Given: Transaction already exists with transactionType=EXPENSE
+        TransactionTable existing = createTransaction("tx-existing", "user-123", BigDecimal.valueOf(100.00));
+        existing.setTransactionType("EXPENSE");
+        existing.setPlaidTransactionId("plaid-123");
+        
+        when(accountRepository.findById("account-123")).thenReturn(Optional.of(testAccount));
+        when(transactionRepository.findById("tx-existing")).thenReturn(Optional.of(existing));
+        doNothing().when(transactionRepository).save(any(TransactionTable.class));
+
+        // When: User tries to create same transaction with different transactionType=INVESTMENT
+        TransactionTable result = transactionService.createTransaction(
+                testUser,
+                "account-123",
+                BigDecimal.valueOf(100.00),
+                LocalDate.now(),
+                "Test transaction",
+                "FOOD",
+                "dining",
+                "tx-existing", // Same transaction ID
+                null, // notes
+                null, // plaidAccountId
+                "plaid-123", // Same Plaid ID (idempotent case)
+                "INVESTMENT" // User wants to change type to INVESTMENT
+        );
+
+        // Then: Should update existing transaction's transactionType
+        assertEquals("INVESTMENT", result.getTransactionType());
+        verify(transactionRepository).save(any(TransactionTable.class)); // Should save the updated transaction
+    }
+
+    @Test
+    void testCreateTransaction_WithExistingTransactionNoPlaidId_UpdatesTransactionType() {
+        // Given: Transaction exists without Plaid ID, user provides Plaid ID and transactionType
+        TransactionTable existing = createTransaction("tx-existing", "user-123", BigDecimal.valueOf(100.00));
+        existing.setTransactionType("EXPENSE");
+        existing.setPlaidTransactionId(null); // No Plaid ID yet
+        
+        when(accountRepository.findById("account-123")).thenReturn(Optional.of(testAccount));
+        when(transactionRepository.findById("tx-existing")).thenReturn(Optional.of(existing));
+        doNothing().when(transactionRepository).save(any(TransactionTable.class));
+
+        // When: User links transaction to Plaid and changes transactionType
+        TransactionTable result = transactionService.createTransaction(
+                testUser,
+                "account-123",
+                BigDecimal.valueOf(100.00),
+                LocalDate.now(),
+                "Test transaction",
+                "FOOD",
+                "dining",
+                "tx-existing",
+                null,
+                null,
+                "plaid-new-123", // New Plaid ID
+                "INVESTMENT" // User-provided transactionType
+        );
+
+        // Then: Should update both Plaid ID and transactionType
+        assertEquals("plaid-new-123", result.getPlaidTransactionId());
+        assertEquals("INVESTMENT", result.getTransactionType());
+        verify(transactionRepository).save(any(TransactionTable.class));
+    }
+
+    @Test
+    void testCreateTransaction_WithInvalidTransactionType_CalculatesAutomatically() {
+        // Given: User provides invalid transactionType
+        when(accountRepository.findById("account-123")).thenReturn(Optional.of(testAccount));
+        when(transactionRepository.findById(anyString())).thenReturn(Optional.empty());
+        doNothing().when(transactionRepository).save(any(TransactionTable.class));
+        when(transactionTypeDeterminer.determineTransactionType(any(), anyString(), anyString(), any()))
+                .thenReturn(com.budgetbuddy.model.TransactionType.EXPENSE);
+
+        // When: Create transaction with invalid transactionType
+        TransactionTable result = transactionService.createTransaction(
+                testUser,
+                "account-123",
+                BigDecimal.valueOf(100.00),
+                LocalDate.now(),
+                "Test transaction",
+                "FOOD",
+                "dining",
+                null,
+                null,
+                null,
+                null,
+                "INVALID_TYPE" // Invalid transactionType
+        );
+
+        // Then: Should calculate automatically (EXPENSE)
+        assertNotNull(result);
+        assertEquals("EXPENSE", result.getTransactionType());
+        verify(transactionTypeDeterminer).determineTransactionType(any(), anyString(), anyString(), any());
+    }
+
+    @Test
+    void testSaveTransaction_WithNullTransactionType_CalculatesAutomatically() {
+        // Given: Transaction with null transactionType (old transaction)
+        TransactionTable transaction = createTransaction("tx-1", "user-123", BigDecimal.valueOf(100.00));
+        transaction.setTransactionType(null); // Null transactionType
+        transaction.setAccountId("account-123");
+        
+        when(accountRepository.findById("account-123")).thenReturn(Optional.of(testAccount));
+        when(transactionRepository.saveIfPlaidTransactionNotExists(transaction)).thenReturn(true);
+        when(transactionTypeDeterminer.determineTransactionType(any(), anyString(), anyString(), any()))
+                .thenReturn(com.budgetbuddy.model.TransactionType.EXPENSE);
+
+        // When: Save transaction with null transactionType
+        TransactionTable result = transactionService.saveTransaction(transaction);
+
+        // Then: Should calculate and set transactionType
+        assertNotNull(result);
+        assertEquals("EXPENSE", result.getTransactionType());
+        verify(transactionTypeDeterminer).determineTransactionType(any(), anyString(), anyString(), any());
+    }
+
+    @Test
+    void testSaveTransaction_WithExistingTransactionNullTransactionType_CalculatesAndSaves() {
+        // Given: Existing transaction with null transactionType
+        TransactionTable newTransaction = createTransaction("tx-1", "user-123", BigDecimal.valueOf(100.00));
+        newTransaction.setTransactionType(null);
+        newTransaction.setPlaidTransactionId("plaid-123");
+        newTransaction.setAccountId("account-123");
+        
+        TransactionTable existing = createTransaction("tx-1", "user-123", BigDecimal.valueOf(100.00));
+        existing.setTransactionType(null); // Null transactionType
+        existing.setPlaidTransactionId("plaid-123");
+        existing.setAccountId("account-123");
+        
+        when(accountRepository.findById("account-123")).thenReturn(Optional.of(testAccount));
+        when(transactionRepository.saveIfPlaidTransactionNotExists(newTransaction)).thenReturn(false);
+        when(transactionRepository.findByPlaidTransactionId("plaid-123")).thenReturn(Optional.of(existing));
+        doNothing().when(transactionRepository).save(any(TransactionTable.class));
+        when(transactionTypeDeterminer.determineTransactionType(any(), anyString(), anyString(), any()))
+                .thenReturn(com.budgetbuddy.model.TransactionType.EXPENSE);
+
+        // When: Save transaction that already exists with null transactionType
+        TransactionTable result = transactionService.saveTransaction(newTransaction);
+
+        // Then: Should calculate and save transactionType for existing transaction
+        assertEquals("EXPENSE", result.getTransactionType());
+        verify(transactionRepository).save(any(TransactionTable.class)); // Should save the updated existing transaction
+        // Note: determineTransactionType may be called multiple times (once for newTransaction, once for existing)
+        verify(transactionTypeDeterminer, atLeastOnce()).determineTransactionType(any(), anyString(), anyString(), any());
+    }
+
+    @Test
+    void testUpdateTransaction_WithUserProvidedTransactionType_RespectsUserSelection() {
+        // Given: Existing transaction
+        TransactionTable existing = createTransaction("tx-1", "user-123", BigDecimal.valueOf(100.00));
+        existing.setTransactionType("EXPENSE");
+        existing.setAccountId("account-123");
+        
+        when(transactionRepository.findById("tx-1")).thenReturn(Optional.of(existing));
+        when(accountRepository.findById("account-123")).thenReturn(Optional.of(testAccount));
+        doNothing().when(transactionRepository).save(any(TransactionTable.class));
+
+        // When: Update transaction with user-provided transactionType
+        TransactionTable result = transactionService.updateTransaction(
+                testUser,
+                "tx-1",
+                null, // plaidTransactionId
+                null, // amount
+                null, // notes
+                null, // categoryPrimary
+                null, // categoryDetailed
+                null, // isAudited
+                null, // isHidden
+                "INVESTMENT", // User-provided transactionType
+                false // clearNotesIfNull
+        );
+
+        // Then: Should use user-provided transactionType
+        assertEquals("INVESTMENT", result.getTransactionType());
+        verify(transactionRepository).save(existing);
+    }
+
+    @Test
+    void testUpdateTransaction_WithCategoryChangeAndNoTransactionType_RecalculatesTransactionType() {
+        // Given: Existing transaction with EXPENSE type
+        TransactionTable existing = createTransaction("tx-1", "user-123", BigDecimal.valueOf(100.00));
+        existing.setTransactionType("EXPENSE");
+        existing.setCategoryPrimary("dining");
+        existing.setCategoryDetailed("dining");
+        existing.setAccountId("account-123");
+        
+        when(transactionRepository.findById("tx-1")).thenReturn(Optional.of(existing));
+        when(accountRepository.findById("account-123")).thenReturn(Optional.of(testAccount));
+        doNothing().when(transactionRepository).save(any(TransactionTable.class));
+        when(transactionTypeDeterminer.determineTransactionType(any(), anyString(), anyString(), any()))
+                .thenReturn(com.budgetbuddy.model.TransactionType.INCOME); // Category change might change type
+
+        // When: Update category but don't provide transactionType
+        TransactionTable result = transactionService.updateTransaction(
+                testUser,
+                "tx-1",
+                null,
+                null,
+                null,
+                "income", // Changed category
+                "salary", // Changed detailed category
+                null,
+                null,
+                null, // No user-provided transactionType
+                false
+        );
+
+        // Then: Should recalculate transactionType based on new category
+        assertEquals("INCOME", result.getTransactionType());
+        verify(transactionTypeDeterminer).determineTransactionType(any(), eq("income"), eq("salary"), any());
+    }
+
+    @Test
+    void testUpdateTransaction_WithUserProvidedTransactionTypeAndCategoryChange_UsesUserType() {
+        // Given: Existing transaction
+        TransactionTable existing = createTransaction("tx-1", "user-123", BigDecimal.valueOf(100.00));
+        existing.setTransactionType("EXPENSE");
+        existing.setAccountId("account-123");
+        
+        when(transactionRepository.findById("tx-1")).thenReturn(Optional.of(existing));
+        when(accountRepository.findById("account-123")).thenReturn(Optional.of(testAccount));
+        doNothing().when(transactionRepository).save(any(TransactionTable.class));
+        when(transactionTypeDeterminer.determineTransactionType(any(), anyString(), anyString(), any()))
+                .thenReturn(com.budgetbuddy.model.TransactionType.INCOME); // Would calculate INCOME
+
+        // When: Update category AND provide transactionType
+        TransactionTable result = transactionService.updateTransaction(
+                testUser,
+                "tx-1",
+                null,
+                null,
+                null,
+                "income", // Changed category
+                "salary",
+                null,
+                null,
+                "INVESTMENT", // User-provided transactionType (should override calculation)
+                false
+        );
+
+        // Then: Should use user-provided transactionType, not calculated
+        assertEquals("INVESTMENT", result.getTransactionType());
+        verify(transactionRepository).save(existing);
+        // Should NOT call determiner because user provided type
+        verify(transactionTypeDeterminer, never()).determineTransactionType(any(), anyString(), anyString(), any());
+    }
+
+    // ========== TRANSACTION TYPE OVERRIDDEN FLAG TESTS ==========
+
+    @Test
+    void testCreateTransaction_WithUserProvidedTransactionType_SetsOverriddenFlag() {
+        // Given: User provides transactionType
+        when(accountRepository.findById("account-123")).thenReturn(Optional.of(testAccount));
+        when(transactionRepository.findById(anyString())).thenReturn(Optional.empty());
+        doNothing().when(transactionRepository).save(any(TransactionTable.class));
+        when(transactionTypeDeterminer.determineTransactionType(any(), anyString(), anyString(), any()))
+                .thenReturn(com.budgetbuddy.model.TransactionType.EXPENSE);
+
+        // When: Create transaction with user-provided transactionType
+        TransactionTable result = transactionService.createTransaction(
+                testUser,
+                "account-123",
+                BigDecimal.valueOf(100.00),
+                LocalDate.now(),
+                "Test transaction",
+                "FOOD",
+                "dining",
+                null,
+                null,
+                null,
+                null,
+                "INVESTMENT" // User-provided
+        );
+
+        // Then: Should set transactionTypeOverridden=true
+        assertNotNull(result);
+        assertEquals("INVESTMENT", result.getTransactionType());
+        assertTrue(result.getTransactionTypeOverridden(), "transactionTypeOverridden should be true when user provides type");
+    }
+
+    @Test
+    void testCreateTransaction_WithoutUserProvidedTransactionType_SetsOverriddenFlagFalse() {
+        // Given: No user-provided transactionType
+        when(accountRepository.findById("account-123")).thenReturn(Optional.of(testAccount));
+        when(transactionRepository.findById(anyString())).thenReturn(Optional.empty());
+        doNothing().when(transactionRepository).save(any(TransactionTable.class));
+        when(transactionTypeDeterminer.determineTransactionType(any(), anyString(), anyString(), any()))
+                .thenReturn(com.budgetbuddy.model.TransactionType.EXPENSE);
+
+        // When: Create transaction without user-provided transactionType
+        TransactionTable result = transactionService.createTransaction(
+                testUser,
+                "account-123",
+                BigDecimal.valueOf(100.00),
+                LocalDate.now(),
+                "Test transaction",
+                "FOOD",
+                "dining",
+                null,
+                null,
+                null,
+                null,
+                null // No user-provided type
+        );
+
+        // Then: Should set transactionTypeOverridden=false
+        assertNotNull(result);
+        assertEquals("EXPENSE", result.getTransactionType());
+        assertFalse(result.getTransactionTypeOverridden(), "transactionTypeOverridden should be false when calculated automatically");
+    }
+
+    @Test
+    void testUpdateTransaction_WithUserProvidedTransactionType_SetsOverriddenFlag() {
+        // Given: Existing transaction without override
+        TransactionTable existing = createTransaction("tx-1", "user-123", BigDecimal.valueOf(100.00));
+        existing.setTransactionType("EXPENSE");
+        existing.setTransactionTypeOverridden(false);
+        existing.setAccountId("account-123");
+        
+        when(transactionRepository.findById("tx-1")).thenReturn(Optional.of(existing));
+        when(accountRepository.findById("account-123")).thenReturn(Optional.of(testAccount));
+        doNothing().when(transactionRepository).save(any(TransactionTable.class));
+
+        // When: Update with user-provided transactionType
+        TransactionTable result = transactionService.updateTransaction(
+                testUser,
+                "tx-1",
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                "INVESTMENT", // User-provided
+                false
+        );
+
+        // Then: Should set transactionTypeOverridden=true
+        assertEquals("INVESTMENT", result.getTransactionType());
+        assertTrue(result.getTransactionTypeOverridden(), "transactionTypeOverridden should be true when user provides type");
+    }
+
+    @Test
+    void testUpdateTransaction_WithCategoryChangeButOverridden_PreservesUserType() {
+        // Given: Existing transaction with user override
+        TransactionTable existing = createTransaction("tx-1", "user-123", BigDecimal.valueOf(100.00));
+        existing.setTransactionType("INVESTMENT");
+        existing.setTransactionTypeOverridden(true); // User has overridden
+        existing.setCategoryPrimary("dining");
+        existing.setCategoryDetailed("dining");
+        existing.setAccountId("account-123");
+        
+        when(transactionRepository.findById("tx-1")).thenReturn(Optional.of(existing));
+        when(accountRepository.findById("account-123")).thenReturn(Optional.of(testAccount));
+        doNothing().when(transactionRepository).save(any(TransactionTable.class));
+        when(transactionTypeDeterminer.determineTransactionType(any(), anyString(), anyString(), any()))
+                .thenReturn(com.budgetbuddy.model.TransactionType.EXPENSE); // Would calculate EXPENSE
+
+        // When: Update category but don't provide transactionType
+        TransactionTable result = transactionService.updateTransaction(
+                testUser,
+                "tx-1",
+                null,
+                null,
+                null,
+                "income", // Changed category
+                "salary",
+                null,
+                null,
+                null, // No user-provided transactionType
+                false
+        );
+
+        // Then: Should preserve user's INVESTMENT type (not recalculate)
+        assertEquals("INVESTMENT", result.getTransactionType());
+        assertTrue(result.getTransactionTypeOverridden(), "transactionTypeOverridden should remain true");
+        // Should NOT recalculate because it's overridden
+        verify(transactionTypeDeterminer, never()).determineTransactionType(any(), anyString(), anyString(), any());
+    }
+
+    @Test
+    void testSaveTransaction_WithOverriddenTransactionType_PreservesUserType() {
+        // Given: Transaction with user override
+        TransactionTable transaction = createTransaction("tx-1", "user-123", BigDecimal.valueOf(100.00));
+        transaction.setTransactionType("INVESTMENT");
+        transaction.setTransactionTypeOverridden(true); // User has overridden
+        transaction.setAccountId("account-123");
+        
+        when(accountRepository.findById("account-123")).thenReturn(Optional.of(testAccount));
+        when(transactionRepository.saveIfPlaidTransactionNotExists(transaction)).thenReturn(true);
+        when(transactionTypeDeterminer.determineTransactionType(any(), anyString(), anyString(), any()))
+                .thenReturn(com.budgetbuddy.model.TransactionType.EXPENSE); // Would calculate EXPENSE
+
+        // When: Save transaction (Plaid sync)
+        TransactionTable result = transactionService.saveTransaction(transaction);
+
+        // Then: Should preserve user's INVESTMENT type
+        assertEquals("INVESTMENT", result.getTransactionType());
+        assertTrue(result.getTransactionTypeOverridden(), "transactionTypeOverridden should remain true");
+        // Should NOT recalculate because it's overridden
+        verify(transactionTypeDeterminer, never()).determineTransactionType(any(), anyString(), anyString(), any());
+    }
+
+    @Test
+    void testSaveTransaction_WithNullTransactionTypeButOverridden_PreservesOverrideFlag() {
+        // Given: Transaction with override flag but null type (edge case)
+        TransactionTable transaction = createTransaction("tx-1", "user-123", BigDecimal.valueOf(100.00));
+        transaction.setTransactionType(null);
+        transaction.setTransactionTypeOverridden(true); // User wants to override, but type is null
+        transaction.setAccountId("account-123");
+        
+        when(accountRepository.findById("account-123")).thenReturn(Optional.of(testAccount));
+        when(transactionRepository.saveIfPlaidTransactionNotExists(transaction)).thenReturn(true);
+        when(transactionTypeDeterminer.determineTransactionType(any(), anyString(), anyString(), any()))
+                .thenReturn(com.budgetbuddy.model.TransactionType.EXPENSE);
+
+        // When: Save transaction
+        TransactionTable result = transactionService.saveTransaction(transaction);
+
+        // Then: Should calculate type (null type takes precedence over override flag)
+        assertEquals("EXPENSE", result.getTransactionType());
+        // Override flag should be preserved (user's intent to override is respected)
+        assertTrue(result.getTransactionTypeOverridden(), "transactionTypeOverridden should remain true");
+    }
+
+    @Test
+    void testCreateTransaction_WithExistingTransactionOverridden_RespectsExistingOverride() {
+        // Given: Existing transaction with user override
+        TransactionTable existing = createTransaction("tx-existing", "user-123", BigDecimal.valueOf(100.00));
+        existing.setTransactionType("INVESTMENT");
+        existing.setTransactionTypeOverridden(true); // User has overridden
+        existing.setPlaidTransactionId("plaid-123");
+        
+        when(accountRepository.findById("account-123")).thenReturn(Optional.of(testAccount));
+        when(transactionRepository.findById("tx-existing")).thenReturn(Optional.of(existing));
+        doNothing().when(transactionRepository).save(any(TransactionTable.class));
+
+        // When: Try to create same transaction with different transactionType
+        TransactionTable result = transactionService.createTransaction(
+                testUser,
+                "account-123",
+                BigDecimal.valueOf(100.00),
+                LocalDate.now(),
+                "Test transaction",
+                "FOOD",
+                "dining",
+                "tx-existing",
+                null,
+                null,
+                "plaid-123",
+                "EXPENSE" // User wants to change to EXPENSE
+        );
+
+        // Then: Should update to new user-provided type and keep override flag
+        assertEquals("EXPENSE", result.getTransactionType());
+        assertTrue(result.getTransactionTypeOverridden(), "transactionTypeOverridden should remain true");
+        verify(transactionRepository).save(any(TransactionTable.class));
+    }
+
+    @Test
+    void testUpdateTransaction_WithEmptyStringTransactionType_TreatsAsNull() {
+        // Given: User sends empty string for transactionType
+        TransactionTable existing = createTransaction("tx-1", "user-123", BigDecimal.valueOf(100.00));
+        existing.setTransactionType("EXPENSE");
+        existing.setAccountId("account-123");
+        
+        when(transactionRepository.findById("tx-1")).thenReturn(Optional.of(existing));
+        when(accountRepository.findById("account-123")).thenReturn(Optional.of(testAccount));
+        doNothing().when(transactionRepository).save(any(TransactionTable.class));
+        when(transactionTypeDeterminer.determineTransactionType(any(), anyString(), anyString(), any()))
+                .thenReturn(com.budgetbuddy.model.TransactionType.INCOME);
+
+        // When: Update with empty string transactionType
+        TransactionTable result = transactionService.updateTransaction(
+                testUser,
+                "tx-1",
+                null,
+                null,
+                null,
+                "income", // Category changed
+                "salary",
+                null,
+                null,
+                "   ", // Empty/whitespace string (should be treated as null)
+                false
+        );
+
+        // Then: Should recalculate (empty string treated as null)
+        assertEquals("INCOME", result.getTransactionType());
+        verify(transactionTypeDeterminer).determineTransactionType(any(), eq("income"), eq("salary"), any());
     }
 }
 

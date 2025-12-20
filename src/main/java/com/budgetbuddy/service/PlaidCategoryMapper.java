@@ -436,6 +436,19 @@ public class PlaidCategoryMapper {
             }
         }
         
+        // CRITICAL FIX: Override category if description contains interest keywords (like "INTRST PYMNT")
+        // This ensures interest payments are always categorized as Income/Interest, even if Plaid sent "other" or no category
+        // This MUST happen AFTER all other categorization logic to ensure it overrides incorrect categorizations
+        // Check for interest keywords in description (including misspellings like "INTRST", "INTR", etc.)
+        if (detectedInvestmentType == null && !isACHCredit) {
+            String interestCategory = determineInterestFromDescription(description, merchantName);
+            if (interestCategory != null) {
+                mappedDetailed = interestCategory;
+                mappedPrimary = "income";
+                logger.debug("Enhanced mapping: overrode category to Income/Interest for transaction with description: {}", description);
+            }
+        }
+        
         return new CategoryMapping(mappedPrimary, mappedDetailed, false);
     }
     
@@ -551,6 +564,43 @@ public class PlaidCategoryMapper {
         return null;
     }
     
+    /**
+     * Determines if a transaction is an interest payment based on description
+     * This is a separate method to allow checking interest even when category is "other"
+     * 
+     * @param description Transaction description
+     * @param merchantName Merchant name
+     * @return "interest" if interest payment detected, null otherwise
+     */
+    private String determineInterestFromDescription(final String description, final String merchantName) {
+        if (description == null && merchantName == null) {
+            return null;
+        }
+        
+        String combinedText = ((merchantName != null ? merchantName : "") + " " + 
+                              (description != null ? description : "")).toLowerCase();
+        
+        // Interest - check for interest, interest payment, interest earned, savings interest
+        // CRITICAL: Also check for misspellings like "INTRST", "INTR", "INTREST", "INTRST PYMNT", etc.
+        // CRITICAL: Exclude CD interest (handled as investment) and certificate-related interest
+        boolean isInterest = combinedText.contains("interest") || 
+                             combinedText.contains("intrst") || // Misspelling: INTRST
+                             combinedText.contains("intr ") || // Misspelling: INTR (with space)
+                             combinedText.contains("intrest") || // Misspelling: INTREST
+                             combinedText.contains("intr payment") || // INTR payment
+                             combinedText.contains("intrst payment") || // INTRST payment
+                             combinedText.contains("intrst pymnt"); // INTRST PYMNT (common bank abbreviation)
+        
+        if (isInterest && 
+            !combinedText.contains("cd interest") && // CD interest is handled separately (investment)
+            !combinedText.contains("certificate") &&
+            !combinedText.contains("cd ")) { // Also exclude any CD-related interest
+            return "interest";
+        }
+        
+        return null;
+    }
+    
     private String determineIncomeCategory(final String description, final String merchantName) {
         if (description == null && merchantName == null) {
             return "salary"; // Default to salary (most common income type) - "income" is ONLY a primary category, not detailed
@@ -579,7 +629,8 @@ public class PlaidCategoryMapper {
                              combinedText.contains("intr ") || // Misspelling: INTR (with space)
                              combinedText.contains("intrest") || // Misspelling: INTREST
                              combinedText.contains("intr payment") || // INTR payment
-                             combinedText.contains("intrst payment"); // INTRST payment
+                             combinedText.contains("intrst payment") || // INTRST payment
+                             combinedText.contains("intrst pymnt"); // INTRST PYMNT (common bank abbreviation)
         
         if (isInterest && 
             !combinedText.contains("cd interest") && // CD interest is handled separately (investment)

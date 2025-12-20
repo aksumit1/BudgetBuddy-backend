@@ -43,7 +43,7 @@ class HSAAccountCategorizationTest {
 
     @BeforeEach
     void setUp() {
-        plaidDataExtractor = new PlaidDataExtractor(categoryMapper, accountRepository);
+        plaidDataExtractor = new PlaidDataExtractor(categoryMapper, accountRepository, new com.budgetbuddy.service.TransactionTypeDeterminer());
 
         // Setup HSA account
         hsaAccount = new AccountTable();

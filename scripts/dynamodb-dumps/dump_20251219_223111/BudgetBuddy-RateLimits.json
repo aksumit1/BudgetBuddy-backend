@@ -1,0 +1,21 @@
+{
+    "Items": [
+        {
+            "tokens": {
+                "N": "999998"
+            },
+            "lastRefill": {
+                "N": "1766204702093"
+            },
+            "ttl": {
+                "N": "1766208302"
+            },
+            "key": {
+                "S": "ska@yahoo.com:/api/transactions/F0F32201-ABAE-34B5-88FB-06C2913EB767"
+            }
+        }
+    ],
+    "Count": 1,
+    "ScannedCount": 1,
+    "ConsumedCapacity": null
+}

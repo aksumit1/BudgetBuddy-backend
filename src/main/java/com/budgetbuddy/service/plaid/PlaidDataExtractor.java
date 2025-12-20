@@ -20,10 +20,14 @@ public class PlaidDataExtractor {
     private static final Logger logger = LoggerFactory.getLogger(PlaidDataExtractor.class);
     private final PlaidCategoryMapper categoryMapper;
     private final AccountRepository accountRepository;
+    private final com.budgetbuddy.service.TransactionTypeDeterminer transactionTypeDeterminer;
 
-    public PlaidDataExtractor(PlaidCategoryMapper categoryMapper, AccountRepository accountRepository) {
+    public PlaidDataExtractor(PlaidCategoryMapper categoryMapper, 
+                             AccountRepository accountRepository,
+                             com.budgetbuddy.service.TransactionTypeDeterminer transactionTypeDeterminer) {
         this.categoryMapper = categoryMapper;
         this.accountRepository = accountRepository;
+        this.transactionTypeDeterminer = transactionTypeDeterminer;
     }
 
     /**
@@ -422,11 +426,39 @@ public class PlaidDataExtractor {
                 }
                 
                 // Extract account ID
+                AccountTable account = null;
                 if (plaidTx.getAccountId() != null) {
-                    Optional<AccountTable> account = accountRepository.findByPlaidAccountId(plaidTx.getAccountId());
-                    if (account.isPresent()) {
-                        transaction.setAccountId(account.get().getAccountId());
+                    Optional<AccountTable> accountOpt = accountRepository.findByPlaidAccountId(plaidTx.getAccountId());
+                    if (accountOpt.isPresent()) {
+                        account = accountOpt.get();
+                        transaction.setAccountId(account.getAccountId());
                     }
+                }
+                
+                // CRITICAL: Determine and set transaction type based on account, category, and amount
+                // This must be done after all fields are set (category, amount, account)
+                // BUT: Only recalculate if user hasn't explicitly overridden transactionType
+                if (!Boolean.TRUE.equals(transaction.getTransactionTypeOverridden())) {
+                    AccountTable accountForType = account != null ? account : (transaction.getAccountId() != null ? 
+                            accountRepository.findById(transaction.getAccountId()).orElse(null) : null);
+                    com.budgetbuddy.model.TransactionType transactionType = transactionTypeDeterminer.determineTransactionType(
+                            accountForType,
+                            transaction.getCategoryPrimary(),
+                            transaction.getCategoryDetailed(),
+                            transaction.getAmount()
+                    );
+                    transaction.setTransactionType(transactionType.name());
+                    // Only set overridden=false if it's currently null (preserve existing override state)
+                    if (transaction.getTransactionTypeOverridden() == null) {
+                        transaction.setTransactionTypeOverridden(false);
+                    }
+                    String plaidTxId = plaidTx.getTransactionId();
+                    logger.debug("Set transaction type to {} for Plaid transaction {} (not overridden)", transactionType, 
+                            plaidTxId != null ? plaidTxId : "unknown");
+                } else {
+                    String plaidTxId = plaidTx.getTransactionId();
+                    logger.debug("Skipping transaction type recalculation for Plaid transaction {} (user override preserved)", 
+                            plaidTxId != null ? plaidTxId : "unknown");
                 }
             } else {
                 // Fallback: use reflection
@@ -473,6 +505,42 @@ public class PlaidDataExtractor {
             if (transaction.getCurrencyCode() == null || transaction.getCurrencyCode().isEmpty()) {
                 transaction.setCurrencyCode("USD");
             }
+        }
+        
+        // CRITICAL: Determine and set transaction type after all fields are set
+        // This ensures transactionType is set even in fallback/error cases
+        // BUT: Only recalculate if user hasn't explicitly overridden transactionType
+        if (!Boolean.TRUE.equals(transaction.getTransactionTypeOverridden())) {
+            try {
+                AccountTable account = null;
+                if (transaction.getAccountId() != null) {
+                    Optional<AccountTable> accountOpt = accountRepository.findById(transaction.getAccountId());
+                    if (accountOpt.isPresent()) {
+                        account = accountOpt.get();
+                    }
+                }
+                
+                com.budgetbuddy.model.TransactionType transactionType = transactionTypeDeterminer.determineTransactionType(
+                        account,
+                        transaction.getCategoryPrimary(),
+                        transaction.getCategoryDetailed(),
+                        transaction.getAmount()
+                );
+                transaction.setTransactionType(transactionType.name());
+                // Only set overridden=false if it's currently null (preserve existing override state)
+                if (transaction.getTransactionTypeOverridden() == null) {
+                    transaction.setTransactionTypeOverridden(false);
+                }
+                logger.debug("Set transaction type to {} for transaction {} (not overridden)", transactionType, transaction.getTransactionId());
+            } catch (Exception e) {
+                logger.warn("Error determining transaction type, defaulting to EXPENSE: {}", e.getMessage());
+                transaction.setTransactionType(com.budgetbuddy.model.TransactionType.EXPENSE.name());
+                if (transaction.getTransactionTypeOverridden() == null) {
+                    transaction.setTransactionTypeOverridden(false);
+                }
+            }
+        } else {
+            logger.debug("Skipping transaction type recalculation for transaction {} (user override preserved)", transaction.getTransactionId());
         }
     }
 

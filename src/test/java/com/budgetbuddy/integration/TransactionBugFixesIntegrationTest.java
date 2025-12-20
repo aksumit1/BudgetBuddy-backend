@@ -116,7 +116,8 @@ class TransactionBugFixesIntegrationTest {
                 transactionId,
                 originalNotes,
                 null, // plaidAccountId
-                null  // plaidTransactionId
+                null,  // plaidTransactionId
+                null // transactionType
         );
         assertEquals(originalNotes, transaction.getNotes());
 
@@ -132,6 +133,7 @@ class TransactionBugFixesIntegrationTest {
                 null, // categoryDetailed
                 null, // isAudited
                 null, // isHidden
+                null, // transactionType
                 false // clearNotesIfNull = false (notes is provided, so this doesn't matter)
         );
         assertEquals(updatedNotes, updated.getNotes());
@@ -175,7 +177,8 @@ class TransactionBugFixesIntegrationTest {
                 transactionId,
                 notes,
                 null,
-                null
+                null,
+                null // transactionType
         );
 
         // When - Update only plaidTransactionId (notes should be null in request)
@@ -190,6 +193,7 @@ class TransactionBugFixesIntegrationTest {
                 null, // categoryDetailed
                 null, // isAudited
                 null, // isHidden
+                null, // transactionType
                 false // clearNotesIfNull = false means preserve existing notes
         );
 
@@ -219,7 +223,8 @@ class TransactionBugFixesIntegrationTest {
                 transactionId,
                 notes,
                 null,
-                null
+                null,
+                null // transactionType
         );
         assertNotNull(transaction1);
         assertEquals(transactionId, transaction1.getTransactionId());
@@ -236,7 +241,8 @@ class TransactionBugFixesIntegrationTest {
                 transactionId, // Same ID
                 notes,
                 null,
-                null
+                null,
+                null // transactionType
         );
 
         // Then - Should return existing transaction (idempotent)
@@ -270,7 +276,8 @@ class TransactionBugFixesIntegrationTest {
                 transactionId1,
                 "Notes",
                 null,
-                plaidTransactionId
+                plaidTransactionId,
+                null // transactionType
         );
 
         // When - Try to create another transaction with same Plaid ID but different transaction ID
@@ -286,7 +293,8 @@ class TransactionBugFixesIntegrationTest {
                 transactionId2, // Different transaction ID
                 "Notes",
                 null,
-                plaidTransactionId // Same Plaid ID
+                plaidTransactionId, // Same Plaid ID
+                null // transactionType
         );
 
         // Then - Backend should handle this appropriately
@@ -321,7 +329,8 @@ class TransactionBugFixesIntegrationTest {
                 mixedCaseId,
                 "Notes",
                 null,
-                null
+                null,
+                null // transactionType
         );
 
         // Then - Backend should normalize to lowercase
@@ -353,7 +362,8 @@ class TransactionBugFixesIntegrationTest {
                 existingTransactionId,
                 "Notes",
                 null,
-                plaidTransactionId
+                plaidTransactionId,
+                null // transactionType
         );
 
         // When - Try to create transaction with same transaction ID but different Plaid ID
@@ -370,7 +380,8 @@ class TransactionBugFixesIntegrationTest {
                 existingTransactionId, // Same transaction ID
                 "New Notes",
                 null,
-                conflictingPlaidId // Different Plaid ID
+                conflictingPlaidId, // Different Plaid ID
+                null // transactionType
         );
 
         // Then - Backend should generate new transaction ID due to conflict
@@ -400,7 +411,8 @@ class TransactionBugFixesIntegrationTest {
                 transactionId,
                 "Notes",
                 null,
-                plaidTransactionId
+                plaidTransactionId,
+                null // transactionType
         );
 
         // When - Create transaction again with same Plaid ID
@@ -415,7 +427,8 @@ class TransactionBugFixesIntegrationTest {
                 transactionId, // Same transaction ID
                 "Notes",
                 null,
-                plaidTransactionId // Same Plaid ID
+                plaidTransactionId, // Same Plaid ID
+                null // transactionType
         );
 
         // Then - Should return same transaction (idempotent)
@@ -442,7 +455,8 @@ class TransactionBugFixesIntegrationTest {
                 transactionId,
                 "Notes",
                 null,
-                null // No Plaid ID
+                null, // No Plaid ID
+                null // transactionType
         );
 
         TransactionTable transaction2 = transactionService.createTransaction(
@@ -456,7 +470,8 @@ class TransactionBugFixesIntegrationTest {
                 transactionId, // Same ID
                 "Notes",
                 null,
-                null // No Plaid ID
+                null, // No Plaid ID
+                null // transactionType
         );
 
         // Then - Should return same transaction
@@ -487,7 +502,8 @@ class TransactionBugFixesIntegrationTest {
                 transactionId,
                 "Notes",
                 null,
-                plaidTransactionId
+                plaidTransactionId,
+                null // transactionType
         );
 
         // When - Create transaction again with same Plaid ID
@@ -502,7 +518,8 @@ class TransactionBugFixesIntegrationTest {
                 transactionId, // Same transaction ID
                 "Notes",
                 null,
-                plaidTransactionId // Same Plaid ID
+                plaidTransactionId, // Same Plaid ID
+                null // transactionType
         );
 
         // Then - Should return same transaction (idempotent)
@@ -529,7 +546,8 @@ class TransactionBugFixesIntegrationTest {
                 existingTransactionId,
                 "Notes",
                 null,
-                existingPlaidId
+                existingPlaidId,
+                null // transactionType
         );
 
         // When - Try to create transaction with same transaction ID but different Plaid ID
@@ -545,7 +563,8 @@ class TransactionBugFixesIntegrationTest {
                 existingTransactionId, // Same transaction ID
                 "New Notes",
                 null,
-                conflictingPlaidId // Different Plaid ID - conflict!
+                conflictingPlaidId, // Different Plaid ID - conflict!
+                null // transactionType
         );
 
         // Then - Backend should handle conflict (return existing or generate new ID)
@@ -574,7 +593,8 @@ class TransactionBugFixesIntegrationTest {
                     transactionId, // Same ID
                     "Notes " + i,
                     null,
-                    null
+                    null,
+                    null // transactionType
             );
         }
 

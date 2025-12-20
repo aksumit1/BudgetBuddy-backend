@@ -164,7 +164,8 @@ public class TransactionController {
                 request.getTransactionId(), // Pass optional transactionId from app
                 request.getNotes(), // Pass optional notes
                 request.getPlaidAccountId(), // Pass optional Plaid account ID for fallback lookup
-                request.getPlaidTransactionId() // Pass optional Plaid transaction ID for fallback lookup and ID consistency
+                request.getPlaidTransactionId(), // Pass optional Plaid transaction ID for fallback lookup and ID consistency
+                request.getTransactionType() // Pass optional user-selected transaction type
         );
 
         return ResponseEntity.status(HttpStatus.CREATED).body(transaction);
@@ -198,6 +199,7 @@ public class TransactionController {
                 request.getCategoryDetailed(),
                 request.getIsAudited(), // Pass audit state
                 request.getIsHidden(), // Pass hidden state
+                request.getTransactionType(), // Pass optional user-selected transaction type
                 false // Don't clear notes if null - preserve existing when doing partial updates
         );
 
@@ -261,6 +263,7 @@ public class TransactionController {
         private String notes; // Optional: User notes for the transaction
         private String plaidAccountId; // Optional: Plaid account ID for fallback lookup if accountId not found
         private String plaidTransactionId; // Optional: Plaid transaction ID for fallback lookup and ID consistency
+        private String transactionType; // Optional: User-selected transaction type (INCOME, INVESTMENT, LOAN, EXPENSE). If not provided, backend will calculate it.
 
         // Getters and setters
         public String getTransactionId() { return transactionId; }
@@ -285,6 +288,9 @@ public class TransactionController {
         
         public String getPlaidTransactionId() { return plaidTransactionId; }
         public void setPlaidTransactionId(final String plaidTransactionId) { this.plaidTransactionId = plaidTransactionId; }
+        
+        public String getTransactionType() { return transactionType; }
+        public void setTransactionType(final String transactionType) { this.transactionType = transactionType; }
     }
 
     public static class TotalSpendingResponse {
@@ -306,6 +312,7 @@ public class TransactionController {
         private String plaidTransactionId; // Optional: for fallback lookup if transactionId not found
         private Boolean isAudited; // Optional: audit checkmark state
         private Boolean isHidden; // Optional: whether transaction is hidden from view
+        private String transactionType; // Optional: User-selected transaction type (INCOME, INVESTMENT, LOAN, EXPENSE). If not provided, backend will calculate it.
 
         public BigDecimal getAmount() { return amount; }
         public void setAmount(final BigDecimal amount) { this.amount = amount; }
@@ -327,6 +334,9 @@ public class TransactionController {
         
         public Boolean getIsHidden() { return isHidden; }
         public void setIsHidden(final Boolean isHidden) { this.isHidden = isHidden; }
+        
+        public String getTransactionType() { return transactionType; }
+        public void setTransactionType(final String transactionType) { this.transactionType = transactionType; }
     }
 
     public static class VerifyTransactionRequest {

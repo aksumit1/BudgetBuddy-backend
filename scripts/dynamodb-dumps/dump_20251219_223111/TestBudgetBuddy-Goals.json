@@ -1,0 +1,4418 @@
+{
+    "Items": [
+        {
+            "createdAt": {
+                "S": "2025-12-20T04:02:27.410629Z"
+            },
+            "goalType": {
+                "S": "SAVINGS"
+            },
+            "goalId": {
+                "S": "76474962-a88f-4a10-9462-d6db0c3cb890"
+            },
+            "targetAmount": {
+                "N": "2000"
+            },
+            "targetDate": {
+                "S": "2026-12-19"
+            },
+            "name": {
+                "S": "Goal 2"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "currentAmount": {
+                "N": "0"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766203347"
+            },
+            "userId": {
+                "S": "018a3945-592d-4562-a850-d8a8c48e711b"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T04:02:27.410629Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-20T03:57:57.011618Z"
+            },
+            "goalType": {
+                "S": "SAVINGS"
+            },
+            "goalId": {
+                "S": "409a1e0f-4cca-474e-b45a-fd6c1facac99"
+            },
+            "targetAmount": {
+                "N": "1000"
+            },
+            "targetDate": {
+                "S": "2026-06-19"
+            },
+            "name": {
+                "S": "Test Goal"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Test Description"
+            },
+            "currentAmount": {
+                "N": "100"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766203077"
+            },
+            "userId": {
+                "S": "720acd66-a5cc-464a-b56b-7c27d6806c4b"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T03:57:57.011618Z"
+            }
+        },
+        {
+            "goalType": {
+                "S": "SAVINGS"
+            },
+            "goalId": {
+                "S": "d8ea3e1b-5ed0-3364-9708-f9976117f880"
+            },
+            "targetAmount": {
+                "N": "1000"
+            },
+            "targetDate": {
+                "S": "2026-06-19"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Test Description"
+            },
+            "currentAmount": {
+                "N": "0"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766206868"
+            },
+            "userId": {
+                "S": "943a0784-6b46-409f-b7b7-1e887dbd92dd"
+            },
+            "createdAt": {
+                "S": "2025-12-20T05:01:08.133057Z"
+            },
+            "name": {
+                "S": "Test Goal"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T05:01:08.133057Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-20T03:57:56.777916Z"
+            },
+            "goalType": {
+                "S": "SAVINGS"
+            },
+            "goalId": {
+                "S": "8c27e3b8-37d3-4db7-8b1f-85d23de1e6a8"
+            },
+            "targetAmount": {
+                "N": "1000"
+            },
+            "targetDate": {
+                "S": "2026-06-19"
+            },
+            "name": {
+                "S": "Test Goal"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Test Description"
+            },
+            "currentAmount": {
+                "N": "100"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766203076"
+            },
+            "userId": {
+                "S": "561bf708-4374-4b35-81d7-a934b962a8cc"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T03:57:56.777916Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-20T04:04:58.863872Z"
+            },
+            "goalId": {
+                "S": "0e2e2d08-945f-4e16-948a-28cd78fb0681"
+            },
+            "targetAmount": {
+                "N": "10000"
+            },
+            "name": {
+                "S": "Test Goal"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766203498"
+            },
+            "userId": {
+                "S": "f724610d-fedc-4e76-a95c-a0f4ed32ff30"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T04:04:58.863872Z"
+            }
+        },
+        {
+            "goalType": {
+                "S": "SAVINGS"
+            },
+            "goalId": {
+                "S": "cf489c1e-ef8b-3871-ae0b-83cd7405a447"
+            },
+            "targetAmount": {
+                "N": "5000"
+            },
+            "targetDate": {
+                "S": "2026-06-19"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Save money"
+            },
+            "currentAmount": {
+                "N": "500.0"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766206946"
+            },
+            "userId": {
+                "S": "9287e693-5041-4acf-8f86-9f92a6e25930"
+            },
+            "createdAt": {
+                "S": "2025-12-20T05:02:26.388028Z"
+            },
+            "name": {
+                "S": "Save for vacation"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T05:02:26.393997Z"
+            }
+        },
+        {
+            "goalType": {
+                "S": "EMERGENCY_FUND"
+            },
+            "goalId": {
+                "S": "b8f683c3-1823-35ae-842e-093ae7327826"
+            },
+            "targetAmount": {
+                "N": "10000"
+            },
+            "targetDate": {
+                "S": "2026-12-19"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Save for emergencies"
+            },
+            "currentAmount": {
+                "N": "0"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766206660"
+            },
+            "userId": {
+                "S": "7c3c7682-44d9-4d7d-a58e-83f5a4b7d387"
+            },
+            "createdAt": {
+                "S": "2025-12-20T04:57:40.377555Z"
+            },
+            "name": {
+                "S": "Emergency Fund"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T04:57:40.377555Z"
+            }
+        },
+        {
+            "goalType": {
+                "S": "CUSTOM"
+            },
+            "goalId": {
+                "S": "356fc877-d048-3ed1-97dd-e76abbb40b0d"
+            },
+            "targetAmount": {
+                "N": "1000"
+            },
+            "targetDate": {
+                "S": "2026-06-19"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Test description"
+            },
+            "currentAmount": {
+                "N": "0"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766206660"
+            },
+            "userId": {
+                "S": "3eb3554a-9742-4379-85b2-dd57090499e9"
+            },
+            "createdAt": {
+                "S": "2025-12-20T04:57:40.275425Z"
+            },
+            "name": {
+                "S": "Test Goal"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T04:57:40.275425Z"
+            }
+        },
+        {
+            "goalType": {
+                "S": "SAVINGS"
+            },
+            "goalId": {
+                "S": "3eaf8423-681b-3f06-b55e-9c9047ecce83"
+            },
+            "targetAmount": {
+                "N": "2000"
+            },
+            "targetDate": {
+                "S": "2026-12-19"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Desc 2"
+            },
+            "currentAmount": {
+                "N": "0"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766203462"
+            },
+            "userId": {
+                "S": "5ecdcabe-20b8-4c55-baa2-d4ec2a1259fb"
+            },
+            "createdAt": {
+                "S": "2025-12-20T04:04:22.693765Z"
+            },
+            "name": {
+                "S": "Goal 2"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T04:04:22.693765Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-20T04:59:12.360465Z"
+            },
+            "goalType": {
+                "S": "SAVINGS"
+            },
+            "goalId": {
+                "S": "6ac6a965-5a5f-4d32-9bd6-1dd319f36d9f"
+            },
+            "targetAmount": {
+                "N": "1000"
+            },
+            "targetDate": {
+                "S": "2026-06-19"
+            },
+            "name": {
+                "S": "Test Goal"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Test Description"
+            },
+            "currentAmount": {
+                "N": "100"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766206752"
+            },
+            "userId": {
+                "S": "af591abe-3844-489f-986f-5dc50fa7269a"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T04:59:12.360465Z"
+            }
+        },
+        {
+            "goalType": {
+                "S": "savings"
+            },
+            "goalId": {
+                "S": "066d5cc6-c1e0-369b-ac46-dc531fb67bc3"
+            },
+            "targetAmount": {
+                "N": "10000"
+            },
+            "targetDate": {
+                "S": "2026-12-19"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Test Description"
+            },
+            "currentAmount": {
+                "N": "0"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766203503"
+            },
+            "userId": {
+                "S": "46aff67b-d341-49a9-91e9-b2cf182b0965"
+            },
+            "createdAt": {
+                "S": "2025-12-20T04:05:03.023575Z"
+            },
+            "name": {
+                "S": "Test Goal"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T04:05:03.023575Z"
+            }
+        },
+        {
+            "goalType": {
+                "S": "VACATION"
+            },
+            "goalId": {
+                "S": "2c31fbbc-277a-303a-9102-50b9f4282989"
+            },
+            "targetAmount": {
+                "N": "5000"
+            },
+            "targetDate": {
+                "S": "2026-06-19"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Save for vacation"
+            },
+            "currentAmount": {
+                "N": "0"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766203490"
+            },
+            "userId": {
+                "S": "7c0dbb42-a31a-40dc-9584-06b890f3a31a"
+            },
+            "createdAt": {
+                "S": "2025-12-20T04:04:50.530952Z"
+            },
+            "name": {
+                "S": "Vacation Fund"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T04:04:50.530952Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-20T03:51:07.279559Z"
+            },
+            "goalType": {
+                "S": "SAVINGS"
+            },
+            "goalId": {
+                "S": "e5bb3038-5ae2-402c-aee7-94caf4a8840e"
+            },
+            "targetAmount": {
+                "N": "1000"
+            },
+            "targetDate": {
+                "S": "2026-06-19"
+            },
+            "name": {
+                "S": "Test Goal"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Test Description"
+            },
+            "currentAmount": {
+                "N": "100"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766202667"
+            },
+            "userId": {
+                "S": "a898725f-5d2e-44ba-bfe1-3e2b0e6a8ec1"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T03:51:07.279559Z"
+            }
+        },
+        {
+            "goalType": {
+                "S": "SAVINGS"
+            },
+            "goalId": {
+                "S": "75667ac4-b353-3bbc-b6e1-d51e239033d8"
+            },
+            "targetAmount": {
+                "N": "5000"
+            },
+            "targetDate": {
+                "S": "2026-06-19"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Save $5000 for vacation"
+            },
+            "currentAmount": {
+                "N": "0"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766203523"
+            },
+            "userId": {
+                "S": "322c7239-aa4f-45b8-9dd1-9c12329e8714"
+            },
+            "createdAt": {
+                "S": "2025-12-20T04:05:23.519536Z"
+            },
+            "name": {
+                "S": "Save for Vacation"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T04:05:23.519536Z"
+            }
+        },
+        {
+            "goalType": {
+                "S": "SAVINGS"
+            },
+            "goalId": {
+                "S": "5db674c6-2df5-3ac8-8eea-04e0cdf42385"
+            },
+            "targetAmount": {
+                "N": "5000"
+            },
+            "targetDate": {
+                "S": "2026-12-19"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Save for vacation"
+            },
+            "currentAmount": {
+                "N": "0"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766203222"
+            },
+            "userId": {
+                "S": "6be9fd36-688d-417c-8546-af7f4eebf06c"
+            },
+            "createdAt": {
+                "S": "2025-12-20T04:00:22.180290Z"
+            },
+            "name": {
+                "S": "Vacation Fund"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T04:00:22.180290Z"
+            }
+        },
+        {
+            "goalType": {
+                "S": "SAVINGS"
+            },
+            "goalId": {
+                "S": "99a57d9c-b157-3dc0-bb41-a510ffd7f898"
+            },
+            "targetAmount": {
+                "N": "5000"
+            },
+            "targetDate": {
+                "S": "2026-06-19"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Save $5000 for vacation"
+            },
+            "currentAmount": {
+                "N": "0"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766206928"
+            },
+            "userId": {
+                "S": "c1276f06-db78-4dc2-adc6-30bf4b461b21"
+            },
+            "createdAt": {
+                "S": "2025-12-20T05:02:08.212888Z"
+            },
+            "name": {
+                "S": "Save for Vacation"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T05:02:08.212888Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-20T04:00:31.326651Z"
+            },
+            "goalId": {
+                "S": "30abeb08-e1a6-4c33-adbd-5eb0b9fc9194"
+            },
+            "targetAmount": {
+                "N": "10000"
+            },
+            "name": {
+                "S": "Test Goal"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766203231"
+            },
+            "userId": {
+                "S": "ba095adf-a501-4292-8c85-cf5c48790a7e"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T04:00:31.326651Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-20T04:55:16.332556Z"
+            },
+            "goalType": {
+                "S": "SAVINGS"
+            },
+            "goalId": {
+                "S": "1c1011ee-d5d5-495b-b8fc-ad5d65e2d066"
+            },
+            "targetAmount": {
+                "N": "1000"
+            },
+            "targetDate": {
+                "S": "2026-06-19"
+            },
+            "name": {
+                "S": "Test Goal"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Test Description"
+            },
+            "currentAmount": {
+                "N": "100"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766206516"
+            },
+            "userId": {
+                "S": "21ab4aa7-4480-406e-9922-60c20e233288"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T04:55:16.332556Z"
+            }
+        },
+        {
+            "goalType": {
+                "S": "savings"
+            },
+            "goalId": {
+                "S": "016a7216-c907-3bcf-b323-c43e19430e96"
+            },
+            "targetAmount": {
+                "N": "10000"
+            },
+            "targetDate": {
+                "S": "2026-12-19"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Test Description"
+            },
+            "currentAmount": {
+                "N": "0"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766206908"
+            },
+            "userId": {
+                "S": "5fa9f3f8-a70d-4f67-8595-2f6e2d82d234"
+            },
+            "createdAt": {
+                "S": "2025-12-20T05:01:48.006661Z"
+            },
+            "name": {
+                "S": "Test Goal"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T05:01:48.006661Z"
+            }
+        },
+        {
+            "goalType": {
+                "S": "SAVINGS"
+            },
+            "goalId": {
+                "S": "590fbc59-030c-3f80-b338-3e3e33c991ba"
+            },
+            "targetAmount": {
+                "N": "5000"
+            },
+            "targetDate": {
+                "S": "2026-06-19"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Save money"
+            },
+            "currentAmount": {
+                "N": "500.0"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766206712"
+            },
+            "userId": {
+                "S": "434158a9-687c-4951-9560-5b39c4167354"
+            },
+            "createdAt": {
+                "S": "2025-12-20T04:58:32.875376Z"
+            },
+            "name": {
+                "S": "Save for vacation"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T04:58:32.884187Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-20T04:04:58.964593Z"
+            },
+            "goalId": {
+                "S": "30677198-67cb-4cde-829b-beedf900d8a0"
+            },
+            "targetAmount": {
+                "N": "10000"
+            },
+            "name": {
+                "S": "Test Goal"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766203498"
+            },
+            "userId": {
+                "S": "af00f761-6a41-4179-a867-daf4b4406c7b"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T04:04:58.964594Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-20T04:00:31.423643Z"
+            },
+            "goalId": {
+                "S": "b9af3ebb-d7ef-48b0-817a-5a72c9c25db6"
+            },
+            "targetAmount": {
+                "N": "10000"
+            },
+            "name": {
+                "S": "Test Goal"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766203231"
+            },
+            "userId": {
+                "S": "3d893639-69de-4baf-9ee3-065823164f10"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T04:00:31.423643Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-20T04:43:27.646175Z"
+            },
+            "goalType": {
+                "S": "SAVINGS"
+            },
+            "goalId": {
+                "S": "46fafd5a-5e79-4f75-922e-243be339f9e7"
+            },
+            "targetAmount": {
+                "N": "1000"
+            },
+            "targetDate": {
+                "S": "2026-06-19"
+            },
+            "name": {
+                "S": "Test Goal"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Test Description"
+            },
+            "currentAmount": {
+                "N": "100"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766205807"
+            },
+            "userId": {
+                "S": "fb1585b4-2164-429c-a36c-75cd9d3d0b68"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T04:43:27.646176Z"
+            }
+        },
+        {
+            "goalType": {
+                "S": "SAVINGS"
+            },
+            "goalId": {
+                "S": "a80b4f6c-a327-3476-b9b5-898a7ba9149b"
+            },
+            "targetAmount": {
+                "N": "1000"
+            },
+            "targetDate": {
+                "S": "2026-06-19"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Desc 1"
+            },
+            "currentAmount": {
+                "N": "0"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766202783"
+            },
+            "userId": {
+                "S": "b1d8eaba-9d79-44a2-bcf9-4e26dcd08023"
+            },
+            "createdAt": {
+                "S": "2025-12-20T03:53:03.351641Z"
+            },
+            "name": {
+                "S": "Goal 1"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T03:53:03.351641Z"
+            }
+        },
+        {
+            "goalType": {
+                "S": "EMERGENCY_FUND"
+            },
+            "goalId": {
+                "S": "1db26fc0-7e5f-312d-85fc-9c28dd89a011"
+            },
+            "targetAmount": {
+                "N": "10000"
+            },
+            "targetDate": {
+                "S": "2026-12-19"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Save for emergencies"
+            },
+            "currentAmount": {
+                "N": "0"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766206895"
+            },
+            "userId": {
+                "S": "743adfd4-71ca-4299-9ff0-d52906b40f4b"
+            },
+            "createdAt": {
+                "S": "2025-12-20T05:01:35.906587Z"
+            },
+            "name": {
+                "S": "Emergency Fund"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T05:01:35.906587Z"
+            }
+        },
+        {
+            "goalType": {
+                "S": "savings"
+            },
+            "goalId": {
+                "S": "505abb44-6884-3868-89de-38b3a07c7e00"
+            },
+            "targetAmount": {
+                "N": "10000"
+            },
+            "targetDate": {
+                "S": "2026-12-19"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Test Description"
+            },
+            "currentAmount": {
+                "N": "0"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766206673"
+            },
+            "userId": {
+                "S": "41457cd1-685e-4035-a258-b1bdbb3a25bb"
+            },
+            "createdAt": {
+                "S": "2025-12-20T04:57:53.341813Z"
+            },
+            "name": {
+                "S": "Test Goal"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T04:57:53.341813Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-20T05:01:44.049438Z"
+            },
+            "goalId": {
+                "S": "3b3fba51-0441-4a3f-b709-4cfdf8e630b8"
+            },
+            "targetAmount": {
+                "N": "10000"
+            },
+            "name": {
+                "S": "Test Goal"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766206904"
+            },
+            "userId": {
+                "S": "002eedbf-e280-4673-a488-4c62903470e3"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T05:01:44.049438Z"
+            }
+        },
+        {
+            "goalType": {
+                "S": "savings"
+            },
+            "goalId": {
+                "S": "24e752f6-5cfb-3ee6-9f7f-3f7fe4320897"
+            },
+            "targetAmount": {
+                "N": "10000"
+            },
+            "targetDate": {
+                "S": "2026-12-19"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Test Description"
+            },
+            "currentAmount": {
+                "N": "0"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766203235"
+            },
+            "userId": {
+                "S": "1f2f9398-5196-4ac2-ac9d-292019cb015c"
+            },
+            "createdAt": {
+                "S": "2025-12-20T04:00:35.434514Z"
+            },
+            "name": {
+                "S": "Test Goal"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T04:00:35.434514Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-20T04:55:16.319221Z"
+            },
+            "goalType": {
+                "S": "SAVINGS"
+            },
+            "goalId": {
+                "S": "1d1b727f-f389-46bb-b4f0-a4135e09637c"
+            },
+            "targetAmount": {
+                "N": "1000"
+            },
+            "targetDate": {
+                "S": "2026-06-19"
+            },
+            "name": {
+                "S": "Test Goal"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Test Description"
+            },
+            "currentAmount": {
+                "N": "100"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766206516"
+            },
+            "userId": {
+                "S": "ff2af605-80a7-4d56-8771-a4788828e218"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T04:55:16.319222Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-20T04:04:59.164998Z"
+            },
+            "goalId": {
+                "S": "4f3d4fb3-289e-492b-a2e2-3cb2886bdd47"
+            },
+            "targetAmount": {
+                "N": "10000"
+            },
+            "targetDate": {
+                "S": "2025-12-31"
+            },
+            "name": {
+                "S": "Test Goal"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "currentAmount": {
+                "N": "1000"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766203499"
+            },
+            "userId": {
+                "S": "8c143ab1-7ec1-4aa4-9479-c503401bfb25"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T04:04:59.164999Z"
+            }
+        },
+        {
+            "goalType": {
+                "S": "SAVINGS"
+            },
+            "goalId": {
+                "S": "59836464-9c0c-341f-9193-3aa9e0991f94"
+            },
+            "targetAmount": {
+                "N": "1000"
+            },
+            "targetDate": {
+                "S": "2026-06-19"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Test Description"
+            },
+            "currentAmount": {
+                "N": "0"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766205927"
+            },
+            "userId": {
+                "S": "2f8d8c9b-edfb-437f-a080-29dd98ddbd13"
+            },
+            "createdAt": {
+                "S": "2025-12-20T04:45:27.332770Z"
+            },
+            "name": {
+                "S": "Test Goal"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T04:45:27.332770Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-20T04:59:12.300536Z"
+            },
+            "goalType": {
+                "S": "SAVINGS"
+            },
+            "goalId": {
+                "S": "0304c585-51bb-4e45-8f1c-8c759193d7b2"
+            },
+            "targetAmount": {
+                "N": "1000"
+            },
+            "targetDate": {
+                "S": "2026-06-19"
+            },
+            "name": {
+                "S": "Test Goal"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Test Description"
+            },
+            "currentAmount": {
+                "N": "100"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766206752"
+            },
+            "userId": {
+                "S": "ef7755f8-0cda-44d4-a89d-daf26264f17f"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T04:59:12.300536Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-20T04:02:27.379138Z"
+            },
+            "goalType": {
+                "S": "SAVINGS"
+            },
+            "goalId": {
+                "S": "d6c30325-b51e-48b2-965e-303181ef8c8f"
+            },
+            "targetAmount": {
+                "N": "1000"
+            },
+            "targetDate": {
+                "S": "2026-06-19"
+            },
+            "name": {
+                "S": "Test Goal"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Test Description"
+            },
+            "currentAmount": {
+                "N": "100"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766203347"
+            },
+            "userId": {
+                "S": "de540f5f-e8f1-4929-ab2c-180e00bc649f"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T04:02:27.379138Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-20T04:02:27.330809Z"
+            },
+            "goalType": {
+                "S": "SAVINGS"
+            },
+            "goalId": {
+                "S": "764df853-3776-4056-9dbb-8de4ea65de22"
+            },
+            "targetAmount": {
+                "N": "1000"
+            },
+            "targetDate": {
+                "S": "2026-06-19"
+            },
+            "name": {
+                "S": "Test Goal"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Test Description"
+            },
+            "currentAmount": {
+                "N": "100"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766203347"
+            },
+            "userId": {
+                "S": "7260e9fb-ed09-408a-9e47-aa026b261aee"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T04:02:27.330809Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-20T04:55:16.344203Z"
+            },
+            "goalType": {
+                "S": "SAVINGS"
+            },
+            "goalId": {
+                "S": "cb95d981-e672-41a2-9885-dfc2621e1609"
+            },
+            "targetAmount": {
+                "N": "1000"
+            },
+            "targetDate": {
+                "S": "2026-06-19"
+            },
+            "name": {
+                "S": "Test Goal"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Test Description"
+            },
+            "currentAmount": {
+                "N": "100"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766206516"
+            },
+            "userId": {
+                "S": "57f3279f-d3b0-437e-a6a4-9a45d5129061"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T04:55:16.344203Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-20T03:57:56.954423Z"
+            },
+            "goalType": {
+                "S": "SAVINGS"
+            },
+            "goalId": {
+                "S": "f8a44c86-95e4-403b-b942-8b71021cb2c7"
+            },
+            "targetAmount": {
+                "N": "2000"
+            },
+            "targetDate": {
+                "S": "2026-12-19"
+            },
+            "name": {
+                "S": "Goal 2"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "currentAmount": {
+                "N": "0"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766203076"
+            },
+            "userId": {
+                "S": "760b377a-95cd-4f2a-9104-316d94381c15"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T03:57:56.954424Z"
+            }
+        },
+        {
+            "goalType": {
+                "S": "CUSTOM"
+            },
+            "goalId": {
+                "S": "3a86a8d9-040c-383e-be1f-6898ed82c4be"
+            },
+            "targetAmount": {
+                "N": "1000"
+            },
+            "targetDate": {
+                "S": "2026-06-19"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Test description"
+            },
+            "currentAmount": {
+                "N": "0"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766203223"
+            },
+            "userId": {
+                "S": "9273757d-877d-4a87-833c-5efba54a0918"
+            },
+            "createdAt": {
+                "S": "2025-12-20T04:00:23.045385Z"
+            },
+            "name": {
+                "S": "Test Goal"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T04:00:23.045385Z"
+            }
+        },
+        {
+            "goalType": {
+                "S": "SAVINGS"
+            },
+            "goalId": {
+                "S": "b57327a5-7665-31e5-91f7-08c4cca6f8fc"
+            },
+            "targetAmount": {
+                "N": "5000"
+            },
+            "targetDate": {
+                "S": "2026-06-19"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Save money for summer vacation"
+            },
+            "currentAmount": {
+                "N": "0"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766206946"
+            },
+            "userId": {
+                "S": "9de256db-b4ce-41b0-a437-625a95b36fe8"
+            },
+            "createdAt": {
+                "S": "2025-12-20T05:02:26.412969Z"
+            },
+            "name": {
+                "S": "Save for vacation"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T05:02:26.412969Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-20T04:43:27.620868Z"
+            },
+            "goalType": {
+                "S": "SAVINGS"
+            },
+            "goalId": {
+                "S": "ec66261b-49a3-42b0-a14e-bf0b6cd03059"
+            },
+            "targetAmount": {
+                "N": "1000"
+            },
+            "targetDate": {
+                "S": "2026-06-19"
+            },
+            "name": {
+                "S": "Test Goal"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Test Description"
+            },
+            "currentAmount": {
+                "N": "100"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766205807"
+            },
+            "userId": {
+                "S": "f7fe7f8c-661c-4252-99a6-4c7971b41f77"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T04:43:27.620868Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-20T05:01:43.963928Z"
+            },
+            "goalId": {
+                "S": "59f6a740-32e5-4eda-b4ec-50bfa4780534"
+            },
+            "targetAmount": {
+                "N": "10000"
+            },
+            "name": {
+                "S": "Test Goal"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766206903"
+            },
+            "userId": {
+                "S": "f1fd23cc-553a-43ef-b48b-d96027f38909"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T05:01:43.963928Z"
+            }
+        },
+        {
+            "goalType": {
+                "S": "SAVINGS"
+            },
+            "goalId": {
+                "S": "5e58d2d0-df5a-36ac-953f-fea907d3a030"
+            },
+            "targetAmount": {
+                "N": "1000"
+            },
+            "targetDate": {
+                "S": "2026-06-19"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Desc"
+            },
+            "currentAmount": {
+                "N": "0"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766203462"
+            },
+            "userId": {
+                "S": "bf4a96b6-f208-47e7-a20c-c8c14fc05c37"
+            },
+            "createdAt": {
+                "S": "2025-12-20T04:04:22.717540Z"
+            },
+            "name": {
+                "S": "Test Goal"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T04:04:22.717540Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-20T04:00:31.512527Z"
+            },
+            "goalId": {
+                "S": "cee50571-72c5-4b93-b211-e5c8bb6631b5"
+            },
+            "targetAmount": {
+                "N": "10000"
+            },
+            "name": {
+                "S": "Test Goal"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766203231"
+            },
+            "userId": {
+                "S": "29d5c6ac-a95a-4adb-b1b0-ccad90684c65"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T04:00:31.512527Z"
+            }
+        },
+        {
+            "goalType": {
+                "S": "SAVINGS"
+            },
+            "goalId": {
+                "S": "7b0a442c-34cc-3497-9e83-b75c81843907"
+            },
+            "targetAmount": {
+                "N": "1000"
+            },
+            "targetDate": {
+                "S": "2026-06-19"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Desc"
+            },
+            "currentAmount": {
+                "N": "0"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766203193"
+            },
+            "userId": {
+                "S": "b9908d91-9e76-40a2-9b69-9d613e793472"
+            },
+            "createdAt": {
+                "S": "2025-12-20T03:59:53.555244Z"
+            },
+            "name": {
+                "S": "Test Goal"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T03:59:53.555244Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-20T04:04:59.134973Z"
+            },
+            "goalId": {
+                "S": "4713238b-a5cf-4a70-a53b-bcde793f15a8"
+            },
+            "targetAmount": {
+                "N": "10000"
+            },
+            "name": {
+                "S": "Test Goal"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766203499"
+            },
+            "userId": {
+                "S": "241ff893-82a6-4813-ade4-3116d24e9f1f"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T04:04:59.134973Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-20T04:43:27.600565Z"
+            },
+            "goalType": {
+                "S": "SAVINGS"
+            },
+            "goalId": {
+                "S": "f1c2cd3b-a49b-4800-a176-6c0f0833507a"
+            },
+            "targetAmount": {
+                "N": "1000"
+            },
+            "targetDate": {
+                "S": "2026-06-19"
+            },
+            "name": {
+                "S": "Test Goal"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Test Description"
+            },
+            "currentAmount": {
+                "N": "100"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766205807"
+            },
+            "userId": {
+                "S": "358713e1-fa47-4ad1-8c85-bdc3826dcb2f"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T04:43:27.600565Z"
+            }
+        },
+        {
+            "goalType": {
+                "S": "SAVINGS"
+            },
+            "goalId": {
+                "S": "a1b2c3d4-e5f6-4789-a012-3456789abcde"
+            },
+            "targetAmount": {
+                "N": "1000"
+            },
+            "targetDate": {
+                "S": "2026-06-19"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Goal description"
+            },
+            "currentAmount": {
+                "N": "0"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766206894"
+            },
+            "userId": {
+                "S": "bb25315b-618a-4370-a0ba-d8e1d09fdd17"
+            },
+            "createdAt": {
+                "S": "2025-12-20T05:01:34.945206Z"
+            },
+            "name": {
+                "S": "Test Goal"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T05:01:34.945206Z"
+            }
+        },
+        {
+            "goalType": {
+                "S": "SAVINGS"
+            },
+            "goalId": {
+                "S": "0b055c5b-ef70-35c5-ae35-80b1f7044e81"
+            },
+            "targetAmount": {
+                "N": "2000"
+            },
+            "targetDate": {
+                "S": "2026-12-19"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Desc 2"
+            },
+            "currentAmount": {
+                "N": "0"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766206631"
+            },
+            "userId": {
+                "S": "baf040e4-bd96-45fe-98f1-822cdda5e2d3"
+            },
+            "createdAt": {
+                "S": "2025-12-20T04:57:11.760293Z"
+            },
+            "name": {
+                "S": "Goal 2"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T04:57:11.760293Z"
+            }
+        },
+        {
+            "goalType": {
+                "S": "VACATION"
+            },
+            "goalId": {
+                "S": "b41de77b-f792-354d-a7dd-bc1e09527e54"
+            },
+            "targetAmount": {
+                "N": "5000"
+            },
+            "targetDate": {
+                "S": "2026-06-19"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Save for vacation"
+            },
+            "currentAmount": {
+                "N": "0"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766203222"
+            },
+            "userId": {
+                "S": "43da8342-8ab4-420c-ad85-584e7cf772cb"
+            },
+            "createdAt": {
+                "S": "2025-12-20T04:00:22.925269Z"
+            },
+            "name": {
+                "S": "Vacation Fund"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T04:00:22.925269Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-20T03:57:56.921041Z"
+            },
+            "goalType": {
+                "S": "SAVINGS"
+            },
+            "goalId": {
+                "S": "028f0493-b055-488d-b8a9-0a3c14fedc67"
+            },
+            "targetAmount": {
+                "N": "1000"
+            },
+            "targetDate": {
+                "S": "2026-06-19"
+            },
+            "name": {
+                "S": "Test Goal"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Test Description"
+            },
+            "currentAmount": {
+                "N": "100"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766203076"
+            },
+            "userId": {
+                "S": "974f7c4f-64e0-4cb1-ac85-5e40e68fc0c5"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T03:57:56.921041Z"
+            }
+        },
+        {
+            "goalType": {
+                "S": "SAVINGS"
+            },
+            "goalId": {
+                "S": "73e98116-0c9f-3689-93ca-3e8b7ea7016a"
+            },
+            "targetAmount": {
+                "N": "2000"
+            },
+            "targetDate": {
+                "S": "2026-12-19"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Desc 2"
+            },
+            "currentAmount": {
+                "N": "0"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766205927"
+            },
+            "userId": {
+                "S": "626ec4f2-cc2f-4836-a826-167b8dcc7aa3"
+            },
+            "createdAt": {
+                "S": "2025-12-20T04:45:27.412022Z"
+            },
+            "name": {
+                "S": "Goal 2"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T04:45:27.412022Z"
+            }
+        },
+        {
+            "goalType": {
+                "S": "SAVINGS"
+            },
+            "goalId": {
+                "S": "6bb98b87-ff26-3620-8b2a-f486738e2e22"
+            },
+            "targetAmount": {
+                "N": "5000"
+            },
+            "targetDate": {
+                "S": "2026-12-19"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Save for vacation"
+            },
+            "currentAmount": {
+                "N": "0"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766203489"
+            },
+            "userId": {
+                "S": "b7e193a1-1b8e-4ebd-acaf-73be5e2e5818"
+            },
+            "createdAt": {
+                "S": "2025-12-20T04:04:49.906903Z"
+            },
+            "name": {
+                "S": "Vacation Fund"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T04:04:49.906903Z"
+            }
+        },
+        {
+            "goalType": {
+                "S": "SAVINGS"
+            },
+            "goalId": {
+                "S": "fa4738cd-d1a8-3cf0-9bf3-f7438b31c4ee"
+            },
+            "targetAmount": {
+                "N": "5000"
+            },
+            "targetDate": {
+                "S": "2026-12-19"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Save for vacation"
+            },
+            "currentAmount": {
+                "N": "0"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766206895"
+            },
+            "userId": {
+                "S": "90828184-4be9-4f0e-a4ea-7f0c6b932b02"
+            },
+            "createdAt": {
+                "S": "2025-12-20T05:01:35.038787Z"
+            },
+            "name": {
+                "S": "Vacation Fund"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T05:01:35.038787Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-20T04:59:12.411446Z"
+            },
+            "goalType": {
+                "S": "SAVINGS"
+            },
+            "goalId": {
+                "S": "34ce7b10-88f5-49c4-8bb2-dad17599389d"
+            },
+            "targetAmount": {
+                "N": "1000"
+            },
+            "targetDate": {
+                "S": "2026-06-19"
+            },
+            "name": {
+                "S": "Test Goal"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Test Description"
+            },
+            "currentAmount": {
+                "N": "100"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766206752"
+            },
+            "userId": {
+                "S": "9d5a9703-017b-4dec-8534-6fd0bb5d8307"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T04:59:12.411447Z"
+            }
+        },
+        {
+            "goalType": {
+                "S": "CUSTOM"
+            },
+            "goalId": {
+                "S": "8cb6d2e8-9eb4-331e-98cf-8b350379d5eb"
+            },
+            "targetAmount": {
+                "N": "1000"
+            },
+            "targetDate": {
+                "S": "2026-06-19"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Test description"
+            },
+            "currentAmount": {
+                "N": "0"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766203490"
+            },
+            "userId": {
+                "S": "ff129222-6fa6-4bab-9d10-b1499d73ed91"
+            },
+            "createdAt": {
+                "S": "2025-12-20T04:04:50.650945Z"
+            },
+            "name": {
+                "S": "Test Goal"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T04:04:50.650945Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-20T04:59:12.378803Z"
+            },
+            "goalType": {
+                "S": "SAVINGS"
+            },
+            "goalId": {
+                "S": "c6b898ba-cba9-4fb6-b568-b26115b7fda6"
+            },
+            "targetAmount": {
+                "N": "2000"
+            },
+            "targetDate": {
+                "S": "2026-12-19"
+            },
+            "name": {
+                "S": "Goal 2"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "currentAmount": {
+                "N": "0"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766206752"
+            },
+            "userId": {
+                "S": "0ffa2aab-8da9-4ab7-963e-b54120966eae"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T04:59:12.378803Z"
+            }
+        },
+        {
+            "goalType": {
+                "S": "VACATION"
+            },
+            "goalId": {
+                "S": "8bb327c3-2878-3e35-b382-b639c9162a4b"
+            },
+            "targetAmount": {
+                "N": "5000"
+            },
+            "targetDate": {
+                "S": "2026-06-19"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Save for vacation"
+            },
+            "currentAmount": {
+                "N": "0"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766206660"
+            },
+            "userId": {
+                "S": "47eb9a2d-e991-49c6-a452-d024c768623b"
+            },
+            "createdAt": {
+                "S": "2025-12-20T04:57:40.152342Z"
+            },
+            "name": {
+                "S": "Vacation Fund"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T04:57:40.152342Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-20T04:04:59.051278Z"
+            },
+            "goalId": {
+                "S": "2ff6bd83-86b8-4ca7-920d-44556a845080"
+            },
+            "targetAmount": {
+                "N": "10000"
+            },
+            "name": {
+                "S": "Test Goal"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766203499"
+            },
+            "userId": {
+                "S": "cb09dd67-9941-4986-98ab-731b3a891816"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T04:04:59.051278Z"
+            }
+        },
+        {
+            "goalType": {
+                "S": "SAVINGS"
+            },
+            "goalId": {
+                "S": "c06975db-ab80-3193-9932-42d117571b2f"
+            },
+            "targetAmount": {
+                "N": "5000"
+            },
+            "targetDate": {
+                "S": "2026-06-19"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Save $5000 for vacation"
+            },
+            "currentAmount": {
+                "N": "0"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766203255"
+            },
+            "userId": {
+                "S": "b31194ee-2846-4e27-8d70-6a48769c605f"
+            },
+            "createdAt": {
+                "S": "2025-12-20T04:00:55.468652Z"
+            },
+            "name": {
+                "S": "Save for Vacation"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T04:00:55.468652Z"
+            }
+        },
+        {
+            "goalType": {
+                "S": "SAVINGS"
+            },
+            "goalId": {
+                "S": "5fa98ebc-6bf7-338f-affc-200a80de864d"
+            },
+            "targetAmount": {
+                "N": "5000"
+            },
+            "targetDate": {
+                "S": "2026-06-19"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Save money"
+            },
+            "currentAmount": {
+                "N": "500.0"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766203541"
+            },
+            "userId": {
+                "S": "110bd075-605a-41fd-9fb4-57b5e3477d0c"
+            },
+            "createdAt": {
+                "S": "2025-12-20T04:05:41.434190Z"
+            },
+            "name": {
+                "S": "Save for vacation"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T04:05:41.440346Z"
+            }
+        },
+        {
+            "goalType": {
+                "S": "SAVINGS"
+            },
+            "goalId": {
+                "S": "bd6e70ee-8989-3d8c-bb9f-a085ec12008c"
+            },
+            "targetAmount": {
+                "N": "2000"
+            },
+            "targetDate": {
+                "S": "2026-12-19"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Desc 2"
+            },
+            "currentAmount": {
+                "N": "0"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766202783"
+            },
+            "userId": {
+                "S": "b1d8eaba-9d79-44a2-bcf9-4e26dcd08023"
+            },
+            "createdAt": {
+                "S": "2025-12-20T03:53:03.358371Z"
+            },
+            "name": {
+                "S": "Goal 2"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T03:53:03.358371Z"
+            }
+        },
+        {
+            "goalType": {
+                "S": "SAVINGS"
+            },
+            "goalId": {
+                "S": "09302b39-8282-3d43-9e60-54d70f453851"
+            },
+            "targetAmount": {
+                "N": "5000"
+            },
+            "targetDate": {
+                "S": "2026-12-19"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Save for vacation"
+            },
+            "currentAmount": {
+                "N": "0"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766206659"
+            },
+            "userId": {
+                "S": "bbc03854-c7c5-4483-891e-d551f3caf44d"
+            },
+            "createdAt": {
+                "S": "2025-12-20T04:57:39.389432Z"
+            },
+            "name": {
+                "S": "Vacation Fund"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T04:57:39.389432Z"
+            }
+        },
+        {
+            "goalType": {
+                "S": "SAVINGS"
+            },
+            "goalId": {
+                "S": "081da4f2-5d89-3030-9886-e74d9e124003"
+            },
+            "targetAmount": {
+                "N": "1000"
+            },
+            "targetDate": {
+                "S": "2026-06-19"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Test Description"
+            },
+            "currentAmount": {
+                "N": "0"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766203193"
+            },
+            "userId": {
+                "S": "f870d836-c431-415f-87be-2c104ba75b24"
+            },
+            "createdAt": {
+                "S": "2025-12-20T03:59:53.460336Z"
+            },
+            "name": {
+                "S": "Test Goal"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T03:59:53.460336Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-20T03:51:07.334248Z"
+            },
+            "goalType": {
+                "S": "SAVINGS"
+            },
+            "goalId": {
+                "S": "f5fabc18-4a27-49e2-acb0-68ae1cc637b8"
+            },
+            "targetAmount": {
+                "N": "1000"
+            },
+            "targetDate": {
+                "S": "2026-06-19"
+            },
+            "name": {
+                "S": "Test Goal"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Test Description"
+            },
+            "currentAmount": {
+                "N": "100"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766202667"
+            },
+            "userId": {
+                "S": "327bc91d-2c1e-4f32-a049-54adffe55d9b"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T03:51:07.334248Z"
+            }
+        },
+        {
+            "goalType": {
+                "S": "SAVINGS"
+            },
+            "goalId": {
+                "S": "697f8bc7-6876-3358-8335-4d2bf6c6b7f9"
+            },
+            "targetAmount": {
+                "N": "1000"
+            },
+            "targetDate": {
+                "S": "2026-06-19"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Test Description"
+            },
+            "currentAmount": {
+                "N": "0"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766202783"
+            },
+            "userId": {
+                "S": "e6052f1c-2d28-4298-b0b1-b65986c3db93"
+            },
+            "createdAt": {
+                "S": "2025-12-20T03:53:03.297831Z"
+            },
+            "name": {
+                "S": "Test Goal"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T03:53:03.297831Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-20T04:02:27.392938Z"
+            },
+            "goalType": {
+                "S": "SAVINGS"
+            },
+            "goalId": {
+                "S": "25d212e5-b239-4dd2-91cd-8e8865188cfb"
+            },
+            "targetAmount": {
+                "N": "1000"
+            },
+            "targetDate": {
+                "S": "2026-06-19"
+            },
+            "name": {
+                "S": "Test Goal"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Test Description"
+            },
+            "currentAmount": {
+                "N": "100"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766203347"
+            },
+            "userId": {
+                "S": "0a197588-0456-4b79-9889-7e7d58ba2776"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T04:02:27.392938Z"
+            }
+        },
+        {
+            "goalType": {
+                "S": "SAVINGS"
+            },
+            "goalId": {
+                "S": "614a7da2-0dbb-3acf-922a-97c14e481bea"
+            },
+            "targetAmount": {
+                "N": "1000"
+            },
+            "targetDate": {
+                "S": "2026-06-19"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Test Description"
+            },
+            "currentAmount": {
+                "N": "0"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766206631"
+            },
+            "userId": {
+                "S": "c76ab8a8-a729-46df-9a2b-4ed2ec2c2ff0"
+            },
+            "createdAt": {
+                "S": "2025-12-20T04:57:11.688066Z"
+            },
+            "name": {
+                "S": "Test Goal"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T04:57:11.688066Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-20T04:43:27.733776Z"
+            },
+            "goalType": {
+                "S": "SAVINGS"
+            },
+            "goalId": {
+                "S": "9f6020bc-5f7b-464a-bbcd-652e148c89ea"
+            },
+            "targetAmount": {
+                "N": "1000"
+            },
+            "targetDate": {
+                "S": "2026-06-19"
+            },
+            "name": {
+                "S": "Test Goal"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Test Description"
+            },
+            "currentAmount": {
+                "N": "100"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766205807"
+            },
+            "userId": {
+                "S": "49fc6676-9072-4cdb-9bae-83da109bff68"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T04:43:27.733776Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-20T03:51:07.353750Z"
+            },
+            "goalType": {
+                "S": "SAVINGS"
+            },
+            "goalId": {
+                "S": "55da1060-5720-409e-bc71-875fcb204055"
+            },
+            "targetAmount": {
+                "N": "1000"
+            },
+            "targetDate": {
+                "S": "2026-06-19"
+            },
+            "name": {
+                "S": "Test Goal"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Test Description"
+            },
+            "currentAmount": {
+                "N": "100"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766202667"
+            },
+            "userId": {
+                "S": "bb51c69f-e948-48a2-a68b-5cab73a77442"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T03:51:07.353750Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-20T04:00:31.601998Z"
+            },
+            "goalId": {
+                "S": "e94d65ed-fb59-40f6-83fd-dc93fa4b9251"
+            },
+            "targetAmount": {
+                "N": "10000"
+            },
+            "name": {
+                "S": "Test Goal"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766203231"
+            },
+            "userId": {
+                "S": "9c78462f-5256-4e28-966b-fca0fccd754c"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T04:00:31.601999Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-20T04:59:12.372835Z"
+            },
+            "goalType": {
+                "S": "SAVINGS"
+            },
+            "goalId": {
+                "S": "6cce3596-e7bc-45b2-b371-c2152d58ad73"
+            },
+            "targetAmount": {
+                "N": "1000"
+            },
+            "targetDate": {
+                "S": "2026-06-19"
+            },
+            "name": {
+                "S": "Test Goal"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Test Description"
+            },
+            "currentAmount": {
+                "N": "100"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766206752"
+            },
+            "userId": {
+                "S": "0ffa2aab-8da9-4ab7-963e-b54120966eae"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T04:59:12.372835Z"
+            }
+        },
+        {
+            "goalType": {
+                "S": "SAVINGS"
+            },
+            "goalId": {
+                "S": "d5b32491-a5ec-3afd-878f-d325332b48c2"
+            },
+            "targetAmount": {
+                "N": "1000"
+            },
+            "targetDate": {
+                "S": "2026-06-19"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Test Description"
+            },
+            "currentAmount": {
+                "N": "0"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766203462"
+            },
+            "userId": {
+                "S": "8202ee81-2be2-49fc-8e8a-b3503fab17c0"
+            },
+            "createdAt": {
+                "S": "2025-12-20T04:04:22.632090Z"
+            },
+            "name": {
+                "S": "Test Goal"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T04:04:22.632090Z"
+            }
+        },
+        {
+            "goalType": {
+                "S": "SAVINGS"
+            },
+            "goalId": {
+                "S": "0dc5b8b2-129f-32c5-8140-c74b341eeda5"
+            },
+            "targetAmount": {
+                "N": "2000"
+            },
+            "targetDate": {
+                "S": "2026-12-19"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Desc 2"
+            },
+            "currentAmount": {
+                "N": "0"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766206868"
+            },
+            "userId": {
+                "S": "29808efd-45f9-472d-a666-cf53253fad31"
+            },
+            "createdAt": {
+                "S": "2025-12-20T05:01:08.205098Z"
+            },
+            "name": {
+                "S": "Goal 2"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T05:01:08.205098Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-20T04:59:12.345792Z"
+            },
+            "goalType": {
+                "S": "SAVINGS"
+            },
+            "goalId": {
+                "S": "74c5750e-0a48-4235-9580-daf942828493"
+            },
+            "targetAmount": {
+                "N": "1000"
+            },
+            "targetDate": {
+                "S": "2026-06-19"
+            },
+            "name": {
+                "S": "Test Goal"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Test Description"
+            },
+            "currentAmount": {
+                "N": "100"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766206752"
+            },
+            "userId": {
+                "S": "13c41989-e2a5-4e97-a96a-6669c5add5fe"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T04:59:12.345792Z"
+            }
+        },
+        {
+            "goalType": {
+                "S": "SAVINGS"
+            },
+            "goalId": {
+                "S": "ed6a6e5e-df47-3267-9d33-f5b18d3592b1"
+            },
+            "targetAmount": {
+                "N": "1000"
+            },
+            "targetDate": {
+                "S": "2026-06-19"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Desc"
+            },
+            "currentAmount": {
+                "N": "0"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766206631"
+            },
+            "userId": {
+                "S": "f0bb5757-20ea-425e-afd0-dcea39b4732e"
+            },
+            "createdAt": {
+                "S": "2025-12-20T04:57:11.780641Z"
+            },
+            "name": {
+                "S": "Test Goal"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T04:57:11.780641Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-20T03:57:56.947282Z"
+            },
+            "goalType": {
+                "S": "SAVINGS"
+            },
+            "goalId": {
+                "S": "8ade57a3-facf-4def-882a-a4739d61283e"
+            },
+            "targetAmount": {
+                "N": "1000"
+            },
+            "targetDate": {
+                "S": "2026-06-19"
+            },
+            "name": {
+                "S": "Test Goal"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Test Description"
+            },
+            "currentAmount": {
+                "N": "100"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766203076"
+            },
+            "userId": {
+                "S": "760b377a-95cd-4f2a-9104-316d94381c15"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T03:57:56.947282Z"
+            }
+        },
+        {
+            "goalType": {
+                "S": "SAVINGS"
+            },
+            "goalId": {
+                "S": "8d1828e9-f8bd-3170-b038-3ec6a95daf77"
+            },
+            "targetAmount": {
+                "N": "1000"
+            },
+            "targetDate": {
+                "S": "2026-06-19"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Desc"
+            },
+            "currentAmount": {
+                "N": "0"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766206868"
+            },
+            "userId": {
+                "S": "48d202e1-4487-4159-8469-cf0687411b90"
+            },
+            "createdAt": {
+                "S": "2025-12-20T05:01:08.229215Z"
+            },
+            "name": {
+                "S": "Test Goal"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T05:01:08.229215Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-20T05:01:44.234545Z"
+            },
+            "goalId": {
+                "S": "45875d68-d0f5-4a75-afe5-e1e4496f71bd"
+            },
+            "targetAmount": {
+                "N": "10000"
+            },
+            "targetDate": {
+                "S": "2025-12-31"
+            },
+            "name": {
+                "S": "Test Goal"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "currentAmount": {
+                "N": "1000"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766206904"
+            },
+            "userId": {
+                "S": "98e4aec1-59b4-406f-b106-e59d26e0a976"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T05:01:44.234545Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-20T04:57:49.070157Z"
+            },
+            "goalId": {
+                "S": "6e5baeb7-300b-4c8d-869c-1d040ccb8b7f"
+            },
+            "targetAmount": {
+                "N": "10000"
+            },
+            "name": {
+                "S": "Test Goal"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766206669"
+            },
+            "userId": {
+                "S": "e947b210-4934-4056-995d-95d3d1d67b4e"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T04:57:49.070157Z"
+            }
+        },
+        {
+            "goalType": {
+                "S": "SAVINGS"
+            },
+            "goalId": {
+                "S": "6166cdc8-30a7-381e-9fbd-9a362951c77b"
+            },
+            "targetAmount": {
+                "N": "5000"
+            },
+            "targetDate": {
+                "S": "2026-06-19"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Save money for summer vacation"
+            },
+            "currentAmount": {
+                "N": "0"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766203541"
+            },
+            "userId": {
+                "S": "1880c2cb-319d-439a-bfa3-68ecd92beacf"
+            },
+            "createdAt": {
+                "S": "2025-12-20T04:05:41.458822Z"
+            },
+            "name": {
+                "S": "Save for vacation"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T04:05:41.458822Z"
+            }
+        },
+        {
+            "goalType": {
+                "S": "SAVINGS"
+            },
+            "goalId": {
+                "S": "830e836c-f3de-39a5-85f5-359bab32f03c"
+            },
+            "targetAmount": {
+                "N": "1000"
+            },
+            "targetDate": {
+                "S": "2026-06-19"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Desc 1"
+            },
+            "currentAmount": {
+                "N": "0"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766205927"
+            },
+            "userId": {
+                "S": "626ec4f2-cc2f-4836-a826-167b8dcc7aa3"
+            },
+            "createdAt": {
+                "S": "2025-12-20T04:45:27.404882Z"
+            },
+            "name": {
+                "S": "Goal 1"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T04:45:27.404882Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-20T04:43:27.562003Z"
+            },
+            "goalType": {
+                "S": "SAVINGS"
+            },
+            "goalId": {
+                "S": "558e7ac1-c4e2-4568-81b4-5ee554e41aa0"
+            },
+            "targetAmount": {
+                "N": "1000"
+            },
+            "targetDate": {
+                "S": "2026-06-19"
+            },
+            "name": {
+                "S": "Test Goal"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Test Description"
+            },
+            "currentAmount": {
+                "N": "100"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766205807"
+            },
+            "userId": {
+                "S": "23e5f246-3a6b-4e96-b620-0ace836150a9"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T04:43:27.562004Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-20T03:51:07.367607Z"
+            },
+            "goalType": {
+                "S": "SAVINGS"
+            },
+            "goalId": {
+                "S": "8f63ff78-be3a-49ff-a119-4bc5bdcd6c8d"
+            },
+            "targetAmount": {
+                "N": "1000"
+            },
+            "targetDate": {
+                "S": "2026-06-19"
+            },
+            "name": {
+                "S": "Test Goal"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Test Description"
+            },
+            "currentAmount": {
+                "N": "100"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766202667"
+            },
+            "userId": {
+                "S": "fbab5686-5f31-4a50-a26a-6c175adc1ae7"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T03:51:07.367607Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-20T04:55:16.384141Z"
+            },
+            "goalType": {
+                "S": "SAVINGS"
+            },
+            "goalId": {
+                "S": "3f67ae61-0c2a-47f1-b297-f41d995cfd28"
+            },
+            "targetAmount": {
+                "N": "1000"
+            },
+            "targetDate": {
+                "S": "2026-06-19"
+            },
+            "name": {
+                "S": "Test Goal"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Test Description"
+            },
+            "currentAmount": {
+                "N": "100"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766206516"
+            },
+            "userId": {
+                "S": "23303418-5cc2-4b6e-911a-517bcfc58c8e"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T04:55:16.384141Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-20T04:00:31.633754Z"
+            },
+            "goalId": {
+                "S": "aa2ca73b-1e25-4587-ac9f-f2c17de467e5"
+            },
+            "targetAmount": {
+                "N": "10000"
+            },
+            "targetDate": {
+                "S": "2025-12-31"
+            },
+            "name": {
+                "S": "Test Goal"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "currentAmount": {
+                "N": "1000"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766203231"
+            },
+            "userId": {
+                "S": "500dd9fa-9bad-49b2-8eea-c9195fb5a109"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T04:00:31.633754Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-20T05:01:44.128842Z"
+            },
+            "goalId": {
+                "S": "c0567dff-a666-41dd-b01a-b91b78720ce9"
+            },
+            "targetAmount": {
+                "N": "10000"
+            },
+            "name": {
+                "S": "Test Goal"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766206904"
+            },
+            "userId": {
+                "S": "0222fd40-14c7-47db-b0de-015ce3a3e9d2"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T05:01:44.128842Z"
+            }
+        },
+        {
+            "goalType": {
+                "S": "SAVINGS"
+            },
+            "goalId": {
+                "S": "39500ed2-2fa0-3663-8726-06ae01e68684"
+            },
+            "targetAmount": {
+                "N": "1000"
+            },
+            "targetDate": {
+                "S": "2026-06-19"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Desc 1"
+            },
+            "currentAmount": {
+                "N": "0"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766203462"
+            },
+            "userId": {
+                "S": "5ecdcabe-20b8-4c55-baa2-d4ec2a1259fb"
+            },
+            "createdAt": {
+                "S": "2025-12-20T04:04:22.687276Z"
+            },
+            "name": {
+                "S": "Goal 1"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T04:04:22.687276Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-20T04:57:49.298947Z"
+            },
+            "goalId": {
+                "S": "be578971-582b-414c-871b-a6de141939f6"
+            },
+            "targetAmount": {
+                "N": "10000"
+            },
+            "targetDate": {
+                "S": "2025-12-31"
+            },
+            "name": {
+                "S": "Test Goal"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "currentAmount": {
+                "N": "1000"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766206669"
+            },
+            "userId": {
+                "S": "78e6bc84-3df9-4ae8-a281-dc444f736931"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T04:57:49.298947Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-20T04:43:27.682579Z"
+            },
+            "goalType": {
+                "S": "SAVINGS"
+            },
+            "goalId": {
+                "S": "6e3d6a9a-4cd6-416e-acfc-5cbb3a89662b"
+            },
+            "targetAmount": {
+                "N": "2000"
+            },
+            "targetDate": {
+                "S": "2026-12-19"
+            },
+            "name": {
+                "S": "Goal 2"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "currentAmount": {
+                "N": "0"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766205807"
+            },
+            "userId": {
+                "S": "807b40d3-55f9-46bb-bfe5-126b52f90ce0"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T04:43:27.682579Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-20T03:51:07.414205Z"
+            },
+            "goalType": {
+                "S": "SAVINGS"
+            },
+            "goalId": {
+                "S": "5a3cf260-f69c-41c6-a636-d275e87aa95c"
+            },
+            "targetAmount": {
+                "N": "1000"
+            },
+            "targetDate": {
+                "S": "2026-06-19"
+            },
+            "name": {
+                "S": "Test Goal"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Test Description"
+            },
+            "currentAmount": {
+                "N": "100"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766202667"
+            },
+            "userId": {
+                "S": "ad6d947c-3ae5-4508-9248-aec539d89ddc"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T03:51:07.414205Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-20T04:59:12.331150Z"
+            },
+            "goalType": {
+                "S": "SAVINGS"
+            },
+            "goalId": {
+                "S": "913d228d-5d31-4fa4-9cce-20f92e1180dc"
+            },
+            "targetAmount": {
+                "N": "1000"
+            },
+            "targetDate": {
+                "S": "2026-06-19"
+            },
+            "name": {
+                "S": "Test Goal"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Test Description"
+            },
+            "currentAmount": {
+                "N": "100"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766206752"
+            },
+            "userId": {
+                "S": "bb2a25ac-64ce-4bb6-b403-585bc07dd8a6"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T04:59:12.331150Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-20T04:02:27.443446Z"
+            },
+            "goalType": {
+                "S": "SAVINGS"
+            },
+            "goalId": {
+                "S": "915c60eb-a2cd-4bde-b25c-366565c95ccb"
+            },
+            "targetAmount": {
+                "N": "1000"
+            },
+            "targetDate": {
+                "S": "2026-06-19"
+            },
+            "name": {
+                "S": "Test Goal"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Test Description"
+            },
+            "currentAmount": {
+                "N": "100"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766203347"
+            },
+            "userId": {
+                "S": "557813bb-49ca-408f-8a20-cae8fd3e48c0"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T04:02:27.443446Z"
+            }
+        },
+        {
+            "goalType": {
+                "S": "SAVINGS"
+            },
+            "goalId": {
+                "S": "38d65f2c-32e1-398c-a7b8-2e09c79ce243"
+            },
+            "targetAmount": {
+                "N": "1000"
+            },
+            "targetDate": {
+                "S": "2026-06-19"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Desc 1"
+            },
+            "currentAmount": {
+                "N": "0"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766206631"
+            },
+            "userId": {
+                "S": "baf040e4-bd96-45fe-98f1-822cdda5e2d3"
+            },
+            "createdAt": {
+                "S": "2025-12-20T04:57:11.752709Z"
+            },
+            "name": {
+                "S": "Goal 1"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T04:57:11.752709Z"
+            }
+        },
+        {
+            "goalType": {
+                "S": "SAVINGS"
+            },
+            "goalId": {
+                "S": "a00adeca-40e9-33f0-bb70-50c4f7760878"
+            },
+            "targetAmount": {
+                "N": "5000"
+            },
+            "targetDate": {
+                "S": "2026-06-19"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Save money for summer vacation"
+            },
+            "currentAmount": {
+                "N": "0"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766203274"
+            },
+            "userId": {
+                "S": "81f3c874-52e8-44d2-8bda-e76139c81856"
+            },
+            "createdAt": {
+                "S": "2025-12-20T04:01:14.072712Z"
+            },
+            "name": {
+                "S": "Save for vacation"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T04:01:14.072712Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-20T04:57:49.166809Z"
+            },
+            "goalId": {
+                "S": "efa66f59-0743-4313-bd47-c5867a6980f8"
+            },
+            "targetAmount": {
+                "N": "10000"
+            },
+            "name": {
+                "S": "Test Goal"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766206669"
+            },
+            "userId": {
+                "S": "ab476ea4-2427-4603-82d4-48bb7442ee95"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T04:57:49.166809Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-20T03:57:56.849090Z"
+            },
+            "goalType": {
+                "S": "SAVINGS"
+            },
+            "goalId": {
+                "S": "194334dc-2812-44af-9e83-f58764f890ce"
+            },
+            "targetAmount": {
+                "N": "1000"
+            },
+            "targetDate": {
+                "S": "2026-06-19"
+            },
+            "name": {
+                "S": "Test Goal"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Test Description"
+            },
+            "currentAmount": {
+                "N": "100"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766203076"
+            },
+            "userId": {
+                "S": "1716d808-1b8c-42c9-a5b1-e0a369807d7e"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T03:57:56.849090Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-20T04:02:27.404363Z"
+            },
+            "goalType": {
+                "S": "SAVINGS"
+            },
+            "goalId": {
+                "S": "66a2790d-3f94-4704-b35b-0556f8317539"
+            },
+            "targetAmount": {
+                "N": "1000"
+            },
+            "targetDate": {
+                "S": "2026-06-19"
+            },
+            "name": {
+                "S": "Test Goal"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Test Description"
+            },
+            "currentAmount": {
+                "N": "100"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766203347"
+            },
+            "userId": {
+                "S": "018a3945-592d-4562-a850-d8a8c48e711b"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T04:02:27.404363Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-20T04:55:16.350561Z"
+            },
+            "goalType": {
+                "S": "SAVINGS"
+            },
+            "goalId": {
+                "S": "761c27db-bf4c-4144-afe2-1dc9dde6ab07"
+            },
+            "targetAmount": {
+                "N": "2000"
+            },
+            "targetDate": {
+                "S": "2026-12-19"
+            },
+            "name": {
+                "S": "Goal 2"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "currentAmount": {
+                "N": "0"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766206516"
+            },
+            "userId": {
+                "S": "57f3279f-d3b0-437e-a6a4-9a45d5129061"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T04:55:16.350561Z"
+            }
+        },
+        {
+            "goalType": {
+                "S": "SAVINGS"
+            },
+            "goalId": {
+                "S": "83658bde-4d3d-3c57-9f19-7ce9183d3666"
+            },
+            "targetAmount": {
+                "N": "1000"
+            },
+            "targetDate": {
+                "S": "2026-06-19"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Desc 1"
+            },
+            "currentAmount": {
+                "N": "0"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766203193"
+            },
+            "userId": {
+                "S": "f3aee356-d16e-44ae-a15b-f5774369b1d4"
+            },
+            "createdAt": {
+                "S": "2025-12-20T03:59:53.524012Z"
+            },
+            "name": {
+                "S": "Goal 1"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T03:59:53.524012Z"
+            }
+        },
+        {
+            "goalType": {
+                "S": "SAVINGS"
+            },
+            "goalId": {
+                "S": "cad3adf4-d4ca-3e44-8f11-752000092be3"
+            },
+            "targetAmount": {
+                "N": "2000"
+            },
+            "targetDate": {
+                "S": "2026-12-19"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Desc 2"
+            },
+            "currentAmount": {
+                "N": "0"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766203193"
+            },
+            "userId": {
+                "S": "f3aee356-d16e-44ae-a15b-f5774369b1d4"
+            },
+            "createdAt": {
+                "S": "2025-12-20T03:59:53.533219Z"
+            },
+            "name": {
+                "S": "Goal 2"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T03:59:53.533219Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-20T05:01:44.207169Z"
+            },
+            "goalId": {
+                "S": "1bf5e655-5841-423f-ba05-743af7eb26c9"
+            },
+            "targetAmount": {
+                "N": "10000"
+            },
+            "name": {
+                "S": "Test Goal"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766206904"
+            },
+            "userId": {
+                "S": "1b412425-411b-4216-9373-4b3069f6ef69"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T05:01:44.207169Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-20T04:57:49.262778Z"
+            },
+            "goalId": {
+                "S": "f6520942-d2ce-4cfe-8d13-347570e4bc25"
+            },
+            "targetAmount": {
+                "N": "10000"
+            },
+            "name": {
+                "S": "Test Goal"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766206669"
+            },
+            "userId": {
+                "S": "644d40bd-ae4e-4641-8666-a5d510bbd5da"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T04:57:49.262778Z"
+            }
+        },
+        {
+            "goalType": {
+                "S": "SAVINGS"
+            },
+            "goalId": {
+                "S": "73d4a381-3f6d-32fa-92a3-d550bacc1b73"
+            },
+            "targetAmount": {
+                "N": "5000"
+            },
+            "targetDate": {
+                "S": "2026-06-19"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Save money for summer vacation"
+            },
+            "currentAmount": {
+                "N": "0"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766206712"
+            },
+            "userId": {
+                "S": "c032e02a-7813-4e97-84bb-a3ed07a38cb3"
+            },
+            "createdAt": {
+                "S": "2025-12-20T04:58:32.927796Z"
+            },
+            "name": {
+                "S": "Save for vacation"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T04:58:32.927796Z"
+            }
+        },
+        {
+            "goalType": {
+                "S": "SAVINGS"
+            },
+            "goalId": {
+                "S": "a39dbde3-a126-3aa8-9928-82c9ba321993"
+            },
+            "targetAmount": {
+                "N": "5000"
+            },
+            "targetDate": {
+                "S": "2026-06-19"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Save money"
+            },
+            "currentAmount": {
+                "N": "500.0"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766203274"
+            },
+            "userId": {
+                "S": "1b5f6cf2-6e5f-417a-993a-39a4e9716de2"
+            },
+            "createdAt": {
+                "S": "2025-12-20T04:01:14.012667Z"
+            },
+            "name": {
+                "S": "Save for vacation"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T04:01:14.019572Z"
+            }
+        },
+        {
+            "goalType": {
+                "S": "SAVINGS"
+            },
+            "goalId": {
+                "S": "c8bb31c3-49f8-30b6-89cb-b8d5fee56bc3"
+            },
+            "targetAmount": {
+                "N": "1000"
+            },
+            "targetDate": {
+                "S": "2026-06-19"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Desc"
+            },
+            "currentAmount": {
+                "N": "0"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766205927"
+            },
+            "userId": {
+                "S": "97c42895-418a-4636-b05a-1a8e0cbda3ea"
+            },
+            "createdAt": {
+                "S": "2025-12-20T04:45:27.435291Z"
+            },
+            "name": {
+                "S": "Test Goal"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T04:45:27.435291Z"
+            }
+        },
+        {
+            "goalType": {
+                "S": "VACATION"
+            },
+            "goalId": {
+                "S": "00ab7093-6675-3bfd-97b7-b89cccbd8d8c"
+            },
+            "targetAmount": {
+                "N": "5000"
+            },
+            "targetDate": {
+                "S": "2026-06-19"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Save for vacation"
+            },
+            "currentAmount": {
+                "N": "0"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766206895"
+            },
+            "userId": {
+                "S": "7dc816cf-23be-4dfa-901e-a074d468586c"
+            },
+            "createdAt": {
+                "S": "2025-12-20T05:01:35.684953Z"
+            },
+            "name": {
+                "S": "Vacation Fund"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T05:01:35.684953Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-20T03:51:07.374898Z"
+            },
+            "goalType": {
+                "S": "SAVINGS"
+            },
+            "goalId": {
+                "S": "54210f5f-985c-419b-bf2e-508011a509de"
+            },
+            "targetAmount": {
+                "N": "2000"
+            },
+            "targetDate": {
+                "S": "2026-12-19"
+            },
+            "name": {
+                "S": "Goal 2"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "currentAmount": {
+                "N": "0"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766202667"
+            },
+            "userId": {
+                "S": "fbab5686-5f31-4a50-a26a-6c175adc1ae7"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T03:51:07.374898Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-20T04:02:27.363264Z"
+            },
+            "goalType": {
+                "S": "SAVINGS"
+            },
+            "goalId": {
+                "S": "bab6cd2e-dd1a-412b-a827-94af51d39ab3"
+            },
+            "targetAmount": {
+                "N": "1000"
+            },
+            "targetDate": {
+                "S": "2026-06-19"
+            },
+            "name": {
+                "S": "Test Goal"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Test Description"
+            },
+            "currentAmount": {
+                "N": "100"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766203347"
+            },
+            "userId": {
+                "S": "9d5a36d8-8705-461c-9659-4c3597e3041b"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T04:02:27.363264Z"
+            }
+        },
+        {
+            "goalType": {
+                "S": "SAVINGS"
+            },
+            "goalId": {
+                "S": "030d31c9-0783-3447-935f-2b25309639da"
+            },
+            "targetAmount": {
+                "N": "5000"
+            },
+            "targetDate": {
+                "S": "2026-06-19"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Save $5000 for vacation"
+            },
+            "currentAmount": {
+                "N": "0"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766206694"
+            },
+            "userId": {
+                "S": "1bc3eb93-4eee-4f2c-90af-4b55d68a22e0"
+            },
+            "createdAt": {
+                "S": "2025-12-20T04:58:14.024535Z"
+            },
+            "name": {
+                "S": "Save for Vacation"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T04:58:14.024535Z"
+            }
+        },
+        {
+            "goalType": {
+                "S": "EMERGENCY_FUND"
+            },
+            "goalId": {
+                "S": "bfbf621a-bc72-3351-b247-8d280f10c79f"
+            },
+            "targetAmount": {
+                "N": "10000"
+            },
+            "targetDate": {
+                "S": "2026-12-19"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Save for emergencies"
+            },
+            "currentAmount": {
+                "N": "0"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766203223"
+            },
+            "userId": {
+                "S": "22a3e42c-99d6-41a4-9bfd-55cc6ffb78ec"
+            },
+            "createdAt": {
+                "S": "2025-12-20T04:00:23.146193Z"
+            },
+            "name": {
+                "S": "Emergency Fund"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T04:00:23.146193Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-20T04:43:27.674555Z"
+            },
+            "goalType": {
+                "S": "SAVINGS"
+            },
+            "goalId": {
+                "S": "43e6d78b-87c2-49c8-80a9-6c80ea091c65"
+            },
+            "targetAmount": {
+                "N": "1000"
+            },
+            "targetDate": {
+                "S": "2026-06-19"
+            },
+            "name": {
+                "S": "Test Goal"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Test Description"
+            },
+            "currentAmount": {
+                "N": "100"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766205807"
+            },
+            "userId": {
+                "S": "807b40d3-55f9-46bb-bfe5-126b52f90ce0"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T04:43:27.674555Z"
+            }
+        },
+        {
+            "goalType": {
+                "S": "SAVINGS"
+            },
+            "goalId": {
+                "S": "fe32a842-33a3-3846-816f-60944f955d35"
+            },
+            "targetAmount": {
+                "N": "1000"
+            },
+            "targetDate": {
+                "S": "2026-06-19"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Desc"
+            },
+            "currentAmount": {
+                "N": "0"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766202783"
+            },
+            "userId": {
+                "S": "2d949ba6-9471-49b9-a2df-6af741c5909d"
+            },
+            "createdAt": {
+                "S": "2025-12-20T03:53:03.380546Z"
+            },
+            "name": {
+                "S": "Test Goal"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T03:53:03.380546Z"
+            }
+        },
+        {
+            "goalType": {
+                "S": "CUSTOM"
+            },
+            "goalId": {
+                "S": "484b7ed6-dd15-39a3-9092-db9a2b071259"
+            },
+            "targetAmount": {
+                "N": "1000"
+            },
+            "targetDate": {
+                "S": "2026-06-19"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Test description"
+            },
+            "currentAmount": {
+                "N": "0"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766206895"
+            },
+            "userId": {
+                "S": "d1e355db-564a-474e-ba70-f9a40ae908d2"
+            },
+            "createdAt": {
+                "S": "2025-12-20T05:01:35.807288Z"
+            },
+            "name": {
+                "S": "Test Goal"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T05:01:35.807288Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-20T04:55:16.273838Z"
+            },
+            "goalType": {
+                "S": "SAVINGS"
+            },
+            "goalId": {
+                "S": "e3456af8-2bda-42e6-a380-c9f478f1860e"
+            },
+            "targetAmount": {
+                "N": "1000"
+            },
+            "targetDate": {
+                "S": "2026-06-19"
+            },
+            "name": {
+                "S": "Test Goal"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Test Description"
+            },
+            "currentAmount": {
+                "N": "100"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766206516"
+            },
+            "userId": {
+                "S": "847402db-f524-4713-a4f3-961bdfcde8be"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T04:55:16.273839Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-20T03:57:56.884757Z"
+            },
+            "goalType": {
+                "S": "SAVINGS"
+            },
+            "goalId": {
+                "S": "f9775c08-0fa1-4e63-9115-79bd930a6cc1"
+            },
+            "targetAmount": {
+                "N": "1000"
+            },
+            "targetDate": {
+                "S": "2026-06-19"
+            },
+            "name": {
+                "S": "Test Goal"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Test Description"
+            },
+            "currentAmount": {
+                "N": "100"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766203076"
+            },
+            "userId": {
+                "S": "5e366f21-b84f-4fe8-9fcc-5988e5a222fe"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T03:57:56.884757Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-20T03:51:07.316590Z"
+            },
+            "goalType": {
+                "S": "SAVINGS"
+            },
+            "goalId": {
+                "S": "578369f2-f6d0-4d70-ae6c-a88aa5e9589a"
+            },
+            "targetAmount": {
+                "N": "1000"
+            },
+            "targetDate": {
+                "S": "2026-06-19"
+            },
+            "name": {
+                "S": "Test Goal"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Test Description"
+            },
+            "currentAmount": {
+                "N": "100"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766202667"
+            },
+            "userId": {
+                "S": "de673d62-0c3e-493b-afeb-c34777cec866"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T03:51:07.316590Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-20T04:57:48.966363Z"
+            },
+            "goalId": {
+                "S": "7eb5989a-26dc-491e-be88-611aef138aa6"
+            },
+            "targetAmount": {
+                "N": "10000"
+            },
+            "name": {
+                "S": "Test Goal"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766206668"
+            },
+            "userId": {
+                "S": "a6455c0d-a036-4094-a13e-f7240c8b572f"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T04:57:48.966364Z"
+            }
+        },
+        {
+            "goalType": {
+                "S": "EMERGENCY_FUND"
+            },
+            "goalId": {
+                "S": "1dfdf551-454d-366c-a79d-541507bbcc68"
+            },
+            "targetAmount": {
+                "N": "10000"
+            },
+            "targetDate": {
+                "S": "2026-12-19"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Save for emergencies"
+            },
+            "currentAmount": {
+                "N": "0"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766203490"
+            },
+            "userId": {
+                "S": "e9d93504-7538-4b7f-abe8-c9586faf0de1"
+            },
+            "createdAt": {
+                "S": "2025-12-20T04:04:50.753816Z"
+            },
+            "name": {
+                "S": "Emergency Fund"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T04:04:50.753816Z"
+            }
+        },
+        {
+            "goalType": {
+                "S": "SAVINGS"
+            },
+            "goalId": {
+                "S": "17e8973e-ec25-3920-ac39-608242458576"
+            },
+            "targetAmount": {
+                "N": "1000"
+            },
+            "targetDate": {
+                "S": "2026-06-19"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Desc 1"
+            },
+            "currentAmount": {
+                "N": "0"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766206868"
+            },
+            "userId": {
+                "S": "29808efd-45f9-472d-a666-cf53253fad31"
+            },
+            "createdAt": {
+                "S": "2025-12-20T05:01:08.197157Z"
+            },
+            "name": {
+                "S": "Goal 1"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T05:01:08.197157Z"
+            }
+        },
+        {
+            "createdAt": {
+                "S": "2025-12-20T04:55:16.304413Z"
+            },
+            "goalType": {
+                "S": "SAVINGS"
+            },
+            "goalId": {
+                "S": "6e16ae06-1403-4859-9b38-492b0a7ca4e3"
+            },
+            "targetAmount": {
+                "N": "1000"
+            },
+            "targetDate": {
+                "S": "2026-06-19"
+            },
+            "name": {
+                "S": "Test Goal"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Test Description"
+            },
+            "currentAmount": {
+                "N": "100"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766206516"
+            },
+            "userId": {
+                "S": "1227db88-6b1a-40e0-89fc-a1c896931d17"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T04:55:16.304413Z"
+            }
+        }
+    ],
+    "Count": 119,
+    "ScannedCount": 119,
+    "ConsumedCapacity": null
+}

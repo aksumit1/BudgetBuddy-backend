@@ -40,7 +40,7 @@ class PlaidDataExtractorTest {
 
     @BeforeEach
     void setUp() {
-        dataExtractor = new PlaidDataExtractor(categoryMapper, accountRepository);
+        dataExtractor = new PlaidDataExtractor(categoryMapper, accountRepository, new com.budgetbuddy.service.TransactionTypeDeterminer());
     }
 
     @Test

@@ -32,10 +32,14 @@ public class TransactionService {
 
     private final TransactionRepository transactionRepository;
     private final AccountRepository accountRepository;
+    private final TransactionTypeDeterminer transactionTypeDeterminer;
 
-    public TransactionService(final TransactionRepository transactionRepository, final AccountRepository accountRepository) {
+    public TransactionService(final TransactionRepository transactionRepository, 
+                             final AccountRepository accountRepository,
+                             final TransactionTypeDeterminer transactionTypeDeterminer) {
         this.transactionRepository = transactionRepository;
         this.accountRepository = accountRepository;
+        this.transactionTypeDeterminer = transactionTypeDeterminer;
     }
 
     /**
@@ -132,23 +136,44 @@ public class TransactionService {
             transaction.setTransactionId(UUID.randomUUID().toString().toLowerCase());
         }
 
+        // CRITICAL: Ensure transactionType is set (for old transactions that might have null transactionType)
+        // If transactionType is null/empty, calculate it even if override flag is set (null type takes precedence)
+        // If transactionType is set but override is false, recalculate if needed
+        if (isNullOrEmpty(transaction.getTransactionType())) {
+            // Type is null/empty - always calculate (null type takes precedence over override flag)
+            ensureTransactionTypeSetWithAccountLookup(transaction);
+        } else if (!Boolean.TRUE.equals(transaction.getTransactionTypeOverridden())) {
+            // Type is set but not overridden - ensure it's valid (shouldn't need recalculation, but check anyway)
+            // This is a safety check for edge cases
+        }
+
         // Use conditional write to prevent duplicate Plaid transactions
         boolean saved = transactionRepository.saveIfPlaidTransactionNotExists(transaction);
         if (!saved) {
             // Transaction already exists (duplicate detected)
+            TransactionTable existing;
             if (transaction.getPlaidTransactionId() != null && !transaction.getPlaidTransactionId().isEmpty()) {
                 // Duplicate Plaid transaction - fetch by Plaid ID
                 logger.debug("Transaction with Plaid ID {} already exists, fetching existing", transaction.getPlaidTransactionId());
-                return transactionRepository.findByPlaidTransactionId(transaction.getPlaidTransactionId())
+                existing = transactionRepository.findByPlaidTransactionId(transaction.getPlaidTransactionId())
                         .orElseThrow(() -> new AppException(ErrorCode.RECORD_ALREADY_EXISTS, 
                                 "Transaction with Plaid ID already exists but could not be retrieved"));
             } else {
                 // Duplicate transactionId (no Plaid ID) - fetch by transaction ID
                 logger.debug("Transaction with ID {} already exists, fetching existing", transaction.getTransactionId());
-                return transactionRepository.findById(transaction.getTransactionId())
+                existing = transactionRepository.findById(transaction.getTransactionId())
                         .orElseThrow(() -> new AppException(ErrorCode.RECORD_ALREADY_EXISTS, 
                                 "Transaction with ID already exists but could not be retrieved"));
             }
+            
+            // CRITICAL: Ensure existing transaction has transactionType set (for old transactions)
+            // If transactionType is null/empty, calculate it even if override flag is set (null type takes precedence)
+            if (isNullOrEmpty(existing.getTransactionType())) {
+                ensureTransactionTypeSetWithAccountLookup(existing);
+                transactionRepository.save(existing);
+            }
+            
+            return existing;
         }
 
         return transaction;
@@ -161,18 +186,123 @@ public class TransactionService {
         return transactionRepository.findByPlaidTransactionId(plaidTransactionId);
     }
 
+    // ========== TRANSACTION TYPE HELPER METHODS ==========
+
+    /**
+     * Standardized null/empty string check for transactionType
+     */
+    private boolean isNullOrEmpty(final String s) {
+        return s == null || s.trim().isEmpty();
+    }
+
+    /**
+     * Parse and validate user-provided transactionType
+     * @return Optional containing valid TransactionType, or empty if invalid/missing
+     */
+    private Optional<com.budgetbuddy.model.TransactionType> parseUserTransactionType(final String transactionType) {
+        if (isNullOrEmpty(transactionType)) {
+            return Optional.empty();
+        }
+        try {
+            return Optional.of(com.budgetbuddy.model.TransactionType.valueOf(transactionType.trim().toUpperCase()));
+        } catch (IllegalArgumentException e) {
+            logger.warn("Invalid transaction type '{}' provided, will calculate automatically: {}", transactionType, e.getMessage());
+            return Optional.empty();
+        }
+    }
+
+    /**
+     * Ensure transactionType is set on transaction (calculates if null/empty)
+     * This is a centralized method to reduce code duplication
+     */
+    private void ensureTransactionTypeSet(final TransactionTable transaction, final AccountTable account) {
+        if (isNullOrEmpty(transaction.getTransactionType())) {
+            com.budgetbuddy.model.TransactionType calculatedType = transactionTypeDeterminer.determineTransactionType(
+                    account,
+                    transaction.getCategoryPrimary(),
+                    transaction.getCategoryDetailed() != null && !transaction.getCategoryDetailed().isEmpty()
+                            ? transaction.getCategoryDetailed()
+                            : transaction.getCategoryPrimary(),
+                    transaction.getAmount()
+            );
+            transaction.setTransactionType(calculatedType.name());
+            logger.debug("Calculated and set transactionType {} for transaction {} (was null/empty)", 
+                    calculatedType, transaction.getTransactionId());
+        }
+    }
+
+    /**
+     * Ensure transactionType is set on transaction, fetching account if needed
+     */
+    private void ensureTransactionTypeSetWithAccountLookup(final TransactionTable transaction) {
+        if (isNullOrEmpty(transaction.getTransactionType())) {
+            AccountTable account = null;
+            if (transaction.getAccountId() != null) {
+                account = accountRepository.findById(transaction.getAccountId()).orElse(null);
+            }
+            ensureTransactionTypeSet(transaction, account);
+        }
+    }
+
+    /**
+     * Set transactionType from user-provided value or calculate automatically
+     * @param transaction The transaction to update
+     * @param userProvidedType Optional user-provided transactionType string
+     * @param account The account associated with the transaction (can be null)
+     * @param categoryPrimary Primary category
+     * @param categoryDetailed Detailed category (can be null)
+     * @param amount Transaction amount
+     * @return true if user-provided type was used, false if calculated
+     */
+    private boolean setTransactionTypeFromUserOrCalculate(
+            final TransactionTable transaction,
+            final String userProvidedType,
+            final AccountTable account,
+            final String categoryPrimary,
+            final String categoryDetailed,
+            final BigDecimal amount) {
+        
+        Optional<com.budgetbuddy.model.TransactionType> userTypeOpt = parseUserTransactionType(userProvidedType);
+        
+        if (userTypeOpt.isPresent()) {
+            // User provided valid transactionType - use it and mark as overridden
+            com.budgetbuddy.model.TransactionType userType = userTypeOpt.get();
+            transaction.setTransactionType(userType.name());
+            transaction.setTransactionTypeOverridden(true);
+            logger.debug("Using user-provided transaction type: {} for transaction {}", 
+                    userType, transaction.getTransactionId());
+            return true;
+        } else {
+            // No user-provided type or invalid - calculate automatically
+            com.budgetbuddy.model.TransactionType calculatedType = transactionTypeDeterminer.determineTransactionType(
+                    account,
+                    categoryPrimary,
+                    categoryDetailed != null && !categoryDetailed.isEmpty() ? categoryDetailed : categoryPrimary,
+                    amount
+            );
+            transaction.setTransactionType(calculatedType.name());
+            // Only set overridden=false if it's currently null (preserve existing override state)
+            if (transaction.getTransactionTypeOverridden() == null) {
+                transaction.setTransactionTypeOverridden(false);
+            }
+            logger.debug("Calculated transaction type: {} for transaction {}", 
+                    calculatedType, transaction.getTransactionId());
+            return false;
+        }
+    }
+
     /**
      * Create manual transaction (backward compatibility - generates new UUID)
      */
     public TransactionTable createTransaction(final UserTable user, final String accountId, final BigDecimal amount, final LocalDate transactionDate, final String description, final String categoryPrimary) {
-        return createTransaction(user, accountId, amount, transactionDate, description, categoryPrimary, null, null, null, null, null);
+        return createTransaction(user, accountId, amount, transactionDate, description, categoryPrimary, null, null, null, null, null, null);
     }
 
     /**
      * Create manual transaction (backward compatibility - with categoryDetailed)
      */
     public TransactionTable createTransaction(final UserTable user, final String accountId, final BigDecimal amount, final LocalDate transactionDate, final String description, final String categoryPrimary, final String categoryDetailed) {
-        return createTransaction(user, accountId, amount, transactionDate, description, categoryPrimary, categoryDetailed, null, null, null, null);
+        return createTransaction(user, accountId, amount, transactionDate, description, categoryPrimary, categoryDetailed, null, null, null, null, null);
     }
 
     /**
@@ -182,14 +312,14 @@ public class TransactionService {
      * @param notes Optional user notes for the transaction
      */
     public TransactionTable createTransaction(final UserTable user, final String accountId, final BigDecimal amount, final LocalDate transactionDate, final String description, final String categoryPrimary, final String categoryDetailed, final String transactionId, final String notes) {
-        return createTransaction(user, accountId, amount, transactionDate, description, categoryPrimary, categoryDetailed, transactionId, notes, null, null);
+        return createTransaction(user, accountId, amount, transactionDate, description, categoryPrimary, categoryDetailed, transactionId, notes, null, null, null);
     }
     
     /**
      * Create transaction with optional Plaid account ID and Plaid transaction ID for fallback lookup
      */
     public TransactionTable createTransaction(final UserTable user, final String accountId, final BigDecimal amount, final LocalDate transactionDate, final String description, final String categoryPrimary, final String categoryDetailed, final String transactionId, final String notes, final String plaidAccountId) {
-        return createTransaction(user, accountId, amount, transactionDate, description, categoryPrimary, categoryDetailed, transactionId, notes, plaidAccountId, null);
+        return createTransaction(user, accountId, amount, transactionDate, description, categoryPrimary, categoryDetailed, transactionId, notes, plaidAccountId, null, null);
     }
     
     /**
@@ -197,8 +327,9 @@ public class TransactionService {
      * @param categoryPrimary Primary category (required)
      * @param categoryDetailed Detailed category (optional, defaults to categoryPrimary if not provided)
      * @param plaidTransactionId Optional Plaid transaction ID for fallback lookup and ID consistency
+     * @param transactionType Optional user-selected transaction type. If not provided, backend will calculate it.
      */
-    public TransactionTable createTransaction(final UserTable user, final String accountId, final BigDecimal amount, final LocalDate transactionDate, final String description, final String categoryPrimary, final String categoryDetailed, final String transactionId, final String notes, final String plaidAccountId, final String plaidTransactionId) {
+    public TransactionTable createTransaction(final UserTable user, final String accountId, final BigDecimal amount, final LocalDate transactionDate, final String description, final String categoryPrimary, final String categoryDetailed, final String transactionId, final String notes, final String plaidAccountId, final String plaidTransactionId, final String transactionType) {
         if (user == null || user.getUserId() == null || user.getUserId().isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "User is required");
         }
@@ -308,7 +439,22 @@ public class TransactionService {
                             // Request provides Plaid ID - must match for idempotency
                             final String providedPlaidId = plaidTransactionId; // Non-null due to check above
                             if (existingHasPlaidId && providedPlaidId.equals(existingPlaidId)) {
-                                // Same transaction (matched by Plaid ID) - return existing (idempotent)
+                                // Same transaction (matched by Plaid ID) - update transactionType if user provided one
+                                if (transactionType != null && !transactionType.trim().isEmpty()) {
+                                    try {
+                                        com.budgetbuddy.model.TransactionType userTransactionType = com.budgetbuddy.model.TransactionType.valueOf(transactionType.trim().toUpperCase());
+                                        if (!userTransactionType.name().equals(existing.getTransactionType())) {
+                                            // User provided different transactionType - update it
+                                            existing.setTransactionType(userTransactionType.name());
+                                            transactionRepository.save(existing);
+                                            logger.info("Updated transactionType to {} for existing transaction {} (user override)", 
+                                                    userTransactionType, normalizedId);
+                                        }
+                                    } catch (IllegalArgumentException e) {
+                                        logger.warn("Invalid transaction type '{}' provided for existing transaction, keeping existing type: {}", 
+                                                transactionType, existing.getTransactionType());
+                                    }
+                                }
                                 logger.info("Transaction with ID {} already exists and matches Plaid ID {}, returning existing", 
                                         normalizedId, providedPlaidId);
                                 return existing;
@@ -320,18 +466,39 @@ public class TransactionService {
                                         normalizedId, existingPlaidId, providedPlaidId);
                                 // Fall through to generate new UUID
                             } else {
-                                // Request has Plaid ID but existing doesn't - update existing with Plaid ID
+                                // Request has Plaid ID but existing doesn't - update existing with Plaid ID and transactionType
                                 // This handles the case where a manual transaction is later linked to Plaid
                                 logger.info("Transaction with ID {} exists without Plaid ID, but request provides Plaid ID {}. " +
-                                        "Will update existing transaction with Plaid ID.", 
+                                        "Updating existing transaction with Plaid ID and transactionType.", 
                                         normalizedId, providedPlaidId);
-                                // Continue to update the existing transaction with Plaid ID
-                                // Note: The transaction will be updated later in the method
+                                // Update Plaid ID
+                                existing.setPlaidTransactionId(providedPlaidId);
+                                // Update transactionType if user provided one
+                                Optional<com.budgetbuddy.model.TransactionType> userTypeOpt = parseUserTransactionType(transactionType);
+                                if (userTypeOpt.isPresent()) {
+                                    existing.setTransactionType(userTypeOpt.get().name());
+                                    existing.setTransactionTypeOverridden(true);
+                                    logger.debug("Updated transactionType to {} for existing transaction {} (user override)", 
+                                            userTypeOpt.get(), normalizedId);
+                                }
+                                transactionRepository.save(existing);
                                 return existing;
                             }
                         } else {
-                            // No Plaid ID provided in request - return existing for idempotency
+                            // No Plaid ID provided in request - update transactionType if user provided one
                             // This handles both manual transactions and Plaid transactions without ID in request
+                            Optional<com.budgetbuddy.model.TransactionType> userTypeOpt = parseUserTransactionType(transactionType);
+                            if (userTypeOpt.isPresent()) {
+                                com.budgetbuddy.model.TransactionType userType = userTypeOpt.get();
+                                if (!userType.name().equals(existing.getTransactionType())) {
+                                    // User provided different transactionType - update it and mark as overridden
+                                    existing.setTransactionType(userType.name());
+                                    existing.setTransactionTypeOverridden(true);
+                                    transactionRepository.save(existing);
+                                    logger.info("Updated transactionType to {} for existing transaction {} (user override)", 
+                                            userType, normalizedId);
+                                }
+                            }
                             logger.info("Transaction with ID {} already exists (no Plaid ID in request). Returning existing for idempotency.", 
                                     normalizedId);
                             return existing;
@@ -381,6 +548,10 @@ public class TransactionService {
         transaction.setCurrencyCode(user.getPreferredCurrency() != null && !user.getPreferredCurrency().isEmpty()
                 ? user.getPreferredCurrency() : "USD");
         
+        // CRITICAL: Use user-provided transactionType if available, otherwise calculate it
+        // This allows users to override the automatic determination
+        setTransactionTypeFromUserOrCalculate(transaction, transactionType, account, categoryPrimary, categoryDetailed, amount);
+        
         // Set Plaid transaction ID if provided (for fallback lookup and deduplication)
         if (plaidTransactionId != null && !plaidTransactionId.trim().isEmpty()) {
             transaction.setPlaidTransactionId(plaidTransactionId.trim());
@@ -412,7 +583,7 @@ public class TransactionService {
     public TransactionTable updateTransaction(final UserTable user, final String transactionId, final String notes) {
         // When this 3-parameter method is called, notes is explicitly provided (even if null)
         // So null means clear notes, not preserve
-        return updateTransaction(user, transactionId, null, null, notes, null, null, null, null, true);
+        return updateTransaction(user, transactionId, null, null, notes, null, null, null, null, null, true);
     }
     
     /**
@@ -424,9 +595,10 @@ public class TransactionService {
      * @param categoryDetailed Optional: override detailed category
      * @param isAudited Optional: audit checkmark state
      * @param isHidden Optional: whether transaction is hidden from view
+     * @param transactionType Optional: user-selected transaction type. If not provided, backend will calculate it.
      * @param clearNotesIfNull If true, null notes means clear notes. If false, null notes means preserve existing.
      */
-    public TransactionTable updateTransaction(final UserTable user, final String transactionId, final String plaidTransactionId, final BigDecimal amount, final String notes, final String categoryPrimary, final String categoryDetailed, final Boolean isAudited, final Boolean isHidden, final boolean clearNotesIfNull) {
+    public TransactionTable updateTransaction(final UserTable user, final String transactionId, final String plaidTransactionId, final BigDecimal amount, final String notes, final String categoryPrimary, final String categoryDetailed, final Boolean isAudited, final Boolean isHidden, final String transactionType, final boolean clearNotesIfNull) {
         if (user == null || user.getUserId() == null || user.getUserId().isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "User is required");
         }
@@ -485,6 +657,7 @@ public class TransactionService {
         }
         
         // Update category override if provided
+        boolean categoryChanged = false;
         if (categoryPrimary != null && !categoryPrimary.trim().isEmpty()) {
             String trimmedPrimary = categoryPrimary.trim();
             String trimmedDetailed = categoryDetailed != null && !categoryDetailed.trim().isEmpty() 
@@ -493,6 +666,7 @@ public class TransactionService {
             
             transaction.setCategoryPrimary(trimmedPrimary);
             transaction.setCategoryDetailed(trimmedDetailed);
+            categoryChanged = true;
             
             // CRITICAL: Always set categoryOverridden=true when category is changed
             // Additionally, ensure it's set for income, investment, and loan categories
@@ -512,6 +686,38 @@ public class TransactionService {
                 logger.info("Category override applied: primary={}, detailed={}", 
                         trimmedPrimary, trimmedDetailed);
             }
+        }
+        
+        // CRITICAL: Update transaction type if:
+        // 1. User provided a transactionType (explicit override) - always respect user selection
+        // 2. Category or amount changed and no user-provided type AND not already overridden - recalculate automatically
+        Optional<com.budgetbuddy.model.TransactionType> userTypeOpt = parseUserTransactionType(transactionType);
+        
+        if (userTypeOpt.isPresent()) {
+            // User provided transaction type - use it (override automatic calculation)
+            com.budgetbuddy.model.TransactionType userType = userTypeOpt.get();
+            transaction.setTransactionType(userType.name());
+            transaction.setTransactionTypeOverridden(true);
+            logger.debug("Using user-provided transaction type: {} for transaction {}", userType, transaction.getTransactionId());
+        } else if (!Boolean.TRUE.equals(transaction.getTransactionTypeOverridden()) && (categoryChanged || amount != null)) {
+            // User didn't provide type, transaction not overridden, and category/amount changed - recalculate
+            // Fetch account to determine transaction type
+            AccountTable account = accountRepository.findById(transaction.getAccountId())
+                    .orElse(null);
+            
+            com.budgetbuddy.model.TransactionType calculatedType = transactionTypeDeterminer.determineTransactionType(
+                    account,
+                    transaction.getCategoryPrimary(),
+                    transaction.getCategoryDetailed(),
+                    transaction.getAmount() // Use updated amount if amount was changed
+            );
+            transaction.setTransactionType(calculatedType.name());
+            // Preserve override state - if it was false, keep it false; if null, set to false
+            if (transaction.getTransactionTypeOverridden() == null) {
+                transaction.setTransactionTypeOverridden(false);
+            }
+            logger.debug("Recalculated transaction type to {} for transaction {} (categoryChanged: {}, amountChanged: {})", 
+                    calculatedType, transaction.getTransactionId(), categoryChanged, amount != null);
         }
         
         // Update audit state if provided

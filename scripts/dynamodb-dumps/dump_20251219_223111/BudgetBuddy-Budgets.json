@@ -1,0 +1,107 @@
+{
+    "Items": [
+        {
+            "budgetId": {
+                "S": "60b48638-bf87-5f23-97ea-b3638c767f65"
+            },
+            "category": {
+                "S": "groceries"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "monthlyLimit": {
+                "N": "500"
+            },
+            "userId": {
+                "S": "fc9c713d-4bb9-4d8e-a146-02b8e35ea2a5"
+            },
+            "currentSpent": {
+                "N": "0"
+            }
+        },
+        {
+            "budgetId": {
+                "S": "507e5446-369d-534e-989f-d5d54fb1caf5"
+            },
+            "category": {
+                "S": "groceries"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "monthlyLimit": {
+                "N": "500"
+            },
+            "userId": {
+                "S": "f7dca359-e71b-4f2f-a673-37b8edd2e373"
+            },
+            "currentSpent": {
+                "N": "0"
+            }
+        },
+        {
+            "budgetId": {
+                "S": "7df37c2a-f594-544e-b6b3-1d0b93c30468"
+            },
+            "category": {
+                "S": "groceries"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "monthlyLimit": {
+                "N": "750"
+            },
+            "userId": {
+                "S": "70f508de-e030-43d1-b4a4-fbc40d19933c"
+            },
+            "currentSpent": {
+                "N": "0"
+            }
+        },
+        {
+            "budgetId": {
+                "S": "9c861f9b-0e6e-555b-80d0-47cfd2371cb9"
+            },
+            "category": {
+                "S": "groceries"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "monthlyLimit": {
+                "N": "500"
+            },
+            "userId": {
+                "S": "8144f2f8-65a2-4878-8709-97c431ba7a96"
+            },
+            "currentSpent": {
+                "N": "0"
+            }
+        },
+        {
+            "budgetId": {
+                "S": "1ba534f3-6644-582f-a9c2-c28be75c454a"
+            },
+            "category": {
+                "S": "groceries"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "monthlyLimit": {
+                "N": "750"
+            },
+            "userId": {
+                "S": "c97170ae-b5e0-4d99-aa1c-dfefacc50d40"
+            },
+            "currentSpent": {
+                "N": "0"
+            }
+        }
+    ],
+    "Count": 5,
+    "ScannedCount": 5,
+    "ConsumedCapacity": null
+}

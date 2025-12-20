@@ -1,0 +1,253 @@
+{
+    "Items": [
+        {
+            "goalType": {
+                "S": "CUSTOM"
+            },
+            "goalId": {
+                "S": "da918cb5-2bfb-5e48-b95b-9882cad75f4f"
+            },
+            "targetAmount": {
+                "N": "1000"
+            },
+            "targetDate": {
+                "S": "2026-12-20"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Test Goal F9432435"
+            },
+            "currentAmount": {
+                "N": "0"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766209160"
+            },
+            "userId": {
+                "S": "5cd33193-f7fb-4274-936f-911c85e41b30"
+            },
+            "createdAt": {
+                "S": "2025-12-20T05:39:20.118747669Z"
+            },
+            "name": {
+                "S": "Test Goal F9432435"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T05:39:20.118747669Z"
+            }
+        },
+        {
+            "goalType": {
+                "S": "CUSTOM"
+            },
+            "goalId": {
+                "S": "fc1f2a13-8b80-52d1-9f68-bf0a9dcca376"
+            },
+            "targetAmount": {
+                "N": "2000"
+            },
+            "targetDate": {
+                "S": "2026-12-20"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Updated Goal 06648D88"
+            },
+            "currentAmount": {
+                "N": "0"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766207870"
+            },
+            "userId": {
+                "S": "220abf05-534d-4db5-8f57-47838b1f4fec"
+            },
+            "createdAt": {
+                "S": "2025-12-20T05:17:50.062124377Z"
+            },
+            "name": {
+                "S": "Updated Goal 06648D88"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T05:17:50.062124377Z"
+            }
+        },
+        {
+            "goalType": {
+                "S": "CUSTOM"
+            },
+            "goalId": {
+                "S": "7da7dcc6-a88a-5a6c-9c83-0aea33458889"
+            },
+            "targetAmount": {
+                "N": "1000"
+            },
+            "targetDate": {
+                "S": "2026-12-20"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Test Goal"
+            },
+            "currentAmount": {
+                "N": "0"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766209156"
+            },
+            "userId": {
+                "S": "1c28b133-d178-4d5f-b880-cc86863be834"
+            },
+            "createdAt": {
+                "S": "2025-12-20T05:39:16.923848834Z"
+            },
+            "name": {
+                "S": "Test Goal"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T05:39:16.923848834Z"
+            }
+        },
+        {
+            "goalType": {
+                "S": "CUSTOM"
+            },
+            "goalId": {
+                "S": "d34f1639-fc78-5034-b15c-972c93c987a1"
+            },
+            "targetAmount": {
+                "N": "2000"
+            },
+            "targetDate": {
+                "S": "2026-12-20"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Updated Goal F5B7E19D"
+            },
+            "currentAmount": {
+                "N": "0"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766209160"
+            },
+            "userId": {
+                "S": "5cd33193-f7fb-4274-936f-911c85e41b30"
+            },
+            "createdAt": {
+                "S": "2025-12-20T05:39:20.666036169Z"
+            },
+            "name": {
+                "S": "Updated Goal F5B7E19D"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T05:39:20.666036169Z"
+            }
+        },
+        {
+            "goalType": {
+                "S": "CUSTOM"
+            },
+            "goalId": {
+                "S": "4a27e9b4-87af-5858-af02-fd01aa289226"
+            },
+            "targetAmount": {
+                "N": "1000"
+            },
+            "targetDate": {
+                "S": "2026-12-20"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Test Goal 4B3087C1"
+            },
+            "currentAmount": {
+                "N": "0"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766207869"
+            },
+            "userId": {
+                "S": "220abf05-534d-4db5-8f57-47838b1f4fec"
+            },
+            "createdAt": {
+                "S": "2025-12-20T05:17:49.512885961Z"
+            },
+            "name": {
+                "S": "Test Goal 4B3087C1"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T05:17:49.512885961Z"
+            }
+        },
+        {
+            "goalType": {
+                "S": "CUSTOM"
+            },
+            "goalId": {
+                "S": "8c9dd8ee-a675-5826-ba43-0c411c9ddd02"
+            },
+            "targetAmount": {
+                "N": "1000"
+            },
+            "targetDate": {
+                "S": "2026-12-20"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Test Goal"
+            },
+            "currentAmount": {
+                "N": "0"
+            },
+            "updatedAtTimestamp": {
+                "N": "1766207866"
+            },
+            "userId": {
+                "S": "1965df84-3979-4617-ac32-64d6638a0f10"
+            },
+            "createdAt": {
+                "S": "2025-12-20T05:17:46.565408792Z"
+            },
+            "name": {
+                "S": "Test Goal"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "updatedAt": {
+                "S": "2025-12-20T05:17:46.565408792Z"
+            }
+        }
+    ],
+    "Count": 6,
+    "ScannedCount": 6,
+    "ConsumedCapacity": null
+}
