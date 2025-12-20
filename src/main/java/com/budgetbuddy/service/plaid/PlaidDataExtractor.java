@@ -169,12 +169,25 @@ public class PlaidDataExtractor {
                 }
                 
                 // Extract account type
+                String plaidAccountType = null;
                 if (accountBase.getType() != null) {
-                    account.setAccountType(accountBase.getType().toString());
+                    plaidAccountType = accountBase.getType().toString();
+                    account.setAccountType(plaidAccountType);
                 }
                 com.plaid.client.model.AccountSubtype subtype = accountBase.getSubtype();
                 if (subtype != null) {
                     account.setAccountSubtype(subtype.toString());
+                }
+                
+                // CRITICAL FIX: Detect investment accounts (bonds, treasury, Certificate/CD) from account name
+                // This handles cases where Plaid categorizes these as "other" or "depository"
+                String accountName = account.getAccountName();
+                String institutionName = account.getInstitutionName();
+                String detectedAccountType = detectInvestmentAccountType(accountName, institutionName, plaidAccountType);
+                if (detectedAccountType != null) {
+                    account.setAccountType(detectedAccountType);
+                    logger.debug("Detected investment account type '{}' from account name/institution: accountName='{}', institutionName='{}', originalType='{}'", 
+                            detectedAccountType, accountName, institutionName, plaidAccountType);
                 }
                 
                 // Extract balance
@@ -563,6 +576,66 @@ public class PlaidDataExtractor {
         } catch (Exception e) {
             logger.warn("Could not extract account ID from Plaid transaction: {}", e.getMessage());
         }
+        return null;
+    }
+    
+    /**
+     * Detect investment account types (bonds, treasury, Certificate/CD) from account name and institution name
+     * Returns "INVESTMENT" if detected, null otherwise
+     */
+    private String detectInvestmentAccountType(String accountName, String institutionName, String plaidAccountType) {
+        if (accountName == null && institutionName == null) {
+            return null;
+        }
+        
+        // Combine account name and institution name for detection
+        String combinedText = ((accountName != null ? accountName : "") + " " + (institutionName != null ? institutionName : ""))
+                .trim().toLowerCase();
+        
+        if (combinedText.isEmpty()) {
+            return null;
+        }
+        
+        // Check for Certificate/CD keywords
+        if (combinedText.contains("certificate") || 
+            combinedText.contains("cd ") || 
+            combinedText.contains(" c.d.") || 
+            combinedText.contains(" c.d ") ||
+            combinedText.contains("certificate of deposit") || 
+            combinedText.contains("cert of deposit") ||
+            combinedText.endsWith(" cd") || 
+            combinedText.endsWith(" c.d")) {
+            return "INVESTMENT";
+        }
+        
+        // Check for Treasury keywords (Treasury bills, notes, bonds)
+        if (combinedText.contains("treasury") || 
+            combinedText.contains("t-bill") || 
+            combinedText.contains("tbill") || 
+            combinedText.contains("t bill") ||
+            combinedText.contains("treasury bill") || 
+            combinedText.contains("treasury note") ||
+            combinedText.contains("treasury bond") || 
+            combinedText.contains("t-note") ||
+            combinedText.contains("tnote") || 
+            combinedText.contains("t note") ||
+            combinedText.contains("t-bond") || 
+            combinedText.contains("tbond") ||
+            combinedText.contains("t bond") || 
+            combinedText.contains("us treasury")) {
+            return "INVESTMENT";
+        }
+        
+        // Check for Bond keywords (corporate bonds, municipal bonds, etc.)
+        if (combinedText.contains("bond") || 
+            combinedText.contains("corporate bond") ||
+            combinedText.contains("municipal bond") || 
+            combinedText.contains("govt bond") ||
+            combinedText.contains("government bond") || 
+            combinedText.contains("treasury bond")) {
+            return "INVESTMENT";
+        }
+        
         return null;
     }
 }

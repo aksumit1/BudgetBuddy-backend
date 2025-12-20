@@ -121,6 +121,99 @@ public class TransactionService {
     }
 
     /**
+     * Get loan/credit card payments for a specific account
+     * For loan accounts: returns negative amounts (payments made TO the loan)
+     * For credit card accounts: returns positive amounts (payments made TO the credit card) and payment category transactions
+     * 
+     * @param user The user
+     * @param accountId The account ID
+     * @param startDate Optional start date filter
+     * @param endDate Optional end date filter
+     * @return List of loan/credit card payment transactions
+     */
+    public List<TransactionTable> getLoanOrCreditCardPayments(final UserTable user, final String accountId, 
+                                                              final LocalDate startDate, final LocalDate endDate) {
+        if (user == null || user.getUserId() == null || user.getUserId().isEmpty()) {
+            throw new AppException(ErrorCode.INVALID_INPUT, "User is required");
+        }
+        if (accountId == null || accountId.isEmpty()) {
+            throw new AppException(ErrorCode.INVALID_INPUT, "Account ID is required");
+        }
+
+        // Get the account to determine its type
+        Optional<AccountTable> accountOpt = accountRepository.findById(accountId);
+        if (accountOpt.isEmpty()) {
+            throw new AppException(ErrorCode.ACCOUNT_NOT_FOUND, "Account not found");
+        }
+        
+        AccountTable account = accountOpt.get();
+        
+        // Verify account belongs to user
+        if (account.getUserId() == null || !account.getUserId().equals(user.getUserId())) {
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "Account does not belong to user");
+        }
+
+        // Get all transactions for the user
+        List<TransactionTable> allTransactions;
+        if (startDate != null && endDate != null) {
+            allTransactions = getTransactionsInRange(user, startDate, endDate);
+        } else {
+            // Get all transactions if no date range specified
+            allTransactions = transactionRepository.findByUserId(user.getUserId(), 0, 10000); // Large limit to get all
+        }
+
+        // Filter transactions for this account
+        List<TransactionTable> accountTransactions = allTransactions.stream()
+                .filter(t -> t != null && accountId.equals(t.getAccountId()))
+                .collect(Collectors.toList());
+
+        // Determine account type
+        String accountType = account.getAccountType();
+        if (accountType == null) {
+            accountType = "";
+        }
+        String accountTypeUpper = accountType.toUpperCase();
+
+        // Check if it's a loan account
+        boolean isLoanAccount = "MORTGAGE".equals(accountTypeUpper) ||
+                                "AUTO_LOAN".equals(accountTypeUpper) ||
+                                "PERSONAL_LOAN".equals(accountTypeUpper) ||
+                                "STUDENT_LOAN".equals(accountTypeUpper) ||
+                                "CREDIT_LINE".equals(accountTypeUpper);
+
+        // Check if it's a credit card account
+        boolean isCreditCardAccount = "CREDIT_CARD".equals(accountTypeUpper) ||
+                                      "CHARGE_CARD".equals(accountTypeUpper);
+
+        // Filter transactions based on account type
+        if (isLoanAccount) {
+            // For loan accounts, return negative amounts (payments made TO the loan)
+            return accountTransactions.stream()
+                    .filter(t -> t.getAmount() != null && t.getAmount().compareTo(BigDecimal.ZERO) < 0)
+                    .collect(Collectors.toList());
+        } else if (isCreditCardAccount) {
+            // For credit card accounts, return positive amounts (payments made TO the credit card)
+            // and transactions with payment category
+            return accountTransactions.stream()
+                    .filter(t -> {
+                        if (t.getAmount() == null) {
+                            return false;
+                        }
+                        // Positive amounts (payments that reduce credit card balance)
+                        boolean isPositiveAmount = t.getAmount().compareTo(BigDecimal.ZERO) > 0;
+                        // Payment category transactions
+                        boolean isPaymentCategory = "payment".equalsIgnoreCase(t.getCategoryPrimary()) ||
+                                                   "payment".equalsIgnoreCase(t.getCategoryDetailed());
+                        return isPositiveAmount || isPaymentCategory;
+                    })
+                    .collect(Collectors.toList());
+        } else {
+            // Not a loan or credit card account - return empty list
+            return List.of();
+        }
+    }
+
+    /**
      * Save transaction (from Plaid sync)
      * Uses conditional write to prevent duplicate transactions (deduplication)
      */

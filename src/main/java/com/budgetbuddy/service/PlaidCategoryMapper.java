@@ -294,12 +294,19 @@ public class PlaidCategoryMapper {
             // Only use "salary" if there are explicit keywords; otherwise use "deposit"
             if ("salary".equals(incomeCategory)) {
                 // Check if description contains explicit salary keywords
+                // CRITICAL: Include payroll services like Gusto, ADP, Paychex, etc.
                 boolean hasExplicitSalaryKeywords = description != null && 
                     (description.toLowerCase().contains("salary") || 
                      description.toLowerCase().contains("payroll") ||
                      description.toLowerCase().contains("paycheck") ||
                      description.toLowerCase().contains("wages") ||
-                     description.toLowerCase().contains("direct deposit"));
+                     description.toLowerCase().contains("direct deposit") ||
+                     description.toLowerCase().contains("gusto") ||
+                     description.toLowerCase().contains("adp") ||
+                     description.toLowerCase().contains("paychex") ||
+                     description.toLowerCase().contains("quickbooks payroll") ||
+                     description.toLowerCase().contains("paycom") ||
+                     description.toLowerCase().contains("bamboohr"));
                 
                 if (hasExplicitSalaryKeywords) {
                     // Has explicit salary keywords - use "salary"
@@ -610,11 +617,15 @@ public class PlaidCategoryMapper {
                               (description != null ? description : "")).toLowerCase();
         
         // Salary/Payroll - check for salary, payroll, paycheck, direct deposit, wages
+        // CRITICAL: Include payroll services like Gusto, ADP, Paychex, etc.
         // CRITICAL: Exclude CD deposits (handled as investment)
         if ((combinedText.contains("salary") || combinedText.contains("payroll") || 
             combinedText.contains("paycheck") || combinedText.contains("direct deposit") ||
             combinedText.contains("wages") || combinedText.contains("pay stub") ||
-            combinedText.contains("payroll deposit") || combinedText.contains("payroll direct")) &&
+            combinedText.contains("payroll deposit") || combinedText.contains("payroll direct") ||
+            combinedText.contains("gusto") || combinedText.contains("adp") || 
+            combinedText.contains("paychex") || combinedText.contains("quickbooks payroll") ||
+            combinedText.contains("paycom") || combinedText.contains("bamboohr")) &&
             !combinedText.contains("cd deposit") && // Exclude CD deposits
             !combinedText.contains("certificate of deposit") && // Exclude certificate of deposit
             !combinedText.contains(" cd ")) { // Exclude any CD-related deposits

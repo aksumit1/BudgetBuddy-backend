@@ -3,8 +3,10 @@ package com.budgetbuddy.api;
 import com.budgetbuddy.exception.AppException;
 import com.budgetbuddy.exception.ErrorCode;
 import com.budgetbuddy.model.dynamodb.AccountTable;
+import com.budgetbuddy.model.dynamodb.TransactionTable;
 import com.budgetbuddy.model.dynamodb.UserTable;
 import com.budgetbuddy.repository.dynamodb.AccountRepository;
+import com.budgetbuddy.service.TransactionService;
 import com.budgetbuddy.service.UserService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -28,10 +30,14 @@ public class AccountController {
 
     private final AccountRepository accountRepository;
     private final UserService userService;
+    private final TransactionService transactionService;
 
-    public AccountController(final AccountRepository accountRepository, final UserService userService) {
+    public AccountController(final AccountRepository accountRepository, 
+                            final UserService userService,
+                            final TransactionService transactionService) {
         this.accountRepository = accountRepository;
         this.userService = userService;
+        this.transactionService = transactionService;
     }
 
     @GetMapping
@@ -280,6 +286,43 @@ public class AccountController {
         // Delete account
         accountRepository.delete(id);
         return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * Get loan/credit card payments for a specific account
+     * Returns payments made TO loan or credit card accounts
+     * For loan accounts: returns negative amounts (payments)
+     * For credit card accounts: returns positive amounts (payments) and payment category transactions
+     */
+    @GetMapping("/{id}/loan-payments")
+    public ResponseEntity<List<TransactionTable>> getLoanOrCreditCardPayments(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable String id,
+            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate startDate,
+            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate endDate) {
+        if (userDetails == null || userDetails.getUsername() == null || userDetails.getUsername().isEmpty()) {
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+        }
+
+        if (id == null || id.isEmpty()) {
+            throw new AppException(ErrorCode.INVALID_INPUT, "Account ID is required");
+        }
+
+        UserTable user = userService.findByEmail(userDetails.getUsername())
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+
+        if (user.getUserId() == null || user.getUserId().isEmpty()) {
+            throw new AppException(ErrorCode.INVALID_INPUT, "User ID is invalid");
+        }
+
+        // Validate date range if both dates provided
+        if (startDate != null && endDate != null && startDate.isAfter(endDate)) {
+            throw new AppException(ErrorCode.INVALID_DATE_RANGE, "Start date must be before or equal to end date");
+        }
+
+        List<TransactionTable> payments = transactionService.getLoanOrCreditCardPayments(
+                user, id, startDate, endDate);
+        return ResponseEntity.ok(payments);
     }
 
     /**

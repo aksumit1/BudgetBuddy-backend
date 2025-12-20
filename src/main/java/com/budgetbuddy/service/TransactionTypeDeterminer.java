@@ -49,6 +49,14 @@ public class TransactionTypeDeterminer {
         String categoryPrimaryLower = categoryPrimary != null ? categoryPrimary.toLowerCase() : null;
         String categoryDetailedLower = categoryDetailed != null ? categoryDetailed.toLowerCase() : null;
         
+        // CRITICAL: ACH credits with "deposit" category should be INCOME, not INVESTMENT
+        // Check this BEFORE investment account/category checks to ensure ACH credits are always income
+        // "deposit" with "income" primary is always income (e.g., ACH Electronic Credit from Gusto)
+        if ("income".equals(categoryPrimaryLower) && "deposit".equals(categoryDetailedLower)) {
+            logger.debug("Transaction determined as INCOME based on income/deposit category (ACH credit)");
+            return TransactionType.INCOME;
+        }
+        
         // 1. INVESTMENT: Check account type first (highest priority)
         if (isInvestmentAccount(accountType, accountSubtype)) {
             logger.debug("Transaction determined as INVESTMENT based on account type: {} / {}", accountType, accountSubtype);
