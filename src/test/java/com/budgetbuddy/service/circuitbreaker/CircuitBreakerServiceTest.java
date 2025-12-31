@@ -3,7 +3,6 @@ package com.budgetbuddy.service.circuitbreaker;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.lang.reflect.Field;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -69,8 +68,9 @@ class CircuitBreakerServiceTest {
 
         // When - Trigger enough failures to open circuit
         for (int i = 0; i < failureThreshold; i++) {
+            final int failureNum = i;
             String result = circuitBreakerService.execute(serviceName, () -> {
-                throw new RuntimeException("Service failure " + i);
+                throw new RuntimeException("Service failure " + failureNum);
             }, fallback);
             assertEquals(fallback, result);
         }
@@ -244,7 +244,7 @@ class CircuitBreakerServiceTest {
 
         // Then
         assertNull(result);
-        assertEquals(getStateEnum("CLOSED"), getCurrentState());
+        assertState("CLOSED");
     }
 
     @Test
@@ -278,7 +278,7 @@ class CircuitBreakerServiceTest {
         // Then - Service2 should still work (note: current implementation uses single state)
         // This test documents current behavior - in a real implementation, you might want
         // per-service circuit breakers
-        assertEquals(getStateEnum("OPEN"), getCurrentState());
+        assertState("OPEN");
         
         // Service2 will also get fallback because circuit is open
         String result2 = circuitBreakerService.execute(service2, () -> "success", fallback);

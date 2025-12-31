@@ -811,5 +811,199 @@ class PlaidWebhookServiceTest {
         // Then
         assertFalse(isValid);
     }
+
+    @Test
+    void testSyncTransactionsForItem_WithException_HandlesGracefully() {
+        // Given - Repository throws exception during sync
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("webhook_code", "INITIAL_UPDATE");
+        payload.put("item_id", "item-123");
+        
+        when(accountRepository.findByPlaidItemId("item-123")).thenThrow(new RuntimeException("Database connection failed"));
+        
+        // When/Then - Should handle exception gracefully
+        assertDoesNotThrow(() -> {
+            service.handleTransactionWebhook(payload);
+        });
+    }
+
+    @Test
+    void testSyncNewTransactionsForItem_WithException_HandlesGracefully() {
+        // Given - Repository throws exception during sync
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("webhook_code", "DEFAULT_UPDATE");
+        payload.put("item_id", "item-123");
+        
+        when(accountRepository.findByPlaidItemId("item-123")).thenThrow(new RuntimeException("Database connection failed"));
+        
+        // When/Then - Should handle exception gracefully
+        assertDoesNotThrow(() -> {
+            service.handleTransactionWebhook(payload);
+        });
+    }
+
+    @Test
+    void testSyncTransactionsForItem_WithUserFoundButException_HandlesGracefully() {
+        // Given
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("webhook_code", "HISTORICAL_UPDATE");
+        payload.put("item_id", "item-123");
+        
+        UserTable user = new UserTable();
+        user.setUserId("user-123");
+        
+        AccountTable account = new AccountTable();
+        account.setUserId("user-123");
+        
+        when(accountRepository.findByPlaidItemId("item-123")).thenReturn(List.of(account));
+        when(userRepository.findById("user-123")).thenThrow(new RuntimeException("User lookup failed"));
+        
+        // When/Then - Should handle exception gracefully
+        assertDoesNotThrow(() -> {
+            service.handleTransactionWebhook(payload);
+        });
+    }
+
+    @Test
+    void testHandleTransactionsRemoved_WithDeleteException_HandlesGracefully() {
+        // Given
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("webhook_code", "TRANSACTIONS_REMOVED");
+        payload.put("item_id", "item-123");
+        payload.put("removed_transactions", List.of("txn-123"));
+        
+        UserTable user = new UserTable();
+        user.setUserId("user-123");
+        
+        AccountTable account = new AccountTable();
+        account.setUserId("user-123");
+        
+        TransactionTable transaction = new TransactionTable();
+        transaction.setTransactionId("txn-123");
+        transaction.setUserId("user-123");
+        transaction.setPlaidTransactionId("txn-123");
+        
+        when(accountRepository.findByPlaidItemId("item-123")).thenReturn(List.of(account));
+        when(userRepository.findById("user-123")).thenReturn(Optional.of(user));
+        when(transactionRepository.findByPlaidTransactionId("txn-123")).thenReturn(Optional.of(transaction));
+        doThrow(new RuntimeException("Delete failed")).when(transactionRepository).delete("txn-123");
+        
+        // When/Then - Should handle delete exception gracefully
+        assertDoesNotThrow(() -> {
+            service.handleTransactionWebhook(payload);
+        });
+    }
+
+    @Test
+    void testHandleItemError_WithNotificationException_HandlesGracefully() {
+        // Given
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("webhook_code", "ERROR");
+        payload.put("item_id", "item-123");
+        payload.put("error_code", "ITEM_LOGIN_REQUIRED");
+        payload.put("error_message", "User needs to re-authenticate");
+        
+        UserTable user = new UserTable();
+        user.setUserId("user-123");
+        user.setEmail("test@example.com");
+        
+        AccountTable account = new AccountTable();
+        account.setUserId("user-123");
+        
+        when(accountRepository.findByPlaidItemId("item-123")).thenReturn(List.of(account));
+        when(userRepository.findById("user-123")).thenReturn(Optional.of(user));
+        when(notificationService.sendNotification(any(NotificationService.NotificationRequest.class)))
+                .thenThrow(new RuntimeException("Notification service unavailable"));
+        
+        // When/Then - Should handle notification exception gracefully
+        assertDoesNotThrow(() -> {
+            service.handleItemWebhook(payload);
+        });
+    }
+
+    @Test
+    void testHandlePendingExpiration_WithNotificationException_HandlesGracefully() {
+        // Given
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("webhook_code", "PENDING_EXPIRATION");
+        payload.put("item_id", "item-123");
+        
+        UserTable user = new UserTable();
+        user.setUserId("user-123");
+        user.setEmail("test@example.com");
+        
+        AccountTable account = new AccountTable();
+        account.setUserId("user-123");
+        
+        when(accountRepository.findByPlaidItemId("item-123")).thenReturn(List.of(account));
+        when(userRepository.findById("user-123")).thenReturn(Optional.of(user));
+        when(notificationService.sendNotification(any(NotificationService.NotificationRequest.class)))
+                .thenThrow(new RuntimeException("Notification service unavailable"));
+        
+        // When/Then - Should handle notification exception gracefully
+        assertDoesNotThrow(() -> {
+            service.handleItemWebhook(payload);
+        });
+    }
+
+    @Test
+    void testHandlePermissionRevoked_WithNotificationException_HandlesGracefully() {
+        // Given
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("webhook_code", "USER_PERMISSION_REVOKED");
+        payload.put("item_id", "item-123");
+        
+        UserTable user = new UserTable();
+        user.setUserId("user-123");
+        user.setEmail("test@example.com");
+        
+        AccountTable account = new AccountTable();
+        account.setAccountId("account-123");
+        account.setUserId("user-123");
+        account.setActive(true);
+        
+        when(accountRepository.findByPlaidItemId("item-123")).thenReturn(List.of(account));
+        when(userRepository.findById("user-123")).thenReturn(Optional.of(user));
+        when(notificationService.sendNotification(any(NotificationService.NotificationRequest.class)))
+                .thenThrow(new RuntimeException("Notification service unavailable"));
+        
+        // When/Then - Should handle notification exception gracefully
+        assertDoesNotThrow(() -> {
+            service.handleItemWebhook(payload);
+        });
+    }
+
+    @Test
+    void testHandlePermissionRevoked_WithMultipleAccounts_DeactivatesAll() {
+        // Given
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("webhook_code", "USER_PERMISSION_REVOKED");
+        payload.put("item_id", "item-123");
+        
+        UserTable user = new UserTable();
+        user.setUserId("user-123");
+        user.setEmail("test@example.com");
+        
+        AccountTable account1 = new AccountTable();
+        account1.setAccountId("account-1");
+        account1.setUserId("user-123");
+        account1.setActive(true);
+        
+        AccountTable account2 = new AccountTable();
+        account2.setAccountId("account-2");
+        account2.setUserId("user-123");
+        account2.setActive(true);
+        
+        when(accountRepository.findByPlaidItemId("item-123")).thenReturn(List.of(account1, account2));
+        when(userRepository.findById("user-123")).thenReturn(Optional.of(user));
+        when(notificationService.sendNotification(any(NotificationService.NotificationRequest.class)))
+                .thenReturn(new NotificationService.NotificationResult(true, "success"));
+        
+        // When
+        service.handleItemWebhook(payload);
+        
+        // Then - Should save all accounts
+        verify(accountRepository, times(2)).save(any(AccountTable.class));
+    }
 }
 
