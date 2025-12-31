@@ -197,7 +197,36 @@ services:
       retries: 3
       start_period: 40s
 
+  # LocalStack for tests - isolated from main app
+  # CRITICAL: This is a separate instance on port 4567 (main app uses 4566)
+  # Tests use this instance to avoid polluting local development data
+  localstack-test:
+    image: localstack/localstack:latest
+    container_name: budgetbuddy-localstack-test
+    networks:
+      - budgetbuddy-network
+    ports:
+      - "4567:4566"  # Test LocalStack uses port 4567 (separate from main app on 4566)
+    # Do NOT auto-restart - tests manage this container lifecycle
+    restart: "no"
+    labels:
+      - "com.budgetbuddy.service=test-infrastructure"
+      - "com.budgetbuddy.description=Test LocalStack service for Maven tests - isolated from local development"
+    environment:
+      - SERVICES=dynamodb,s3,secretsmanager,cloudwatch,iam,sts,appconfig
+      - DEBUG=0
+      - PERSISTENCE=1
+    volumes:
+      - localstack_test_data:/var/lib/localstack
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4566/_localstack/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
 volumes:
   localstack_data:
+  localstack_test_data:  # Test LocalStack data (isolated from local development)
   redis_data:  # Local development Redis data
   redis_test_data:  # Test Redis data (isolated from local development)

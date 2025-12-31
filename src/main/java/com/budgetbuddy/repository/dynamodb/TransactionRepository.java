@@ -25,6 +25,7 @@ import software.amazon.awssdk.services.dynamodb.model.WriteRequest;
 import software.amazon.awssdk.core.pagination.sync.SdkIterable;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -63,7 +64,7 @@ public class TransactionRepository {
         this.dynamoDbClient = dynamoDbClient;
     }
 
-    @CacheEvict(value = "transactions", key = "#transaction.userId")
+    @CacheEvict(value = "transactions", allEntries = true)
     public void save(final TransactionTable transaction) {
         if (transaction == null) {
             throw new IllegalArgumentException("Transaction cannot be null");
@@ -733,6 +734,7 @@ public class TransactionRepository {
     /**
      * Find transaction by composite key (accountId + amount + date + description/merchantName)
      * Used as fallback when plaidTransactionId changes due to reconnection/relinking
+     * PERFORMANCE FIX: Uses date range query to limit search scope instead of loading all transactions
      * 
      * @param accountId Account ID
      * @param amount Transaction amount
@@ -754,26 +756,59 @@ public class TransactionRepository {
             return Optional.empty();
         }
         
-        // Get all transactions for this user and account
-        // Then filter by amount, date, and description/merchantName
-        List<TransactionTable> userTransactions = findByUserId(userId, 0, Integer.MAX_VALUE);
-        
-        return userTransactions.stream()
-                .filter(t -> accountId.equals(t.getAccountId()))
-                .filter(t -> amount.compareTo(t.getAmount()) == 0)
-                .filter(t -> transactionDate.equals(t.getTransactionDate()))
-                .filter(t -> {
-                    // Match by description or merchantName
-                    if (description != null && !description.isEmpty()) {
-                        String txDescription = t.getDescription();
-                        String txMerchant = t.getMerchantName();
-                        // Match if description matches or merchantName matches
-                        return (txDescription != null && txDescription.equals(description)) ||
-                               (txMerchant != null && txMerchant.equals(description));
-                    }
-                    return true; // If description is null, don't filter by it
-                })
-                .findFirst();
+        // PERFORMANCE FIX: Use date range query to limit search scope
+        // Search within ±1 day of the transaction date to handle timezone differences
+        // This is much more efficient than loading all transactions for the user
+        try {
+            LocalDate date = LocalDate.parse(transactionDate, java.time.format.DateTimeFormatter.ISO_LOCAL_DATE);
+            String startDate = date.minusDays(1).format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE);
+            String endDate = date.plusDays(1).format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE);
+            
+            // Query transactions in date range (much more efficient than loading all)
+            List<TransactionTable> dateRangeTransactions = findByUserIdAndDateRange(userId, startDate, endDate);
+            
+            // Filter by accountId, amount, exact date, and description/merchantName
+            return dateRangeTransactions.stream()
+                    .filter(t -> t != null && accountId.equals(t.getAccountId()))
+                    .filter(t -> amount.compareTo(t.getAmount()) == 0)
+                    .filter(t -> transactionDate.equals(t.getTransactionDate())) // Exact date match
+                    .filter(t -> {
+                        // Match by description or merchantName
+                        if (description != null && !description.isEmpty()) {
+                            String txDescription = t.getDescription();
+                            String txMerchant = t.getMerchantName();
+                            // Match if description matches or merchantName matches
+                            return (txDescription != null && txDescription.equals(description)) ||
+                                   (txMerchant != null && txMerchant.equals(description));
+                        }
+                        return true; // If description is null, don't filter by it
+                    })
+                    .findFirst();
+        } catch (Exception e) {
+            // Fallback to original method if date parsing fails
+            org.slf4j.LoggerFactory.getLogger(TransactionRepository.class)
+                    .warn("Failed to parse date for composite key search, falling back to full user query: {}", e.getMessage());
+            
+            // Get all transactions for this user and account (fallback)
+            List<TransactionTable> userTransactions = findByUserId(userId, 0, Integer.MAX_VALUE);
+            
+            return userTransactions.stream()
+                    .filter(t -> t != null && accountId.equals(t.getAccountId()))
+                    .filter(t -> amount.compareTo(t.getAmount()) == 0)
+                    .filter(t -> transactionDate.equals(t.getTransactionDate()))
+                    .filter(t -> {
+                        // Match by description or merchantName
+                        if (description != null && !description.isEmpty()) {
+                            String txDescription = t.getDescription();
+                            String txMerchant = t.getMerchantName();
+                            // Match if description matches or merchantName matches
+                            return (txDescription != null && txDescription.equals(description)) ||
+                                   (txMerchant != null && txMerchant.equals(description));
+                        }
+                        return true; // If description is null, don't filter by it
+                    })
+                    .findFirst();
+        }
     }
 
     /**
@@ -1042,11 +1077,18 @@ public class TransactionRepository {
         if (item.containsKey("categoryDetailed")) {
             transaction.setCategoryDetailed(item.get("categoryDetailed").s());
         }
-        if (item.containsKey("plaidCategoryPrimary")) {
-            transaction.setPlaidCategoryPrimary(item.get("plaidCategoryPrimary").s());
+        // Support both old field names (for backward compatibility during migration) and new field names
+        if (item.containsKey("importerCategoryPrimary")) {
+            transaction.setImporterCategoryPrimary(item.get("importerCategoryPrimary").s());
+        } else if (item.containsKey("plaidCategoryPrimary")) {
+            // Backward compatibility: migrate old field name to new field name
+            transaction.setImporterCategoryPrimary(item.get("plaidCategoryPrimary").s());
         }
-        if (item.containsKey("plaidCategoryDetailed")) {
-            transaction.setPlaidCategoryDetailed(item.get("plaidCategoryDetailed").s());
+        if (item.containsKey("importerCategoryDetailed")) {
+            transaction.setImporterCategoryDetailed(item.get("importerCategoryDetailed").s());
+        } else if (item.containsKey("plaidCategoryDetailed")) {
+            // Backward compatibility: migrate old field name to new field name
+            transaction.setImporterCategoryDetailed(item.get("plaidCategoryDetailed").s());
         }
         if (item.containsKey("categoryOverridden")) {
             transaction.setCategoryOverridden(item.get("categoryOverridden").bool());

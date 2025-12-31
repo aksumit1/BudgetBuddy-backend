@@ -103,4 +103,3 @@ Outputs:
     Value: !Ref SESConfigurationSet
     Export:
       Name: !Sub '${AWS::StackName}-SESConfigurationSetName'
-

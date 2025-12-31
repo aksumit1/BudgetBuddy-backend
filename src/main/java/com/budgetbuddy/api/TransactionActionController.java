@@ -106,7 +106,8 @@ public class TransactionActionController {
                 request.getDueDate(),
                 request.getReminderDate(),
                 request.getIsCompleted(),
-                request.getPriority()
+                request.getPriority(),
+                request.getReminderDismissed()
         );
 
         return ResponseEntity.ok(action);
@@ -183,6 +184,7 @@ public class TransactionActionController {
         private String reminderDate;
         private Boolean isCompleted;
         private String priority;
+        private Boolean reminderDismissed;
 
         public String getTitle() { return title; }
         public void setTitle(final String title) { this.title = title; }
@@ -196,6 +198,8 @@ public class TransactionActionController {
         public void setIsCompleted(final Boolean isCompleted) { this.isCompleted = isCompleted; }
         public String getPriority() { return priority; }
         public void setPriority(final String priority) { this.priority = priority; }
+        public Boolean getReminderDismissed() { return reminderDismissed; }
+        public void setReminderDismissed(final Boolean reminderDismissed) { this.reminderDismissed = reminderDismissed; }
     }
 }
 

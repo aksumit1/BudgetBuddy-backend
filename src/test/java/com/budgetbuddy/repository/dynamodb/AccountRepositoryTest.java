@@ -81,6 +81,38 @@ class AccountRepositoryTest {
     }
 
     @Test
+    void testFindByUserId_WithNullUserId_ReturnsEmpty() {
+        // When
+        List<AccountTable> result = accountRepository.findByUserId(null);
+
+        // Then
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    void testFindByUserId_WithEmptyUserId_ReturnsEmpty() {
+        // When
+        List<AccountTable> result = accountRepository.findByUserId("");
+
+        // Then
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    void testGetOrCreatePseudoAccount_WithNullUserId_ThrowsException() {
+        // When/Then
+        assertThrows(IllegalArgumentException.class, () ->
+                accountRepository.getOrCreatePseudoAccount(null));
+    }
+
+    @Test
+    void testGetOrCreatePseudoAccount_WithEmptyUserId_ThrowsException() {
+        // When/Then
+        assertThrows(IllegalArgumentException.class, () ->
+                accountRepository.getOrCreatePseudoAccount(""));
+    }
+
+    @Test
     void testFindByUserId_WithActiveAccount_ReturnsAccount() {
         // Given
         Page<AccountTable> page = createPage(Collections.singletonList(activeAccount));

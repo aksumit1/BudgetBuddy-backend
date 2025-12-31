@@ -1,5 +1,6 @@
 package com.budgetbuddy.model.dynamodb;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbAttribute;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbBean;
@@ -23,11 +24,12 @@ public class TransactionTable {
     private BigDecimal amount;
     private String description;
     private String merchantName;
-    private String categoryPrimary; // Primary category (from Plaid or user override)
-    private String categoryDetailed; // Detailed category (from Plaid or user override)
-    private String plaidCategoryPrimary; // Plaid's original primary personal finance category (e.g., "FOOD_AND_DRINK")
-    private String plaidCategoryDetailed; // Plaid's original detailed personal finance category (e.g., "RESTAURANTS")
-    private Boolean categoryOverridden; // Whether user has overridden Plaid's category
+    private String userName; // Card/account user name (family member who made the transaction)
+    private String categoryPrimary; // Primary category (internal, always used for display)
+    private String categoryDetailed; // Detailed category (internal, always used for display)
+    private String importerCategoryPrimary; // Importer's original primary category (Plaid, CSV parser, etc.)
+    private String importerCategoryDetailed; // Importer's original detailed category (Plaid, CSV parser, etc.)
+    private Boolean categoryOverridden; // Whether user has overridden the category
     private Boolean transactionTypeOverridden; // Whether user has explicitly overridden transactionType (prevents Plaid sync from recalculating)
     private String transactionDate; // GSI sort key (YYYY-MM-DD format)
     private String currencyCode;
@@ -35,9 +37,13 @@ public class TransactionTable {
     private Boolean pending;
     private String paymentChannel; // online, in_store, ach, etc.
     private String notes; // User notes for the transaction
-    private Boolean isAudited; // Audit checkmark state (client-side UI state)
+    private String reviewStatus; // Review status: "none", "flagged", "reviewed", "error"
     private Boolean isHidden; // Whether transaction is hidden from view
     private String transactionType; // Transaction type: INCOME, INVESTMENT, LOAN, or EXPENSE
+    private String importSource; // Import source: "CSV", "EXCEL", "PDF", "PLAID", "MANUAL"
+    private String importBatchId; // UUID for grouping imports
+    private String importFileName; // Original file name for imports
+    private Instant importedAt; // When transaction was imported
     private Instant createdAt;
     private Instant updatedAt;
     private Long updatedAtTimestamp; // GSI sort key (epoch seconds) for incremental sync
@@ -108,6 +114,15 @@ public class TransactionTable {
         this.merchantName = merchantName;
     }
 
+    @DynamoDbAttribute("userName")
+    public String getUserName() {
+        return userName;
+    }
+
+    public void setUserName(final String userName) {
+        this.userName = userName;
+    }
+
     @DynamoDbAttribute("categoryPrimary")
     public String getCategoryPrimary() {
         return categoryPrimary;
@@ -138,22 +153,22 @@ public class TransactionTable {
         return categoryDetailed;
     }
 
-    @DynamoDbAttribute("plaidCategoryPrimary")
-    public String getPlaidCategoryPrimary() {
-        return plaidCategoryPrimary;
+    @DynamoDbAttribute("importerCategoryPrimary")
+    public String getImporterCategoryPrimary() {
+        return importerCategoryPrimary;
     }
 
-    public void setPlaidCategoryPrimary(final String plaidCategoryPrimary) {
-        this.plaidCategoryPrimary = plaidCategoryPrimary;
+    public void setImporterCategoryPrimary(final String importerCategoryPrimary) {
+        this.importerCategoryPrimary = importerCategoryPrimary;
     }
 
-    @DynamoDbAttribute("plaidCategoryDetailed")
-    public String getPlaidCategoryDetailed() {
-        return plaidCategoryDetailed;
+    @DynamoDbAttribute("importerCategoryDetailed")
+    public String getImporterCategoryDetailed() {
+        return importerCategoryDetailed;
     }
 
-    public void setPlaidCategoryDetailed(final String plaidCategoryDetailed) {
-        this.plaidCategoryDetailed = plaidCategoryDetailed;
+    public void setImporterCategoryDetailed(final String importerCategoryDetailed) {
+        this.importerCategoryDetailed = importerCategoryDetailed;
     }
 
     @DynamoDbAttribute("categoryOverridden")
@@ -211,13 +226,13 @@ public class TransactionTable {
         this.notes = notes;
     }
 
-    @DynamoDbAttribute("isAudited")
-    public Boolean getIsAudited() {
-        return isAudited;
+    @DynamoDbAttribute("reviewStatus")
+    public String getReviewStatus() {
+        return reviewStatus;
     }
 
-    public void setIsAudited(final Boolean isAudited) {
-        this.isAudited = isAudited;
+    public void setReviewStatus(final String reviewStatus) {
+        this.reviewStatus = reviewStatus;
     }
 
     @DynamoDbAttribute("isHidden")
@@ -247,7 +262,45 @@ public class TransactionTable {
         this.transactionTypeOverridden = transactionTypeOverridden;
     }
 
+    @DynamoDbAttribute("importSource")
+    public String getImportSource() {
+        return importSource;
+    }
+
+    public void setImportSource(final String importSource) {
+        this.importSource = importSource;
+    }
+
+    @DynamoDbAttribute("importBatchId")
+    public String getImportBatchId() {
+        return importBatchId;
+    }
+
+    public void setImportBatchId(final String importBatchId) {
+        this.importBatchId = importBatchId;
+    }
+
+    @DynamoDbAttribute("importFileName")
+    public String getImportFileName() {
+        return importFileName;
+    }
+
+    public void setImportFileName(final String importFileName) {
+        this.importFileName = importFileName;
+    }
+
+    @DynamoDbAttribute("importedAt")
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", timezone = "UTC")
+    public Instant getImportedAt() {
+        return importedAt;
+    }
+
+    public void setImportedAt(final Instant importedAt) {
+        this.importedAt = importedAt;
+    }
+
     @DynamoDbAttribute("createdAt")
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", timezone = "UTC")
     public Instant getCreatedAt() {
         return createdAt;
     }
@@ -257,6 +310,7 @@ public class TransactionTable {
     }
 
     @DynamoDbAttribute("updatedAt")
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", timezone = "UTC")
     public Instant getUpdatedAt() {
         return updatedAt;
     }

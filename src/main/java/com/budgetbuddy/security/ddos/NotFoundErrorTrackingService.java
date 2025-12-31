@@ -2,6 +2,8 @@ package com.budgetbuddy.security.ddos;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
@@ -10,6 +12,7 @@ import software.amazon.awssdk.services.dynamodb.model.*;
 import java.time.Instant;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -45,19 +48,29 @@ public class NotFoundErrorTrackingService {
 
     private final DynamoDbClient dynamoDbClient;
     private final String tableName;
+    private final Executor asyncExecutor; // Thread pool for async operations
 
     // In-memory cache for hot paths
     private final Map<String, NotFoundCounter> inMemoryCache = new ConcurrentHashMap<>();
     private volatile long lastCacheCleanup = System.currentTimeMillis();
     private volatile boolean dynamoDbAvailable = true;
 
-    public NotFoundErrorTrackingService(final DynamoDbClient dynamoDbClient,
-            @Value("${app.aws.dynamodb.table-prefix:BudgetBuddy}") String tablePrefix) {
+    public NotFoundErrorTrackingService(
+            final DynamoDbClient dynamoDbClient,
+            @Value("${app.aws.dynamodb.table-prefix:BudgetBuddy}") String tablePrefix,
+            @Autowired(required = false) @Qualifier("taskExecutor") Executor asyncExecutor) {
         if (dynamoDbClient == null) {
             throw new IllegalArgumentException("DynamoDbClient cannot be null");
         }
         this.dynamoDbClient = dynamoDbClient;
         this.tableName = tablePrefix + "-NotFoundTracking";
+        // Use provided executor or fallback to default (for testing)
+        this.asyncExecutor = asyncExecutor != null ? asyncExecutor : 
+            java.util.concurrent.Executors.newCachedThreadPool(r -> {
+                Thread t = new Thread(r, "404-block-async");
+                t.setDaemon(true);
+                return t;
+            });
         // Initialize table lazily to avoid blocking application startup
         // Table will be created on first use if needed
         try {
@@ -299,8 +312,19 @@ public class NotFoundErrorTrackingService {
         }
     }
 
+    /**
+     * Async block source to avoid blocking the request thread
+     * Uses thread pool executor to prevent resource exhaustion
+     */
     private void blockSourceInDynamoDBAsync(final String sourceId) {
-        new Thread(() -> blockSourceInDynamoDB(sourceId), "404-block-async").start();
+        // Use thread pool executor to avoid creating unbounded threads
+        asyncExecutor.execute(() -> {
+            try {
+                blockSourceInDynamoDB(sourceId);
+            } catch (Exception e) {
+                logger.error("Error in async source blocking for {}: {}", sourceId, e.getMessage(), e);
+            }
+        });
     }
 
     /**

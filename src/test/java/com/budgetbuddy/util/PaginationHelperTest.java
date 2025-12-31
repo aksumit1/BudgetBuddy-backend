@@ -1,270 +1,243 @@
 package com.budgetbuddy.util;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.test.util.ReflectionTestUtils;
 
-import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Comprehensive tests for PaginationHelper utility class
+ * Unit Tests for PaginationHelper
  */
 class PaginationHelperTest {
 
+    @BeforeEach
+    void setUp() {
+        // Reset static fields to defaults
+        ReflectionTestUtils.setField(PaginationHelper.class, "defaultPageSize", 50);
+        ReflectionTestUtils.setField(PaginationHelper.class, "maxPageSize", 1000);
+    }
+
+    @Test
+    void testGetDefaultPageSize_ReturnsConfiguredValue() {
+        // When
+        int defaultSize = PaginationHelper.getDefaultPageSize();
+
+        // Then
+        assertEquals(50, defaultSize);
+    }
+
+    @Test
+    void testGetMaxPageSize_ReturnsConfiguredValue() {
+        // When
+        int maxSize = PaginationHelper.getMaxPageSize();
+
+        // Then
+        assertEquals(1000, maxSize);
+    }
+
     @Test
     void testCalculateSkip_WithValidPage_ReturnsCorrectSkip() {
-        // Given
-        int page = 3;
-        int pageSize = 20;
-
-        // When
-        int skip = PaginationHelper.calculateSkip(page, pageSize);
-
-        // Then
-        assertEquals(40, skip, "Skip should be (page - 1) * pageSize");
+        // When/Then
+        assertEquals(0, PaginationHelper.calculateSkip(1, 20));
+        assertEquals(20, PaginationHelper.calculateSkip(2, 20));
+        assertEquals(40, PaginationHelper.calculateSkip(3, 20));
     }
 
     @Test
-    void testCalculateSkip_WithPageOne_ReturnsZero() {
-        // Given
-        int page = 1;
-        int pageSize = 20;
-
-        // When
-        int skip = PaginationHelper.calculateSkip(page, pageSize);
-
-        // Then
-        assertEquals(0, skip, "First page should have skip of 0");
+    void testCalculateSkip_WithPageLessThanOne_ReturnsZero() {
+        // When/Then
+        assertEquals(0, PaginationHelper.calculateSkip(0, 20));
+        assertEquals(0, PaginationHelper.calculateSkip(-1, 20));
     }
 
     @Test
-    void testCalculateSkip_WithPageZero_ReturnsZero() {
-        // Given
-        int page = 0;
-        int pageSize = 20;
-
+    void testNormalizePageSize_WithValidSize_ReturnsSameSize() {
         // When
-        int skip = PaginationHelper.calculateSkip(page, pageSize);
+        int normalized = PaginationHelper.normalizePageSize(25, null, null);
 
         // Then
-        assertEquals(0, skip, "Page 0 should return skip of 0");
-    }
-
-    @Test
-    void testCalculateSkip_WithNegativePage_ReturnsZero() {
-        // Given
-        int page = -1;
-        int pageSize = 20;
-
-        // When
-        int skip = PaginationHelper.calculateSkip(page, pageSize);
-
-        // Then
-        assertEquals(0, skip, "Negative page should return skip of 0");
-    }
-
-    @Test
-    void testNormalizePageSize_WithValidSize_ReturnsSize() {
-        // Given
-        int pageSize = 50;
-        int defaultSize = 20;
-        int maxSize = 100;
-
-        // When
-        int normalized = PaginationHelper.normalizePageSize(pageSize, defaultSize, maxSize);
-
-        // Then
-        assertEquals(50, normalized, "Valid page size should be returned as-is");
+        assertEquals(25, normalized);
     }
 
     @Test
     void testNormalizePageSize_WithZero_ReturnsDefault() {
-        // Given
-        int pageSize = 0;
-        int defaultSize = 20;
-        int maxSize = 100;
-
         // When
-        int normalized = PaginationHelper.normalizePageSize(pageSize, defaultSize, maxSize);
+        int normalized = PaginationHelper.normalizePageSize(0, null, null);
 
         // Then
-        assertEquals(defaultSize, normalized, "Zero page size should return default");
+        assertEquals(50, normalized);
     }
 
     @Test
     void testNormalizePageSize_WithNegative_ReturnsDefault() {
-        // Given
-        int pageSize = -10;
-        int defaultSize = 20;
-        int maxSize = 100;
-
         // When
-        int normalized = PaginationHelper.normalizePageSize(pageSize, defaultSize, maxSize);
+        int normalized = PaginationHelper.normalizePageSize(-5, null, null);
 
         // Then
-        assertEquals(defaultSize, normalized, "Negative page size should return default");
+        assertEquals(50, normalized);
     }
 
     @Test
-    void testNormalizePageSize_ExceedingMax_ReturnsMax() {
-        // Given
-        int pageSize = 200;
-        int defaultSize = 20;
-        int maxSize = 100;
-
+    void testNormalizePageSize_WithSizeExceedingMax_ReturnsMax() {
         // When
-        int normalized = PaginationHelper.normalizePageSize(pageSize, defaultSize, maxSize);
+        int normalized = PaginationHelper.normalizePageSize(2000, null, null);
 
         // Then
-        assertEquals(maxSize, normalized, "Page size exceeding max should return max");
+        assertEquals(1000, normalized);
     }
 
     @Test
-    void testNormalizePageSize_AtMax_ReturnsMax() {
-        // Given
-        int pageSize = 100;
-        int defaultSize = 20;
-        int maxSize = 100;
-
+    void testNormalizePageSize_WithCustomDefaults_UsesCustomValues() {
         // When
-        int normalized = PaginationHelper.normalizePageSize(pageSize, defaultSize, maxSize);
+        int normalized = PaginationHelper.normalizePageSize(0, 100, 500);
 
         // Then
-        assertEquals(maxSize, normalized, "Page size at max should return max");
+        assertEquals(100, normalized);
     }
 
     @Test
-    void testCreateResult_WithFirstPage_ReturnsCorrectResult() {
+    void testNormalizePageSize_WithCustomMax_UsesCustomMax() {
+        // When
+        int normalized = PaginationHelper.normalizePageSize(1000, null, 500);
+
+        // Then
+        assertEquals(500, normalized);
+    }
+
+    @Test
+    void testNormalizePageSize_WithoutParameters_UsesDefaults() {
+        // When
+        int normalized = PaginationHelper.normalizePageSize(25);
+
+        // Then
+        assertEquals(25, normalized);
+    }
+
+    @Test
+    void testCreateResult_WithValidInputs_CreatesCorrectResult() {
         // Given
         List<String> items = Arrays.asList("item1", "item2", "item3");
         int page = 1;
-        int pageSize = 10;
-        int totalItems = 25;
+        int pageSize = 20;
+        int totalItems = 50;
 
         // When
-        PaginationHelper.PaginationResult<String> result = PaginationHelper.createResult(items, page, pageSize, totalItems);
+        PaginationHelper.PaginationResult<String> result = 
+                PaginationHelper.createResult(items, page, pageSize, totalItems);
 
         // Then
+        assertNotNull(result);
         assertEquals(items, result.getItems());
         assertEquals(page, result.getPage());
         assertEquals(pageSize, result.getPageSize());
         assertEquals(totalItems, result.getTotalItems());
-        assertTrue(result.hasNext(), "Should have next page");
-        assertFalse(result.hasPrevious(), "First page should not have previous");
-        assertEquals(3, result.getTotalPages(), "Should calculate total pages correctly");
+        assertTrue(result.hasNext());
+        assertFalse(result.hasPrevious());
     }
 
     @Test
-    void testCreateResult_WithMiddlePage_ReturnsCorrectResult() {
+    void testCreateResult_WithLastPage_HasNoNext() {
         // Given
-        List<String> items = Arrays.asList("item11", "item12", "item13");
-        int page = 2;
-        int pageSize = 10;
-        int totalItems = 25;
-
-        // When
-        PaginationHelper.PaginationResult<String> result = PaginationHelper.createResult(items, page, pageSize, totalItems);
-
-        // Then
-        assertEquals(items, result.getItems());
-        assertEquals(page, result.getPage());
-        assertEquals(pageSize, result.getPageSize());
-        assertEquals(totalItems, result.getTotalItems());
-        assertTrue(result.hasNext(), "Should have next page");
-        assertTrue(result.hasPrevious(), "Middle page should have previous");
-        assertEquals(3, result.getTotalPages(), "Should calculate total pages correctly");
-    }
-
-    @Test
-    void testCreateResult_WithLastPage_ReturnsCorrectResult() {
-        // Given
-        List<String> items = Arrays.asList("item21", "item22", "item23", "item24", "item25");
+        List<String> items = Arrays.asList("item1", "item2");
         int page = 3;
-        int pageSize = 10;
-        int totalItems = 25;
+        int pageSize = 20;
+        int totalItems = 50;
 
         // When
-        PaginationHelper.PaginationResult<String> result = PaginationHelper.createResult(items, page, pageSize, totalItems);
+        PaginationHelper.PaginationResult<String> result = 
+                PaginationHelper.createResult(items, page, pageSize, totalItems);
 
         // Then
-        assertEquals(items, result.getItems());
-        assertEquals(page, result.getPage());
-        assertEquals(pageSize, result.getPageSize());
-        assertEquals(totalItems, result.getTotalItems());
-        assertFalse(result.hasNext(), "Last page should not have next");
-        assertTrue(result.hasPrevious(), "Last page should have previous");
-        assertEquals(3, result.getTotalPages(), "Should calculate total pages correctly");
+        assertFalse(result.hasNext());
+        assertTrue(result.hasPrevious());
     }
 
     @Test
-    void testCreateResult_WithEmptyItems_ReturnsCorrectResult() {
+    void testCreateResult_WithFirstPage_HasNoPrevious() {
         // Given
-        List<String> items = new ArrayList<>();
+        List<String> items = Arrays.asList("item1", "item2");
         int page = 1;
-        int pageSize = 10;
+        int pageSize = 20;
+        int totalItems = 50;
+
+        // When
+        PaginationHelper.PaginationResult<String> result = 
+                PaginationHelper.createResult(items, page, pageSize, totalItems);
+
+        // Then
+        assertTrue(result.hasNext());
+        assertFalse(result.hasPrevious());
+    }
+
+    @Test
+    void testCreateResult_WithEmptyItems_CreatesResult() {
+        // Given
+        List<String> items = Collections.emptyList();
+        int page = 1;
+        int pageSize = 20;
         int totalItems = 0;
 
         // When
-        PaginationHelper.PaginationResult<String> result = PaginationHelper.createResult(items, page, pageSize, totalItems);
+        PaginationHelper.PaginationResult<String> result = 
+                PaginationHelper.createResult(items, page, pageSize, totalItems);
 
         // Then
+        assertNotNull(result);
         assertTrue(result.getItems().isEmpty());
-        assertEquals(page, result.getPage());
-        assertEquals(pageSize, result.getPageSize());
-        assertEquals(0, result.getTotalItems());
-        assertFalse(result.hasNext(), "Empty result should not have next");
-        assertFalse(result.hasPrevious(), "First page should not have previous");
-        assertEquals(0, result.getTotalPages(), "Should calculate total pages correctly");
+        assertFalse(result.hasNext());
+        assertFalse(result.hasPrevious());
     }
 
     @Test
-    void testCreateResult_WithExactPageSize_ReturnsCorrectResult() {
-        // Given
-        List<String> items = Arrays.asList("item1", "item2", "item3", "item4", "item5");
-        int page = 1;
-        int pageSize = 5;
-        int totalItems = 5;
-
-        // When
-        PaginationHelper.PaginationResult<String> result = PaginationHelper.createResult(items, page, pageSize, totalItems);
-
-        // Then
-        assertEquals(items, result.getItems());
-        assertFalse(result.hasNext(), "Exact page size should not have next");
-        assertFalse(result.hasPrevious(), "First page should not have previous");
-        assertEquals(1, result.getTotalPages(), "Should have exactly one page");
-    }
-
-    @Test
-    void testPaginationResult_GetTotalPages_WithRemainder_CalculatesCorrectly() {
+    void testPaginationResult_GetTotalPages_CalculatesCorrectly() {
         // Given
         List<String> items = Arrays.asList("item1", "item2");
         int page = 1;
-        int pageSize = 10;
-        int totalItems = 22; // 22 items with page size 10 = 3 pages
+        int pageSize = 20;
+        int totalItems = 50;
 
         // When
-        PaginationHelper.PaginationResult<String> result = PaginationHelper.createResult(items, page, pageSize, totalItems);
+        PaginationHelper.PaginationResult<String> result = 
+                PaginationHelper.createResult(items, page, pageSize, totalItems);
 
         // Then
-        assertEquals(3, result.getTotalPages(), "Should round up to 3 pages for 22 items with page size 10");
+        assertEquals(3, result.getTotalPages());
     }
 
     @Test
-    void testPaginationResult_GetTotalPages_WithNoRemainder_CalculatesCorrectly() {
+    void testPaginationResult_GetTotalPages_WithExactDivision_CalculatesCorrectly() {
         // Given
         List<String> items = Arrays.asList("item1", "item2");
         int page = 1;
-        int pageSize = 10;
-        int totalItems = 20; // 20 items with page size 10 = 2 pages
+        int pageSize = 20;
+        int totalItems = 40;
 
         // When
-        PaginationHelper.PaginationResult<String> result = PaginationHelper.createResult(items, page, pageSize, totalItems);
+        PaginationHelper.PaginationResult<String> result = 
+                PaginationHelper.createResult(items, page, pageSize, totalItems);
 
         // Then
-        assertEquals(2, result.getTotalPages(), "Should have exactly 2 pages for 20 items with page size 10");
+        assertEquals(2, result.getTotalPages());
+    }
+
+    @Test
+    void testPaginationResult_GetTotalPages_WithRemainder_RoundsUp() {
+        // Given
+        List<String> items = Arrays.asList("item1", "item2");
+        int page = 1;
+        int pageSize = 20;
+        int totalItems = 45;
+
+        // When
+        PaginationHelper.PaginationResult<String> result = 
+                PaginationHelper.createResult(items, page, pageSize, totalItems);
+
+        // Then
+        assertEquals(3, result.getTotalPages());
     }
 }
-

@@ -511,8 +511,8 @@ class PlaidDeduplicationTest {
                     categoryMapping = new PlaidCategoryMapper.CategoryMapping("other", "other", false);
                 }
                 
-                txTable.setPlaidCategoryPrimary(plaidCategoryPrimary);
-                txTable.setPlaidCategoryDetailed(plaidCategoryDetailed);
+                txTable.setImporterCategoryPrimary(plaidCategoryPrimary);
+                txTable.setImporterCategoryDetailed(plaidCategoryDetailed);
                 txTable.setCategoryPrimary(categoryMapping.getPrimary());
                 txTable.setCategoryDetailed(categoryMapping.getDetailed());
                 txTable.setCategoryOverridden(categoryMapping.isOverridden());

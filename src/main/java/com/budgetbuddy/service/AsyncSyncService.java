@@ -3,11 +3,14 @@ package com.budgetbuddy.service;
 import jakarta.annotation.PreDestroy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -27,10 +30,22 @@ public class AsyncSyncService {
     private static final int DEFAULT_THREAD_POOL_SIZE = 10;
     private static final int SHUTDOWN_TIMEOUT_SECONDS = 30;
 
-    private final ExecutorService executorService;
+    private final Executor executor;
+    private ExecutorService fallbackExecutorService; // Only used if Spring executor not available
 
-    public AsyncSyncService() {
-        this.executorService = Executors.newFixedThreadPool(DEFAULT_THREAD_POOL_SIZE);
+    public AsyncSyncService(
+            @Autowired(required = false) @Qualifier("taskExecutor") Executor springExecutor) {
+        if (springExecutor != null) {
+            // Use Spring-managed thread pool executor
+            this.executor = springExecutor;
+            this.fallbackExecutorService = null;
+            logger.debug("AsyncSyncService using Spring-managed thread pool executor");
+        } else {
+            // Fallback to local executor (for testing or when Spring executor not available)
+            this.fallbackExecutorService = Executors.newFixedThreadPool(DEFAULT_THREAD_POOL_SIZE);
+            this.executor = fallbackExecutorService;
+            logger.debug("AsyncSyncService using fallback thread pool executor");
+        }
     }
 
     /**
@@ -72,7 +87,7 @@ public class AsyncSyncService {
                         logger.error("Error processing batch: {}", e.getMessage(), e);
                         return List.<R>of();
                     }
-                }, executorService))
+                }, executor))
                 .collect(Collectors.toList());
 
         // Combine all batch results
@@ -136,22 +151,24 @@ public class AsyncSyncService {
     /**
      * Shutdown executor service (called on application shutdown)
      * Prevents thread pool leaks by ensuring proper cleanup
+     * Only shuts down fallback executor - Spring-managed executor is handled by Spring
      */
     @PreDestroy
     public void shutdown() {
-        if (executorService != null && !executorService.isShutdown()) {
-            logger.info("Shutting down AsyncSyncService executor service...");
-            executorService.shutdown();
+        // Only shutdown fallback executor - Spring-managed executor is handled by Spring
+        if (fallbackExecutorService != null && !fallbackExecutorService.isShutdown()) {
+            logger.info("Shutting down AsyncSyncService fallback executor service...");
+            fallbackExecutorService.shutdown();
             
             try {
                 // Wait for tasks to complete
-                if (!executorService.awaitTermination(SHUTDOWN_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
+                if (!fallbackExecutorService.awaitTermination(SHUTDOWN_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
                     logger.warn("AsyncSyncService executor did not terminate within {} seconds, forcing shutdown", 
                             SHUTDOWN_TIMEOUT_SECONDS);
-                    executorService.shutdownNow();
+                    fallbackExecutorService.shutdownNow();
                     
                     // Wait again after shutdownNow
-                    if (!executorService.awaitTermination(SHUTDOWN_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
+                    if (!fallbackExecutorService.awaitTermination(SHUTDOWN_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
                         logger.error("AsyncSyncService executor did not terminate after forced shutdown");
                     } else {
                         logger.info("AsyncSyncService executor terminated after forced shutdown");
@@ -161,9 +178,11 @@ public class AsyncSyncService {
                 }
             } catch (InterruptedException e) {
                 logger.error("Interrupted while shutting down AsyncSyncService executor", e);
-                executorService.shutdownNow();
+                fallbackExecutorService.shutdownNow();
                 Thread.currentThread().interrupt();
             }
+        } else {
+            logger.debug("AsyncSyncService using Spring-managed executor - no shutdown needed");
         }
     }
 }

@@ -12,6 +12,7 @@ import com.budgetbuddy.notification.NotificationService;
 import com.budgetbuddy.repository.dynamodb.AccountRepository;
 import com.budgetbuddy.repository.dynamodb.TransactionRepository;
 import com.budgetbuddy.repository.dynamodb.UserRepository;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -592,7 +593,9 @@ class PlaidWebhookServiceTest {
     void testVerifyWebhookSignature_WithJsonProcessingException_ReturnsFalse() throws Exception {
         // Given
         Map<String, Object> payload = new HashMap<>();
-        when(objectMapper.writeValueAsString(payload)).thenThrow(new com.fasterxml.jackson.core.JsonProcessingException("Error") {});
+        // Use JsonMappingException which is a concrete subclass of JsonProcessingException
+        // Use the non-deprecated constructor that takes a message and a cause
+        when(objectMapper.writeValueAsString(payload)).thenThrow(new JsonMappingException(null, "Error"));
         
         // When
         boolean isValid = service.verifyWebhookSignature(payload, "signature");

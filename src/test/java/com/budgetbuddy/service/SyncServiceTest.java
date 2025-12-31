@@ -115,7 +115,9 @@ class SyncServiceTest {
         List<TransactionActionTable> actions = Arrays.asList(testAction);
 
         when(accountRepository.findByUserId(testUserId)).thenReturn(accounts);
-        when(transactionRepository.findByUserId(testUserId, 0, Integer.MAX_VALUE)).thenReturn(transactions);
+        // Mock pagination: first call returns transactions, second call returns empty (end of pagination)
+        when(transactionRepository.findByUserId(testUserId, 0, 100)).thenReturn(transactions);
+        when(transactionRepository.findByUserId(testUserId, 100, 100)).thenReturn(Collections.emptyList());
         when(budgetRepository.findByUserId(testUserId)).thenReturn(budgets);
         when(goalRepository.findByUserId(testUserId)).thenReturn(goals);
         when(transactionActionRepository.findByUserId(testUserId)).thenReturn(actions);
@@ -133,7 +135,7 @@ class SyncServiceTest {
         assertNotNull(response.getSyncTimestamp());
 
         verify(accountRepository).findByUserId(testUserId);
-        verify(transactionRepository).findByUserId(testUserId, 0, Integer.MAX_VALUE);
+        verify(transactionRepository).findByUserId(testUserId, 0, 100);
         verify(budgetRepository).findByUserId(testUserId);
         verify(goalRepository).findByUserId(testUserId);
         verify(transactionActionRepository).findByUserId(testUserId);
@@ -211,7 +213,6 @@ class SyncServiceTest {
 
         List<AccountTable> allAccounts = Arrays.asList(recentAccount);
         List<TransactionTable> allTransactions = Arrays.asList(recentTransaction);
-        List<BudgetTable> allBudgets = Arrays.asList(oldBudget);
         List<GoalTable> allGoals = Collections.emptyList(); // No goals
         List<TransactionActionTable> allActions = Collections.emptyList(); // No actions
 
@@ -284,7 +285,9 @@ class SyncServiceTest {
         List<TransactionActionTable> actions = Arrays.asList(testAction);
 
         when(accountRepository.findByUserId(testUserId)).thenReturn(accounts);
-        when(transactionRepository.findByUserId(testUserId, 0, Integer.MAX_VALUE)).thenReturn(transactions);
+        // Mock pagination: first call returns transactions, second call returns empty (end of pagination)
+        when(transactionRepository.findByUserId(testUserId, 0, 100)).thenReturn(transactions);
+        when(transactionRepository.findByUserId(testUserId, 100, 100)).thenReturn(Collections.emptyList());
         when(budgetRepository.findByUserId(testUserId)).thenReturn(budgets);
         when(goalRepository.findByUserId(testUserId)).thenReturn(goals);
         when(transactionActionRepository.findByUserId(testUserId)).thenReturn(actions);

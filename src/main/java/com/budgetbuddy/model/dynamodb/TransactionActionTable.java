@@ -1,5 +1,6 @@
 package com.budgetbuddy.model.dynamodb;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbAttribute;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbBean;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbPartitionKey;
@@ -28,6 +29,7 @@ public class TransactionActionTable {
     private Boolean isCompleted;
     private String priority; // LOW, MEDIUM, HIGH
     private String notificationId; // For tracking scheduled notifications
+    private Boolean reminderDismissed; // If true, user dismissed the reminder and it won't be sent again
     private Instant createdAt;
     private Instant updatedAt;
     private Long updatedAtTimestamp; // GSI sort key (epoch seconds) for incremental sync
@@ -153,7 +155,17 @@ public class TransactionActionTable {
         this.notificationId = notificationId;
     }
 
+    @DynamoDbAttribute("reminderDismissed")
+    public Boolean getReminderDismissed() {
+        return reminderDismissed;
+    }
+
+    public void setReminderDismissed(final Boolean reminderDismissed) {
+        this.reminderDismissed = reminderDismissed;
+    }
+
     @DynamoDbAttribute("createdAt")
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", timezone = "UTC")
     public Instant getCreatedAt() {
         return createdAt;
     }
@@ -163,6 +175,7 @@ public class TransactionActionTable {
     }
 
     @DynamoDbAttribute("updatedAt")
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", timezone = "UTC")
     public Instant getUpdatedAt() {
         return updatedAt;
     }

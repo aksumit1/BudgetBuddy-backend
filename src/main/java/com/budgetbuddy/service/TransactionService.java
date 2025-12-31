@@ -1,5 +1,6 @@
 package com.budgetbuddy.service;
 
+import com.budgetbuddy.audit.AuditService;
 import com.budgetbuddy.exception.AppException;
 import com.budgetbuddy.exception.ErrorCode;
 import com.budgetbuddy.model.dynamodb.AccountTable;
@@ -9,12 +10,14 @@ import com.budgetbuddy.repository.dynamodb.AccountRepository;
 import com.budgetbuddy.repository.dynamodb.TransactionRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -33,13 +36,19 @@ public class TransactionService {
     private final TransactionRepository transactionRepository;
     private final AccountRepository accountRepository;
     private final TransactionTypeDeterminer transactionTypeDeterminer;
+    private final TransactionTypeCategoryService transactionTypeCategoryService;
+    private final AuditService auditService; // P2: Audit logging
 
     public TransactionService(final TransactionRepository transactionRepository, 
                              final AccountRepository accountRepository,
-                             final TransactionTypeDeterminer transactionTypeDeterminer) {
+                             final TransactionTypeDeterminer transactionTypeDeterminer,
+                             final TransactionTypeCategoryService transactionTypeCategoryService,
+                             final AuditService auditService) {
         this.transactionRepository = transactionRepository;
         this.accountRepository = accountRepository;
         this.transactionTypeDeterminer = transactionTypeDeterminer;
+        this.transactionTypeCategoryService = transactionTypeCategoryService;
+        this.auditService = auditService;
     }
 
     /**
@@ -242,18 +251,24 @@ public class TransactionService {
 
         // Use conditional write to prevent duplicate Plaid transactions
         boolean saved = transactionRepository.saveIfPlaidTransactionNotExists(transaction);
+        
+        // P1: Invalidate cache when transaction is saved (category/type may change)
+        if (saved) {
+            invalidateCategoryCache(transaction);
+        }
+        
         if (!saved) {
             // Transaction already exists (duplicate detected)
             TransactionTable existing;
             if (transaction.getPlaidTransactionId() != null && !transaction.getPlaidTransactionId().isEmpty()) {
                 // Duplicate Plaid transaction - fetch by Plaid ID
-                logger.debug("Transaction with Plaid ID {} already exists, fetching existing", transaction.getPlaidTransactionId());
+                // Transaction with Plaid ID already exists
                 existing = transactionRepository.findByPlaidTransactionId(transaction.getPlaidTransactionId())
                         .orElseThrow(() -> new AppException(ErrorCode.RECORD_ALREADY_EXISTS, 
                                 "Transaction with Plaid ID already exists but could not be retrieved"));
             } else {
                 // Duplicate transactionId (no Plaid ID) - fetch by transaction ID
-                logger.debug("Transaction with ID {} already exists, fetching existing", transaction.getTransactionId());
+                // Transaction with ID already exists
                 existing = transactionRepository.findById(transaction.getTransactionId())
                         .orElseThrow(() -> new AppException(ErrorCode.RECORD_ALREADY_EXISTS, 
                                 "Transaction with ID already exists but could not be retrieved"));
@@ -264,12 +279,91 @@ public class TransactionService {
             if (isNullOrEmpty(existing.getTransactionType())) {
                 ensureTransactionTypeSetWithAccountLookup(existing);
                 transactionRepository.save(existing);
+                // P1: Invalidate cache when transaction type is set
+                invalidateCategoryCache(existing);
             }
             
             return existing;
         }
 
         return transaction;
+    }
+
+    /**
+     * Create multiple transactions in a batch
+     * @param user The user
+     * @param requests List of CreateTransactionRequest objects
+     * @return BatchImportResponse with success/failure counts
+     */
+    public com.budgetbuddy.api.TransactionController.BatchImportResponse createTransactionsBatch(
+            final UserTable user,
+            final List<com.budgetbuddy.api.TransactionController.CreateTransactionRequest> requests) {
+        if (user == null || user.getUserId() == null || user.getUserId().isEmpty()) {
+            throw new AppException(ErrorCode.INVALID_INPUT, "User is required");
+        }
+        if (requests == null || requests.isEmpty()) {
+            throw new AppException(ErrorCode.INVALID_INPUT, "Transactions list is required");
+        }
+
+        com.budgetbuddy.api.TransactionController.BatchImportResponse response = 
+                new com.budgetbuddy.api.TransactionController.BatchImportResponse();
+        response.setTotal(requests.size());
+        response.setCreated(0);
+        response.setFailed(0);
+        response.setErrors(new ArrayList<>());
+        response.setCreatedTransactionIds(new ArrayList<>());
+
+        for (com.budgetbuddy.api.TransactionController.CreateTransactionRequest request : requests) {
+            // CRITICAL: Skip null transactions (edge case handling)
+            if (request == null) {
+                response.setFailed(response.getFailed() + 1);
+                response.getErrors().add("Null transaction request skipped");
+                continue;
+            }
+            try {
+                TransactionTable transaction = createTransaction(
+                        user,
+                        request.getAccountId(),
+                        request.getAmount(),
+                        request.getTransactionDate(),
+                        request.getDescription(),
+                        request.getCategoryPrimary(),
+                        request.getCategoryDetailed(),
+                        null, // importerCategoryPrimary
+                        null, // importerCategoryDetailed
+                        request.getTransactionId(),
+                        request.getNotes(),
+                        request.getPlaidAccountId(),
+                        request.getPlaidTransactionId(),
+                        request.getTransactionType(),
+                        request.getCurrencyCode(),
+                        request.getImportSource(),
+                        request.getImportBatchId(),
+                        request.getImportFileName(),
+                        request.getReviewStatus(), // Pass review status
+                        request.getMerchantName(), // Pass merchantName (where purchase was made)
+                        request.getPaymentChannel(), // Pass paymentChannel
+                        request.getUserName() // Pass userName (card/account user - family member)
+                );
+                response.setCreated(response.getCreated() + 1);
+                if (transaction.getTransactionId() != null) {
+                    response.getCreatedTransactionIds().add(transaction.getTransactionId());
+                }
+            } catch (Exception e) {
+                response.setFailed(response.getFailed() + 1);
+                // CRITICAL: Handle case where request might be null (defensive programming)
+                String transactionDesc = (request != null && request.getDescription() != null) ? request.getDescription() : "unknown";
+                String errorMsg = String.format("Transaction %s: %s", 
+                        transactionDesc,
+                        e.getMessage() != null ? e.getMessage() : "Unknown error");
+                response.getErrors().add(errorMsg);
+                logger.error("Failed to create transaction in batch: {}", errorMsg, e);
+            }
+        }
+
+        logger.info("Batch import completed: {} total, {} created, {} failed", 
+                response.getTotal(), response.getCreated(), response.getFailed());
+        return response;
     }
 
     /**
@@ -319,8 +413,7 @@ public class TransactionService {
                     transaction.getAmount()
             );
             transaction.setTransactionType(calculatedType.name());
-            logger.debug("Calculated and set transactionType {} for transaction {} (was null/empty)", 
-                    calculatedType, transaction.getTransactionId());
+            // Calculated and set transactionType
         }
     }
 
@@ -362,8 +455,7 @@ public class TransactionService {
             com.budgetbuddy.model.TransactionType userType = userTypeOpt.get();
             transaction.setTransactionType(userType.name());
             transaction.setTransactionTypeOverridden(true);
-            logger.debug("Using user-provided transaction type: {} for transaction {}", 
-                    userType, transaction.getTransactionId());
+            // Using user-provided transaction type
             return true;
         } else {
             // No user-provided type or invalid - calculate automatically
@@ -378,9 +470,67 @@ public class TransactionService {
             if (transaction.getTransactionTypeOverridden() == null) {
                 transaction.setTransactionTypeOverridden(false);
             }
-            logger.debug("Calculated transaction type: {} for transaction {}", 
-                    calculatedType, transaction.getTransactionId());
+            // Calculated transaction type
             return false;
+        }
+    }
+    
+    /**
+     * Set transaction type using unified service (hybrid logic) or fallback to old determiner
+     */
+    private void setTransactionTypeFromUnifiedServiceOrCalculate(
+            final TransactionTable transaction,
+            final AccountTable account,
+            final String categoryPrimary,
+            final String categoryDetailed,
+            final BigDecimal amount) {
+        
+        try {
+            // Try unified service first (hybrid logic)
+            TransactionTypeCategoryService.TypeResult typeResult = 
+                transactionTypeCategoryService.determineTransactionType(
+                    account,
+                    categoryPrimary,
+                    categoryDetailed,
+                    amount,
+                    null, // transactionTypeIndicator not available
+                    transaction.getDescription(),
+                    transaction.getPaymentChannel()
+                );
+            
+            if (typeResult != null) {
+                transaction.setTransactionType(typeResult.getTransactionType().name());
+                if (transaction.getTransactionTypeOverridden() == null) {
+                    transaction.setTransactionTypeOverridden(false);
+                }
+                // Calculated transaction type using unified service
+            } else {
+                // Fallback to old determiner
+                com.budgetbuddy.model.TransactionType calculatedType = transactionTypeDeterminer.determineTransactionType(
+                    account,
+                    categoryPrimary,
+                    categoryDetailed != null && !categoryDetailed.isEmpty() ? categoryDetailed : categoryPrimary,
+                    amount
+                );
+                transaction.setTransactionType(calculatedType.name());
+                if (transaction.getTransactionTypeOverridden() == null) {
+                    transaction.setTransactionTypeOverridden(false);
+                }
+                // Calculated transaction type using fallback determiner
+            }
+        } catch (Exception e) {
+            logger.warn("Failed to calculate transaction type using unified service, using fallback: {}", e.getMessage());
+            // Fallback to old determiner
+            com.budgetbuddy.model.TransactionType calculatedType = transactionTypeDeterminer.determineTransactionType(
+                account,
+                categoryPrimary,
+                categoryDetailed != null && !categoryDetailed.isEmpty() ? categoryDetailed : categoryPrimary,
+                amount
+            );
+            transaction.setTransactionType(calculatedType.name());
+            if (transaction.getTransactionTypeOverridden() == null) {
+                transaction.setTransactionTypeOverridden(false);
+            }
         }
     }
 
@@ -388,14 +538,16 @@ public class TransactionService {
      * Create manual transaction (backward compatibility - generates new UUID)
      */
     public TransactionTable createTransaction(final UserTable user, final String accountId, final BigDecimal amount, final LocalDate transactionDate, final String description, final String categoryPrimary) {
-        return createTransaction(user, accountId, amount, transactionDate, description, categoryPrimary, null, null, null, null, null, null);
+        // Call main method with 16 nulls after the 6 initial params (categoryDetailed, importerCategoryPrimary, importerCategoryDetailed, transactionId, notes, plaidAccountId, plaidTransactionId, transactionType, currencyCode, importSource, importBatchId, importFileName, reviewStatus, merchantName, paymentChannel, userName)
+        return createTransaction(user, accountId, amount, transactionDate, description, categoryPrimary, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null);
     }
 
     /**
      * Create manual transaction (backward compatibility - with categoryDetailed)
      */
     public TransactionTable createTransaction(final UserTable user, final String accountId, final BigDecimal amount, final LocalDate transactionDate, final String description, final String categoryPrimary, final String categoryDetailed) {
-        return createTransaction(user, accountId, amount, transactionDate, description, categoryPrimary, categoryDetailed, null, null, null, null, null);
+        // Call main method with 15 nulls after the 7 initial params (importerCategoryPrimary, importerCategoryDetailed, transactionId, notes, plaidAccountId, plaidTransactionId, transactionType, currencyCode, importSource, importBatchId, importFileName, reviewStatus, merchantName, paymentChannel, userName)
+        return createTransaction(user, accountId, amount, transactionDate, description, categoryPrimary, categoryDetailed, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null);
     }
 
     /**
@@ -405,14 +557,16 @@ public class TransactionService {
      * @param notes Optional user notes for the transaction
      */
     public TransactionTable createTransaction(final UserTable user, final String accountId, final BigDecimal amount, final LocalDate transactionDate, final String description, final String categoryPrimary, final String categoryDetailed, final String transactionId, final String notes) {
-        return createTransaction(user, accountId, amount, transactionDate, description, categoryPrimary, categoryDetailed, transactionId, notes, null, null, null);
+        // Call main method: 7 initial params, then importerCategoryPrimary (null), importerCategoryDetailed (null), transactionId, notes, then remaining 11 fields (plaidAccountId, plaidTransactionId, transactionType, currencyCode, importSource, importBatchId, importFileName, reviewStatus, merchantName, paymentChannel, userName)
+        return createTransaction(user, accountId, amount, transactionDate, description, categoryPrimary, categoryDetailed, null, null, transactionId, notes, null, null, null, null, null, null, null, null, null, null, null);
     }
     
     /**
      * Create transaction with optional Plaid account ID and Plaid transaction ID for fallback lookup
      */
     public TransactionTable createTransaction(final UserTable user, final String accountId, final BigDecimal amount, final LocalDate transactionDate, final String description, final String categoryPrimary, final String categoryDetailed, final String transactionId, final String notes, final String plaidAccountId) {
-        return createTransaction(user, accountId, amount, transactionDate, description, categoryPrimary, categoryDetailed, transactionId, notes, plaidAccountId, null, null);
+        // Call main method: 7 initial params, then importerCategoryPrimary (null), importerCategoryDetailed (null), transactionId, notes, plaidAccountId, then remaining 10 fields (plaidTransactionId, transactionType, currencyCode, importSource, importBatchId, importFileName, reviewStatus, merchantName, paymentChannel, userName)
+        return createTransaction(user, accountId, amount, transactionDate, description, categoryPrimary, categoryDetailed, null, null, transactionId, notes, plaidAccountId, null, null, null, null, null, null, null, null, null, null);
     }
     
     /**
@@ -421,8 +575,25 @@ public class TransactionService {
      * @param categoryDetailed Detailed category (optional, defaults to categoryPrimary if not provided)
      * @param plaidTransactionId Optional Plaid transaction ID for fallback lookup and ID consistency
      * @param transactionType Optional user-selected transaction type. If not provided, backend will calculate it.
+     * @param currencyCode Optional currency code (USD, INR, etc.). Defaults to user preference or USD.
+     * @param importSource Optional import source ("CSV", "PLAID", "MANUAL", "API")
+     * @param importBatchId Optional UUID for grouping imports
+     * @param importFileName Optional original file name for imports
      */
-    public TransactionTable createTransaction(final UserTable user, final String accountId, final BigDecimal amount, final LocalDate transactionDate, final String description, final String categoryPrimary, final String categoryDetailed, final String transactionId, final String notes, final String plaidAccountId, final String plaidTransactionId, final String transactionType) {
+    public TransactionTable createTransaction(final UserTable user, final String accountId, final BigDecimal amount, final LocalDate transactionDate, final String description, final String categoryPrimary, final String categoryDetailed, final String transactionId, final String notes, final String plaidAccountId, final String plaidTransactionId, final String transactionType, final String currencyCode, final String importSource, final String importBatchId, final String importFileName) {
+        // Overload with importerCategory fields (defaults to null for backward compatibility)
+        return createTransaction(user, accountId, amount, transactionDate, description, categoryPrimary, categoryDetailed, 
+            null, null, transactionId, notes, plaidAccountId, plaidTransactionId, transactionType, currencyCode, 
+            importSource, importBatchId, importFileName, null, null, null, null);
+    }
+    
+    /**
+     * Create transaction with importer category fields support
+     * @param merchantName Optional merchant name (where purchase was made, e.g., "Amazon", "Starbucks")
+     * @param paymentChannel Optional payment channel (online, in_store, ach, etc.)
+     * @param userName Optional card/account user name (family member who made the transaction)
+     */
+    public TransactionTable createTransaction(final UserTable user, final String accountId, final BigDecimal amount, final LocalDate transactionDate, final String description, final String categoryPrimary, final String categoryDetailed, final String importerCategoryPrimary, final String importerCategoryDetailed, final String transactionId, final String notes, final String plaidAccountId, final String plaidTransactionId, final String transactionType, final String currencyCode, final String importSource, final String importBatchId, final String importFileName, final String reviewStatus, final String merchantName, final String paymentChannel, final String userName) {
         if (user == null || user.getUserId() == null || user.getUserId().isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "User is required");
         }
@@ -451,7 +622,7 @@ public class TransactionService {
             
             // If not found by accountId, try lookup by Plaid account ID (required for Plaid transactions)
             if (accountOpt == null || accountOpt.isEmpty()) {
-                logger.debug("Account {} not found by ID, trying Plaid account ID: {}", accountId, plaidAccountId);
+                // Account not found by ID, trying Plaid account ID
                 accountOpt = accountRepository.findByPlaidAccountId(plaidAccountId);
                 if (accountOpt.isPresent()) {
                     AccountTable foundAccount = accountOpt.get();
@@ -468,7 +639,7 @@ public class TransactionService {
                 // FALLBACK: If PlaidAccountIdIndex lookup failed, search user's accounts
                 // This handles cases where the GSI isn't immediately consistent or isn't available
                 if (accountOpt.isEmpty()) {
-                    logger.debug("Account not found by Plaid ID index, trying fallback: searching user's accounts");
+                    // Account not found by Plaid ID index, trying fallback
                     List<AccountTable> userAccounts = accountRepository.findByUserId(user.getUserId());
                     accountOpt = userAccounts.stream()
                             .filter(acc -> plaidAccountId != null && plaidAccountId.equals(acc.getPlaidAccountId()))
@@ -571,8 +742,7 @@ public class TransactionService {
                                 if (userTypeOpt.isPresent()) {
                                     existing.setTransactionType(userTypeOpt.get().name());
                                     existing.setTransactionTypeOverridden(true);
-                                    logger.debug("Updated transactionType to {} for existing transaction {} (user override)", 
-                                            userTypeOpt.get(), normalizedId);
+                                    // Updated transactionType (user override)
                                 }
                                 transactionRepository.save(existing);
                                 return existing;
@@ -608,7 +778,7 @@ public class TransactionService {
             }
         }
         
-        // If transactionId is not set yet, try to generate deterministic UUID from Plaid ID
+        // If transactionId is not set yet, try to generate deterministic UUID
         if (transaction.getTransactionId() == null || transaction.getTransactionId().isEmpty()) {
             if (plaidTransactionId != null && !plaidTransactionId.isEmpty()) {
                 // Generate deterministic UUID from Plaid transaction ID (matches iOS app fallback)
@@ -620,12 +790,51 @@ public class TransactionService {
                 transaction.setTransactionId(normalizedId);
                 logger.info("Generated deterministic transaction ID (normalized): {} from Plaid ID: {} (matches iOS app fallback)", 
                         normalizedId, plaidTransactionId);
+            } else if (importSource != null && !importSource.trim().isEmpty() && 
+                      importFileName != null && !importFileName.trim().isEmpty() &&
+                      account != null) {
+                // CRITICAL FIX: Generate deterministic UUID for imported transactions to prevent duplicates
+                // This ensures reimporting the same file creates the same transaction IDs
+                // Use: importSource + normalized filename + accountId + amount + date + description
+                String normalizedFileName = importFileName.trim().toLowerCase().replaceAll("[^a-z0-9._-]", "");
+                // CRITICAL FIX: Use the transactionDate parameter (LocalDate) and format it consistently
+                // Don't use transaction.getTransactionDate() as it hasn't been set yet
+                String transactionDateStr = transactionDate != null ? transactionDate.format(DATE_FORMATTER) : "";
+                String descriptionStr = description != null ? description : "";
+                String transactionKey = String.format("%s|%s|%s|%s|%s|%s",
+                        importSource.trim().toUpperCase(),
+                        normalizedFileName,
+                        account.getAccountId(),
+                        amount.toString(),
+                        transactionDateStr,
+                        descriptionStr.trim().toLowerCase());
+                
+                java.util.UUID importNamespaceUUID = java.util.UUID.fromString("7ba7b811-9dad-11d1-80b4-00c04fd430c8"); // IMPORT_NAMESPACE
+                String generatedId = com.budgetbuddy.util.IdGenerator.generateDeterministicUUID(importNamespaceUUID, transactionKey);
+                String normalizedId = com.budgetbuddy.util.IdGenerator.normalizeUUID(generatedId);
+                
+                // CRITICAL: Check if transaction with this deterministic ID already exists
+                Optional<TransactionTable> existingByIdOpt = transactionRepository.findById(normalizedId);
+                if (existingByIdOpt.isPresent()) {
+                    TransactionTable existing = existingByIdOpt.get();
+                    // Verify it belongs to the same user
+                    if (existing.getUserId().equals(user.getUserId())) {
+                        logger.info("Duplicate imported transaction detected by deterministic ID (source: {}, file: {}). " +
+                                "Returning existing transaction {} instead of creating new one.", 
+                                importSource, importFileName, normalizedId);
+                        return existing;
+                    }
+                }
+                
+                transaction.setTransactionId(normalizedId);
+                logger.info("Generated deterministic transaction ID for import (source: {}, file: {}): {}", 
+                        importSource, importFileName, normalizedId);
             } else {
-                // No Plaid ID available, generate random UUID
+                // No Plaid ID or import metadata available, generate random UUID
                 // CRITICAL FIX: Normalize generated UUID to lowercase for consistency
                 String generatedId = UUID.randomUUID().toString().toLowerCase();
                 transaction.setTransactionId(generatedId);
-                logger.debug("No Plaid transaction ID available, generated random UUID (normalized): {}", generatedId);
+                // Generated random UUID for transaction ID
             }
         }
         
@@ -633,17 +842,170 @@ public class TransactionService {
         // CRITICAL FIX: Use the account's ID (which may be the pseudo account ID if accountId was null/empty)
         transaction.setAccountId(account.getAccountId());
         transaction.setAmount(amount);
-        transaction.setTransactionDate(transactionDate.format(DATE_FORMATTER));
+        String formattedTransactionDate = transactionDate.format(DATE_FORMATTER);
+        transaction.setTransactionDate(formattedTransactionDate);
         transaction.setDescription(description != null ? description : "");
-        transaction.setCategoryPrimary(categoryPrimary);
-        transaction.setCategoryDetailed(categoryDetailed != null && !categoryDetailed.isEmpty() ? categoryDetailed : categoryPrimary);
-        transaction.setCategoryOverridden(false); // User-created transactions are not overrides
-        transaction.setCurrencyCode(user.getPreferredCurrency() != null && !user.getPreferredCurrency().isEmpty()
-                ? user.getPreferredCurrency() : "USD");
         
-        // CRITICAL: Use user-provided transactionType if available, otherwise calculate it
+        // Set merchant name (where purchase was made, e.g., "Amazon", "Starbucks")
+        if (merchantName != null && !merchantName.trim().isEmpty()) {
+            transaction.setMerchantName(merchantName.trim());
+        }
+        
+        // Set payment channel
+        if (paymentChannel != null && !paymentChannel.trim().isEmpty()) {
+            transaction.setPaymentChannel(paymentChannel.trim());
+        }
+        
+        // Set user name (card/account user - family member who made the transaction)
+        if (userName != null && !userName.trim().isEmpty()) {
+            transaction.setUserName(userName.trim());
+        }
+        
+        // CRITICAL: Set importer category fields (from import parser or Plaid)
+        if (importerCategoryPrimary != null && !importerCategoryPrimary.isEmpty()) {
+            transaction.setImporterCategoryPrimary(importerCategoryPrimary);
+        }
+        if (importerCategoryDetailed != null && !importerCategoryDetailed.isEmpty()) {
+            transaction.setImporterCategoryDetailed(importerCategoryDetailed);
+        }
+        
+        // CRITICAL: For imports, re-apply unified service with account information for better accuracy
+        // Account is now available, so we can get more accurate categories and types
+        // EXCEPTION: If categoryPrimary differs from importerCategoryPrimary, it means the user edited it
+        // in the preview, so we should respect the edited category and NOT re-run determineCategory()
+        boolean isUserEditedCategory = (categoryPrimary != null && !categoryPrimary.isEmpty() && 
+                                        importerCategoryPrimary != null && !importerCategoryPrimary.isEmpty() &&
+                                        !categoryPrimary.equalsIgnoreCase(importerCategoryPrimary));
+        
+        if (importSource != null && !importSource.trim().isEmpty() && 
+            account != null && account.getAccountId() != null && !account.getAccountId().startsWith("pseudo-") &&
+            !isUserEditedCategory) {
+            // This is an import with a real account - re-apply unified service for better accuracy
+            // But skip if user edited the category in preview (categoryPrimary != importerCategoryPrimary)
+            try {
+                TransactionTypeCategoryService.CategoryResult categoryResult = 
+                    transactionTypeCategoryService.determineCategory(
+                        importerCategoryPrimary != null ? importerCategoryPrimary : categoryPrimary,
+                        importerCategoryDetailed != null ? importerCategoryDetailed : categoryDetailed,
+                        account,
+                        merchantName, // Use merchantName from parameter (merchant where purchase was made)
+                        description,
+                        amount,
+                        paymentChannel, // Use paymentChannel from parameter
+                        null, // transactionTypeIndicator not available
+                        importSource
+                    );
+                
+                if (categoryResult != null) {
+                    String determinedPrimary = categoryResult.getCategoryPrimary();
+                    String determinedDetailed = categoryResult.getCategoryDetailed();
+                    
+                    // CRITICAL: Check if determined category differs from importer's parsed category
+                    // If it does, this is an internal override (parser/rules/ML overrode importer)
+                    // Set categoryOverridden=true to prevent re-import from overriding it
+                    boolean isInternalOverride = false;
+                    
+                    // Check if source indicates override (not "IMPORTER")
+                    String source = categoryResult.getSource();
+                    if (source != null && !"IMPORTER".equals(source) && !"IMPORT".equals(source)) {
+                        // Source indicates internal logic overrode importer category
+                        // This means parser/rules/ML determined a different category than the importer
+                        isInternalOverride = true;
+                        // Internal override detected for import
+                    } else if (importerCategoryPrimary != null && !importerCategoryPrimary.isEmpty()) {
+                        // Compare determined category with importer category
+                        // If they differ, it's an override
+                        if (!importerCategoryPrimary.equalsIgnoreCase(determinedPrimary)) {
+                            isInternalOverride = true;
+                            // Internal override detected
+                        }
+                    }
+                    
+                    transaction.setCategoryPrimary(determinedPrimary);
+                    transaction.setCategoryDetailed(determinedDetailed);
+                    
+                    // CRITICAL: Set override flag if internal logic overrode importer category
+                    // This prevents re-import from overriding the internally determined category
+                    transaction.setCategoryOverridden(isInternalOverride);
+                    
+                    if (isInternalOverride) {
+                        logger.info("✅ Internal category override applied for import: Importer='{}' → Determined='{}' (source: {}, confidence: {:.2f}). " +
+                            "This override will be preserved during re-import.",
+                            importerCategoryPrimary != null ? importerCategoryPrimary : categoryPrimary,
+                            determinedPrimary, source, categoryResult.getConfidence());
+                    } else {
+                        // Re-applied unified service for import with account
+                        // Re-applied unified service for import with account
+                    }
+                } else {
+                    // Fallback to provided categories
+                    transaction.setCategoryPrimary(categoryPrimary);
+                    transaction.setCategoryDetailed(categoryDetailed != null && !categoryDetailed.isEmpty() ? categoryDetailed : categoryPrimary);
+                    transaction.setCategoryOverridden(false);
+                }
+            } catch (Exception e) {
+                logger.warn("Failed to re-apply unified service for import, using provided categories: {}", e.getMessage());
+                // Fallback to provided categories
+                transaction.setCategoryPrimary(categoryPrimary);
+                transaction.setCategoryDetailed(categoryDetailed != null && !categoryDetailed.isEmpty() ? categoryDetailed : categoryPrimary);
+                transaction.setCategoryOverridden(false);
+            }
+        } else if (isUserEditedCategory) {
+            // User edited category in preview - respect the edited category
+            transaction.setCategoryPrimary(categoryPrimary);
+            transaction.setCategoryDetailed(categoryDetailed != null && !categoryDetailed.isEmpty() ? categoryDetailed : categoryPrimary);
+            transaction.setCategoryOverridden(true); // Mark as overridden since user edited it
+            logger.info("✅ Preserving user-edited category from preview: categoryPrimary='{}' (importerCategoryPrimary='{}')",
+                    categoryPrimary, importerCategoryPrimary);
+        } else {
+            // Not an import, or no account, or pseudo account - use provided categories
+            transaction.setCategoryPrimary(categoryPrimary);
+            transaction.setCategoryDetailed(categoryDetailed != null && !categoryDetailed.isEmpty() ? categoryDetailed : categoryPrimary);
+            transaction.setCategoryOverridden(false);
+        }
+        
+        // Set currency code: use provided currencyCode if available, otherwise user preference, otherwise USD
+        if (currencyCode != null && !currencyCode.trim().isEmpty()) {
+            transaction.setCurrencyCode(currencyCode.trim().toUpperCase());
+        } else if (user.getPreferredCurrency() != null && !user.getPreferredCurrency().isEmpty()) {
+            transaction.setCurrencyCode(user.getPreferredCurrency());
+        } else {
+            transaction.setCurrencyCode("USD"); // Default fallback
+        }
+        
+        // Set import metadata if provided
+        if (importSource != null && !importSource.trim().isEmpty()) {
+            transaction.setImportSource(importSource.trim().toUpperCase());
+        }
+        if (importBatchId != null && !importBatchId.trim().isEmpty()) {
+            transaction.setImportBatchId(importBatchId.trim());
+        }
+        if (importFileName != null && !importFileName.trim().isEmpty()) {
+            transaction.setImportFileName(importFileName.trim());
+        }
+        if (importSource != null && !importSource.trim().isEmpty()) {
+            // Set importedAt timestamp when import metadata is provided
+            transaction.setImportedAt(Instant.now());
+        }
+        
+        // CRITICAL: Use user-provided transactionType if available, otherwise calculate using unified service
         // This allows users to override the automatic determination
-        setTransactionTypeFromUserOrCalculate(transaction, transactionType, account, categoryPrimary, categoryDetailed, amount);
+        if (transactionType != null && !transactionType.trim().isEmpty()) {
+            // User provided transaction type - use it and mark as overridden
+            try {
+                com.budgetbuddy.model.TransactionType userType = com.budgetbuddy.model.TransactionType.valueOf(transactionType.trim().toUpperCase());
+                transaction.setTransactionType(userType.name());
+                transaction.setTransactionTypeOverridden(true);
+                // Using user-provided transaction type
+            } catch (IllegalArgumentException e) {
+                logger.warn("Invalid transaction type '{}' provided, will calculate automatically", transactionType);
+                // Fall through to calculate
+                setTransactionTypeFromUnifiedServiceOrCalculate(transaction, account, transaction.getCategoryPrimary(), transaction.getCategoryDetailed(), amount);
+            }
+        } else {
+            // No user-provided type - calculate using unified service
+            setTransactionTypeFromUnifiedServiceOrCalculate(transaction, account, transaction.getCategoryPrimary(), transaction.getCategoryDetailed(), amount);
+        }
         
         // Set Plaid transaction ID if provided (for fallback lookup and deduplication)
         if (plaidTransactionId != null && !plaidTransactionId.trim().isEmpty()) {
@@ -654,6 +1016,65 @@ public class TransactionService {
         if (notes != null) {
             transaction.setNotes(notes.trim().isEmpty() ? null : notes.trim());
         }
+        
+        // Set review status if provided
+        if (reviewStatus != null && !reviewStatus.trim().isEmpty()) {
+            transaction.setReviewStatus(reviewStatus.trim());
+        }
+
+        // CRITICAL: Check for duplicate transactions before saving
+        // Enhanced duplicate detection for imported transactions (CSV/Excel/PDF)
+        String transactionDateStr = transaction.getTransactionDate();
+        if (transactionDateStr != null && !transactionDateStr.isEmpty()) {
+            // Query transactions for this user on the same date
+            List<TransactionTable> sameDateTransactions = transactionRepository.findByUserIdAndDateRange(
+                    user.getUserId(), 
+                    transactionDateStr, 
+                    transactionDateStr);
+            
+            // For imported transactions, check for duplicates using import metadata
+            if (importSource != null && !importSource.trim().isEmpty() && 
+                importFileName != null && !importFileName.trim().isEmpty()) {
+                // This is an imported transaction - check for duplicates by import source + filename + transaction details
+                for (TransactionTable existing : sameDateTransactions) {
+                    boolean accountMatch = account != null && account.getAccountId().equals(existing.getAccountId());
+                    boolean amountMatch = amount.compareTo(existing.getAmount()) == 0;
+                    boolean dateMatch = transactionDateStr.equals(existing.getTransactionDate());
+                    boolean importSourceMatch = importSource.trim().equalsIgnoreCase(
+                            existing.getImportSource() != null ? existing.getImportSource() : "");
+                    boolean fileNameMatch = importFileName.trim().equalsIgnoreCase(
+                            existing.getImportFileName() != null ? existing.getImportFileName() : "");
+                    // Also check description for better matching (handles cases where same amount/date but different transactions)
+                    boolean descriptionMatch = (description != null ? description.trim() : "")
+                            .equalsIgnoreCase(existing.getDescription() != null ? existing.getDescription() : "");
+                    
+                    if (accountMatch && amountMatch && dateMatch && importSourceMatch && 
+                        fileNameMatch && descriptionMatch) {
+                        // Duplicate imported transaction found - return existing for idempotency
+                        logger.info("Duplicate imported transaction detected (source: {}, file: {}, account: {}, amount: {}, date: {}). " +
+                                "Returning existing transaction {} instead of creating new one.", 
+                                importSource, importFileName, account != null ? account.getAccountId() : "null", amount, transactionDateStr, existing.getTransactionId());
+                        return existing;
+                    }
+                }
+            } else if ((plaidTransactionId == null || plaidTransactionId.trim().isEmpty()) && 
+                      (transactionId == null || transactionId.trim().isEmpty())) {
+                // This is a manual transaction without explicit ID - check for duplicates by account, amount, and date
+                for (TransactionTable existing : sameDateTransactions) {
+                    boolean accountMatch = account != null && account.getAccountId().equals(existing.getAccountId());
+                    boolean amountMatch = amount.compareTo(existing.getAmount()) == 0;
+                    boolean dateMatch = transactionDateStr.equals(existing.getTransactionDate());
+                    
+                    if (accountMatch && amountMatch && dateMatch) {
+                        // Duplicate found - return existing transaction for idempotency
+                        logger.info("Duplicate transaction detected (account: {}, amount: {}, date: {}). " +
+                                "Returning existing transaction {} instead of creating new one.", 
+                                account != null ? account.getAccountId() : "null", amount, transactionDateStr, existing.getTransactionId());
+                        return existing;
+                    }
+                }
+            }
+        }
 
         // CRITICAL: Set timestamps for data freshness and incremental sync
         Instant now = Instant.now();
@@ -661,6 +1082,14 @@ public class TransactionService {
         transaction.setUpdatedAt(now);
 
         transactionRepository.save(transaction);
+        
+        // P1: Invalidate cache when transaction is created (category/type may change)
+        invalidateCategoryCache(transaction);
+        
+        // P2: Audit logging
+        String source = importSource != null ? importSource : (plaidTransactionId != null ? "PLAID" : "MANUAL");
+        auditService.logTransactionCreation(transaction, source);
+        
         logger.info("Created transaction {} for user {} with notes: {} (Plaid ID: {})", 
                 transaction.getTransactionId(), user.getEmail(), 
                 notes != null && !notes.trim().isEmpty() ? "yes" : "no",
@@ -686,12 +1115,12 @@ public class TransactionService {
      * @param amount Optional: transaction amount (for type changes)
      * @param categoryPrimary Optional: override primary category
      * @param categoryDetailed Optional: override detailed category
-     * @param isAudited Optional: audit checkmark state
+     * @param reviewStatus Optional: review status ("none", "flagged", "reviewed", "error")
      * @param isHidden Optional: whether transaction is hidden from view
      * @param transactionType Optional: user-selected transaction type. If not provided, backend will calculate it.
      * @param clearNotesIfNull If true, null notes means clear notes. If false, null notes means preserve existing.
      */
-    public TransactionTable updateTransaction(final UserTable user, final String transactionId, final String plaidTransactionId, final BigDecimal amount, final String notes, final String categoryPrimary, final String categoryDetailed, final Boolean isAudited, final Boolean isHidden, final String transactionType, final boolean clearNotesIfNull) {
+    public TransactionTable updateTransaction(final UserTable user, final String transactionId, final String plaidTransactionId, final BigDecimal amount, final String notes, final String categoryPrimary, final String categoryDetailed, final String reviewStatus, final Boolean isHidden, final String transactionType, final boolean clearNotesIfNull) {
         if (user == null || user.getUserId() == null || user.getUserId().isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "User is required");
         }
@@ -704,7 +1133,7 @@ public class TransactionService {
         
         // If not found and plaidTransactionId is provided, try lookup by Plaid ID
         if (transactionOpt.isEmpty() && plaidTransactionId != null && !plaidTransactionId.isEmpty()) {
-            logger.debug("Transaction {} not found by ID, trying Plaid ID: {}", transactionId, plaidTransactionId);
+            // Transaction not found by ID, trying Plaid ID
             transactionOpt = transactionRepository.findByPlaidTransactionId(plaidTransactionId);
             if (transactionOpt.isPresent()) {
                 logger.info("Found transaction by Plaid ID {} (requested ID: {})", plaidTransactionId, transactionId);
@@ -745,12 +1174,12 @@ public class TransactionService {
         } else {
             // Notes is null and clearNotesIfNull is false - preserve existing notes
             // This prevents clearing notes when only other fields (like plaidTransactionId) are being updated
-            logger.debug("Notes field not provided (null) - preserving existing notes: {}", 
-                    transaction.getNotes() != null ? transaction.getNotes() : "none");
+            // Notes field not provided - preserving existing notes
         }
         
         // Update category override if provided
         boolean categoryChanged = false;
+        String oldCategoryPrimary = transaction.getCategoryPrimary();
         if (categoryPrimary != null && !categoryPrimary.trim().isEmpty()) {
             String trimmedPrimary = categoryPrimary.trim();
             String trimmedDetailed = categoryDetailed != null && !categoryDetailed.trim().isEmpty() 
@@ -760,6 +1189,15 @@ public class TransactionService {
             transaction.setCategoryPrimary(trimmedPrimary);
             transaction.setCategoryDetailed(trimmedDetailed);
             categoryChanged = true;
+            
+            // P2: Audit logging for category changes
+            if (!trimmedPrimary.equals(oldCategoryPrimary)) {
+                auditService.logCategoryChange(
+                    transaction.getTransactionId(), user.getUserId(),
+                    oldCategoryPrimary, trimmedPrimary,
+                    "USER_OVERRIDE", "User manually changed category"
+                );
+            }
             
             // CRITICAL: Always set categoryOverridden=true when category is changed
             // Additionally, ensure it's set for income, investment, and loan categories
@@ -791,32 +1229,81 @@ public class TransactionService {
             com.budgetbuddy.model.TransactionType userType = userTypeOpt.get();
             transaction.setTransactionType(userType.name());
             transaction.setTransactionTypeOverridden(true);
-            logger.debug("Using user-provided transaction type: {} for transaction {}", userType, transaction.getTransactionId());
+            // Using user-provided transaction type
         } else if (!Boolean.TRUE.equals(transaction.getTransactionTypeOverridden()) && (categoryChanged || amount != null)) {
             // User didn't provide type, transaction not overridden, and category/amount changed - recalculate
             // Fetch account to determine transaction type
             AccountTable account = accountRepository.findById(transaction.getAccountId())
                     .orElse(null);
             
-            com.budgetbuddy.model.TransactionType calculatedType = transactionTypeDeterminer.determineTransactionType(
-                    account,
-                    transaction.getCategoryPrimary(),
-                    transaction.getCategoryDetailed(),
-                    transaction.getAmount() // Use updated amount if amount was changed
-            );
-            transaction.setTransactionType(calculatedType.name());
-            // Preserve override state - if it was false, keep it false; if null, set to false
-            if (transaction.getTransactionTypeOverridden() == null) {
-                transaction.setTransactionTypeOverridden(false);
+            // Use unified service if account is available, otherwise fallback
+            if (account != null) {
+                try {
+                    TransactionTypeCategoryService.TypeResult typeResult = 
+                        transactionTypeCategoryService.determineTransactionType(
+                            account,
+                            transaction.getCategoryPrimary(),
+                            transaction.getCategoryDetailed(),
+                            transaction.getAmount(),
+                            null,
+                            transaction.getDescription(),
+                            transaction.getPaymentChannel()
+                        );
+                    
+                    if (typeResult != null) {
+                        transaction.setTransactionType(typeResult.getTransactionType().name());
+                        if (transaction.getTransactionTypeOverridden() == null) {
+                            transaction.setTransactionTypeOverridden(false);
+                        }
+                        // Recalculated transaction type using unified service
+                    } else {
+                        // Fallback
+                        com.budgetbuddy.model.TransactionType calculatedType = transactionTypeDeterminer.determineTransactionType(
+                                account,
+                                transaction.getCategoryPrimary(),
+                                transaction.getCategoryDetailed(),
+                                transaction.getAmount()
+                        );
+                        transaction.setTransactionType(calculatedType.name());
+                        if (transaction.getTransactionTypeOverridden() == null) {
+                            transaction.setTransactionTypeOverridden(false);
+                        }
+                        // Recalculated transaction type
+                    }
+                } catch (Exception e) {
+                    logger.warn("Failed to recalculate transaction type using unified service, using fallback: {}", e.getMessage());
+                    // Fallback
+                    com.budgetbuddy.model.TransactionType calculatedType = transactionTypeDeterminer.determineTransactionType(
+                            account,
+                            transaction.getCategoryPrimary(),
+                            transaction.getCategoryDetailed(),
+                            transaction.getAmount()
+                    );
+                    transaction.setTransactionType(calculatedType.name());
+                    if (transaction.getTransactionTypeOverridden() == null) {
+                        transaction.setTransactionTypeOverridden(false);
+                    }
+                }
+            } else {
+                // No account - use fallback
+                com.budgetbuddy.model.TransactionType calculatedType = transactionTypeDeterminer.determineTransactionType(
+                        null,
+                        transaction.getCategoryPrimary(),
+                        transaction.getCategoryDetailed(),
+                        transaction.getAmount()
+                );
+                transaction.setTransactionType(calculatedType.name());
+                if (transaction.getTransactionTypeOverridden() == null) {
+                    transaction.setTransactionTypeOverridden(false);
+                }
+                // Recalculated transaction type (no account)
             }
-            logger.debug("Recalculated transaction type to {} for transaction {} (categoryChanged: {}, amountChanged: {})", 
-                    calculatedType, transaction.getTransactionId(), categoryChanged, amount != null);
         }
         
-        // Update audit state if provided
-        if (isAudited != null) {
-            transaction.setIsAudited(isAudited);
-            logger.info("Audit state updated: isAudited={}", isAudited);
+        // Update review status if provided
+        if (reviewStatus != null && !reviewStatus.trim().isEmpty()) {
+            transaction.setReviewStatus(reviewStatus.trim());
+            logger.info("Review status updated: reviewStatus={}", reviewStatus.trim());
         }
         
         // Update hidden state if provided
@@ -826,6 +1313,28 @@ public class TransactionService {
         }
         
         transaction.setUpdatedAt(java.time.Instant.now());
+
+        // P2: Audit logging for updates
+        StringBuilder changes = new StringBuilder();
+        if (categoryChanged) {
+            changes.append("category:").append(oldCategoryPrimary).append("->").append(transaction.getCategoryPrimary()).append(";");
+        }
+        if (amount != null) {
+            changes.append("amount:").append(amount).append(";");
+        }
+        if (notes != null || clearNotesIfNull) {
+            changes.append("notes:updated;");
+        }
+        if (transactionType != null) {
+            changes.append("type:").append(transactionType).append(";");
+        }
+        auditService.logTransactionUpdate(transaction.getTransactionId(), user.getUserId(), 
+            changes.toString(), "USER_UPDATE");
+
+        // P1: Invalidate cache when transaction is updated (category/type may change)
+        if (categoryChanged || amount != null || transactionType != null) {
+            invalidateCategoryCache(transaction);
+        }
 
         transactionRepository.save(transaction);
         logger.info("Updated transaction {} notes for user {}", transactionId, user.getEmail());
@@ -858,7 +1367,7 @@ public class TransactionService {
 
         // If not found and plaidTransactionId is provided, try lookup by Plaid ID
         if (transactionOpt.isEmpty() && plaidTransactionId != null && !plaidTransactionId.isEmpty()) {
-            logger.debug("Transaction {} not found by ID, trying Plaid ID: {}", transactionId, plaidTransactionId);
+            // Transaction not found by ID, trying Plaid ID
             transactionOpt = transactionRepository.findByPlaidTransactionId(plaidTransactionId);
             if (transactionOpt.isPresent()) {
                 logger.info("Found transaction by Plaid ID {} (requested ID: {})", plaidTransactionId, transactionId);
@@ -973,5 +1482,16 @@ public class TransactionService {
                lower.equals("student_loan") ||
                lower.equals("creditline") || 
                lower.equals("credit_line");
+    }
+    
+    /**
+     * P1: Invalidates category determination cache when transaction is created/updated
+     * This ensures cache freshness when categories or types change
+     */
+    @CacheEvict(value = "categoryDetermination", allEntries = true)
+    private void invalidateCategoryCache(TransactionTable transaction) {
+        // Cache eviction is handled by @CacheEvict annotation
+        // This method exists to trigger cache invalidation
+        // Invalidated category determination cache
     }
 }

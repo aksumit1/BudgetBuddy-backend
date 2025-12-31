@@ -1,0 +1,144 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'BudgetBuddy OCR Infrastructure - Tesseract OCR Support (FREE)'
+
+Parameters:
+  Environment:
+    Type: String
+    Default: production
+    AllowedValues: [development, staging, production]
+    Description: Deployment environment
+
+Resources:
+  # ECR Repository for OCR-enabled Docker images
+  OCRImageRepository:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: !Sub 'budgetbuddy-backend-ocr-${Environment}'
+      ImageScanningConfiguration:
+        ScanOnPush: true
+      ImageTagMutability: MUTABLE
+      LifecyclePolicy:
+        LifecyclePolicyText: |
+          {
+            "rules": [
+              {
+                "rulePriority": 1,
+                "description": "Keep last 10 images",
+                "selection": {
+                  "tagStatus": "any",
+                  "countType": "imageCountMoreThan",
+                  "countNumber": 10
+                },
+                "action": {
+                  "type": "expire"
+                }
+              }
+            ]
+          }
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Service
+          Value: ocr-infrastructure
+        - Key: CostCenter
+          Value: engineering
+
+  # Lambda Layer for Tesseract OCR (alternative deployment option)
+  # Note: Lambda has size limits, so ECS is preferred for OCR
+  TesseractLambdaLayer:
+    Type: AWS::Lambda::LayerVersion
+    Properties:
+      LayerName: !Sub 'tesseract-ocr-${Environment}'
+      Description: 'Tesseract OCR layer for Lambda functions (if needed)'
+      Content:
+        S3Bucket: !Ref OCRAssetsBucket
+        S3Key: 'lambda-layers/tesseract-layer.zip'
+      CompatibleRuntimes:
+        - java21
+        - java17
+      CompatibleArchitectures:
+        - arm64
+        - x86_64
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+
+  # S3 Bucket for OCR assets (language data files, etc.)
+  OCRAssetsBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub 'budgetbuddy-ocr-assets-${Environment}-${AWS::AccountId}'
+      VersioningConfiguration:
+        Status: Enabled
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      LifecycleConfiguration:
+        Rules:
+          - Id: DeleteOldVersions
+            Status: Enabled
+            NoncurrentVersionExpirationInDays: 30
+      Encryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Service
+          Value: ocr-assets
+
+  # IAM Role for OCR service (if using separate Lambda)
+  OCRServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub 'BudgetBuddy-OCR-Service-Role-${Environment}'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - ecs-tasks.amazonaws.com
+                - lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: OCRServicePolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:PutObject
+                Resource: !Sub '${OCRAssetsBucket}/*'
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: !Sub 'arn:aws:logs:*:*:*'
+
+Outputs:
+  OCRImageRepositoryURI:
+    Description: ECR Repository URI for OCR-enabled images
+    Value: !GetAtt OCRImageRepository.RepositoryUri
+    Export:
+      Name: !Sub '${AWS::StackName}-OCR-Repository-URI'
+
+  OCRAssetsBucketName:
+    Description: S3 Bucket for OCR assets
+    Value: !Ref OCRAssetsBucket
+    Export:
+      Name: !Sub '${AWS::StackName}-OCR-Assets-Bucket'
+
+  TesseractLambdaLayerArn:
+    Description: Lambda Layer ARN for Tesseract OCR
+    Value: !Ref TesseractLambdaLayer
+    Export:
+      Name: !Sub '${AWS::StackName}-Tesseract-Layer-ARN'
+

@@ -12,6 +12,14 @@ Parameters:
     Type: String
     Default: BudgetBuddy
     Description: Prefix for DynamoDB table names
+  
+  KMSKeyId:
+    Type: String
+    Default: ''
+    Description: Optional KMS key ID for encryption (if not provided, uses AWS managed key)
+
+Conditions:
+  HasKMSKey: !Not [!Equals [!Ref KMSKeyId, '']]
 
 Resources:
   # Users Table
@@ -39,6 +47,15 @@ Resources:
         StreamViewType: NEW_AND_OLD_IMAGES
       PointInTimeRecoverySpecification:
         PointInTimeRecoveryEnabled: true
+      # Security: Server-side encryption (KMS - uses AWS managed key if KMSKeyId not provided)
+      SSESpecification:
+        SSEEnabled: true
+        SSEType: KMS
+        KMSMasterKeyId: !If
+          - HasKMSKey
+          - !Ref KMSKeyId
+          - !Ref AWS::NoValue
+          # Uses AWS managed key (alias/aws/dynamodb) if KMSKeyId is empty
       Tags:
         - Key: Environment
           Value: !Ref Environment
@@ -80,6 +97,15 @@ Resources:
         StreamViewType: NEW_AND_OLD_IMAGES
       PointInTimeRecoverySpecification:
         PointInTimeRecoveryEnabled: true
+      # Security: Server-side encryption (KMS - uses AWS managed key if KMSKeyId not provided)
+      SSESpecification:
+        SSEEnabled: true
+        SSEType: KMS
+        KMSMasterKeyId: !If
+          - HasKMSKey
+          - !Ref KMSKeyId
+          - !Ref AWS::NoValue
+          # Uses AWS managed key (alias/aws/dynamodb) if KMSKeyId is empty
       Tags:
         - Key: Environment
           Value: !Ref Environment
@@ -135,6 +161,15 @@ Resources:
         StreamViewType: NEW_AND_OLD_IMAGES
       PointInTimeRecoverySpecification:
         PointInTimeRecoveryEnabled: true
+      # Security: Server-side encryption (KMS - uses AWS managed key if KMSKeyId not provided)
+      SSESpecification:
+        SSEEnabled: true
+        SSEType: KMS
+        KMSMasterKeyId: !If
+          - HasKMSKey
+          - !Ref KMSKeyId
+          - !Ref AWS::NoValue
+          # Uses AWS managed key (alias/aws/dynamodb) if KMSKeyId is empty
       Tags:
         - Key: Environment
           Value: !Ref Environment
@@ -144,6 +179,7 @@ Resources:
           Value: CloudFormation
 
   # Budgets Table
+  # Cost Optimization: Streams and PITR disabled (can use polling/eventual consistency)
   BudgetsTable:
     Type: AWS::DynamoDB::Table
     Properties:
@@ -164,10 +200,17 @@ Resources:
               KeyType: HASH
           Projection:
             ProjectionType: ALL
-      StreamSpecification:
-        StreamViewType: NEW_AND_OLD_IMAGES
-      PointInTimeRecoverySpecification:
-        PointInTimeRecoveryEnabled: true
+      # StreamSpecification: Disabled for cost optimization (saves ~$1-2/month)
+      # PointInTimeRecoverySpecification: Disabled for cost optimization (use scheduled backups instead)
+      # Security: Server-side encryption (KMS - uses AWS managed key if KMSKeyId not provided)
+      SSESpecification:
+        SSEEnabled: true
+        SSEType: KMS
+        KMSMasterKeyId: !If
+          - HasKMSKey
+          - !Ref KMSKeyId
+          - !Ref AWS::NoValue
+          # Uses AWS managed key (alias/aws/dynamodb) if KMSKeyId is empty
       Tags:
         - Key: Environment
           Value: !Ref Environment
@@ -177,6 +220,7 @@ Resources:
           Value: CloudFormation
 
   # Goals Table
+  # Cost Optimization: Streams and PITR disabled (can use polling/eventual consistency)
   GoalsTable:
     Type: AWS::DynamoDB::Table
     Properties:
@@ -199,10 +243,17 @@ Resources:
               KeyType: HASH
           Projection:
             ProjectionType: ALL
-      StreamSpecification:
-        StreamViewType: NEW_AND_OLD_IMAGES
-      PointInTimeRecoverySpecification:
-        PointInTimeRecoveryEnabled: true
+      # StreamSpecification: Disabled for cost optimization (saves ~$1-2/month)
+      # PointInTimeRecoverySpecification: Disabled for cost optimization (use scheduled backups instead)
+      # Security: Server-side encryption (KMS - uses AWS managed key if KMSKeyId not provided)
+      SSESpecification:
+        SSEEnabled: true
+        SSEType: KMS
+        KMSMasterKeyId: !If
+          - HasKMSKey
+          - !Ref KMSKeyId
+          - !Ref AWS::NoValue
+          # Uses AWS managed key (alias/aws/dynamodb) if KMSKeyId is empty
       Tags:
         - Key: Environment
           Value: !Ref Environment
@@ -212,6 +263,7 @@ Resources:
           Value: CloudFormation
 
   # Transaction Actions Table
+  # Cost Optimization: Streams and PITR disabled (can use polling/eventual consistency)
   TransactionActionsTable:
     Type: AWS::DynamoDB::Table
     Properties:
@@ -240,10 +292,17 @@ Resources:
               KeyType: HASH
           Projection:
             ProjectionType: ALL
-      StreamSpecification:
-        StreamViewType: NEW_AND_OLD_IMAGES
-      PointInTimeRecoverySpecification:
-        PointInTimeRecoveryEnabled: true
+      # StreamSpecification: Disabled for cost optimization (saves ~$1-2/month)
+      # PointInTimeRecoverySpecification: Disabled for cost optimization (use scheduled backups instead)
+      # Security: Server-side encryption (KMS - uses AWS managed key if KMSKeyId not provided)
+      SSESpecification:
+        SSEEnabled: true
+        SSEType: KMS
+        KMSMasterKeyId: !If
+          - HasKMSKey
+          - !Ref KMSKeyId
+          - !Ref AWS::NoValue
+          # Uses AWS managed key (alias/aws/dynamodb) if KMSKeyId is empty
       Tags:
         - Key: Environment
           Value: !Ref Environment
@@ -253,6 +312,7 @@ Resources:
           Value: CloudFormation
 
   # Audit Logs Table
+  # Cost Optimization: Streams and PITR disabled (audit logs can use S3 archival)
   AuditLogsTable:
     Type: AWS::DynamoDB::Table
     Properties:
@@ -287,10 +347,17 @@ Resources:
               KeyType: RANGE
           Projection:
             ProjectionType: ALL
-      StreamSpecification:
-        StreamViewType: NEW_AND_OLD_IMAGES
-      PointInTimeRecoverySpecification:
-        PointInTimeRecoveryEnabled: true
+      # StreamSpecification: Disabled for cost optimization (audit logs don't need real-time processing)
+      # PointInTimeRecoverySpecification: Disabled for cost optimization (use S3 archival instead)
+      # Security: Server-side encryption (KMS - uses AWS managed key if KMSKeyId not provided)
+      SSESpecification:
+        SSEEnabled: true
+        SSEType: KMS
+        KMSMasterKeyId: !If
+          - HasKMSKey
+          - !Ref KMSKeyId
+          - !Ref AWS::NoValue
+          # Uses AWS managed key (alias/aws/dynamodb) if KMSKeyId is empty
       Tags:
         - Key: Environment
           Value: !Ref Environment
@@ -314,6 +381,15 @@ Resources:
       TimeToLiveSpecification:
         AttributeName: ttl
         Enabled: true
+      # Security: Server-side encryption (KMS - uses AWS managed key if KMSKeyId not provided)
+      SSESpecification:
+        SSEEnabled: true
+        SSEType: KMS
+        KMSMasterKeyId: !If
+          - HasKMSKey
+          - !Ref KMSKeyId
+          - !Ref AWS::NoValue
+          # Uses AWS managed key (alias/aws/dynamodb) if KMSKeyId is empty
       Tags:
         - Key: Environment
           Value: !Ref Environment
@@ -337,6 +413,15 @@ Resources:
       TimeToLiveSpecification:
         AttributeName: ttl
         Enabled: true
+      # Security: Server-side encryption (KMS - uses AWS managed key if KMSKeyId not provided)
+      SSESpecification:
+        SSEEnabled: true
+        SSEType: KMS
+        KMSMasterKeyId: !If
+          - HasKMSKey
+          - !Ref KMSKeyId
+          - !Ref AWS::NoValue
+          # Uses AWS managed key (alias/aws/dynamodb) if KMSKeyId is empty
       Tags:
         - Key: Environment
           Value: !Ref Environment
@@ -364,6 +449,15 @@ Resources:
       TimeToLiveSpecification:
         AttributeName: ttl
         Enabled: true
+      # Security: Server-side encryption (KMS - uses AWS managed key if KMSKeyId not provided)
+      SSESpecification:
+        SSEEnabled: true
+        SSEType: KMS
+        KMSMasterKeyId: !If
+          - HasKMSKey
+          - !Ref KMSKeyId
+          - !Ref AWS::NoValue
+          # Uses AWS managed key (alias/aws/dynamodb) if KMSKeyId is empty
       Tags:
         - Key: Environment
           Value: !Ref Environment
@@ -373,6 +467,7 @@ Resources:
           Value: CloudFormation
 
   # Device PIN Table
+  # Cost Optimization: Streams and PITR disabled (PIN changes are infrequent)
   DevicePinTable:
     Type: AWS::DynamoDB::Table
     Properties:
@@ -388,10 +483,17 @@ Resources:
           KeyType: HASH
         - AttributeName: deviceId
           KeyType: RANGE
-      StreamSpecification:
-        StreamViewType: NEW_AND_OLD_IMAGES
-      PointInTimeRecoverySpecification:
-        PointInTimeRecoveryEnabled: true
+      # StreamSpecification: Disabled for cost optimization (PIN changes are infrequent)
+      # PointInTimeRecoverySpecification: Disabled for cost optimization (use regular backups instead)
+      # Security: Server-side encryption (KMS - uses AWS managed key if KMSKeyId not provided)
+      SSESpecification:
+        SSEEnabled: true
+        SSEType: KMS
+        KMSMasterKeyId: !If
+          - HasKMSKey
+          - !Ref KMSKeyId
+          - !Ref AWS::NoValue
+          # Uses AWS managed key (alias/aws/dynamodb) if KMSKeyId is empty
       Tags:
         - Key: Environment
           Value: !Ref Environment
@@ -415,6 +517,15 @@ Resources:
       TimeToLiveSpecification:
         AttributeName: ttl
         Enabled: true
+      # Security: Server-side encryption (KMS - uses AWS managed key if KMSKeyId not provided)
+      SSESpecification:
+        SSEEnabled: true
+        SSEType: KMS
+        KMSMasterKeyId: !If
+          - HasKMSKey
+          - !Ref KMSKeyId
+          - !Ref AWS::NoValue
+          # Uses AWS managed key (alias/aws/dynamodb) if KMSKeyId is empty
       Tags:
         - Key: Environment
           Value: !Ref Environment
@@ -424,6 +535,7 @@ Resources:
           Value: CloudFormation
 
   # FIDO2 Credentials Table (for WebAuthn/Passkey storage)
+  # Cost Optimization: Streams disabled, PITR kept (security credentials are critical)
   FIDO2CredentialsTable:
     Type: AWS::DynamoDB::Table
     Properties:
@@ -444,10 +556,18 @@ Resources:
               KeyType: HASH
           Projection:
             ProjectionType: ALL
-      StreamSpecification:
-        StreamViewType: NEW_AND_OLD_IMAGES
+      # StreamSpecification: Disabled for cost optimization (credential changes are infrequent)
       PointInTimeRecoverySpecification:
-        PointInTimeRecoveryEnabled: true
+        PointInTimeRecoveryEnabled: true  # Kept for security credentials
+      # Security: Server-side encryption (KMS - uses AWS managed key if KMSKeyId not provided)
+      SSESpecification:
+        SSEEnabled: true
+        SSEType: KMS
+        KMSMasterKeyId: !If
+          - HasKMSKey
+          - !Ref KMSKeyId
+          - !Ref AWS::NoValue
+          # Uses AWS managed key (alias/aws/dynamodb) if KMSKeyId is empty
       Tags:
         - Key: Environment
           Value: !Ref Environment
@@ -471,6 +591,15 @@ Resources:
       TimeToLiveSpecification:
         AttributeName: ttl
         Enabled: true
+      # Security: Server-side encryption (KMS - uses AWS managed key if KMSKeyId not provided)
+      SSESpecification:
+        SSEEnabled: true
+        SSEType: KMS
+        KMSMasterKeyId: !If
+          - HasKMSKey
+          - !Ref KMSKeyId
+          - !Ref AWS::NoValue
+          # Uses AWS managed key (alias/aws/dynamodb) if KMSKeyId is empty
       Tags:
         - Key: Environment
           Value: !Ref Environment
@@ -480,6 +609,7 @@ Resources:
           Value: CloudFormation
 
   # MFA Credentials Table (for TOTP secrets)
+  # Cost Optimization: Streams and PITR disabled (can use regular backups)
   MFACredentialsTable:
     Type: AWS::DynamoDB::Table
     Properties:
@@ -495,10 +625,17 @@ Resources:
           KeyType: HASH
         - AttributeName: mfaType
           KeyType: RANGE
-      StreamSpecification:
-        StreamViewType: NEW_AND_OLD_IMAGES
-      PointInTimeRecoverySpecification:
-        PointInTimeRecoveryEnabled: true
+      # StreamSpecification: Disabled for cost optimization (MFA changes are infrequent)
+      # PointInTimeRecoverySpecification: Disabled for cost optimization (use regular backups instead)
+      # Security: Server-side encryption (KMS - uses AWS managed key if KMSKeyId not provided)
+      SSESpecification:
+        SSEEnabled: true
+        SSEType: KMS
+        KMSMasterKeyId: !If
+          - HasKMSKey
+          - !Ref KMSKeyId
+          - !Ref AWS::NoValue
+          # Uses AWS managed key (alias/aws/dynamodb) if KMSKeyId is empty
       Tags:
         - Key: Environment
           Value: !Ref Environment
@@ -508,6 +645,7 @@ Resources:
           Value: CloudFormation
 
   # MFA Backup Codes Table
+  # Cost Optimization: Streams and PITR disabled (backup code changes are infrequent)
   MFABackupCodesTable:
     Type: AWS::DynamoDB::Table
     Properties:
@@ -523,10 +661,17 @@ Resources:
           KeyType: HASH
         - AttributeName: codeHash
           KeyType: RANGE
-      StreamSpecification:
-        StreamViewType: NEW_AND_OLD_IMAGES
-      PointInTimeRecoverySpecification:
-        PointInTimeRecoveryEnabled: true
+      # StreamSpecification: Disabled for cost optimization (backup code changes are infrequent)
+      # PointInTimeRecoverySpecification: Disabled for cost optimization (use regular backups instead)
+      # Security: Server-side encryption (KMS - uses AWS managed key if KMSKeyId not provided)
+      SSESpecification:
+        SSEEnabled: true
+        SSEType: KMS
+        KMSMasterKeyId: !If
+          - HasKMSKey
+          - !Ref KMSKeyId
+          - !Ref AWS::NoValue
+          # Uses AWS managed key (alias/aws/dynamodb) if KMSKeyId is empty
       Tags:
         - Key: Environment
           Value: !Ref Environment
@@ -550,6 +695,15 @@ Resources:
       TimeToLiveSpecification:
         AttributeName: ttl
         Enabled: true
+      # Security: Server-side encryption (KMS - uses AWS managed key if KMSKeyId not provided)
+      SSESpecification:
+        SSEEnabled: true
+        SSEType: KMS
+        KMSMasterKeyId: !If
+          - HasKMSKey
+          - !Ref KMSKeyId
+          - !Ref AWS::NoValue
+          # Uses AWS managed key (alias/aws/dynamodb) if KMSKeyId is empty
       Tags:
         - Key: Environment
           Value: !Ref Environment
@@ -636,4 +790,3 @@ Outputs:
     Value: !Ref MFAOTPCodesTable
     Export:
       Name: !Sub '${AWS::StackName}-MFAOTPCodesTable'
-

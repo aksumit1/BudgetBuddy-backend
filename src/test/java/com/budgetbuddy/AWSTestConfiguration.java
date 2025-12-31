@@ -1,9 +1,15 @@
 package com.budgetbuddy;
 
+import com.budgetbuddy.plaid.PlaidService;
+import com.plaid.client.model.LinkTokenCreateResponse;
+import org.mockito.Mockito;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
 import org.springframework.context.annotation.Profile;
+import org.springframework.http.converter.HttpMessageConverter;
+import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
+import org.springframework.web.client.RestTemplate;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
@@ -14,6 +20,9 @@ import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
 
 import java.net.URI;
+import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Comprehensive AWS Test Configuration
@@ -45,8 +54,28 @@ public class AWSTestConfiguration {
         if (endpoint != null && !endpoint.isEmpty()) {
             return endpoint;
         }
-        // Default to localhost for LocalStack
+        // Default to LocalStack instance on port 4566 (can be overridden via environment variable or system property)
+        // For tests, use the same LocalStack instance as the main app to avoid needing separate instances
         return "http://localhost:4566";
+    }
+
+    /**
+     * Get S3 endpoint from environment variable, system property, or fallback to DynamoDB endpoint
+     * Called at runtime (not class load time) to ensure environment variables are available
+     */
+    private static String getS3Endpoint() {
+        // Check system property first (can be set via -Daws.s3.endpoint=...)
+        String endpoint = System.getProperty("aws.s3.endpoint");
+        if (endpoint != null && !endpoint.isEmpty()) {
+            return endpoint;
+        }
+        // Check AWS_S3_ENDPOINT environment variable (used in docker-compose)
+        endpoint = System.getenv("AWS_S3_ENDPOINT");
+        if (endpoint != null && !endpoint.isEmpty()) {
+            return endpoint;
+        }
+        // Fallback to DynamoDB endpoint (usually same for LocalStack)
+        return getDynamoDbEndpoint();
     }
 
     /**
@@ -80,7 +109,7 @@ public class AWSTestConfiguration {
     @Bean
     @Primary
     public S3Client s3Client() {
-        String endpoint = getDynamoDbEndpoint();
+        String endpoint = getS3Endpoint();
         return S3Client.builder()
                 .endpointOverride(URI.create(endpoint))
                 .region(TEST_REGION)
@@ -122,7 +151,7 @@ public class AWSTestConfiguration {
     @Bean
     @Primary
     public software.amazon.awssdk.services.s3.presigner.S3Presigner s3Presigner() {
-        String endpoint = getDynamoDbEndpoint();
+        String endpoint = getS3Endpoint();
         return software.amazon.awssdk.services.s3.presigner.S3Presigner.builder()
                 .endpointOverride(URI.create(endpoint))
                 .region(TEST_REGION)
@@ -282,6 +311,34 @@ public class AWSTestConfiguration {
                 .credentialsProvider(StaticCredentialsProvider.create(TEST_CREDENTIALS))
                 .build();
     }
+
+    /**
+     * Mock PlaidService - Prevents ApplicationContext failures when Plaid credentials are not configured
+     * This bean overrides the real PlaidService during tests to avoid initialization errors.
+     * 
+     * Note: The real PlaidService is still created but this @Primary bean takes precedence.
+     * To prevent the real service from being created, we rely on PlaidService's constructor
+     * handling missing credentials gracefully (it uses placeholders instead of throwing).
+     */
+    @Bean
+    @Primary
+    public PlaidService plaidService(
+            com.budgetbuddy.compliance.pcidss.PCIDSSComplianceService pciDSSComplianceService) {
+        // Create a mock that will be used instead of the real PlaidService
+        PlaidService mockPlaidService = Mockito.mock(PlaidService.class);
+        // Mock createLinkToken to return a valid response
+        LinkTokenCreateResponse mockResponse = new LinkTokenCreateResponse();
+        mockResponse.setLinkToken("test-link-token-" + System.currentTimeMillis());
+        mockResponse.setExpiration(OffsetDateTime.now().plusHours(1));
+        try {
+            Mockito.when(mockPlaidService.createLinkToken(Mockito.anyString(), Mockito.anyString()))
+                    .thenReturn(mockResponse);
+        } catch (Exception e) {
+            // Ignore - this is just for mocking
+        }
+        return mockPlaidService;
+    }
+
 
 }
 

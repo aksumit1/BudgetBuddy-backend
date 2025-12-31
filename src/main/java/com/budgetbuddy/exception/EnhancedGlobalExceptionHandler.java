@@ -205,6 +205,72 @@ public class EnhancedGlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
     }
 
+    /**
+     * Handles MultipartException - typically occurs when client aborts file upload
+     * This is a client-side issue (network timeout, user cancellation, etc.), not a server error
+     */
+    @ExceptionHandler(org.springframework.web.multipart.MultipartException.class)
+    public ResponseEntity<ErrorResponse> handleMultipartException(
+            org.springframework.web.multipart.MultipartException ex, WebRequest request) {
+        String correlationId = MDC.get("correlationId");
+
+        // Check if this is caused by a client abort
+        Throwable rootCause = ex.getRootCause();
+        boolean isClientAbort = rootCause instanceof org.apache.catalina.connector.ClientAbortException ||
+                               (rootCause != null && rootCause.getCause() instanceof org.apache.catalina.connector.ClientAbortException) ||
+                               (rootCause != null && rootCause instanceof java.io.EOFException);
+
+        String errorCode = isClientAbort ? "CLIENT_ABORTED_REQUEST" : "FILE_UPLOAD_FAILED";
+        String message = isClientAbort 
+            ? "File upload was interrupted. This may be due to network issues or the upload being cancelled."
+            : "File upload failed. Please check the file size and format, then try again.";
+
+        ErrorResponse errorResponse = ErrorResponse.builder()
+                .errorCode(errorCode)
+                .message(message)
+                .correlationId(correlationId)
+                .timestamp(Instant.now())
+                .path(request.getDescription(false).replace("uri=", ""))
+                .build();
+
+        // Log at WARN level since this is typically a client-side issue, not a server error
+        if (isClientAbort) {
+            logger.warn("Client aborted file upload request | CorrelationId: {} | Root cause: {}", 
+                correlationId, rootCause != null ? rootCause.getClass().getSimpleName() : "unknown");
+        } else {
+            logger.warn("Multipart file upload failed | CorrelationId: {} | Root cause: {}", 
+                correlationId, rootCause != null ? rootCause.getClass().getSimpleName() : "unknown");
+        }
+
+        // Return 400 Bad Request for client-side issues (not 500 Internal Server Error)
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+    }
+
+    /**
+     * Handles ClientAbortException - client closed connection before request completed
+     * This is a client-side issue (network timeout, user cancellation, etc.), not a server error
+     */
+    @ExceptionHandler(org.apache.catalina.connector.ClientAbortException.class)
+    public ResponseEntity<ErrorResponse> handleClientAbortException(
+            org.apache.catalina.connector.ClientAbortException ex, WebRequest request) {
+        String correlationId = MDC.get("correlationId");
+
+        ErrorResponse errorResponse = ErrorResponse.builder()
+                .errorCode("CLIENT_ABORTED_REQUEST")
+                .message("Request was cancelled or connection was closed before completion. This may be due to network issues.")
+                .correlationId(correlationId)
+                .timestamp(Instant.now())
+                .path(request.getDescription(false).replace("uri=", ""))
+                .build();
+
+        // Log at WARN level since this is a client-side issue, not a server error
+        logger.warn("Client aborted request | CorrelationId: {} | Message: {}", 
+            correlationId, ex.getMessage());
+
+        // Return 400 Bad Request for client-side issues (not 500 Internal Server Error)
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGenericException(Exception ex, WebRequest request) {
         String correlationId = MDC.get("correlationId");
@@ -223,6 +289,16 @@ public class EnhancedGlobalExceptionHandler {
         // Check if this is a JSON parse exception
         if (ex instanceof com.fasterxml.jackson.core.JsonParseException) {
             return handleJsonParseException((com.fasterxml.jackson.core.JsonParseException) ex, request);
+        }
+
+        // Check if this is a multipart exception (client abort, etc.)
+        if (ex instanceof org.springframework.web.multipart.MultipartException) {
+            return handleMultipartException((org.springframework.web.multipart.MultipartException) ex, request);
+        }
+
+        // Check if this is a client abort exception
+        if (ex instanceof org.apache.catalina.connector.ClientAbortException) {
+            return handleClientAbortException((org.apache.catalina.connector.ClientAbortException) ex, request);
         }
 
         // Sanitize error message - never expose internal details

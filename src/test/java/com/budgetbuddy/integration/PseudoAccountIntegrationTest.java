@@ -113,11 +113,15 @@ class PseudoAccountIntegrationTest {
                 "Manual transaction without account",
                 "FOOD",
                 "RESTAURANTS",
-                null,
-                null,
-                null,
-                null,
-                null // transactionType
+                null, // transactionId
+                null, // notes
+                null, // plaidAccountId
+                null, // plaidTransactionId
+                null, // transactionType
+                null, // currencyCode
+                null, // importSource
+                null, // importBatchId
+                null  // importFileName
         );
         
         // Then - Should use pseudo account
@@ -147,11 +151,15 @@ class PseudoAccountIntegrationTest {
                 "Transaction with account",
                 "FOOD",
                 "RESTAURANTS",
-                null,
-                null,
-                null,
-                null,
-                null // transactionType
+                null, // transactionId
+                null, // notes
+                null, // plaidAccountId
+                null, // plaidTransactionId
+                null, // transactionType
+                null, // currencyCode
+                null, // importSource
+                null, // importBatchId
+                null  // importFileName
         );
         
         // Then - Should use provided account, NOT pseudo account
@@ -193,11 +201,15 @@ class PseudoAccountIntegrationTest {
                 "Plaid transaction",
                 "FOOD",
                 "RESTAURANTS",
-                null,
-                null,
+                null, // transactionId
+                null, // notes
                 "plaid-acc-123", // Plaid account ID
                 "plaid-tx-123",   // Plaid transaction ID
-                null // transactionType
+                null, // transactionType
+                null, // currencyCode
+                null, // importSource
+                null, // importBatchId
+                null  // importFileName
         );
         
         // Then - Should use Plaid account, NOT pseudo account

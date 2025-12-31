@@ -194,11 +194,35 @@
             <artifactId>commons-lang3</artifactId>
         </dependency>
         <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-text</artifactId>
+            <version>1.12.0</version>
+        </dependency>
+        <dependency>
             <groupId>com.fasterxml.jackson.datatype</groupId>
             <artifactId>jackson-datatype-jsr310</artifactId>
         </dependency>
+        
+        <!-- Machine Learning -->
+        <dependency>
+            <groupId>nz.ac.waikato.cms.weka</groupId>
+            <artifactId>weka-stable</artifactId>
+            <version>3.8.6</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-math3</artifactId>
+            <version>3.6.1</version>
+        </dependency>
 
         <!-- Test Dependencies -->
+        <!-- Reflections for classpath scanning in tests -->
+        <dependency>
+            <groupId>org.reflections</groupId>
+            <artifactId>reflections</artifactId>
+            <version>0.10.2</version>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
@@ -366,6 +390,44 @@
             <version>2.3.0</version>
         </dependency>
 
+        <!-- PDF Parsing - Apache PDFBox -->
+        <dependency>
+            <groupId>org.apache.pdfbox</groupId>
+            <artifactId>pdfbox</artifactId>
+            <version>3.0.3</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.pdfbox</groupId>
+            <artifactId>pdfbox-tools</artifactId>
+            <version>3.0.3</version>
+        </dependency>
+        
+        <!-- OCR - Tess4J for scanned PDFs and images -->
+        <dependency>
+            <groupId>net.sourceforge.tess4j</groupId>
+            <artifactId>tess4j</artifactId>
+            <version>5.8.0</version>
+        </dependency>
+        
+        <!-- Apache Commons Imaging for image processing -->
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-imaging</artifactId>
+            <version>1.0.0-alpha5</version>
+        </dependency>
+
+        <!-- Excel Parsing - Apache POI -->
+        <dependency>
+            <groupId>org.apache.poi</groupId>
+            <artifactId>poi</artifactId>
+            <version>5.2.5</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.poi</groupId>
+            <artifactId>poi-ooxml</artifactId>
+            <version>5.2.5</version>
+        </dependency>
+
         <!-- Testing -->
         <dependency>
             <groupId>org.springframework.security</groupId>
@@ -417,10 +479,15 @@
                         <arg>-Xlint:deprecation</arg>
                         <arg>-Xlint:unchecked</arg>
                         <arg>-Xlint:all</arg>
+                        <!-- Suppress annotation processor warnings for Spring/Jackson annotations -->
+                        <arg>-Xlint:-processing</arg>
                     </compilerArgs>
                     <showWarnings>true</showWarnings>
                     <failOnWarning>false</failOnWarning>
                     <showDeprecation>true</showDeprecation>
+                    <!-- Suppress warnings about unclaimed annotations (Spring processes at runtime) -->
+                    <proc>full</proc>
+                    <generatedSourcesDirectory>${project.build.directory}/generated-sources/annotations</generatedSourcesDirectory>
                     <annotationProcessorPaths>
                         <path>
                             <groupId>org.mapstruct</groupId>
@@ -506,6 +573,21 @@
                     <classpathScope>test</classpathScope>
                 </configuration>
                 <executions>
+                    <!-- Validate YAML files before build -->
+                    <execution>
+                        <id>validate-yaml</id>
+                        <phase>validate</phase>
+                        <goals>
+                            <goal>exec</goal>
+                        </goals>
+                        <configuration>
+                            <executable>sh</executable>
+                            <arguments>
+                                <argument>-c</argument>
+                                <argument>echo "Validating YAML files..."; YAML_ERRORS=0; if command -v yamllint &gt;/dev/null 2&gt;&amp;1; then echo "yamllint found, validating YAML files..."; if ! yamllint -c .yamllint infrastructure/cloudformation/*.yaml buildspec.yaml 2&gt;&amp;1 | grep -q "error"; then echo "✅ YAML validation passed"; else echo "❌ YAML validation failed!"; YAML_ERRORS=1; fi; elif command -v pip3 &gt;/dev/null 2&gt;&amp;1; then echo "Installing yamllint..."; pip3 install --user yamllint &gt;/dev/null 2&gt;&amp;1 || echo "Warning: Could not install yamllint, skipping YAML validation"; if command -v yamllint &gt;/dev/null 2&gt;&amp;1 || [ -f ~/.local/bin/yamllint ]; then echo "yamllint installed, validating YAML files..."; YAMLLINT_CMD="yamllint"; if ! command -v yamllint &gt;/dev/null 2&gt;&amp;1; then YAMLLINT_CMD="~/.local/bin/yamllint"; fi; if ! $YAMLLINT_CMD -c .yamllint infrastructure/cloudformation/*.yaml buildspec.yaml 2&gt;&amp;1 | grep -q "error"; then echo "✅ YAML validation passed"; else echo "❌ YAML validation failed!"; YAML_ERRORS=1; fi; fi; else echo "Warning: yamllint not available (install with: pip3 install yamllint), skipping YAML validation"; fi; if [ "$YAML_ERRORS" -eq 1 ]; then exit 1; fi</argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
                     <!-- Start Docker containers before tests -->
                     <execution>
                         <id>docker-compose-up</id>

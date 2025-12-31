@@ -1,5 +1,6 @@
 package com.budgetbuddy.model.dynamodb;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbAttribute;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbBean;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbPartitionKey;
@@ -150,6 +151,7 @@ public class SubscriptionTable {
     }
 
     @DynamoDbAttribute("createdAt")
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", timezone = "UTC")
     public Instant getCreatedAt() {
         return createdAt;
     }
@@ -159,6 +161,7 @@ public class SubscriptionTable {
     }
 
     @DynamoDbAttribute("updatedAt")
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", timezone = "UTC")
     public Instant getUpdatedAt() {
         return updatedAt;
     }

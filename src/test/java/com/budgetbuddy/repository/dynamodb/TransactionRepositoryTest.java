@@ -130,6 +130,7 @@ class TransactionRepositoryTest {
         verify(transactionTable, never()).getItem(any(Key.class));
     }
 
+
     @Test
     void testFindByUserId_WithValidUserId_ReturnsTransactions() {
         // Given

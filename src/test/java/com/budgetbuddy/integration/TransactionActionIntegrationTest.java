@@ -184,6 +184,7 @@ class TransactionActionIntegrationTest {
                 null,
                 null,
                 true,
+                null,
                 null
         );
 
@@ -214,7 +215,8 @@ class TransactionActionIntegrationTest {
                 null,
                 null,
                 null,
-                "HIGH"
+                "HIGH",
+                null
         );
 
         // Then
@@ -363,6 +365,7 @@ class TransactionActionIntegrationTest {
                 testUser,
                 UUID.randomUUID().toString(),
                 "Title",
+                null,
                 null,
                 null,
                 null,

@@ -160,6 +160,7 @@ class TransactionActionControllerTest {
                 isNull(),
                 isNull(),
                 eq(true),
+                isNull(),
                 isNull()))
                 .thenReturn(updatedAction);
 

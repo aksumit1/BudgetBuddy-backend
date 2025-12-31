@@ -3,83 +3,139 @@ package com.budgetbuddy.validation;
 import jakarta.validation.ConstraintValidatorContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.MockitoAnnotations;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
 
-/**
- * Unit Tests for AmountValidator
- */
-@ExtendWith(MockitoExtension.class)
-@org.mockito.junit.jupiter.MockitoSettings(strictness = org.mockito.quality.Strictness.LENIENT)
 class AmountValidatorTest {
 
-    @Mock
-    private ConstraintValidatorContext constraintValidatorContext;
+    private AmountValidator validator;
 
     @Mock
-    private ConstraintValidatorContext.ConstraintViolationBuilder constraintViolationBuilder;
-
-    @InjectMocks
-    private AmountValidator amountValidator;
+    private ConstraintValidatorContext context;
 
     @BeforeEach
     void setUp() {
-        when(constraintValidatorContext.buildConstraintViolationWithTemplate(anyString()))
-                .thenReturn(constraintViolationBuilder);
-        when(constraintViolationBuilder.addConstraintViolation())
-                .thenReturn(constraintValidatorContext);
+        MockitoAnnotations.openMocks(this);
+        validator = new AmountValidator();
+        validator.initialize(null);
     }
 
     @Test
-    void testIsValid_WithValidAmount_ReturnsTrue() {
+    void testIsValid_ValidPositiveAmount_ShouldReturnTrue() {
         // Given
-        Double validAmount = 100.00;
-
+        Double amount = 100.50;
+        
         // When
-        boolean isValid = amountValidator.isValid(validAmount, constraintValidatorContext);
-
+        boolean result = validator.isValid(amount, context);
+        
         // Then
-        assertTrue(isValid);
+        assertTrue(result);
     }
 
     @Test
-    void testIsValid_WithNegativeAmount_ReturnsFalse() {
+    void testIsValid_ValidSmallAmount_ShouldReturnTrue() {
         // Given
-        Double negativeAmount = -100.00;
-
+        Double amount = 0.01;
+        
         // When
-        boolean isValid = amountValidator.isValid(negativeAmount, constraintValidatorContext);
-
+        boolean result = validator.isValid(amount, context);
+        
         // Then
-        assertFalse(isValid);
+        assertTrue(result);
     }
 
     @Test
-    void testIsValid_WithNullAmount_ReturnsTrue() {
-        // When - Null might be handled by @NotNull annotation
-        boolean isValid = amountValidator.isValid(null, constraintValidatorContext);
-
+    void testIsValid_ValidLargeAmount_ShouldReturnTrue() {
+        // Given
+        Double amount = 999999999.99;
+        
+        // When
+        boolean result = validator.isValid(amount, context);
+        
         // Then
-        // Depends on implementation - typically returns true (null handled by @NotNull)
-        assertNotNull(isValid);
+        assertTrue(result);
     }
 
     @Test
-    void testIsValid_WithZeroAmount_ReturnsFalse() {
-        // Given - Zero is not valid (must be > 0)
-        Double zeroAmount = 0.0;
-
+    void testIsValid_ZeroAmount_ShouldReturnFalse() {
+        // Given
+        Double amount = 0.0;
+        
         // When
-        boolean isValid = amountValidator.isValid(zeroAmount, constraintValidatorContext);
-
+        boolean result = validator.isValid(amount, context);
+        
         // Then
-        assertFalse(isValid); // Zero is not valid (must be greater than zero)
+        assertFalse(result);
+    }
+
+    @Test
+    void testIsValid_NegativeAmount_ShouldReturnFalse() {
+        // Given
+        Double amount = -100.50;
+        
+        // When
+        boolean result = validator.isValid(amount, context);
+        
+        // Then
+        assertFalse(result);
+    }
+
+    @Test
+    void testIsValid_NullAmount_ShouldReturnFalse() {
+        // When
+        boolean result = validator.isValid(null, context);
+        
+        // Then
+        assertFalse(result);
+    }
+
+    @Test
+    void testIsValid_AmountExceedsMax_ShouldReturnFalse() {
+        // Given
+        Double amount = 1000000000.0; // Exceeds max of 999999999.99
+        
+        // When
+        boolean result = validator.isValid(amount, context);
+        
+        // Then
+        assertFalse(result);
+    }
+
+    @Test
+    void testIsValid_AmountWithManyDecimals_ShouldRoundAndValidate() {
+        // Given - Amount with more than 2 decimal places
+        Double amount = 100.999; // Should be rounded to 101.00
+        
+        // When
+        boolean result = validator.isValid(amount, context);
+        
+        // Then - After rounding, should be valid
+        assertTrue(result);
+    }
+
+    @Test
+    void testIsValid_ValidAmountWithTwoDecimals_ShouldReturnTrue() {
+        // Given
+        Double amount = 123.45;
+        
+        // When
+        boolean result = validator.isValid(amount, context);
+        
+        // Then
+        assertTrue(result);
+    }
+
+    @Test
+    void testIsValid_ValidAmountInteger_ShouldReturnTrue() {
+        // Given
+        Double amount = 1000.0;
+        
+        // When
+        boolean result = validator.isValid(amount, context);
+        
+        // Then
+        assertTrue(result);
     }
 }
-

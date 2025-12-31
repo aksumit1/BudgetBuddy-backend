@@ -305,11 +305,30 @@ public class PlaidController {
             }
             
             // Get transactions from database (synced transactions)
+            // CRITICAL: This includes ALL transactions for the user, including manual transactions from pseudo account
             var dbTransactions = transactionService.getTransactionsInRange(user, startDate, endDate);
             
             logger.info("Retrieved {} transactions from database for user: {} (date range: {} to {})", 
                     dbTransactions != null ? dbTransactions.size() : 0, user.getUserId(), startDate, endDate);
-            if (dbTransactions == null || dbTransactions.isEmpty()) {
+            
+            // CRITICAL: Log breakdown of transactions by account type for debugging
+            if (dbTransactions != null && !dbTransactions.isEmpty()) {
+                // Count transactions with and without accountId (pseudo account transactions have accountId set to pseudo account ID)
+                long transactionsWithAccountId = dbTransactions.stream()
+                        .filter(t -> t.getAccountId() != null && !t.getAccountId().isEmpty())
+                        .count();
+                long transactionsWithoutAccountId = dbTransactions.size() - transactionsWithAccountId;
+                
+                logger.debug("Transaction breakdown for user {}: {} with accountId, {} without accountId (date range: {} to {})", 
+                        user.getUserId(), transactionsWithAccountId, transactionsWithoutAccountId, startDate, endDate);
+                
+                // Log sample transaction IDs for debugging
+                List<String> sampleIds = dbTransactions.stream()
+                        .limit(5)
+                        .map(t -> t.getTransactionId() != null ? t.getTransactionId() : "nil")
+                        .collect(java.util.stream.Collectors.toList());
+                logger.debug("Sample transaction IDs: {}", String.join(", ", sampleIds));
+            } else {
                 logger.warn("No transactions found for user {} in date range {} to {}. Check if transactions were synced and have correct transactionDate.", 
                         user.getUserId(), startDate, endDate);
             }

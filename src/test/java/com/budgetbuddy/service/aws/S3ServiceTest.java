@@ -33,7 +33,10 @@ class S3ServiceTest {
     @Mock
     private S3Presigner s3Presigner;
 
-    @InjectMocks
+    @Mock
+    private com.budgetbuddy.security.FileSecurityValidator fileSecurityValidator;
+
+    // CRITICAL: Remove @InjectMocks - manually instantiate in setUp() to avoid constructor issues
     private S3Service s3Service;
 
     private String testBucketName = "test-bucket";
@@ -42,7 +45,11 @@ class S3ServiceTest {
 
     @BeforeEach
     void setUp() {
-        s3Service = new S3Service(s3Client, s3Presigner, testBucketName);
+        // CRITICAL: Manually create S3Service to avoid @InjectMocks constructor issues with @Value parameters
+        // The constructor requires s3Endpoint which is null when using @InjectMocks
+        // Set a dummy endpoint to enable S3 for testing (or set AWS_REGION env var)
+        // Using "http://localhost:4566" (LocalStack default) to enable S3
+        s3Service = new S3Service(s3Client, s3Presigner, testBucketName, "http://localhost:4566", fileSecurityValidator);
         testInputStream = new ByteArrayInputStream("test content".getBytes());
     }
 

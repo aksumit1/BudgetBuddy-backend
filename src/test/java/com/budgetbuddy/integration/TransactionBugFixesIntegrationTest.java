@@ -117,7 +117,11 @@ class TransactionBugFixesIntegrationTest {
                 originalNotes,
                 null, // plaidAccountId
                 null,  // plaidTransactionId
-                null // transactionType
+                null, // transactionType
+                null, // currencyCode
+                null, // importSource
+                null, // importBatchId
+                null  // importFileName
         );
         assertEquals(originalNotes, transaction.getNotes());
 
@@ -131,7 +135,7 @@ class TransactionBugFixesIntegrationTest {
                 updatedNotes,
                 null, // categoryPrimary
                 null, // categoryDetailed
-                null, // isAudited
+                null, // reviewStatus
                 null, // isHidden
                 null, // transactionType
                 false // clearNotesIfNull = false (notes is provided, so this doesn't matter)
@@ -176,9 +180,13 @@ class TransactionBugFixesIntegrationTest {
                 "dining",
                 transactionId,
                 notes,
-                null,
-                null,
-                null // transactionType
+                null, // plaidAccountId
+                null, // plaidTransactionId
+                null, // transactionType
+                null, // currencyCode
+                null, // importSource
+                null, // importBatchId
+                null  // importFileName
         );
 
         // When - Update only plaidTransactionId (notes should be null in request)
@@ -191,7 +199,7 @@ class TransactionBugFixesIntegrationTest {
                 null, // notes - null means preserve existing
                 null, // categoryPrimary
                 null, // categoryDetailed
-                null, // isAudited
+                null, // reviewStatus
                 null, // isHidden
                 null, // transactionType
                 false // clearNotesIfNull = false means preserve existing notes
@@ -222,9 +230,13 @@ class TransactionBugFixesIntegrationTest {
                 "dining",
                 transactionId,
                 notes,
-                null,
-                null,
-                null // transactionType
+                null, // plaidAccountId
+                null, // plaidTransactionId
+                null, // transactionType
+                null, // currencyCode
+                null, // importSource
+                null, // importBatchId
+                null  // importFileName
         );
         assertNotNull(transaction1);
         assertEquals(transactionId, transaction1.getTransactionId());
@@ -240,9 +252,13 @@ class TransactionBugFixesIntegrationTest {
                 "dining",
                 transactionId, // Same ID
                 notes,
-                null,
-                null,
-                null // transactionType
+                null, // plaidAccountId
+                null, // plaidTransactionId
+                null, // transactionType
+                null, // currencyCode
+                null, // importSource
+                null, // importBatchId
+                null  // importFileName
         );
 
         // Then - Should return existing transaction (idempotent)
@@ -275,9 +291,13 @@ class TransactionBugFixesIntegrationTest {
                 "dining",
                 transactionId1,
                 "Notes",
-                null,
-                plaidTransactionId,
-                null // transactionType
+                null, // plaidAccountId
+                plaidTransactionId, // plaidTransactionId
+                null, // transactionType
+                null, // currencyCode
+                null, // importSource
+                null, // importBatchId
+                null  // importFileName
         );
 
         // When - Try to create another transaction with same Plaid ID but different transaction ID
@@ -292,9 +312,13 @@ class TransactionBugFixesIntegrationTest {
                 "dining",
                 transactionId2, // Different transaction ID
                 "Notes",
-                null,
+                null, // plaidAccountId
                 plaidTransactionId, // Same Plaid ID
-                null // transactionType
+                null, // transactionType
+                null, // currencyCode
+                null, // importSource
+                null, // importBatchId
+                null  // importFileName
         );
 
         // Then - Backend should handle this appropriately
@@ -328,9 +352,13 @@ class TransactionBugFixesIntegrationTest {
                 "dining",
                 mixedCaseId,
                 "Notes",
-                null,
-                null,
-                null // transactionType
+                null, // plaidAccountId
+                null, // plaidTransactionId
+                null, // transactionType
+                null, // currencyCode
+                null, // importSource
+                null, // importBatchId
+                null  // importFileName
         );
 
         // Then - Backend should normalize to lowercase
@@ -361,9 +389,13 @@ class TransactionBugFixesIntegrationTest {
                 "dining",
                 existingTransactionId,
                 "Notes",
-                null,
-                plaidTransactionId,
-                null // transactionType
+                null, // plaidAccountId
+                plaidTransactionId, // plaidTransactionId
+                null, // transactionType
+                null, // currencyCode
+                null, // importSource
+                null, // importBatchId
+                null  // importFileName
         );
 
         // When - Try to create transaction with same transaction ID but different Plaid ID
@@ -379,9 +411,13 @@ class TransactionBugFixesIntegrationTest {
                 "dining",
                 existingTransactionId, // Same transaction ID
                 "New Notes",
-                null,
+                null, // plaidAccountId
                 conflictingPlaidId, // Different Plaid ID
-                null // transactionType
+                null, // transactionType
+                null, // currencyCode
+                null, // importSource
+                null, // importBatchId
+                null  // importFileName
         );
 
         // Then - Backend should generate new transaction ID due to conflict
@@ -410,9 +446,13 @@ class TransactionBugFixesIntegrationTest {
                 "dining",
                 transactionId,
                 "Notes",
-                null,
-                plaidTransactionId,
-                null // transactionType
+                null, // plaidAccountId
+                plaidTransactionId, // plaidTransactionId
+                null, // transactionType
+                null, // currencyCode
+                null, // importSource
+                null, // importBatchId
+                null  // importFileName
         );
 
         // When - Create transaction again with same Plaid ID
@@ -426,9 +466,13 @@ class TransactionBugFixesIntegrationTest {
                 "dining",
                 transactionId, // Same transaction ID
                 "Notes",
-                null,
+                null, // plaidAccountId
                 plaidTransactionId, // Same Plaid ID
-                null // transactionType
+                null, // transactionType
+                null, // currencyCode
+                null, // importSource
+                null, // importBatchId
+                null  // importFileName
         );
 
         // Then - Should return same transaction (idempotent)
@@ -454,9 +498,13 @@ class TransactionBugFixesIntegrationTest {
                 "dining",
                 transactionId,
                 "Notes",
-                null,
+                null, // plaidAccountId
                 null, // No Plaid ID
-                null // transactionType
+                null, // transactionType
+                null, // currencyCode
+                null, // importSource
+                null, // importBatchId
+                null  // importFileName
         );
 
         TransactionTable transaction2 = transactionService.createTransaction(
@@ -469,9 +517,13 @@ class TransactionBugFixesIntegrationTest {
                 "dining",
                 transactionId, // Same ID
                 "Notes",
-                null,
+                null, // plaidAccountId
                 null, // No Plaid ID
-                null // transactionType
+                null, // transactionType
+                null, // currencyCode
+                null, // importSource
+                null, // importBatchId
+                null  // importFileName
         );
 
         // Then - Should return same transaction
@@ -501,9 +553,13 @@ class TransactionBugFixesIntegrationTest {
                 "dining",
                 transactionId,
                 "Notes",
-                null,
-                plaidTransactionId,
-                null // transactionType
+                null, // plaidAccountId
+                plaidTransactionId, // plaidTransactionId
+                null, // transactionType
+                null, // currencyCode
+                null, // importSource
+                null, // importBatchId
+                null  // importFileName
         );
 
         // When - Create transaction again with same Plaid ID
@@ -517,9 +573,13 @@ class TransactionBugFixesIntegrationTest {
                 "dining",
                 transactionId, // Same transaction ID
                 "Notes",
-                null,
+                null, // plaidAccountId
                 plaidTransactionId, // Same Plaid ID
-                null // transactionType
+                null, // transactionType
+                null, // currencyCode
+                null, // importSource
+                null, // importBatchId
+                null  // importFileName
         );
 
         // Then - Should return same transaction (idempotent)
@@ -545,9 +605,13 @@ class TransactionBugFixesIntegrationTest {
                 "dining",
                 existingTransactionId,
                 "Notes",
-                null,
-                existingPlaidId,
-                null // transactionType
+                null, // plaidAccountId
+                existingPlaidId, // plaidTransactionId
+                null, // transactionType
+                null, // currencyCode
+                null, // importSource
+                null, // importBatchId
+                null  // importFileName
         );
 
         // When - Try to create transaction with same transaction ID but different Plaid ID
@@ -562,9 +626,13 @@ class TransactionBugFixesIntegrationTest {
                 "dining",
                 existingTransactionId, // Same transaction ID
                 "New Notes",
-                null,
+                null, // plaidAccountId
                 conflictingPlaidId, // Different Plaid ID - conflict!
-                null // transactionType
+                null, // transactionType
+                null, // currencyCode
+                null, // importSource
+                null, // importBatchId
+                null  // importFileName
         );
 
         // Then - Backend should handle conflict (return existing or generate new ID)
@@ -576,45 +644,51 @@ class TransactionBugFixesIntegrationTest {
     @Test
     @DisplayName("Bug Fix #4: Multiple rapid POST requests don't create duplicates")
     void testMultipleRapidPostRequests_DontCreateDuplicates() {
-        // Given - Transaction ID
-        String transactionId = UUID.randomUUID().toString();
-
         // When - Create multiple transactions rapidly (simulating race condition)
+        // All with same account, amount, and date (but different descriptions)
         TransactionTable[] transactions = new TransactionTable[5];
+        LocalDate testDate = LocalDate.now();
         for (int i = 0; i < 5; i++) {
             transactions[i] = transactionService.createTransaction(
                     testUser,
                     testAccount.getAccountId(),
                     BigDecimal.valueOf(-50.00),
-                    LocalDate.now(),
+                    testDate,
                     "Test Transaction " + i,
                     "dining",
                     "dining",
-                    transactionId, // Same ID
-                    "Notes " + i,
-                    null,
-                    null,
-                    null // transactionType
+                    null, // transactionId
+                    null, // notes
+                    null, // plaidAccountId
+                    null, // plaidTransactionId
+                    null, // transactionType
+                    null, // currencyCode
+                    null, // importSource
+                    null, // importBatchId
+                    null  // importFileName
             );
         }
 
         // Then - All should return same transaction (idempotent)
+        String firstTransactionId = transactions[0].getTransactionId();
         for (int i = 1; i < 5; i++) {
-            assertEquals(transactions[0].getTransactionId(), transactions[i].getTransactionId(),
+            assertEquals(firstTransactionId, transactions[i].getTransactionId(),
                     "All rapid POST requests should return same transaction");
         }
 
-        // Verify only one transaction exists
-        Optional<TransactionTable> saved = transactionRepository.findById(transactionId);
-        assertTrue(saved.isPresent());
+        // Verify only one transaction exists with this ID
+        Optional<TransactionTable> saved = transactionRepository.findById(firstTransactionId);
+        assertTrue(saved.isPresent(), "Transaction should exist in repository");
         
-        // Count transactions for this user
+        // Count transactions for this user with the same account, amount, and date
         List<TransactionTable> userTransactions = transactionRepository.findByUserId(
                 testUser.getUserId(), 0, 100);
         long count = userTransactions.stream()
-                .filter(t -> t.getTransactionId().equals(transactionId))
+                .filter(t -> t.getAccountId().equals(testAccount.getAccountId()) &&
+                            t.getAmount().compareTo(BigDecimal.valueOf(-50.00)) == 0 &&
+                            t.getTransactionDate().equals(testDate.format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE)))
                 .count();
-        assertEquals(1, count, "Should have only one transaction with this ID");
+        assertEquals(1, count, "Should have only one transaction with same account, amount, and date");
     }
 }
 

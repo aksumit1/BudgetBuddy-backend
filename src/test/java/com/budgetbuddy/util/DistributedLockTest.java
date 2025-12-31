@@ -7,6 +7,7 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
 
 import java.time.Duration;
 import java.util.Optional;
@@ -121,7 +122,8 @@ class DistributedLockTest {
     @DisplayName("Should release lock successfully")
     void testReleaseLock_Success() {
         // Given
-        when(redisTemplate.execute(any(), any(), any())).thenReturn(1L);
+        when(redisTemplate.execute(any(DefaultRedisScript.class), any(java.util.List.class), any()))
+                .thenReturn(1L);
         distributedLock = new DistributedLock(redisTemplate);
 
         // When
@@ -129,14 +131,15 @@ class DistributedLockTest {
 
         // Then
         assertTrue(released);
-        verify(redisTemplate).execute(any(), any(), any());
+        verify(redisTemplate).execute(any(DefaultRedisScript.class), any(java.util.List.class), any());
     }
 
     @Test
     @DisplayName("Should fail to release lock with wrong value")
     void testReleaseLock_WrongValue() {
         // Given
-        when(redisTemplate.execute(any(), any(), any())).thenReturn(0L);
+        when(redisTemplate.execute(any(DefaultRedisScript.class), any(java.util.List.class), any()))
+                .thenReturn(0L);
         distributedLock = new DistributedLock(redisTemplate);
 
         // When
@@ -150,7 +153,8 @@ class DistributedLockTest {
     @DisplayName("Should handle Redis failure during release gracefully")
     void testReleaseLock_RedisFailure() {
         // Given
-        when(redisTemplate.execute(any(), any(), any())).thenThrow(new RuntimeException("Redis down"));
+        when(redisTemplate.execute(any(DefaultRedisScript.class), any(java.util.List.class), any()))
+                .thenThrow(new RuntimeException("Redis down"));
         distributedLock = new DistributedLock(redisTemplate);
 
         // When
@@ -171,7 +175,7 @@ class DistributedLockTest {
 
         // Then
         assertTrue(released);
-        verify(redisTemplate, never()).execute(any(), any(), any());
+        verify(redisTemplate, never()).execute(any(DefaultRedisScript.class), any(java.util.List.class), any());
     }
 
     @Test
@@ -197,7 +201,8 @@ class DistributedLockTest {
         // Given
         when(valueOperations.setIfAbsent(anyString(), anyString(), any(Duration.class)))
                 .thenReturn(true);
-        when(redisTemplate.execute(any(), any(), any())).thenReturn(1L);
+        when(redisTemplate.execute(any(DefaultRedisScript.class), any(java.util.List.class), any()))
+                .thenReturn(1L);
         distributedLock = new DistributedLock(redisTemplate);
 
         // When
@@ -206,7 +211,7 @@ class DistributedLockTest {
         // Then
         assertEquals("success", result);
         verify(valueOperations).setIfAbsent(anyString(), anyString(), any(Duration.class));
-        verify(redisTemplate).execute(any(), any(), any());
+        verify(redisTemplate).execute(any(DefaultRedisScript.class), any(java.util.List.class), any());
     }
 
     @Test
@@ -229,7 +234,8 @@ class DistributedLockTest {
         // Given
         when(valueOperations.setIfAbsent(anyString(), anyString(), any(Duration.class)))
                 .thenReturn(true);
-        when(redisTemplate.execute(any(), any(), any())).thenReturn(1L);
+        when(redisTemplate.execute(any(DefaultRedisScript.class), any(java.util.List.class), any()))
+                .thenReturn(1L);
         distributedLock = new DistributedLock(redisTemplate);
 
         // When/Then
@@ -240,7 +246,7 @@ class DistributedLockTest {
         });
 
         // Then - Lock should be released
-        verify(redisTemplate).execute(any(), any(), any());
+        verify(redisTemplate).execute(any(DefaultRedisScript.class), any(java.util.List.class), any());
     }
 
     @Test
@@ -264,7 +270,8 @@ class DistributedLockTest {
         // Given
         when(valueOperations.setIfAbsent(anyString(), anyString(), any(Duration.class)))
                 .thenReturn(true);
-        when(redisTemplate.execute(any(), any(), any())).thenReturn(1L);
+        when(redisTemplate.execute(any(DefaultRedisScript.class), any(java.util.List.class), any()))
+                .thenReturn(1L);
         distributedLock = new DistributedLock(redisTemplate);
 
         // When

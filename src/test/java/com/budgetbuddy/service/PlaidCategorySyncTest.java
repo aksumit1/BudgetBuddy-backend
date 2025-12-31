@@ -20,6 +20,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 import static org.mockito.Mockito.lenient;
+import com.budgetbuddy.service.TransactionTypeCategoryService;
 
 /**
  * Integration tests for Plaid category sync
@@ -170,8 +171,8 @@ class PlaidCategorySyncTest {
                     categoryMapping = new PlaidCategoryMapper.CategoryMapping("other", "other", false);
                 }
                 
-                txTable.setPlaidCategoryPrimary(plaidCategoryPrimary);
-                txTable.setPlaidCategoryDetailed(plaidCategoryDetailed);
+                txTable.setImporterCategoryPrimary(plaidCategoryPrimary);
+                txTable.setImporterCategoryDetailed(plaidCategoryDetailed);
                 txTable.setCategoryPrimary(categoryMapping.getPrimary());
                 txTable.setCategoryDetailed(categoryMapping.getDetailed());
                 txTable.setCategoryOverridden(categoryMapping.isOverridden());
@@ -190,8 +191,8 @@ class PlaidCategorySyncTest {
 
         // Then - Verify category fields are set correctly
         verify(transactionRepository, atLeastOnce()).saveIfPlaidTransactionNotExists(argThat(transaction -> {
-            assertEquals("FOOD_AND_DRINK", transaction.getPlaidCategoryPrimary());
-            assertEquals("RESTAURANTS", transaction.getPlaidCategoryDetailed());
+            assertEquals("FOOD_AND_DRINK", transaction.getImporterCategoryPrimary());
+            assertEquals("RESTAURANTS", transaction.getImporterCategoryDetailed());
             assertEquals("dining", transaction.getCategoryPrimary());
             assertEquals("dining", transaction.getCategoryDetailed());
             assertFalse(transaction.getCategoryOverridden());
@@ -206,8 +207,8 @@ class PlaidCategorySyncTest {
         existingTransaction.setTransactionId("txn-123");
         existingTransaction.setUserId("user-123");
         existingTransaction.setAccountId("account-123");
-        existingTransaction.setPlaidCategoryPrimary("FOOD_AND_DRINK");
-        existingTransaction.setPlaidCategoryDetailed("RESTAURANTS");
+        existingTransaction.setImporterCategoryPrimary("FOOD_AND_DRINK");
+        existingTransaction.setImporterCategoryDetailed("RESTAURANTS");
         existingTransaction.setCategoryPrimary("dining");
         existingTransaction.setCategoryDetailed("dining");
         existingTransaction.setCategoryOverridden(false);
@@ -220,7 +221,9 @@ class PlaidCategorySyncTest {
 
         // When - User overrides category via TransactionService
         TransactionService transactionService = new TransactionService(
-                transactionRepository, accountRepository, new com.budgetbuddy.service.TransactionTypeDeterminer());
+                transactionRepository, accountRepository, new com.budgetbuddy.service.TransactionTypeDeterminer(),
+                org.mockito.Mockito.mock(TransactionTypeCategoryService.class),
+                org.mockito.Mockito.mock(com.budgetbuddy.audit.AuditService.class));
         TransactionTable updated = transactionService.updateTransaction(
                 testUser, "txn-123", null, null, null, "groceries", "groceries", null, null, null, false);
 
@@ -230,8 +233,8 @@ class PlaidCategorySyncTest {
         assertEquals("groceries", updated.getCategoryDetailed());
         assertTrue(updated.getCategoryOverridden());
         // Original Plaid categories should be preserved
-        assertEquals("FOOD_AND_DRINK", updated.getPlaidCategoryPrimary());
-        assertEquals("RESTAURANTS", updated.getPlaidCategoryDetailed());
+        assertEquals("FOOD_AND_DRINK", updated.getImporterCategoryPrimary());
+        assertEquals("RESTAURANTS", updated.getImporterCategoryDetailed());
     }
 
     @Test
@@ -307,8 +310,8 @@ class PlaidCategorySyncTest {
                     categoryMapping = new PlaidCategoryMapper.CategoryMapping("other", "other", false);
                 }
                 
-                txTable.setPlaidCategoryPrimary(plaidCategoryPrimary);
-                txTable.setPlaidCategoryDetailed(plaidCategoryDetailed);
+                txTable.setImporterCategoryPrimary(plaidCategoryPrimary);
+                txTable.setImporterCategoryDetailed(plaidCategoryDetailed);
                 txTable.setCategoryPrimary(categoryMapping.getPrimary());
                 txTable.setCategoryDetailed(categoryMapping.getDetailed());
                 txTable.setCategoryOverridden(categoryMapping.isOverridden());
@@ -328,8 +331,8 @@ class PlaidCategorySyncTest {
 
         // Then - Verify defaults are used
         verify(transactionRepository, atLeastOnce()).saveIfPlaidTransactionNotExists(argThat(transaction -> {
-            assertNull(transaction.getPlaidCategoryPrimary());
-            assertNull(transaction.getPlaidCategoryDetailed());
+            assertNull(transaction.getImporterCategoryPrimary());
+            assertNull(transaction.getImporterCategoryDetailed());
             assertEquals("other", transaction.getCategoryPrimary());
             assertEquals("other", transaction.getCategoryDetailed());
             return true;

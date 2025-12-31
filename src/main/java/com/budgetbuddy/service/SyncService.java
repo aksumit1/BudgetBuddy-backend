@@ -46,6 +46,7 @@ public class SyncService {
     /**
      * Get all user data for first sync or force refresh
      * Returns all accounts, transactions, budgets, goals, and actions
+     * CRITICAL FIX: Implements pagination to fetch ALL transactions (not limited to 100)
      */
     public SyncAllResponse getAllData(final String userId) {
         if (userId == null || userId.isEmpty()) {
@@ -55,9 +56,80 @@ public class SyncService {
         logger.info("Fetching all data for user: {}", userId);
 
         try {
+            // NOTE: No need to evict cache here - TransactionRepository.save() already evicts cache
+            // with allEntries=true when transactions are saved, ensuring cache is fresh after imports.
+            // Removing cache eviction here allows cache to be used when no changes occurred,
+            // reducing unnecessary DynamoDB fetches.
+            
             // Fetch all data in parallel (repository calls are thread-safe)
             List<AccountTable> accounts = accountRepository.findByUserId(userId);
-            List<TransactionTable> transactions = transactionRepository.findByUserId(userId, 0, Integer.MAX_VALUE);
+            
+            // CRITICAL FIX: Fetch ALL transactions using pagination
+            // TransactionRepository.findByUserId() has a max limit of 100, so we need to paginate
+            // CRITICAL: Use tracking of fetched transaction IDs to avoid duplicates and ensure we get all transactions
+            // The repository's skip-based pagination can be unreliable when transactions are being added concurrently
+            List<TransactionTable> allTransactions = new java.util.ArrayList<>();
+            java.util.Set<String> seenTransactionIds = new java.util.HashSet<>();
+            int batchSize = 100; // Match the repository's max limit
+            int skip = 0;
+            int batchCount = 0;
+            boolean hasMore = true;
+            final int maxIterations = 10000; // Safety limit to prevent infinite loops
+            
+            while (hasMore && batchCount < maxIterations) {
+                List<TransactionTable> batch = transactionRepository.findByUserId(userId, skip, batchSize);
+                batchCount++;
+                
+                if (batch.isEmpty()) {
+                    // No more transactions found
+                    hasMore = false;
+                } else {
+                    // Filter out any duplicates we've already seen (defense against concurrent modifications)
+                    List<TransactionTable> newTransactions = new java.util.ArrayList<>();
+                    for (TransactionTable tx : batch) {
+                        String txId = tx.getTransactionId();
+                        if (txId != null && !seenTransactionIds.contains(txId)) {
+                            seenTransactionIds.add(txId);
+                            newTransactions.add(tx);
+                        }
+                    }
+                    
+                    allTransactions.addAll(newTransactions);
+                    
+                    // CRITICAL FIX: Increment skip by the number of items we got (not batchSize)
+                    // This ensures we don't skip over transactions if the batch had fewer items
+                    skip += batch.size();
+                    
+                    // If we got fewer than batchSize, we've likely reached the end
+                    // But continue one more time to be safe (in case of edge cases)
+                    if (batch.size() < batchSize) {
+                        // Double-check: query one more time to ensure we didn't miss any
+                        List<TransactionTable> finalBatch = transactionRepository.findByUserId(userId, skip, batchSize);
+                        if (finalBatch.isEmpty()) {
+                            hasMore = false;
+                        } else {
+                            // Add any remaining transactions
+                            for (TransactionTable tx : finalBatch) {
+                                String txId = tx.getTransactionId();
+                                if (txId != null && !seenTransactionIds.contains(txId)) {
+                                    seenTransactionIds.add(txId);
+                                    allTransactions.add(tx);
+                                }
+                            }
+                            hasMore = false;
+                        }
+                    }
+                }
+            }
+            
+            if (batchCount >= maxIterations) {
+                logger.warn("Reached maximum iteration limit ({}) for fetching transactions for user: {}. Fetched {} transactions", 
+                        maxIterations, userId, allTransactions.size());
+            }
+            
+            logger.info("Fetched {} transactions in {} batch(es) for user: {}", 
+                    allTransactions.size(), batchCount, userId);
+            
             List<BudgetTable> budgets = budgetRepository.findByUserId(userId);
             List<GoalTable> goals = goalRepository.findByUserId(userId);
             List<TransactionActionTable> actions = transactionActionRepository.findByUserId(userId);
@@ -65,9 +137,9 @@ public class SyncService {
             Long syncTimestamp = Instant.now().getEpochSecond();
 
             logger.info("Fetched all data for user {}: {} accounts, {} transactions, {} budgets, {} goals, {} actions",
-                    userId, accounts.size(), transactions.size(), budgets.size(), goals.size(), actions.size());
+                    userId, accounts.size(), allTransactions.size(), budgets.size(), goals.size(), actions.size());
 
-            return new SyncAllResponse(accounts, transactions, budgets, goals, actions, syncTimestamp);
+            return new SyncAllResponse(accounts, allTransactions, budgets, goals, actions, syncTimestamp);
         } catch (Exception e) {
             logger.error("Error fetching all data for user {}: {}", userId, e.getMessage(), e);
             throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to fetch user data", null, null, e);

@@ -34,7 +34,9 @@ public class CacheConfig {
                 "transactionActions",               // Transaction action cache
                 "fido2Credentials",                // FIDO2 credential cache
                 "subscriptions",                    // Subscription cache
-                "analytics");                       // Analytics cache
+                "analytics",                        // Analytics cache
+                "categoryDetermination",            // Category/type determination cache (P1)
+                "importCategoryParsing");           // Import category parsing cache (P1)
         cacheManager.setCaffeine(Caffeine.newBuilder()
                 .maximumSize(50_000) // Increased to handle all cache types
                 .expireAfterWrite(15, TimeUnit.MINUTES) // Balanced TTL for all cache types

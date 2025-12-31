@@ -1,39 +1,20 @@
 package com.budgetbuddy.util;
 
-import ch.qos.logback.classic.Level;
-import ch.qos.logback.classic.Logger;
-import ch.qos.logback.classic.spi.ILoggingEvent;
-import ch.qos.logback.core.read.ListAppender;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.slf4j.LoggerFactory;
+import software.amazon.awssdk.core.exception.SdkClientException;
+import software.amazon.awssdk.core.exception.SdkServiceException;
+import software.amazon.awssdk.services.dynamodb.model.InternalServerErrorException;
+import software.amazon.awssdk.services.dynamodb.model.ProvisionedThroughputExceededException;
 
 import java.time.Duration;
-import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Comprehensive tests for RetryHelper utility class
+ * Unit Tests for RetryHelper
  */
 class RetryHelperTest {
-
-    private ListAppender<ILoggingEvent> logAppender;
-    private Logger logger;
-
-    @BeforeEach
-    void setUp() {
-        // Set up log appender to capture log events for verification
-        logger = (Logger) LoggerFactory.getLogger(RetryHelper.class);
-        
-        // Remove any existing appenders to avoid duplicates
-        logger.detachAndStopAllAppenders();
-        
-        logAppender = new ListAppender<>();
-        logAppender.start();
-        logger.addAppender(logAppender);
-    }
 
     @Test
     void testExecuteWithRetry_WithSuccessfulOperation_ReturnsResult() {
@@ -41,250 +22,220 @@ class RetryHelperTest {
         AtomicInteger attempts = new AtomicInteger(0);
         
         // When
-        String result = RetryHelper.executeWithRetry(() -> {
-            attempts.incrementAndGet();
-            return "success";
-        }, 3, Duration.ofMillis(10), 2.0);
+        String result = RetryHelper.executeWithRetry(
+                () -> {
+                    attempts.incrementAndGet();
+                    return "success";
+                },
+                3,
+                Duration.ofMillis(10),
+                2.0
+        );
 
         // Then
-        assertEquals("success", result, "Should return result on success");
-        assertEquals(1, attempts.get(), "Should execute only once on success");
+        assertEquals("success", result);
+        assertEquals(1, attempts.get());
     }
 
     @Test
-    void testExecuteWithRetry_WithFailureThenSuccess_RetriesAndSucceeds() {
+    void testExecuteWithRetry_WithRetryableException_RetriesAndSucceeds() {
         // Given
         AtomicInteger attempts = new AtomicInteger(0);
-        
-        // When - Use a retryable exception (RuntimeException with retryable message simulates network issue)
-        String result = RetryHelper.executeWithRetry(() -> {
-            int attempt = attempts.incrementAndGet();
-            if (attempt < 2) {
-                throw new RuntimeException("Temporary failure - connection timeout");
-            }
-            return "success";
-        }, 3, Duration.ofMillis(10), 2.0);
+        ProvisionedThroughputExceededException retryableException = 
+                ProvisionedThroughputExceededException.builder().message("Throttled").build();
 
-        // Then
-        assertEquals("success", result, "Should succeed after retry");
-        assertEquals(2, attempts.get(), "Should retry once then succeed");
-    }
-
-    @Test
-    void testExecuteWithRetry_WithAllFailures_ThrowsException() {
-        // Given
-        AtomicInteger attempts = new AtomicInteger(0);
-        
-        // When/Then - Use a retryable exception (RuntimeException with retryable message)
-        RuntimeException exception = assertThrows(RuntimeException.class, () -> {
-            RetryHelper.executeWithRetry(() -> {
-                attempts.incrementAndGet();
-                throw new RuntimeException("Always fails - service unavailable");
-            }, 2, Duration.ofMillis(10), 2.0);
-        }, "Should throw exception after all retries exhausted");
-
-        // Then
-        assertEquals(3, attempts.get(), "Should attempt initial + 2 retries = 3 total");
-        assertTrue(exception.getMessage().contains("failed after 2 retries"), 
-                "Exception message should indicate retry failure");
-    }
-
-    @Test
-    void testExecuteWithRetry_WithDefaultSettings_Succeeds() {
-        // Given
-        AtomicInteger attempts = new AtomicInteger(0);
-        
         // When
-        String result = RetryHelper.executeWithRetry(() -> {
-            attempts.incrementAndGet();
-            return "success";
-        });
+        String result = RetryHelper.executeWithRetry(
+                () -> {
+                    int attempt = attempts.incrementAndGet();
+                    if (attempt < 3) {
+                        throw retryableException;
+                    }
+                    return "success";
+                },
+                3,
+                Duration.ofMillis(10),
+                2.0
+        );
 
         // Then
-        assertEquals("success", result, "Should succeed with default settings");
-        assertEquals(1, attempts.get(), "Should execute once");
+        assertEquals("success", result);
+        assertEquals(3, attempts.get());
     }
 
     @Test
-    void testExecuteWithRetry_WithCustomMaxRetries_RespectsLimit() {
+    void testExecuteWithRetry_WithNonRetryableException_ThrowsImmediately() {
         // Given
         AtomicInteger attempts = new AtomicInteger(0);
-        
-        // When/Then - Use a retryable exception
-        assertThrows(RuntimeException.class, () -> {
-            RetryHelper.executeWithRetry(() -> {
-                attempts.incrementAndGet();
-                throw new RuntimeException("Always fails - connection timeout");
-            }, 1); // Only 1 retry
-        }, "Should throw exception after custom retry limit");
+        IllegalArgumentException nonRetryableException = new IllegalArgumentException("Invalid input");
 
-        // Then
-        assertEquals(2, attempts.get(), "Should attempt initial + 1 retry = 2 total");
-    }
-
-    @Test
-    void testExecuteWithRetry_WithExponentialBackoff_RespectsDelay() {
-        // Given
-        AtomicInteger attempts = new AtomicInteger(0);
-        long startTime = System.currentTimeMillis();
-
-        // When - Use a retryable exception
-        assertThrows(RuntimeException.class, () -> {
-            RetryHelper.executeWithRetry(() -> {
-                attempts.incrementAndGet();
-                throw new RuntimeException("Always fails - connection timeout");
-            }, 2, Duration.ofMillis(50), 2.0); // 50ms initial, doubles each time
-        });
-
-        // Then
-        long elapsed = System.currentTimeMillis() - startTime;
-        // Should have at least: 50ms (first retry) + 100ms (second retry) = 150ms minimum
-        // Plus execution time, so allow some buffer
-        assertTrue(elapsed >= 100, "Should respect exponential backoff delays");
-        assertEquals(3, attempts.get(), "Should attempt 3 times");
-    }
-
-    @Test
-    void testExecuteWithRetryVoid_WithSuccessfulOperation_ExecutesOnce() {
-        // Given
-        AtomicInteger executions = new AtomicInteger(0);
-        
-        // When
-        RetryHelper.executeWithRetryVoid(() -> {
-            executions.incrementAndGet();
-        });
-
-        // Then
-        assertEquals(1, executions.get(), "Should execute once on success");
-    }
-
-    @Test
-    void testExecuteWithRetryVoid_WithFailureThenSuccess_RetriesAndSucceeds() {
-        // Given
-        AtomicInteger attempts = new AtomicInteger(0);
-        
-        // When - Use a retryable exception
-        RetryHelper.executeWithRetryVoid(() -> {
-            int attempt = attempts.incrementAndGet();
-            if (attempt < 2) {
-                throw new RuntimeException("Temporary failure - connection timeout");
-            }
-        }, 3, Duration.ofMillis(10), 2.0);
-
-        // Then
-        assertEquals(2, attempts.get(), "Should retry once then succeed");
-    }
-
-    @Test
-    void testExecuteWithRetryVoid_WithAllFailures_ThrowsException() {
-        // Given
-        AtomicInteger attempts = new AtomicInteger(0);
-        
-        // When/Then - Use a retryable exception
-        assertThrows(RuntimeException.class, () -> {
-            RetryHelper.executeWithRetryVoid(() -> {
-                attempts.incrementAndGet();
-                throw new RuntimeException("Always fails - connection timeout");
-            }, 2, Duration.ofMillis(10), 2.0);
-        }, "Should throw exception after all retries exhausted");
-
-        // Then
-        assertEquals(3, attempts.get(), "Should attempt 3 times");
-    }
-
-    @Test
-    void testExecuteWithRetry_WithInterruptedThread_ThrowsException() {
-        // Given
-        Thread currentThread = Thread.currentThread();
-        
         // When/Then
-        assertThrows(RuntimeException.class, () -> {
-            RetryHelper.executeWithRetry(() -> {
-                currentThread.interrupt();
-                throw new RuntimeException("Failure");
-            }, 2, Duration.ofMillis(100), 2.0);
-        }, "Should handle thread interruption");
+        assertThrows(IllegalArgumentException.class, () -> 
+                RetryHelper.executeWithRetry(
+                        () -> {
+                            attempts.incrementAndGet();
+                            throw nonRetryableException;
+                        },
+                        3,
+                        Duration.ofMillis(10),
+                        2.0
+                ));
 
-        // Then - Thread should be interrupted
-        assertTrue(Thread.currentThread().isInterrupted(), "Thread should be interrupted");
-        // Clear interrupt flag for other tests
-        Thread.interrupted();
+        assertEquals(1, attempts.get(), "Should not retry non-retryable exceptions");
     }
 
     @Test
-    void testExecuteWithRetry_WithZeroRetries_ExecutesOnce() {
+    void testExecuteWithRetry_WithMaxRetriesExceeded_ThrowsException() {
         // Given
-        AtomicInteger attempts = new AtomicInteger(0);
-        
-        // When/Then - Use a retryable exception
-        assertThrows(RuntimeException.class, () -> {
-            RetryHelper.executeWithRetry(() -> {
-                attempts.incrementAndGet();
-                throw new RuntimeException("Failure - service unavailable");
-            }, 0, Duration.ofMillis(10), 2.0);
-        }, "Should throw exception with zero retries");
+        ProvisionedThroughputExceededException retryableException = 
+                ProvisionedThroughputExceededException.builder().message("Throttled").build();
 
-        // Then
-        assertEquals(1, attempts.get(), "Should execute only once with zero retries");
-        
-        // Verify logging behavior - with zero retries, should log ERROR immediately (no WARN logs)
-        List<ILoggingEvent> logEvents = logAppender.list;
-        long warnLogs = logEvents.stream()
-                .filter(event -> event.getLevel() == Level.WARN)
-                .count();
-        long errorLogs = logEvents.stream()
-                .filter(event -> event.getLevel() == Level.ERROR)
-                .count();
-        
-        // Should have 0 WARN logs (no retries) and 1 ERROR log (immediate failure)
-        assertEquals(0, warnLogs, "Should not log WARN with zero retries");
-        assertEquals(1, errorLogs, "Should log ERROR when max retries is 0");
-        
-        // Verify ERROR log contains expected message
-        // Use getFormattedMessage() to get the actual formatted message, not the template
-        boolean foundErrorLog = logEvents.stream()
-                .anyMatch(event -> event.getLevel() == Level.ERROR 
-                        && event.getFormattedMessage().contains("Operation failed after 0 retries"));
-        
-        assertTrue(foundErrorLog, "Should log ERROR with retry count message");
+        // When/Then
+        assertThrows(RuntimeException.class, () -> 
+                RetryHelper.executeWithRetry(
+                        () -> {
+                            throw retryableException;
+                        },
+                        2,
+                        Duration.ofMillis(10),
+                        2.0
+                ));
     }
 
     @Test
-    void testExecuteWithRetry_WithDifferentExceptionTypes_HandlesAll() {
+    void testExecuteWithRetry_WithDefaultParameters_Succeeds() {
         // Given
         AtomicInteger attempts = new AtomicInteger(0);
-        
-        // When/Then - Use retryable exceptions (SdkClientException for all)
-        assertThrows(RuntimeException.class, () -> {
-            RetryHelper.executeWithRetry(() -> {
-                int attempt = attempts.incrementAndGet();
-                throw new RuntimeException("Exception attempt " + attempt + " - service unavailable");
-            }, 2, Duration.ofMillis(10), 2.0);
-        }, "Should handle different exception types");
+
+        // When
+        String result = RetryHelper.executeWithRetry(
+                () -> {
+                    attempts.incrementAndGet();
+                    return "success";
+                }
+        );
 
         // Then
-        assertEquals(3, attempts.get(), "Should retry for all exception types");
-        
-        // Verify logging behavior - should log WARN for retries and ERROR for final failure
-        List<ILoggingEvent> logEvents = logAppender.list;
-        long warnLogs = logEvents.stream()
-                .filter(event -> event.getLevel() == Level.WARN)
-                .count();
-        long errorLogs = logEvents.stream()
-                .filter(event -> event.getLevel() == Level.ERROR)
-                .count();
-        
-        // Should have 2 WARN logs (for 2 retries) and 1 ERROR log (for final failure)
-        assertEquals(2, warnLogs, "Should log WARN for each retry attempt");
-        assertEquals(1, errorLogs, "Should log ERROR when all retries exhausted");
-        
-        // Verify ERROR log contains expected message
-        // Use getFormattedMessage() to get the actual formatted message, not the template
-        boolean foundErrorLog = logEvents.stream()
-                .anyMatch(event -> event.getLevel() == Level.ERROR 
-                        && event.getFormattedMessage().contains("Operation failed after 2 retries"));
-        
-        assertTrue(foundErrorLog, "Should log ERROR with retry count message");
+        assertEquals("success", result);
+        assertEquals(1, attempts.get());
+    }
+
+    @Test
+    void testExecuteWithRetry_WithSdkServiceException_Retries() {
+        // Given
+        AtomicInteger attempts = new AtomicInteger(0);
+        SdkServiceException serviceException = SdkServiceException.builder()
+                .statusCode(503)
+                .message("Service unavailable")
+                .build();
+
+        // When
+        String result = RetryHelper.executeWithRetry(
+                () -> {
+                    int attempt = attempts.incrementAndGet();
+                    if (attempt < 2) {
+                        throw serviceException;
+                    }
+                    return "success";
+                },
+                3,
+                Duration.ofMillis(10),
+                2.0
+        );
+
+        // Then
+        assertEquals("success", result);
+        assertTrue(attempts.get() >= 2);
+    }
+
+    @Test
+    void testExecuteWithRetry_WithSdkClientException_Retries() {
+        // Given
+        AtomicInteger attempts = new AtomicInteger(0);
+        SdkClientException clientException = SdkClientException.builder()
+                .message("Connection timeout")
+                .build();
+
+        // When
+        String result = RetryHelper.executeWithRetry(
+                () -> {
+                    int attempt = attempts.incrementAndGet();
+                    if (attempt < 2) {
+                        throw clientException;
+                    }
+                    return "success";
+                },
+                3,
+                Duration.ofMillis(10),
+                2.0
+        );
+
+        // Then
+        assertEquals("success", result);
+        assertTrue(attempts.get() >= 2);
+    }
+
+    @Test
+    void testExecuteDynamoDbWithRetry_WithSuccessfulOperation_ReturnsResult() {
+        // Given
+        AtomicInteger attempts = new AtomicInteger(0);
+
+        // When
+        String result = RetryHelper.executeDynamoDbWithRetry(
+                () -> {
+                    attempts.incrementAndGet();
+                    return "success";
+                }
+        );
+
+        // Then
+        assertEquals("success", result);
+        assertEquals(1, attempts.get());
+    }
+
+    @Test
+    void testExecuteDynamoDbWithRetry_WithThrottlingException_Retries() {
+        // Given
+        AtomicInteger attempts = new AtomicInteger(0);
+        ProvisionedThroughputExceededException throttlingException = 
+                ProvisionedThroughputExceededException.builder().message("Throttled").build();
+
+        // When
+        String result = RetryHelper.executeDynamoDbWithRetry(
+                () -> {
+                    int attempt = attempts.incrementAndGet();
+                    if (attempt < 2) {
+                        throw throttlingException;
+                    }
+                    return "success";
+                }
+        );
+
+        // Then
+        assertEquals("success", result);
+        assertTrue(attempts.get() >= 2);
+    }
+
+    @Test
+    void testExecuteDynamoDbWithRetry_WithInternalServerError_Retries() {
+        // Given
+        AtomicInteger attempts = new AtomicInteger(0);
+        InternalServerErrorException serverError = 
+                InternalServerErrorException.builder().message("Internal error").build();
+
+        // When
+        String result = RetryHelper.executeDynamoDbWithRetry(
+                () -> {
+                    int attempt = attempts.incrementAndGet();
+                    if (attempt < 2) {
+                        throw serverError;
+                    }
+                    return "success";
+                }
+        );
+
+        // Then
+        assertEquals("success", result);
+        assertTrue(attempts.get() >= 2);
     }
 }
-

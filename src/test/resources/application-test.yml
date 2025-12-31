@@ -7,8 +7,10 @@ spring:
     allow-bean-definition-overriding: true
   
   # Test Database Configuration
+  # CRITICAL: Tests use a separate LocalStack instance on port 4567 (isolated from main app on 4566)
+  # This ensures complete isolation - tests won't affect local development LocalStack data
   dynamodb:
-    endpoint: ${DYNAMODB_ENDPOINT:http://localhost:4566} # LocalStack endpoint for testing (can be overridden via env var)
+    endpoint: ${DYNAMODB_ENDPOINT:http://localhost:4567} # Test LocalStack endpoint (separate from main app on 4566)
     region: us-east-1
 
 # Server Configuration for Tests
@@ -38,7 +40,7 @@ app:
     region: us-east-1
     dynamodb:
       table-prefix: TestBudgetBuddy
-      endpoint: ${DYNAMODB_ENDPOINT:http://localhost:4566} # Can be overridden via env var for different LocalStack instances
+      endpoint: ${DYNAMODB_ENDPOINT:http://localhost:4567} # Test LocalStack endpoint (separate from main app on 4566)
       auto-create-tables: true # Enable table auto-creation in tests - ensures tables exist for proper testing
     s3:
       bucket-name: test-budgetbuddy-storage
@@ -67,6 +69,11 @@ app:
     enabled: false # Disable rate limiting in tests to avoid interference with test execution
     requests-per-minute: 1000000000 # 1 billion per minute (extremely high for CI/GitHub)
     requests-per-hour: 10000000000 # 10 billion per hour (extremely high for CI/GitHub)
+  # File upload rate limiting - disabled for tests
+  file-upload:
+    max-uploads-per-hour: 1000000 # Very high limit for tests
+    max-total-size-per-hour: 1000000000000 # 1TB per hour for tests
+    min-time-between-uploads-ms: 0 # No minimum time between uploads in tests
     # Per-endpoint limits for tests (extremely high to support CI/GitHub test runs and multiple mvn install executions)
     # Increased significantly to handle CI/GitHub test runs and multiple mvn install executions
     auth-login: 100000000 # 100 million per minute
@@ -147,5 +154,9 @@ logging:
   level:
     root: INFO
     com.budgetbuddy: DEBUG
+    # Reduce verbose logging for imports and category parsing
+    com.budgetbuddy.service.CSVImportService: INFO
+    com.budgetbuddy.service.ml.SemanticMatchingService: INFO
+    com.budgetbuddy.service.ml.EnhancedCategoryDetectionService: INFO
     org.springframework: WARN
     software.amazon.awssdk: WARN

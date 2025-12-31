@@ -151,7 +151,8 @@ class TransactionActionServiceTest {
                 null,
                 null,
                 true,
-                "LOW"
+                "LOW",
+                null
         );
 
         // Then
@@ -171,7 +172,7 @@ class TransactionActionServiceTest {
 
         // When/Then
         assertThrows(AppException.class, () -> actionService.updateAction(
-                testUser, testAction.getActionId(), "Title", null, null, null, null, null));
+                testUser, testAction.getActionId(), "Title", null, null, null, null, null, null));
     }
 
     @Test
@@ -186,7 +187,7 @@ class TransactionActionServiceTest {
 
         // When/Then
         assertThrows(AppException.class, () -> actionService.updateAction(
-                testUser, testAction.getActionId(), "Title", null, null, null, null, null));
+                testUser, testAction.getActionId(), "Title", null, null, null, null, null, null));
     }
 
     @Test

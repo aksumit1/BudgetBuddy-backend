@@ -40,7 +40,7 @@ class PlaidDataExtractorTest {
 
     @BeforeEach
     void setUp() {
-        dataExtractor = new PlaidDataExtractor(categoryMapper, accountRepository, new com.budgetbuddy.service.TransactionTypeDeterminer());
+        dataExtractor = new PlaidDataExtractor(accountRepository, org.mockito.Mockito.mock(com.budgetbuddy.service.TransactionTypeCategoryService.class));
     }
 
     @Test
@@ -188,7 +188,8 @@ class PlaidDataExtractorTest {
 
         // Then
         assertNotNull(transaction.getUpdatedAt());
-        assertEquals(BigDecimal.valueOf(100.0), transaction.getAmount());
+        // CRITICAL: Plaid amounts are normalized (sign reversed) - Plaid +100.0 becomes -100.0 after normalization
+        assertEquals(BigDecimal.valueOf(-100.0), transaction.getAmount());
         assertEquals("Test Transaction", transaction.getDescription());
         assertEquals("USD", transaction.getCurrencyCode());
     }
@@ -204,6 +205,170 @@ class PlaidDataExtractorTest {
 
         // Then
         assertEquals("plaid-account-1", accountId);
+    }
+
+    // ========== Plaid Amount Normalization Tests ==========
+
+    @Test
+    void testNormalizePlaidAmount_WithNullAmount_ReturnsNull() {
+        // When
+        BigDecimal result = dataExtractor.normalizePlaidAmount(null, null);
+
+        // Then
+        assertNull(result);
+    }
+
+    @Test
+    void testNormalizePlaidAmount_WithNullAccount_ReversesSign() {
+        // Given
+        BigDecimal rawAmount = new BigDecimal("100.00");
+
+        // When
+        BigDecimal result = dataExtractor.normalizePlaidAmount(rawAmount, null);
+
+        // Then - Should reverse sign even without account info
+        assertEquals(new BigDecimal("-100.00"), result);
+    }
+
+    @Test
+    void testNormalizePlaidAmount_WithPositiveExpense_ReversesToNegative() {
+        // Given - Plaid sends expenses as positive
+        BigDecimal rawAmount = new BigDecimal("50.00");
+        AccountTable account = new AccountTable();
+        account.setAccountType("checking");
+
+        // When
+        BigDecimal result = dataExtractor.normalizePlaidAmount(rawAmount, account);
+
+        // Then - Should reverse to negative (backend convention)
+        assertEquals(new BigDecimal("-50.00"), result);
+    }
+
+    @Test
+    void testNormalizePlaidAmount_WithNegativeIncome_ReversesToPositive() {
+        // Given - Plaid sends income as negative
+        BigDecimal rawAmount = new BigDecimal("-5000.00");
+        AccountTable account = new AccountTable();
+        account.setAccountType("checking");
+
+        // When
+        BigDecimal result = dataExtractor.normalizePlaidAmount(rawAmount, account);
+
+        // Then - Should reverse to positive (backend convention)
+        assertEquals(new BigDecimal("5000.00"), result);
+    }
+
+    @Test
+    void testNormalizePlaidAmount_WithZeroAmount_ReturnsZero() {
+        // Given
+        BigDecimal rawAmount = BigDecimal.ZERO;
+        AccountTable account = new AccountTable();
+        account.setAccountType("checking");
+
+        // When
+        BigDecimal result = dataExtractor.normalizePlaidAmount(rawAmount, account);
+
+        // Then - Zero should remain zero
+        assertEquals(BigDecimal.ZERO, result);
+    }
+
+    @Test
+    void testNormalizePlaidAmount_WithCreditCardAccount_ReversesSign() {
+        // Given - Credit card transaction from Plaid
+        BigDecimal rawAmount = new BigDecimal("100.00");
+        AccountTable account = new AccountTable();
+        account.setAccountType("credit");
+        account.setAccountSubtype("credit card");
+
+        // When
+        BigDecimal result = dataExtractor.normalizePlaidAmount(rawAmount, account);
+
+        // Then - Should reverse sign for all account types
+        assertEquals(new BigDecimal("-100.00"), result);
+    }
+
+    @Test
+    void testNormalizePlaidAmount_WithLoanAccount_ReversesSign() {
+        // Given - Loan transaction from Plaid
+        BigDecimal rawAmount = new BigDecimal("500.00");
+        AccountTable account = new AccountTable();
+        account.setAccountType("loan");
+
+        // When
+        BigDecimal result = dataExtractor.normalizePlaidAmount(rawAmount, account);
+
+        // Then - Should reverse sign for all account types
+        assertEquals(new BigDecimal("-500.00"), result);
+    }
+
+    @Test
+    void testNormalizePlaidAmount_WithInvestmentAccount_ReversesSign() {
+        // Given - Investment transaction from Plaid
+        BigDecimal rawAmount = new BigDecimal("1000.00");
+        AccountTable account = new AccountTable();
+        account.setAccountType("investment");
+
+        // When
+        BigDecimal result = dataExtractor.normalizePlaidAmount(rawAmount, account);
+
+        // Then - Should reverse sign for all account types
+        assertEquals(new BigDecimal("-1000.00"), result);
+    }
+
+    @Test
+    void testNormalizePlaidAmount_WithVeryLargeAmount_HandlesCorrectly() {
+        // Given - Very large amount
+        BigDecimal rawAmount = new BigDecimal("999999999.99");
+        AccountTable account = new AccountTable();
+        account.setAccountType("checking");
+
+        // When
+        BigDecimal result = dataExtractor.normalizePlaidAmount(rawAmount, account);
+
+        // Then - Should reverse sign correctly
+        assertEquals(new BigDecimal("-999999999.99"), result);
+    }
+
+    @Test
+    void testNormalizePlaidAmount_WithVerySmallAmount_HandlesCorrectly() {
+        // Given - Very small amount
+        BigDecimal rawAmount = new BigDecimal("0.01");
+        AccountTable account = new AccountTable();
+        account.setAccountType("checking");
+
+        // When
+        BigDecimal result = dataExtractor.normalizePlaidAmount(rawAmount, account);
+
+        // Then - Should reverse sign correctly
+        assertEquals(new BigDecimal("-0.01"), result);
+    }
+
+    @Test
+    void testNormalizePlaidAmount_WithNegativeVeryLargeAmount_HandlesCorrectly() {
+        // Given - Very large negative amount (income)
+        BigDecimal rawAmount = new BigDecimal("-999999999.99");
+        AccountTable account = new AccountTable();
+        account.setAccountType("checking");
+
+        // When
+        BigDecimal result = dataExtractor.normalizePlaidAmount(rawAmount, account);
+
+        // Then - Should reverse to positive
+        assertEquals(new BigDecimal("999999999.99"), result);
+    }
+
+    @Test
+    void testNormalizePlaidAmount_WithAccountNullType_ReversesSign() {
+        // Given - Account with null type
+        BigDecimal rawAmount = new BigDecimal("100.00");
+        AccountTable account = new AccountTable();
+        account.setAccountType(null);
+
+        // When
+        BigDecimal result = dataExtractor.normalizePlaidAmount(rawAmount, account);
+
+        // Then - Should still reverse sign
+        assertEquals(new BigDecimal("-100.00"), result);
     }
 }
 

@@ -215,6 +215,12 @@ class NotFoundErrorTrackingIntegrationTest {
         // Use a unique IP to avoid interference from other tests
         String uniqueIp = "192.168.1." + UUID.randomUUID().toString().substring(0, 3);
         
+        // CRITICAL FIX: Clear tracking for the IP to ensure it's not already blocked
+        // (from previous test runs or DynamoDB persistence)
+        if (notFoundTrackingService.isBlocked(uniqueIp)) {
+            notFoundTrackingService.clearTracking(uniqueIp);
+        }
+        
         // Note: This test verifies the per-hour threshold is correctly configured
         // Since making 200 requests would take too long and may hit per-minute limit first,
         // we verify the service correctly reads the threshold from config
@@ -360,6 +366,12 @@ class NotFoundErrorTrackingIntegrationTest {
         String uniqueIp = "192.168.1." + (300 + (int)(Math.random() * 100));
         String validPath = "/api/transactions";
         int threshold = 20;
+        
+        // CRITICAL FIX: Clear tracking for the IP to ensure it's not already blocked
+        // (from previous test runs or DynamoDB persistence)
+        if (notFoundTrackingService.isBlocked(uniqueIp)) {
+            notFoundTrackingService.clearTracking(uniqueIp);
+        }
         
         // When - Making mix of requests
         // Valid request (should not count) - authenticated request should return 200

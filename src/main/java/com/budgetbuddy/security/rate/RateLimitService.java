@@ -2,6 +2,8 @@ package com.budgetbuddy.security.rate;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
@@ -11,6 +13,7 @@ import software.amazon.awssdk.services.dynamodb.model.UpdateTimeToLiveRequest;
 import java.time.Instant;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -54,6 +57,7 @@ public class RateLimitService {
                 "/api/auth/signup", new RateLimitConfig(authSignupLimit, 60),
                 "/api/plaid", new RateLimitConfig(plaidLimit, 60),
                 "/api/transactions", new RateLimitConfig(transactionsLimit, 60),
+                "/api/transactions/batch-import", new RateLimitConfig(100, 60), // 100 batch requests per minute
                 "/api/analytics", new RateLimitConfig(analyticsLimit, 60),
                 "default", new RateLimitConfig(defaultLimit, 60)
         );
@@ -64,6 +68,7 @@ public class RateLimitService {
 
     private final DynamoDbClient dynamoDbClient;
     private final String tableName;
+    private final Executor asyncExecutor; // Thread pool for async operations
 
     // In-memory cache for hot paths
     private final Map<String, TokenBucket> inMemoryCache = new ConcurrentHashMap<>();
@@ -71,13 +76,22 @@ public class RateLimitService {
     private static final long CACHE_TTL_MS = 60000; // 1 minute
     private volatile long lastCacheCleanup = System.currentTimeMillis();
 
-    public RateLimitService(final DynamoDbClient dynamoDbClient,
-            @Value("${app.aws.dynamodb.table-prefix:BudgetBuddy}") String tablePrefix) {
+    public RateLimitService(
+            final DynamoDbClient dynamoDbClient,
+            @Value("${app.aws.dynamodb.table-prefix:BudgetBuddy}") String tablePrefix,
+            @Autowired(required = false) @Qualifier("taskExecutor") Executor asyncExecutor) {
         if (dynamoDbClient == null) {
             throw new IllegalArgumentException("DynamoDbClient cannot be null");
         }
         this.dynamoDbClient = dynamoDbClient;
         this.tableName = tablePrefix + "-RateLimits";
+        // Use provided executor or fallback to default (for testing)
+        this.asyncExecutor = asyncExecutor != null ? asyncExecutor : 
+            java.util.concurrent.Executors.newCachedThreadPool(r -> {
+                Thread t = new Thread(r, "ratelimit-update-async");
+                t.setDaemon(true);
+                return t;
+            });
         initializeTable();
     }
 
@@ -240,9 +254,17 @@ public class RateLimitService {
 
     /**
      * Async update to avoid blocking the request thread
+     * Uses thread pool executor to prevent resource exhaustion
      */
     private void updateDynamoDBAsync(final String key, final TokenBucket bucket) {
-        new Thread(() -> updateDynamoDB(key, bucket), "ratelimit-update-async").start();
+        // Use thread pool executor to avoid creating unbounded threads
+        asyncExecutor.execute(() -> {
+            try {
+                updateDynamoDB(key, bucket);
+            } catch (Exception e) {
+                logger.error("Error in async rate limit update for {}: {}", key, e.getMessage(), e);
+            }
+        });
     }
 
     private void initializeTable() {

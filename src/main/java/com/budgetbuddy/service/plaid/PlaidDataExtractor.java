@@ -3,7 +3,7 @@ package com.budgetbuddy.service.plaid;
 import com.budgetbuddy.model.dynamodb.AccountTable;
 import com.budgetbuddy.model.dynamodb.TransactionTable;
 import com.budgetbuddy.repository.dynamodb.AccountRepository;
-import com.budgetbuddy.service.PlaidCategoryMapper;
+import com.budgetbuddy.service.TransactionTypeCategoryService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -18,16 +18,13 @@ import java.util.Optional;
 public class PlaidDataExtractor {
 
     private static final Logger logger = LoggerFactory.getLogger(PlaidDataExtractor.class);
-    private final PlaidCategoryMapper categoryMapper;
     private final AccountRepository accountRepository;
-    private final com.budgetbuddy.service.TransactionTypeDeterminer transactionTypeDeterminer;
+    private final com.budgetbuddy.service.TransactionTypeCategoryService transactionTypeCategoryService;
 
-    public PlaidDataExtractor(PlaidCategoryMapper categoryMapper, 
-                             AccountRepository accountRepository,
-                             com.budgetbuddy.service.TransactionTypeDeterminer transactionTypeDeterminer) {
-        this.categoryMapper = categoryMapper;
+    public PlaidDataExtractor(AccountRepository accountRepository,
+                             com.budgetbuddy.service.TransactionTypeCategoryService transactionTypeCategoryService) {
         this.accountRepository = accountRepository;
-        this.transactionTypeDeterminer = transactionTypeDeterminer;
+        this.transactionTypeCategoryService = transactionTypeCategoryService;
     }
 
     /**
@@ -284,10 +281,40 @@ public class PlaidDataExtractor {
             }
             
             if (plaidTx != null) {
-                // Extract amount
+                // Extract raw amount from Plaid
+                java.math.BigDecimal rawAmount = null;
                 if (plaidTx.getAmount() != null) {
-                    transaction.setAmount(java.math.BigDecimal.valueOf(plaidTx.getAmount()));
+                    rawAmount = java.math.BigDecimal.valueOf(plaidTx.getAmount());
                 }
+                
+                // CRITICAL: Normalize Plaid amount before storing
+                // Plaid uses reverse convention for checking/savings/debit/money_market accounts:
+                // -ve = income, +ve = expense
+                // We normalize to standard convention: +ve = income, -ve = expense
+                // This ensures both Plaid and Import transactions use the same convention
+                AccountTable account = null;
+                if (transaction.getAccountId() != null) {
+                    Optional<AccountTable> accountOpt = accountRepository.findById(transaction.getAccountId());
+                    if (accountOpt.isPresent()) {
+                        account = accountOpt.get();
+                    }
+                }
+                
+                // If account lookup failed, try by Plaid account ID
+                if (account == null && rawAmount != null) {
+                    String plaidAccountId = extractAccountIdFromTransaction(plaidTransaction);
+                    if (plaidAccountId != null && !plaidAccountId.isEmpty()) {
+                        Optional<AccountTable> accountOpt = accountRepository.findByPlaidAccountId(plaidAccountId);
+                        if (accountOpt.isPresent()) {
+                            account = accountOpt.get();
+                            transaction.setAccountId(account.getAccountId());
+                        }
+                    }
+                }
+                
+                // Normalize amount based on account type
+                java.math.BigDecimal normalizedAmount = normalizePlaidAmount(rawAmount, account);
+                transaction.setAmount(normalizedAmount);
                 
                 // Extract merchant name
                 String merchantName = plaidTx.getMerchantName();
@@ -322,99 +349,117 @@ public class PlaidDataExtractor {
                     logger.debug("Could not extract personal_finance_category: {}", e.getMessage());
                 }
                 
-                // Extract payment channel BEFORE category mapping (needed for ACH credit detection)
+                // Extract payment channel
                 String paymentChannel = null;
                 if (plaidTx.getPaymentChannel() != null) {
                     paymentChannel = plaidTx.getPaymentChannel().toString();
                     transaction.setPaymentChannel(paymentChannel);
                 }
                 
-                // Extract amount BEFORE category mapping (needed for ACH credit detection)
+                // Use normalized amount (already set above)
                 java.math.BigDecimal transactionAmount = transaction.getAmount();
                 
-                // Map categories (now with paymentChannel and amount for ACH credit detection)
-                PlaidCategoryMapper.CategoryMapping categoryMapping;
-                if (plaidCategoryPrimary != null || plaidCategoryDetailed != null) {
-                    categoryMapping = categoryMapper.mapPlaidCategory(
-                        plaidCategoryPrimary,
-                        plaidCategoryDetailed,
-                        transaction.getMerchantName(),
-                        transaction.getDescription(),
-                        paymentChannel,
-                        transactionAmount
-                    );
-                } else {
-                    categoryMapping = categoryMapper.mapPlaidCategory(
-                        null,
-                        null,
-                        transaction.getMerchantName(),
-                        transaction.getDescription(),
-                        paymentChannel,
-                        transactionAmount
-                    );
-                }
+                // CRITICAL: Write Plaid categories to importer fields (raw Plaid categories)
+                transaction.setImporterCategoryPrimary(plaidCategoryPrimary);
+                transaction.setImporterCategoryDetailed(plaidCategoryDetailed);
                 
-                transaction.setPlaidCategoryPrimary(plaidCategoryPrimary);
-                transaction.setPlaidCategoryDetailed(plaidCategoryDetailed);
+                // Account is already looked up above for amount normalization
                 
-                // CRITICAL: Check if this is an HSA account transaction
-                // HSA deposits (positive amounts) should be investment, debits (negative amounts) should be expenses
-                String accountType = null;
-                if (transaction.getAccountId() != null) {
-                    Optional<AccountTable> accountOpt = accountRepository.findById(transaction.getAccountId());
-                    if (accountOpt.isPresent()) {
-                        accountType = accountOpt.get().getAccountType();
-                    }
-                }
+                // CRITICAL: HSA account categorization logic
+                // HSA deposits (positive amounts) should be categorized as "investment"
+                // HSA debits (negative amounts) should be categorized as "healthcare" (if category is generic/other)
+                boolean isHSAAccount = account != null && account.getAccountType() != null && 
+                                      account.getAccountType().toLowerCase().contains("hsa");
                 
-                // If account type lookup failed, try by Plaid account ID
-                if (accountType == null || accountType.isEmpty()) {
-                    String plaidAccountId = extractAccountIdFromTransaction(plaidTransaction);
-                    if (plaidAccountId != null && !plaidAccountId.isEmpty()) {
-                        Optional<AccountTable> accountOpt = accountRepository.findByPlaidAccountId(plaidAccountId);
-                        if (accountOpt.isPresent()) {
-                            accountType = accountOpt.get().getAccountType();
+                // CRITICAL: Use unified service to determine internal categories (hybrid logic)
+                // Only if user hasn't overridden categories
+                if (!Boolean.TRUE.equals(transaction.getCategoryOverridden())) {
+                    TransactionTypeCategoryService.CategoryResult categoryResult = 
+                        transactionTypeCategoryService.determineCategory(
+                            plaidCategoryPrimary,  // Raw Plaid categories
+                            plaidCategoryDetailed,
+                            account,
+                            transaction.getMerchantName(),
+                            transaction.getDescription(),
+                            transactionAmount,
+                            paymentChannel,
+                            null, // No transaction type indicator for Plaid
+                            "PLAID"
+                        );
+                    
+                    if (categoryResult != null) {
+                        String determinedPrimary = categoryResult.getCategoryPrimary();
+                        String determinedDetailed = categoryResult.getCategoryDetailed();
+                        
+                        // CRITICAL: Override category for HSA accounts
+                        // IMPORTANT: Use rawAmount (before normalization) for HSA logic since normalization reverses sign
+                        // Plaid convention: +ve = expense, -ve = income
+                        // After normalization: -ve = expense, +ve = income
+                        // So for HSA: rawAmount > 0 means deposit (should be investment), rawAmount < 0 means debit (should be healthcare)
+                        if (isHSAAccount && rawAmount != null) {
+                            if (rawAmount.compareTo(java.math.BigDecimal.ZERO) > 0) {
+                                // HSA deposit (positive raw amount from Plaid) -> investment
+                                determinedPrimary = "investment";
+                                determinedDetailed = "otherInvestment";
+                                logger.debug("HSA deposit categorized as investment: rawAmount={}, normalizedAmount={}", rawAmount, transactionAmount);
+                            } else if (rawAmount.compareTo(java.math.BigDecimal.ZERO) < 0) {
+                                // HSA debit (negative raw amount from Plaid) -> healthcare
+                                // Only override if category is generic (other) or null
+                                if (determinedPrimary == null || "other".equals(determinedPrimary)) {
+                                    determinedPrimary = "healthcare";
+                                    determinedDetailed = "healthcare";
+                                    logger.debug("HSA debit categorized as healthcare: rawAmount={}, normalizedAmount={}", rawAmount, transactionAmount);
+                                } else {
+                                    // Keep existing category if it's already specific (e.g., from Plaid)
+                                    logger.debug("HSA debit keeping existing category: {}", determinedPrimary);
+                                }
+                            }
                         }
-                    }
-                }
-                
-                // Apply HSA-specific categorization
-                if (accountType != null && ("hsa".equalsIgnoreCase(accountType) || "healthsavingsaccount".equalsIgnoreCase(accountType))) {
-                    if (transactionAmount != null && transactionAmount.compareTo(java.math.BigDecimal.ZERO) > 0) {
-                        // HSA deposit (positive amount) → investment
-                        transaction.setCategoryPrimary("investment");
-                        transaction.setCategoryDetailed("otherInvestment"); // Generic investment category for HSA deposits
-                        transaction.setCategoryOverridden(false); // Not user-overridden, system-determined
-                        logger.debug("HSA deposit detected - categorized as investment: accountId={}, amount={}", 
-                                transaction.getAccountId(), transactionAmount);
-                    } else {
-                        // HSA debit (negative amount) → expense (keep existing category or use healthcare)
-                        // If category is already set to something appropriate, keep it; otherwise use healthcare
-                        if (categoryMapping == null || categoryMapping.getPrimary() == null || "other".equals(categoryMapping.getPrimary())) {
-                            transaction.setCategoryPrimary("healthcare");
-                            transaction.setCategoryDetailed("healthcare");
+                        
+                        // CRITICAL: Check if determined category differs from Plaid's category
+                        // If it does, this is an internal override (parser/rules/ML overrode Plaid)
+                        // Set categoryOverridden=true to prevent Plaid re-sync from overriding it
+                        boolean isInternalOverride = false;
+                        
+                        // CRITICAL: Check if determined category differs from Plaid's category
+                        // The CategoryResult.source field indicates where the category came from:
+                        // - "PLAID" = Used Plaid category directly (no override)
+                        // - "HYBRID", "ML", "PARSER", "RULE", "FALLBACK_*", "IOS_FALLBACK" = Internal override
+                        // - "IMPORTER" = Used importer category (for imports, not Plaid)
+                        
+                        String source = categoryResult.getSource();
+                        if (source != null && !"PLAID".equals(source)) {
+                            // Source indicates internal logic overrode Plaid category
+                            // This means parser/rules/ML determined a different category than Plaid
+                            isInternalOverride = true;
+                            logger.debug("Internal override detected from source: {} (determined: '{}', Plaid was: '{}')",
+                                source, determinedPrimary, plaidCategoryPrimary);
+                        }
+                        // If source is "PLAID", it means we used Plaid's category directly (no override)
+                        
+                        transaction.setCategoryPrimary(determinedPrimary);
+                        transaction.setCategoryDetailed(determinedDetailed);
+                        transaction.setCategoryOverridden(isInternalOverride);
+                        
+                        if (isInternalOverride) {
+                            logger.info("✅ Internal category override applied: Plaid='{}' → Determined='{}' (source: {}, confidence: {:.2f}). " +
+                                "This override will be preserved during Plaid re-sync.",
+                                plaidCategoryPrimary != null ? plaidCategoryPrimary : "null",
+                                determinedPrimary, categoryResult.getSource(), categoryResult.getConfidence());
                         } else {
-                            // Keep the mapped category (might be healthcare, groceries, etc.)
-                            transaction.setCategoryPrimary(categoryMapping.getPrimary());
-                            transaction.setCategoryDetailed(categoryMapping.getDetailed());
+                            logger.debug("Determined category matches Plaid: {} / {} (source: {}, confidence: {:.2f})",
+                                determinedPrimary, determinedDetailed,
+                                categoryResult.getSource(), categoryResult.getConfidence());
                         }
-                        transaction.setCategoryOverridden(categoryMapping != null && categoryMapping.isOverridden());
-                        logger.debug("HSA debit detected - categorized as expense: accountId={}, amount={}, category={}", 
-                                transaction.getAccountId(), transactionAmount, transaction.getCategoryPrimary());
-                    }
-                } else {
-                    // Not an HSA account - use normal categorization
-                    if (categoryMapping != null) {
-                        transaction.setCategoryPrimary(categoryMapping.getPrimary());
-                        transaction.setCategoryDetailed(categoryMapping.getDetailed());
-                        transaction.setCategoryOverridden(categoryMapping.isOverridden());
                     } else {
-                        // Fallback to default category if mapping is null
-                        logger.warn("Category mapping is null for transaction, using default 'other' category");
+                        // Fallback
                         transaction.setCategoryPrimary("other");
                         transaction.setCategoryDetailed("other");
                         transaction.setCategoryOverridden(false);
                     }
+                } else {
+                    logger.debug("Category already overridden by user, preserving: {} / {}",
+                        transaction.getCategoryPrimary(), transaction.getCategoryDetailed());
                 }
                 
                 // Extract date
@@ -438,36 +483,33 @@ public class PlaidDataExtractor {
                     transaction.setPending(plaidTx.getPending());
                 }
                 
-                // Extract account ID
-                AccountTable account = null;
-                if (plaidTx.getAccountId() != null) {
-                    Optional<AccountTable> accountOpt = accountRepository.findByPlaidAccountId(plaidTx.getAccountId());
-                    if (accountOpt.isPresent()) {
-                        account = accountOpt.get();
-                        transaction.setAccountId(account.getAccountId());
-                    }
-                }
-                
-                // CRITICAL: Determine and set transaction type based on account, category, and amount
+                // CRITICAL: Determine and set transaction type using unified service (hybrid logic)
                 // This must be done after all fields are set (category, amount, account)
                 // BUT: Only recalculate if user hasn't explicitly overridden transactionType
                 if (!Boolean.TRUE.equals(transaction.getTransactionTypeOverridden())) {
-                    AccountTable accountForType = account != null ? account : (transaction.getAccountId() != null ? 
-                            accountRepository.findById(transaction.getAccountId()).orElse(null) : null);
-                    com.budgetbuddy.model.TransactionType transactionType = transactionTypeDeterminer.determineTransactionType(
-                            accountForType,
+                    TransactionTypeCategoryService.TypeResult typeResult = 
+                        transactionTypeCategoryService.determineTransactionType(
+                            account,
                             transaction.getCategoryPrimary(),
                             transaction.getCategoryDetailed(),
-                            transaction.getAmount()
-                    );
-                    transaction.setTransactionType(transactionType.name());
-                    // Only set overridden=false if it's currently null (preserve existing override state)
-                    if (transaction.getTransactionTypeOverridden() == null) {
-                        transaction.setTransactionTypeOverridden(false);
+                            transactionAmount,
+                            null, // No transaction type indicator for Plaid
+                            transaction.getDescription(),
+                            paymentChannel
+                        );
+                    
+                    if (typeResult != null) {
+                        transaction.setTransactionType(typeResult.getTransactionType().name());
+                        // Only set overridden=false if it's currently null (preserve existing override state)
+                        if (transaction.getTransactionTypeOverridden() == null) {
+                            transaction.setTransactionTypeOverridden(false);
+                        }
+                        String plaidTxId = plaidTx.getTransactionId();
+                        logger.debug("Set transaction type to {} for Plaid transaction {} (source: {}, confidence: {:.2f})",
+                            typeResult.getTransactionType(), 
+                            plaidTxId != null ? plaidTxId : "unknown",
+                            typeResult.getSource(), typeResult.getConfidence());
                     }
-                    String plaidTxId = plaidTx.getTransactionId();
-                    logger.debug("Set transaction type to {} for Plaid transaction {} (not overridden)", transactionType, 
-                            plaidTxId != null ? plaidTxId : "unknown");
                 } else {
                     String plaidTxId = plaidTx.getTransactionId();
                     logger.debug("Skipping transaction type recalculation for Plaid transaction {} (user override preserved)", 
@@ -478,9 +520,32 @@ public class PlaidDataExtractor {
                 try {
                     java.lang.reflect.Method getAmount = plaidTransaction.getClass().getMethod("getAmount");
                     Object amount = getAmount.invoke(plaidTransaction);
+                    java.math.BigDecimal rawAmount = null;
                     if (amount != null && amount instanceof Number) {
-                        transaction.setAmount(java.math.BigDecimal.valueOf(((Number) amount).doubleValue()));
+                        rawAmount = java.math.BigDecimal.valueOf(((Number) amount).doubleValue());
                     }
+                    
+                    // Normalize amount (try to get account if possible)
+                    AccountTable account = null;
+                    if (transaction.getAccountId() != null) {
+                        Optional<AccountTable> accountOpt = accountRepository.findById(transaction.getAccountId());
+                        if (accountOpt.isPresent()) {
+                            account = accountOpt.get();
+                        }
+                    }
+                    if (account == null) {
+                        String plaidAccountId = extractAccountIdFromTransaction(plaidTransaction);
+                        if (plaidAccountId != null && !plaidAccountId.isEmpty()) {
+                            Optional<AccountTable> accountOpt = accountRepository.findByPlaidAccountId(plaidAccountId);
+                            if (accountOpt.isPresent()) {
+                                account = accountOpt.get();
+                                transaction.setAccountId(account.getAccountId());
+                            }
+                        }
+                    }
+                    
+                    java.math.BigDecimal normalizedAmount = normalizePlaidAmount(rawAmount, account);
+                    transaction.setAmount(normalizedAmount);
                     
                     java.lang.reflect.Method getName = plaidTransaction.getClass().getMethod("getName");
                     Object name = getName.invoke(plaidTransaction);
@@ -533,18 +598,27 @@ public class PlaidDataExtractor {
                     }
                 }
                 
-                com.budgetbuddy.model.TransactionType transactionType = transactionTypeDeterminer.determineTransactionType(
+                TransactionTypeCategoryService.TypeResult typeResult = 
+                    transactionTypeCategoryService.determineTransactionType(
                         account,
                         transaction.getCategoryPrimary(),
                         transaction.getCategoryDetailed(),
-                        transaction.getAmount()
-                );
-                transaction.setTransactionType(transactionType.name());
-                // Only set overridden=false if it's currently null (preserve existing override state)
-                if (transaction.getTransactionTypeOverridden() == null) {
-                    transaction.setTransactionTypeOverridden(false);
+                        transaction.getAmount(),
+                        null,
+                        transaction.getDescription(),
+                        transaction.getPaymentChannel()
+                    );
+                
+                if (typeResult != null) {
+                    transaction.setTransactionType(typeResult.getTransactionType().name());
+                    // Only set overridden=false if it's currently null (preserve existing override state)
+                    if (transaction.getTransactionTypeOverridden() == null) {
+                        transaction.setTransactionTypeOverridden(false);
+                    }
+                    logger.debug("Set transaction type to {} for transaction {} (source: {}, confidence: {:.2f})",
+                        typeResult.getTransactionType(), transaction.getTransactionId(),
+                        typeResult.getSource(), typeResult.getConfidence());
                 }
-                logger.debug("Set transaction type to {} for transaction {} (not overridden)", transactionType, transaction.getTransactionId());
             } catch (Exception e) {
                 logger.warn("Error determining transaction type, defaulting to EXPENSE: {}", e.getMessage());
                 transaction.setTransactionType(com.budgetbuddy.model.TransactionType.EXPENSE.name());
@@ -557,6 +631,31 @@ public class PlaidDataExtractor {
         }
     }
 
+    /**
+     * Normalize Plaid amount to standard convention
+     * Plaid uses reverse convention for checking/savings/debit/money_market accounts:
+     * -ve = income, +ve = expense
+     * Standard convention: +ve = income, -ve = expense
+     * 
+     * @param rawAmount Raw amount from Plaid (can be null)
+     * @param account Account information (can be null)
+     * @return Normalized amount (flipped sign for checking/savings/debit/money_market, unchanged for others)
+     */
+    public java.math.BigDecimal normalizePlaidAmount(java.math.BigDecimal rawAmount, AccountTable account) {
+        if (rawAmount == null) {
+            return null;
+        }
+        
+        // CRITICAL: Reverse sign for ALL Plaid transactions when storing
+        // Plaid convention: expenses are positive, income is negative
+        // Backend convention: expenses are negative, income is positive
+        // This ensures consistent sign convention across all account types
+        java.math.BigDecimal normalized = rawAmount.negate();
+        logger.debug("Normalized Plaid amount: {} → {} (reversed sign for all account types)", 
+                rawAmount, normalized);
+        return normalized;
+    }
+    
     /**
      * Extract account ID from Plaid transaction
      */

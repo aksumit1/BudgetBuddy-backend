@@ -41,8 +41,12 @@ public class DDoSProtectionFilter extends OncePerRequestFilter {
     private final RateLimitService rateLimitService;
     private final DDoSProtectionService ddosProtectionService;
     private final ObjectMapper objectMapper;
+    private final com.budgetbuddy.security.JwtTokenProvider jwtTokenProvider;
 
-    public DDoSProtectionFilter(final RateLimitService rateLimitService, final DDoSProtectionService ddosProtectionService) {
+    public DDoSProtectionFilter(
+            final RateLimitService rateLimitService, 
+            final DDoSProtectionService ddosProtectionService,
+            final com.budgetbuddy.security.JwtTokenProvider jwtTokenProvider) {
         if (rateLimitService == null) {
             throw new IllegalArgumentException("RateLimitService cannot be null");
         }
@@ -51,6 +55,7 @@ public class DDoSProtectionFilter extends OncePerRequestFilter {
         }
         this.rateLimitService = rateLimitService;
         this.ddosProtectionService = ddosProtectionService;
+        this.jwtTokenProvider = jwtTokenProvider;
         // Initialize ObjectMapper with JavaTimeModule for Instant serialization
         this.objectMapper = new ObjectMapper();
         this.objectMapper.registerModule(new JavaTimeModule());
@@ -163,18 +168,45 @@ public class DDoSProtectionFilter extends OncePerRequestFilter {
     }
 
     private String getUserIdFromRequest(final HttpServletRequest request) {
-        if (request == null) {
+        if (request == null || jwtTokenProvider == null) {
             return null;
         }
 
         // Extract user ID from JWT token if available
+        // Note: This filter runs before JWT authentication filter, so we parse token directly
         String authHeader = request.getHeader("Authorization");
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            // Token parsing would be done by JWT filter, but we can extract user ID here
-            // For now, return null and let rate limiting be IP-based
-            return null;
+            try {
+                String token = authHeader.substring(7).trim(); // Remove "Bearer " prefix
+                // Validate token before extracting username (to avoid parsing invalid tokens)
+                if (jwtTokenProvider.validateToken(token)) {
+                    String username = jwtTokenProvider.getUsernameFromToken(token);
+                    if (username != null && !username.isEmpty()) {
+                        return username; // Use username as user ID for rate limiting
+                    }
+                }
+            } catch (Exception e) {
+                // Token parsing failed - this is expected for invalid tokens
+                // Don't log at error level as this is normal for unauthenticated requests
+                logger.debug("Could not extract user ID from JWT token: {}", e.getMessage());
+            }
         }
-        return null;
+        
+        // Fallback: Try to get from SecurityContext (in case filter order changed)
+        try {
+            org.springframework.security.core.Authentication auth = 
+                org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+            if (auth != null && auth.isAuthenticated() && auth.getPrincipal() instanceof org.springframework.security.core.userdetails.UserDetails) {
+                org.springframework.security.core.userdetails.UserDetails userDetails = 
+                    (org.springframework.security.core.userdetails.UserDetails) auth.getPrincipal();
+                return userDetails.getUsername();
+            }
+        } catch (Exception e) {
+            // SecurityContext not available - this is normal when filter runs before authentication
+            logger.debug("SecurityContext not available for user ID extraction: {}", e.getMessage());
+        }
+        
+        return null; // No user ID available - rate limiting will be IP-based
     }
 
     /**

@@ -38,11 +38,25 @@ spring:
     serialization:
       write-dates-as-timestamps: false
     time-zone: UTC
+  
+  # Multipart File Upload Configuration
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 10MB  # Maximum size per file (10MB for large CSV/Excel/PDF imports)
+      max-request-size: 10MB  # Maximum size for entire multipart request (10MB)
+      file-size-threshold: 2KB  # Files larger than this will be written to disk
 
 # Server Configuration
 server:
   port: ${SERVER_PORT:8080}  # Fixed port - do not change
   address: ${SERVER_ADDRESS:0.0.0.0}  # Bind to all interfaces (0.0.0.0) to allow network access, use 127.0.0.1 for localhost only
+  # HTTP Timeout Configuration - increased for large file imports
+  connection-timeout: ${SERVER_CONNECTION_TIMEOUT:300000}  # 5 minutes (300000ms) for large imports
+  # Async request timeout - for long-running import operations
+  servlet:
+    session:
+      timeout: ${SERVER_SESSION_TIMEOUT:30m}  # 30 minutes
   # SSL/HTTPS Configuration (optional for local development)
   ssl:
     enabled: ${SERVER_SSL_ENABLED:false}
@@ -242,6 +256,14 @@ app:
     enable-advanced-analytics: ${FEATURE_ADVANCED_ANALYTICS_ENABLED:false}
     enable-notifications: ${FEATURE_NOTIFICATIONS_ENABLED:true}
   
+  # Scheduled Import Configuration
+  import:
+    scheduled:
+      enabled: ${APP_IMPORT_SCHEDULED_ENABLED:false} # Disabled by default - enable via environment variable
+      cron: ${APP_IMPORT_SCHEDULED_CRON:0 0 2 * * ?} # Default: 2 AM daily
+      # Sources: s3, dropbox, googledrive, email
+      sources: ${APP_IMPORT_SCHEDULED_SOURCES:} # Comma-separated list of enabled sources
+  
   # Email Notification Configuration
   notifications:
     enabled: ${APP_NOTIFICATIONS_ENABLED:true}
@@ -301,6 +323,8 @@ management:
 # Logging Configuration (Structured Logging with Correlation IDs)
 logging:
   level:
+    REQUEST_LOGGER: INFO  # Ensure request/response logging is enabled
+    com.budgetbuddy.filter.RequestResponseLoggingFilter: INFO  # Ensure filter logs are visible
     root: INFO
     com.budgetbuddy: INFO
     org.springframework.security: WARN

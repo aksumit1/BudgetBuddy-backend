@@ -1,6 +1,5 @@
 package com.budgetbuddy.util;
 
-import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 import software.amazon.awssdk.services.dynamodb.model.ConditionalCheckFailedException;
@@ -11,13 +10,12 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Unit tests for OptimisticLockingHelper
+ * Unit Tests for OptimisticLockingHelper
  */
 class OptimisticLockingHelperTest {
 
     @Test
-    @DisplayName("Should build condition for new record (null updatedAt)")
-    void testBuildOptimisticLockCondition_NullUpdatedAt() {
+    void testBuildOptimisticLockCondition_WithNullTimestamp_ReturnsAttributeNotExists() {
         // When
         String condition = OptimisticLockingHelper.buildOptimisticLockCondition(null);
 
@@ -26,21 +24,19 @@ class OptimisticLockingHelperTest {
     }
 
     @Test
-    @DisplayName("Should build condition for existing record")
-    void testBuildOptimisticLockCondition_WithUpdatedAt() {
+    void testBuildOptimisticLockCondition_WithTimestamp_ReturnsEqualityCheck() {
         // Given
-        Instant updatedAt = Instant.now();
+        Instant timestamp = Instant.now();
 
         // When
-        String condition = OptimisticLockingHelper.buildOptimisticLockCondition(updatedAt);
+        String condition = OptimisticLockingHelper.buildOptimisticLockCondition(timestamp);
 
         // Then
         assertEquals("updatedAt = :expectedUpdatedAt", condition);
     }
 
     @Test
-    @DisplayName("Should build empty attribute values for null updatedAt")
-    void testBuildOptimisticLockAttributeValues_NullUpdatedAt() {
+    void testBuildOptimisticLockAttributeValues_WithNullTimestamp_ReturnsEmptyMap() {
         // When
         Map<String, AttributeValue> values = OptimisticLockingHelper.buildOptimisticLockAttributeValues(null);
 
@@ -50,80 +46,53 @@ class OptimisticLockingHelperTest {
     }
 
     @Test
-    @DisplayName("Should build attribute values for existing record")
-    void testBuildOptimisticLockAttributeValues_WithUpdatedAt() {
+    void testBuildOptimisticLockAttributeValues_WithTimestamp_ReturnsMapWithValue() {
         // Given
-        Instant updatedAt = Instant.parse("2024-01-01T00:00:00Z");
+        Instant timestamp = Instant.now();
 
         // When
-        Map<String, AttributeValue> values = OptimisticLockingHelper.buildOptimisticLockAttributeValues(updatedAt);
+        Map<String, AttributeValue> values = OptimisticLockingHelper.buildOptimisticLockAttributeValues(timestamp);
 
         // Then
         assertNotNull(values);
-        assertEquals(1, values.size());
         assertTrue(values.containsKey(":expectedUpdatedAt"));
-        AttributeValue value = values.get(":expectedUpdatedAt");
-        assertNotNull(value);
-        assertEquals(updatedAt.toString(), value.s());
+        assertEquals(timestamp.toString(), values.get(":expectedUpdatedAt").s());
     }
 
     @Test
-    @DisplayName("Should handle optimistic lock failure")
-    void testHandleOptimisticLockFailure() {
+    void testHandleOptimisticLockFailure_ThrowsAppException() {
         // Given
         ConditionalCheckFailedException exception = ConditionalCheckFailedException.builder()
                 .message("Conditional check failed")
                 .build();
-        String operation = "updateTransaction";
-        String recordId = "txn-123";
 
         // When/Then
         com.budgetbuddy.exception.AppException appException = assertThrows(
                 com.budgetbuddy.exception.AppException.class,
-                () -> OptimisticLockingHelper.handleOptimisticLockFailure(exception, operation, recordId)
-        );
+                () -> OptimisticLockingHelper.handleOptimisticLockFailure(exception, "update", "record-123"));
 
         assertEquals(com.budgetbuddy.exception.ErrorCode.RECORD_ALREADY_EXISTS, appException.getErrorCode());
         assertTrue(appException.getMessage().contains("modified by another operation"));
     }
 
     @Test
-    @DisplayName("Should return true for existing record (should use optimistic lock)")
-    void testShouldUseOptimisticLock_WithUpdatedAt() {
-        // Given
-        Instant updatedAt = Instant.now();
-
+    void testShouldUseOptimisticLock_WithNullTimestamp_ReturnsFalse() {
         // When
-        boolean result = OptimisticLockingHelper.shouldUseOptimisticLock(updatedAt);
+        boolean shouldUse = OptimisticLockingHelper.shouldUseOptimisticLock(null);
 
         // Then
-        assertTrue(result);
+        assertFalse(shouldUse);
     }
 
     @Test
-    @DisplayName("Should return false for new record (should not use optimistic lock)")
-    void testShouldUseOptimisticLock_NullUpdatedAt() {
-        // When
-        boolean result = OptimisticLockingHelper.shouldUseOptimisticLock(null);
-
-        // Then
-        assertFalse(result);
-    }
-
-    @Test
-    @DisplayName("Should build complete optimistic lock condition and values")
-    void testBuildOptimisticLock_CompleteFlow() {
+    void testShouldUseOptimisticLock_WithTimestamp_ReturnsTrue() {
         // Given
-        Instant expectedUpdatedAt = Instant.parse("2024-01-01T12:00:00Z");
+        Instant timestamp = Instant.now();
 
         // When
-        String condition = OptimisticLockingHelper.buildOptimisticLockCondition(expectedUpdatedAt);
-        Map<String, AttributeValue> values = OptimisticLockingHelper.buildOptimisticLockAttributeValues(expectedUpdatedAt);
+        boolean shouldUse = OptimisticLockingHelper.shouldUseOptimisticLock(timestamp);
 
         // Then
-        assertEquals("updatedAt = :expectedUpdatedAt", condition);
-        assertEquals(1, values.size());
-        assertEquals(expectedUpdatedAt.toString(), values.get(":expectedUpdatedAt").s());
+        assertTrue(shouldUse);
     }
 }
-

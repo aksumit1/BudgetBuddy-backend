@@ -1,0 +1,326 @@
+package com.budgetbuddy.integration;
+
+import com.budgetbuddy.api.TransactionController;
+import com.budgetbuddy.model.dynamodb.AccountTable;
+import com.budgetbuddy.model.dynamodb.TransactionTable;
+import com.budgetbuddy.model.dynamodb.UserTable;
+import com.budgetbuddy.repository.dynamodb.AccountRepository;
+import com.budgetbuddy.repository.dynamodb.TransactionRepository;
+import com.budgetbuddy.service.*;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.ResponseEntity;
+import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.Collections;
+import java.util.List;
+import java.util.UUID;
+
+import static org.junit.jupiter.api.Assertions.*;
+
+/**
+ * End-to-End Tests for CSV Import Date Parsing
+ * 
+ * Tests date parsing scenarios from CSV → Backend → Database → iOS (via API response)
+ * 
+ * Scenarios tested:
+ * 1. Various date formats (MM/dd/yyyy, yyyy-MM-dd, etc.)
+ * 2. Date preservation through preview endpoint
+ * 3. Date preservation through import endpoint
+ * 4. Date consistency in database storage
+ * 5. Date serialization in API responses
+ */
+@SpringBootTest
+@ActiveProfiles("test")
+class CSVImportDateParsingE2ETest {
+
+    @Autowired
+    private TransactionController transactionController;
+
+    @Autowired
+    private TransactionRepository transactionRepository;
+
+    @Autowired
+    private UserService userService;
+
+    @Autowired
+    private AccountRepository accountRepository;
+
+    private UserTable testUser;
+    private AccountTable testAccount;
+    private UserDetails userDetails;
+
+    @BeforeEach
+    void setUp() {
+        // Create test user using UserService
+        String email = "csv-date-test-" + UUID.randomUUID() + "@example.com";
+        String passwordHash = java.util.Base64.getEncoder().encodeToString("test-password-hash".getBytes());
+        testUser = userService.createUserSecure(email, passwordHash, "Test", "User");
+
+        // Create test account
+        testAccount = new AccountTable();
+        testAccount.setAccountId(UUID.randomUUID().toString());
+        testAccount.setUserId(testUser.getUserId());
+        testAccount.setAccountName("Test Account");
+        testAccount.setInstitutionName("Test Bank");
+        testAccount.setAccountType("depository");
+        testAccount.setAccountSubtype("checking");
+        testAccount.setBalance(BigDecimal.ZERO);
+        testAccount.setCurrencyCode("USD");
+        testAccount.setActive(true);
+        testAccount.setCreatedAt(java.time.Instant.now());
+        testAccount.setUpdatedAt(java.time.Instant.now());
+        accountRepository.save(testAccount);
+
+        // Set up authentication
+        userDetails = User.builder()
+                .username(testUser.getEmail())
+                .password("test-password")
+                .authorities(Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER")))
+                .build();
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities())
+        );
+    }
+
+    @Test
+    void testCSVImport_MMSlashDDSlashYYYY_DatePreservedInPreview() throws Exception {
+        // Given: CSV with MM/dd/yyyy format
+        String csvContent = "Posting Date,Description,Amount\n" +
+                "12/19/2025,WITHDRAWAL 12/19,-2000.00\n" +
+                "12/18/2025,Grocery Store,-50.00";
+        MultipartFile csvFile = new MockMultipartFile(
+                "file", "test.csv", "text/csv", csvContent.getBytes()
+        );
+
+        // When: Preview CSV
+        ResponseEntity<TransactionController.CSVImportPreviewResponse> response = 
+                transactionController.previewCSV(userDetails, csvFile, null);
+
+        // Then: Dates should be preserved correctly
+        assertNotNull(response.getBody());
+        List<TransactionController.CSVImportPreviewResponse.PreviewTransaction> previews = 
+                response.getBody().getTransactions();
+        assertEquals(2, previews.size());
+
+        // Verify first transaction date (12/19/2025)
+        LocalDate expectedDate1 = LocalDate.of(2025, 12, 19);
+        assertEquals(expectedDate1, previews.get(0).getDate(), 
+                "Date 12/19/2025 should be parsed correctly");
+
+        // Verify second transaction date (12/18/2025)
+        LocalDate expectedDate2 = LocalDate.of(2025, 12, 18);
+        assertEquals(expectedDate2, previews.get(1).getDate(), 
+                "Date 12/18/2025 should be parsed correctly");
+    }
+
+    @Test
+    void testCSVImport_YYYYDashMMDashDD_DatePreservedInPreview() throws Exception {
+        // Given: CSV with yyyy-MM-dd format (ISO)
+        String csvContent = "Transaction Date,Description,Amount\n" +
+                "2025-12-19,Online Transfer,250.00\n" +
+                "2025-12-20,Payment Received,100.00";
+        MultipartFile csvFile = new MockMultipartFile(
+                "file", "test.csv", "text/csv", csvContent.getBytes()
+        );
+
+        // When: Preview CSV
+        ResponseEntity<TransactionController.CSVImportPreviewResponse> response = 
+                transactionController.previewCSV(userDetails, csvFile, null);
+
+        // Then: Dates should be preserved correctly
+        assertNotNull(response.getBody());
+        List<TransactionController.CSVImportPreviewResponse.PreviewTransaction> previews = 
+                response.getBody().getTransactions();
+        assertEquals(2, previews.size());
+
+        assertEquals(LocalDate.of(2025, 12, 19), previews.get(0).getDate());
+        assertEquals(LocalDate.of(2025, 12, 20), previews.get(1).getDate());
+    }
+
+    @Test
+    void testCSVImport_DatePreservedInDatabase() throws Exception {
+        // Given: CSV with specific date
+        String csvContent = "Posting Date,Description,Amount\n" +
+                "12/19/2025,WITHDRAWAL 12/19,-2000.00";
+        MultipartFile csvFile = new MockMultipartFile(
+                "file", "test.csv", "text/csv", csvContent.getBytes()
+        );
+
+        // When: Import CSV
+        ResponseEntity<TransactionController.CSVImportResponse> response = 
+                transactionController.importCSV(userDetails, csvFile, testAccount.getAccountId(), null);
+
+        // Then: Transaction should be saved with correct date
+        assertNotNull(response.getBody());
+        assertEquals(1, response.getBody().getCreated());
+
+        // Verify date in database
+        List<TransactionTable> transactions = transactionRepository.findByUserId(testUser.getUserId(), 0, 10);
+        assertEquals(1, transactions.size());
+        
+        TransactionTable savedTransaction = transactions.get(0);
+        String savedDateString = savedTransaction.getTransactionDate();
+        LocalDate savedDate = LocalDate.parse(savedDateString, DateTimeFormatter.ISO_LOCAL_DATE);
+        
+        assertEquals(LocalDate.of(2025, 12, 19), savedDate, 
+                "Date should be saved as 2025-12-19 in database");
+        assertEquals("2025-12-19", savedDateString, 
+                "Date string should be in ISO format (yyyy-MM-dd)");
+    }
+
+    @Test
+    void testCSVImport_MultipleDateFormats_AllParsedCorrectly() throws Exception {
+        // Given: CSV with multiple date formats
+        String csvContent = "Date,Description,Amount\n" +
+                "12/19/2025,Transaction 1,-100.00\n" +  // MM/dd/yyyy
+                "2025-12-20,Transaction 2,-200.00\n" +  // yyyy-MM-dd
+                "12/21/2025,Transaction 3,-300.00";     // MM/dd/yyyy
+        MultipartFile csvFile = new MockMultipartFile(
+                "file", "test.csv", "text/csv", csvContent.getBytes()
+        );
+
+        // When: Preview CSV
+        ResponseEntity<TransactionController.CSVImportPreviewResponse> response = 
+                transactionController.previewCSV(userDetails, csvFile, null);
+
+        // Then: All dates should be parsed correctly
+        assertNotNull(response.getBody());
+        List<TransactionController.CSVImportPreviewResponse.PreviewTransaction> previews = 
+                response.getBody().getTransactions();
+        assertEquals(3, previews.size());
+
+        assertEquals(LocalDate.of(2025, 12, 19), previews.get(0).getDate());
+        assertEquals(LocalDate.of(2025, 12, 20), previews.get(1).getDate());
+        assertEquals(LocalDate.of(2025, 12, 21), previews.get(2).getDate());
+    }
+
+    @Test
+    void testCSVImport_DateSerializationInPreviewResponse() throws Exception {
+        // Given: CSV with specific date
+        String csvContent = "Posting Date,Description,Amount\n" +
+                "12/19/2025,Test Transaction,-100.00";
+        MultipartFile csvFile = new MockMultipartFile(
+                "file", "test.csv", "text/csv", csvContent.getBytes()
+        );
+
+        // When: Preview CSV
+        ResponseEntity<TransactionController.CSVImportPreviewResponse> response = 
+                transactionController.previewCSV(userDetails, csvFile, null);
+
+        // Then: Date should be serialized as LocalDate (Spring will serialize as ISO string)
+        assertNotNull(response.getBody());
+        List<TransactionController.CSVImportPreviewResponse.PreviewTransaction> previews = 
+                response.getBody().getTransactions();
+        assertEquals(1, previews.size());
+
+        LocalDate previewDate = previews.get(0).getDate();
+        assertEquals(LocalDate.of(2025, 12, 19), previewDate);
+        
+        // Verify date can be formatted as ISO string (what iOS will receive)
+        String isoDateString = previewDate.format(DateTimeFormatter.ISO_LOCAL_DATE);
+        assertEquals("2025-12-19", isoDateString, 
+                "Date should serialize as ISO format (yyyy-MM-dd) for iOS");
+    }
+
+    @Test
+    void testCSVImport_DateEndToEndFlow_PreviewToImport() throws Exception {
+        // Given: CSV with specific date
+        String csvContent = "Posting Date,Description,Amount\n" +
+                "12/19/2025,WITHDRAWAL 12/19,-2000.00";
+        MultipartFile csvFile = new MockMultipartFile(
+                "file", "test.csv", "text/csv", csvContent.getBytes()
+        );
+
+        // Step 1: Preview CSV
+        ResponseEntity<TransactionController.CSVImportPreviewResponse> previewResponse = 
+                transactionController.previewCSV(userDetails, csvFile, null);
+        assertNotNull(previewResponse.getBody());
+        List<TransactionController.CSVImportPreviewResponse.PreviewTransaction> previews = 
+                previewResponse.getBody().getTransactions();
+        assertEquals(1, previews.size());
+        LocalDate previewDate = previews.get(0).getDate();
+        assertEquals(LocalDate.of(2025, 12, 19), previewDate);
+
+        // Step 2: Import CSV (re-create file for import)
+        MultipartFile importFile = new MockMultipartFile(
+                "file", "test.csv", "text/csv", csvContent.getBytes()
+        );
+        ResponseEntity<TransactionController.CSVImportResponse> importResponse = 
+                transactionController.importCSV(userDetails, importFile, testAccount.getAccountId(), null);
+        assertEquals(1, importResponse.getBody().getCreated());
+
+        // Step 3: Verify date in database
+        List<TransactionTable> transactions = transactionRepository.findByUserId(testUser.getUserId(), 0, 10);
+        assertEquals(1, transactions.size());
+        TransactionTable savedTransaction = transactions.get(0);
+        LocalDate savedDate = LocalDate.parse(savedTransaction.getTransactionDate(), DateTimeFormatter.ISO_LOCAL_DATE);
+
+        // Step 4: Verify dates match throughout the flow
+        assertEquals(previewDate, savedDate, 
+                "Date from preview should match date in database");
+        assertEquals(LocalDate.of(2025, 12, 19), savedDate, 
+                "Date should be 2025-12-19 throughout the entire flow");
+    }
+
+    @Test
+    void testCSVImport_YearBoundaryDates_ParsedCorrectly() throws Exception {
+        // Given: CSV with dates at year boundaries
+        String csvContent = "Date,Description,Amount\n" +
+                "12/31/2024,Year End Transaction,-100.00\n" +
+                "01/01/2025,Year Start Transaction,-200.00";
+        MultipartFile csvFile = new MockMultipartFile(
+                "file", "test.csv", "text/csv", csvContent.getBytes()
+        );
+
+        // When: Preview CSV
+        ResponseEntity<TransactionController.CSVImportPreviewResponse> response = 
+                transactionController.previewCSV(userDetails, csvFile, null);
+
+        // Then: Dates should be parsed correctly
+        assertNotNull(response.getBody());
+        List<TransactionController.CSVImportPreviewResponse.PreviewTransaction> previews = 
+                response.getBody().getTransactions();
+        assertEquals(2, previews.size());
+
+        assertEquals(LocalDate.of(2024, 12, 31), previews.get(0).getDate());
+        assertEquals(LocalDate.of(2025, 1, 1), previews.get(1).getDate());
+    }
+
+    @Test
+    void testCSVImport_MonthBoundaryDates_ParsedCorrectly() throws Exception {
+        // Given: CSV with dates at month boundaries
+        String csvContent = "Date,Description,Amount\n" +
+                "01/31/2025,Month End Transaction,-100.00\n" +
+                "02/01/2025,Month Start Transaction,-200.00";
+        MultipartFile csvFile = new MockMultipartFile(
+                "file", "test.csv", "text/csv", csvContent.getBytes()
+        );
+
+        // When: Preview CSV
+        ResponseEntity<TransactionController.CSVImportPreviewResponse> response = 
+                transactionController.previewCSV(userDetails, csvFile, null);
+
+        // Then: Dates should be parsed correctly
+        assertNotNull(response.getBody());
+        List<TransactionController.CSVImportPreviewResponse.PreviewTransaction> previews = 
+                response.getBody().getTransactions();
+        assertEquals(2, previews.size());
+
+        assertEquals(LocalDate.of(2025, 1, 31), previews.get(0).getDate());
+        assertEquals(LocalDate.of(2025, 2, 1), previews.get(1).getDate());
+    }
+}
+

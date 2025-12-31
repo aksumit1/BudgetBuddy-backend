@@ -73,7 +73,7 @@ class SubscriptionServiceTest {
         
         Subscription subscription = subscriptions.get(0);
         assertEquals(merchantName.toLowerCase(), subscription.getMerchantName());
-        assertEquals(amount.abs(), subscription.getAmount());
+        assertEquals(amount, subscription.getAmount());
         assertEquals(Subscription.SubscriptionFrequency.MONTHLY, subscription.getFrequency());
         assertEquals(startDate, subscription.getStartDate());
         assertTrue(subscription.getActive());

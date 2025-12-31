@@ -52,9 +52,11 @@ public class SubscriptionService {
         // Filter to subscription category transactions and group by merchant
         Map<String, List<TransactionTable>> transactionsByMerchant = transactions.stream()
                 .filter(tx -> {
-                    String category = tx.getCategoryPrimary() != null ? tx.getCategoryPrimary() : tx.getCategoryDetailed();
-                    // Include transactions with subscription category OR subscription keywords in description
-                    boolean isSubscriptionCategory = "subscriptions".equalsIgnoreCase(category);
+                    // Check both categoryPrimary and categoryDetailed for "subscriptions" (with null safety)
+                    String categoryPrimary = tx.getCategoryPrimary();
+                    String categoryDetailed = tx.getCategoryDetailed();
+                    boolean isSubscriptionCategory = (categoryPrimary != null && "subscriptions".equalsIgnoreCase(categoryPrimary)) ||
+                                                     (categoryDetailed != null && "subscriptions".equalsIgnoreCase(categoryDetailed));
                     boolean hasSubscriptionKeyword = tx.getDescription() != null && isSubscriptionKeyword(tx.getDescription());
                     return isSubscriptionCategory || hasSubscriptionKeyword;
                 })
@@ -109,7 +111,7 @@ public class SubscriptionService {
                         subscription.setAccountId(firstTransaction.getAccountId());
                         subscription.setMerchantName(merchant);
                         subscription.setDescription(firstTransaction.getDescription());
-                        subscription.setAmount(amount.abs()); // Store as positive
+                        subscription.setAmount(amount); // Store amount as-is
                         subscription.setFrequency(frequency);
                         subscription.setStartDate(startDate);
                         subscription.setCategory("subscriptions");
@@ -229,13 +231,18 @@ public class SubscriptionService {
         Map<BigDecimal, List<TransactionTable>> grouped = new HashMap<>();
         
         for (TransactionTable tx : transactions) {
-            BigDecimal amount = tx.getAmount() != null ? tx.getAmount().abs() : BigDecimal.ZERO;
+            BigDecimal amount = tx.getAmount() != null ? tx.getAmount() : BigDecimal.ZERO;
             
             // Find existing group within 5% tolerance
             BigDecimal matchingAmount = null;
             for (BigDecimal existingAmount : grouped.keySet()) {
-                BigDecimal difference = amount.subtract(existingAmount).abs();
-                BigDecimal tolerance = existingAmount.multiply(new BigDecimal("0.05"));
+                BigDecimal difference = amount.subtract(existingAmount);
+                if (difference.compareTo(BigDecimal.ZERO) < 0) {
+                    difference = difference.negate();
+                }
+                // Use absolute value of existingAmount for tolerance calculation to handle negative amounts correctly
+                BigDecimal absExistingAmount = existingAmount.compareTo(BigDecimal.ZERO) < 0 ? existingAmount.negate() : existingAmount;
+                BigDecimal tolerance = absExistingAmount.multiply(new BigDecimal("0.05"));
                 if (difference.compareTo(tolerance) <= 0) {
                     matchingAmount = existingAmount;
                     break;
@@ -268,14 +275,42 @@ public class SubscriptionService {
 
     /**
      * Checks if description contains subscription keywords
+     * Also checks for known streaming/software service names to detect subscriptions
+     * regardless of category (e.g., Netflix can be "entertainment" but still a subscription)
      */
     private boolean isSubscriptionKeyword(final String description) {
         if (description == null) {
             return false;
         }
         String lower = description.toLowerCase();
-        return lower.contains("subscription") || lower.contains("monthly") ||
-               lower.contains("annual") || lower.contains("recurring");
+        
+        // Check for subscription keywords
+        if (lower.contains("subscription") || lower.contains("monthly") ||
+            lower.contains("annual") || lower.contains("recurring")) {
+            return true;
+        }
+        
+        // Check for known streaming/software services (regardless of category)
+        // This allows SubscriptionService to detect subscriptions even if category is "entertainment" or "tech"
+        String[] subscriptionServices = {
+            "netflix", "hulu", "huluplus", "hulu plus", "disney", "disney+", "disney plus",
+            "hbo", "hbo max", "hbomax", "paramount", "paramount+", "paramount plus",
+            "peacock", "spotify", "apple music", "applemusic",
+            "youtube premium", "youtubepremium", "youtube tv", "youtubetv",
+            "amazon prime", "amazonprime", "prime video", "primevideo",
+            "showtime", "starz", "crunchyroll", "funimation",
+            "adobe", "microsoft 365", "office 365", "dropbox", "icloud",
+            "google drive", "google one", "github", "canva", "grammarly",
+            "nordvpn", "expressvpn", "surfshark", "zoom", "slack"
+        };
+        
+        for (String service : subscriptionServices) {
+            if (lower.contains(service)) {
+                return true;
+            }
+        }
+        
+        return false;
     }
 
     /**

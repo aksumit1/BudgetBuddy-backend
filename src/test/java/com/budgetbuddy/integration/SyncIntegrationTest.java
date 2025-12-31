@@ -339,7 +339,8 @@ class SyncIntegrationTest {
                 null,
                 null,
                 true,
-                "HIGH"
+                "HIGH",
+                null
         );
 
         // Then - Verify transaction link is preserved

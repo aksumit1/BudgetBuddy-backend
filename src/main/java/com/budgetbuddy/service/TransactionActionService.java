@@ -196,7 +196,8 @@ public class TransactionActionService {
             final String dueDate,
             final String reminderDate,
             final Boolean isCompleted,
-            final String priority) {
+            final String priority,
+            final Boolean reminderDismissed) {
         if (user == null || user.getUserId() == null || user.getUserId().isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "User is required");
         }
@@ -236,6 +237,9 @@ public class TransactionActionService {
         }
         if (priority != null) {
             action.setPriority(priority.toUpperCase());
+        }
+        if (reminderDismissed != null) {
+            action.setReminderDismissed(reminderDismissed);
         }
         action.setUpdatedAt(Instant.now());
 

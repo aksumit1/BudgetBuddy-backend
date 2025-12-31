@@ -2,14 +2,18 @@ package com.budgetbuddy.security.ddos;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 import software.amazon.awssdk.services.dynamodb.model.*;
 
 import java.time.Instant;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -56,10 +60,16 @@ public class DDoSProtectionService {
 
     private final DynamoDbClient dynamoDbClient;
     private final String tableName; // Configured via table prefix for different environments
+    private final Executor asyncExecutor; // Thread pool for async operations
 
-    // In-memory cache for hot paths (reduces DynamoDB costs)
-    private final Map<String, RequestCounter> inMemoryCache = new ConcurrentHashMap<>();
+    // In-memory LRU cache for hot paths (reduces DynamoDB costs)
+    // Using LinkedHashMap with access-order for LRU eviction
+    private final Map<String, RequestCounter> inMemoryCache;
     private volatile long lastCacheCleanup = System.currentTimeMillis();
+    
+    // Cache metrics
+    private final AtomicLong cacheHits = new AtomicLong(0);
+    private final AtomicLong cacheMisses = new AtomicLong(0);
     
     // Track DynamoDB availability - if unavailable, fall back to in-memory only
     private volatile boolean dynamoDbAvailable = true;
@@ -67,7 +77,8 @@ public class DDoSProtectionService {
 
     public DDoSProtectionService(
             final DynamoDbClient dynamoDbClient,
-            @Value("${app.aws.dynamodb.table-prefix:BudgetBuddy}") String tablePrefix) {
+            @Value("${app.aws.dynamodb.table-prefix:BudgetBuddy}") String tablePrefix,
+            @Autowired(required = false) @Qualifier("taskExecutor") Executor asyncExecutor) {
         if (dynamoDbClient == null) {
             throw new IllegalArgumentException("DynamoDbClient cannot be null");
         }
@@ -77,6 +88,23 @@ public class DDoSProtectionService {
         // - Staging: BudgetBuddyStaging-DDoSProtection
         // - Production: BudgetBuddy-DDoSProtection
         this.tableName = tablePrefix + "-DDoSProtection";
+        // Use provided executor or fallback to default (for testing)
+        this.asyncExecutor = asyncExecutor != null ? asyncExecutor : 
+            java.util.concurrent.Executors.newCachedThreadPool(r -> {
+                Thread t = new Thread(r, "ddos-block-async");
+                t.setDaemon(true);
+                return t;
+            });
+        
+        // Initialize LRU cache with access-order (true = LRU, false = insertion-order)
+        this.inMemoryCache = Collections.synchronizedMap(new LinkedHashMap<String, RequestCounter>(16, 0.75f, true) {
+            @Override
+            protected boolean removeEldestEntry(Map.Entry<String, RequestCounter> eldest) {
+                // Remove oldest entry when cache exceeds max size
+                return size() > maxCacheSize;
+            }
+        });
+        
         boolean initialized = initializeTable();
         if (!initialized) {
             logger.warn("DDoS protection initialized with in-memory only mode (DynamoDB unavailable). " +
@@ -108,9 +136,10 @@ public class DDoSProtectionService {
             checkDynamoDbAvailability();
         }
 
-        // Check in-memory cache first
+        // Check in-memory LRU cache first
         RequestCounter counter = inMemoryCache.get(ipAddress);
         if (counter != null && !counter.isExpired()) {
+            cacheHits.incrementAndGet(); // Track cache hit
             if (counter.isBlocked()) {
                 return false;
             }
@@ -122,6 +151,10 @@ public class DDoSProtectionService {
             }
             counter.increment();
             return true;
+        }
+        
+        if (counter == null) {
+            cacheMisses.incrementAndGet(); // Track cache miss
         }
 
         // Check DynamoDB for persistent state (only if available)
@@ -137,13 +170,8 @@ public class DDoSProtectionService {
         counter = new RequestCounter();
         counter.increment();
 
-        // Prevent cache from growing too large
-        if (inMemoryCache.size() >= maxCacheSize) {
-            // Remove oldest entries (simple FIFO - in production, use LRU)
-            String firstKey = inMemoryCache.keySet().iterator().next();
-            inMemoryCache.remove(firstKey);
-        }
-
+        // LRU cache automatically evicts oldest entry when max size exceeded
+        // No need for manual size checking - LinkedHashMap handles it via removeEldestEntry
         inMemoryCache.put(ipAddress, counter);
         return true;
     }
@@ -360,10 +388,18 @@ public class DDoSProtectionService {
 
     /**
      * Async block IP to avoid blocking the request thread
+     * Uses thread pool executor to prevent resource exhaustion
      */
     private void blockIpInDynamoDBAsync(final String ipAddress) {
-        // Use a separate thread to avoid blocking
-        new Thread(() -> blockIpInDynamoDB(ipAddress), "ddos-block-async").start();
+        // Use thread pool executor to avoid creating unbounded threads
+        // This prevents resource exhaustion under high load
+        asyncExecutor.execute(() -> {
+            try {
+                blockIpInDynamoDB(ipAddress);
+            } catch (Exception e) {
+                logger.error("Error in async IP blocking for {}: {}", ipAddress, e.getMessage(), e);
+            }
+        });
     }
 
     /**
@@ -406,5 +442,32 @@ public class DDoSProtectionService {
         public boolean isExpired() {
             return System.currentTimeMillis() - windowStart.get() > cacheTtlMs;
         }
+    }
+    
+    /**
+     * Get cache statistics for monitoring
+     * @return Map with cache metrics (hits, misses, hit rate, size)
+     */
+    public Map<String, Object> getCacheMetrics() {
+        long hits = cacheHits.get();
+        long misses = cacheMisses.get();
+        long total = hits + misses;
+        double hitRate = total > 0 ? (double) hits / total : 0.0;
+        
+        return Map.of(
+            "hits", hits,
+            "misses", misses,
+            "hitRate", hitRate,
+            "size", inMemoryCache.size(),
+            "maxSize", maxCacheSize
+        );
+    }
+    
+    /**
+     * Reset cache metrics (useful for testing or periodic resets)
+     */
+    public void resetCacheMetrics() {
+        cacheHits.set(0);
+        cacheMisses.set(0);
     }
 }

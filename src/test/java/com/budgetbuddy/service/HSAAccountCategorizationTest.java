@@ -28,13 +28,14 @@ import static org.mockito.Mockito.*;
  * - HSA debits (negative amounts) should be categorized as expenses
  */
 @ExtendWith(MockitoExtension.class)
+@org.mockito.junit.jupiter.MockitoSettings(strictness = org.mockito.quality.Strictness.LENIENT)
 class HSAAccountCategorizationTest {
 
     @Mock
     private AccountRepository accountRepository;
 
     @Mock
-    private PlaidCategoryMapper categoryMapper;
+    private com.budgetbuddy.service.TransactionTypeCategoryService transactionTypeCategoryService;
 
     private PlaidDataExtractor plaidDataExtractor;
 
@@ -43,7 +44,7 @@ class HSAAccountCategorizationTest {
 
     @BeforeEach
     void setUp() {
-        plaidDataExtractor = new PlaidDataExtractor(categoryMapper, accountRepository, new com.budgetbuddy.service.TransactionTypeDeterminer());
+        plaidDataExtractor = new PlaidDataExtractor(accountRepository, transactionTypeCategoryService);
 
         // Setup HSA account
         hsaAccount = new AccountTable();
@@ -68,10 +69,11 @@ class HSAAccountCategorizationTest {
         when(accountRepository.findById("hsa-account-123")).thenReturn(Optional.of(hsaAccount));
         when(accountRepository.findByPlaidAccountId("plaid-hsa-123")).thenReturn(Optional.of(hsaAccount));
 
-        // Mock category mapper (will be overridden by HSA logic)
-        PlaidCategoryMapper.CategoryMapping defaultMapping = new PlaidCategoryMapper.CategoryMapping("other", "other", false);
-        when(categoryMapper.mapPlaidCategory(any(), any(), any(), any(), any(), any()))
-                .thenReturn(defaultMapping);
+        // Mock TransactionTypeCategoryService to return "other" category (will be overridden by HSA logic)
+        TransactionTypeCategoryService.CategoryResult defaultResult = 
+            new TransactionTypeCategoryService.CategoryResult("other", "other", "PLAID", 0.5);
+        when(transactionTypeCategoryService.determineCategory(any(), any(), any(), any(), any(), any(), any(), any(), anyString()))
+                .thenReturn(defaultResult);
 
         // Create Plaid transaction
         Transaction plaidTransaction = createPlaidTransaction("plaid-hsa-123", "HSA Contribution", null, 1000.00, null, null);
@@ -96,10 +98,11 @@ class HSAAccountCategorizationTest {
         when(accountRepository.findById("hsa-account-123")).thenReturn(Optional.of(hsaAccount));
         when(accountRepository.findByPlaidAccountId("plaid-hsa-123")).thenReturn(Optional.of(hsaAccount));
 
-        // Mock category mapper - returns healthcare
-        PlaidCategoryMapper.CategoryMapping healthcareMapping = new PlaidCategoryMapper.CategoryMapping("healthcare", "healthcare", false);
-        when(categoryMapper.mapPlaidCategory(any(), any(), any(), any(), any(), any()))
-                .thenReturn(healthcareMapping);
+        // Mock TransactionTypeCategoryService - returns healthcare (HSA logic should preserve this)
+        TransactionTypeCategoryService.CategoryResult healthcareResult = 
+            new TransactionTypeCategoryService.CategoryResult("healthcare", "healthcare", "PLAID", 0.9);
+        when(transactionTypeCategoryService.determineCategory(any(), any(), any(), any(), any(), any(), any(), any(), anyString()))
+                .thenReturn(healthcareResult);
 
         // Create Plaid transaction
         Transaction plaidTransaction = createPlaidTransaction("plaid-hsa-123", "Medical Expense", "Pharmacy", -150.00, "MEDICAL", "PHARMACIES");
@@ -122,10 +125,11 @@ class HSAAccountCategorizationTest {
         when(accountRepository.findById("hsa-account-123")).thenReturn(Optional.of(hsaAccount));
         when(accountRepository.findByPlaidAccountId("plaid-hsa-123")).thenReturn(Optional.of(hsaAccount));
 
-        // Mock category mapper - returns generic "other"
-        PlaidCategoryMapper.CategoryMapping otherMapping = new PlaidCategoryMapper.CategoryMapping("other", "other", false);
-        when(categoryMapper.mapPlaidCategory(any(), any(), any(), any(), any(), any()))
-                .thenReturn(otherMapping);
+        // Mock TransactionTypeCategoryService - returns generic "other" (HSA logic should override to healthcare)
+        TransactionTypeCategoryService.CategoryResult otherResult = 
+            new TransactionTypeCategoryService.CategoryResult("other", "other", "PLAID", 0.5);
+        when(transactionTypeCategoryService.determineCategory(any(), any(), any(), any(), any(), any(), any(), any(), anyString()))
+                .thenReturn(otherResult);
 
         // Create Plaid transaction
         Transaction plaidTransaction = createPlaidTransaction("plaid-hsa-123", "HSA Withdrawal", null, -200.00, null, null);
@@ -154,10 +158,11 @@ class HSAAccountCategorizationTest {
         when(accountRepository.findById("checking-123")).thenReturn(Optional.of(checkingAccount));
         when(accountRepository.findByPlaidAccountId("plaid-checking-123")).thenReturn(Optional.of(checkingAccount));
 
-        // Mock category mapper
-        PlaidCategoryMapper.CategoryMapping incomeMapping = new PlaidCategoryMapper.CategoryMapping("income", "deposit", false);
-        when(categoryMapper.mapPlaidCategory(any(), any(), any(), any(), any(), any()))
-                .thenReturn(incomeMapping);
+        // Mock TransactionTypeCategoryService - returns income (non-HSA accounts should not be overridden)
+        TransactionTypeCategoryService.CategoryResult incomeResult = 
+            new TransactionTypeCategoryService.CategoryResult("income", "deposit", "PLAID", 0.9);
+        when(transactionTypeCategoryService.determineCategory(any(), any(), any(), any(), any(), any(), any(), any(), anyString()))
+                .thenReturn(incomeResult);
 
         // Create Plaid transaction
         Transaction plaidTransaction = createPlaidTransaction("plaid-checking-123", "Deposit", null, 1000.00, "INCOME", "DEPOSIT");

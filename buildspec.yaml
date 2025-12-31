@@ -9,13 +9,28 @@ phases:
       - COMMIT_HASH=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
       - IMAGE_TAG=${COMMIT_HASH:=latest}
       - echo Build started on `date`
+      - echo Validating YAML files...
+      - |
+        if command -v yamllint &> /dev/null; then
+          echo "yamllint found, validating YAML files..."
+          yamllint -c .yamllint infrastructure/cloudformation/*.yaml buildspec.yaml || (echo "YAML validation failed!" && exit 1)
+        elif command -v pip3 &> /dev/null; then
+          echo "Installing yamllint..."
+          pip3 install --user yamllint || echo "Warning: Could not install yamllint, skipping YAML validation"
+          if command -v yamllint &> /dev/null || [ -f ~/.local/bin/yamllint ]; then
+            echo "yamllint installed, validating YAML files..."
+            ~/.local/bin/yamllint -c .yamllint infrastructure/cloudformation/*.yaml buildspec.yaml || (echo "YAML validation failed!" && exit 1)
+          fi
+        else
+          echo "Warning: yamllint not available, skipping YAML validation"
+        fi
       - echo Building the Docker image...
       - docker build --platform linux/arm64 -t $REPOSITORY_URI:latest -t $REPOSITORY_URI:$IMAGE_TAG .
       - docker tag $REPOSITORY_URI:latest $REPOSITORY_URI:$IMAGE_TAG
   build:
     commands:
-      - echo Running tests...
-      - mvn clean test -DskipTests || true
+      - echo Building application (tests skipped for cost optimization)...
+      - mvn clean package -DskipTests
       - echo Build completed on `date`
   post_build:
     commands:
@@ -28,4 +43,3 @@ phases:
 artifacts:
   files:
     - imagedefinitions.json
-

@@ -28,8 +28,8 @@ public class DynamoDBTestConfiguration {
         if (endpoint != null && !endpoint.isEmpty()) {
             return endpoint;
         }
-        // Default to localhost for LocalStack
-        return "http://localhost:4566";
+        // Default to test LocalStack instance on port 4567 (isolated from main app on 4566)
+        return "http://localhost:4567";
     }
 
     @Bean

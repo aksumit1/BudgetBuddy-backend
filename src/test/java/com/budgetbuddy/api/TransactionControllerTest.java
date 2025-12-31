@@ -76,7 +76,168 @@ class TransactionControllerTest {
     @Test
     void testGetTransactions_WithNullUserDetails_ThrowsException() {
         // When/Then
-        assertThrows(Exception.class, () -> transactionController.getTransactions(null, 0, 20));
+        com.budgetbuddy.exception.AppException exception = assertThrows(
+                com.budgetbuddy.exception.AppException.class,
+                () -> transactionController.getTransactions(null, 0, 20));
+        assertEquals(com.budgetbuddy.exception.ErrorCode.UNAUTHORIZED_ACCESS, exception.getErrorCode());
+    }
+
+    @Test
+    void testGetTransactions_WithNullUsername_ThrowsException() {
+        // Given
+        when(userDetails.getUsername()).thenReturn(null);
+
+        // When/Then
+        com.budgetbuddy.exception.AppException exception = assertThrows(
+                com.budgetbuddy.exception.AppException.class,
+                () -> transactionController.getTransactions(userDetails, 0, 20));
+        assertEquals(com.budgetbuddy.exception.ErrorCode.UNAUTHORIZED_ACCESS, exception.getErrorCode());
+    }
+
+    @Test
+    void testGetTransactions_WithNegativePage_ThrowsException() {
+        // Given
+        when(userService.findByEmail("test@example.com")).thenReturn(java.util.Optional.of(testUser));
+
+        // When/Then
+        com.budgetbuddy.exception.AppException exception = assertThrows(
+                com.budgetbuddy.exception.AppException.class,
+                () -> transactionController.getTransactions(userDetails, -1, 20));
+        assertEquals(com.budgetbuddy.exception.ErrorCode.INVALID_INPUT, exception.getErrorCode());
+    }
+
+    @Test
+    void testGetTransactions_WithInvalidPageSize_ThrowsException() {
+        // Given
+        when(userService.findByEmail("test@example.com")).thenReturn(java.util.Optional.of(testUser));
+
+        // When/Then - Size too small
+        com.budgetbuddy.exception.AppException exception1 = assertThrows(
+                com.budgetbuddy.exception.AppException.class,
+                () -> transactionController.getTransactions(userDetails, 0, 0));
+        assertEquals(com.budgetbuddy.exception.ErrorCode.INVALID_INPUT, exception1.getErrorCode());
+
+        // When/Then - Size too large
+        com.budgetbuddy.exception.AppException exception2 = assertThrows(
+                com.budgetbuddy.exception.AppException.class,
+                () -> transactionController.getTransactions(userDetails, 0, 101));
+        assertEquals(com.budgetbuddy.exception.ErrorCode.INVALID_INPUT, exception2.getErrorCode());
+    }
+
+    @Test
+    void testGetTransactions_WithUserNotFound_ThrowsException() {
+        // Given
+        when(userService.findByEmail("test@example.com")).thenReturn(java.util.Optional.empty());
+
+        // When/Then
+        com.budgetbuddy.exception.AppException exception = assertThrows(
+                com.budgetbuddy.exception.AppException.class,
+                () -> transactionController.getTransactions(userDetails, 0, 20));
+        assertEquals(com.budgetbuddy.exception.ErrorCode.USER_NOT_FOUND, exception.getErrorCode());
+    }
+
+    @Test
+    void testGetTransactionsInRange_WithNullUserDetails_ThrowsException() {
+        // When/Then
+        com.budgetbuddy.exception.AppException exception = assertThrows(
+                com.budgetbuddy.exception.AppException.class,
+                () -> transactionController.getTransactionsInRange(null, LocalDate.now().minusDays(7), LocalDate.now()));
+        assertEquals(com.budgetbuddy.exception.ErrorCode.UNAUTHORIZED_ACCESS, exception.getErrorCode());
+    }
+
+    @Test
+    void testGetTransactionsInRange_WithInvalidDateRange_ThrowsException() {
+        // Given
+        LocalDate startDate = LocalDate.now();
+        LocalDate endDate = LocalDate.now().minusDays(7); // End before start
+        when(userService.findByEmail("test@example.com")).thenReturn(java.util.Optional.of(testUser));
+
+        // When/Then
+        com.budgetbuddy.exception.AppException exception = assertThrows(
+                com.budgetbuddy.exception.AppException.class,
+                () -> transactionController.getTransactionsInRange(userDetails, startDate, endDate));
+        assertEquals(com.budgetbuddy.exception.ErrorCode.INVALID_DATE_RANGE, exception.getErrorCode());
+    }
+
+    @Test
+    void testGetTransaction_WithNullId_ThrowsException() {
+        // Given
+        when(userService.findByEmail("test@example.com")).thenReturn(java.util.Optional.of(testUser));
+
+        // When/Then
+        com.budgetbuddy.exception.AppException exception = assertThrows(
+                com.budgetbuddy.exception.AppException.class,
+                () -> transactionController.getTransaction(userDetails, null, null));
+        assertEquals(com.budgetbuddy.exception.ErrorCode.INVALID_INPUT, exception.getErrorCode());
+    }
+
+    @Test
+    void testGetTransaction_WithEmptyId_ThrowsException() {
+        // Given
+        when(userService.findByEmail("test@example.com")).thenReturn(java.util.Optional.of(testUser));
+
+        // When/Then
+        com.budgetbuddy.exception.AppException exception = assertThrows(
+                com.budgetbuddy.exception.AppException.class,
+                () -> transactionController.getTransaction(userDetails, "", null));
+        assertEquals(com.budgetbuddy.exception.ErrorCode.INVALID_INPUT, exception.getErrorCode());
+    }
+
+    @Test
+    void testCreateTransaction_WithNullRequest_ThrowsException() {
+        // Given
+        when(userService.findByEmail("test@example.com")).thenReturn(java.util.Optional.of(testUser));
+
+        // When/Then
+        com.budgetbuddy.exception.AppException exception = assertThrows(
+                com.budgetbuddy.exception.AppException.class,
+                () -> transactionController.createTransaction(userDetails, null));
+        assertEquals(com.budgetbuddy.exception.ErrorCode.INVALID_INPUT, exception.getErrorCode());
+    }
+
+    @Test
+    void testCreateTransaction_WithNullAmount_ThrowsException() {
+        // Given
+        TransactionController.CreateTransactionRequest request = new TransactionController.CreateTransactionRequest();
+        request.setTransactionDate(LocalDate.now());
+        request.setCategoryPrimary("dining");
+        when(userService.findByEmail("test@example.com")).thenReturn(java.util.Optional.of(testUser));
+
+        // When/Then
+        com.budgetbuddy.exception.AppException exception = assertThrows(
+                com.budgetbuddy.exception.AppException.class,
+                () -> transactionController.createTransaction(userDetails, request));
+        assertEquals(com.budgetbuddy.exception.ErrorCode.INVALID_INPUT, exception.getErrorCode());
+    }
+
+    @Test
+    void testCreateTransaction_WithNullDate_ThrowsException() {
+        // Given
+        TransactionController.CreateTransactionRequest request = new TransactionController.CreateTransactionRequest();
+        request.setAmount(BigDecimal.valueOf(100.00));
+        request.setCategoryPrimary("dining");
+        when(userService.findByEmail("test@example.com")).thenReturn(java.util.Optional.of(testUser));
+
+        // When/Then
+        com.budgetbuddy.exception.AppException exception = assertThrows(
+                com.budgetbuddy.exception.AppException.class,
+                () -> transactionController.createTransaction(userDetails, request));
+        assertEquals(com.budgetbuddy.exception.ErrorCode.INVALID_INPUT, exception.getErrorCode());
+    }
+
+    @Test
+    void testCreateTransaction_WithNullCategory_ThrowsException() {
+        // Given
+        TransactionController.CreateTransactionRequest request = new TransactionController.CreateTransactionRequest();
+        request.setAmount(BigDecimal.valueOf(100.00));
+        request.setTransactionDate(LocalDate.now());
+        when(userService.findByEmail("test@example.com")).thenReturn(java.util.Optional.of(testUser));
+
+        // When/Then
+        com.budgetbuddy.exception.AppException exception = assertThrows(
+                com.budgetbuddy.exception.AppException.class,
+                () -> transactionController.createTransaction(userDetails, request));
+        assertEquals(com.budgetbuddy.exception.ErrorCode.INVALID_INPUT, exception.getErrorCode());
     }
 
     @Test
@@ -111,8 +272,11 @@ class TransactionControllerTest {
 
         TransactionTable mockTransaction = createTransaction("tx-1");
         when(userService.findByEmail("test@example.com")).thenReturn(java.util.Optional.of(testUser));
-        // Updated to match the new method signature with transactionId, notes, plaidAccountId, and plaidTransactionId
-        when(transactionService.createTransaction(eq(testUser), eq("account-123"), any(), any(), anyString(), anyString(), any(), any(), any(), any(), any(), any()))
+        // Updated to match the full 22-parameter method signature: user, accountId, amount, transactionDate, description, categoryPrimary, categoryDetailed, importerCategoryPrimary, importerCategoryDetailed, transactionId, notes, plaidAccountId, plaidTransactionId, transactionType, currencyCode, importSource, importBatchId, importFileName, reviewStatus, merchantName, paymentChannel, userName
+        when(transactionService.createTransaction(
+                eq(testUser), eq("account-123"), any(BigDecimal.class), any(LocalDate.class), 
+                any(), anyString(), any(), any(), any(), any(), any(), any(), any(), any(), 
+                any(), any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(mockTransaction);
 
         // When

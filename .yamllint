@@ -1,0 +1,72 @@
+---
+# YAML Lint Configuration for BudgetBuddy Backend
+# Validates CloudFormation templates and other YAML files
+
+extends: default
+
+rules:
+  # Line length - allow longer lines for CloudFormation (some lines can be long)
+  line-length:
+    max: 200
+    level: warning
+  
+  # Indentation - use 2 spaces (CloudFormation standard)
+  indentation:
+    spaces: 2
+    indent-sequences: true
+    check-multi-line-strings: false
+  
+  # Comments - allow comments
+  comments:
+    min-spaces-from-content: 1
+  
+  # Document start - allow documents without start markers
+  document-start: disable
+  
+  # Trailing spaces - warn but don't fail
+  trailing-spaces:
+    level: warning
+  
+  # Empty values - allow null and empty strings
+  empty-values:
+    forbid-in-block-mappings: false
+    forbid-in-flow-mappings: false
+  
+  # Key ordering - disable (CloudFormation doesn't require specific order)
+  key-ordering: disable
+  
+  # Braces - allow flow sequences and mappings
+  braces:
+    max-spaces-inside: 1
+    min-spaces-inside: 0
+  
+  # Brackets - allow flow sequences
+  brackets:
+    max-spaces-inside: 1
+    min-spaces-inside: 0
+  
+  # Colons - require space after colon
+  colons:
+    max-spaces-before: 0
+    max-spaces-after: 1
+  
+  # Commas - require space after comma
+  commas:
+    max-spaces-before: 0
+    min-spaces-after: 1
+  
+  # Comments indentation - allow comments at any indentation
+  comments-indentation: disable
+  
+  # Hyphens - require space after hyphen in lists
+  hyphens:
+    max-spaces-after: 1
+  
+  # Empty lines - allow 1 blank line (common at end of files)
+  empty-lines:
+    max: 1
+    level: warning
+  
+  # Key duplicates - disable (CloudFormation !If syntax can confuse yamllint)
+  key-duplicates: disable
+

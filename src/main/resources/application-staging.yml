@@ -5,6 +5,14 @@ spring:
   profiles:
     active: staging
   
+  # Multipart File Upload Configuration
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 10MB  # Maximum size per file (10MB for large CSV/Excel/PDF imports)
+      max-request-size: 10MB  # Maximum size for entire multipart request (10MB)
+      file-size-threshold: 2KB  # Files larger than this will be written to disk
+  
   # Data Source (if using RDS in staging)
   datasource:
     url: ${DATABASE_URL:jdbc:postgresql://staging-db.budgetbuddy.com:5432/budgetbuddy}

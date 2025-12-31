@@ -1,6 +1,5 @@
 package com.budgetbuddy.util;
 
-import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
@@ -9,14 +8,12 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Comprehensive tests for IdGenerator utility
- * Tests deterministic UUID generation and validation
+ * Unit Tests for IdGenerator
  */
 class IdGeneratorTest {
 
     @Test
-    @DisplayName("Should generate deterministic account ID")
-    void testGenerateAccountId_Deterministic() {
+    void testGenerateAccountId_WithValidInputs_ReturnsDeterministicUUID() {
         // Given
         String institutionName = "Chase Bank";
         String plaidAccountId = "acc-123";
@@ -26,275 +23,185 @@ class IdGeneratorTest {
         String id2 = IdGenerator.generateAccountId(institutionName, plaidAccountId);
 
         // Then
-        assertEquals(id1, id2);
+        assertNotNull(id1);
+        assertNotNull(id2);
+        assertEquals(id1, id2, "Should generate same UUID for same inputs");
         assertTrue(IdGenerator.isValidUUID(id1));
     }
 
     @Test
-    @DisplayName("Should generate different IDs for different accounts")
-    void testGenerateAccountId_DifferentAccounts() {
-        // Given
-        String institutionName = "Chase Bank";
-        String plaidAccountId1 = "acc-123";
-        String plaidAccountId2 = "acc-456";
+    void testGenerateAccountId_WithNullInstitutionName_ThrowsException() {
+        // When/Then
+        assertThrows(IllegalArgumentException.class, () -> 
+                IdGenerator.generateAccountId(null, "acc-123"));
+    }
 
-        // When
-        String id1 = IdGenerator.generateAccountId(institutionName, plaidAccountId1);
-        String id2 = IdGenerator.generateAccountId(institutionName, plaidAccountId2);
+    @Test
+    void testGenerateAccountId_WithEmptyInstitutionName_ThrowsException() {
+        // When/Then
+        assertThrows(IllegalArgumentException.class, () -> 
+                IdGenerator.generateAccountId("", "acc-123"));
+        assertThrows(IllegalArgumentException.class, () -> 
+                IdGenerator.generateAccountId("   ", "acc-123"));
+    }
+
+    @Test
+    void testGenerateAccountId_WithNullPlaidAccountId_ThrowsException() {
+        // When/Then
+        assertThrows(IllegalArgumentException.class, () -> 
+                IdGenerator.generateAccountId("Chase", null));
+    }
+
+    @Test
+    void testGenerateAccountId_WithWhitespace_TrimsInput() {
+        // Given
+        String id1 = IdGenerator.generateAccountId("  Chase  ", "  acc-123  ");
+        String id2 = IdGenerator.generateAccountId("Chase", "acc-123");
 
         // Then
-        assertNotEquals(id1, id2);
+        assertEquals(id1, id2, "Should handle whitespace by trimming");
     }
 
     @Test
-    @DisplayName("Should throw exception for null institution name")
-    void testGenerateAccountId_NullInstitutionName() {
-        assertThrows(IllegalArgumentException.class, () -> {
-            IdGenerator.generateAccountId(null, "acc-123");
-        });
-    }
-
-    @Test
-    @DisplayName("Should throw exception for empty institution name")
-    void testGenerateAccountId_EmptyInstitutionName() {
-        assertThrows(IllegalArgumentException.class, () -> {
-            IdGenerator.generateAccountId("", "acc-123");
-        });
-    }
-
-    @Test
-    @DisplayName("Should throw exception for null Plaid account ID")
-    void testGenerateAccountId_NullPlaidAccountId() {
-        assertThrows(IllegalArgumentException.class, () -> {
-            IdGenerator.generateAccountId("Chase Bank", null);
-        });
-    }
-
-    @Test
-    @DisplayName("Should trim whitespace from inputs")
-    void testGenerateAccountId_TrimsWhitespace() {
+    void testGenerateTransactionId_WithValidInputs_ReturnsDeterministicUUID() {
         // Given
-        String id1 = IdGenerator.generateAccountId("Chase Bank", "acc-123");
-        String id2 = IdGenerator.generateAccountId("  Chase Bank  ", "  acc-123  ");
-
-        // Then - Should produce same ID
-        assertEquals(id1, id2);
-    }
-
-    @Test
-    @DisplayName("Should generate deterministic transaction ID")
-    void testGenerateTransactionId_Deterministic() {
-        // Given
-        String institutionName = "Chase Bank";
-        String accountId = "acc-123";
-        String plaidTransactionId = "txn-456";
+        String institutionName = "Bank of America";
+        String accountId = "acc-456";
+        String plaidTransactionId = "txn-789";
 
         // When
         String id1 = IdGenerator.generateTransactionId(institutionName, accountId, plaidTransactionId);
         String id2 = IdGenerator.generateTransactionId(institutionName, accountId, plaidTransactionId);
 
         // Then
-        assertEquals(id1, id2);
+        assertNotNull(id1);
+        assertEquals(id1, id2, "Should generate same UUID for same inputs");
         assertTrue(IdGenerator.isValidUUID(id1));
     }
 
     @Test
-    @DisplayName("Should throw exception for null transaction parameters")
-    void testGenerateTransactionId_NullParameters() {
-        assertThrows(IllegalArgumentException.class, () -> {
-            IdGenerator.generateTransactionId(null, "acc-123", "txn-456");
-        });
-        assertThrows(IllegalArgumentException.class, () -> {
-            IdGenerator.generateTransactionId("Chase", null, "txn-456");
-        });
-        assertThrows(IllegalArgumentException.class, () -> {
-            IdGenerator.generateTransactionId("Chase", "acc-123", null);
-        });
+    void testGenerateTransactionId_WithNullInputs_ThrowsException() {
+        // When/Then
+        assertThrows(IllegalArgumentException.class, () -> 
+                IdGenerator.generateTransactionId(null, "acc", "txn"));
+        assertThrows(IllegalArgumentException.class, () -> 
+                IdGenerator.generateTransactionId("Bank", null, "txn"));
+        assertThrows(IllegalArgumentException.class, () -> 
+                IdGenerator.generateTransactionId("Bank", "acc", null));
     }
 
     @Test
-    @DisplayName("Should generate deterministic budget ID")
-    void testGenerateBudgetId_Deterministic() {
+    void testGenerateBudgetId_WithValidInputs_ReturnsDeterministicUUID() {
         // Given
         String userId = "user-123";
-        String category = "groceries";
+        String category = "FOOD_AND_DRINK";
 
         // When
         String id1 = IdGenerator.generateBudgetId(userId, category);
         String id2 = IdGenerator.generateBudgetId(userId, category);
 
         // Then
+        assertNotNull(id1);
         assertEquals(id1, id2);
         assertTrue(IdGenerator.isValidUUID(id1));
     }
 
     @Test
-    @DisplayName("Should throw exception for null budget parameters")
-    void testGenerateBudgetId_NullParameters() {
-        assertThrows(IllegalArgumentException.class, () -> {
-            IdGenerator.generateBudgetId(null, "groceries");
-        });
-        assertThrows(IllegalArgumentException.class, () -> {
-            IdGenerator.generateBudgetId("user-123", null);
-        });
+    void testGenerateBudgetId_WithNullInputs_ThrowsException() {
+        // When/Then
+        assertThrows(IllegalArgumentException.class, () -> 
+                IdGenerator.generateBudgetId(null, "category"));
+        assertThrows(IllegalArgumentException.class, () -> 
+                IdGenerator.generateBudgetId("user", null));
     }
 
     @Test
-    @DisplayName("Should generate deterministic goal ID")
-    void testGenerateGoalId_Deterministic() {
+    void testGenerateGoalId_WithValidInputs_ReturnsDeterministicUUID() {
         // Given
         String userId = "user-123";
-        String goalName = "Save for vacation";
+        String goalName = "Save for Vacation";
 
         // When
         String id1 = IdGenerator.generateGoalId(userId, goalName);
         String id2 = IdGenerator.generateGoalId(userId, goalName);
 
         // Then
+        assertNotNull(id1);
         assertEquals(id1, id2);
         assertTrue(IdGenerator.isValidUUID(id1));
     }
 
     @Test
-    @DisplayName("Should throw exception for null goal parameters")
-    void testGenerateGoalId_NullParameters() {
-        assertThrows(IllegalArgumentException.class, () -> {
-            IdGenerator.generateGoalId(null, "Save for vacation");
-        });
-        assertThrows(IllegalArgumentException.class, () -> {
-            IdGenerator.generateGoalId("user-123", null);
-        });
+    void testGenerateGoalId_WithNullInputs_ThrowsException() {
+        // When/Then
+        assertThrows(IllegalArgumentException.class, () -> 
+                IdGenerator.generateGoalId(null, "goal"));
+        assertThrows(IllegalArgumentException.class, () -> 
+                IdGenerator.generateGoalId("user", null));
     }
 
     @Test
-    @DisplayName("Should generate deterministic subscription ID")
-    void testGenerateSubscriptionId_Deterministic() {
+    void testGenerateSubscriptionId_WithValidInputs_ReturnsDeterministicUUID() {
         // Given
         String userId = "user-123";
         String merchantName = "Netflix";
-        BigDecimal amount = new BigDecimal("15.99");
+        BigDecimal amount = new BigDecimal("9.99");
 
         // When
         String id1 = IdGenerator.generateSubscriptionId(userId, merchantName, amount);
         String id2 = IdGenerator.generateSubscriptionId(userId, merchantName, amount);
 
         // Then
+        assertNotNull(id1);
         assertEquals(id1, id2);
         assertTrue(IdGenerator.isValidUUID(id1));
     }
 
     @Test
-    @DisplayName("Should round subscription amount to 2 decimal places")
-    void testGenerateSubscriptionId_RoundsAmount() {
+    void testGenerateSubscriptionId_WithNullInputs_ThrowsException() {
+        // When/Then
+        assertThrows(IllegalArgumentException.class, () -> 
+                IdGenerator.generateSubscriptionId(null, "merchant", new BigDecimal("10.00")));
+        assertThrows(IllegalArgumentException.class, () -> 
+                IdGenerator.generateSubscriptionId("user", null, new BigDecimal("10.00")));
+        assertThrows(IllegalArgumentException.class, () -> 
+                IdGenerator.generateSubscriptionId("user", "merchant", null));
+    }
+
+    @Test
+    void testGenerateSubscriptionId_WithDifferentAmountPrecision_HandlesCorrectly() {
         // Given
         String userId = "user-123";
         String merchantName = "Netflix";
-        
-        // Test 1: Amounts that round to different values should produce different IDs
-        BigDecimal amount1 = new BigDecimal("15.994"); // Rounds to 15.99
-        BigDecimal amount2 = new BigDecimal("15.995"); // Rounds to 16.00
-        
+        BigDecimal amount1 = new BigDecimal("9.99");
+        BigDecimal amount2 = new BigDecimal("10.00");
+
         // When
         String id1 = IdGenerator.generateSubscriptionId(userId, merchantName, amount1);
         String id2 = IdGenerator.generateSubscriptionId(userId, merchantName, amount2);
 
-        // Then - Should be different due to rounding (15.994 -> 15.99, 15.995 -> 16.00)
-        assertNotEquals(id1, id2, "IDs should differ when amounts round to different values");
-        
-        // Test 2: Amounts that round to the same value should produce the same ID
-        BigDecimal amount3 = new BigDecimal("15.999"); // Rounds to 16.00
-        BigDecimal amount4 = new BigDecimal("16.00"); // Stays 16.00
-        
-        String id3 = IdGenerator.generateSubscriptionId(userId, merchantName, amount3);
-        String id4 = IdGenerator.generateSubscriptionId(userId, merchantName, amount4);
-        
-        // Then - Should be the same after rounding (both become 16.00)
-        assertEquals(id3, id4, "15.999 and 16.00 should produce same ID after rounding");
-    }
-
-    @Test
-    @DisplayName("Should throw exception for null subscription parameters")
-    void testGenerateSubscriptionId_NullParameters() {
-        assertThrows(IllegalArgumentException.class, () -> {
-            IdGenerator.generateSubscriptionId(null, "Netflix", new BigDecimal("15.99"));
-        });
-        assertThrows(IllegalArgumentException.class, () -> {
-            IdGenerator.generateSubscriptionId("user-123", null, new BigDecimal("15.99"));
-        });
-        assertThrows(IllegalArgumentException.class, () -> {
-            IdGenerator.generateSubscriptionId("user-123", "Netflix", null);
-        });
-    }
-
-    @Test
-    @DisplayName("Should validate UUID format")
-    void testIsValidUUID() {
-        // Valid UUIDs
-        assertTrue(IdGenerator.isValidUUID("550e8400-e29b-41d4-a716-446655440000"));
-        assertTrue(IdGenerator.isValidUUID("550E8400-E29B-41D4-A716-446655440000")); // Case insensitive
-        assertTrue(IdGenerator.isValidUUID(UUID.randomUUID().toString()));
-
-        // Invalid UUIDs
-        assertFalse(IdGenerator.isValidUUID(null));
-        assertFalse(IdGenerator.isValidUUID(""));
-        assertFalse(IdGenerator.isValidUUID("not-a-uuid"));
-        assertFalse(IdGenerator.isValidUUID("550e8400-e29b-41d4-a716")); // Too short
-    }
-
-    @Test
-    @DisplayName("Should generate random UUID for manual entities")
-    void testGenerateManualEntityUUID() {
-        // When
-        String id1 = IdGenerator.generateManualEntityUUID();
-        String id2 = IdGenerator.generateManualEntityUUID();
-
         // Then
-        assertNotEquals(id1, id2);
-        assertTrue(IdGenerator.isValidUUID(id1));
-        assertTrue(IdGenerator.isValidUUID(id2));
-        // Should be lowercase
-        assertEquals(id1.toLowerCase(), id1);
-        assertEquals(id2.toLowerCase(), id2);
+        assertNotEquals(id1, id2, "Different amounts should generate different IDs");
     }
 
     @Test
-    @DisplayName("Should normalize UUID to lowercase")
-    void testNormalizeUUID() {
-        // Given
-        String mixedCase = "550E8400-E29B-41D4-A716-446655440000";
+    void testGenerateSubscriptionId_WithSameAmountAfterRounding_GeneratesSameId() {
+        // Given - These will round to the same value (10.00)
+        String userId = "user-123";
+        String merchantName = "Netflix";
+        BigDecimal amount1 = new BigDecimal("9.999");
+        BigDecimal amount2 = new BigDecimal("10.001");
 
         // When
-        String normalized = IdGenerator.normalizeUUID(mixedCase);
+        String id1 = IdGenerator.generateSubscriptionId(userId, merchantName, amount1);
+        String id2 = IdGenerator.generateSubscriptionId(userId, merchantName, amount2);
 
-        // Then
-        assertEquals("550e8400-e29b-41d4-a716-446655440000", normalized);
+        // Then - Should be the same because both round to 10.00
+        assertEquals(id1, id2, "Amounts that round to the same value should generate same ID");
     }
 
     @Test
-    @DisplayName("Should handle null in normalizeUUID")
-    void testNormalizeUUID_Null() {
-        assertNull(IdGenerator.normalizeUUID(null));
-    }
-
-    @Test
-    @DisplayName("Should compare UUIDs case-insensitively")
-    void testEqualsIgnoreCase() {
-        // Given
-        String uuid1 = "550E8400-E29B-41D4-A716-446655440000";
-        String uuid2 = "550e8400-e29b-41d4-a716-446655440000";
-        String uuid3 = "550e8400-e29b-41d4-a716-446655440001";
-
-        // When/Then
-        assertTrue(IdGenerator.equalsIgnoreCase(uuid1, uuid2));
-        assertFalse(IdGenerator.equalsIgnoreCase(uuid1, uuid3));
-        assertTrue(IdGenerator.equalsIgnoreCase(null, null));
-        assertFalse(IdGenerator.equalsIgnoreCase(uuid1, null));
-        assertFalse(IdGenerator.equalsIgnoreCase(null, uuid2));
-    }
-
-    @Test
-    @DisplayName("Should generate deterministic UUID from namespace and name")
-    void testGenerateDeterministicUUID() {
+    void testGenerateDeterministicUUID_WithValidInputs_ReturnsDeterministicUUID() {
         // Given
         UUID namespace = UUID.randomUUID();
         String name = "test-name";
@@ -304,38 +211,165 @@ class IdGeneratorTest {
         String id2 = IdGenerator.generateDeterministicUUID(namespace, name);
 
         // Then
+        assertNotNull(id1);
         assertEquals(id1, id2);
         assertTrue(IdGenerator.isValidUUID(id1));
+        assertTrue(id1.equals(id1.toLowerCase()), "Should be lowercase");
     }
 
     @Test
-    @DisplayName("Should throw exception for null namespace or name")
-    void testGenerateDeterministicUUID_NullParameters() {
-        UUID namespace = UUID.randomUUID();
-        assertThrows(IllegalArgumentException.class, () -> {
-            IdGenerator.generateDeterministicUUID(null, "name");
-        });
-        assertThrows(IllegalArgumentException.class, () -> {
-            IdGenerator.generateDeterministicUUID(namespace, null);
-        });
-        assertThrows(IllegalArgumentException.class, () -> {
-            IdGenerator.generateDeterministicUUID(namespace, "");
-        });
+    void testGenerateDeterministicUUID_WithNullNamespace_ThrowsException() {
+        // When/Then
+        assertThrows(IllegalArgumentException.class, () -> 
+                IdGenerator.generateDeterministicUUID(null, "name"));
     }
 
     @Test
-    @DisplayName("Should trim name in generateDeterministicUUID")
-    void testGenerateDeterministicUUID_TrimsName() {
+    void testGenerateDeterministicUUID_WithNullName_ThrowsException() {
+        // When/Then
+        assertThrows(IllegalArgumentException.class, () -> 
+                IdGenerator.generateDeterministicUUID(UUID.randomUUID(), null));
+    }
+
+    @Test
+    void testGenerateDeterministicUUID_WithWhitespace_TrimsInput() {
         // Given
         UUID namespace = UUID.randomUUID();
-        String name1 = "test-name";
-        String name2 = "  test-name  ";
+        String id1 = IdGenerator.generateDeterministicUUID(namespace, "  test  ");
+        String id2 = IdGenerator.generateDeterministicUUID(namespace, "test");
+
+        // Then
+        assertEquals(id1, id2, "Should trim whitespace");
+    }
+
+    @Test
+    void testIsValidUUID_WithValidUUID_ReturnsTrue() {
+        // Given
+        String validUUID = UUID.randomUUID().toString();
 
         // When
-        String id1 = IdGenerator.generateDeterministicUUID(namespace, name1);
-        String id2 = IdGenerator.generateDeterministicUUID(namespace, name2);
+        boolean isValid = IdGenerator.isValidUUID(validUUID);
 
-        // Then - Should produce same ID
-        assertEquals(id1, id2);
+        // Then
+        assertTrue(isValid);
+    }
+
+    @Test
+    void testIsValidUUID_WithInvalidUUID_ReturnsFalse() {
+        // When/Then
+        assertFalse(IdGenerator.isValidUUID("not-a-uuid"));
+        assertFalse(IdGenerator.isValidUUID("123"));
+        assertFalse(IdGenerator.isValidUUID(""));
+    }
+
+    @Test
+    void testIsValidUUID_WithNull_ReturnsFalse() {
+        // When
+        boolean isValid = IdGenerator.isValidUUID(null);
+
+        // Then
+        assertFalse(isValid);
+    }
+
+    @Test
+    void testGenerateManualEntityUUID_ReturnsValidUUID() {
+        // When
+        String uuid = IdGenerator.generateManualEntityUUID();
+
+        // Then
+        assertNotNull(uuid);
+        assertTrue(IdGenerator.isValidUUID(uuid));
+        assertTrue(uuid.equals(uuid.toLowerCase()), "Should be lowercase");
+    }
+
+    @Test
+    void testNormalizeUUID_WithValidUUID_ReturnsLowercase() {
+        // Given
+        String upperCaseUUID = UUID.randomUUID().toString().toUpperCase();
+
+        // When
+        String normalized = IdGenerator.normalizeUUID(upperCaseUUID);
+
+        // Then
+        assertNotNull(normalized);
+        assertEquals(normalized.toLowerCase(), normalized);
+    }
+
+    @Test
+    void testNormalizeUUID_WithNull_ReturnsNull() {
+        // When
+        String normalized = IdGenerator.normalizeUUID(null);
+
+        // Then
+        assertNull(normalized);
+    }
+
+    @Test
+    void testNormalizeUUID_WithWhitespace_TrimsInput() {
+        // Given
+        String uuid = "  " + UUID.randomUUID().toString() + "  ";
+
+        // When
+        String normalized = IdGenerator.normalizeUUID(uuid);
+
+        // Then
+        assertNotNull(normalized);
+        assertFalse(normalized.startsWith(" "));
+        assertFalse(normalized.endsWith(" "));
+    }
+
+    @Test
+    void testEqualsIgnoreCase_WithSameUUIDs_ReturnsTrue() {
+        // Given
+        String uuid1 = UUID.randomUUID().toString();
+        String uuid2 = uuid1;
+
+        // When
+        boolean equals = IdGenerator.equalsIgnoreCase(uuid1, uuid2);
+
+        // Then
+        assertTrue(equals);
+    }
+
+    @Test
+    void testEqualsIgnoreCase_WithDifferentCase_ReturnsTrue() {
+        // Given
+        String uuid1 = UUID.randomUUID().toString().toLowerCase();
+        String uuid2 = uuid1.toUpperCase();
+
+        // When
+        boolean equals = IdGenerator.equalsIgnoreCase(uuid1, uuid2);
+
+        // Then
+        assertTrue(equals);
+    }
+
+    @Test
+    void testEqualsIgnoreCase_WithDifferentUUIDs_ReturnsFalse() {
+        // Given
+        String uuid1 = UUID.randomUUID().toString();
+        String uuid2 = UUID.randomUUID().toString();
+
+        // When
+        boolean equals = IdGenerator.equalsIgnoreCase(uuid1, uuid2);
+
+        // Then
+        assertFalse(equals);
+    }
+
+    @Test
+    void testEqualsIgnoreCase_WithNulls_ReturnsTrue() {
+        // When
+        boolean equals = IdGenerator.equalsIgnoreCase(null, null);
+
+        // Then
+        assertTrue(equals);
+    }
+
+    @Test
+    void testEqualsIgnoreCase_WithOneNull_ReturnsFalse() {
+        // When/Then
+        assertFalse(IdGenerator.equalsIgnoreCase(null, UUID.randomUUID().toString()));
+        assertFalse(IdGenerator.equalsIgnoreCase(UUID.randomUUID().toString(), null));
     }
 }

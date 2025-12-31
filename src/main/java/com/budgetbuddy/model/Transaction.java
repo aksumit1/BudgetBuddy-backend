@@ -188,6 +188,7 @@ public class Transaction implements java.io.Serializable {
     }
 
     public enum TransactionCategory {
+        // Expense categories
         FOOD_DINING,
         TRANSPORTATION,
         SHOPPING,
@@ -199,9 +200,43 @@ public class Transaction implements java.io.Serializable {
         GROCERIES,
         GAS_STATIONS,
         RENT,
+        SUBSCRIPTIONS, // Recurring subscriptions (streaming, software, etc.)
+        UTILITIES, // Utilities (electricity, water, gas, internet, phone)
+        PAYMENT, // Credit card payments, recurring ACH payments, automatic payments
+        PET, // Pet supplies, pet care, veterinary expenses
+        CASH, // Cash withdrawals, ATM transactions
+        OTHER,
+        
+        // Income categories
         SALARY,
-        TRANSFER,
-        OTHER
+        INTEREST, // Interest income
+        DIVIDEND, // Dividend income
+        STIPEND, // Stipend income
+        RENT_INCOME, // Rental income
+        TIPS, // Tips income
+        DEPOSIT, // Generic deposit/ACH credit
+        OTHER_INCOME, // Other income types
+        INCOME, // Legacy - use specific income categories instead
+        
+        // Investment categories
+        INVESTMENT, // Legacy - use specific investment types
+        CD, // Certificate of Deposit
+        BONDS, // Bonds
+        MUNICIPAL_BONDS, // Municipal bonds
+        T_BILLS, // Treasury Bills
+        STOCKS, // Stocks
+        FOUR_ZERO_ONE_K, // 401K
+        FIVE_TWO_NINE, // 529 plan
+        IRA, // IRA
+        MUTUAL_FUNDS, // Mutual funds
+        ETF, // ETF
+        MONEY_MARKET, // Money Market
+        PRECIOUS_METALS, // Precious Metals
+        CRYPTO, // Crypto
+        OTHER_INVESTMENT, // Other investment types
+        
+        // Transfer (legacy - use payment for transfers)
+        TRANSFER
     }
 }
 

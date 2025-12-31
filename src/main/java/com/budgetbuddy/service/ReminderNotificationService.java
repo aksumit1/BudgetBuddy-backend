@@ -96,6 +96,12 @@ public class ReminderNotificationService {
                     continue;
                 }
                 
+                // Skip if reminder was dismissed by user
+                if (Boolean.TRUE.equals(action.getReminderDismissed())) {
+                    skippedCount++;
+                    continue;
+                }
+                
                 // Skip if no reminder date
                 if (action.getReminderDate() == null || action.getReminderDate().isEmpty()) {
                     skippedCount++;

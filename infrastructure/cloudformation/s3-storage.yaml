@@ -1,0 +1,100 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'S3 Bucket for BudgetBuddy file storage with cost-optimized lifecycle policies'
+
+Parameters:
+  Environment:
+    Type: String
+    Default: production
+    AllowedValues: [development, staging, production]
+    Description: Deployment environment
+  
+  KMSKeyId:
+    Type: String
+    Default: ''
+    Description: Optional KMS key ID for encryption (if not provided, uses AES256)
+
+Conditions:
+  HasKMSKey: !Not [!Equals [!Ref KMSKeyId, '']]
+
+Resources:
+  # S3 Bucket for file storage (CSV imports, exports, etc.)
+  StorageBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub 'budgetbuddy-storage-${Environment}'
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      VersioningConfiguration:
+        Status: Enabled
+      # Cost Optimization: Lifecycle policies for automatic cost savings
+      LifecycleConfiguration:
+        Rules:
+          # Move to Standard-IA after 15 days (50% cost savings)
+          - Id: MoveToStandardIA
+            Status: Enabled
+            Transitions:
+              - Days: 15
+                StorageClass: STANDARD_IA
+          # Move to Glacier after 45 days (90% cost savings)
+          - Id: MoveToGlacier
+            Status: Enabled
+            Transitions:
+              - Days: 45
+                StorageClass: GLACIER
+          # Delete incomplete multipart uploads after 7 days
+          - Id: DeleteIncompleteUploads
+            Status: Enabled
+            AbortIncompleteMultipartUpload:
+              DaysAfterInitiation: 7
+          # Delete old non-current versions after 30 days
+          - Id: DeleteOldVersions
+            Status: Enabled
+            NoncurrentVersionExpirationInDays: 30
+            NoncurrentVersionTransitions:
+              - Days: 15
+                StorageClass: STANDARD_IA
+              - Days: 45
+                StorageClass: GLACIER
+      # Security: Server-side encryption (KMS preferred, AES256 fallback)
+      # BucketKeyEnabled reduces KMS costs by 99% by caching data keys
+      ServerSideEncryptionConfiguration:
+        Rules:
+          - ApplyServerSideEncryptionByDefault:
+              !If
+              - HasKMSKey
+              - SSEAlgorithm: aws:kms
+                KMSMasterKeyID: !Ref KMSKeyId
+              - SSEAlgorithm: AES256
+            BucketKeyEnabled: true
+      # Performance: Enable transfer acceleration (optional - can be enabled per request)
+      # Note: Transfer acceleration is not enabled by default to avoid costs
+      # It can be enabled via AWS Console or CLI if needed for large file transfers
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Application
+          Value: BudgetBuddy
+        - Key: ManagedBy
+          Value: CloudFormation
+        - Key: CostCenter
+          Value: engineering
+      # Performance: Request metrics can be enabled via CloudWatch or AWS Console
+      # Note: Metrics are configured separately via CloudWatch, not as bucket properties
+      # Security: Access logging can be enabled via LoggingConfiguration (requires separate logging bucket)
+      # Note: Access logging bucket should be created separately to avoid circular dependencies
+
+Outputs:
+  BucketName:
+    Description: Name of the S3 storage bucket
+    Value: !Ref StorageBucket
+    Export:
+      Name: !Sub '${AWS::StackName}-StorageBucketName'
+  
+  BucketArn:
+    Description: ARN of the S3 storage bucket
+    Value: !GetAtt StorageBucket.Arn
+    Export:
+      Name: !Sub '${AWS::StackName}-StorageBucketArn'

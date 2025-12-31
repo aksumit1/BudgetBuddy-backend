@@ -56,13 +56,25 @@ class PlaidControllerTest {
     @Mock
     private UserDetails userDetails;
 
-    @InjectMocks
+    // CRITICAL: Manually create PlaidController to avoid Mockito mocking issues
+    // This ensures all dependencies are properly mocked
     private PlaidController plaidController;
 
     private UserTable testUser;
 
     @BeforeEach
     void setUp() {
+        // CRITICAL: Manually create PlaidController to avoid Mockito mocking issues
+        // This ensures all dependencies are properly mocked
+        plaidController = new PlaidController(
+                plaidService,
+                plaidSyncService,
+                userService,
+                accountRepository,
+                transactionService,
+                taskExecutor
+        );
+        
         testUser = new UserTable();
         testUser.setUserId(UUID.randomUUID().toString());
         testUser.setEmail("test@example.com");

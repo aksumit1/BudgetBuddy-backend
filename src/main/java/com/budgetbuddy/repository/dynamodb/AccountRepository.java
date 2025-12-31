@@ -163,6 +163,11 @@ public class AccountRepository {
 
     @Cacheable(value = "accounts", key = "#userId", unless = "#result == null || #result.isEmpty()")
     public List<AccountTable> findByUserId(String userId) {
+        // CRITICAL: Return empty list early if userId is null or empty
+        if (userId == null || userId.isEmpty()) {
+            return List.of();
+        }
+        
         List<AccountTable> results = new ArrayList<>();
         int totalFound = 0;
         int activeCount = 0;
@@ -274,17 +279,23 @@ public class AccountRepository {
             List<AccountTable> userAccounts = findByUserId(userId);
             
             // Filter by account number and institution name (if provided)
+            // CRITICAL FIX: Normalize account numbers before comparison (handles hyphens, spaces, etc.)
+            // This ensures "8-41007" matches "841007" or "8 41007"
+            String normalizedAccountNumber = normalizeAccountNumber(accountNumber);
+            
             // CRITICAL FIX: If institutionName is null, match by accountNumber only
             // This handles cases where institutionName is missing but accountNumber is available
             if (institutionName == null || institutionName.isEmpty()) {
                 // Match by accountNumber only when institutionName is not available
                 return userAccounts.stream()
-                        .filter(account -> accountNumber.equals(account.getAccountNumber()))
+                        .filter(account -> account.getAccountNumber() != null &&
+                                normalizedAccountNumber.equals(normalizeAccountNumber(account.getAccountNumber())))
                         .findFirst();
             } else {
                 // Match by both accountNumber and institutionName when both are available
                 return userAccounts.stream()
-                        .filter(account -> accountNumber.equals(account.getAccountNumber()) 
+                        .filter(account -> account.getAccountNumber() != null &&
+                                normalizedAccountNumber.equals(normalizeAccountNumber(account.getAccountNumber())) 
                                 && institutionName.equals(account.getInstitutionName()))
                         .findFirst();
             }
@@ -306,9 +317,12 @@ public class AccountRepository {
         }
         
         try {
+            // CRITICAL FIX: Normalize account numbers before comparison (handles hyphens, spaces, etc.)
+            String normalizedAccountNumber = normalizeAccountNumber(accountNumber);
             List<AccountTable> userAccounts = findByUserId(userId);
             return userAccounts.stream()
-                    .filter(account -> accountNumber.equals(account.getAccountNumber()))
+                    .filter(account -> account.getAccountNumber() != null &&
+                            normalizedAccountNumber.equals(normalizeAccountNumber(account.getAccountNumber())))
                     .findFirst();
         } catch (Exception e) {
             org.slf4j.LoggerFactory.getLogger(AccountRepository.class)
@@ -553,6 +567,33 @@ public class AccountRepository {
 
             dynamoDbClient.batchWriteItem(batchRequest);
         }
+    }
+    
+    /**
+     * Normalize account number for matching - remove hyphens, spaces, and other separators, extract last 4 digits
+     * CRITICAL: This ensures consistent comparison regardless of format (e.g., "8-41007" vs "841007" vs "8 41007")
+     * 
+     * @param accountNumber Account number in any format (may contain hyphens, spaces, etc.)
+     * @return Normalized account number (last 4 digits only, digits only)
+     */
+    private String normalizeAccountNumber(String accountNumber) {
+        if (accountNumber == null || accountNumber.trim().isEmpty()) {
+            return "";
+        }
+        
+        // Remove all non-digit characters (hyphens, spaces, masks, etc.)
+        String digitsOnly = accountNumber.replaceAll("[^0-9]", "");
+        
+        if (digitsOnly.length() == 0) {
+            return "";
+        }
+        
+        // Extract last 4 digits (for security and consistency)
+        if (digitsOnly.length() > 4) {
+            return digitsOnly.substring(digitsOnly.length() - 4);
+        }
+        
+        return digitsOnly;
     }
 }
 

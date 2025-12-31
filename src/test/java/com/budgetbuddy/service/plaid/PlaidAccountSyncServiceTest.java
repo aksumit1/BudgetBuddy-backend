@@ -59,7 +59,7 @@ class PlaidAccountSyncServiceTest {
         
         // Create real PlaidDataExtractor instance (can't be mocked due to Spring @Component)
         // Use the same accountRepository mock for both service and extractor
-        dataExtractor = new PlaidDataExtractor(categoryMapper, accountRepository, new com.budgetbuddy.service.TransactionTypeDeterminer());
+        dataExtractor = new PlaidDataExtractor(accountRepository, org.mockito.Mockito.mock(com.budgetbuddy.service.TransactionTypeCategoryService.class));
         
         // Create PlaidAccountSyncService with real dataExtractor
         plaidAccountSyncService = new PlaidAccountSyncService(

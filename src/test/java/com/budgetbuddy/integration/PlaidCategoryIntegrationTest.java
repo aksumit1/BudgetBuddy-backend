@@ -62,8 +62,8 @@ class PlaidCategoryIntegrationTest {
         transaction.setAmount(java.math.BigDecimal.valueOf(25.50));
         transaction.setDescription("McDonald's");
         transaction.setMerchantName("McDonald's");
-        transaction.setPlaidCategoryPrimary("FOOD_AND_DRINK");
-        transaction.setPlaidCategoryDetailed("RESTAURANTS");
+        transaction.setImporterCategoryPrimary("FOOD_AND_DRINK");
+        transaction.setImporterCategoryDetailed("RESTAURANTS");
         transaction.setCategoryPrimary("dining");
         transaction.setCategoryDetailed("dining");
         transaction.setCategoryOverridden(false);
@@ -76,8 +76,8 @@ class PlaidCategoryIntegrationTest {
         // Then - Verify categories are stored
         Optional<TransactionTable> saved = transactionRepository.findById(transaction.getTransactionId());
         assertTrue(saved.isPresent());
-        assertEquals("FOOD_AND_DRINK", saved.get().getPlaidCategoryPrimary());
-        assertEquals("RESTAURANTS", saved.get().getPlaidCategoryDetailed());
+        assertEquals("FOOD_AND_DRINK", saved.get().getImporterCategoryPrimary());
+        assertEquals("RESTAURANTS", saved.get().getImporterCategoryDetailed());
         assertEquals("dining", saved.get().getCategoryPrimary());
         assertEquals("dining", saved.get().getCategoryDetailed());
         assertFalse(saved.get().getCategoryOverridden());
@@ -91,7 +91,7 @@ class PlaidCategoryIntegrationTest {
                 null, // notes
                 "groceries", // categoryPrimary
                 "groceries", // categoryDetailed
-                null, // isAudited
+                null, // reviewStatus
                 null, // isHidden
                 null, // transactionType
                 false // clearNotesIfNull = false means preserve existing notes
@@ -103,8 +103,8 @@ class PlaidCategoryIntegrationTest {
         assertEquals("groceries", updated.getCategoryDetailed());
         assertTrue(updated.getCategoryOverridden());
         // Original Plaid categories should be preserved
-        assertEquals("FOOD_AND_DRINK", updated.getPlaidCategoryPrimary());
-        assertEquals("RESTAURANTS", updated.getPlaidCategoryDetailed());
+        assertEquals("FOOD_AND_DRINK", updated.getImporterCategoryPrimary());
+        assertEquals("RESTAURANTS", updated.getImporterCategoryDetailed());
     }
 
     @Test

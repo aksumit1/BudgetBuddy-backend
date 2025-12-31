@@ -70,15 +70,15 @@ class InvestmentSubcategoryIntegrationTest {
         transaction.setAmount(BigDecimal.valueOf(10000.00));
         transaction.setDescription("CD Deposit");
         transaction.setMerchantName("Bank");
-        transaction.setPlaidCategoryPrimary("ENTERTAINMENT"); // Incorrectly categorized by Plaid
-        transaction.setPlaidCategoryDetailed("ENTERTAINMENT");
+        transaction.setImporterCategoryPrimary("ENTERTAINMENT"); // Incorrectly categorized by Plaid
+        transaction.setImporterCategoryDetailed("ENTERTAINMENT");
         transaction.setTransactionDate(LocalDate.now().toString());
         transaction.setPlaidTransactionId("plaid-txn-cd-test");
 
         // When - Map category using PlaidCategoryMapper
         PlaidCategoryMapper.CategoryMapping mapping = categoryMapper.mapPlaidCategory(
-            transaction.getPlaidCategoryPrimary(),
-            transaction.getPlaidCategoryDetailed(),
+            transaction.getImporterCategoryPrimary(),
+            transaction.getImporterCategoryDetailed(),
             transaction.getMerchantName(),
             transaction.getDescription(),
             null, // paymentChannel
@@ -112,15 +112,15 @@ class InvestmentSubcategoryIntegrationTest {
         transaction.setAmount(BigDecimal.valueOf(-1000.00));
         transaction.setDescription("Stock Purchase - AAPL");
         transaction.setMerchantName("Brokerage");
-        transaction.setPlaidCategoryPrimary(null);
-        transaction.setPlaidCategoryDetailed(null);
+        transaction.setImporterCategoryPrimary(null);
+        transaction.setImporterCategoryDetailed(null);
         transaction.setTransactionDate(LocalDate.now().toString());
         transaction.setPlaidTransactionId("plaid-txn-stock-test");
 
         // When - Map category
         PlaidCategoryMapper.CategoryMapping mapping = categoryMapper.mapPlaidCategory(
-            transaction.getPlaidCategoryPrimary(),
-            transaction.getPlaidCategoryDetailed(),
+            transaction.getImporterCategoryPrimary(),
+            transaction.getImporterCategoryDetailed(),
             transaction.getMerchantName(),
             transaction.getDescription(),
             null,
@@ -154,15 +154,15 @@ class InvestmentSubcategoryIntegrationTest {
         transaction.setAmount(BigDecimal.valueOf(-500.00));
         transaction.setDescription("401k Contribution");
         transaction.setMerchantName("Retirement Plan");
-        transaction.setPlaidCategoryPrimary(null);
-        transaction.setPlaidCategoryDetailed(null);
+        transaction.setImporterCategoryPrimary(null);
+        transaction.setImporterCategoryDetailed(null);
         transaction.setTransactionDate(LocalDate.now().toString());
         transaction.setPlaidTransactionId("plaid-txn-401k-test");
 
         // When - Map category
         PlaidCategoryMapper.CategoryMapping mapping = categoryMapper.mapPlaidCategory(
-            transaction.getPlaidCategoryPrimary(),
-            transaction.getPlaidCategoryDetailed(),
+            transaction.getImporterCategoryPrimary(),
+            transaction.getImporterCategoryDetailed(),
             transaction.getMerchantName(),
             transaction.getDescription(),
             null,
@@ -196,15 +196,15 @@ class InvestmentSubcategoryIntegrationTest {
         transaction.setAmount(BigDecimal.valueOf(-2000.00));
         transaction.setDescription("Bitcoin Purchase");
         transaction.setMerchantName("Crypto Exchange");
-        transaction.setPlaidCategoryPrimary(null);
-        transaction.setPlaidCategoryDetailed(null);
+        transaction.setImporterCategoryPrimary(null);
+        transaction.setImporterCategoryDetailed(null);
         transaction.setTransactionDate(LocalDate.now().toString());
         transaction.setPlaidTransactionId("plaid-txn-crypto-test");
 
         // When - Map category
         PlaidCategoryMapper.CategoryMapping mapping = categoryMapper.mapPlaidCategory(
-            transaction.getPlaidCategoryPrimary(),
-            transaction.getPlaidCategoryDetailed(),
+            transaction.getImporterCategoryPrimary(),
+            transaction.getImporterCategoryDetailed(),
             transaction.getMerchantName(),
             transaction.getDescription(),
             null,
@@ -238,8 +238,8 @@ class InvestmentSubcategoryIntegrationTest {
         transaction.setAmount(BigDecimal.valueOf(10000.00));
         transaction.setDescription("CD Deposit");
         transaction.setMerchantName("Bank");
-        transaction.setPlaidCategoryPrimary("ENTERTAINMENT");
-        transaction.setPlaidCategoryDetailed("ENTERTAINMENT");
+        transaction.setImporterCategoryPrimary("ENTERTAINMENT");
+        transaction.setImporterCategoryDetailed("ENTERTAINMENT");
         transaction.setCategoryPrimary("investment");
         transaction.setCategoryDetailed("cd");
         transaction.setCategoryOverridden(false);
@@ -256,7 +256,7 @@ class InvestmentSubcategoryIntegrationTest {
             null, // notes
             "investment", // categoryPrimary
             "stocks", // categoryDetailed
-            null, // isAudited
+            null, // reviewStatus
             null, // isHidden
             null, // transactionType
             false // clearNotesIfNull = false means preserve existing notes
@@ -268,8 +268,8 @@ class InvestmentSubcategoryIntegrationTest {
         assertEquals("stocks", updated.getCategoryDetailed());
         assertTrue(updated.getCategoryOverridden());
         // Original Plaid categories should be preserved
-        assertEquals("ENTERTAINMENT", updated.getPlaidCategoryPrimary());
-        assertEquals("ENTERTAINMENT", updated.getPlaidCategoryDetailed());
+        assertEquals("ENTERTAINMENT", updated.getImporterCategoryPrimary());
+        assertEquals("ENTERTAINMENT", updated.getImporterCategoryDetailed());
     }
 }
 

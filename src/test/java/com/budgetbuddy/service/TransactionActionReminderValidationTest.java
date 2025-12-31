@@ -178,6 +178,7 @@ class TransactionActionReminderValidationTest {
                 newDueDate,
                 newReminderDate,
                 null,
+                null,
                 null
         );
 
@@ -214,6 +215,7 @@ class TransactionActionReminderValidationTest {
                 null,
                 dueDate,
                 reminderDate,
+                null,
                 null,
                 null
         );

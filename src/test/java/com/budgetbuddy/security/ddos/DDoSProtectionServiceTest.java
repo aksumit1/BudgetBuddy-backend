@@ -55,8 +55,10 @@ class DDoSProtectionServiceTest {
         // Use UUID-based IP to ensure uniqueness and avoid conflicts with previous test runs
         // Format: 192.168.{0-254}.{0-254} (valid IP range)
         String uuid = UUID.randomUUID().toString().replace("-", "");
-        int thirdOctet = Math.abs(uuid.substring(0, 4).hashCode()) % 255; // 0-254
-        int fourthOctet = Math.abs(uuid.substring(4, 8).hashCode()) % 255; // 0-254
+        int thirdOctetHash = uuid.substring(0, 4).hashCode();
+        int fourthOctetHash = uuid.substring(4, 8).hashCode();
+        int thirdOctet = (thirdOctetHash < 0 ? -thirdOctetHash : thirdOctetHash) % 255; // 0-254
+        int fourthOctet = (fourthOctetHash < 0 ? -fourthOctetHash : fourthOctetHash) % 255; // 0-254
         testIp = "192.168." + thirdOctet + "." + fourthOctet;
     }
 
@@ -102,8 +104,10 @@ class DDoSProtectionServiceTest {
         // Given - Rate limit of 10 per minute
         // Use a unique IP for this test to avoid conflicts with previous runs
         String uuid = UUID.randomUUID().toString().replace("-", "");
-        int thirdOctet = Math.abs(uuid.substring(0, 4).hashCode()) % 255; // 0-254
-        int fourthOctet = Math.abs(uuid.substring(4, 8).hashCode()) % 255; // 0-254
+        int thirdOctetHash = uuid.substring(0, 4).hashCode();
+        int fourthOctetHash = uuid.substring(4, 8).hashCode();
+        int thirdOctet = (thirdOctetHash < 0 ? -thirdOctetHash : thirdOctetHash) % 255; // 0-254
+        int fourthOctet = (fourthOctetHash < 0 ? -fourthOctetHash : fourthOctetHash) % 255; // 0-254
         String uniqueTestIp = "192.168." + thirdOctet + "." + fourthOctet;
         
         int limit = 10;
@@ -130,10 +134,14 @@ class DDoSProtectionServiceTest {
         // Use different subnets to ensure uniqueness
         String uuid1 = UUID.randomUUID().toString().replace("-", "");
         String uuid2 = UUID.randomUUID().toString().replace("-", "");
-        int thirdOctet1 = Math.abs(uuid1.substring(0, 4).hashCode()) % 255;
-        int fourthOctet1 = Math.abs(uuid1.substring(4, 8).hashCode()) % 255;
-        int thirdOctet2 = Math.abs(uuid2.substring(0, 4).hashCode()) % 255;
-        int fourthOctet2 = Math.abs(uuid2.substring(4, 8).hashCode()) % 255;
+        int thirdOctet1Hash = uuid1.substring(0, 4).hashCode();
+        int fourthOctet1Hash = uuid1.substring(4, 8).hashCode();
+        int thirdOctet2Hash = uuid2.substring(0, 4).hashCode();
+        int fourthOctet2Hash = uuid2.substring(4, 8).hashCode();
+        int thirdOctet1 = (thirdOctet1Hash < 0 ? -thirdOctet1Hash : thirdOctet1Hash) % 255;
+        int fourthOctet1 = (fourthOctet1Hash < 0 ? -fourthOctet1Hash : fourthOctet1Hash) % 255;
+        int thirdOctet2 = (thirdOctet2Hash < 0 ? -thirdOctet2Hash : thirdOctet2Hash) % 255;
+        int fourthOctet2 = (fourthOctet2Hash < 0 ? -fourthOctet2Hash : fourthOctet2Hash) % 255;
         String ip1 = "192.168." + thirdOctet1 + "." + fourthOctet1;
         String ip2 = "192.168." + thirdOctet2 + "." + fourthOctet2;
         

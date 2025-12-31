@@ -97,14 +97,69 @@ public class TransactionSyncService {
                         continue;
                     }
 
-                    // Use conditional write to prevent duplicates and race conditions
+                    // CRITICAL FIX: Check if transaction with this Plaid ID already exists
+                    Optional<TransactionTable> existingByPlaidId = transactionRepository.findByPlaidTransactionId(plaidTransactionId);
+                    if (existingByPlaidId.isPresent()) {
+                        // Transaction with this Plaid ID already exists - update it
+                        TransactionTable existing = existingByPlaidId.get();
+                        updateTransactionFromPlaid(existing, plaidTransaction);
+                        transactionRepository.save(existing);
+                        updatedCount++;
+                        logger.debug("Updated existing transaction with Plaid ID: {}", plaidTransactionId);
+                        continue;
+                    }
+
+                    // CRITICAL FIX: Check for matching imported transaction by composite key
+                    // This prevents creating duplicates when an imported transaction (no Plaid ID) matches a Plaid transaction
+                    // Extract transaction details for matching BEFORE creating the transaction object
+                    String accountId = extractAccountIdFromTransaction(plaidTransaction);
+                    java.math.BigDecimal amount = extractAmountFromPlaid(plaidTransaction);
+                    String transactionDate = extractDateFromPlaid(plaidTransaction);
+                    String description = extractDescriptionFromPlaid(plaidTransaction);
+                    
+                    if (accountId != null && amount != null && transactionDate != null && description != null) {
+                        // Look up account to get the backend account ID
+                        Optional<AccountTable> accountOpt = accountRepository.findByPlaidAccountId(accountId);
+                        if (accountOpt.isPresent()) {
+                            String backendAccountId = accountOpt.get().getAccountId();
+                            
+                            // Check for matching transaction by composite key (amount, date, description)
+                            Optional<TransactionTable> matchingTransaction = transactionRepository.findByCompositeKey(
+                                    backendAccountId, amount, transactionDate, description, userId);
+                            
+                            if (matchingTransaction.isPresent()) {
+                                TransactionTable existing = matchingTransaction.get();
+                                
+                                // Only update if existing transaction doesn't have a Plaid ID
+                                // This prevents overwriting Plaid transactions with different Plaid IDs
+                                if (existing.getPlaidTransactionId() == null || existing.getPlaidTransactionId().isEmpty()) {
+                                    logger.info("🔄 Found matching imported transaction (no Plaid ID) - updating with Plaid ID: accountId={}, amount={}, date={}, description={}...", 
+                                            backendAccountId, amount, transactionDate, 
+                                            description.length() > 50 ? description.substring(0, 50) + "..." : description);
+                                    
+                                    // Update existing transaction with Plaid data and ID
+                                    existing.setPlaidTransactionId(plaidTransactionId);
+                                    updateTransactionFromPlaid(existing, plaidTransaction);
+                                    transactionRepository.save(existing);
+                                    updatedCount++;
+                                    continue;
+                                } else {
+                                    logger.debug("Matching transaction found but already has Plaid ID: {} (different from new: {}), creating new transaction", 
+                                            existing.getPlaidTransactionId(), plaidTransactionId);
+                                }
+                            }
+                        }
+                    }
+
+                    // No matching transaction found - create new one
                     TransactionTable transaction = createTransactionFromPlaid(userId, plaidTransaction, plaidTransactionId);
                     // plaidTransactionId is always set in createTransactionFromPlaid, so use Plaid deduplication
                     boolean saved = transactionRepository.saveIfPlaidTransactionNotExists(transaction);
                     if (saved) {
                         newCount++;
                     } else {
-                        // Transaction already exists, update it
+                        // Race condition: transaction was created between our check and save
+                        // Try to retrieve and update it
                         Optional<TransactionTable> existing = transactionRepository.findByPlaidTransactionId(plaidTransactionId);
                         if (existing.isPresent()) {
                             transaction = existing.get();
@@ -186,14 +241,67 @@ public class TransactionSyncService {
                         continue;
                     }
 
-                    // Use conditional write to prevent duplicates and race conditions
+                    // CRITICAL FIX: Check if transaction with this Plaid ID already exists
+                    Optional<TransactionTable> existingByPlaidId = transactionRepository.findByPlaidTransactionId(plaidTransactionId);
+                    if (existingByPlaidId.isPresent()) {
+                        // Transaction with this Plaid ID already exists - update it
+                        TransactionTable existing = existingByPlaidId.get();
+                        updateTransactionFromPlaid(existing, plaidTransaction);
+                        transactionRepository.save(existing);
+                        updatedCount++;
+                        logger.debug("Updated existing transaction with Plaid ID: {}", plaidTransactionId);
+                        continue;
+                    }
+
+                    // CRITICAL FIX: Check for matching imported transaction by composite key
+                    // This prevents creating duplicates when an imported transaction (no Plaid ID) matches a Plaid transaction
+                    String accountId = extractAccountIdFromTransaction(plaidTransaction);
+                    java.math.BigDecimal amount = extractAmountFromPlaid(plaidTransaction);
+                    String transactionDate = extractDateFromPlaid(plaidTransaction);
+                    String description = extractDescriptionFromPlaid(plaidTransaction);
+                    
+                    if (accountId != null && amount != null && transactionDate != null && description != null) {
+                        // Look up account to get the backend account ID
+                        Optional<AccountTable> accountOpt = accountRepository.findByPlaidAccountId(accountId);
+                        if (accountOpt.isPresent()) {
+                            String backendAccountId = accountOpt.get().getAccountId();
+                            
+                            // Check for matching transaction by composite key (amount, date, description)
+                            Optional<TransactionTable> matchingTransaction = transactionRepository.findByCompositeKey(
+                                    backendAccountId, amount, transactionDate, description, userId);
+                            
+                            if (matchingTransaction.isPresent()) {
+                                TransactionTable existing = matchingTransaction.get();
+                                
+                                // Only update if existing transaction doesn't have a Plaid ID
+                                if (existing.getPlaidTransactionId() == null || existing.getPlaidTransactionId().isEmpty()) {
+                                    logger.info("🔄 Found matching imported transaction (no Plaid ID) - updating with Plaid ID: accountId={}, amount={}, date={}, description={}...", 
+                                            backendAccountId, amount, transactionDate, 
+                                            description.length() > 50 ? description.substring(0, 50) + "..." : description);
+                                    
+                                    // Update existing transaction with Plaid data and ID
+                                    existing.setPlaidTransactionId(plaidTransactionId);
+                                    updateTransactionFromPlaid(existing, plaidTransaction);
+                                    transactionRepository.save(existing);
+                                    updatedCount++;
+                                    continue;
+                                } else {
+                                    logger.debug("Matching transaction found but already has Plaid ID: {} (different from new: {}), creating new transaction", 
+                                            existing.getPlaidTransactionId(), plaidTransactionId);
+                                }
+                            }
+                        }
+                    }
+
+                    // No matching transaction found - create new one
                     TransactionTable transaction = createTransactionFromPlaid(userId, plaidTransaction, plaidTransactionId);
                     // plaidTransactionId is always set in createTransactionFromPlaid, so use Plaid deduplication
                     boolean saved = transactionRepository.saveIfPlaidTransactionNotExists(transaction);
                     if (saved) {
                         newCount++;
                     } else {
-                        // Transaction already exists, update it
+                        // Race condition: transaction was created between our check and save
+                        // Try to retrieve and update it
                         Optional<TransactionTable> existing = transactionRepository.findByPlaidTransactionId(plaidTransactionId);
                         if (existing.isPresent()) {
                             transaction = existing.get();
@@ -263,6 +371,106 @@ public class TransactionSyncService {
             }
         } catch (Exception e) {
             logger.warn("Could not extract account ID from Plaid transaction: {}", e.getMessage());
+        }
+        return null;
+    }
+
+    /**
+     * Extract amount from Plaid transaction
+     */
+    private java.math.BigDecimal extractAmountFromPlaid(final Object plaidTransaction) {
+        try {
+            if (plaidTransaction instanceof com.plaid.client.model.Transaction) {
+                com.plaid.client.model.Transaction transaction = (com.plaid.client.model.Transaction) plaidTransaction;
+                if (transaction.getAmount() != null) {
+                    return java.math.BigDecimal.valueOf(transaction.getAmount());
+                }
+            }
+            
+            // Fallback: try reflection
+            java.lang.reflect.Method getAmount = plaidTransaction.getClass().getMethod("getAmount");
+            Object amount = getAmount.invoke(plaidTransaction);
+            if (amount != null) {
+                if (amount instanceof Double) {
+                    return java.math.BigDecimal.valueOf((Double) amount);
+                } else if (amount instanceof Number) {
+                    return java.math.BigDecimal.valueOf(((Number) amount).doubleValue());
+                }
+            }
+        } catch (Exception e) {
+            logger.warn("Could not extract amount from Plaid transaction: {}", e.getMessage());
+        }
+        return null;
+    }
+
+    /**
+     * Extract date from Plaid transaction (returns YYYY-MM-DD format)
+     */
+    private String extractDateFromPlaid(final Object plaidTransaction) {
+        try {
+            if (plaidTransaction instanceof com.plaid.client.model.Transaction) {
+                com.plaid.client.model.Transaction transaction = (com.plaid.client.model.Transaction) plaidTransaction;
+                if (transaction.getDate() != null) {
+                    // Plaid date is a LocalDate - convert to YYYY-MM-DD format
+                    return transaction.getDate().format(DATE_FORMATTER);
+                }
+            }
+            
+            // Fallback: try reflection
+            java.lang.reflect.Method getDate = plaidTransaction.getClass().getMethod("getDate");
+            Object date = getDate.invoke(plaidTransaction);
+            if (date != null) {
+                if (date instanceof LocalDate) {
+                    return ((LocalDate) date).format(DATE_FORMATTER);
+                } else {
+                    return date.toString();
+                }
+            }
+        } catch (Exception e) {
+            logger.warn("Could not extract date from Plaid transaction: {}", e.getMessage());
+        }
+        return null;
+    }
+
+    /**
+     * Extract description from Plaid transaction (name or merchantName)
+     */
+    private String extractDescriptionFromPlaid(final Object plaidTransaction) {
+        try {
+            if (plaidTransaction instanceof com.plaid.client.model.Transaction) {
+                com.plaid.client.model.Transaction transaction = (com.plaid.client.model.Transaction) plaidTransaction;
+                String name = transaction.getName();
+                if (name != null && !name.isEmpty()) {
+                    return name;
+                }
+                String merchantName = transaction.getMerchantName();
+                if (merchantName != null && !merchantName.isEmpty()) {
+                    return merchantName;
+                }
+            }
+            
+            // Fallback: try reflection
+            try {
+                java.lang.reflect.Method getName = plaidTransaction.getClass().getMethod("getName");
+                Object name = getName.invoke(plaidTransaction);
+                if (name != null && !name.toString().isEmpty()) {
+                    return name.toString();
+                }
+            } catch (Exception e) {
+                // Try merchantName instead
+            }
+            
+            try {
+                java.lang.reflect.Method getMerchantName = plaidTransaction.getClass().getMethod("getMerchantName");
+                Object merchantName = getMerchantName.invoke(plaidTransaction);
+                if (merchantName != null && !merchantName.toString().isEmpty()) {
+                    return merchantName.toString();
+                }
+            } catch (Exception e) {
+                // Ignore
+            }
+        } catch (Exception e) {
+            logger.warn("Could not extract description from Plaid transaction: {}", e.getMessage());
         }
         return null;
     }

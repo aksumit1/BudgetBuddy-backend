@@ -3,79 +3,150 @@ package com.budgetbuddy.validation;
 import jakarta.validation.ConstraintValidatorContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.MockitoAnnotations;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
 
-/**
- * Unit Tests for EmailValidator
- */
-@ExtendWith(MockitoExtension.class)
-@org.mockito.junit.jupiter.MockitoSettings(strictness = org.mockito.quality.Strictness.LENIENT)
 class EmailValidatorTest {
 
-    @Mock
-    private ConstraintValidatorContext constraintValidatorContext;
+    private EmailValidator validator;
 
     @Mock
-    private ConstraintValidatorContext.ConstraintViolationBuilder constraintViolationBuilder;
-
-    @InjectMocks
-    private EmailValidator emailValidator;
+    private ConstraintValidatorContext context;
 
     @BeforeEach
     void setUp() {
-        when(constraintValidatorContext.buildConstraintViolationWithTemplate(anyString()))
-                .thenReturn(constraintViolationBuilder);
-        when(constraintViolationBuilder.addConstraintViolation())
-                .thenReturn(constraintValidatorContext);
+        MockitoAnnotations.openMocks(this);
+        validator = new EmailValidator();
+        validator.initialize(null);
     }
 
     @Test
-    void testIsValid_WithValidEmail_ReturnsTrue() {
+    void testIsValid_ValidEmail_ShouldReturnTrue() {
         // Given
-        String validEmail = "test@example.com";
-
+        String email = "test@example.com";
+        
         // When
-        boolean isValid = emailValidator.isValid(validEmail, constraintValidatorContext);
-
+        boolean result = validator.isValid(email, context);
+        
         // Then
-        assertTrue(isValid);
+        assertTrue(result);
     }
 
     @Test
-    void testIsValid_WithInvalidEmail_ReturnsFalse() {
+    void testIsValid_ValidEmailWithSubdomain_ShouldReturnTrue() {
         // Given
-        String invalidEmail = "not-an-email";
-
+        String email = "user@mail.example.com";
+        
         // When
-        boolean isValid = emailValidator.isValid(invalidEmail, constraintValidatorContext);
-
+        boolean result = validator.isValid(email, context);
+        
         // Then
-        assertFalse(isValid);
+        assertTrue(result);
     }
 
     @Test
-    void testIsValid_WithNullEmail_ReturnsFalse() {
+    void testIsValid_ValidEmailWithPlus_ShouldReturnTrue() {
+        // Given
+        String email = "user+tag@example.com";
+        
         // When
-        boolean isValid = emailValidator.isValid(null, constraintValidatorContext);
-
+        boolean result = validator.isValid(email, context);
+        
         // Then
-        assertFalse(isValid);
+        assertTrue(result);
     }
 
     @Test
-    void testIsValid_WithEmptyEmail_ReturnsFalse() {
+    void testIsValid_ValidEmailWithUnderscore_ShouldReturnTrue() {
+        // Given
+        String email = "user_name@example.com";
+        
         // When
-        boolean isValid = emailValidator.isValid("", constraintValidatorContext);
-
+        boolean result = validator.isValid(email, context);
+        
         // Then
-        assertFalse(isValid);
+        assertTrue(result);
+    }
+
+    @Test
+    void testIsValid_InvalidEmailNoAt_ShouldReturnFalse() {
+        // Given
+        String email = "invalidemail.com";
+        
+        // When
+        boolean result = validator.isValid(email, context);
+        
+        // Then
+        assertFalse(result);
+    }
+
+    @Test
+    void testIsValid_InvalidEmailNoDomain_ShouldReturnFalse() {
+        // Given
+        String email = "user@";
+        
+        // When
+        boolean result = validator.isValid(email, context);
+        
+        // Then
+        assertFalse(result);
+    }
+
+    @Test
+    void testIsValid_InvalidEmailNoTld_ShouldReturnFalse() {
+        // Given
+        String email = "user@example";
+        
+        // When
+        boolean result = validator.isValid(email, context);
+        
+        // Then
+        assertFalse(result);
+    }
+
+    @Test
+    void testIsValid_NullEmail_ShouldReturnFalse() {
+        // When
+        boolean result = validator.isValid(null, context);
+        
+        // Then
+        assertFalse(result);
+    }
+
+    @Test
+    void testIsValid_EmptyEmail_ShouldReturnFalse() {
+        // When
+        boolean result = validator.isValid("", context);
+        
+        // Then
+        assertFalse(result);
+    }
+
+    @Test
+    void testIsValid_EmailTooLong_ShouldReturnFalse() {
+        // Given - Email longer than 254 characters
+        String longLocalPart = "a".repeat(250);
+        String email = longLocalPart + "@example.com";
+        
+        // When
+        boolean result = validator.isValid(email, context);
+        
+        // Then
+        assertFalse(result);
+    }
+
+    @Test
+    void testIsValid_ValidEmailAtMaxLength_ShouldReturnTrue() {
+        // Given - Email at exactly 254 characters (RFC 5321 limit)
+        String localPart = "a".repeat(240);
+        String email = localPart + "@example.com"; // Should be <= 254
+        
+        // When
+        boolean result = validator.isValid(email, context);
+        
+        // Then - Should pass length check and validation
+        assertTrue(result);
     }
 }
-

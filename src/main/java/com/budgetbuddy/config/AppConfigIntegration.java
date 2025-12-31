@@ -165,6 +165,13 @@ public class AppConfigIntegration {
             return;
         }
         
+        // Check if we're in local development (no AWS credentials)
+        if (isLocalDevelopment()) {
+            logger.info("Local development detected (no AWS credentials) - using fallback configuration from application.yml");
+            initializeFallbackConfiguration();
+            return;
+        }
+        
         // Check if we're using LocalStack (which doesn't support AppConfigData API)
         if (isLocalStack()) {
             logger.info("LocalStack detected - using AppConfig API (not AppConfigData API) for configuration");
@@ -189,10 +196,18 @@ public class AppConfigIntegration {
                 logger.info("AWS AppConfig integration initialized (AppConfigData API) for application: {}, environment: {}",
                         applicationName, appConfigEnvironment);
             } catch (Exception e) {
-                logger.warn("Failed to initialize AppConfigData API, falling back to AppConfig API: {}", e.getMessage());
-                logger.debug("AppConfigData initialization error details", e);
-                useAppConfigDataApi = false;
-                initializeAppConfigApi();
+                // Check if this is a credentials issue (local development)
+                if (isLocalDevelopment() || e.getMessage() != null && 
+                    (e.getMessage().contains("Unable to load credentials") || 
+                     e.getMessage().contains("Failed to load credentials from IMDS"))) {
+                    logger.info("AWS credentials not available (local development) - using fallback configuration from application.yml");
+                    initializeFallbackConfiguration();
+                } else {
+                    logger.warn("Failed to initialize AppConfigData API, falling back to AppConfig API: {}", e.getMessage());
+                    logger.debug("AppConfigData initialization error details", e);
+                    useAppConfigDataApi = false;
+                    initializeAppConfigApi();
+                }
             }
         }
     }
@@ -357,6 +372,22 @@ public class AppConfigIntegration {
     }
 
     /**
+     * Check if we're in local development (no AWS credentials available)
+     */
+    private boolean isLocalDevelopment() {
+        // Check if we have AWS credentials configured via environment variables
+        boolean hasStaticCredentials = (accessKeyId != null && !accessKeyId.trim().isEmpty()) &&
+                                       (secretAccessKey != null && !secretAccessKey.trim().isEmpty());
+        
+        // Check if we're using LocalStack
+        boolean usingLocalStack = isLocalStack();
+        
+        // If no static credentials and no LocalStack, likely local development
+        // (IMDS won't be available in local development)
+        return !hasStaticCredentials && !usingLocalStack;
+    }
+
+    /**
      * Check if exception is a 501 Not Implemented from LocalStack
      */
     private boolean isLocalStackNotImplemented(Exception e) {
@@ -399,12 +430,15 @@ public class AppConfigIntegration {
                 }
             } catch (Exception e) {
                 // LocalStack doesn't support AppConfigData API (returns 501)
-                // Log at DEBUG level to avoid noise in logs
+                // Log at appropriate level based on environment
                 if (isLocalStack() || isLocalStackNotImplemented(e)) {
                     logger.debug("AppConfigData API not supported by LocalStack (this is expected). " +
                             "AppConfig integration will use cached/default configuration. Error: {}", e.getMessage());
+                } else if (isLocalDevelopment()) {
+                    // In local development, use DEBUG level to avoid noise
+                    logger.debug("Failed to start configuration session (this is expected in local development without AWS credentials): {}", e.getMessage());
                 } else {
-                    logger.warn("Failed to start configuration session (this is expected in local development): {}", e.getMessage());
+                    logger.warn("Failed to start configuration session: {}", e.getMessage());
                     logger.debug("AppConfig session error details", e);
                 }
                 // Don't throw exception - allow application to continue without AppConfig
@@ -449,11 +483,13 @@ public class AppConfigIntegration {
         }
 
         if (token == null || token.isEmpty()) {
-            // Only warn if not using LocalStack (which doesn't support AppConfigData)
-            if (!isLocalStack()) {
-                logger.warn("Configuration token is null or empty, returning cached configuration");
-            } else {
+            // Log at appropriate level based on environment
+            if (isLocalStack()) {
                 logger.debug("Configuration token is null (LocalStack doesn't support AppConfigData), returning cached configuration");
+            } else if (isLocalDevelopment()) {
+                logger.debug("Configuration token is null or empty (expected in local development), returning cached configuration");
+            } else {
+                logger.warn("Configuration token is null or empty, returning cached configuration");
             }
             return latestConfiguration.get();
         }
