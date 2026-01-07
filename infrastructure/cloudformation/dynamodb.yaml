@@ -131,6 +131,8 @@ Resources:
           AttributeType: S
         - AttributeName: plaidTransactionId
           AttributeType: S
+        - AttributeName: goalId
+          AttributeType: S
       KeySchema:
         - AttributeName: transactionId
           KeyType: HASH
@@ -155,6 +157,14 @@ Resources:
           KeySchema:
             - AttributeName: plaidTransactionId
               KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+        - IndexName: UserIdGoalIdIndex
+          KeySchema:
+            - AttributeName: userId
+              KeyType: HASH
+            - AttributeName: goalId
+              KeyType: RANGE
           Projection:
             ProjectionType: ALL
       StreamSpecification:

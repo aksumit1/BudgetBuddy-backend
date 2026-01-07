@@ -48,6 +48,7 @@ public class TransactionRepository {
     private final DynamoDbIndex<TransactionTable> userIdDateIndex;
     private final DynamoDbIndex<TransactionTable> plaidTransactionIdIndex;
     private final DynamoDbIndex<TransactionTable> userIdUpdatedAtIndex;
+    private final DynamoDbIndex<TransactionTable> userIdGoalIdIndex;
     private final DynamoDbClient dynamoDbClient;
     private final String tableName;
 
@@ -61,6 +62,7 @@ public class TransactionRepository {
         this.userIdDateIndex = transactionTable.index("UserIdDateIndex");
         this.plaidTransactionIdIndex = transactionTable.index("PlaidTransactionIdIndex");
         this.userIdUpdatedAtIndex = transactionTable.index("UserIdUpdatedAtIndex");
+        this.userIdGoalIdIndex = transactionTable.index("UserIdGoalIdIndex");
         this.dynamoDbClient = dynamoDbClient;
     }
 
@@ -316,6 +318,50 @@ public class TransactionRepository {
                             userId, duplicateCount, results.size());
         }
         return results;
+    }
+
+    /**
+     * Find all transactions for a user that are assigned to a specific goal
+     * Uses UserIdGoalIdIndex GSI for efficient querying
+     */
+    public List<TransactionTable> findByUserIdAndGoalId(final String userId, final String goalId) {
+        if (userId == null || userId.isEmpty()) {
+            return List.of();
+        }
+        if (goalId == null || goalId.isEmpty()) {
+            return List.of();
+        }
+
+        try {
+            List<TransactionTable> results = new ArrayList<>();
+            QueryConditional queryConditional = QueryConditional
+                    .keyEqualTo(Key.builder()
+                            .partitionValue(userId)
+                            .sortValue(goalId)
+                            .build());
+
+            SdkIterable<software.amazon.awssdk.enhanced.dynamodb.model.Page<TransactionTable>> pages = userIdGoalIdIndex.query(queryConditional);
+            for (software.amazon.awssdk.enhanced.dynamodb.model.Page<TransactionTable> page : pages) {
+                results.addAll(page.items());
+            }
+            return results;
+        } catch (ResourceNotFoundException e) {
+            // GSI not available - fallback to filtering in memory
+            org.slf4j.LoggerFactory.getLogger(TransactionRepository.class)
+                    .warn("UserIdGoalIdIndex GSI not found. Falling back to filtering in memory.");
+            return findByUserId(userId, 0, Integer.MAX_VALUE)
+                    .stream()
+                    .filter(tx -> goalId.equals(tx.getGoalId()))
+                    .collect(java.util.stream.Collectors.toList());
+        } catch (Exception e) {
+            org.slf4j.LoggerFactory.getLogger(TransactionRepository.class)
+                    .error("Error querying transactions by userId and goalId: {}", e.getMessage(), e);
+            // Fallback to filtering in memory
+            return findByUserId(userId, 0, Integer.MAX_VALUE)
+                    .stream()
+                    .filter(tx -> goalId.equals(tx.getGoalId()))
+                    .collect(java.util.stream.Collectors.toList());
+        }
     }
 
     /**

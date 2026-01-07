@@ -205,6 +205,8 @@ public class Transaction implements java.io.Serializable {
         PAYMENT, // Credit card payments, recurring ACH payments, automatic payments
         PET, // Pet supplies, pet care, veterinary expenses
         CASH, // Cash withdrawals, ATM transactions
+        SAVINGS, // Savings allocation for zero-based budgeting
+        EMERGENCY_FUND, // Emergency fund allocation for zero-based budgeting
         OTHER,
         
         // Income categories

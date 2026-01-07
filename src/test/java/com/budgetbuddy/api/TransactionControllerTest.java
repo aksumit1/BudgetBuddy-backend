@@ -40,7 +40,51 @@ class TransactionControllerTest {
     @Mock
     private UserDetails userDetails;
 
-    @InjectMocks
+    @Mock
+    private com.budgetbuddy.repository.dynamodb.AccountRepository accountRepository;
+
+    @Mock
+    private com.budgetbuddy.security.FileUploadRateLimiter fileUploadRateLimiter;
+
+    @Mock
+    private com.budgetbuddy.security.FileSecurityValidator fileSecurityValidator;
+
+    @Mock
+    private com.budgetbuddy.security.FileContentScanner fileContentScanner;
+
+    @Mock
+    private com.budgetbuddy.security.FileQuarantineService fileQuarantineService;
+
+    @Mock
+    private com.budgetbuddy.security.FileIntegrityService fileIntegrityService;
+
+    @Mock
+    private com.budgetbuddy.service.CSVImportService csvImportService;
+
+    @Mock
+    private com.budgetbuddy.service.ExcelImportService excelImportService;
+
+    @Mock
+    private com.budgetbuddy.service.PDFImportService pdfImportService;
+
+    @Mock
+    private com.budgetbuddy.service.DuplicateDetectionService duplicateDetectionService;
+
+    @Mock
+    private com.budgetbuddy.service.TransactionTypeCategoryService transactionTypeCategoryService;
+
+    @Mock
+    private com.budgetbuddy.service.ChunkedUploadService chunkedUploadService;
+
+    @Mock
+    private com.fasterxml.jackson.databind.ObjectMapper objectMapper;
+
+    @Mock
+    private com.budgetbuddy.service.AccountDetectionService accountDetectionService;
+
+    @Mock
+    private com.budgetbuddy.api.config.TransactionControllerConfig config;
+
     private TransactionController transactionController;
 
     private UserTable testUser;
@@ -52,6 +96,27 @@ class TransactionControllerTest {
         testUser.setEmail("test@example.com");
 
         when(userDetails.getUsername()).thenReturn("test@example.com");
+
+        // Setup config mock to return all service mocks
+        when(config.getTransactionService()).thenReturn(transactionService);
+        when(config.getUserService()).thenReturn(userService);
+        when(config.getAccountRepository()).thenReturn(accountRepository);
+        when(config.getFileUploadRateLimiter()).thenReturn(fileUploadRateLimiter);
+        when(config.getFileSecurityValidator()).thenReturn(fileSecurityValidator);
+        when(config.getFileContentScanner()).thenReturn(fileContentScanner);
+        when(config.getFileQuarantineService()).thenReturn(fileQuarantineService);
+        when(config.getFileIntegrityService()).thenReturn(fileIntegrityService);
+        when(config.getCsvImportService()).thenReturn(csvImportService);
+        when(config.getExcelImportService()).thenReturn(excelImportService);
+        when(config.getPdfImportService()).thenReturn(pdfImportService);
+        when(config.getDuplicateDetectionService()).thenReturn(duplicateDetectionService);
+        when(config.getTransactionTypeCategoryService()).thenReturn(transactionTypeCategoryService);
+        when(config.getChunkedUploadService()).thenReturn(chunkedUploadService);
+        when(config.getAccountDetectionService()).thenReturn(accountDetectionService);
+        when(config.getObjectMapper()).thenReturn(objectMapper);
+
+        // Create controller with mocked config
+        transactionController = new TransactionController(config);
     }
 
     @Test
@@ -272,11 +337,11 @@ class TransactionControllerTest {
 
         TransactionTable mockTransaction = createTransaction("tx-1");
         when(userService.findByEmail("test@example.com")).thenReturn(java.util.Optional.of(testUser));
-        // Updated to match the full 22-parameter method signature: user, accountId, amount, transactionDate, description, categoryPrimary, categoryDetailed, importerCategoryPrimary, importerCategoryDetailed, transactionId, notes, plaidAccountId, plaidTransactionId, transactionType, currencyCode, importSource, importBatchId, importFileName, reviewStatus, merchantName, paymentChannel, userName
+        // Updated to match the full 23-parameter method signature: user, accountId, amount, transactionDate, description, categoryPrimary, categoryDetailed, importerCategoryPrimary, importerCategoryDetailed, transactionId, notes, plaidAccountId, plaidTransactionId, transactionType, currencyCode, importSource, importBatchId, importFileName, reviewStatus, merchantName, paymentChannel, userName, goalId
         when(transactionService.createTransaction(
                 eq(testUser), eq("account-123"), any(BigDecimal.class), any(LocalDate.class), 
                 any(), anyString(), any(), any(), any(), any(), any(), any(), any(), any(), 
-                any(), any(), any(), any(), any(), any(), any(), any()))
+                any(), any(), any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(mockTransaction);
 
         // When

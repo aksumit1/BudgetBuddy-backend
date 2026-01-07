@@ -1,5 +1,7 @@
 package com.budgetbuddy.service;
 
+
+import com.budgetbuddy.util.StringUtils;
 import com.budgetbuddy.model.Subscription;
 import com.budgetbuddy.model.dynamodb.SubscriptionTable;
 import com.budgetbuddy.model.dynamodb.TransactionTable;
@@ -61,7 +63,7 @@ public class SubscriptionService {
                     return isSubscriptionCategory || hasSubscriptionKeyword;
                 })
                 .filter(tx -> tx.getAmount() != null && tx.getAmount().compareTo(BigDecimal.ZERO) < 0) // Only expenses
-                .collect(Collectors.groupingBy(tx -> normalizeMerchantName(tx)));
+                .collect(Collectors.groupingBy(tx -> StringUtils.normalizeMerchantName(tx.getMerchantName())));
         
         List<Subscription> detectedSubscriptions = new ArrayList<>();
         
@@ -262,16 +264,6 @@ public class SubscriptionService {
     /**
      * Normalizes merchant name for grouping
      */
-    private String normalizeMerchantName(final TransactionTable transaction) {
-        String merchant = transaction.getMerchantName();
-        if (merchant == null || merchant.isEmpty()) {
-            merchant = transaction.getDescription();
-        }
-        if (merchant == null) {
-            return "Unknown";
-        }
-        return merchant.toLowerCase().trim();
-    }
 
     /**
      * Checks if description contains subscription keywords

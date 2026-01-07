@@ -747,13 +747,12 @@ public class SemanticMatchingService {
         ));
         categorySemanticClusters.put("health", health);
         
-        // Charity cluster - NEW (donations, schools)
+        // Charity cluster - NEW (donations, NOT schools - schools are education)
+        // CRITICAL FIX: Schools (middle school, high school, elementary, etc.) are now EDUCATION, not charity
         Set<String> charity = new HashSet<>(Arrays.asList(
             "charity", "charitable", "donation", "donate", "donating",
-            "non-profit", "nonprofit", "non profit", "go fund me", "gofundme",
-            "middle school", "middleschool", "school district", "schooldistrict",
-            "elementary", "secondary school", "secondaryschool",
-            "high school", "highschool", "senior secondary school", "seniorsecondaryschool"
+            "non-profit", "nonprofit", "non profit", "go fund me", "gofundme"
+            // NOTE: School-related terms removed - they are now in education cluster
         ));
         categorySemanticClusters.put("charity", charity);
         
@@ -953,7 +952,6 @@ public class SemanticMatchingService {
             }
             
             if (bestCategory != null) {
-                String contextInfo = buildContextInfo(amount, paymentChannel, accountType);
                 logger.debug("Semantic match found: '{}' → '{}' (similarity: {:.2f})",
                     combinedText.substring(0, Math.min(50, combinedText.length())),
                     bestCategory, bestScore);

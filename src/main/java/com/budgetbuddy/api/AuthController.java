@@ -36,17 +36,29 @@ public class AuthController {
     private final AuthService authService;
     private final UserService userService;
     private final PasswordResetService passwordResetService;
+    private final com.budgetbuddy.service.ChallengeService challengeService;
 
-    public AuthController(final AuthService authService, final UserService userService, final PasswordResetService passwordResetService) {
+    public AuthController(final AuthService authService, final UserService userService, final PasswordResetService passwordResetService, final com.budgetbuddy.service.ChallengeService challengeService) {
         this.authService = authService;
         this.userService = userService;
         this.passwordResetService = passwordResetService;
+        this.challengeService = challengeService;
     }
 
     /**
-     * Login endpoint
-     * BREAKING CHANGE: Accepts secure format (password_hash only, no salt)
-     * Backend uses server salt only for password hashing
+     * Generate login challenge (PAKE2)
+     * Client requests a nonce for password authentication
+     */
+    @PostMapping("/login/challenge")
+    @Operation(summary = "Request Login Challenge", description = "Generates a challenge nonce for password authentication")
+    public ResponseEntity<com.budgetbuddy.service.ChallengeService.ChallengeResponse> loginChallenge(@Valid @RequestBody ChallengeRequest request) {
+        com.budgetbuddy.service.ChallengeService.ChallengeResponse response = challengeService.generateChallenge(request.getEmail());
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Login endpoint (PAKE2)
+     * Accepts password hash computed with challenge nonce
      */
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody AuthRequest loginRequest) {
@@ -55,6 +67,12 @@ public class AuthController {
             throw new AppException(ErrorCode.INVALID_INPUT,
                     "password_hash must be provided. Legacy password format not supported.");
         }
+        
+        // Verify challenge (PAKE2)
+        if (loginRequest.getChallenge() == null || loginRequest.getChallenge().isEmpty()) {
+            throw new AppException(ErrorCode.INVALID_INPUT, "Challenge is required for authentication");
+        }
+        challengeService.verifyAndConsumeChallenge(loginRequest.getChallenge(), loginRequest.getEmail());
 
         AuthResponse response = authService.authenticate(loginRequest);
         return ResponseEntity.ok(response);
@@ -62,8 +80,19 @@ public class AuthController {
 
 
     /**
-     * Registration endpoint
-     * Accepts secure format (password_hash + salt)
+     * Generate registration challenge (PAKE2)
+     * Client requests a nonce for password registration
+     */
+    @PostMapping("/register/challenge")
+    @Operation(summary = "Request Registration Challenge", description = "Generates a challenge nonce for password registration")
+    public ResponseEntity<com.budgetbuddy.service.ChallengeService.ChallengeResponse> registerChallenge(@Valid @RequestBody ChallengeRequest request) {
+        com.budgetbuddy.service.ChallengeService.ChallengeResponse response = challengeService.generateChallenge(request.getEmail());
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Registration endpoint (PAKE2)
+     * Accepts password hash computed with challenge nonce
      */
     @PostMapping("/register")
     public ResponseEntity<AuthResponse> register(@Valid @RequestBody AuthRequest signUpRequest) {
@@ -72,6 +101,12 @@ public class AuthController {
             throw new AppException(ErrorCode.INVALID_INPUT,
                     "Registration requires password_hash. Legacy password format not supported.");
         }
+        
+        // Verify challenge (PAKE2)
+        if (signUpRequest.getChallenge() == null || signUpRequest.getChallenge().isEmpty()) {
+            throw new AppException(ErrorCode.INVALID_INPUT, "Challenge is required for registration");
+        }
+        challengeService.verifyAndConsumeChallenge(signUpRequest.getChallenge(), signUpRequest.getEmail());
 
         // CRITICAL FIX: Check for duplicate email before creating user
         // This provides synchronous duplicate detection for better UX
@@ -81,7 +116,6 @@ public class AuthController {
         }
 
         // Create user with secure format
-        // BREAKING CHANGE: No longer requires salt
         userService.createUserSecure(
                 signUpRequest.getEmail(),
                 signUpRequest.getPasswordHash(),
@@ -90,10 +124,10 @@ public class AuthController {
         );
 
         // Authenticate and return tokens
-        // BREAKING CHANGE: No longer requires salt
         AuthRequest authRequest = new AuthRequest(
                 signUpRequest.getEmail(),
-                signUpRequest.getPasswordHash());
+                signUpRequest.getPasswordHash(),
+                null); // Challenge not needed for authenticate (already verified)
         AuthResponse response = authService.authenticate(authRequest);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
@@ -165,14 +199,18 @@ public class AuthController {
     @Operation(summary = "Reset Password", description = "Resets password using verified code")
     public ResponseEntity<PasswordResetResponse> resetPassword(@Valid @RequestBody PasswordResetRequest request) {
         // Validate secure format
-        // BREAKING CHANGE: No longer requires salt
         if (!request.isSecureFormat()) {
             throw new AppException(ErrorCode.INVALID_INPUT,
                     "Password reset requires password_hash. Legacy password format not supported.");
         }
 
+        // Verify challenge for new password (PAKE2)
+        if (request.getChallenge() == null || request.getChallenge().isEmpty()) {
+            throw new AppException(ErrorCode.INVALID_INPUT, "Challenge is required for password reset");
+        }
+        challengeService.verifyAndConsumeChallenge(request.getChallenge(), request.getEmail());
+
         // Verify code and reset password
-        // BREAKING CHANGE: No longer requires salt
         passwordResetService.resetPassword(
                 request.getEmail(),
                 request.getCode(),
@@ -216,11 +254,16 @@ public class AuthController {
         com.budgetbuddy.model.dynamodb.UserTable user = userService.findByEmail(userDetails.getUsername())
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
 
-        // Verify current password
-        // BREAKING CHANGE: No longer requires salt
+        // Verify current password (PAKE2 - requires challenge)
+        if (request.getCurrentPasswordChallenge() == null || request.getCurrentPasswordChallenge().isEmpty()) {
+            throw new AppException(ErrorCode.INVALID_INPUT, "Challenge is required for current password verification");
+        }
+        challengeService.verifyAndConsumeChallenge(request.getCurrentPasswordChallenge(), user.getEmail());
+        
         AuthRequest currentPasswordRequest = new AuthRequest(
                 user.getEmail(),
-                request.getCurrentPasswordHash()
+                request.getCurrentPasswordHash(),
+                request.getCurrentPasswordChallenge()
         );
 
         try {
@@ -232,8 +275,13 @@ public class AuthController {
             throw e;
         }
 
+        // Verify challenge for new password (PAKE2)
+        if (request.getNewPasswordChallenge() == null || request.getNewPasswordChallenge().isEmpty()) {
+            throw new AppException(ErrorCode.INVALID_INPUT, "Challenge is required for new password");
+        }
+        challengeService.verifyAndConsumeChallenge(request.getNewPasswordChallenge(), user.getEmail());
+        
         // Change password
-        // BREAKING CHANGE: No longer requires salt
         userService.changePasswordSecure(
                 user.getUserId(),
                 request.getNewPasswordHash()
@@ -241,6 +289,21 @@ public class AuthController {
 
         logger.info("Password changed successfully for user: {}", user.getEmail());
         return ResponseEntity.ok(new PasswordChangeResponse(true, "Password changed successfully"));
+    }
+
+    // Inner class for challenge request
+    public static class ChallengeRequest {
+        @NotBlank(message = "Email is required")
+        @Email(message = "Email should be valid")
+        private String email;
+
+        public String getEmail() {
+            return email;
+        }
+
+        public void setEmail(final String email) {
+            this.email = email;
+        }
     }
 
     // Inner class for refresh token request
@@ -309,8 +372,10 @@ public class AuthController {
         @JsonProperty("passwordHash")
         @JsonAlias("password_hash")
         private String passwordHash;
-
-        // BREAKING CHANGE: Salt field removed - Zero Trust architecture
+        
+        // PAKE2: Challenge for new password
+        @JsonProperty("challenge")
+        private String challenge;
 
         public String getEmail() {
             return email;
@@ -335,10 +400,17 @@ public class AuthController {
         public void setPasswordHash(final String passwordHash) {
             this.passwordHash = passwordHash;
         }
+        
+        public String getChallenge() {
+            return challenge;
+        }
+        
+        public void setChallenge(final String challenge) {
+            this.challenge = challenge;
+        }
 
         /**
          * Check if request uses secure format (password_hash only)
-         * BREAKING CHANGE: No longer requires salt
          */
         @com.fasterxml.jackson.annotation.JsonIgnore
         public boolean isSecureFormat() {
@@ -387,8 +459,16 @@ public class AuthController {
         @JsonAlias("new_password_hash")
         @NotBlank(message = "New password hash is required")
         private String newPasswordHash;
-
-        // BREAKING CHANGE: Salt fields removed - Zero Trust architecture
+        
+        // PAKE2: Challenge for current password verification
+        @JsonProperty("currentPasswordChallenge")
+        @JsonAlias("current_password_challenge")
+        private String currentPasswordChallenge;
+        
+        // PAKE2: Challenge for new password
+        @JsonProperty("newPasswordChallenge")
+        @JsonAlias("new_password_challenge")
+        private String newPasswordChallenge;
 
         public String getCurrentPasswordHash() {
             return currentPasswordHash;
@@ -405,10 +485,25 @@ public class AuthController {
         public void setNewPasswordHash(final String newPasswordHash) {
             this.newPasswordHash = newPasswordHash;
         }
+        
+        public String getCurrentPasswordChallenge() {
+            return currentPasswordChallenge;
+        }
+        
+        public void setCurrentPasswordChallenge(final String currentPasswordChallenge) {
+            this.currentPasswordChallenge = currentPasswordChallenge;
+        }
+        
+        public String getNewPasswordChallenge() {
+            return newPasswordChallenge;
+        }
+        
+        public void setNewPasswordChallenge(final String newPasswordChallenge) {
+            this.newPasswordChallenge = newPasswordChallenge;
+        }
 
         /**
          * Check if request uses secure format (password_hash only)
-         * BREAKING CHANGE: No longer requires salt
          */
         @com.fasterxml.jackson.annotation.JsonIgnore
         public boolean isSecureFormat() {

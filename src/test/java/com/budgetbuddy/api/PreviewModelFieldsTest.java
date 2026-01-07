@@ -67,9 +67,14 @@ class PreviewModelFieldsTest {
     private com.budgetbuddy.service.ChunkedUploadService chunkedUploadService;
     
     @Mock
+    private com.budgetbuddy.service.AccountDetectionService accountDetectionService;
+    
+    @Mock
+    private com.budgetbuddy.api.config.TransactionControllerConfig config;
+    
+    @Mock
     private UserDetails userDetails;
     
-    @InjectMocks
     private TransactionController transactionController;
     
     private UserTable testUser;
@@ -97,6 +102,27 @@ class PreviewModelFieldsTest {
         
         when(fileQuarantineService.quarantineFile(any(), anyString(), anyString(), anyString()))
             .thenReturn("quarantine-id");
+        
+        // Setup config mock to return all service mocks
+        when(config.getTransactionService()).thenReturn(transactionService);
+        when(config.getUserService()).thenReturn(userService);
+        when(config.getAccountRepository()).thenReturn(accountRepository);
+        when(config.getFileUploadRateLimiter()).thenReturn(fileUploadRateLimiter);
+        when(config.getFileSecurityValidator()).thenReturn(fileSecurityValidator);
+        when(config.getFileContentScanner()).thenReturn(fileContentScanner);
+        when(config.getFileQuarantineService()).thenReturn(fileQuarantineService);
+        when(config.getFileIntegrityService()).thenReturn(fileIntegrityService);
+        when(config.getCsvImportService()).thenReturn(csvImportService);
+        when(config.getExcelImportService()).thenReturn(org.mockito.Mockito.mock(com.budgetbuddy.service.ExcelImportService.class));
+        when(config.getPdfImportService()).thenReturn(org.mockito.Mockito.mock(com.budgetbuddy.service.PDFImportService.class));
+        when(config.getDuplicateDetectionService()).thenReturn(duplicateDetectionService);
+        when(config.getTransactionTypeCategoryService()).thenReturn(transactionTypeCategoryService);
+        when(config.getChunkedUploadService()).thenReturn(chunkedUploadService);
+        when(config.getAccountDetectionService()).thenReturn(accountDetectionService);
+        when(config.getObjectMapper()).thenReturn(org.mockito.Mockito.mock(com.fasterxml.jackson.databind.ObjectMapper.class));
+        
+        // Create controller with mocked config
+        transactionController = new TransactionController(config);
         
         doNothing().when(fileUploadRateLimiter).recordUpload(anyString(), anyLong());
     }

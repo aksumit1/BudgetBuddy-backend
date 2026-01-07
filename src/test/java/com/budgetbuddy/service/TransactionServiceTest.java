@@ -227,6 +227,8 @@ class TransactionServiceTest {
                 "Manual transaction",
                 "FOOD",
                 "RESTAURANTS",
+                null, // importerCategoryPrimary
+                null, // importerCategoryDetailed
                 null, // transactionId
                 null, // notes
                 null, // plaidAccountId
@@ -235,7 +237,12 @@ class TransactionServiceTest {
                 null, // currencyCode
                 null, // importSource
                 null, // importBatchId
-                null  // importFileName
+                null, // importFileName,
+                null, // reviewStatus
+                null, // merchantName
+                null, // paymentChannel
+                null, // userName
+                null  // goalId
         );
 
         // Then
@@ -261,6 +268,8 @@ class TransactionServiceTest {
                 "Manual transaction",
                 "FOOD",
                 "RESTAURANTS",
+                null, // importerCategoryPrimary
+                null, // importerCategoryDetailed
                 null, // transactionId
                 null, // notes
                 null, // plaidAccountId
@@ -269,7 +278,12 @@ class TransactionServiceTest {
                 null, // currencyCode
                 null, // importSource
                 null, // importBatchId
-                null  // importFileName
+                null, // importFileName,
+                null, // reviewStatus
+                null, // merchantName
+                null, // paymentChannel
+                null, // userName
+                null  // goalId
         );
 
         // Then
@@ -300,6 +314,8 @@ class TransactionServiceTest {
                 "Plaid transaction",
                 "FOOD",
                 "RESTAURANTS",
+                null, // importerCategoryPrimary
+                null, // importerCategoryDetailed
                 null, // transactionId
                 null, // notes
                 "plaid-acc-123", // Plaid account ID
@@ -308,7 +324,12 @@ class TransactionServiceTest {
                 null, // currencyCode
                 null, // importSource
                 null, // importBatchId
-                null  // importFileName
+                null, // importFileName,
+                null, // reviewStatus
+                null, // merchantName
+                null, // paymentChannel
+                null, // userName
+                null  // goalId
         );
 
         // Then - Should use Plaid account, NOT pseudo account
@@ -338,6 +359,8 @@ class TransactionServiceTest {
                 "Plaid transaction",
                 "FOOD",
                 "RESTAURANTS",
+                null, // importerCategoryPrimary
+                null, // importerCategoryDetailed
                 null, // transactionId
                 null, // notes
                 "plaid-acc-123", // Plaid account ID
@@ -346,7 +369,12 @@ class TransactionServiceTest {
                 null, // currencyCode
                 null, // importSource
                 null, // importBatchId
-                null  // importFileName
+                null, // importFileName,
+                null, // reviewStatus
+                null, // merchantName
+                null, // paymentChannel
+                null, // userName
+                null  // goalId
         );
 
         // Then - Should use provided accountId
@@ -372,6 +400,8 @@ class TransactionServiceTest {
                         "Plaid transaction",
                         "FOOD",
                         "RESTAURANTS",
+                        null, // importerCategoryPrimary
+                        null, // importerCategoryDetailed
                         null, // transactionId
                         null, // notes
                         "plaid-acc-123", // plaidAccountId
@@ -380,7 +410,12 @@ class TransactionServiceTest {
                         null, // currencyCode
                         null, // importSource
                         null, // importBatchId
-                        null  // importFileName
+                        null, // importFileName,
+                        null, // reviewStatus
+                        null, // merchantName
+                        null, // paymentChannel
+                        null, // userName
+                        null  // goalId
                 ));
         assertEquals(ErrorCode.ACCOUNT_NOT_FOUND, exception.getErrorCode());
         verify(accountRepository, never()).getOrCreatePseudoAccount(anyString());
@@ -401,6 +436,8 @@ class TransactionServiceTest {
                 "Manual transaction",
                 "FOOD",
                 "RESTAURANTS",
+                null, // importerCategoryPrimary
+                null, // importerCategoryDetailed
                 null, // transactionId
                 null, // notes
                 null, // plaidAccountId
@@ -409,7 +446,12 @@ class TransactionServiceTest {
                 null, // currencyCode
                 null, // importSource
                 null, // importBatchId
-                null  // importFileName
+                null, // importFileName,
+                null, // reviewStatus
+                null, // merchantName
+                null, // paymentChannel
+                null, // userName
+                null  // goalId
         );
 
         // Then - Should use provided account, NOT pseudo account
@@ -528,6 +570,8 @@ class TransactionServiceTest {
                 "Test transaction",
                 "FOOD",
                 "dining",
+                null, // importerCategoryPrimary
+                null, // importerCategoryDetailed
                 null, // transactionId
                 null, // notes
                 null, // plaidAccountId
@@ -536,7 +580,12 @@ class TransactionServiceTest {
                 null, // currencyCode
                 null, // importSource
                 null, // importBatchId
-                null  // importFileName
+                null, // importFileName,
+                null, // reviewStatus
+                null, // merchantName
+                null, // paymentChannel
+                null, // userName
+                null  // goalId
         );
 
         // Then: Should use user-provided type, not calculated type
@@ -565,7 +614,9 @@ class TransactionServiceTest {
                 "Test transaction",
                 "FOOD",
                 "dining",
-                "tx-existing", // Same transaction ID
+                null, // importerCategoryPrimary
+                null, // importerCategoryDetailed
+                                "tx-existing", // Same transaction ID
                 null, // notes
                 null, // plaidAccountId
                 "plaid-123", // Same Plaid ID (idempotent case)
@@ -573,7 +624,12 @@ class TransactionServiceTest {
                 null, // currencyCode
                 null, // importSource
                 null, // importBatchId
-                null  // importFileName
+                null, // importFileName,
+                null, // reviewStatus
+                null, // merchantName
+                null, // paymentChannel
+                null, // userName
+                null  // goalId
         );
 
         // Then: Should update existing transaction's transactionType
@@ -601,6 +657,8 @@ class TransactionServiceTest {
                 "Test transaction",
                 "FOOD",
                 "dining",
+                null, // importerCategoryPrimary
+                null, // importerCategoryDetailed
                 "tx-existing", // transactionId
                 null, // notes
                 null, // plaidAccountId
@@ -609,7 +667,12 @@ class TransactionServiceTest {
                 null, // currencyCode
                 null, // importSource
                 null, // importBatchId
-                null  // importFileName
+                null, // importFileName,
+                null, // reviewStatus
+                null, // merchantName
+                null, // paymentChannel
+                null, // userName
+                null  // goalId
         );
 
         // Then: Should update both Plaid ID and transactionType
@@ -636,6 +699,8 @@ class TransactionServiceTest {
                 "Test transaction",
                 "FOOD",
                 "dining",
+                null, // importerCategoryPrimary
+                null, // importerCategoryDetailed
                 null, // transactionId
                 null, // notes
                 null, // plaidAccountId
@@ -644,7 +709,12 @@ class TransactionServiceTest {
                 null, // currencyCode
                 null, // importSource
                 null, // importBatchId
-                null  // importFileName
+                null, // importFileName,
+                null, // reviewStatus
+                null, // merchantName
+                null, // paymentChannel
+                null, // userName
+                null  // goalId
         );
 
         // Then: Should calculate automatically (EXPENSE)
@@ -727,7 +797,8 @@ class TransactionServiceTest {
                 null, // reviewStatus
                 null, // isHidden
                 "INVESTMENT", // User-provided transactionType
-                false // clearNotesIfNull
+                false, // clearNotesIfNull,
+                null  // goalId
         );
 
         // Then: Should use user-provided transactionType
@@ -762,7 +833,8 @@ class TransactionServiceTest {
                 null,
                 null,
                 null, // No user-provided transactionType
-                false
+                false,
+                null  // goalId
         );
 
         // Then: Should recalculate transactionType based on new category
@@ -795,7 +867,8 @@ class TransactionServiceTest {
                 null,
                 null,
                 "INVESTMENT", // User-provided transactionType (should override calculation)
-                false
+                false,
+                null  // goalId
         );
 
         // Then: Should use user-provided transactionType, not calculated
@@ -825,6 +898,8 @@ class TransactionServiceTest {
                 "Test transaction",
                 "FOOD",
                 "dining",
+                null, // importerCategoryPrimary
+                null, // importerCategoryDetailed
                 null, // transactionId
                 null, // notes
                 null, // plaidAccountId
@@ -833,7 +908,12 @@ class TransactionServiceTest {
                 null, // currencyCode
                 null, // importSource
                 null, // importBatchId
-                null  // importFileName
+                null, // importFileName,
+                null, // reviewStatus
+                null, // merchantName
+                null, // paymentChannel
+                null, // userName
+                null  // goalId
         );
 
         // Then: Should set transactionTypeOverridden=true
@@ -860,6 +940,8 @@ class TransactionServiceTest {
                 "Test transaction",
                 "FOOD",
                 "dining",
+                null, // importerCategoryPrimary
+                null, // importerCategoryDetailed
                 null, // transactionId
                 null, // notes
                 null, // plaidAccountId
@@ -868,7 +950,12 @@ class TransactionServiceTest {
                 null, // currencyCode
                 null, // importSource
                 null, // importBatchId
-                null  // importFileName
+                null, // importFileName,
+                null, // reviewStatus
+                null, // merchantName
+                null, // paymentChannel
+                null, // userName
+                null  // goalId
         );
 
         // Then: Should set transactionTypeOverridden=false
@@ -901,7 +988,8 @@ class TransactionServiceTest {
                 null,
                 null,
                 "INVESTMENT", // User-provided
-                false
+                false, // clearNotesIfNull
+                null  // goalId
         );
 
         // Then: Should set transactionTypeOverridden=true
@@ -937,7 +1025,8 @@ class TransactionServiceTest {
                 null,
                 null,
                 null, // No user-provided transactionType
-                false
+                false,
+                null  // goalId
         );
 
         // Then: Should preserve user's INVESTMENT type (not recalculate)
@@ -1013,6 +1102,8 @@ class TransactionServiceTest {
                 "Test transaction",
                 "FOOD",
                 "dining",
+                null, // importerCategoryPrimary
+                null, // importerCategoryDetailed
                 "tx-existing", // transactionId
                 null, // notes
                 null, // plaidAccountId
@@ -1021,7 +1112,12 @@ class TransactionServiceTest {
                 null, // currencyCode
                 null, // importSource
                 null, // importBatchId
-                null  // importFileName
+                null, // importFileName,
+                null, // reviewStatus
+                null, // merchantName
+                null, // paymentChannel
+                null, // userName
+                null  // goalId
         );
 
         // Then: Should update to new user-provided type and keep override flag
@@ -1055,7 +1151,8 @@ class TransactionServiceTest {
                 null,
                 null,
                 "   ", // Empty/whitespace string (should be treated as null)
-                false
+                false,
+                null  // goalId
         );
 
         // Then: Should recalculate (empty string treated as null)

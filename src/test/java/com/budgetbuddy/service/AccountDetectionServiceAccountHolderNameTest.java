@@ -22,8 +22,8 @@ public class AccountDetectionServiceAccountHolderNameTest {
         com.budgetbuddy.repository.dynamodb.AccountRepository mockAccountRepository = 
             org.mockito.Mockito.mock(com.budgetbuddy.repository.dynamodb.AccountRepository.class);
         
-        // AccountDetectionService only requires AccountRepository
-        accountDetectionService = new AccountDetectionService(mockAccountRepository);
+        // AccountDetectionService requires AccountRepository and BalanceExtractor
+        accountDetectionService = new AccountDetectionService(mockAccountRepository, new com.budgetbuddy.service.BalanceExtractor());
         
         extractAccountHolderNameFromPDF = AccountDetectionService.class.getDeclaredMethod(
             "extractAccountHolderNameFromPDF", String.class);

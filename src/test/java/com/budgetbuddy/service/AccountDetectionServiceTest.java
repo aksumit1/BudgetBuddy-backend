@@ -31,7 +31,7 @@ class AccountDetectionServiceTest {
 
     @BeforeEach
     void setUp() {
-        accountDetectionService = new AccountDetectionService(accountRepository);
+        accountDetectionService = new AccountDetectionService(accountRepository, new com.budgetbuddy.service.BalanceExtractor());
     }
 
     // ========== Filename Detection Tests ==========

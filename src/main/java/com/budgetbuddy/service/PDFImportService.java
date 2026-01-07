@@ -2721,13 +2721,6 @@ public class PDFImportService {
         
         row.put("amount", amountStr);
         
-        // Helper function to clean description by removing leading date patterns
-        java.util.function.Function<String, String> cleanDescription = (desc) -> {
-            if (desc == null || desc.isEmpty()) return desc;
-            // Remove any leading date patterns (e.g., "11/25", "11/25/2024")
-            return desc.replaceFirst("^\\s*\\d{1,2}[/-]\\d{1,2}(?:[/-]\\d{2,4})?\\s+", "").trim();
-        };
-        
         // Extract description: everything between last date and amount
         // Find the position after ALL dates (not just the last one)
         // We need to skip all consecutive dates, so find the maximum end position of all dates

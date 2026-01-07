@@ -41,7 +41,8 @@ class CSVImportServiceGlobalImportTest {
                 org.mockito.Mockito.mock(com.budgetbuddy.service.ml.FuzzyMatchingService.class);
         csvImportService = new CSVImportService(accountDetectionService, enhancedCategoryDetection, fuzzyMatchingService,
                 org.mockito.Mockito.mock(TransactionTypeCategoryService.class),
-                org.mockito.Mockito.mock(ImportCategoryParser.class));
+                org.mockito.Mockito.mock(ImportCategoryParser.class),
+                org.mockito.Mockito.mock(com.budgetbuddy.service.category.strategy.CategoryDetectionManager.class));
     }
 
     // MARK: - European Credit Card Tests
@@ -392,4 +393,5 @@ class CSVImportServiceGlobalImportTest {
                 "Should parse European number format (2.500,00 = 2500.00)");
     }
 }
+
 

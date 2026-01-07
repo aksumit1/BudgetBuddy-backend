@@ -79,11 +79,12 @@ public class AuthService {
             }
 
             // Validate that client hash is provided
-            // BREAKING CHANGE: No longer requires salt
             if (request.getPasswordHash() == null || request.getPasswordHash().isEmpty()) {
                 logger.warn("Login request for user {} missing password_hash", request.getEmail());
                 throw new AppException(ErrorCode.INVALID_INPUT, "password_hash is required");
             }
+            
+            // Note: Challenge verification is handled by AuthController before calling authenticate
 
             // Log for debugging (redact sensitive data)
             logger.debug("Authenticating user {}: clientHash length={}, serverHash length={}, serverSalt length={}",
@@ -93,6 +94,7 @@ public class AuthService {
                     serverSalt != null ? serverSalt.length() : 0);
 
             // BREAKING CHANGE: No longer requires client salt
+            // Standard verification (works for both new and old methods - iOS client handles fallback)
             authenticated = passwordHashingService.verifyClientPassword(
                     request.getPasswordHash(),
                     user.getPasswordHash(),
@@ -101,6 +103,9 @@ public class AuthService {
 
             if (!authenticated) {
                 logger.warn("Password verification failed for user {}: hash/salt mismatch", request.getEmail());
+                // Note: iOS client will automatically retry with old method (challenge-based hash) if new method fails
+            } else {
+                logger.debug("Password verification succeeded for user: {}", request.getEmail());
             }
         } else {
             throw new AppException(ErrorCode.INVALID_INPUT,
@@ -186,6 +191,106 @@ public class AuthService {
         );
 
         logger.info("User authenticated: {}", request.getEmail());
+        return new AuthResponse(accessToken, refreshToken, expiresAt, userInfo);
+    }
+    
+    /**
+     * Authenticate user after registration (special case - no challenge verification needed)
+     * Used when user is just created and we want to authenticate them immediately
+     * The password hash was already verified with the registration challenge
+     */
+    public AuthResponse authenticateAfterRegistration(final AuthRequest request) {
+        if (request == null || request.getEmail() == null || request.getEmail().isEmpty()) {
+            throw new AppException(ErrorCode.INVALID_INPUT, "Email is required");
+        }
+        
+        if (request.getPasswordHash() == null || request.getPasswordHash().isEmpty()) {
+            throw new AppException(ErrorCode.INVALID_INPUT, "Password hash is required");
+        }
+        
+        // Find user
+        UserTable user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new AppException(ErrorCode.INVALID_CREDENTIALS, "User not found"));
+        
+        if (user.getEnabled() == null || !user.getEnabled()) {
+            throw new AppException(ErrorCode.ACCOUNT_DISABLED, "Account is disabled");
+        }
+        
+        // Verify password hash (same logic as authenticate, but without challenge verification)
+        // The password hash was computed with the registration challenge which is already verified
+        String serverSalt = user.getServerSalt();
+        if (serverSalt == null || serverSalt.isEmpty()) {
+            throw new AppException(ErrorCode.INVALID_CREDENTIALS, "Invalid credentials");
+        }
+        
+        boolean authenticated = passwordHashingService.verifyClientPassword(
+                request.getPasswordHash(),
+                user.getPasswordHash(),
+                serverSalt
+        );
+        
+        if (!authenticated) {
+            throw new AppException(ErrorCode.INVALID_CREDENTIALS, "Invalid credentials");
+        }
+        
+        // Create authentication and generate tokens (same as authenticate method)
+        java.util.Set<String> roles = user.getRoles();
+        java.util.Collection<org.springframework.security.core.GrantedAuthority> authorities;
+        if (roles != null && !roles.isEmpty()) {
+            authorities = roles.stream()
+                    .map((role) -> new SimpleGrantedAuthority("ROLE_" + role.toUpperCase()))
+                    .collect(java.util.stream.Collectors.toList());
+        } else {
+            authorities = Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER"));
+        }
+        
+        org.springframework.security.core.userdetails.UserDetails userDetails = 
+                org.springframework.security.core.userdetails.User.builder()
+                        .username(user.getEmail())
+                        .password(user.getPasswordHash())
+                        .authorities(authorities)
+                        .accountExpired(false)
+                        .accountLocked(!Boolean.TRUE.equals(user.getEnabled()))
+                        .credentialsExpired(false)
+                        .disabled(!Boolean.TRUE.equals(user.getEnabled()))
+                        .build();
+        
+        Authentication authentication = new UsernamePasswordAuthenticationToken(
+                userDetails,
+                null,
+                authorities
+        );
+        
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+        
+        String accessToken = tokenProvider.generateToken(authentication);
+        String refreshToken = tokenProvider.generateRefreshToken(user.getEmail());
+        
+        Date expirationDate = tokenProvider.getExpirationDateFromToken(accessToken);
+        if (expirationDate == null) {
+            expirationDate = new Date(System.currentTimeMillis() + 86400000L);
+        }
+        LocalDateTime expiresAt = expirationDate.toInstant()
+                .atZone(ZoneId.systemDefault())
+                .toLocalDateTime();
+        
+        user.setLastLoginAt(java.time.Instant.now());
+        userRepository.save(user);
+        
+        try {
+            cacheWarmingService.warmCacheForUser(user.getUserId());
+        } catch (Exception e) {
+            logger.warn("Failed to warm cache for user {}: {}", user.getUserId(), e.getMessage());
+        }
+        
+        AuthResponse.UserInfo userInfo = new AuthResponse.UserInfo(
+                user.getUserId(),
+                user.getEmail(),
+                user.getFirstName() != null ? user.getFirstName() : "",
+                user.getLastName() != null ? user.getLastName() : ""
+        );
+        
+        logger.info("User authenticated after registration: {}", request.getEmail());
         return new AuthResponse(accessToken, refreshToken, expiresAt, userInfo);
     }
 

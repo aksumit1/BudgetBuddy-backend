@@ -93,8 +93,9 @@ class AuthFunctionalTest {
     @BeforeEach
     void setUp() {
         testEmail = "test-" + UUID.randomUUID() + "@example.com";
-        // Use base64-encoded value for password hash
-        testPasswordHash = java.util.Base64.getEncoder().encodeToString(("hashed-password-" + UUID.randomUUID()).getBytes());
+        // Use a consistent base64-encoded string as client hash (representing a client-side PBKDF2 hash)
+        // This must be the same for both createUserSecure and authenticate
+        testPasswordHash = java.util.Base64.getEncoder().encodeToString("testPassword123".getBytes());
         
         // Ensure ObjectMapper has JavaTimeModule for Instant serialization
         ObjectMapper mapper = getObjectMapper();
@@ -108,11 +109,23 @@ class AuthFunctionalTest {
 
     @Test
     void testRegister_CompleteWorkflow() throws Exception {
-        // Given - Use new registration format (no salt, no firstName/lastName)
-        // BREAKING CHANGE: Backend now only accepts email and password_hash
+        // Given - PAKE2 requires challenge first
+        // Step 1: Get registration challenge
+        String challengeRequestBody = String.format("{\"email\":\"%s\"}", testEmail);
+        var challengeResult = mockMvc.perform(post("/api/auth/register/challenge")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(challengeRequestBody))
+                .andExpect(status().isOk())
+                .andReturn();
+        
+        String challengeResponse = challengeResult.getResponse().getContentAsString();
+        com.fasterxml.jackson.databind.JsonNode challengeNode = getObjectMapper().readTree(challengeResponse);
+        String challenge = challengeNode.get("challenge").asText();
+        
+        // Step 2: Register with challenge and password_hash
         String requestBody = String.format(
-                "{\"email\":\"%s\",\"password_hash\":\"%s\"}",
-                testEmail, testPasswordHash
+                "{\"email\":\"%s\",\"password_hash\":\"%s\",\"challenge\":\"%s\"}",
+                testEmail, testPasswordHash, challenge
         );
 
         // When/Then - Functional tests require LocalStack to be running
@@ -153,10 +166,23 @@ class AuthFunctionalTest {
         // BREAKING CHANGE: firstName and lastName are optional (can be null)
         userService.createUserSecure(testEmail, testPasswordHash, null, null);
 
-        // BREAKING CHANGE: Login now only requires email and password_hash (no salt)
+        // PAKE2 requires challenge first
+        // Step 1: Get login challenge
+        String challengeRequestBody = String.format("{\"email\":\"%s\"}", testEmail);
+        var challengeResult = mockMvc.perform(post("/api/auth/login/challenge")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(challengeRequestBody))
+                .andExpect(status().isOk())
+                .andReturn();
+        
+        String challengeResponse = challengeResult.getResponse().getContentAsString();
+        com.fasterxml.jackson.databind.JsonNode challengeNode = getObjectMapper().readTree(challengeResponse);
+        String challenge = challengeNode.get("challenge").asText();
+
+        // Step 2: Login with challenge and password_hash
         String requestBody = String.format(
-                "{\"email\":\"%s\",\"password_hash\":\"%s\"}",
-                testEmail, testPasswordHash
+                "{\"email\":\"%s\",\"password_hash\":\"%s\",\"challenge\":\"%s\"}",
+                testEmail, testPasswordHash, challenge
         );
 
         // When/Then

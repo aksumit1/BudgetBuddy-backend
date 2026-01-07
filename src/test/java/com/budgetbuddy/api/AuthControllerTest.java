@@ -34,6 +34,12 @@ class AuthControllerTest {
     @Mock
     private UserService userService;
 
+    @Mock
+    private com.budgetbuddy.service.PasswordResetService passwordResetService;
+
+    @Mock
+    private com.budgetbuddy.service.ChallengeService challengeService;
+
     @InjectMocks
     private AuthController authController;
 
@@ -45,6 +51,7 @@ class AuthControllerTest {
         testAuthRequest = new AuthRequest();
         testAuthRequest.setEmail("test@example.com");
         testAuthRequest.setPasswordHash("hashed-password");
+        testAuthRequest.setChallenge("test-challenge-nonce"); // PAKE2: Challenge required
         // BREAKING CHANGE: Client salt removed
 
         testAuthResponse = new AuthResponse(
@@ -58,6 +65,15 @@ class AuthControllerTest {
                         "User"
                 )
         );
+
+        // Mock challenge service to allow verification
+        com.budgetbuddy.service.ChallengeService.ChallengeResponse challengeResponse =
+                new com.budgetbuddy.service.ChallengeService.ChallengeResponse(
+                        "test-challenge-nonce",
+                        java.time.Instant.now().plus(5, java.time.temporal.ChronoUnit.MINUTES)
+                );
+        when(challengeService.generateChallenge(anyString())).thenReturn(challengeResponse);
+        doNothing().when(challengeService).verifyAndConsumeChallenge(anyString(), anyString());
     }
 
     @Test

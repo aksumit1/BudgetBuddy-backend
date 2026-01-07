@@ -272,13 +272,26 @@ public class PlaidCategoryMapper {
         // This overrides any category that might have been incorrectly assigned (e.g., "rent" or "utilities" from Plaid)
         // Check for "ACH Electronic Credit" in description/merchant name (case-insensitive)
         // This handles cases like "ACH Electronic CreditGUSTO PAY 123456" where paymentChannel might not be set correctly
+        // CRITICAL: Rely on description pattern alone - "ACH Electronic Credit" is a strong signal for income
+        // regardless of amount sign (Plaid may send income as +ve or -ve depending on account type)
         boolean isACHCreditByDescription = combinedTextLower.contains("ach electronic credit") || 
                                            combinedTextLower.contains("ach credit") ||
-                                           (combinedTextLower.contains("ach") && combinedTextLower.contains("credit") && 
-                                            amount != null && amount.compareTo(java.math.BigDecimal.ZERO) > 0);
+                                           (combinedTextLower.contains("ach") && combinedTextLower.contains("credit"));
         
-        // Also check by paymentChannel and amount (original logic)
+        // Also check by paymentChannel, but only if it's NOT an ACH debit
+        // For channel-based detection, we need to distinguish credits from debits
+        // Check for ACH debit patterns first to avoid false positives
+        boolean isACHDebitPattern = combinedTextLower.contains("ach electronic debit") || 
+                                    combinedTextLower.contains("ach debit") ||
+                                    (combinedTextLower.contains("ach") && combinedTextLower.contains("debit"));
+        
+        // ACH credit by channel: paymentChannel is "ach" AND not an ACH debit pattern
+        // CRITICAL: For channel-based detection without explicit credit/debit keywords in description,
+        // we need to check amount sign to distinguish credits from debits
+        // After normalization: positive = income (credit), negative = expense (debit)
+        // This is safe because normalization already handles Plaid's sign reversal
         boolean isACHCreditByChannel = paymentChannel != null && "ach".equalsIgnoreCase(paymentChannel) && 
+                                       !isACHDebitPattern &&
                                        amount != null && amount.compareTo(java.math.BigDecimal.ZERO) > 0;
         
         boolean isACHCredit = isACHCreditByDescription || isACHCreditByChannel;

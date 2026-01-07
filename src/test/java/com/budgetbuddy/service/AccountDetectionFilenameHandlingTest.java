@@ -23,7 +23,7 @@ class AccountDetectionFilenameHandlingTest {
 
     @BeforeEach
     void setUp() {
-        accountDetectionService = new AccountDetectionService(accountRepository);
+        accountDetectionService = new AccountDetectionService(accountRepository, new com.budgetbuddy.service.BalanceExtractor());
     }
 
     @Test

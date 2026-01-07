@@ -310,11 +310,10 @@ public class DuplicateDetectionService {
     private double calculateAmountSimilarity(BigDecimal a1, BigDecimal a2) {
         // Compare amounts - handle cases where one amount is negative and the other is positive
         BigDecimal diff1 = a1.subtract(a2);
-        BigDecimal diff2 = a1.add(a2); // Check if one is negative of the other
         BigDecimal diff;
         
         // If both amounts have the same sign (both positive or both negative), use diff1
-        // If one is positive and one is negative, use diff2 (which represents the sum)
+        // If one is positive and one is negative, use sum (which represents the absolute difference)
         boolean a1Positive = a1.compareTo(BigDecimal.ZERO) >= 0;
         boolean a2Positive = a2.compareTo(BigDecimal.ZERO) >= 0;
         

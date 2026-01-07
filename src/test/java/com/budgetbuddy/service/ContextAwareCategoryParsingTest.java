@@ -42,16 +42,36 @@ class ContextAwareCategoryParsingTest {
 
     @BeforeEach
     void setUp() {
+        // Mock ImportCategoryParser to avoid circular dependency
+        ImportCategoryParser mockImportCategoryParser = org.mockito.Mockito.mock(ImportCategoryParser.class);
+        
+        // Create real CategoryDetectionManager with real strategies for proper category detection
+        java.util.List<com.budgetbuddy.service.category.strategy.CategoryDetectionStrategy> strategies = 
+            java.util.Arrays.asList(
+                new com.budgetbuddy.service.category.strategy.DiningCategoryStrategy(),
+                new com.budgetbuddy.service.category.strategy.GroceriesCategoryStrategy(),
+                new com.budgetbuddy.service.category.strategy.TransportationCategoryStrategy(),
+                new com.budgetbuddy.service.category.strategy.UtilitiesCategoryStrategy(),
+                new com.budgetbuddy.service.category.strategy.EntertainmentCategoryStrategy(),
+                new com.budgetbuddy.service.category.strategy.HealthCategoryStrategy(),
+                new com.budgetbuddy.service.category.strategy.ShoppingCategoryStrategy(),
+                new com.budgetbuddy.service.category.strategy.TechCategoryStrategy(),
+                new com.budgetbuddy.service.category.strategy.TravelCategoryStrategy(),
+                new com.budgetbuddy.service.category.strategy.PetCategoryStrategy(),
+                new com.budgetbuddy.service.category.strategy.CharityCategoryStrategy()
+            );
+        com.budgetbuddy.service.category.strategy.CategoryDetectionManager categoryDetectionManager = 
+            new com.budgetbuddy.service.category.strategy.CategoryDetectionManager(strategies);
+        
         // Create CSVImportService with mocked dependencies
         csvImportService = new CSVImportService(
             accountDetectionService,
             enhancedCategoryDetection,
             fuzzyMatchingService,
             transactionTypeCategoryService,
-            new ImportCategoryParser(csvImportService) // This will be replaced
+            mockImportCategoryParser,
+            categoryDetectionManager
         );
-        // Note: ImportCategoryParser requires CSVImportService, but we need to create it first
-        // So we'll just test CSVImportService.parseCategory directly
     }
 
     // ========== Investment Categories ==========

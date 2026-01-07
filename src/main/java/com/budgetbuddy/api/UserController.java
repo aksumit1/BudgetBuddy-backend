@@ -51,7 +51,7 @@ public class UserController {
         try {
             if (userDetails == null || userDetails.getUsername() == null || userDetails.getUsername().isEmpty()) {
                 logger.warn("getCurrentUser called without authentication");
-                throw new AppException(ErrorCode.UNAUTHORIZED, "User not authenticated");
+                throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
             }
 
             com.budgetbuddy.model.dynamodb.UserTable user = userService.findByEmail(userDetails.getUsername())
@@ -95,7 +95,7 @@ public class UserController {
         try {
             if (userDetails == null || userDetails.getUsername() == null || userDetails.getUsername().isEmpty()) {
                 logger.warn("registerDeviceToken called without authentication");
-                throw new AppException(ErrorCode.UNAUTHORIZED, "User not authenticated");
+                throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
             }
 
             if (request == null || request.getDeviceToken() == null || request.getDeviceToken().isEmpty()) {

@@ -25,6 +25,8 @@ public class Budget implements java.io.Serializable {
 
     private String currencyCode = "USD";
 
+    private String goalId; // Optional: ID of the goal this budget is linked to
+
     private LocalDateTime createdAt;
 
     private LocalDateTime updatedAt;
@@ -87,6 +89,14 @@ public class Budget implements java.io.Serializable {
 
     public void setCurrencyCode(final String currencyCode) {
         this.currencyCode = currencyCode;
+    }
+
+    public String getGoalId() {
+        return goalId;
+    }
+
+    public void setGoalId(final String goalId) {
+        this.goalId = goalId;
     }
 
     public LocalDateTime getCreatedAt() {

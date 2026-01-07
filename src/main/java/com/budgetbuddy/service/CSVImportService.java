@@ -1,8 +1,11 @@
 package com.budgetbuddy.service;
 
+
+import com.budgetbuddy.util.StringUtils;
 import com.budgetbuddy.exception.AppException;
 import com.budgetbuddy.exception.ErrorCode;
 import com.budgetbuddy.service.ml.EnhancedCategoryDetectionService;
+import com.budgetbuddy.service.category.strategy.CategoryDetectionManager;
 import com.budgetbuddy.service.ml.FuzzyMatchingService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,7 +33,9 @@ public class CSVImportService {
 
     private static final Logger logger = LoggerFactory.getLogger(CSVImportService.class);
     
-    private final AccountDetectionService accountDetectionService;
+        private final CategoryDetectionManager categoryDetectionManager;
+
+private final AccountDetectionService accountDetectionService;
     private final EnhancedCategoryDetectionService enhancedCategoryDetection;
     // NOTE: fuzzyMatchingService is injected but used indirectly via enhancedCategoryDetection
     // Kept in constructor for potential future direct use
@@ -43,12 +48,14 @@ public class CSVImportService {
                            EnhancedCategoryDetectionService enhancedCategoryDetection,
                            FuzzyMatchingService fuzzyMatchingService,
                            TransactionTypeCategoryService transactionTypeCategoryService,
-                           ImportCategoryParser importCategoryParser) {
+                           ImportCategoryParser importCategoryParser, final CategoryDetectionManager categoryDetectionManager) {
         this.accountDetectionService = accountDetectionService;
         this.enhancedCategoryDetection = enhancedCategoryDetection;
         this.fuzzyMatchingService = fuzzyMatchingService;
         this.transactionTypeCategoryService = transactionTypeCategoryService;
-        this.importCategoryParser = importCategoryParser;
+        
+        this.categoryDetectionManager = categoryDetectionManager;
+this.importCategoryParser = importCategoryParser;
     }
     
     // Date formatters matching iOS app - supports global formats
@@ -365,7 +372,7 @@ public class CSVImportService {
         map.put("donation", "charity");
         map.put("donate", "charity");
         map.put("tuition", "other");
-        map.put("education", "other");
+        map.put("education", "education");
         map.put("school fee", "other");
         map.put("university fee", "other");
         map.put("college fee", "other");
@@ -1522,7 +1529,7 @@ public class CSVImportService {
         );
         // Normalize merchant name (lenient normalization for better matching)
         if (merchantName != null && !merchantName.trim().isEmpty()) {
-            transaction.setMerchantName(normalizeMerchantName(merchantName));
+            transaction.setMerchantName(StringUtils.normalizeMerchantName(merchantName));
         } else {
             transaction.setMerchantName(merchantName);
         }
@@ -1680,6 +1687,18 @@ public class CSVImportService {
             }
         }
         
+        // CRITICAL FIX: Override transaction type for dining transactions
+        // Dining transactions should always be EXPENSE, not LOAN, even on credit card accounts with negative amounts
+        // This fixes cases like TST* DEEP DIVE which were incorrectly categorized as LOAN/utilities
+        if (transaction.getCategoryPrimary() != null && 
+            transaction.getCategoryPrimary().equalsIgnoreCase("dining") &&
+            transactionType != null && 
+            transactionType.equalsIgnoreCase("LOAN")) {
+            transactionType = "EXPENSE";
+            logger.info("🏷️ Overriding transaction type from LOAN to EXPENSE for dining transaction (description: '{}', merchant: '{}')",
+                description, merchantName);
+        }
+        
         // CRITICAL: For checking accounts, change Income/Transfer to Income/Deposit for positive amounts
         if (accountTypeString != null && 
             (accountTypeString.equalsIgnoreCase("checking") || 
@@ -1698,6 +1717,45 @@ public class CSVImportService {
         
         // CRITICAL: Store transactionTypeIndicator for preview response and recalculation
         transaction.setTransactionTypeIndicator(transactionTypeIndicator);
+        
+        // CRITICAL FIX: Wells Fargo credit card special case
+        // Wells Fargo credit card statements don't apply negative signs to payment transactions
+        // If this is a Wells Fargo credit card account, transaction type is PAYMENT, category is payment,
+        // and amount is negative, make it positive (Wells Fargo convention)
+        if (detectedAccount != null && 
+            detectedAccount.getAccountType() != null &&
+            (detectedAccount.getAccountType().toLowerCase().contains("credit") ||
+             detectedAccount.getAccountType().equalsIgnoreCase("creditcard") ||
+             detectedAccount.getAccountType().equalsIgnoreCase("credit_card"))) {
+            
+            String institutionName = detectedAccount.getInstitutionName();
+            String accountName = detectedAccount.getAccountName();
+            
+            // Check if it's Wells Fargo (by institution name or account name)
+            boolean isWellsFargo = (institutionName != null && 
+                                  (institutionName.toLowerCase().contains("wells fargo") ||
+                                   institutionName.toLowerCase().contains("wellsfargo") ||
+                                   institutionName.toLowerCase().equalsIgnoreCase("wf"))) ||
+                                 (accountName != null &&
+                                  (accountName.toLowerCase().contains("wells fargo") ||
+                                   accountName.toLowerCase().contains("wellsfargo") ||
+                                   accountName.toLowerCase().contains("wf credit")));
+            
+            if (isWellsFargo &&
+                transactionType != null && 
+                transactionType.equalsIgnoreCase("PAYMENT") &&
+                transaction.getCategoryPrimary() != null &&
+                transaction.getCategoryPrimary().equalsIgnoreCase("payment") &&
+                amount != null && 
+                amount.compareTo(BigDecimal.ZERO) < 0) {
+                
+                // Wells Fargo credit card payment: make amount positive
+                BigDecimal positiveAmount = amount.negate();
+                transaction.setAmount(positiveAmount);
+                logger.info("🏷️ Wells Fargo credit card payment: Converted negative amount {} to positive {} for payment transaction (description: '{}')",
+                    amount, positiveAmount, description);
+            }
+        }
         
         return transaction;
     }
@@ -2188,366 +2246,27 @@ public class CSVImportService {
         // STEP 1a: Check for zero amount transactions FIRST (before any other checks)
         // CRITICAL: Zero amount transactions with fee descriptions should be 'other', not 'fee'
         // Even if category string is "fee", zero amounts should be 'other' if description contains fee
+        // NOTE: Zero amount handling continues later in STEP 7, so we don't return here for all zero amounts
         if (safeAmount != null && safeAmount.compareTo(BigDecimal.ZERO) == 0) {
-            // For zero amounts, check description first (description takes precedence over category string)
+            // For zero amounts with fee/adjustment descriptions, return early
             if (safeDescription != null) {
                 String descLower = safeDescription.toLowerCase();
                 if (descLower.contains("fee") || descLower.contains("adjustment") || descLower.contains("correction")) {
                     logger.debug("parseCategorySimplified: Zero amount with fee/adjustment description → 'other'");
                     return "other";
                 }
-                if (descLower.contains("transfer")) {
-                    logger.debug("parseCategorySimplified: Zero amount with transfer description → 'payment'");
-                    return "payment";
-                }
             }
-            // If no description match, check category string mapping (but skip "fee" category for zero amounts)
-            if (safeCategoryString != null && !safeCategoryString.trim().isEmpty()) {
-                String categoryLower = safeCategoryString.toLowerCase();
-                // Skip "fee" category for zero amounts - they should be "other"
-                if (!categoryLower.equals("fee") && !categoryLower.equals("fee_transaction") && !categoryLower.equals("fee transaction")) {
-                    String mapped = CATEGORY_MAP.get(categoryLower);
-                    if (mapped != null && !mapped.equals("fee")) {
-                        logger.debug("parseCategorySimplified: Zero amount with category → '{}'", mapped);
-                        return mapped;
-                    }
-                }
-            }
-            logger.debug("parseCategorySimplified: Zero amount without clear category → 'other'");
-            return "other";
+            // For other zero amounts, continue to later steps (STEP 7 handles them)
         }
         
-        // STEP 1b: Check for ACH_CREDIT deposits (before payment detection)
-        // CRITICAL: Must come before payment checks to prevent ACH_CREDIT from being categorized as payment
-        if (safeCategoryString != null && safeAmount != null) {
-            String categoryLower = safeCategoryString.toLowerCase();
-            if ((categoryLower.contains("ach_credit") || categoryLower.contains("ach credit")) &&
-                safeAmount.compareTo(BigDecimal.ZERO) > 0) {
-                if (isSalaryTransaction(safeDescription, safeAmount, safePaymentChannel)) {
-                    logger.debug("🏷️ parseCategorySimplified: ACH_CREDIT salary → 'salary'");
-                    return "salary";
-                }
-                logger.debug("🏷️ parseCategorySimplified: ACH_CREDIT → 'deposit'");
-                return "deposit";
-            }
-        }
-        
-        // STEP 1c: Check for fees (FEE_TRANSACTION, safe deposit box, etc.)
-        if (safeCategoryString != null) {
-            String categoryLower = safeCategoryString.toLowerCase();
-            if (categoryLower.contains("fee_transaction") || categoryLower.contains("fee transaction")) {
-                logger.debug("🏷️ parseCategorySimplified: FEE_TRANSACTION → 'fee'");
-                return "fee";
-            }
-        }
-        // Check for safe deposit box in description
-        if (safeDescription != null) {
-            String descLower = safeDescription.toLowerCase();
-            if (descLower.contains("safe deposit box") || descLower.contains("safedepositbox") ||
-                descLower.contains("safe deposit") || descLower.contains("safety deposit box")) {
-                logger.debug("🏷️ parseCategorySimplified: Safe deposit box → 'fee'");
-                return "fee";
-            }
-        }
-        
-        // Cash withdrawal
-        if (isCashWithdrawal(safeDescription, safeMerchantName, safeCategoryString, safeTransactionTypeIndicator, safePaymentChannel)) {
-            logger.debug("🏷️ parseCategorySimplified: Cash withdrawal → 'cash'");
-            return "cash";
-        }
-        if (safeDescription != null && safeAmount != null && safeAmount.compareTo(BigDecimal.ZERO) < 0) {
-            String descLower = safeDescription.toLowerCase();
-            if (descLower.contains("withdrawal") && !descLower.contains("investment") && 
-                !descLower.contains("transfer") && !descLower.contains("payment")) {
-                logger.debug("🏷️ parseCategorySimplified: Withdrawal → 'cash'");
-                return "cash";
-            }
-        }
-        
-        // Check payment
-        if (isCheckPayment(safeDescription, safeMerchantName, safeCategoryString, safeTransactionTypeIndicator)) {
-            logger.debug("🏷️ parseCategorySimplified: Check payment → 'payment'");
-            return "payment";
-        }
-        
-        // STEP 0: Check for Airport Expenses (carts, chairs, parking, etc.) - CRITICAL: Must come BEFORE utilities
-        // "SEATTLEAP CART/CHAIR" (Seattle Airport cart) should be "transportation", not "utilities"
-        if (safeDescription != null || safeMerchantName != null) {
-            String combined = ((safeMerchantName != null ? safeMerchantName : "") + " " +
-                              (safeDescription != null ? safeDescription : "")).toLowerCase().trim();
-            // Airport cart/chair rentals
-            if ((combined.contains("seattleap") || combined.contains("seattle ap") || combined.contains("seattle airport")) &&
-                (combined.contains("cart") || combined.contains("chair"))) {
-                logger.debug("🏷️ parseCategorySimplified: Detected airport cart/chair → 'transportation'");
-                return "transportation";
-            }
-            // General airport cart/chair patterns
-            if (combined.contains("airport") && (combined.contains("cart") || combined.contains("chair"))) {
-                logger.debug("🏷️ parseCategorySimplified: Detected airport cart/chair → 'transportation'");
-                return "transportation";
-            }
-        }
-        
-        // STEP 1a: Check for Cable/Internet/Phone Providers - CRITICAL: Must come BEFORE credit card payment
-        // Cable/internet/phone bills (e.g., "Comcast Payment", "Xfinity Mobile Payment") should be "utilities", not "payment"
-        if (safeDescription != null || safeMerchantName != null) {
-            String combined = ((safeMerchantName != null ? safeMerchantName : "") + " " + 
-                              (safeDescription != null ? safeDescription : "")).toLowerCase().trim();
-            // Cable/Internet Providers
-            String[] cableInternetProviders = {
-                "comcast", "xfinity", "xfinity mobile", "xfinitymobile",
-                "spectrum", "charter", "charter spectrum",
-                "cox", "cox communications",
-                "optimum", "altice", "frontier", "frontier communications",
-                "centurylink", "century link", "windstream", "suddenlink", "mediacom",
-                "dish", "dish network", "directv", "direct tv",
-                "att u-verse", "att uverse", "fios", "verizon fios"
-            };
-            for (String provider : cableInternetProviders) {
-                if (combined.contains(provider)) {
-                    logger.debug("🏷️ parseCategorySimplified: Detected cable/internet provider '{}' → 'utilities'", provider);
-                    return "utilities";
-                }
-            }
-            // Phone/Mobile Providers (excluding Xfinity Mobile which is already covered above)
-            String[] phoneProviders = {
-                "verizon wireless", "verizonwireless", "verizon",
-                "at&t", "att", "at and t", "t-mobile", "tmobile", "t mobile",
-                "sprint", "us cellular", "uscellular", "cricket", "cricket wireless",
-                "boost mobile", "boostmobile", "metropcs", "metro pcs", "metropcs",
-                "mint mobile", "mintmobile", "google fi", "googlefi", "visible",
-                "straight talk", "straighttalk", "us mobile", "usmobile"
-            };
-            for (String provider : phoneProviders) {
-                if (combined.contains(provider)) {
-                    logger.debug("🏷️ parseCategorySimplified: Detected phone/mobile provider '{}' → 'utilities'", provider);
-                    return "utilities";
-                }
-            }
-        }
-        
-        // Utility bill payment
-        if (isUtilityBillPayment(safeDescription, safeMerchantName, safeCategoryString)) {
-            logger.debug("🏷️ parseCategorySimplified: Utility bill payment → 'utilities'");
-            return "utilities";
-        }
-        
-        // CRITICAL: Interest/Dividend checks BEFORE credit card payment to avoid false matches
-        // Interest (context-aware: investment vs income)
-        if (isInterestTransaction(safeCategoryString, safeDescription, safeMerchantName, safeAmount)) {
-            if ("INVESTMENT".equals(safeTransactionType) || isInvestmentAccount) {
-                logger.debug("parseCategorySimplified: Interest (investment) → 'investmentInterest'");
-                return "investmentInterest";
-            }
-            logger.debug("parseCategorySimplified: Interest → 'interest'");
-            return "interest";
-        }
-        
-        // Dividend (context-aware: investment vs income)
-        if (isDividendTransaction(safeCategoryString, safeDescription, safeMerchantName, safeAmount)) {
-            if ("INVESTMENT".equals(safeTransactionType) || isInvestmentAccount) {
-                logger.debug("parseCategorySimplified: Dividend (investment) → 'investmentDividend'");
-                return "investmentDividend";
-            }
-            logger.debug("parseCategorySimplified: Dividend → 'dividend'");
-            return "dividend";
-        }
-        
-        // RSU transactions
-        if (isRSUTransaction(safeCategoryString, safeDescription, safeMerchantName, safeAmount)) {
-            logger.debug("parseCategorySimplified: RSU transaction → 'rsu'");
-            return "rsu";
-        }
-        
-        // Credit card payment (AFTER interest/dividend to avoid false matches)
-        if (isCreditCardPayment(safeDescription, safeMerchantName, safeCategoryString)) {
-            logger.debug("🏷️ parseCategorySimplified: Credit card payment → 'payment'");
-            return "payment";
-        }
-        
-        // Loan payment
-        if (isLoanPayment(safeDescription, safeMerchantName, safeCategoryString)) {
-            String descLower = safeDescription != null ? safeDescription.toLowerCase() : "";
-            String merchantLower = safeMerchantName != null ? safeMerchantName.toLowerCase() : "";
-            String combinedText = (merchantLower + " " + descLower).trim();
-            
-            if (combinedText.contains("escrow") || combinedText.contains("tax escrow") || 
-                combinedText.contains("insurance escrow") || combinedText.contains("property tax") ||
-                combinedText.contains("homeowners insurance") || combinedText.contains("hazard insurance")) {
-                logger.debug("🏷️ parseCategorySimplified: Loan escrow → 'loanEscrow'");
-                return "loanEscrow";
-            }
-            if (combinedText.contains("bill") || combinedText.contains("utility bill") ||
-                combinedText.contains("electric bill") || combinedText.contains("water bill") ||
-                combinedText.contains("cable bill") || combinedText.contains("internet bill")) {
-                logger.debug("🏷️ parseCategorySimplified: Loan bills → 'loanBills'");
-                return "loanBills";
-            }
-            logger.debug("🏷️ parseCategorySimplified: Loan payment → 'payment'");
-            return "payment";
-        }
-        
-        // Investment transfer (BEFORE account transfer to avoid false matches)
-        if (safeAmount != null && safeAmount.compareTo(BigDecimal.ZERO) < 0 && 
-            isInvestmentTransfer(safeDescription, safeMerchantName, safeCategoryString)) {
-            logger.debug("🏷️ parseCategorySimplified: Investment transfer → 'investmentTransfer'");
-            return "investmentTransfer";
-        }
-        
-        // Account transfer (AFTER investment transfer check)
-        if (isAccountTransfer(safeDescription, safeMerchantName, safeCategoryString)) {
-            logger.debug("🏷️ parseCategorySimplified: Account transfer → 'transfer'");
-            return "transfer";
-        }
-        if (safeDescription != null) {
-            String descLower = safeDescription.toLowerCase();
-            if ((descLower.contains("wire") || descLower.contains("international wire")) &&
-                (descLower.contains("debit") || descLower.contains("transfer"))) {
-                logger.debug("🏷️ parseCategorySimplified: Wire transfer → 'transfer'");
-                return "transfer";
-            }
-        }
-        
-        // ========== STEP 2: Context-Aware Rules by Transaction Type ==========
-        
-        // Investment rules (check before type-specific rules since they can override)
-        if ("INVESTMENT".equals(safeTransactionType) || isInvestmentAccount) {
-            String investmentCategory = applyInvestmentRules(safeDescription, safeMerchantName, safeCategoryString, 
-                                                           safeAmount, safeTransactionType, safeAccountType);
-            if (investmentCategory != null) {
-                return investmentCategory;
-            }
-        }
-        
-        // Type-specific rules
-        if ("INCOME".equals(safeTransactionType) && safeAmount != null && safeAmount.compareTo(BigDecimal.ZERO) > 0) {
-            String incomeCategory = applyIncomeRules(safeDescription, safeMerchantName, safeAmount, 
-                                                     safePaymentChannel, safeAccountType, safeAccountSubtype);
-            if (incomeCategory != null) {
-                logger.debug("🏷️ parseCategorySimplified: Income category → '{}'", incomeCategory);
-                return incomeCategory;
-            }
-        }
-        
-        if ("LOAN".equals(safeTransactionType)) {
-            String loanCategory = applyLoanRules(safeDescription, safeMerchantName);
-            if (loanCategory != null) {
-                logger.debug("🏷️ parseCategorySimplified: Loan category → '{}'", loanCategory);
-                return loanCategory;
-            }
-        }
-        
-        // ========== STEP 3: ML/Fuzzy Matching (Earlier in Flow) ==========
-        
-        if ((safeMerchantName != null && !safeMerchantName.isEmpty()) || 
-            (safeDescription != null && !safeDescription.isEmpty())) {
-            try {
-                // Build combined string for airport expense checks
-                String combined = ((safeMerchantName != null ? safeMerchantName : "") + " " +
-                                  (safeDescription != null ? safeDescription : "")).toLowerCase().trim();
-                
-                EnhancedCategoryDetectionService.DetectionResult enhancedResult = 
-                    enhancedCategoryDetection.detectCategory(safeMerchantName, safeDescription, safeAmount, 
-                                                           safePaymentChannel, safeCategoryString);
-                
-                if (enhancedResult != null && enhancedResult.category != null) {
-                    // CRITICAL: Reject utilities category if it's an airport expense
-                    if ("utilities".equals(enhancedResult.category) &&
-                        combined.contains("airport") && (combined.contains("cart") || combined.contains("chair"))) {
-                        logger.debug("🏷️ parseCategorySimplified: Rejecting utilities match for airport cart/chair");
-                    } else if ("utilities".equals(enhancedResult.category) &&
-                               (combined.contains("seattleap") || combined.contains("seattle ap")) &&
-                               (combined.contains("cart") || combined.contains("chair"))) {
-                        logger.debug("🏷️ parseCategorySimplified: Rejecting utilities match for SEATTLEAP cart/chair");
-                    } else {
-                        double confidenceThreshold = "FUZZY_MATCH".equals(enhancedResult.method) ? 0.50 : 0.55;
-                        if (enhancedResult.confidence >= confidenceThreshold) {
-                            logger.debug("🏷️ parseCategorySimplified: ML/Fuzzy match → '{}' (confidence: {}, method: {})", 
-                                    enhancedResult.category, String.format("%.2f", enhancedResult.confidence), enhancedResult.method);
-                            return enhancedResult.category;
-                        }
-                    }
-                }
-            } catch (Exception e) {
-                logger.warn("parseCategorySimplified: ML detection failed (non-fatal): {}", e.getMessage());
-            }
-        }
-        
-        // ========== STEP 4: Merchant/Description Matching (Simplified) ==========
-        
-        if (safeMerchantName != null && !safeMerchantName.trim().isEmpty()) {
-            String merchantCategory = detectCategoryFromMerchantName(safeMerchantName, safeDescription);
-            if (merchantCategory != null) {
-                logger.debug("🏷️ parseCategorySimplified: Merchant match → '{}'", merchantCategory);
-                return merchantCategory;
-            }
-        }
-        
-        String descriptionCategory = detectCategoryFromDescription(safeDescription, safeMerchantName, safeAmount);
-        if (descriptionCategory != null) {
-            logger.debug("🏷️ parseCategorySimplified: Description match → '{}'", descriptionCategory);
-            return descriptionCategory;
-        }
-        
-        // ========== STEP 5: ACH/Deposit Rules ==========
-        
-        if (isACHTransaction(safeDescription, safePaymentChannel)) {
-            if (safeAmount != null && safeAmount.compareTo(BigDecimal.ZERO) > 0) {
-                if (isSalaryTransaction(safeDescription, safeAmount, safePaymentChannel)) {
-                    logger.debug("parseCategorySimplified: ACH salary → 'salary'");
-                    return "salary";
-                }
-                logger.debug("parseCategorySimplified: ACH deposit → 'deposit'");
-                return "deposit";
-            }
-        }
-        
-        if (safeCategoryString != null && safeAmount != null) {
-            String categoryLower = safeCategoryString.toLowerCase();
-            if ((categoryLower.contains("ach_credit") || categoryLower.contains("ach credit")) &&
-                safeAmount.compareTo(BigDecimal.ZERO) > 0) {
-                logger.debug("🏷️ parseCategorySimplified: ACH_CREDIT → 'deposit'");
-                return "deposit";
-            }
-        }
-        
-        // ========== STEP 6: Category String Mapping Fallback ==========
-        
-        if (safeCategoryString != null && !safeCategoryString.isEmpty()) {
-            String lower = safeCategoryString.toLowerCase();
-            String exactMatch = CATEGORY_MAP.get(lower);
-            if (exactMatch != null) {
-                logger.debug("parseCategorySimplified: Category map exact match → '{}'", exactMatch);
-                return exactMatch;
-            }
-            
-            // Substring match (longest first)
-            List<Map.Entry<String, String>> sortedEntries = new ArrayList<>(CATEGORY_MAP.entrySet());
-            sortedEntries.sort((a, b) -> Integer.compare(b.getKey().length(), a.getKey().length()));
-            
-            for (Map.Entry<String, String> entry : sortedEntries) {
-                String key = entry.getKey();
-                if (lower.contains("ach_credit") || lower.contains("ach credit")) {
-                    if (key.equals("credit")) continue; // Skip "credit" → "income" for ACH_CREDIT
-                }
-                if (lower.contains(key)) {
-                    logger.debug("parseCategorySimplified: Category map substring match → '{}'", entry.getValue());
-                    return entry.getValue();
-                }
-            }
-        }
-        
-        // ========== STEP 7: Zero Amount Handling ==========
-        
-        // ========== STEP 8: Final Fallback ==========
-        
-        logger.debug("🏷️ parseCategorySimplified: No match found → 'other'");
-        return "other";
+        // Continue with the rest of the logic - all steps from STEP 1b onwards
+        // This logic is the same as parseCategoryLegacy but in simplified form
+        // STEP 1b through STEP 10 are handled in parseCategoryLegacy method
+        // For now, delegate to parseCategoryLegacy to avoid code duplication
+        return parseCategoryLegacy(categoryString, description, merchantName, amount, paymentChannel,
+                                  transactionTypeIndicator, transactionType, accountType, accountSubtype);
     }
     
-    /**
-     * Apply investment-specific category rules
-     */
     private String applyInvestmentRules(String description, String merchantName, String categoryString,
                                        BigDecimal amount, String transactionType, String accountType) {
         if (amount == null) return null;
@@ -3259,64 +2978,6 @@ public class CSVImportService {
      * @param merchantName Raw merchant name from CSV
      * @return Normalized merchant name
      */
-    private String normalizeMerchantName(String merchantName) {
-        if (merchantName == null || merchantName.trim().isEmpty()) {
-            return merchantName;
-        }
-        
-        String normalized = merchantName.trim().toUpperCase();
-        
-        // Remove payment processor prefixes (lenient - allow variations)
-        normalized = normalized.replaceAll("^ACH\\s+", "");
-        normalized = normalized.replaceAll("^PPD\\s+", "");
-        normalized = normalized.replaceAll("^WEB\\s+ID:\\s*", "");
-        normalized = normalized.replaceAll("^ID:\\s*", "");
-        normalized = normalized.replaceAll("^POS\\s+", "");
-        normalized = normalized.replaceAll("^DEBIT\\s+CARD\\s+", "");
-        normalized = normalized.replaceAll("^CREDIT\\s+CARD\\s+", "");
-        
-        // Remove common suffixes (lenient - allow with/without periods)
-        normalized = normalized.replaceAll("\\.COM$", "");
-        normalized = normalized.replaceAll("\\.NET$", "");
-        normalized = normalized.replaceAll("\\.ORG$", "");
-        normalized = normalized.replaceAll("\\.CO\\.UK$", "");
-        normalized = normalized.replaceAll("\\.CO$", "");
-        normalized = normalized.replaceAll("\\s+INC\\.?$", "");
-        normalized = normalized.replaceAll("\\s+LLC\\.?$", "");
-        normalized = normalized.replaceAll("\\s+CORP\\.?$", "");
-        normalized = normalized.replaceAll("\\s+CORPORATION$", "");
-        normalized = normalized.replaceAll("\\s+COMPANY$", "");
-        normalized = normalized.replaceAll("\\s+LTD\\.?$", "");
-        normalized = normalized.replaceAll("\\s+LIMITED$", "");
-        
-        // Remove store numbers and IDs (lenient - allow various formats)
-        // CRITICAL FIX: Handle # with or without space before it (e.g., "SAFEWAY#1444" or "SAFEWAY #1444")
-        normalized = normalized.replaceAll("#\\s*\\d+", ""); // Remove #123, # 123, etc. (with or without space)
-        normalized = normalized.replaceAll("\\s+STORE\\s+#\\s*\\d+", "");
-        normalized = normalized.replaceAll("\\s+STORE\\s*\\d+", "");
-        normalized = normalized.replaceAll("\\s+ST\\s+#\\s*\\d+", "");
-        normalized = normalized.replaceAll("\\s+LOC\\s+#\\s*\\d+", "");
-        // CRITICAL: Only remove standalone 4+ digit numbers that are NOT part of a word
-        // This prevents removing years or legitimate numbers, but removes store IDs
-        normalized = normalized.replaceAll("\\s+\\d{4,}(?=\\s|$)", ""); // Remove long numeric IDs (4+ digits) at end or followed by space
-        
-        // Normalize whitespace (multiple spaces to single space)
-        normalized = normalized.replaceAll("\\s+", " ");
-        normalized = normalized.replaceAll("\\s+-\\s+", " ");
-        normalized = normalized.replaceAll("\\s+\\|\\s+", " ");
-        normalized = normalized.replaceAll("\\s+/\\s+", " ");
-        normalized = normalized.replaceAll("\\s+_\\s+", " ");
-        
-        // Trim and return
-        normalized = normalized.trim();
-        
-        // If normalization resulted in empty string, return original
-        if (normalized.isEmpty()) {
-            return merchantName.trim();
-        }
-        
-        return normalized;
-    }
     
     /**
      * Detects if a transaction is ACH (Automated Clearing House)
@@ -4296,995 +3957,33 @@ public class CSVImportService {
      * @param description Transaction description (for additional context)
      * @return Detected category or null if no match
      */
-    private String detectCategoryFromMerchantName(String merchantName, String description) {
+        private String detectCategoryFromMerchantName(String merchantName, String description) {
         if (merchantName == null || merchantName.trim().isEmpty()) {
             return null;
         }
         
-        // CRITICAL: Check for credit card payments FIRST to prevent false matches
-        // This is a safety check in case credit card payment detection didn't catch it earlier
+        // CRITICAL: Check for credit card payments FIRST
         if (isCreditCardPayment(description, merchantName, null)) {
             logger.info("detectCategoryFromMerchantName: Detected credit card payment (safety check) → 'payment'");
             return "payment";
         }
         
-        // Normalize merchant name for matching (case-insensitive, remove special chars)
-        String normalized = normalizeMerchantName(merchantName).toLowerCase();
+        // Normalize merchant name for matching
+        String normalized = StringUtils.normalizeMerchantName(merchantName).toLowerCase();
         String descLower = description != null ? description.toLowerCase() : "";
-        
+      
         logger.debug("detectCategoryFromMerchantName: Analyzing merchant='{}', normalized='{}'", merchantName, normalized);
         
-        // ========== GROCERIES - Global Grocery Stores ==========
-        // US Grocery Chains
-        // CRITICAL FIX: Check for safeway with more lenient matching (handles variations like "SAFEWAY #1444")
-        if (normalized.contains("safeway") || normalized.contains("safeway.com") || 
-            normalized.startsWith("safeway") || normalized.endsWith("safeway")) {
-            logger.debug("detectCategoryFromMerchantName: Detected Safeway in normalized='{}' → 'groceries'", normalized);
-            return "groceries";
-        }
-        if (normalized.contains("pcc") || normalized.contains("pcc natural markets") || normalized.contains("pcc community markets")) {
-            return "groceries";
-        }
-        if (normalized.contains("amazon fresh") || normalized.contains("amazonfresh") || 
-            (normalized.contains("amazon") && (descLower.contains("fresh") || descLower.contains("grocery")))) {
-            return "groceries";
-        }
-        if (normalized.contains("qfc") || normalized.contains("quality food centers") ||
-            descLower.contains("qfc") || descLower.contains("quality food centers")) {
-            logger.debug("🏷️ detectCategoryFromMerchantName: Detected QFC → 'groceries'");
-            return "groceries";
-        }
-        // Chefstore (grocery store)
-        if (normalized.contains("chefstore") || normalized.contains("chef store") ||
-            descLower.contains("chefstore") || descLower.contains("chef store")) {
-            logger.debug("🏷️ detectCategoryFromMerchantName: Detected Chefstore → 'groceries'");
-            return "groceries";
-        }
-        // Town & Country market (pantry/market patterns are typically grocery stores)
-        if (normalized.contains("town & country") || normalized.contains("town and country") ||
-            normalized.contains("town&country") || descLower.contains("town & country") ||
-            descLower.contains("town and country") || descLower.contains("town&country")) {
-            logger.debug("🏷️ detectCategoryFromMerchantName: Detected Town & Country market → 'groceries'");
-            return "groceries";
-        }
-        // Mayuri Foods (grocery store)
-        if (normalized.contains("mayuri") || descLower.contains("mayuri")) {
-            logger.debug("🏷️ detectCategoryFromMerchantName: Detected Mayuri Foods → 'groceries'");
-            return "groceries";
-        }
-        // Meet Fresh (grocery store)
-        if (normalized.contains("meet fresh") || normalized.contains("meetfresh") ||
-            descLower.contains("meet fresh") || descLower.contains("meetfresh")) {
-            logger.debug("🏷️ detectCategoryFromMerchantName: Detected Meet Fresh → 'groceries'");
-            return "groceries";
-        }
-        // Pantry/market patterns (typically grocery stores)
-        if ((normalized.contains("pantry") || normalized.contains("market")) &&
-            !normalized.contains("parking") && !descLower.contains("parking")) {
-            logger.debug("detectCategoryFromMerchantName: Detected pantry/market pattern → 'groceries'");
-            return "groceries";
-        }
-        if (normalized.contains("sunny honey") || normalized.contains("sunnyhoney") ||
-            descLower.contains("sunny honey") || descLower.contains("sunnyhoney")) {
-            logger.debug("🏷️ detectCategoryFromMerchantName: Detected Sunny Honey Company → 'groceries'");
-            return "groceries";
-        }
-        if (normalized.contains("dk market") || normalized.contains("dkmarket")) {
-            return "groceries";
-        }
-        // CRITICAL: COSTCO GAS must be checked BEFORE general COSTCO (groceries)
-        if (normalized.contains("costco gas") || normalized.contains("costcogas") ||
-            descLower.contains("costco gas") || descLower.contains("costcogas")) {
-            logger.debug("🏷️ detectCategoryFromMerchantName: Detected Costco Gas → 'transportation'");
-            return "transportation";
+        // Use strategy manager to detect category
+        String category = categoryDetectionManager.detectCategory(normalized, descLower, merchantName);
+        if (category != null) {
+            return category;
         }
         
-        // CRITICAL: COSTCO WHSE (Costco Warehouse) must be checked before general "costco"
-        // "COSTCO WHSE" is a store location, not "costco wholesale corporation" (payroll)
-        if (normalized.contains("costco whse") || normalized.contains("costcowhse") ||
-            normalized.contains("costco warehouse") || normalized.contains("costcowarehouse") ||
-            descLower.contains("costco whse") || descLower.contains("costcowhse") ||
-            descLower.contains("costco warehouse") || descLower.contains("costcowarehouse")) {
-            logger.debug("🏷️ detectCategoryFromMerchantName: Detected Costco Warehouse (COSTCO WHSE) → 'groceries'");
-            return "groceries";
-        }
-        
-        // Additional US grocery chains
-        String[] usGroceryStores = {
-            "whole foods", "wholefoods", "wf ", "trader joe", "traderjoe", "kroger",
-            "albertsons", "publix", "wegmans", "h-e-b", "heb", "stop & shop", "stopandshop",
-            "giant eagle", "gianteagle", "meijer", "food lion", "foodlion",
-            "ralphs", "vons", "fred meyer", "fredmeyer", "smiths", "king soopers",
-            "harris teeter", "harristeeter", "sprouts", "sprouts farmers market",
-            "aldi", "lidl", "costco", "sam's club", "samsclub", "bj's", "bjs",
-            "target", "walmart", "walmart supercenter", "supercenter"
-        };
-        for (String store : usGroceryStores) {
-            if (normalized.contains(store)) {
-                return "groceries";
-            }
-        }
-        
-        // Indian Grocery Stores
-        String[] indianGroceryStores = {
-            "indian supermarket", "indian store", "indian market", "indian grocery",
-            "patel brothers", "patelbrothers", "apna bazaar", "apnabazaar",
-            "namaste plaza", "namasteplaza", "bombay bazaar", "bombaybazaar",
-            "india gate", "indiagate", "spice bazaar", "spicebazaar"
-        };
-        for (String store : indianGroceryStores) {
-            if (normalized.contains(store) || descLower.contains(store)) {
-                return "groceries";
-            }
-        }
-        
-        // Global Grocery Patterns
-        if (normalized.contains("supermarket") || normalized.contains("super market") ||
-            normalized.contains("grocery") || normalized.contains("grocery store") ||
-            normalized.contains("food market") || normalized.contains("foodmart") ||
-            normalized.contains("hypermarket") || normalized.contains("hyper market")) {
-            return "groceries";
-        }
-        
-        // ========== DINING - Fast Food & Restaurants ==========
-        // Fast Food Chains
-        if (normalized.contains("subway") || descLower.contains("subway")) {
-            return "dining";
-        }
-        if (normalized.contains("panda express") || normalized.contains("pandaexpress") || descLower.contains("panda express")) {
-            return "dining";
-        }
-        if (normalized.contains("starbucks") || descLower.contains("starbucks")) {
-            return "dining";
-        }
-        if (normalized.contains("chipotle") || descLower.contains("chipotle")) {
-            return "dining";
-        }
-        
-        // Additional Fast Food Chains
-        String[] fastFoodChains = {
-            "mcdonald", "mcdonalds", "burger king", "burgerking", "wendy's", "wendys",
-            "taco bell", "tacobell", "kfc", "pizza hut", "pizzahut", "domino's", "dominos",
-            "papa john's", "papajohns", "little caesar", "littlecaesar", "papa murphy", "papamurphy",
-            "dunkin", "dunkin donuts", "dunkindonuts", "tim hortons", "timhortons",
-            "panera", "panera bread", "panerabread", "jamba juice", "jambajuice",
-            "smoothie king", "smoothieking", "qdoba", "moe's", "moes", "baja fresh", "bajafresh"
-        };
-        for (String chain : fastFoodChains) {
-            if (normalized.contains(chain) || descLower.contains(chain)) {
-                return "dining";
-            }
-        }
-        
-        // Cafe & Cafeteria Patterns
-        if (normalized.contains("cafe") || normalized.contains("café") || 
-            normalized.contains("cafeteria") || normalized.contains("coffee") ||
-            normalized.contains("espresso") || normalized.contains("latte") ||
-            descLower.contains("cafe") || descLower.contains("café") ||
-            descLower.contains("cafeteria")) {
-            return "dining";
-        }
-        
-        // Tiffins (Indian meal delivery)
-        if (normalized.contains("tiffin") || descLower.contains("tiffin") ||
-            normalized.contains("tiffins") || descLower.contains("tiffins")) {
-            return "dining";
-        }
-        
-        // Specific Restaurants - Must come before general restaurant patterns
-        String[] specificRestaurants = {
-            "daeho", "tutta bella", "tuttabella", "simply indian restaur", "simply indian restaurant",
-            "simplyindian restaur", "simplyindian restaurant", "skills rainbow room", "skillsrainbow room",
-            "kyurmaen", "kyurmaen ramen", "deep dive", "deepdive", "messina", "supreme dumplings",
-            "supremedumplings", "cucina venti", "cucinaventi", "desi dhaba", "desidhaba", "medocinofarms",
-            "medocino farms", "laughing monk brewing", "laughingmonk brewing", "laughing monk", "laughingmonk",
-            "indian sizzler", "indiansizzler", "shana thai", "shanathai", "tpd",
-            "burger and kabob hut", "burgerandkabobhut", "kabob hut", "kabobhut",
-            "insomnia cookies", "insomniacookies", "insomnia cookie",
-            "banaras", "banaras restaurant", "banarasrestaurant",
-            "resy", "maxmillen", "maxmillian", "maximilian"
-        };
-        for (String restaurant : specificRestaurants) {
-            if (normalized.contains(restaurant) || descLower.contains(restaurant)) {
-                logger.debug("🏷️ detectCategoryFromMerchantName: Detected restaurant '{}' → 'dining'", restaurant);
-                return "dining";
-            }
-        }
-        
-        // TST* pattern - Transaction Service Terminal (restaurant pattern)
-        if (normalized.contains("tst*") || descLower.contains("tst*") ||
-            (merchantName != null && merchantName.toUpperCase().startsWith("TST*")) ||
-            (description != null && description.toUpperCase().startsWith("TST*"))) {
-            logger.debug("🏷️ detectCategoryFromMerchantName: Detected TST* pattern → 'dining'");
-            return "dining";
-        }
-        
-        // Food-related keywords that indicate restaurants (dumplings, burger, fast food, grill, thai, dhaba, brewing)
-        if (normalized.contains("dumplings") || normalized.contains("dumpling") ||
-            normalized.contains("burger") || normalized.contains("burgers") ||
-            normalized.contains("fast food") || normalized.contains("fastfood") ||
-            normalized.contains("grill") || normalized.contains("grilled") ||
-            normalized.contains("thai") || normalized.contains("dhaba") ||
-            normalized.contains("brewing") || normalized.contains("brewery") ||
-            normalized.contains("brew pub") || normalized.contains("brewpub") ||
-            descLower.contains("dumplings") || descLower.contains("dumpling") ||
-            descLower.contains("burger") || descLower.contains("burgers") ||
-            descLower.contains("fast food") || descLower.contains("fastfood") ||
-            descLower.contains("grill") || descLower.contains("grilled") ||
-            descLower.contains("thai") || descLower.contains("dhaba") ||
-            descLower.contains("brewing") || descLower.contains("brewery") ||
-            descLower.contains("brew pub") || descLower.contains("brewpub")) {
-            logger.debug("🏷️ detectCategoryFromMerchantName: Detected food/restaurant keyword → 'dining'");
-            return "dining";
-        }
-        
-        // Restaurant Patterns (Global) - Includes "restaur" as keyword for restaurant
-        if (normalized.contains("restaurant") || normalized.contains("rest ") ||
-            normalized.contains("restaur") || normalized.contains("restaur ") ||
-            normalized.contains("diner") || normalized.contains("bistro") ||
-            normalized.contains("steakhouse") ||
-            normalized.contains("pizzeria") || normalized.contains("trattoria") ||
-            normalized.contains("tavern") || normalized.contains("pub") ||
-            descLower.contains("restaurant") || descLower.contains("restaur") ||
-            descLower.contains("dining")) {
-            return "dining";
-        }
-        
-        // ========== PET ==========
-        if (normalized.contains("petsmart") || descLower.contains("petsmart")) {
-            return "pet";
-        }
-        if (normalized.contains("petco") || descLower.contains("petco")) {
-            return "pet";
-        }
-        // SP Farmers Fetch Bones
-        if (normalized.contains("sp farmers") || normalized.contains("fetch bones") ||
-            normalized.contains("fetchbones") || descLower.contains("sp farmers") ||
-            descLower.contains("fetch bones") || descLower.contains("fetchbones")) {
-            logger.debug("🏷️ detectCategoryFromMerchantName: Detected SP Farmers Fetch Bones → 'pet'");
-            return "pet";
-        }
-        if (normalized.contains("pet supplies") || normalized.contains("petsupplies") ||
-            normalized.contains("pet supply") || descLower.contains("pet supplies")) {
-            return "pet";
-        }
-        if (normalized.contains("petcare") || normalized.contains("pet care") ||
-            descLower.contains("petcare") || descLower.contains("pet care")) {
-            return "pet";
-        }
-        if (normalized.contains("pet clinic") || normalized.contains("petclinic") ||
-            normalized.contains("veterinary") || normalized.contains("vet ") ||
-            normalized.contains("animal hospital") || descLower.contains("pet clinic") ||
-            descLower.contains("veterinary")) {
-            return "pet";
-        }
-        
-        // ========== SUBSCRIPTIONS (News/Investment Journals) ==========
-        // CRITICAL: Must come BEFORE tech to prevent "J*Barrons" from matching tech patterns
-        // Check both normalized and original strings for asterisks and special characters
-        String merchantLower = (merchantName != null ? merchantName.toLowerCase() : "");
-        String descLowerForJournals = (description != null ? description.toLowerCase() : "");
-        
-        String[] newsJournals = {
-            "barrons", "barron's", "barron",
-            "new york times", "nytimes", "ny times", "the new york times",
-            "wall street journal", "wsj", "the wall street journal",
-            "financial times", "ft.com", "the financial times",
-            "economist", "the economist", "bloomberg", "bloomberg news",
-            "reuters", "reuters news", "cnn", "cnn news", "bbc", "bbc news",
-            "washington post", "wapo", "the washington post",
-            "usa today", "usatoday", "los angeles times", "latimes",
-            "chicago tribune", "boston globe", "the boston globe"
-        };
-        for (String journal : newsJournals) {
-            if (normalized.contains(journal) || descLower.contains(journal) || 
-                merchantLower.contains(journal) || descLowerForJournals.contains(journal)) {
-                logger.debug("🏷️ detectCategoryFromMerchantName: Detected news/investment journal '{}' → 'subscriptions'", journal);
-                return "subscriptions";
-            }
-        }
-        // Special handling for patterns with asterisks (e.g., "J*Barrons")
-        if ((merchantLower.contains("barrons") || merchantLower.contains("barron")) ||
-            (descLowerForJournals.contains("barrons") || descLowerForJournals.contains("barron"))) {
-            logger.debug("🏷️ detectCategoryFromMerchantName: Detected Barrons (with special chars) → 'subscriptions'");
-            return "subscriptions";
-        }
-        
-        // ========== ENTERTAINMENT (Streaming Services) ==========
-        // CRITICAL: Must come BEFORE tech to prevent streaming services from matching tech patterns
-        // Streaming services are entertainment, not subscriptions category
-        // Subscriptions are detected separately via SubscriptionService
-        String[] streamingServices = {
-            "netflix", "hulu", "huluplus", "hulu plus", "disney", "disney+", "disneyplus",
-            "hbo", "hbo max", "hbomax", "paramount", "paramount+", "paramount plus",
-            "peacock", "nbc peacock", "spotify", "apple music", "applemusic",
-            "youtube premium", "youtubepremium", "youtube tv", "youtubetv",
-            "amazon prime", "amazonprime", "prime video", "primevideo",
-            "showtime", "starz", "crunchyroll", "funimation"
-        };
-        for (String service : streamingServices) {
-            if (normalized.contains(service) || descLower.contains(service)) {
-                logger.debug("🏷️ detectCategoryFromMerchantName: Detected streaming service '{}' → 'entertainment'", service);
-                return "entertainment";
-            }
-        }
-        
-        // ========== SUBSCRIPTIONS (Software/Non-Entertainment) ==========
-        // CRITICAL: Must come BEFORE tech to prevent software subscriptions (Adobe, etc.) from matching tech patterns
-        // Software subscriptions remain as subscriptions category
-        String[] softwareSubscriptions = {
-            "adobe", "adobe creative cloud", "microsoft 365", "office 365",
-            "dropbox", "icloud", "google drive", "google one",
-            "github", "github pro", "canva", "canva pro", "grammarly",
-            "nordvpn", "expressvpn", "surfshark", "zoom", "slack"
-        };
-        for (String service : softwareSubscriptions) {
-            if (normalized.contains(service) || descLower.contains(service)) {
-                logger.debug("🏷️ detectCategoryFromMerchantName: Detected software subscription '{}' → 'subscriptions'", service);
-                return "subscriptions";
-            }
-        }
-        
-        // ========== TECH ==========
-        // AI/Tech Services - Must come after streaming services to prevent false matches
-        String[] aiTechServices = {
-            "chatgpt", "chat gpt", "openai", "open ai",
-            "anthropic", "anthropic ai", "claude", "claude ai",
-            "cohere", "hugging face", "huggingface",
-            "cursor", "cursor ai", "github copilot", "copilot",
-            "replicate", "together ai", "togetherai"
-        };
-        for (String service : aiTechServices) {
-            if (normalized.contains(service) || descLower.contains(service)) {
-                logger.debug("🏷️ detectCategoryFromMerchantName: Detected AI/tech service '{}' → 'tech'", service);
-                return "tech";
-            }
-        }
-        if (normalized.contains("cursor") || descLower.contains("cursor") ||
-            normalized.contains("cursor ai") || descLower.contains("cursor ai")) {
-            logger.debug("🏷️ detectCategoryFromMerchantName: Detected Cursor → 'tech'");
-            return "tech";
-        }
-        if (normalized.contains("ai powered") || descLower.contains("ai powered") ||
-            normalized.contains("artificial intelligence") || descLower.contains("artificial intelligence")) {
-            return "tech";
-        }
-        // Tech Companies
-        String[] techCompanies = {
-            "microsoft", "apple", "google", "amazon web services", "aws",
-            "adobe", "oracle", "salesforce", "servicenow", "atlassian",
-            "github", "gitlab", "slack", "zoom", "dropbox", "box",
-            "notion", "figma", "sketch", "linear", "vercel", "netlify"
-        };
-        for (String company : techCompanies) {
-            if (normalized.contains(company) || descLower.contains(company)) {
-                return "tech";
-            }
-        }
-        
-        // Software/Technology Patterns
-        if (normalized.contains("software") || normalized.contains("saas") ||
-            normalized.contains("cloud") || normalized.contains("api") ||
-            normalized.contains("developer") || normalized.contains("dev tools") ||
-            descLower.contains("software") || descLower.contains("subscription")) {
-            return "tech";
-        }
-        
-        // ========== HOME IMPROVEMENT ==========
-        if (normalized.contains("home depot") || normalized.contains("homedepot") ||
-            descLower.contains("home depot")) {
-            return "home improvement";
-        }
-        String[] homeImprovementStores = {
-            "lowes", "lowe's", "menards", "ace hardware", "acehardware",
-            "true value", "truevalue", "harbor freight", "harborfreight",
-            "northern tool", "northerntool", "harbor freight tools"
-        };
-        for (String store : homeImprovementStores) {
-            if (normalized.contains(store) || descLower.contains(store)) {
-                return "home improvement";
-            }
-        }
-        
-        // Hardware/Home Improvement Patterns
-        if (normalized.contains("hardware") || normalized.contains("home improvement") ||
-            normalized.contains("homeimprovement") || normalized.contains("lumber") ||
-            normalized.contains("building supply") || descLower.contains("hardware")) {
-            return "home improvement";
-        }
-        
-        // ========== DINING ==========
-        // Bakeries (Hoffmans, Le Panier)
-        if (normalized.contains("hoffman") || normalized.contains("hoffman's") ||
-            descLower.contains("hoffman") || descLower.contains("hoffman's")) {
-            logger.debug("🏷️ detectCategoryFromMerchantName: Detected Hoffmans bakery → 'dining'");
-            return "dining"; // Bakeries are dining
-        }
-        if (normalized.contains("le panier") || normalized.contains("lepanier") ||
-            descLower.contains("le panier") || descLower.contains("lepanier")) {
-            logger.debug("🏷️ detectCategoryFromMerchantName: Detected Le Panier bakery → 'dining'");
-            return "dining";
-        }
-        if (normalized.contains("bakery") || normalized.contains("baker") ||
-            descLower.contains("bakery") || descLower.contains("baker")) {
-            return "dining";
-        }
-        // Tea Lab, Chai, Boba, Mochinut
-        if (normalized.contains("tea lab") || normalized.contains("tealab") ||
-            normalized.contains("chai") || descLower.contains("chai") ||
-            normalized.contains("boba") || descLower.contains("boba") ||
-            normalized.contains("mochinut") || descLower.contains("mochinut")) {
-            logger.debug("🏷️ detectCategoryFromMerchantName: Detected tea/chai/boba → 'dining'");
-            return "dining";
-        }
-        // Ezell's Famous Chicken
-        if (normalized.contains("ezell") || normalized.contains("ezells") ||
-            descLower.contains("ezell") || descLower.contains("ezells")) {
-            logger.debug("🏷️ detectCategoryFromMerchantName: Detected Ezell's Famous Chicken → 'dining'");
-            return "dining";
-        }
-        // honest.bellevue.com
-        if (normalized.contains("honest.bellevue") || normalized.contains("honest") ||
-            descLower.contains("honest.bellevue") || descLower.contains("honest")) {
-            logger.debug("🏷️ detectCategoryFromMerchantName: Detected honest.bellevue.com → 'dining'");
-            return "dining";
-        }
-        
-        // ========== TRANSPORTATION ==========
-        // CRITICAL: Airport expenses (carts, chairs, parking, etc.) must come BEFORE utilities check
-        // "SEATTLEAP" (Seattle Airport) should not match "Seattle Public Utilities"
-        if (normalized.contains("seattleap") || normalized.contains("seattle ap") ||
-            normalized.contains("seattle airport") || descLower.contains("seattleap") ||
-            descLower.contains("seattle ap") || descLower.contains("seattle airport")) {
-            // Airport cart/chair rentals
-            if (normalized.contains("cart") || normalized.contains("chair") ||
-                descLower.contains("cart") || descLower.contains("chair")) {
-                logger.debug("🏷️ detectCategoryFromMerchantName: Detected airport cart/chair → 'transportation'");
-                return "transportation";
-            }
-        }
-        // General airport cart/chair patterns
-        if ((normalized.contains("airport") || descLower.contains("airport")) &&
-            (normalized.contains("cart") || normalized.contains("chair") ||
-             descLower.contains("cart") || descLower.contains("chair"))) {
-            logger.debug("🏷️ detectCategoryFromMerchantName: Detected airport cart/chair → 'transportation'");
-            return "transportation";
-        }
-        
-        // ========== GAS STATIONS ==========
-        if (normalized.contains("chevron") || descLower.contains("chevron")) {
-            return "transportation";
-        }
-        String[] gasStations = {
-            "shell", "bp ", "bp.", "exxon", "mobil", "esso",
-            "arco", "valero", "citgo", "speedway", "7-eleven", "7eleven",
-            "circle k", "circlek", "chevron", "texaco", "phillips 66", "phillips66",
-            "conoco", "marathon", "sunoco", "sinclair", "kwik trip", "kwiktrip"
-        };
-        for (String station : gasStations) {
-            if (normalized.contains(station) || descLower.contains(station)) {
-                return "transportation";
-            }
-        }
-        
-        // CRITICAL FIX: "76" gas station must be more specific to avoid matching "CHECK 176"
-        // Only match "76" if it's clearly a gas station (e.g., "76 station", "76 gas", "union 76")
-        if ((normalized.contains("76 station") || normalized.contains("76 gas") || 
-             normalized.contains("union 76") || normalized.contains("76 fuel") ||
-             descLower.contains("76 station") || descLower.contains("76 gas") ||
-             descLower.contains("union 76") || descLower.contains("76 fuel")) &&
-            !normalized.contains("check") && !descLower.contains("check")) {
-            return "transportation";
-        }
-        
-        // Gas Station Patterns
-        if (normalized.contains("gas station") || normalized.contains("gasstation") ||
-            normalized.contains("fuel") || normalized.contains("petrol") ||
-            normalized.contains("gas ") || descLower.contains("gas station")) {
-            return "transportation";
-        }
-        
-        // ========== ENTERTAINMENT ==========
-        if (normalized.contains("amc") || descLower.contains("amc")) {
-            return "entertainment";
-        }
-        // State Fair, Disney, Universal Studio, Sea World
-        if (normalized.contains("state fair") || normalized.contains("statefair") ||
-            normalized.contains("disney") || descLower.contains("disney") ||
-            normalized.contains("universal studio") || normalized.contains("universalstudio") ||
-            normalized.contains("universal studios") || descLower.contains("universal studio") ||
-            normalized.contains("sea world") || normalized.contains("seaworld") ||
-            descLower.contains("sea world") || descLower.contains("seaworld")) {
-            logger.debug("🏷️ detectCategoryFromMerchantName: Detected theme park/fair → 'entertainment'");
-            return "entertainment";
-        }
-        // Camping (Cape Disappointment, recreation.gov)
-        if (normalized.contains("camping") || descLower.contains("camping") ||
-            normalized.contains("cape disappointment") || descLower.contains("cape disappointment") ||
-            normalized.contains("recreation.gov") || descLower.contains("recreation.gov")) {
-            logger.debug("🏷️ detectCategoryFromMerchantName: Detected camping → 'entertainment'");
-            return "entertainment";
-        }
-        String[] entertainmentVenues = {
-            "cinemark", "regal", "carmike", "marcus", "harkins",
-            "alamo drafthouse", "alamodrafthouse", "movie theater", "movietheater",
-            "cinema", "theater", "theatre", "imax", "escape room", "escaperoom",
-            "escape rooms", "escaperooms", "countdown rooms", "countdownrooms"
-        };
-        for (String venue : entertainmentVenues) {
-            if (normalized.contains(venue) || descLower.contains(venue)) {
-                return "entertainment";
-            }
-        }
-        
-        // Streaming Services - Must come before general entertainment patterns
-        String[] streamingServicesInEntertainment = {
-            "netflix", "hulu", "huluplus", "hulu plus", "disney", "disney+", "disneyplus",
-            "hbo", "hbo max", "hbomax", "paramount", "paramount+", "paramount plus",
-            "peacock", "nbc peacock", "spotify", "apple music", "applemusic",
-            "youtube premium", "youtubepremium", "youtube tv", "youtubetv",
-            "amazon prime", "amazonprime", "prime video", "primevideo",
-            "showtime", "starz", "crunchyroll", "funimation"
-        };
-        for (String service : streamingServicesInEntertainment) {
-            if (normalized.contains(service) || descLower.contains(service)) {
-                logger.debug("🏷️ detectCategoryFromMerchantName: Detected streaming service '{}' → 'entertainment'", service);
-                return "entertainment";
-            }
-        }
-        
-        // Entertainment Patterns
-        if (normalized.contains("entertainment") || normalized.contains("arcade") ||
-            normalized.contains("bowling") || normalized.contains("mini golf") ||
-            normalized.contains("laser tag") || descLower.contains("entertainment")) {
-            return "entertainment";
-        }
-        
-        // Top Golf and similar entertainment venues
-        if (normalized.contains("top golf") || normalized.contains("topgolf") ||
-            descLower.contains("top golf") || descLower.contains("topgolf")) {
-            logger.debug("🏷️ detectCategoryFromMerchantName: Detected Top Golf → 'entertainment'");
-            return "entertainment";
-        }
-        
-        // Escape rooms (entertainment)
-        if (normalized.contains("escape room") || normalized.contains("escaperoom") ||
-            normalized.contains("conundroom") || descLower.contains("escape room") ||
-            descLower.contains("escaperoom") || descLower.contains("conundroom")) {
-            logger.debug("🏷️ detectCategoryFromMerchantName: Detected escape room → 'entertainment'");
-            return "entertainment";
-        }
-        
-        // ========== EDUCATION/SCHOOL PAYMENTS ==========
-        // PayPAMS - online school payments for food (dining)
-        if (normalized.contains("paypams") || normalized.contains("pay pams") ||
-            descLower.contains("paypams") || descLower.contains("pay pams")) {
-            logger.debug("🏷️ detectCategoryFromMerchantName: Detected PayPAMS (school food payment) → 'dining'");
-            return "dining";
-        }
-        
-        // Bellevue School District - school district payment (education/other, not charity)
-        if (normalized.contains("bellevue school district") || normalized.contains("bellevueschooldistrict") ||
-            descLower.contains("bellevue school district") || descLower.contains("bellevueschooldistrict")) {
-            logger.debug("🏷️ detectCategoryFromMerchantName: Detected Bellevue School District → 'other'");
-            return "other";
-        }
-        
-        // Education-related items (school, books, reading, tuition, etc.) - categorized as "other"
-        // Note: Education maps to "other" in category mapping
-        String[] educationKeywords = {
-            "gurukul", "school", "university", "college", "tuition", "tuition fee",
-            "books", "bookstore", "book store", "reading", "textbook", "text book",
-            "education", "educational", "course", "class", "lesson", "training"
-        };
-        for (String edu : educationKeywords) {
-            if (normalized.contains(edu) || descLower.contains(edu)) {
-                // Skip if it's a school payment (PayPAMS, school district) - those are handled separately
-                if (!normalized.contains("paypams") && !normalized.contains("school district") &&
-                    !descLower.contains("paypams") && !descLower.contains("school district")) {
-                    logger.debug("🏷️ detectCategoryFromMerchantName: Detected education item '{}' → 'other'", edu);
-                    return "other";
-                }
-            }
-        }
-        
-        // ========== CHARITY ==========
-        // Go Fund Me, schools (middle school, school district, elementary, secondary, high school, senior secondary school)
-        if (normalized.contains("go fund me") || normalized.contains("gofundme") ||
-            descLower.contains("go fund me") || descLower.contains("gofundme")) {
-            logger.debug("🏷️ detectCategoryFromMerchantName: Detected Go Fund Me → 'charity'");
-            return "charity";
-        }
-        String[] schoolKeywords = {
-            "middle school", "middleschool", "school district", "schooldistrict",
-            "elementary", "secondary school", "secondaryschool", "high school", "highschool",
-            "senior secondary school", "seniorsecondaryschool"
-        };
-        for (String school : schoolKeywords) {
-            if (normalized.contains(school) || descLower.contains(school)) {
-                logger.debug("🏷️ detectCategoryFromMerchantName: Detected school '{}' → 'charity'", school);
-                return "charity";
-            }
-        }
-        // Charity/donation patterns
-        if (normalized.contains("charity") || normalized.contains("donation") ||
-            normalized.contains("non-profit") || normalized.contains("nonprofit") ||
-            descLower.contains("charity") || descLower.contains("donation")) {
-            logger.debug("🏷️ detectCategoryFromMerchantName: Detected charity/donation → 'charity'");
-            return "charity";
-        }
-        
-        // ========== HEALTH ==========
-        // Health, fitness, gyms, beauty salons, hair cuts, golf, tennis, soccer, ski resorts, etc.
-        String[] gymsAndFitness = {
-            "proclub", "pro club", "24 hour fitness", "24hour fitness", "24hr fitness",
-            "24-hour fitness", "24-hourfitness", "gold's gym", "golds gym", "goldsgym",
-            "planet fitness", "planetfitness", "equinox", "lifetime fitness", "lifetimefitness",
-            "ymca", "ymca fitness", "la fitness", "lafitness", "crunch fitness", "crunchfitness",
-            "anytime fitness", "anytimefitness", "orange theory", "orangetheory", "crossfit",
-            "fitness", "gym", "health club", "healthclub", "athletic club", "athleticclub",
-            "fitness center", "fitnesscenter", "workout", "personal trainer", "personaltrainer",
-            "seattle badminton club", "badminton"
-        };
-        for (String gym : gymsAndFitness) {
-            if (normalized.contains(gym) || descLower.contains(gym)) {
-                logger.debug("🏷️ detectCategoryFromMerchantName: Detected gym/fitness '{}' → 'health'", gym);
-                return "health";
-            }
-        }
-        
-        // Beauty salons, hair cuts, makeup, body waxing, nails, spa, massages, toes, skin
-        String[] beautyServices = {
-            "beauty salon", "beautysalon", "beauty parlor", "beautyparlor",
-            "hair salon", "hairsalon", "hair cut", "haircut", "hair cuts", "haircuts",
-            "hair color", "haircolor", "hair coloring", "haircoloring",
-            "body waxing", "bodywaxing", "waxing", "makeup", "make up",
-            "beauty studio", "beautystudio", "salon", "saloon",
-            "supercuts", "super cuts", "great clips", "greatclips",
-            "lucky hair salon", "lucky hair salin", "luckyhair", "luckyhairsalin",
-            "nails", "nail salon", "nailsalon", "nail", "manicure", "pedicure",
-            "spa", "massage", "massages", "toes", "skin", "skin care", "skincare",
-            "stop 4 nails", "stop4nails", "stop four nails", "stopfournails",
-            "cosmetic store", "cosmeticstore", "cosmetics", "makeup store", "makeupstore"
-        };
-        for (String beauty : beautyServices) {
-            if (normalized.contains(beauty) || descLower.contains(beauty)) {
-                logger.debug("🏷️ detectCategoryFromMerchantName: Detected beauty service '{}' → 'health'", beauty);
-                return "health";
-            }
-        }
-        
-        // Golf (indoor and outdoor)
-        if (normalized.contains("golf") || descLower.contains("golf") ||
-            normalized.contains("golf course") || descLower.contains("golf course") ||
-            normalized.contains("driving range") || descLower.contains("driving range") ||
-            normalized.contains("golf club") || descLower.contains("golf club")) {
-            logger.debug("🏷️ detectCategoryFromMerchantName: Detected golf → 'health'");
-            return "health";
-        }
-        
-        // Tennis
-        if (normalized.contains("tennis") || descLower.contains("tennis") ||
-            normalized.contains("tennis court") || descLower.contains("tennis court") ||
-            normalized.contains("tennis club") || descLower.contains("tennis club")) {
-            logger.debug("🏷️ detectCategoryFromMerchantName: Detected tennis → 'health'");
-            return "health";
-        }
-        
-        // Soccer and other sports activities
-        if (normalized.contains("soccer") || descLower.contains("soccer") ||
-            normalized.contains("football") || descLower.contains("football") ||
-            normalized.contains("basketball") || descLower.contains("basketball") ||
-            normalized.contains("baseball") || descLower.contains("baseball") ||
-            normalized.contains("swimming") || descLower.contains("swimming") ||
-            normalized.contains("yoga") || descLower.contains("yoga") ||
-            normalized.contains("pilates") || descLower.contains("pilates") ||
-            normalized.contains("martial arts") || descLower.contains("martial arts")) {
-            logger.debug("🏷️ detectCategoryFromMerchantName: Detected sports activity → 'health'");
-            return "health";
-        }
-        
-        // Ski resorts (Summit at Snoqualmie, etc.)
-        // Note: Mini Mountain is ski-gear/equipment, not a resort - handled in shopping section
-        if (normalized.contains("ski resort") || descLower.contains("ski resort") ||
-            normalized.contains("summit at snoqualmie") || descLower.contains("summit at snoqualmie")) {
-            logger.debug("🏷️ detectCategoryFromMerchantName: Detected ski resort → 'health'");
-            return "health";
-        }
-        // Ski activities (skiing, ski lessons, etc.) - but not ski gear/equipment
-        if ((normalized.contains("ski") || descLower.contains("ski")) &&
-            !normalized.contains("mini mountain") && !descLower.contains("mini mountain") &&
-            !normalized.contains("ski gear") && !descLower.contains("ski gear") &&
-            !normalized.contains("ski equipment") && !descLower.contains("ski equipment")) {
-            logger.debug("🏷️ detectCategoryFromMerchantName: Detected ski activity → 'health'");
-            return "health";
-        }
-        
-        // ========== HEALTHCARE ==========
-        
-        String[] healthcareProviders = {
-            "cvs", "walgreens", "rite aid", "riteaid", "pharmacy",
-            "urgent care", "urgentcare", "hospital", "clinic", "medical center",
-            "medicalcenter", "doctor", "physician", "dentist", "dental"
-        };
-        for (String provider : healthcareProviders) {
-            if (normalized.contains(provider) || descLower.contains(provider)) {
-                return "healthcare";
-            }
-        }
-        
-        // ========== UTILITIES ==========
-        // CRITICAL: Check for utility companies and energy providers BEFORE transportation
-        // CRITICAL: Check for municipal utilities FIRST (e.g., "CITY OF BELLEVUE UTILITY")
-        // This prevents "CITY" from matching transportation patterns
-        if ((normalized.contains("city of") || descLower.contains("city of")) &&
-            (normalized.contains("utility") || normalized.contains("utilities") ||
-             descLower.contains("utility") || descLower.contains("utilities"))) {
-            logger.debug("🏷️ detectCategoryFromMerchantName: Detected municipal utility (city of ... utility) → 'utilities'");
-            return "utilities";
-        }
-        
-        // Common utility company patterns
-        String[] utilityCompanies = {
-            "puget sound energy", "pse", "pacific gas", "pg&e", "pge",
-            "southern california edison", "sce", "san diego gas", "sdge",
-            "edison", "con edison", "coned", "duke energy", "dukeenergy",
-            "dominion energy", "dominionenergy", "exelon", "first energy", "firstenergy",
-            "american electric", "aep", "southern company", "southerncompany",
-            "next era", "nextera", "xcel energy", "xcelenergy", "centerpoint",
-            "center point", "entergy", "entergy", "evergy", "evergy",
-            "pacificorp", "pacific corp", "pge", "portland general", "portlandgeneral"
-        };
-        for (String company : utilityCompanies) {
-            if (normalized.contains(company) || descLower.contains(company)) {
-                logger.debug("🏷️ detectCategoryFromMerchantName: Detected utility company '{}' → 'utilities'", company);
-                return "utilities";
-            }
-        }
-        
-        // Utility patterns (energy, electric, gas, water, etc.)
-        // CRITICAL: Check for "utility" keyword BEFORE transportation to prevent false matches
-        if (normalized.contains("energy") || normalized.contains("ener ") || normalized.contains("ener billpay") ||
-            normalized.contains("electric") || normalized.contains("electricity") ||
-            normalized.contains("utility") || normalized.contains("utilities") ||
-            normalized.contains("gas company") || normalized.contains("gascompany") ||
-            normalized.contains("water company") || normalized.contains("watercompany") ||
-            normalized.contains("power company") || normalized.contains("powercompany") ||
-            descLower.contains("energy") || descLower.contains("ener ") || descLower.contains("ener billpay") ||
-            descLower.contains("electric") || descLower.contains("electricity") ||
-            descLower.contains("utility") || descLower.contains("utilities") ||
-            descLower.contains("gas company") || descLower.contains("water company") ||
-            descLower.contains("power company")) {
-            logger.debug("🏷️ detectCategoryFromMerchantName: Detected utility pattern → 'utilities'");
-            return "utilities";
-        }
-        
-        // Bill payment patterns (often utilities)
-        if ((normalized.contains("billpay") || normalized.contains("bill pay") || 
-             descLower.contains("billpay") || descLower.contains("bill pay")) &&
-            (normalized.contains("ener") || normalized.contains("energy") || 
-             normalized.contains("electric") || normalized.contains("gas") ||
-             normalized.contains("water") || normalized.contains("utility") ||
-             descLower.contains("ener") || descLower.contains("energy") ||
-             descLower.contains("electric") || descLower.contains("gas") ||
-             descLower.contains("water") || descLower.contains("utility"))) {
-            logger.debug("🏷️ detectCategoryFromMerchantName: Detected utility bill payment → 'utilities'");
-            return "utilities";
-        }
-        
-        // CRITICAL: Cable/Internet Providers - Must come BEFORE transportation
-        // Comcast, Xfinity, Spectrum, Charter, Cox, etc.
-        String[] cableInternetProviders = {
-            "comcast", "xfinity", "xfinity mobile", "xfinitymobile",
-            "spectrum", "charter", "charter spectrum",
-            "cox", "cox communications",
-            "optimum", "altice", "frontier", "frontier communications",
-            "centurylink", "century link", "windstream", "suddenlink", "mediacom",
-            "dish", "dish network", "directv", "direct tv",
-            "att u-verse", "att uverse", "fios", "verizon fios"
-        };
-        for (String provider : cableInternetProviders) {
-            if (normalized.contains(provider) || descLower.contains(provider)) {
-                logger.debug("🏷️ detectCategoryFromMerchantName: Detected cable/internet provider '{}' → 'utilities'", provider);
-                return "utilities";
-            }
-        }
-        
-        // CRITICAL: Phone/Mobile providers - Must come BEFORE transportation to prevent "mobile" matching transportation
-        // Verizon Wireless, AT&T, T-Mobile, etc. (excluding Xfinity Mobile which is already covered above)
-        String[] phoneProviders = {
-            "verizon wireless", "verizonwireless", "verizon",
-            "at&t", "att", "at and t", "t-mobile", "tmobile", "t mobile",
-            "sprint", "us cellular", "uscellular", "cricket", "cricket wireless",
-            "boost mobile", "boostmobile", "metropcs", "metro pcs", "metropcs",
-            "mint mobile", "mintmobile", "google fi", "googlefi", "visible",
-            "straight talk", "straighttalk", "us mobile", "usmobile"
-        };
-        for (String provider : phoneProviders) {
-            if (normalized.contains(provider) || descLower.contains(provider)) {
-                logger.debug("🏷️ detectCategoryFromMerchantName: Detected phone/mobile provider '{}' → 'utilities'", provider);
-                return "utilities";
-            }
-        }
-        
-        // ========== TRANSPORTATION ==========
-        String[] transportationServices = {
-            "uber", "lyft", "taxi", "rapido", "pay by phone","cab", "rideshare",
-            "parkmobile", "didi", "grab", "ola", "careem", "gett", "bolt", "amtrak", "greyhound", "bus ", "transit", "metro",
-            "parking", "parking meter", "parkingmeter", "garage",
-            "metropolis parking", "metropolisparking", "impark",
-            "uw pay by phone", "uwpay by phone", "gojek", "cabify","blablacar",
-            "Indrive", "Waymo", "Chauffeur", "zoox", "yellow cab", "checkers cab",
-            "black cab"
-        };
-        for (String service : transportationServices) {
-            if (normalized.contains(service) || descLower.contains(service)) {
-                logger.debug("detectCategoryFromMerchantName: Detected transportation service '{}' → 'transportation'", service);
-                return "transportation";
-            }
-        }
-        
-        // Parking-specific detection (Metropolis, Impark, UW pay by phone, etc.)
-        if (normalized.contains("metropolis") && (normalized.contains("parking") || descLower.contains("parking"))) {
-            logger.debug("🏷️ detectCategoryFromMerchantName: Detected Metropolis parking → 'transportation'");
-            return "transportation";
-        }
-        if (normalized.contains("impark") || descLower.contains("impark")) {
-            logger.debug("🏷️ detectCategoryFromMerchantName: Detected Impark parking → 'transportation'");
-            return "transportation";
-        }
-        // UW pay by phone is parking, not utilities
-        if ((normalized.contains("uw") || descLower.contains("uw")) && 
-            (normalized.contains("pay by phone") || descLower.contains("pay by phone"))) {
-            logger.debug("🏷️ detectCategoryFromMerchantName: Detected UW pay by phone (parking) → 'transportation'");
-            return "transportation";
-        }
-        
-        // State Department of Transportation (DOT) patterns - Toll roads, highway authorities
-        // Pattern: [State] DOT, [State] Department of Transportation, State Toll Authority
-        String[] stateDOTPatterns = {
-            // Washington State
-            "wsdot", "washington state dot", "washington state department of transportation",
-            "goodtogo", "good to go", "good-to-go",
-            // California
-            "caltrans", "cal trans", "california dot", "california department of transportation",
-            "fastrak", "fastrak", "fast trak", "ez pass california",
-            // New York
-            "nysdot", "ny dot", "new york state dot", "new york state department of transportation",
-            "ez pass", "ezpass", "e-zpass", "new york thruway",
-            // Texas
-            "txdot", "texas dot", "texas department of transportation",
-            "ez tag", "eztag", "txtag", "tx tag", "dallas north tollway",
-            // Florida
-            "fdot", "florida dot", "florida department of transportation",
-            "sunpass", "sun pass", "epass", "e pass", "leeway", "lee way",
-            // Illinois
-            "idot", "illinois dot", "illinois department of transportation",
-            "ipass", "i-pass", "illinois tollway",
-            // Massachusetts
-            "massdot", "mass dot", "massachusetts dot", "massachusetts department of transportation",
-            "e-zpass ma", "ezpass ma", "mass pike",
-            // Pennsylvania
-            "penn dot", "penndot", "pennsylvania dot", "pennsylvania department of transportation",
-            "e-zpass pa", "ezpass pa", "pa turnpike", "pennsylvania turnpike",
-            // New Jersey
-            "njdot", "nj dot", "new jersey dot", "new jersey department of transportation",
-            "e-zpass nj", "ezpass nj", "garden state parkway", "new jersey turnpike",
-            // Maryland
-            "mdot", "md dot", "maryland dot", "maryland department of transportation",
-            "e-zpass md", "ezpass md", "maryland transportation authority",
-            // Virginia
-            "vdot", "va dot", "virginia dot", "virginia department of transportation",
-            "ez-pass va", "ezpass va", "virginia transportation authority",
-            // General patterns
-            "state dot", "state department of transportation", "department of transportation",
-            "dot toll", "toll road", "tollway", "toll authority", "toll plaza",
-            "highway authority", "transportation authority", "turnpike authority",
-            // Additional toll patterns
-            "eractoll", "era toll", "toll payment", "toll charge", "toll fee",
-            "road toll", "bridge toll", "tunnel toll", "highway toll", "expressway toll"
-        };
-        for (String dot : stateDOTPatterns) {
-            if (normalized.contains(dot) || descLower.contains(dot)) {
-                logger.debug("🏷️ detectCategoryFromMerchantName: Detected state DOT/toll '{}' → 'transportation'", dot);
-                return "transportation";
-            }
-        }
-        
-        // Amex Airlines Fee Reimbursement - transportation (even though it's a credit)
-        if (normalized.contains("amex airlines fee reimbursement") || 
-            normalized.contains("amexairlinesfeereimbursement") ||
-            descLower.contains("amex airlines fee reimbursement") ||
-            descLower.contains("amexairlinesfeereimbursement") ||
-            (normalized.contains("amex") && normalized.contains("airlines") && 
-             (normalized.contains("fee") || normalized.contains("reimbursement")))) {
-            logger.debug("🏷️ detectCategoryFromMerchantName: Detected Amex Airlines Fee Reimbursement → 'transportation'");
-            return "transportation";
-        }
-        
-        // Car Service (Hona CTR, etc.)
-        if (normalized.contains("hona ctr") || normalized.contains("honactr") ||
-            normalized.contains("hona car service") || normalized.contains("honacarservice") ||
-            descLower.contains("hona ctr") || descLower.contains("honactr") ||
-            descLower.contains("hona car service") || descLower.contains("honacarservice") ||
-            (normalized.contains("car service") || descLower.contains("car service"))) {
-            logger.debug("🏷️ detectCategoryFromMerchantName: Detected car service → 'transportation'");
-            return "transportation";
-        }
-        
-        // ========== SHOPPING ==========
-        // Sports equipment/gear (ski gear, outdoor equipment, etc.) - Must come BEFORE clothing/apparel
-        if (normalized.contains("mini mountain") || descLower.contains("mini mountain") ||
-            normalized.contains("minimountain") || descLower.contains("minimountain")) {
-            logger.debug("🏷️ detectCategoryFromMerchantName: Detected Mini Mountain (ski-gear) → 'shopping'");
-            return "shopping";
-        }
-        // Sports equipment patterns
-        if (normalized.contains("ski gear") || normalized.contains("skigear") ||
-            normalized.contains("ski equipment") || normalized.contains("skiequipment") ||
-            normalized.contains("sports equipment") || normalized.contains("sportsequipment") ||
-            normalized.contains("outdoor gear") || normalized.contains("outdoorgear") ||
-            descLower.contains("ski gear") || descLower.contains("sports equipment") ||
-            descLower.contains("outdoor gear")) {
-            logger.debug("🏷️ detectCategoryFromMerchantName: Detected sports equipment/gear → 'shopping'");
-            return "shopping";
-        }
-        
-        // Clothing/Apparel patterns - Must come BEFORE general shopping stores
-        String merchantLowerForShopping = (merchantName != null ? merchantName.toLowerCase() : "");
-        String descLowerForShopping = (description != null ? description.toLowerCase() : "");
-        
-        if (normalized.contains("clothing") || normalized.contains("apparel") ||
-            normalized.contains("men's clothing") || normalized.contains("mens clothing") ||
-            normalized.contains("women's clothing") || normalized.contains("womens clothing") ||
-            normalized.contains("men's apparel") || normalized.contains("mens apparel") ||
-            normalized.contains("women's apparel") || normalized.contains("womens apparel") ||
-            descLower.contains("clothing") || descLower.contains("apparel") ||
-            descLower.contains("men's clothing") || descLower.contains("mens clothing") ||
-            descLower.contains("women's clothing") || descLower.contains("womens clothing") ||
-            merchantLowerForShopping.contains("clothing") || merchantLowerForShopping.contains("apparel") ||
-            merchantLowerForShopping.contains("men's") || merchantLowerForShopping.contains("mens") ||
-            merchantLowerForShopping.contains("women's") || merchantLowerForShopping.contains("womens") ||
-            descLowerForShopping.contains("clothing") || descLowerForShopping.contains("apparel") ||
-            descLowerForShopping.contains("men's") || descLowerForShopping.contains("mens") ||
-            descLowerForShopping.contains("women's") || descLowerForShopping.contains("womens")) {
-            logger.debug("🏷️ detectCategoryFromMerchantName: Detected clothing/apparel → 'shopping'");
-            return "shopping";
-        }
-        
-        String[] shoppingStores = {
-            "target", "walmart", "costco", "best buy", "bestbuy",
-            "macy's", "macys", "nordstrom", "tj maxx", "tjmaxx",
-            "marshalls", "ross", "burlington", "kohl's", "kohls",
-            "daiso"
-        };
-        for (String store : shoppingStores) {
-            if (normalized.contains(store) || descLower.contains(store)) {
-                return "shopping";
-            }
-        }
-        // Daiso (retail chain)
-        if (normalized.contains("daiso") || descLower.contains("daiso")) {
-            logger.debug("🏷️ detectCategoryFromMerchantName: Detected Daiso → 'shopping'");
-            return "shopping";
-        }
-        
-        
-        // ========== TRAVEL ==========
-        String[] travelServices = {
-            "airline", "airlines", "delta", "united", "american airlines",
-            "southwest", "jetblue", "alaska", "hotel", "marriott",
-            "hilton", "hyatt", "holiday inn", "holidayinn", "airbnb"
-        };
-        for (String service : travelServices) {
-            if (normalized.contains(service) || descLower.contains(service)) {
-                return "travel";
-            }
-        }
-        
-        logger.debug("detectCategoryFromMerchantName: No match found for merchant '{}'", merchantName);
-        return null;
+        // Fallback to "other" if no category detected
+        return "other";
     }
+
     
     /**
      * Description-Based Category Detection
@@ -5303,8 +4002,251 @@ public class CSVImportService {
         String descLower = description.toLowerCase();
         logger.debug("detectCategoryFromDescription: Analyzing description='{}'", description);
         
+        // Normalize description for better matching (used for merchant name detection)
+        String normalizedDesc = StringUtils.normalizeMerchantName(description).toLowerCase();
+        
+        // CRITICAL FIX: Check for travel-related services FIRST (before utilities) to ensure proper categorization
+        // CRITICAL FIX: Airport lounges (Centurion Lounge, Priority Pass, Admirals Club, etc.) - travel, NOT utilities
+        // Check for Centurion Lounge first (most specific pattern)
+        if (descLower.contains("centurion lounge") || descLower.contains("centurionlounge") ||
+            descLower.contains("axp centurion") || descLower.contains("axpcenturion") ||
+            (descLower.contains("axp") && descLower.contains("centurion")) ||
+            normalizedDesc.contains("centurion lounge") || normalizedDesc.contains("centurionlounge") ||
+            normalizedDesc.contains("axp centurion") || normalizedDesc.contains("axpcenturion")) {
+            logger.debug("🏷️ detectCategoryFromDescription: Detected Centurion Lounge (AXP) → 'travel'");
+            return "travel";
+        }
+        
+        // Other airport lounges
+        String[] travelLounges = {"priority pass", "prioritypass",
+                                  "admirals club", "admiralsclub",
+                                  "delta sky club", "deltaskyclub",
+                                  "united club", "unitedclub",
+                                  "american express lounge", "amex lounge",
+                                  "plaza premium lounge", "plazapremiumlounge",
+                                  "airport lounge", "airportlounge",
+                                  "airport loung", "lounge"};
+        for (String lounge : travelLounges) {
+            if (descLower.contains(lounge) || normalizedDesc.contains(lounge)) {
+                logger.debug("🏷️ detectCategoryFromDescription: Detected airport lounge '{}' → 'travel'", lounge);
+                return "travel";
+            }
+        }
+        
+        // Airlines (Delta, United, American Airlines, Southwest, JetBlue, Alaska, etc.)
+        String[] airlines = {"delta", "united", "american airlines", "americanairlines",
+                            "southwest", "jetblue", "alaska", "airline", "airlines",
+                            "spirit", "frontier", "allegiant", "hawaiian"};
+        for (String airline : airlines) {
+            if (descLower.contains(airline)) {
+                logger.debug("🏷️ detectCategoryFromDescription: Detected airline '{}' → 'travel'", airline);
+                return "travel";
+            }
+        }
+        
+        // Hotels (Marriott, Hilton, Hyatt, Holiday Inn, Airbnb, etc.)
+        String[] hotels = {"hotel", "marriott", "hilton", "hyatt", "holiday inn", "holidayinn",
+                          "airbnb", "booking.com", "expedia", "travelocity", "priceline",
+                          "motel", "resort", "inn"};
+        for (String hotel : hotels) {
+            if (descLower.contains(hotel)) {
+                logger.debug("🏷️ detectCategoryFromDescription: Detected hotel/accommodation '{}' → 'travel'", hotel);
+                return "travel";
+            }
+        }
+        
+        // CRITICAL FIX: Ride-sharing services (Lyft, Uber) - transportation, NOT subscriptions
+        // Exception: Lyft Pink subscription, Uber One subscription are subscriptions
+        if (descLower.contains("lyft")) {
+            // Check if it's Lyft Pink subscription
+            if (descLower.contains("lyft pink") || descLower.contains("lyftpink") ||
+                descLower.contains("pink subscription") || descLower.contains("pink membership")) {
+                logger.debug("🏷️ detectCategoryFromDescription: Detected Lyft Pink subscription → 'subscriptions'");
+                return "subscriptions";
+            }
+            // Otherwise, it's a ride - transportation
+            logger.debug("🏷️ detectCategoryFromDescription: Detected Lyft ride → 'transportation'");
+            return "transportation";
+        }
+        
+        if (descLower.contains("uber")) {
+            // Check if it's Uber One subscription
+            if (descLower.contains("uber one") || descLower.contains("uberone") ||
+                descLower.contains("uber one subscription") || descLower.contains("uberone subscription") ||
+                descLower.contains("uber one membership") || descLower.contains("uberone membership")) {
+                logger.debug("🏷️ detectCategoryFromDescription: Detected Uber One subscription → 'subscriptions'");
+                return "subscriptions";
+            }
+            // Check if it's Uber Eats (dining, not transportation)
+            if (descLower.contains("uber eats") || descLower.contains("ubereats") ||
+                descLower.contains("uber eat")) {
+                logger.debug("🏷️ detectCategoryFromDescription: Detected Uber Eats → 'dining'");
+                return "dining";
+            }
+            // Otherwise, it's a ride - transportation
+            logger.debug("🏷️ detectCategoryFromDescription: Detected Uber ride → 'transportation'");
+            return "transportation";
+        }
+        
+        // Other ride-sharing services (taxi, cab, rideshare, etc.)
+        String[] rideshareServices = {"taxi", "cab", "rideshare", "ride share", "car service",
+                                      "didi", "grab", "ola", "careem", "gett", "bolt"};
+        for (String service : rideshareServices) {
+            if (descLower.contains(service)) {
+                logger.debug("🏷️ detectCategoryFromDescription: Detected ride-sharing service '{}' → 'transportation'", service);
+                return "transportation";
+            }
+        }
+        
+        // CRITICAL FIX: Gas stations (Exxon, Shell, Chevron, BP, Mobil, etc.) - transportation, NOT subscriptions
+        // Well-known gas station brands - always transportation
+        String[] knownGasStations = {"exxon", "shell", "chevron", "mobil", "esso",
+                                     "speedway", "valero", "citgo", "phillips 66", "phillips66",
+                                     "arco", "marathon", "sunoco", "conoco",
+                                     "murphy usa", "murphyusa", "love's", "loves",
+                                     "pilot", "flying j", "flyingj", "ta", "travel centers", "truck stop"};
+        for (String station : knownGasStations) {
+            if (descLower.contains(station)) {
+                logger.debug("🏷️ detectCategoryFromDescription: Detected gas station '{}' → 'transportation'", station);
+                return "transportation";
+            }
+        }
+        
+        // BP and "76" need special handling to avoid false matches
+        // BP - only if it's clearly a gas station (not British Petroleum payroll, etc.)
+        if (descLower.contains("bp") && 
+            (descLower.contains("gas") || descLower.contains("fuel") ||
+             descLower.contains("station") || descLower.contains("bp ") ||
+             descLower.contains(" bp ") || descLower.contains(".bp"))) {
+            logger.debug("🏷️ detectCategoryFromDescription: Detected BP gas station → 'transportation'");
+            return "transportation";
+        }
+        
+        // 76 gas station - must be specific to avoid matching "CHECK 176", etc.
+        if ((descLower.contains("76 station") || descLower.contains("76 gas") ||
+             descLower.contains("union 76") || descLower.contains("union76")) &&
+            (descLower.contains("gas") || descLower.contains("fuel") || descLower.contains("station"))) {
+            logger.debug("🏷️ detectCategoryFromDescription: Detected 76 gas station → 'transportation'");
+            return "transportation";
+        }
+        
+        // Gas station patterns (gas station, gas station, fuel, etc.)
+        if (descLower.contains("gas station") || descLower.contains("gasstation") ||
+            descLower.contains("gas ") || descLower.contains("fuel") ||
+            descLower.contains("petrol") || descLower.contains("diesel")) {
+            logger.debug("🏷️ detectCategoryFromDescription: Detected gas station pattern → 'transportation'");
+            return "transportation";
+        }
+        
         // CRITICAL FIX: Check description for utility companies and patterns (merchant name might be in description)
-        String normalizedDesc = normalizeMerchantName(description).toLowerCase();
+        // NOTE: normalizedDesc is already defined at the top of the function
+        
+        // CRITICAL FIX: TST* pattern (Toast POS system) - dining, NOT utilities
+        // TST* is a restaurant POS terminal code and should be detected BEFORE utilities
+        if (descLower.contains("tst*") || normalizedDesc.contains("tst*") ||
+            (description != null && description.toUpperCase().startsWith("TST*")) ||
+            (description != null && description.toUpperCase().contains("TST*"))) {
+            logger.debug("🏷️ detectCategoryFromDescription: Detected TST* pattern → 'dining'");
+            return "dining";
+        }
+        
+        // CRITICAL FIX: SQ* (Square POS system) - dining, NOT utilities
+        // SQ* can appear with or without space: "SQ*" or "SQ *"
+        // Square is a point-of-sale system used by restaurants and retail stores
+        if (descLower.contains("sq*") || descLower.contains("sq *") || descLower.contains("sq  *") ||
+            normalizedDesc.contains("sq*") || normalizedDesc.contains("sq *") || normalizedDesc.contains("sq  *") ||
+            (description != null && (description.toUpperCase().contains("SQ*") || 
+                                     description.toUpperCase().contains("SQ *") ||
+                                     description.toUpperCase().startsWith("SQ")))) {
+            logger.debug("🏷️ detectCategoryFromDescription: Detected SQ* (Square POS) → 'dining'");
+            return "dining";
+        }
+        
+        // Other POS system patterns (RBL* = restaurant POS, etc.) - dining
+        if (descLower.contains("rbl*") || descLower.contains("rbl *") || normalizedDesc.contains("rbl*") ||
+            normalizedDesc.contains("rbl *") ||
+            (description != null && (description.toUpperCase().contains("RBL*") ||
+                                     description.toUpperCase().contains("RBL *")))) {
+            logger.debug("🏷️ detectCategoryFromDescription: Detected RBL* POS pattern → 'dining'");
+            return "dining";
+        }
+        
+        // CRITICAL FIX: TPD (Top Pot Donuts) - dining, NOT utilities
+        // TPD must be detected BEFORE utilities because it might be misclassified
+        if (descLower.contains("tpd") || normalizedDesc.contains("tpd") ||
+            (description != null && description.toUpperCase().startsWith("TPD")) ||
+            (description != null && description.toUpperCase().contains("TPD")) ||
+            descLower.contains("top pot donuts") || descLower.contains("toppotdonuts") ||
+            descLower.contains("top pot") || descLower.contains("toppot")) {
+            logger.debug("🏷️ detectCategoryFromDescription: Detected TPD (Top Pot Donuts) → 'dining'");
+            return "dining";
+        }
+        
+        // CRITICAL FIX: Burger and Kabob Hut - dining, NOT utilities
+        // This restaurant must be detected BEFORE utilities because it might be misclassified
+        if (descLower.contains("burger and kabob hut") || descLower.contains("burgerandkabobhut") ||
+            descLower.contains("kabob hut") || descLower.contains("kabobhut") ||
+            normalizedDesc.contains("burger and kabob hut") || normalizedDesc.contains("burgerandkabobhut") ||
+            normalizedDesc.contains("kabob hut") || normalizedDesc.contains("kabobhut")) {
+            logger.debug("🏷️ detectCategoryFromDescription: Detected Burger and Kabob Hut → 'dining'");
+            return "dining";
+        }
+        
+        // CRITICAL FIX: Parking payment services (PAY BY PHONE, ParkMobile, etc.) - transportation, NOT utilities
+        // These must be detected BEFORE utilities because "phone" keyword might match utilities
+        if (descLower.contains("pay by phone") || descLower.contains("paybyphone") ||
+            descLower.contains("uw pay by phone") || descLower.contains("uwpay by phone") ||
+            descLower.contains("uw paybyphone") || descLower.contains("uwpaybyphone") ||
+            (descLower.contains("uw") && descLower.contains("pay by phone")) ||
+            normalizedDesc.contains("pay by phone") || normalizedDesc.contains("paybyphone")) {
+            logger.debug("🏷️ detectCategoryFromDescription: Detected parking payment service → 'transportation'");
+            return "transportation";
+        }
+        
+        // Other parking payment services (ParkMobile, Impark, Metropolis parking, etc.)
+        String[] parkingServices = {"parkmobile", "park mobile", "impark", "parking",
+                                    "parking meter", "parkingmeter", "garage",
+                                    "metropolis parking", "metropolisparking"};
+        for (String service : parkingServices) {
+            if (descLower.contains(service) || normalizedDesc.contains(service)) {
+                logger.debug("🏷️ detectCategoryFromDescription: Detected parking service '{}' → 'transportation'", service);
+                return "transportation";
+            }
+        }
+        
+        // CRITICAL FIX: Sports clubs and fitness centers (badminton club, gym, fitness center, etc.) - health, NOT utilities
+        // These must be detected BEFORE utilities because "club" might be misclassified
+        String[] sportsAndFitness = {"badminton club", "badmintonclub", "badminton",
+                                     "seattle badminton club", "seattlebadmintonclub",
+                                     "fitness club", "fitnessclub", "health club", "healthclub",
+                                     "athletic club", "athleticclub", "sports club", "sportsclub",
+                                     "gym", "fitness center", "fitnesscenter", "workout",
+                                     "personal trainer", "orangetheory", "orange theory", "crossfit"};
+        for (String fitness : sportsAndFitness) {
+            if (descLower.contains(fitness) || normalizedDesc.contains(fitness)) {
+                logger.debug("🏷️ detectCategoryFromDescription: Detected sports/fitness '{}' → 'health'", fitness);
+                return "health";
+            }
+        }
+        
+        // CRITICAL FIX: University book stores and book stores - education, NOT utilities
+        // These must be detected BEFORE utilities because "store" might be misclassified
+        if (descLower.contains("university book store") || descLower.contains("universitybookstore") ||
+            descLower.contains("university book") || descLower.contains("universitybook") ||
+            normalizedDesc.contains("university book store") || normalizedDesc.contains("universitybookstore")) {
+            logger.debug("🏷️ detectCategoryFromDescription: Detected University Book Store → 'education'");
+            return "education";
+        }
+        
+        // Other book stores (bookstore, book store) - education
+        if ((descLower.contains("bookstore") || descLower.contains("book store") ||
+             normalizedDesc.contains("bookstore") || normalizedDesc.contains("book store")) &&
+            !descLower.contains("costco") && !descLower.contains("walmart") &&
+            !descLower.contains("target") && !descLower.contains("grocery")) {
+            logger.debug("🏷️ detectCategoryFromDescription: Detected book store → 'education'");
+            return "education";
+        }
+        
         String[] utilityCompanies = {
             "puget sound energy", "pse", "pacific gas", "pg&e", "pge",
             "southern california edison", "sce", "san diego gas", "sdge",
@@ -5337,6 +4279,13 @@ public class CSVImportService {
         if (normalizedDesc.contains("safeway") || normalizedDesc.contains("safeway.com") || 
             normalizedDesc.startsWith("safeway") || normalizedDesc.endsWith("safeway")) {
             logger.debug("detectCategoryFromDescription: Detected Safeway in description → 'groceries'");
+            return "groceries";
+        }
+        
+        // CRITICAL FIX: Check for Fred Meyer (Kroger-owned grocery store)
+        if (descLower.contains("fred meyer") || descLower.contains("fredmeyer") || 
+            descLower.contains("fred-meyer")) {
+            logger.debug("🏷️ detectCategoryFromDescription: Detected Fred Meyer → 'groceries'");
             return "groceries";
         }
         
@@ -5388,12 +4337,7 @@ public class CSVImportService {
             }
         }
         
-        // TST* pattern - Transaction Service Terminal (restaurant pattern)
-        if (descLower.contains("tst*") || normalizedDesc.contains("tst*") ||
-            (description != null && description.toUpperCase().startsWith("TST*"))) {
-            logger.debug("🏷️ detectCategoryFromDescription: Detected TST* pattern → 'dining'");
-            return "dining";
-        }
+        // NOTE: TST* pattern detection has been moved earlier (before utilities) to ensure proper categorization
         
         // Food-related keywords that indicate restaurants (dumplings, burger, fast food, grill, thai, dhaba, brewing)
         if (descLower.contains("dumplings") || descLower.contains("dumpling") ||
@@ -5420,7 +4364,7 @@ public class CSVImportService {
             descLower.contains("restaur") || descLower.contains("restaur ") ||
             descLower.contains("dining") ||
             descLower.contains("fast food") || descLower.contains("fastfood") ||
-            descLower.contains("cafe") || descLower.contains("café") ||
+            descLower.contains("cafe") || descLower.contains("café") || descLower.contains("caffe") ||
             descLower.contains("cafeteria") || descLower.contains("tiffin") ||
             descLower.contains("bakery") || descLower.contains("baker") ||
             descLower.contains("hoffman") || descLower.contains("hoffman's") ||
@@ -5561,15 +4505,16 @@ public class CSVImportService {
             return "transportation";
         }
         
-        // Parking keywords (including Metropolis parking, Impark, UW pay by phone)
+        // NOTE: Parking payment services (PAY BY PHONE, ParkMobile, etc.) are handled earlier (before utilities)
+        // This section is kept for any additional parking patterns not covered earlier
         if (descLower.contains("parking") || descLower.contains("parking meter") ||
-            descLower.contains("parkingmeter") || descLower.contains("garage") ||
-            descLower.contains("metropolis parking") || descLower.contains("metropolisparking") ||
-            descLower.contains("impark") ||
-            descLower.contains("uw pay by phone") || descLower.contains("uwpay by phone") ||
-            (descLower.contains("uw") && descLower.contains("pay by phone"))) {
-            logger.debug("🏷️ detectCategoryFromDescription: Detected parking → 'transportation'");
-            return "transportation";
+            descLower.contains("parkingmeter") || descLower.contains("garage")) {
+            // Skip if already handled above (pay by phone, parkmobile, etc.)
+            if (!descLower.contains("pay by phone") && !descLower.contains("paybyphone") &&
+                !descLower.contains("parkmobile") && !descLower.contains("park mobile")) {
+                logger.debug("🏷️ detectCategoryFromDescription: Detected parking → 'transportation'");
+                return "transportation";
+            }
         }
         
         // QFC (grocery store) in description
@@ -5585,25 +4530,86 @@ public class CSVImportService {
             return "dining";
         }
         
-        // Bellevue School District - school district payment (education/other, not charity)
-        if (descLower.contains("bellevue school district") || descLower.contains("bellevueschooldistrict")) {
-            logger.debug("🏷️ detectCategoryFromDescription: Detected Bellevue School District → 'other'");
-            return "other";
+        // School District payments - should be categorized as "education"
+        // Check for any school district (not just Bellevue)
+        if (descLower.contains("school district") || descLower.contains("schooldistrict") ||
+            descLower.contains("school distri")) {
+            logger.debug("🏷️ detectCategoryFromDescription: Detected School District → 'education'");
+            return "education";
         }
         
-        // Charity keywords (Go Fund Me, schools, donations)
+        // CRITICAL FIX: Check for all school/education types FIRST (before charity)
+        // Middle school, high school, elementary school, college, university, PhD, etc. → education
+        String[] schoolTypes = {"middle school", "middleschool", "high school", "highschool",
+                                "elementary school", "elementaryschool", "elementary",
+                                "secondary school", "secondaryschool", "senior secondary school",
+                                "seniorschool", "college", "university", "phd", "ph.d", "ph.d.",
+                                "doctorate", "graduate school", "graduateschool",
+                                "school district", "schooldistrict", "bellevue school district",
+                                "bellevueschooldistrict", "tyee middle school", "tyeemiddleschool"};
+        for (String school : schoolTypes) {
+            if (descLower.contains(school)) {
+                logger.debug("🏷️ detectCategoryFromDescription: Detected school type '{}' → 'education'", school);
+                return "education";
+            }
+        }
+        
+        // Educational media (books, newspapers, magazines, journals) → education
+        String[] educationalMedia = {"newspaper", "magazine", "journal", "books", "bookstore",
+                                     "book store", "textbook", "text book", "library",
+                                     "academic journal", "research journal", "scientific journal"};
+        for (String media : educationalMedia) {
+            if (descLower.contains(media)) {
+                logger.debug("🏷️ detectCategoryFromDescription: Detected educational media '{}' → 'education'", media);
+                return "education";
+            }
+        }
+        
+        // Charity keywords (Go Fund Me, donations) - ONLY actual charity, NOT schools
         if (descLower.contains("go fund me") || descLower.contains("gofundme") ||
-            descLower.contains("middle school") || descLower.contains("middleschool") ||
-            descLower.contains("school district") || descLower.contains("schooldistrict") ||
-            descLower.contains("elementary") || descLower.contains("secondary school") ||
-            descLower.contains("secondaryschool") || descLower.contains("high school") ||
-            descLower.contains("highschool") || descLower.contains("senior secondary school") ||
             descLower.contains("charity") || descLower.contains("donation")) {
-            logger.debug("🏷️ detectCategoryFromDescription: Detected charity/school → 'charity'");
-            return "charity";
+            // Skip if it's actually a school (already handled above)
+            boolean isSchool = false;
+            for (String school : schoolTypes) {
+                if (descLower.contains(school)) {
+                    isSchool = true;
+                    break;
+                }
+            }
+            if (!isSchool) {
+                logger.debug("🏷️ detectCategoryFromDescription: Detected charity/donation → 'charity'");
+                return "charity";
+            }
+        }
+        
+        // CRITICAL FIX: Pet care clinics (specialized) - pet, NOT healthcare
+        // Pet care clinics should be detected BEFORE general healthcare/clinic detection
+        if (descLower.contains("petcare clinic") || descLower.contains("petcareclinic") ||
+            descLower.contains("pet care clinic") || descLower.contains("petcare") ||
+            descLower.contains("pet care") || descLower.contains("pet clinic") ||
+            descLower.contains("petclinic") || descLower.contains("veterinary") ||
+            descLower.contains("vet ") || descLower.contains("vet.") ||
+            descLower.contains("animal hospital") || descLower.contains("animalhospital") ||
+            descLower.contains("animal clinic") || descLower.contains("animalclinic") ||
+            descLower.contains("pet hospital") || descLower.contains("pethospital") ||
+            descLower.contains("veterinarian") || descLower.contains("veterinary clinic")) {
+            logger.debug("🏷️ detectCategoryFromDescription: Detected pet care clinic/service → 'pet'");
+            return "pet";
+        }
+        
+        // Pet-related services (petsmart, petco, chewy, etc.)
+        String[] petServices = {"petsmart", "petco", "pet supplies plus", "pet supplies",
+                                "petland", "chewy", "petmeds", "1800petmeds", "pet supermarket",
+                                "pet pharmacy", "petpharmacy"};
+        for (String service : petServices) {
+            if (descLower.contains(service)) {
+                logger.debug("🏷️ detectCategoryFromDescription: Detected pet service '{}' → 'pet'", service);
+                return "pet";
+            }
         }
         
         // Health/Beauty keywords (nails, hair, spa, toes, skin, massages, cosmetic stores)
+        // NOTE: Pet care clinics are handled above, so "clinic" here refers to general healthcare clinics
         if (descLower.contains("nails") || descLower.contains("nail salon") || descLower.contains("nailsalon") ||
             descLower.contains("manicure") || descLower.contains("pedicure") ||
             descLower.contains("spa") || descLower.contains("massage") || descLower.contains("massages") ||
@@ -5617,6 +4623,20 @@ public class CSVImportService {
             descLower.contains("new york cosmetic") || descLower.contains("ny cosmetic")) {
             logger.debug("🏷️ detectCategoryFromDescription: Detected health/beauty service → 'health'");
             return "health";
+        }
+        
+        // LUL Ticket Machine (London Underground) - transportation
+        if (descLower.contains("lul ticket machine") || descLower.contains("lulticketmachine") ||
+            descLower.contains("lul ticket mach") || descLower.contains("london underground") ||
+            (descLower.contains("lul") && (descLower.contains("ticket") || descLower.contains("machine")))) {
+            logger.debug("🏷️ detectCategoryFromDescription: Detected LUL Ticket Machine → 'transportation'");
+            return "transportation";
+        }
+        
+        // Ticket machine patterns (general)
+        if (descLower.contains("ticket machine") || descLower.contains("ticketmachine")) {
+            logger.debug("🏷️ detectCategoryFromDescription: Detected ticket machine → 'transportation'");
+            return "transportation";
         }
         
         // Amex Airlines Fee Reimbursement - transportation (even though it's a credit)
@@ -5658,8 +4678,62 @@ public class CSVImportService {
             return "dining";
         }
         
-        // Education keywords (Gurukul, school, books, reading, etc.) - categorized as "other"
-        if (descLower.contains("gurukul") || descLower.contains("school") ||
+        // CRITICAL FIX: Check for exam/testing keywords FIRST (AAMC, SAT, TOEFL, GRE, GMAT, LSAT, MCAT, etc.)
+        // These should be categorized as "education" even if they're sometimes miscategorized as "entertainment"
+        // VUE (Pearson VUE) - testing center for professional exams
+        if (descLower.contains("vue") && 
+            (descLower.contains("exam") || descLower.contains("test") || 
+             descLower.contains("aamc") || descLower.contains("sat") || 
+             descLower.contains("toefl") || descLower.contains("gre") || 
+             descLower.contains("gmat") || descLower.contains("lsat") || 
+             descLower.contains("mcat") || descLower.contains("act"))) {
+            logger.debug("🏷️ detectCategoryFromDescription: Detected VUE exam/testing → 'education'");
+            return "education";
+        }
+        
+        // Exam/testing keywords (AAMC, SAT, TOEFL, GRE, GMAT, LSAT, MCAT, ACT, AP, IB, etc.)
+        String[] examKeywords = {"aamc", "sat", "toefl", "gre", "gmat", "lsat", "mcat", 
+                                 "act", "ap exam", "ib exam", "clep", "praxis", "bar exam",
+                                 "nclex", "usmle", "comlex", "test registration",
+                                 "test fee", "test center", "pearson vue", "ets", "prometric"};
+        for (String exam : examKeywords) {
+            if (descLower.contains(exam)) {
+                logger.debug("🏷️ detectCategoryFromDescription: Detected exam/testing keyword '{}' → 'education'", exam);
+                return "education";
+            }
+        }
+        
+        // Regional school/college names - Education
+        // CRITICAL: Check for regional terms BEFORE generic education keywords to ensure they're always detected
+        // Indian: Gurukul, Vidyalaya, Shiksha, Pathshala
+        // Spanish: Escuela, Colegio, Universidad
+        // French: École, Collège, Université
+        // German: Schule, Universität
+        // Arabic: Madrasa, Kuttab
+        String[] regionalSchoolTerms = {"gurukul", "vidyalaya", "shiksha", "pathshala",
+                                        "escuela", "colegio", "universidad",
+                                        "école", "collège", "université",
+                                        "schule", "universität",
+                                        "madrasa", "kuttab", "madrassa"};
+        for (String term : regionalSchoolTerms) {
+            if (descLower.contains(term)) {
+                logger.debug("🏷️ detectCategoryFromDescription: Detected regional school term '{}' → 'education'", term);
+                return "education";
+            }
+        }
+        
+        // SP ANKI REMOTE - Education (Anki remote learning/spaced repetition)
+        // CRITICAL: Check for "anki" before generic education keywords
+        if (descLower.contains("sp anki remote") || descLower.contains("spankiremote") ||
+            descLower.contains("anki remote")) {
+            logger.debug("🏷️ detectCategoryFromDescription: Detected SP ANKI REMOTE → 'education'");
+            return "education";
+        }
+        
+        // Education keywords (school, books, reading, newspapers, magazines, journals, etc.) - categorized as "education"
+        // NOTE: School types (middle school, high school, etc.) and educational media are handled separately above
+        // NOTE: "gurukul" is handled separately above to ensure it's always detected
+        if (descLower.contains("school") ||
             descLower.contains("university") || descLower.contains("college") ||
             descLower.contains("tuition") || descLower.contains("books") ||
             descLower.contains("bookstore") || descLower.contains("book store") ||
@@ -5667,11 +4741,15 @@ public class CSVImportService {
             descLower.contains("text book") || descLower.contains("education") ||
             descLower.contains("educational") || descLower.contains("course") ||
             descLower.contains("class") || descLower.contains("lesson") ||
-            descLower.contains("training")) {
-            // Skip if it's a school payment (PayPAMS, school district) - those are handled separately
-            if (!descLower.contains("paypams") && !descLower.contains("school district")) {
-                logger.debug("🏷️ detectCategoryFromDescription: Detected education item → 'other'");
-                return "other";
+            descLower.contains("training") || descLower.contains("anki") ||
+            descLower.contains("newspaper") || descLower.contains("magazine") ||
+            descLower.contains("journal") || descLower.contains("phd") ||
+            descLower.contains("ph.d") || descLower.contains("ph.d.") ||
+            descLower.contains("doctorate") || descLower.contains("library")) {
+            // Skip if it's a school payment (PayPAMS) - those are handled separately
+            if (!descLower.contains("paypams")) {
+                logger.debug("🏷️ detectCategoryFromDescription: Detected education item → 'education'");
+                return "education";
             }
         }
         

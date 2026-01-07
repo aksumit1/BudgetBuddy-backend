@@ -441,6 +441,31 @@ public class PlaidDataExtractor {
                         transaction.setCategoryDetailed(determinedDetailed);
                         transaction.setCategoryOverridden(isInternalOverride);
                         
+                        // CRITICAL: Credit card and loan payment amount adjustment
+                        // For credit card and loan accounts, if category is "payment" and amount is negative,
+                        // make it positive (payments reduce debt, so they should be positive)
+                        if (account != null && account.getAccountType() != null) {
+                            String accountType = account.getAccountType().toLowerCase();
+                            boolean isCreditCardOrLoan = accountType.contains("credit") || 
+                                                         accountType.contains("loan") ||
+                                                         accountType.contains("mortgage") ||
+                                                         accountType.contains("creditline");
+                            
+                            boolean isPaymentCategory = "payment".equalsIgnoreCase(determinedPrimary) || 
+                                                       "payment".equalsIgnoreCase(determinedDetailed);
+                            
+                            if (isCreditCardOrLoan && isPaymentCategory && transactionAmount != null && 
+                                transactionAmount.compareTo(java.math.BigDecimal.ZERO) < 0) {
+                                // Negate the amount (making it positive)
+                                java.math.BigDecimal adjustedAmount = transactionAmount.negate();
+                                transaction.setAmount(adjustedAmount);
+                                logger.debug("Adjusted payment amount for {} account: {} → {} (payment category)", 
+                                        accountType, transactionAmount, adjustedAmount);
+                                // Update transactionAmount for consistency in logging below
+                                transactionAmount = adjustedAmount;
+                            }
+                        }
+                        
                         if (isInternalOverride) {
                             logger.info("✅ Internal category override applied: Plaid='{}' → Determined='{}' (source: {}, confidence: {:.2f}). " +
                                 "This override will be preserved during Plaid re-sync.",
@@ -460,6 +485,31 @@ public class PlaidDataExtractor {
                 } else {
                     logger.debug("Category already overridden by user, preserving: {} / {}",
                         transaction.getCategoryPrimary(), transaction.getCategoryDetailed());
+                    
+                    // CRITICAL: Credit card and loan payment amount adjustment (even if category was user-overridden)
+                    // For credit card and loan accounts, if category is "payment" and amount is negative,
+                    // make it positive (payments reduce debt, so they should be positive)
+                    if (account != null && account.getAccountType() != null) {
+                        String accountType = account.getAccountType().toLowerCase();
+                        boolean isCreditCardOrLoan = accountType.contains("credit") || 
+                                                     accountType.contains("loan") ||
+                                                     accountType.contains("mortgage") ||
+                                                     accountType.contains("creditline");
+                        
+                        String existingCategoryPrimary = transaction.getCategoryPrimary();
+                        String existingCategoryDetailed = transaction.getCategoryDetailed();
+                        boolean isPaymentCategory = "payment".equalsIgnoreCase(existingCategoryPrimary) || 
+                                                   "payment".equalsIgnoreCase(existingCategoryDetailed);
+                        
+                        if (isCreditCardOrLoan && isPaymentCategory && transactionAmount != null && 
+                            transactionAmount.compareTo(java.math.BigDecimal.ZERO) < 0) {
+                            // Negate the amount (making it positive)
+                            java.math.BigDecimal adjustedAmount = transactionAmount.negate();
+                            transaction.setAmount(adjustedAmount);
+                            logger.debug("Adjusted payment amount for {} account (user-overridden category): {} → {} (payment category)", 
+                                    accountType, transactionAmount, adjustedAmount);
+                        }
+                    }
                 }
                 
                 // Extract date

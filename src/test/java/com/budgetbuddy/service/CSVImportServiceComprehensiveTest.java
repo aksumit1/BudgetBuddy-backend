@@ -60,7 +60,8 @@ class CSVImportServiceComprehensiveTest {
     @BeforeEach
     void setUp() {
         csvImportService = new CSVImportService(accountDetectionService, enhancedCategoryDetection, fuzzyMatchingService,
-            transactionTypeCategoryService, importCategoryParser);
+            transactionTypeCategoryService, importCategoryParser, 
+            org.mockito.Mockito.mock(com.budgetbuddy.service.category.strategy.CategoryDetectionManager.class));
     }
 
     // ========== Error Handling Tests ==========

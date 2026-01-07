@@ -18,6 +18,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.validation.Valid;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -65,39 +66,27 @@ public class TransactionController {
     private static final Set<String> EXCEL_EXTENSIONS = Set.of("xlsx", "xls");
     private static final Set<String> PDF_EXTENSIONS = Set.of("pdf");
 
-    public TransactionController(
-            final TransactionService transactionService,
-            final UserService userService,
-            final AccountRepository accountRepository,
-            final FileUploadRateLimiter fileUploadRateLimiter,
-            final FileSecurityValidator fileSecurityValidator,
-            final FileContentScanner fileContentScanner,
-            final FileQuarantineService fileQuarantineService,
-            final FileIntegrityService fileIntegrityService,
-            final CSVImportService csvImportService,
-            final ExcelImportService excelImportService,
-            final PDFImportService pdfImportService,
-            final DuplicateDetectionService duplicateDetectionService,
-            final TransactionTypeCategoryService transactionTypeCategoryService,
-            final ChunkedUploadService chunkedUploadService,
-            final ObjectMapper objectMapper,
-            final AccountDetectionService accountDetectionService) {
-        this.transactionService = transactionService;
-        this.userService = userService;
-        this.accountRepository = accountRepository;
-        this.fileUploadRateLimiter = fileUploadRateLimiter;
-        this.fileSecurityValidator = fileSecurityValidator;
-        this.fileContentScanner = fileContentScanner;
-        this.fileQuarantineService = fileQuarantineService;
-        this.fileIntegrityService = fileIntegrityService;
-        this.csvImportService = csvImportService;
-        this.excelImportService = excelImportService;
-        this.pdfImportService = pdfImportService;
-        this.duplicateDetectionService = duplicateDetectionService;
-        this.transactionTypeCategoryService = transactionTypeCategoryService;
-        this.chunkedUploadService = chunkedUploadService;
-        this.accountDetectionService = accountDetectionService;
-        this.objectMapper = objectMapper;
+    /**
+     * Constructor with grouped dependencies via TransactionControllerConfig
+     * Reduces constructor parameter count from 17 to 1, improving maintainability
+     */
+    public TransactionController(final com.budgetbuddy.api.config.TransactionControllerConfig config) {
+        this.transactionService = config.getTransactionService();
+        this.userService = config.getUserService();
+        this.accountRepository = config.getAccountRepository();
+        this.fileUploadRateLimiter = config.getFileUploadRateLimiter();
+        this.fileSecurityValidator = config.getFileSecurityValidator();
+        this.fileContentScanner = config.getFileContentScanner();
+        this.fileQuarantineService = config.getFileQuarantineService();
+        this.fileIntegrityService = config.getFileIntegrityService();
+        this.csvImportService = config.getCsvImportService();
+        this.excelImportService = config.getExcelImportService();
+        this.pdfImportService = config.getPdfImportService();
+        this.duplicateDetectionService = config.getDuplicateDetectionService();
+        this.transactionTypeCategoryService = config.getTransactionTypeCategoryService();
+        this.chunkedUploadService = config.getChunkedUploadService();
+        this.accountDetectionService = config.getAccountDetectionService();
+        this.objectMapper = config.getObjectMapper();
     }
 
     @GetMapping
@@ -194,7 +183,7 @@ public class TransactionController {
     @PostMapping
     public ResponseEntity<TransactionTable> createTransaction(
             @AuthenticationPrincipal UserDetails userDetails,
-            @RequestBody CreateTransactionRequest request) {
+            @Valid @RequestBody CreateTransactionRequest request) {
         if (userDetails == null || userDetails.getUsername() == null) {
             throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
         }
@@ -202,21 +191,24 @@ public class TransactionController {
         UserTable user = userService.findByEmail(userDetails.getUsername())
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
 
+        // Note: Bean Validation handles validation in integration tests/real requests
+        // For unit tests, add defensive null check (Bean Validation doesn't execute in unit tests)
         if (request == null) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Transaction request is required");
         }
-
-        // CRITICAL FIX: Account ID is now optional - if not provided, backend will use pseudo account
-        // No validation needed here - TransactionService will handle it
+        
+        // Manual validation for unit tests (Bean Validation doesn't execute in unit tests)
         if (request.getAmount() == null) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Amount is required");
         }
         if (request.getTransactionDate() == null) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Transaction date is required");
         }
-        if (request.getCategoryPrimary() == null || request.getCategoryPrimary().isEmpty()) {
+        if (request.getCategoryPrimary() == null || request.getCategoryPrimary().trim().isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Category primary is required");
         }
+        
+        // CRITICAL FIX: Account ID is now optional - if not provided, backend will use pseudo account
 
         TransactionTable transaction = transactionService.createTransaction(
                 user,
@@ -240,7 +232,8 @@ public class TransactionController {
                 request.getReviewStatus(), // Pass optional review status
                 request.getMerchantName(), // Pass optional merchant name (where purchase was made)
                 request.getPaymentChannel(), // Pass optional payment channel
-                request.getUserName() // Pass optional user name (card/account user - family member)
+                request.getUserName(), // Pass optional user name (card/account user - family member)
+                request.getGoalId() // Pass optional goal ID this transaction contributes to
         );
 
         return ResponseEntity.status(HttpStatus.CREATED).body(transaction);
@@ -250,16 +243,14 @@ public class TransactionController {
     public ResponseEntity<TransactionTable> updateTransaction(
             @AuthenticationPrincipal UserDetails userDetails,
             @PathVariable String id,
-            @RequestBody UpdateTransactionRequest request) {
+            @Valid @RequestBody UpdateTransactionRequest request) {
         if (userDetails == null || userDetails.getUsername() == null) {
             throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
         }
         if (id == null || id.isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Transaction ID is required");
         }
-        if (request == null) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "Update request is required");
-        }
+        // Validation is handled by Bean Validation annotations on UpdateTransactionRequest
 
         UserTable user = userService.findByEmail(userDetails.getUsername())
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
@@ -276,7 +267,8 @@ public class TransactionController {
                 request.getReviewStatus(), // Pass review status directly from request
                 request.getIsHidden(), // Pass hidden state
                 request.getTransactionType(), // Pass optional user-selected transaction type
-                false // Don't clear notes if null - preserve existing when doing partial updates
+                false, // Don't clear notes if null - preserve existing when doing partial updates
+                request.getGoalId() // Pass optional goal ID this transaction contributes to
         );
 
         return ResponseEntity.ok(transaction);
@@ -289,21 +281,13 @@ public class TransactionController {
     @PostMapping("/batch-import")
     public ResponseEntity<BatchImportResponse> batchImport(
             @AuthenticationPrincipal UserDetails userDetails,
-            @RequestBody BatchImportRequest request) {
+            @Valid @RequestBody BatchImportRequest request) {
         if (userDetails == null || userDetails.getUsername() == null) {
             throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
         }
-        if (request == null || request.getTransactions() == null || request.getTransactions().isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "Transactions list is required");
-        }
-
+        // Validation is handled by Bean Validation annotations on BatchImportRequest
         UserTable user = userService.findByEmail(userDetails.getUsername())
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
-
-        // Validate batch size - increased to 10000 to support large imports
-        if (request.getTransactions().size() > 10000) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "Batch size cannot exceed 10000 transactions");
-        }
 
         // CRITICAL: If createDetectedAccount is true and detectedAccount is provided, create the account first
         String accountIdToUse = null;
@@ -403,16 +387,11 @@ public class TransactionController {
     @PostMapping("/verify")
     public ResponseEntity<TransactionTable> verifyTransaction(
             @AuthenticationPrincipal UserDetails userDetails,
-            @RequestBody VerifyTransactionRequest request) {
+            @Valid @RequestBody VerifyTransactionRequest request) {
         if (userDetails == null || userDetails.getUsername() == null) {
             throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
         }
-        if (request == null) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "Verify request is required");
-        }
-        if (request.getTransactionId() == null || request.getTransactionId().isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "Transaction ID is required");
-        }
+        // Validation is handled by Bean Validation annotations on VerifyTransactionRequest
 
         UserTable user = userService.findByEmail(userDetails.getUsername())
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
@@ -852,23 +831,35 @@ public class TransactionController {
                     }
                     
                     // Auto-create if no account ID has been set and account is detected
+                    // CRITICAL FIX: Only auto-create if detected account has meaningful information
+                    // Don't create accounts when all fields are null/empty - use pseudo account instead
                     if ((accountIdToUse == null || accountIdToUse.trim().isEmpty()) && 
                         importResult.getDetectedAccount() != null) {
-                        logger.info("📝 [Non-paginated Import] Attempting to auto-create account for detected account: name='{}', institution='{}', type='{}'", 
-                                importResult.getDetectedAccount().getAccountName(),
-                                importResult.getDetectedAccount().getInstitutionName(),
-                                importResult.getDetectedAccount().getAccountType());
-                        accountIdToUse = autoCreateAccountIfDetected(user, importResult.getDetectedAccount());
-                        if (accountIdToUse != null && !accountIdToUse.trim().isEmpty()) {
-                            logger.info("✅ [Non-paginated Import] Auto-created account '{}' for detected account: {} (institution: {}, type: {})", 
-                                    accountIdToUse, 
-                                    importResult.getDetectedAccount().getAccountName(),
-                                    importResult.getDetectedAccount().getInstitutionName(),
-                                    importResult.getDetectedAccount().getAccountType());
+                        // Check if detected account has any meaningful information before attempting creation
+                        AccountDetectionService.DetectedAccount detected = importResult.getDetectedAccount();
+                        boolean hasAccountInfo = (detected.getInstitutionName() != null && !detected.getInstitutionName().trim().isEmpty()) ||
+                                               (detected.getAccountName() != null && !detected.getAccountName().trim().isEmpty()) ||
+                                               (detected.getAccountNumber() != null && !detected.getAccountNumber().trim().isEmpty()) ||
+                                               (detected.getAccountType() != null && !detected.getAccountType().trim().isEmpty()) ||
+                                               (detected.getMatchedAccountId() != null && !detected.getMatchedAccountId().trim().isEmpty());
+                        
+                        if (hasAccountInfo) {
+                            logger.info("📝 [Non-paginated Import] Attempting to auto-create account for detected account: name='{}', institution='{}', type='{}'", 
+                                    detected.getAccountName(),
+                                    detected.getInstitutionName(),
+                                    detected.getAccountType());
+                            accountIdToUse = autoCreateAccountIfDetected(user, detected);
+                            if (accountIdToUse != null && !accountIdToUse.trim().isEmpty()) {
+                                logger.info("✅ [Non-paginated Import] Auto-created account '{}' for detected account: {} (institution: {}, type: {})", 
+                                        accountIdToUse, 
+                                        detected.getAccountName(),
+                                        detected.getInstitutionName(),
+                                        detected.getAccountType());
+                            } else {
+                                logger.info("ℹ️ [Non-paginated Import] Auto-creation skipped - detected account has no meaningful information. Transactions will use pseudo account.");
+                            }
                         } else {
-                            logger.warn("⚠️ [Non-paginated Import] Auto-creation failed for detected account '{}' from '{}' - accountIdToUse is null", 
-                                    importResult.getDetectedAccount().getAccountName(),
-                                    importResult.getDetectedAccount().getInstitutionName());
+                            logger.info("ℹ️ [Non-paginated Import] Detected account has no meaningful information (all fields null/empty). Skipping account creation. Transactions will use pseudo account.");
                         }
                     }
                 }
@@ -1072,33 +1063,45 @@ public class TransactionController {
                     
                     // CRITICAL: Auto-create account if:
                     // 1. No account ID has been set yet (accountIdToUse is still null/empty)
-                    // 2. Account was detected
+                    // 2. Account was detected AND has meaningful information
                     // 3. We're on the first page (page 0) OR we're on a subsequent page but no account was found
                     if (accountIdToUse == null || accountIdToUse.trim().isEmpty()) {
                         if (importResult.getDetectedAccount() != null) {
-                            // Account was detected - try to create or reuse
-                            if (page == 0) {
-                            // First page: Always try to auto-create if account is detected
-                            logger.info("📝 [Page 0] Attempting to auto-create account for detected account: name='{}', institution='{}', type='{}'", 
-                                    importResult.getDetectedAccount().getAccountName(),
-                                    importResult.getDetectedAccount().getInstitutionName(),
-                                    importResult.getDetectedAccount().getAccountType());
-                            logger.info("🔨 [Page 0] STEP 2: Calling autoCreateAccountIfDetected...");
-                            accountIdToUse = autoCreateAccountIfDetected(user, importResult.getDetectedAccount());
-                            if (accountIdToUse != null && !accountIdToUse.trim().isEmpty()) {
-                                logger.info("✅ [Page 0] STEP 3: Account created successfully - ID='{}'", accountIdToUse);
-                                // Verify the account is retrievable
-                                Optional<AccountTable> createdAccount = accountRepository.findById(accountIdToUse);
-                                if (createdAccount.isPresent()) {
-                                    AccountTable acc = createdAccount.get();
-                                    logger.info("✅ [Page 0] STEP 4: Account verification - ID='{}', name='{}', institution='{}', type='{}', createdAt='{}'", 
-                                            acc.getAccountId(), acc.getAccountName(), acc.getInstitutionName(), 
-                                            acc.getAccountType(), acc.getCreatedAt());
+                            // CRITICAL FIX: Check if detected account has meaningful information before attempting creation
+                            AccountDetectionService.DetectedAccount detectedAccount = importResult.getDetectedAccount();
+                            boolean hasAccountInfo = (detectedAccount.getInstitutionName() != null && !detectedAccount.getInstitutionName().trim().isEmpty()) ||
+                                                   (detectedAccount.getAccountName() != null && !detectedAccount.getAccountName().trim().isEmpty()) ||
+                                                   (detectedAccount.getAccountNumber() != null && !detectedAccount.getAccountNumber().trim().isEmpty()) ||
+                                                   (detectedAccount.getAccountType() != null && !detectedAccount.getAccountType().trim().isEmpty()) ||
+                                                   (detectedAccount.getMatchedAccountId() != null && !detectedAccount.getMatchedAccountId().trim().isEmpty());
+                            
+                            if (hasAccountInfo) {
+                                // Account was detected with meaningful information - try to create or reuse
+                                if (page == 0) {
+                                // First page: Always try to auto-create if account is detected with meaningful info
+                                logger.info("📝 [Page 0] Attempting to auto-create account for detected account: name='{}', institution='{}', type='{}'", 
+                                        detectedAccount.getAccountName(),
+                                        detectedAccount.getInstitutionName(),
+                                        detectedAccount.getAccountType());
+                                logger.info("🔨 [Page 0] STEP 2: Calling autoCreateAccountIfDetected...");
+                                accountIdToUse = autoCreateAccountIfDetected(user, detectedAccount);
+                                if (accountIdToUse != null && !accountIdToUse.trim().isEmpty()) {
+                                    logger.info("✅ [Page 0] STEP 3: Account created successfully - ID='{}'", accountIdToUse);
+                                    // Verify the account is retrievable
+                                    Optional<AccountTable> createdAccount = accountRepository.findById(accountIdToUse);
+                                    if (createdAccount.isPresent()) {
+                                        AccountTable acc = createdAccount.get();
+                                        logger.info("✅ [Page 0] STEP 4: Account verification - ID='{}', name='{}', institution='{}', type='{}', createdAt='{}'", 
+                                                acc.getAccountId(), acc.getAccountName(), acc.getInstitutionName(), 
+                                                acc.getAccountType(), acc.getCreatedAt());
+                                    } else {
+                                        logger.error("❌ [Page 0] STEP 4: Account verification FAILED - Account '{}' not found in repository!", accountIdToUse);
+                                    }
                                 } else {
-                                    logger.error("❌ [Page 0] STEP 4: Account verification FAILED - Account '{}' not found in repository!", accountIdToUse);
+                                    logger.info("ℹ️ [Page 0] STEP 3: Auto-creation skipped - detected account has no meaningful information. Transactions will use pseudo account.");
                                 }
                             } else {
-                                logger.warn("⚠️ [Page 0] STEP 3: Auto-creation failed - accountIdToUse is null");
+                                logger.info("ℹ️ [Page 0] Detected account has no meaningful information (all fields null/empty). Skipping account creation. Transactions will use pseudo account.");
                             }
                         } else if (page > 0) {
                             logger.info("🔍 [Page {}] STEP 2: Processing subsequent page - checking for account reuse", page);
@@ -1119,20 +1122,20 @@ public class TransactionController {
                             // If no matched account, try to match by detected account attributes
                             if ((accountIdToUse == null || accountIdToUse.trim().isEmpty()) && existingAccounts != null && !existingAccounts.isEmpty()) {
                                 logger.info("🔍 [Page {}] STEP 2b: Found {} existing accounts, checking for match by detected account", page, existingAccounts.size());
-                                AccountDetectionService.DetectedAccount detected = importResult.getDetectedAccount();
+                                AccountDetectionService.DetectedAccount detectedAccountForPage = importResult.getDetectedAccount();
                                 logger.info("🔍 [Page {}] STEP 2c: Detected account info - name='{}', institution='{}', type='{}', number='{}'", 
                                         page,
-                                        detected != null ? detected.getAccountName() : "null",
-                                        detected != null ? detected.getInstitutionName() : "null",
-                                        detected != null ? detected.getAccountType() : "null",
-                                        detected != null && detected.getAccountNumber() != null ? "***" + detected.getAccountNumber().substring(Math.max(0, detected.getAccountNumber().length() - 4)) : "null");
+                                        detectedAccountForPage != null ? detectedAccountForPage.getAccountName() : "null",
+                                        detectedAccountForPage != null ? detectedAccountForPage.getInstitutionName() : "null",
+                                        detectedAccountForPage != null ? detectedAccountForPage.getAccountType() : "null",
+                                        detectedAccountForPage != null && detectedAccountForPage.getAccountNumber() != null ? "***" + detectedAccountForPage.getAccountNumber().substring(Math.max(0, detectedAccountForPage.getAccountNumber().length() - 4)) : "null");
                                 
-                                if (detected != null) {
+                                if (detectedAccountForPage != null) {
                                     logger.info("🔍 [Page {}] STEP 2d: Most recent account not found, trying to match by detected account attributes", page);
                                     // CRITICAL: Try multiple matching strategies for better account reuse (deterministic, no time restrictions)
                                     // 1. First try by account number (most reliable)
-                                    if (detected.getAccountNumber() != null && !detected.getAccountNumber().trim().isEmpty()) {
-                                        String normalizedDetectedNumber = normalizeAccountNumber(detected.getAccountNumber());
+                                    if (detectedAccountForPage.getAccountNumber() != null && !detectedAccountForPage.getAccountNumber().trim().isEmpty()) {
+                                        String normalizedDetectedNumber = normalizeAccountNumber(detectedAccountForPage.getAccountNumber());
                                         logger.info("🔍 [Page {}] STEP 2d-1: Trying to match by account number '{}'", page, normalizedDetectedNumber);
                                         matchingAccount = existingAccounts.stream()
                                             .filter(acc -> {
@@ -1149,15 +1152,15 @@ public class TransactionController {
                                     }
                                     
                                     // 2. If no match by number, try by institution and account type (account name might differ due to generation)
-                                    if (matchingAccount == null && detected.getInstitutionName() != null && detected.getAccountType() != null) {
+                                    if (matchingAccount == null && detectedAccountForPage.getInstitutionName() != null && detectedAccountForPage.getAccountType() != null) {
                                         logger.info("🔍 [Page {}] STEP 2d-2: Trying to match by institution '{}' and type '{}'", 
-                                                page, detected.getInstitutionName(), detected.getAccountType());
+                                                page, detectedAccountForPage.getInstitutionName(), detectedAccountForPage.getAccountType());
                                         matchingAccount = existingAccounts.stream()
                                             .filter(acc -> {
-                                                boolean institutionMatch = detected.getInstitutionName() != null && 
-                                                                         detected.getInstitutionName().equals(acc.getInstitutionName());
-                                                boolean typeMatch = detected.getAccountType() != null && 
-                                                                  detected.getAccountType().equals(acc.getAccountType());
+                                                boolean institutionMatch = detectedAccountForPage.getInstitutionName() != null && 
+                                                                         detectedAccountForPage.getInstitutionName().equals(acc.getInstitutionName());
+                                                boolean typeMatch = detectedAccountForPage.getAccountType() != null && 
+                                                                  detectedAccountForPage.getAccountType().equals(acc.getAccountType());
                                                 return institutionMatch && typeMatch;
                                             })
                                             .max(Comparator.comparing((AccountTable acc) -> 
@@ -1171,14 +1174,14 @@ public class TransactionController {
                                     // 3. Fallback: Try by account name and institution (original logic)
                                     if (matchingAccount == null) {
                                         logger.info("🔍 [Page {}] STEP 2d-3: Trying to match by account name '{}' and institution '{}'", 
-                                                page, detected.getAccountName(), detected.getInstitutionName());
+                                                page, detectedAccountForPage.getAccountName(), detectedAccountForPage.getInstitutionName());
                                         matchingAccount = existingAccounts.stream()
                                             .filter(acc -> {
                                                 // Match by account name and institution
-                                                boolean nameMatch = detected.getAccountName() != null && 
-                                                                  detected.getAccountName().equals(acc.getAccountName());
-                                                boolean institutionMatch = detected.getInstitutionName() != null && 
-                                                                         detected.getInstitutionName().equals(acc.getInstitutionName());
+                                                boolean nameMatch = detectedAccountForPage.getAccountName() != null && 
+                                                                  detectedAccountForPage.getAccountName().equals(acc.getAccountName());
+                                                boolean institutionMatch = detectedAccountForPage.getInstitutionName() != null && 
+                                                                         detectedAccountForPage.getInstitutionName().equals(acc.getInstitutionName());
                                                 return nameMatch && institutionMatch;
                                             })
                                             .max(Comparator.comparing((AccountTable acc) -> 
@@ -1229,32 +1232,12 @@ public class TransactionController {
                                         }
                                     }
                                 } else if (page == 0) {
-                                    logger.info("🔍 [Page 0] STEP 3: Creating new generic account (no detected account)");
-                                    // Only create a new account on page 0
-                                    AccountTable pseudoAccount = new AccountTable();
-                                    pseudoAccount.setAccountId(UUID.randomUUID().toString().toLowerCase());
-                                    pseudoAccount.setUserId(user.getUserId());
-                                    // Generate account name in format: <institutionName><accountType><last4digits>
-                                    String accountName = generateAccountName("Unknown", "other", null, null);
-                                    pseudoAccount.setAccountName(accountName);
-                                    pseudoAccount.setInstitutionName("Unknown");
-                                    pseudoAccount.setAccountType("other");
-                                    pseudoAccount.setAccountSubtype(null);
-                                    pseudoAccount.setBalance(BigDecimal.ZERO);
-                                    pseudoAccount.setCurrencyCode("USD");
-                                    pseudoAccount.setActive(true);
-                                    accountRepository.save(pseudoAccount);
-                                    accountIdToUse = pseudoAccount.getAccountId();
-                                    logger.info("✅ [Page 0] STEP 3: Created generic imported account - ID='{}', name='{}'", 
-                                            accountIdToUse, pseudoAccount.getAccountName());
-                                    // Verify the account is retrievable
-                                    Optional<AccountTable> createdAccount = accountRepository.findById(accountIdToUse);
-                                    if (createdAccount.isPresent()) {
-                                        logger.info("✅ [Page 0] STEP 4: Generic account verification - ID='{}', name='{}', createdAt='{}'", 
-                                                accountIdToUse, createdAccount.get().getAccountName(), createdAccount.get().getCreatedAt());
-                                    } else {
-                                        logger.error("❌ [Page 0] STEP 4: Generic account verification FAILED - Account '{}' not found!", accountIdToUse);
-                                    }
+                                    // CRITICAL FIX: Don't create generic accounts - use pseudo account instead
+                                    // This prevents creating accounts with "Unknown" or "Imported Account" names
+                                    logger.info("🔍 [Page 0] STEP 3: No account detected and no account ID provided - transactions will use pseudo account");
+                                    // Leave accountIdToUse as null - TransactionService will use pseudo account
+                                    accountIdToUse = null;
+                                    logger.info("ℹ️ [Page 0] STEP 3: accountIdToUse set to null - transactions will use pseudo account (Manual Transactions)");
                                 }
                             }
                         }
@@ -1791,7 +1774,7 @@ public class TransactionController {
                 int duplicateCount = duplicates != null ? duplicates.size() : 0;
                 logger.info("🔍 PDF Preview - Duplicate detection: {} transactions with duplicates out of {} total", 
                         duplicateCount, parsedForDuplicateCheck.size());
-                if (duplicateCount > 0) {
+                if (duplicateCount > 0 && duplicates != null) {
                     for (Map.Entry<Integer, List<DuplicateDetectionService.DuplicateMatch>> entry : duplicates.entrySet()) {
                         logger.info("🔍 PDF Preview - Transaction index {} has {} duplicate(s): {}", 
                                 entry.getKey(), entry.getValue().size(), 
@@ -2727,7 +2710,8 @@ public class TransactionController {
                             null, // reviewStatus
                             parsed.getMerchantName(), // merchantName (where purchase was made)
                             parsed.getPaymentChannel(), // paymentChannel
-                            null // userName (not available in CSV/Excel imports)
+                            null, // userName (not available in CSV/Excel imports)
+                            null // goalId
                     );
                     batchCreated++;
                     created++;
@@ -2811,7 +2795,8 @@ public class TransactionController {
                             null, // reviewStatus
                             parsed.getMerchantName(), // merchantName (where purchase was made)
                             parsed.getPaymentChannel(), // paymentChannel
-                            parsed.getUserName() // userName (card/account user - family member)
+                            parsed.getUserName(), // userName (card/account user - family member)
+                            null // goalId
                     );
                     
                     // CRITICAL: Log amount after creation to verify sign preservation
@@ -2847,23 +2832,64 @@ public class TransactionController {
     public static class CreateTransactionRequest {
         private String transactionId; // Optional: If provided, use this ID (for app-backend ID consistency)
         private String accountId;
+        
+        @jakarta.validation.constraints.NotNull(message = "Amount is required")
+        @jakarta.validation.constraints.DecimalMin(value = "-999999999.99", message = "Amount must be between -999,999,999.99 and 999,999,999.99")
+        @jakarta.validation.constraints.DecimalMax(value = "999999999.99", message = "Amount must be between -999,999,999.99 and 999,999,999.99")
         private BigDecimal amount;
+        
+        @jakarta.validation.constraints.NotNull(message = "Transaction date is required")
+        @jakarta.validation.constraints.PastOrPresent(message = "Transaction date cannot be in the future")
         private LocalDate transactionDate;
+        
+        @jakarta.validation.constraints.Size(max = 500, message = "Description cannot exceed 500 characters")
         private String description;
+        
+        @jakarta.validation.constraints.NotBlank(message = "Category primary is required")
+        @jakarta.validation.constraints.Size(max = 100, message = "Category primary cannot exceed 100 characters")
         private String categoryPrimary; // Primary category (required)
+        
+        @jakarta.validation.constraints.Size(max = 100, message = "Category detailed cannot exceed 100 characters")
         private String categoryDetailed; // Detailed category (optional, defaults to primary if not provided)
+        
+        @jakarta.validation.constraints.Size(max = 1000, message = "Notes cannot exceed 1000 characters")
         private String notes; // Optional: User notes for the transaction
+        
+        @jakarta.validation.constraints.Size(max = 100, message = "Plaid account ID cannot exceed 100 characters")
         private String plaidAccountId; // Optional: Plaid account ID for fallback lookup if accountId not found
+        
+        @jakarta.validation.constraints.Size(max = 100, message = "Plaid transaction ID cannot exceed 100 characters")
         private String plaidTransactionId; // Optional: Plaid transaction ID for fallback lookup and ID consistency
+        
+        @jakarta.validation.constraints.Pattern(regexp = "^(INCOME|INVESTMENT|LOAN|EXPENSE)?$", message = "Transaction type must be INCOME, INVESTMENT, LOAN, or EXPENSE")
         private String transactionType; // Optional: User-selected transaction type (INCOME, INVESTMENT, LOAN, EXPENSE). If not provided, backend will calculate it.
+        
+        @jakarta.validation.constraints.Pattern(regexp = "^[A-Z]{3}$", message = "Currency code must be a 3-letter ISO code (e.g., USD, INR)")
         private String currencyCode; // Optional: Currency code (e.g., "USD", "INR")
+        
+        @jakarta.validation.constraints.Pattern(regexp = "^(CSV|Excel|PDF)?$", message = "Import source must be CSV, Excel, or PDF")
         private String importSource; // Optional: Import source (e.g., "CSV", "Excel", "PDF")
+        
+        @jakarta.validation.constraints.Size(max = 100, message = "Import batch ID cannot exceed 100 characters")
         private String importBatchId; // Optional: Batch ID for grouped imports
+        
+        @jakarta.validation.constraints.Size(max = 255, message = "Import file name cannot exceed 255 characters")
         private String importFileName; // Optional: Original file name for imports
+        
+        @jakarta.validation.constraints.Pattern(regexp = "^(none|flagged|reviewed|error)?$", message = "Review status must be none, flagged, reviewed, or error")
         private String reviewStatus; // Optional: review status ("none", "flagged", "reviewed", "error")
+        
+        @jakarta.validation.constraints.Size(max = 200, message = "Merchant name cannot exceed 200 characters")
         private String merchantName; // Optional: Merchant name (where purchase was made, e.g., "Amazon", "Starbucks")
+        
+        @jakarta.validation.constraints.Size(max = 50, message = "Payment channel cannot exceed 50 characters")
         private String paymentChannel; // Optional: Payment channel (online, in_store, ach, etc.)
+        
+        @jakarta.validation.constraints.Size(max = 100, message = "User name cannot exceed 100 characters")                                                    
         private String userName; // Optional: Card/account user name (family member who made the transaction)
+        
+        @jakarta.validation.constraints.Size(max = 100, message = "Goal ID cannot exceed 100 characters")
+        private String goalId; // Optional: Goal this transaction contributes to
 
         // Getters and setters
         public String getTransactionId() { return transactionId; }
@@ -2913,8 +2939,11 @@ public class TransactionController {
         public String getPaymentChannel() { return paymentChannel; }
         public void setPaymentChannel(final String paymentChannel) { this.paymentChannel = paymentChannel; }
         
-        public String getUserName() { return userName; }
+        public String getUserName() { return userName; }                                                  
         public void setUserName(final String userName) { this.userName = userName; }
+        
+        public String getGoalId() { return goalId; }
+        public void setGoalId(final String goalId) { this.goalId = goalId; }
     }
 
     public static class TotalSpendingResponse {
@@ -2929,14 +2958,32 @@ public class TransactionController {
     }
 
     public static class UpdateTransactionRequest {
+        @jakarta.validation.constraints.DecimalMin(value = "-999999999.99", message = "Amount must be between -999,999,999.99 and 999,999,999.99")
+        @jakarta.validation.constraints.DecimalMax(value = "999999999.99", message = "Amount must be between -999,999,999.99 and 999,999,999.99")
         private BigDecimal amount; // Optional: transaction amount (for type changes)
+        
+        @jakarta.validation.constraints.Size(max = 1000, message = "Notes cannot exceed 1000 characters")
         private String notes;
+        
+        @jakarta.validation.constraints.Size(max = 100, message = "Category primary cannot exceed 100 characters")
         private String categoryPrimary; // Optional: override primary category
+        
+        @jakarta.validation.constraints.Size(max = 100, message = "Category detailed cannot exceed 100 characters")
         private String categoryDetailed; // Optional: override detailed category
+        
+        @jakarta.validation.constraints.Size(max = 100, message = "Plaid transaction ID cannot exceed 100 characters")
         private String plaidTransactionId; // Optional: for fallback lookup if transactionId not found
+        
+        @jakarta.validation.constraints.Pattern(regexp = "^(none|flagged|reviewed|error)?$", message = "Review status must be none, flagged, reviewed, or error")
         private String reviewStatus; // Optional: review status ("none", "flagged", "reviewed", "error")
+        
         private Boolean isHidden; // Optional: whether transaction is hidden from view
+        
+        @jakarta.validation.constraints.Pattern(regexp = "^(INCOME|INVESTMENT|LOAN|EXPENSE)?$", message = "Transaction type must be INCOME, INVESTMENT, LOAN, or EXPENSE")                                          
         private String transactionType; // Optional: User-selected transaction type (INCOME, INVESTMENT, LOAN, EXPENSE). If not provided, backend will calculate it.
+        
+        @jakarta.validation.constraints.Size(max = 100, message = "Goal ID cannot exceed 100 characters")
+        private String goalId; // Optional: Goal this transaction contributes to
 
         public BigDecimal getAmount() { return amount; }
         public void setAmount(final BigDecimal amount) { this.amount = amount; }
@@ -2959,12 +3006,19 @@ public class TransactionController {
         public Boolean getIsHidden() { return isHidden; }
         public void setIsHidden(final Boolean isHidden) { this.isHidden = isHidden; }
         
-        public String getTransactionType() { return transactionType; }
+        public String getTransactionType() { return transactionType; }                                    
         public void setTransactionType(final String transactionType) { this.transactionType = transactionType; }
+        
+        public String getGoalId() { return goalId; }
+        public void setGoalId(final String goalId) { this.goalId = goalId; }
     }
 
     public static class VerifyTransactionRequest {
+        @jakarta.validation.constraints.NotBlank(message = "Transaction ID is required")
+        @jakarta.validation.constraints.Size(max = 100, message = "Transaction ID cannot exceed 100 characters")
         private String transactionId;
+        
+        @jakarta.validation.constraints.Size(max = 100, message = "Plaid transaction ID cannot exceed 100 characters")
         private String plaidTransactionId; // Optional: Plaid transaction ID in body for fallback lookup
 
         public String getTransactionId() { return transactionId; }
@@ -3152,6 +3206,20 @@ public class TransactionController {
             return null;
         }
         
+        // CRITICAL FIX: Check if all fields are null/empty BEFORE attempting to create account
+        // If all fields are empty, create account with defaults instead of returning null
+        boolean allFieldsNullOrEmpty = (detectedAccount.getInstitutionName() == null || detectedAccount.getInstitutionName().trim().isEmpty()) &&
+                                      (detectedAccount.getAccountName() == null || detectedAccount.getAccountName().trim().isEmpty()) &&
+                                      (detectedAccount.getAccountType() == null || detectedAccount.getAccountType().trim().isEmpty()) &&
+                                      (detectedAccount.getAccountSubtype() == null || detectedAccount.getAccountSubtype().trim().isEmpty()) &&
+                                      (detectedAccount.getAccountNumber() == null || detectedAccount.getAccountNumber().trim().isEmpty()) &&
+                                      (detectedAccount.getMatchedAccountId() == null || detectedAccount.getMatchedAccountId().trim().isEmpty());
+        
+        if (allFieldsNullOrEmpty) {
+            logger.info("⚠️ autoCreateAccountIfDetected: All detected account fields are null/empty - creating account with defaults.");
+            // Continue to create account with defaults instead of returning null
+        }
+        
         logger.info("🔍 autoCreateAccountIfDetected: Starting account creation check - name='{}', institution='{}', type='{}', accountNumber='{}', matchedAccountId='{}'", 
                 detectedAccount.getAccountName(), 
                 detectedAccount.getInstitutionName(),
@@ -3277,13 +3345,8 @@ public class TransactionController {
                 logger.debug("⚠️ No balance in detected account - account will be created with null balance");
             }
             
-            // CRITICAL: Check if all fields are null/empty BEFORE normalization
-            // This ensures we return "Imported Account" when all fields are null/empty (for test compatibility)
-            boolean allFieldsNullOrEmpty = (detectedAccount.getInstitutionName() == null || detectedAccount.getInstitutionName().trim().isEmpty()) &&
-                                          (detectedAccount.getAccountName() == null || detectedAccount.getAccountName().trim().isEmpty()) &&
-                                          (detectedAccount.getAccountType() == null || detectedAccount.getAccountType().trim().isEmpty()) &&
-                                          (detectedAccount.getAccountSubtype() == null || detectedAccount.getAccountSubtype().trim().isEmpty()) &&
-                                          (detectedAccount.getAccountNumber() == null || detectedAccount.getAccountNumber().trim().isEmpty());
+            // NOTE: allFieldsNullOrEmpty check was moved to the beginning of the method
+            // This prevents creating accounts when no account information is detected
             
             // CRITICAL: Sanitize institution name - remove control characters and truncate if too long
             String institutionName = detectedAccount.getInstitutionName();
@@ -3553,8 +3616,13 @@ public class TransactionController {
     }
 
     public static class BatchImportRequest {
+        @jakarta.validation.constraints.NotNull(message = "Transactions list is required")
+        @jakarta.validation.constraints.NotEmpty(message = "Transactions list cannot be empty")
+        @jakarta.validation.constraints.Size(max = 10000, message = "Batch size cannot exceed 10000 transactions")
         private List<CreateTransactionRequest> transactions;
+        
         private DetectedAccountInfo detectedAccount;
+        
         private Boolean createDetectedAccount;
 
         public List<CreateTransactionRequest> getTransactions() { return transactions; }

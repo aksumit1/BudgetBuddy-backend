@@ -46,13 +46,31 @@ class CategoryTypeAllocationDeepReviewTest {
 
     @BeforeEach
     void setUp() {
+        // Create real CategoryDetectionManager with real strategies for proper category detection
+        java.util.List<com.budgetbuddy.service.category.strategy.CategoryDetectionStrategy> strategies = 
+            java.util.Arrays.asList(
+                new com.budgetbuddy.service.category.strategy.DiningCategoryStrategy(),
+                new com.budgetbuddy.service.category.strategy.GroceriesCategoryStrategy(),
+                new com.budgetbuddy.service.category.strategy.TransportationCategoryStrategy(),
+                new com.budgetbuddy.service.category.strategy.UtilitiesCategoryStrategy(),
+                new com.budgetbuddy.service.category.strategy.EntertainmentCategoryStrategy(),
+                new com.budgetbuddy.service.category.strategy.HealthCategoryStrategy(),
+                new com.budgetbuddy.service.category.strategy.ShoppingCategoryStrategy(),
+                new com.budgetbuddy.service.category.strategy.TechCategoryStrategy(),
+                new com.budgetbuddy.service.category.strategy.TravelCategoryStrategy(),
+                new com.budgetbuddy.service.category.strategy.PetCategoryStrategy(),
+                new com.budgetbuddy.service.category.strategy.CharityCategoryStrategy()
+            );
+        com.budgetbuddy.service.category.strategy.CategoryDetectionManager categoryDetectionManager = 
+            new com.budgetbuddy.service.category.strategy.CategoryDetectionManager(strategies);
+        
         csvImportService = new CSVImportService(
             accountDetectionService,
             enhancedCategoryDetection,
-            fuzzyMatchingService
-        ,
+            fuzzyMatchingService,
                 org.mockito.Mockito.mock(TransactionTypeCategoryService.class),
-                org.mockito.Mockito.mock(ImportCategoryParser.class));
+                org.mockito.Mockito.mock(ImportCategoryParser.class),
+                categoryDetectionManager);
     }
 
     // ========== NULL SAFETY TESTS ==========
@@ -297,8 +315,8 @@ class CategoryTypeAllocationDeepReviewTest {
 
     @Test
     void testParseCategory_MLModelThrowsException() {
-        // Simulate ML model throwing exception
-        when(enhancedCategoryDetection.detectCategory(any(), any(), any(), any(), any()))
+        // Simulate ML model throwing exception - use lenient stubbing since it may not be called
+        org.mockito.Mockito.lenient().when(enhancedCategoryDetection.detectCategory(any(), any(), any(), any(), any()))
             .thenThrow(new RuntimeException("ML model error"));
 
         // Should not throw, should fall back to other methods

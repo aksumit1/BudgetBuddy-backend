@@ -60,7 +60,7 @@ public class TransactionSyncController {
             @RequestParam @NotBlank @Parameter(description = "Plaid access token") String accessToken) {
 
         if (userDetails == null || userDetails.getUsername() == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
         }
 
         if (accessToken == null || accessToken.isEmpty()) {
@@ -104,7 +104,7 @@ public class TransactionSyncController {
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate sinceDate) {
 
         if (userDetails == null || userDetails.getUsername() == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
         }
 
         if (accessToken == null || accessToken.isEmpty()) {
@@ -159,7 +159,7 @@ public class TransactionSyncController {
             @AuthenticationPrincipal UserDetails userDetails) {
 
         if (userDetails == null || userDetails.getUsername() == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
         }
 
         UserTable user = userService.findByEmail(userDetails.getUsername())

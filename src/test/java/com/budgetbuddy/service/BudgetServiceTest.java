@@ -99,13 +99,20 @@ class BudgetServiceTest {
 
     @Test
     void testCreateOrUpdateBudget_WithInvalidLimit_ThrowsException() {
-        // When/Then - Zero limit
-        AppException exception = assertThrows(AppException.class,
-                () -> budgetService.createOrUpdateBudget(testUser, "FOOD", BigDecimal.ZERO));
-        assertEquals(ErrorCode.INVALID_INPUT, exception.getErrorCode());
+        // When/Then - Zero limit is allowed (zero-based budgeting support)
+        // Zero limit should NOT throw exception
+        when(budgetRepository.findByUserIdAndCategory("user-123", "FOOD")).thenReturn(Optional.empty());
+        when(budgetRepository.findByUserId(anyString())).thenReturn(Collections.emptyList());
+        doNothing().when(budgetRepository).save(any(BudgetTable.class));
+        when(transactionService.getTransactionsByCategory(any(), anyString(), any()))
+                .thenReturn(Collections.emptyList());
+        
+        BudgetTable result = budgetService.createOrUpdateBudget(testUser, "FOOD", BigDecimal.ZERO);
+        assertNotNull(result);
+        assertEquals(BigDecimal.ZERO, result.getMonthlyLimit());
 
-        // When/Then - Negative limit
-        exception = assertThrows(AppException.class,
+        // When/Then - Negative limit should throw exception
+        AppException exception = assertThrows(AppException.class,
                 () -> budgetService.createOrUpdateBudget(testUser, "FOOD", BigDecimal.valueOf(-100)));
         assertEquals(ErrorCode.INVALID_INPUT, exception.getErrorCode());
     }

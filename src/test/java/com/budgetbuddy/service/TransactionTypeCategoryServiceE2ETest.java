@@ -148,7 +148,7 @@ class TransactionTypeCategoryServiceE2ETest {
         assertNotNull(categoryResult);
         assertEquals("payment", categoryResult.getCategoryPrimary());
         assertNotNull(typeResult);
-        assertEquals(TransactionType.LOAN, typeResult.getTransactionType());
+        assertEquals(TransactionType.PAYMENT, typeResult.getTransactionType());
     }
 
     @Test

@@ -248,7 +248,9 @@ class IdConsistencyIntegrationTest {
                 BigDecimal.valueOf(10000.00),
                 LocalDate.now().plusMonths(12),
                 "EMERGENCY_FUND",
-                expectedGoalId // App-provided ID
+                expectedGoalId, // App-provided ID
+                null, // currentAmount
+                null // accountIds
         );
 
         // Then - Should use the provided ID
@@ -271,7 +273,9 @@ class IdConsistencyIntegrationTest {
                 BigDecimal.valueOf(5000.00),
                 LocalDate.now().plusMonths(6),
                 "VACATION",
-                null // Let backend generate
+                null, // Let backend generate
+                null, // currentAmount
+                null // accountIds
         );
 
         // Then - Should generate deterministic ID matching our expectation
@@ -388,7 +392,9 @@ class IdConsistencyIntegrationTest {
                 BigDecimal.valueOf(1000.00),
                 LocalDate.now().plusMonths(6),
                 "CUSTOM",
-                goalId
+                goalId,
+                null, // currentAmount
+                null // accountIds
         );
 
         // Then - Should succeed
@@ -403,7 +409,9 @@ class IdConsistencyIntegrationTest {
                     BigDecimal.valueOf(2000.00),
                     LocalDate.now().plusMonths(12),
                     "CUSTOM",
-                    goalId // Same ID
+                    goalId, // Same ID
+                    null, // currentAmount
+                    null // accountIds
             );
         }, "Should throw exception when goal ID already exists");
     }

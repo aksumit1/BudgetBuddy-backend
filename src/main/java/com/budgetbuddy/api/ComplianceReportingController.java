@@ -4,6 +4,8 @@ import com.budgetbuddy.compliance.financial.FinancialComplianceService;
 import com.budgetbuddy.compliance.hipaa.HIPAAComplianceService;
 import com.budgetbuddy.compliance.iso27001.ISO27001ComplianceService;
 import com.budgetbuddy.compliance.soc2.SOC2ComplianceService;
+import com.budgetbuddy.exception.AppException;
+import com.budgetbuddy.exception.ErrorCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -48,7 +50,7 @@ public class ComplianceReportingController {
     public ResponseEntity<SOC2ComplianceService.SystemHealth> getSOC2Report(
             @AuthenticationPrincipal UserDetails userDetails) {
         com.budgetbuddy.model.dynamodb.UserTable user = userService.findByEmail(userDetails.getUsername())
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
 
         // Check permissions
         if (!hasComplianceAccess(user)) {
@@ -67,7 +69,7 @@ public class ComplianceReportingController {
             @AuthenticationPrincipal UserDetails userDetails,
             @RequestParam(required = false) String userId) {
         com.budgetbuddy.model.dynamodb.UserTable user = userService.findByEmail(userDetails.getUsername())
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
 
         // Check permissions
         if (!hasComplianceAccess(user)) {
@@ -85,7 +87,7 @@ public class ComplianceReportingController {
     public ResponseEntity<ISO27001ComplianceService.SecurityIncident> getISO27001Incidents(
             @AuthenticationPrincipal UserDetails userDetails) {
         com.budgetbuddy.model.dynamodb.UserTable user = userService.findByEmail(userDetails.getUsername())
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
 
         // Check permissions
         if (!hasComplianceAccess(user)) {
@@ -105,7 +107,7 @@ public class ComplianceReportingController {
             @RequestParam Instant startDate,
             @RequestParam Instant endDate) {
         com.budgetbuddy.model.dynamodb.UserTable user = userService.findByEmail(userDetails.getUsername())
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
 
         // Check permissions
         if (!hasComplianceAccess(user)) {

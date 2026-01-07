@@ -75,9 +75,14 @@ class PreviewPaginationTest {
     private com.budgetbuddy.service.ChunkedUploadService chunkedUploadService;
     
     @Mock
+    private com.budgetbuddy.service.AccountDetectionService accountDetectionService;
+    
+    @Mock
+    private com.budgetbuddy.api.config.TransactionControllerConfig config;
+    
+    @Mock
     private UserDetails userDetails;
     
-    @InjectMocks
     private TransactionController transactionController;
     
     private UserTable testUser;
@@ -88,6 +93,27 @@ class PreviewPaginationTest {
         testUser = new UserTable();
         testUser.setUserId(testUserId);
         testUser.setEmail("test@example.com");
+        
+        // Setup config mock to return all service mocks
+        when(config.getTransactionService()).thenReturn(transactionService);
+        when(config.getUserService()).thenReturn(userService);
+        when(config.getAccountRepository()).thenReturn(accountRepository);
+        when(config.getFileUploadRateLimiter()).thenReturn(fileUploadRateLimiter);
+        when(config.getFileSecurityValidator()).thenReturn(fileSecurityValidator);
+        when(config.getFileContentScanner()).thenReturn(fileContentScanner);
+        when(config.getFileQuarantineService()).thenReturn(fileQuarantineService);
+        when(config.getFileIntegrityService()).thenReturn(fileIntegrityService);
+        when(config.getCsvImportService()).thenReturn(csvImportService);
+        when(config.getExcelImportService()).thenReturn(excelImportService);
+        when(config.getPdfImportService()).thenReturn(pdfImportService);
+        when(config.getDuplicateDetectionService()).thenReturn(duplicateDetectionService);
+        when(config.getTransactionTypeCategoryService()).thenReturn(transactionTypeCategoryService);
+        when(config.getChunkedUploadService()).thenReturn(chunkedUploadService);
+        when(config.getAccountDetectionService()).thenReturn(accountDetectionService);
+        when(config.getObjectMapper()).thenReturn(org.mockito.Mockito.mock(com.fasterxml.jackson.databind.ObjectMapper.class));
+        
+        // Create controller with mocked config
+        transactionController = new TransactionController(config);
         
         when(userDetails.getUsername()).thenReturn("test@example.com");
         when(userService.findByEmail(anyString())).thenReturn(java.util.Optional.of(testUser));

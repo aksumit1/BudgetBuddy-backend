@@ -2,7 +2,6 @@ package com.budgetbuddy.api;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Request body for preserving categories from preview during import

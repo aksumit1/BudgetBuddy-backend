@@ -38,6 +38,11 @@
         <maven.surefire.version>3.5.1</maven.surefire.version>
         <maven.failsafe.version>3.5.1</maven.failsafe.version>
         <jacoco.version>0.8.12</jacoco.version>
+        <!-- Static Analysis Tools -->
+        <checkstyle.version>3.5.0</checkstyle.version>
+        <pmd.version>3.25.0</pmd.version>
+        <spotbugs.version>4.8.6.3</spotbugs.version>
+        <archunit.version>1.4.1</archunit.version>
         <!-- Build performance optimizations -->
         <maven.compiler.fork>true</maven.compiler.fork>
         <maven.test.skip>false</maven.test.skip>
@@ -426,6 +431,13 @@
             <groupId>org.apache.poi</groupId>
             <artifactId>poi-ooxml</artifactId>
             <version>5.2.5</version>
+        </dependency>
+
+        <!-- SpotBugs Annotations for suppressing false positives -->
+        <dependency>
+            <groupId>com.github.spotbugs</groupId>
+            <artifactId>spotbugs-annotations</artifactId>
+            <version>4.8.6</version>
         </dependency>
 
         <!-- Testing -->
@@ -835,6 +847,86 @@
                             </configuration>
                         </execution>
                     </executions>
+                </plugin>
+                <!-- Checkstyle Plugin -->
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-checkstyle-plugin</artifactId>
+                    <version>${checkstyle.version}</version>
+                    <dependencies>
+                        <dependency>
+                            <groupId>com.puppycrawl.tools</groupId>
+                            <artifactId>checkstyle</artifactId>
+                            <version>10.15.0</version>
+                        </dependency>
+                    </dependencies>
+                    <executions>
+                        <execution>
+                            <id>validate</id>
+                            <phase>validate</phase>
+                            <goals>
+                                <goal>check</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                    <configuration>
+                        <configLocation>checkstyle.xml</configLocation>
+                        <encoding>UTF-8</encoding>
+                        <consoleOutput>true</consoleOutput>
+                        <failsOnError>false</failsOnError>
+                        <linkXRef>false</linkXRef>
+                        <includeTestSourceDirectory>true</includeTestSourceDirectory>
+                    </configuration>
+                </plugin>
+                <!-- PMD Plugin -->
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-pmd-plugin</artifactId>
+                    <version>${pmd.version}</version>
+                    <executions>
+                        <execution>
+                            <id>pmd-check</id>
+                            <phase>validate</phase>
+                            <goals>
+                                <goal>check</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                    <configuration>
+                        <rulesets>
+                            <ruleset>/category/java/bestpractices.xml</ruleset>
+                            <ruleset>/category/java/codestyle.xml</ruleset>
+                            <ruleset>/category/java/design.xml</ruleset>
+                            <ruleset>/category/java/errorprone.xml</ruleset>
+                            <ruleset>/category/java/performance.xml</ruleset>
+                            <ruleset>/category/java/security.xml</ruleset>
+                        </rulesets>
+                        <failOnViolation>false</failOnViolation>
+                        <printFailingErrors>true</printFailingErrors>
+                        <includeTests>true</includeTests>
+                    </configuration>
+                </plugin>
+                <!-- SpotBugs Plugin -->
+                <plugin>
+                    <groupId>com.github.spotbugs</groupId>
+                    <artifactId>spotbugs-maven-plugin</artifactId>
+                    <version>${spotbugs.version}</version>
+                    <executions>
+                        <execution>
+                            <id>spotbugs-check</id>
+                            <phase>verify</phase>
+                            <goals>
+                                <goal>check</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                    <configuration>
+                        <effort>Max</effort>
+                        <threshold>Low</threshold>
+                        <xmlOutput>true</xmlOutput>
+                        <includeTests>true</includeTests>
+                        <failOnError>false</failOnError>
+                    </configuration>
                 </plugin>
                 <!-- Maven Deploy Plugin: Skip deployment by default (application, not library) -->
                 <plugin>

@@ -22,7 +22,7 @@ public class AccountDetectionServiceSendInquiriesTest {
         com.budgetbuddy.repository.dynamodb.AccountRepository mockAccountRepository = 
             org.mockito.Mockito.mock(com.budgetbuddy.repository.dynamodb.AccountRepository.class);
         
-        accountDetectionService = new AccountDetectionService(mockAccountRepository);
+        accountDetectionService = new AccountDetectionService(mockAccountRepository, new com.budgetbuddy.service.BalanceExtractor());
         
         extractAccountHolderNameFromPDF = AccountDetectionService.class.getDeclaredMethod(
             "extractAccountHolderNameFromPDF", String.class);

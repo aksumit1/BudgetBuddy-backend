@@ -7,6 +7,7 @@ import org.slf4j.MDC;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -187,6 +188,33 @@ public class EnhancedGlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
     }
 
+    @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
+    public ResponseEntity<ErrorResponse> handleHttpMediaTypeNotSupportedException(
+            HttpMediaTypeNotSupportedException ex, WebRequest request) {
+        String correlationId = MDC.get("correlationId");
+
+        String contentType = ex.getContentType() != null ? ex.getContentType().toString() : "unknown";
+        String supportedTypes = ex.getSupportedMediaTypes() != null && !ex.getSupportedMediaTypes().isEmpty()
+                ? String.join(", ", ex.getSupportedMediaTypes().stream()
+                        .map(mediaType -> mediaType.toString())
+                        .toList())
+                : "application/json";
+
+        ErrorResponse errorResponse = ErrorResponse.builder()
+                .errorCode("UNSUPPORTED_MEDIA_TYPE")
+                .message("Content-Type '" + contentType + "' is not supported. Supported types: " + supportedTypes)
+                .correlationId(correlationId)
+                .timestamp(Instant.now())
+                .path(request.getDescription(false).replace("uri=", ""))
+                .build();
+
+        logger.warn("Unsupported media type: {} | Supported types: {} | CorrelationId: {}", 
+                contentType, supportedTypes, correlationId);
+
+        // Return 415 Unsupported Media Type (4xx client error, not 500 server error)
+        return ResponseEntity.status(HttpStatus.UNSUPPORTED_MEDIA_TYPE).body(errorResponse);
+    }
+
     @ExceptionHandler(com.fasterxml.jackson.core.JsonParseException.class)
     public ResponseEntity<ErrorResponse> handleJsonParseException(
             com.fasterxml.jackson.core.JsonParseException ex, WebRequest request) {
@@ -301,6 +329,11 @@ public class EnhancedGlobalExceptionHandler {
             return handleClientAbortException((org.apache.catalina.connector.ClientAbortException) ex, request);
         }
 
+        // Check if this is an unsupported media type exception
+        if (ex instanceof HttpMediaTypeNotSupportedException) {
+            return handleHttpMediaTypeNotSupportedException((HttpMediaTypeNotSupportedException) ex, request);
+        }
+
         // Sanitize error message - never expose internal details
         String sanitizedMessage = messageUtil.getErrorMessage("internal.server.error");
         if (sanitizedMessage == null || sanitizedMessage.isEmpty()) {
@@ -378,7 +411,7 @@ public class EnhancedGlobalExceptionHandler {
         return switch (errorCode) {
             case USER_NOT_FOUND, TRANSACTION_NOT_FOUND, ACCOUNT_NOT_FOUND,
                  BUDGET_NOT_FOUND, GOAL_NOT_FOUND, RECORD_NOT_FOUND -> HttpStatus.NOT_FOUND;
-            case INVALID_CREDENTIALS, UNAUTHORIZED, UNAUTHORIZED_ACCESS -> HttpStatus.UNAUTHORIZED;
+            case INVALID_CREDENTIALS, UNAUTHORIZED_ACCESS -> HttpStatus.UNAUTHORIZED;
             case INSUFFICIENT_PERMISSIONS -> HttpStatus.FORBIDDEN;
             case USER_ALREADY_EXISTS, EMAIL_ALREADY_REGISTERED, INVALID_INPUT, MISSING_REQUIRED_FIELD, INVALID_FORMAT -> HttpStatus.BAD_REQUEST;
             case RATE_LIMIT_EXCEEDED, PLAID_RATE_LIMIT_EXCEEDED, STRIPE_RATE_LIMIT_EXCEEDED -> HttpStatus.TOO_MANY_REQUESTS;

@@ -51,6 +51,7 @@ class TransactionTypeCategoryServiceTest {
     private AccountTable checkingAccount;
     private AccountTable investmentAccount;
     private AccountTable loanAccount;
+    private AccountTable creditCardAccount;
 
     @BeforeEach
     void setUp() {
@@ -90,6 +91,12 @@ class TransactionTypeCategoryServiceTest {
         loanAccount = new AccountTable();
         loanAccount.setAccountId("loan-account-id");
         loanAccount.setAccountType("credit");
+        
+        // Setup credit card account for testing
+        creditCardAccount = new AccountTable();
+        creditCardAccount.setAccountId("credit-card-account-id");
+        creditCardAccount.setAccountType("credit");
+        creditCardAccount.setAccountSubtype("credit card");
     }
 
     @Test
@@ -112,7 +119,10 @@ class TransactionTypeCategoryServiceTest {
 
         // Then: Should be INVESTMENT
         assertNotNull(result);
-        assertEquals(TransactionType.INVESTMENT, result.getTransactionType());
+        // Investment account with positive amount → INCOME (dividends/interest)
+        // Investment account with negative amount → INVESTMENT (purchases) or EXPENSE (fees)
+        // This test has positive amount, so it should be INCOME
+        assertEquals(TransactionType.INCOME, result.getTransactionType());
         assertTrue(result.getConfidence() > 0.5);
     }
 
@@ -405,10 +415,10 @@ class TransactionTypeCategoryServiceTest {
             null
         );
 
-        // Then: Should be LOAN (credit card payment)
+        // Then: Should be PAYMENT (credit card payment)
         assertNotNull(result);
-        // Note: Credit card payment detection is in the service, should be LOAN
-        assertTrue(result.getTransactionType() == TransactionType.LOAN || 
+        // Note: Credit card payment detection is in the service, should be PAYMENT
+        assertTrue(result.getTransactionType() == TransactionType.PAYMENT || 
                    result.getTransactionType() == TransactionType.EXPENSE);
     }
 
@@ -523,6 +533,113 @@ class TransactionTypeCategoryServiceTest {
             assertNotNull(result);
             assertEquals("groceries", result.getCategoryPrimary());
         }
+    }
+    
+    // ========== Bug Fix Test Cases ==========
+    
+    @Test
+    void testDeltaAirlinesTicket_CreditCard_ShouldBeExpenseTravel() {
+        // Given: Delta Airlines ticket on credit card (positive amount = charge)
+        when(importCategoryParser.parseCategory(any(), anyString(), anyString(), any(BigDecimal.class), anyString(), anyString()))
+            .thenReturn("travel");
+        
+        // Mock ML detection to return travel
+        EnhancedCategoryDetectionService.DetectionResult mlResult = 
+            new EnhancedCategoryDetectionService.DetectionResult("travel", 0.9, "ML", "Delta Airlines detected");
+        when(circuitBreakerService.execute(anyString(), any(), any())).thenReturn(mlResult);
+        
+        // When: Determine transaction type and category
+        TransactionTypeCategoryService.TypeResult typeResult = service.determineTransactionType(
+            creditCardAccount,
+            null,  // No initial category
+            null,
+            BigDecimal.valueOf(450.00),  // Positive amount = charge
+            null,
+            "Delta Airlines Flight DL1234",
+            null
+        );
+        
+        TransactionTypeCategoryService.CategoryResult categoryResult = service.determineCategory(
+            null,
+            null,
+            creditCardAccount,
+            "Delta Airlines",
+            "Delta Airlines Flight DL1234",
+            BigDecimal.valueOf(450.00),
+            null,
+            null,
+            "CSV"
+        );
+        
+        // Then: Should be EXPENSE type and TRAVEL category
+        assertNotNull(typeResult);
+        assertEquals(TransactionType.EXPENSE, typeResult.getTransactionType(), 
+            "Delta Airlines ticket on credit card should be EXPENSE, not PAYMENT");
+        
+        assertNotNull(categoryResult);
+        assertTrue("travel".equalsIgnoreCase(categoryResult.getCategoryPrimary()) || 
+                   "transportation".equalsIgnoreCase(categoryResult.getCategoryPrimary()),
+            "Delta Airlines should be categorized as travel or transportation, not utilities. Got: " + categoryResult.getCategoryPrimary());
+    }
+    
+    @Test
+    void testCAFFENero_ShouldBeDining() {
+        // Given: CAFFE Nero transaction
+        when(importCategoryParser.parseCategory(any(), anyString(), anyString(), any(BigDecimal.class), anyString(), anyString()))
+            .thenReturn("dining");
+        
+        // Mock ML detection to return dining
+        EnhancedCategoryDetectionService.DetectionResult mlResult = 
+            new EnhancedCategoryDetectionService.DetectionResult("dining", 0.9, "ML", "CAFFE detected");
+        when(circuitBreakerService.execute(anyString(), any(), any())).thenReturn(mlResult);
+        
+        // When: Determine category
+        TransactionTypeCategoryService.CategoryResult result = service.determineCategory(
+            null,
+            null,
+            checkingAccount,
+            "CAFFE NERO HEATHROW T3 PI PIER 7",
+            "CAFFE NERO HEATHROW T3 PI PIER 7, AIRS HOUNSLOW GB 00002075205127 4.20 Pounds Sterling",
+            BigDecimal.valueOf(-4.20),
+            null,
+            null,
+            "CSV"
+        );
+        
+        // Then: Should be dining (not other)
+        assertNotNull(result);
+        assertEquals("dining", result.getCategoryPrimary(), 
+            "CAFFE Nero should be categorized as dining, not other. Got: " + result.getCategoryPrimary());
+    }
+    
+    @Test
+    void testLULTicketMachine_ShouldBeTransportation() {
+        // Given: LUL Ticket Machine transaction (London Underground)
+        when(importCategoryParser.parseCategory(any(), anyString(), anyString(), any(BigDecimal.class), anyString(), anyString()))
+            .thenReturn("transportation");
+        
+        // Mock ML detection to return transportation
+        EnhancedCategoryDetectionService.DetectionResult mlResult = 
+            new EnhancedCategoryDetectionService.DetectionResult("transportation", 0.9, "ML", "LUL Ticket Machine detected");
+        when(circuitBreakerService.execute(anyString(), any(), any())).thenReturn(mlResult);
+        
+        // When: Determine category
+        TransactionTypeCategoryService.CategoryResult result = service.determineCategory(
+            null,
+            null,
+            checkingAccount,
+            "LUL TICKET MACHINE",
+            "LUL TICKET MACHINE LUL TICKET MACH - GB LUL TICKET MACHINE 14.00",
+            BigDecimal.valueOf(-14.00),
+            null,
+            null,
+            "CSV"
+        );
+        
+        // Then: Should be transportation (not other)
+        assertNotNull(result);
+        assertEquals("transportation", result.getCategoryPrimary(), 
+            "LUL Ticket Machine should be categorized as transportation, not other. Got: " + result.getCategoryPrimary());
     }
 }
 

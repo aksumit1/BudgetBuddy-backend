@@ -11,7 +11,6 @@ public enum ErrorCode {
     TOKEN_EXPIRED(1003, "Token expired"),
     TOKEN_INVALID(1004, "Invalid token"),
     UNAUTHORIZED_ACCESS(1005, "Unauthorized access"),
-    UNAUTHORIZED(1005, "Unauthorized access"), // Alias for UNAUTHORIZED_ACCESS
     INSUFFICIENT_PERMISSIONS(1006, "Insufficient permissions"),
     ACCOUNT_LOCKED(1007, "Account locked"),
     ACCOUNT_DISABLED(1008, "Account disabled"),
@@ -59,8 +58,8 @@ public enum ErrorCode {
     DATABASE_CONNECTION_FAILED(6001, "Database connection failed"),
     DATABASE_QUERY_FAILED(6002, "Database query failed"),
     RECORD_NOT_FOUND(6003, "Record not found"),
-    ACCOUNT_NOT_FOUND(6003, "Account not found"), // Alias for RECORD_NOT_FOUND
-    TRANSACTION_NOT_FOUND(6003, "Transaction not found"), // Alias for RECORD_NOT_FOUND
+    ACCOUNT_NOT_FOUND(6007, "Account not found"),
+    TRANSACTION_NOT_FOUND(6008, "Transaction not found"),
     RECORD_ALREADY_EXISTS(6004, "Record already exists"),
     TRANSACTION_FAILED(6005, "Database transaction failed"),
     STORAGE_ERROR(6006, "Storage error"),
@@ -84,9 +83,9 @@ public enum ErrorCode {
     INSUFFICIENT_BALANCE(9001, "Insufficient balance"),
     TRANSACTION_LIMIT_EXCEEDED(9002, "Transaction limit exceeded"),
     BUDGET_EXCEEDED(9003, "Budget exceeded"),
-    BUDGET_NOT_FOUND(9003, "Budget not found"), // Alias for BUDGET_EXCEEDED
+    BUDGET_NOT_FOUND(9006, "Budget not found"),
     GOAL_NOT_ACHIEVABLE(9004, "Goal not achievable"),
-    GOAL_NOT_FOUND(9004, "Goal not found"), // Alias for GOAL_NOT_ACHIEVABLE
+    GOAL_NOT_FOUND(9007, "Goal not found"),
     INVALID_TRANSACTION(9005, "Invalid transaction"),
 
     // System Errors (10xxx)

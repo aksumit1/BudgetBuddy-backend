@@ -5,6 +5,7 @@ import com.budgetbuddy.model.dynamodb.UserTable;
 import com.budgetbuddy.repository.dynamodb.TransactionRepository;
 import com.budgetbuddy.service.TransactionService;
 import com.budgetbuddy.service.aws.CloudWatchService;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.cache.annotation.Cacheable;
@@ -34,6 +35,7 @@ public class AnalyticsService {
     private final TransactionService transactionService;
     private final CloudWatchService cloudWatchService;
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP2", justification = "Spring dependency injection - services are singleton beans safe to share")
     public AnalyticsService(final TransactionRepository transactionRepository, final TransactionService transactionService, final CloudWatchService cloudWatchService) {
         this.transactionRepository = transactionRepository;
         this.transactionService = transactionService;
@@ -46,12 +48,12 @@ public class AnalyticsService {
     @Cacheable(value = "analytics", key = "#user.userId + '_spending_' + #startDate + '_' + #endDate")
     public SpendingSummary getSpendingSummary(final UserTable user, final LocalDate startDate, final LocalDate endDate) {
         // Use TransactionService which handles DynamoDB queries
-        BigDecimal totalSpending = transactionService.getTotalSpending(user, startDate, endDate);
-        List<TransactionTable> transactions = transactionService.getTransactionsInRange(user, startDate, endDate);
-        long transactionCount = transactions.size();
+        final BigDecimal totalSpending = transactionService.getTotalSpending(user, startDate, endDate);
+        final List<TransactionTable> transactions = transactionService.getTransactionsInRange(user, startDate, endDate);
+        final long transactionCount = transactions.size();
 
         // Handle null totalSpending
-        BigDecimal safeTotalSpending = totalSpending != null ? totalSpending : BigDecimal.ZERO;
+        final BigDecimal safeTotalSpending = totalSpending != null ? totalSpending : BigDecimal.ZERO;
 
         // Send metrics to CloudWatch
         cloudWatchService.putMetric("user.spending.total", safeTotalSpending.doubleValue(), "Count");
@@ -67,14 +69,14 @@ public class AnalyticsService {
      * Get spending by category (cached)
      */
     @Cacheable(value = "analytics", key = "#user.userId + '_category_' + #startDate + '_' + #endDate")
-    public Map<String, BigDecimal> getSpendingByCategory(UserTable user, LocalDate startDate, LocalDate endDate) {
-        List<TransactionTable> transactions = transactionService.getTransactionsInRange(user, startDate, endDate);
+    public Map<String, BigDecimal> getSpendingByCategory(final UserTable user, final LocalDate startDate, final LocalDate endDate) {
+        final List<TransactionTable> transactions = transactionService.getTransactionsInRange(user, startDate, endDate);
 
-        Map<String, BigDecimal> categorySpending = new HashMap<>();
+        final Map<String, BigDecimal> categorySpending = new HashMap<>();
         transactions.forEach((transaction) -> {
-            String category = transaction.getCategoryPrimary() != null ? transaction.getCategoryPrimary() : transaction.getCategoryDetailed();
+            final String category = transaction.getCategoryPrimary() != null ? transaction.getCategoryPrimary() : transaction.getCategoryDetailed();
             if (category != null) {
-                BigDecimal amount = transaction.getAmount();
+                final BigDecimal amount = transaction.getAmount();
                 if (amount != null) {
                     categorySpending.merge(category, amount, BigDecimal::add);
                 }

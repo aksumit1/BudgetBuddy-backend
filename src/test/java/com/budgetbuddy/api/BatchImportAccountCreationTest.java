@@ -82,13 +82,22 @@ class BatchImportAccountCreationTest {
     void setUp() {
         // Create test user
         testEmail = "batch-import-test-" + UUID.randomUUID() + "@example.com";
-        String base64PasswordHash = java.util.Base64.getEncoder().encodeToString("test-hash".getBytes());
-        testUser = userService.createUserSecure(testEmail, base64PasswordHash, "Test", "User");
+        // Use a consistent base64-encoded string as client hash (representing a client-side PBKDF2 hash)
+        // This must be the same for both createUserSecure and authenticate
+        String passwordHash = java.util.Base64.getEncoder().encodeToString("testPassword123".getBytes());
+        testUser = userService.createUserSecure(testEmail, passwordHash, "Test", "User");
+
+        // Wait a bit for DynamoDB eventual consistency
+        try {
+            Thread.sleep(100);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
 
         // Authenticate to get token
         AuthRequest authRequest = new AuthRequest();
         authRequest.setEmail(testEmail);
-        authRequest.setPasswordHash(base64PasswordHash);
+        authRequest.setPasswordHash(passwordHash);
         AuthResponse authResponse = authService.authenticate(authRequest);
         accessToken = authResponse.getAccessToken();
     }

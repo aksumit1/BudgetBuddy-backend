@@ -21,6 +21,9 @@ public class BudgetTable {
     private BigDecimal monthlyLimit;
     private BigDecimal currentSpent;
     private String currencyCode;
+    private Boolean rolloverEnabled; // Whether budget rollover/carryover is enabled
+    private BigDecimal carriedAmount; // Amount carried from previous month (positive = surplus, negative = deficit)
+    private String goalId; // Optional: ID of the goal this budget is linked to
     private Instant createdAt;
     private Instant updatedAt;
     private Long updatedAtTimestamp; // GSI sort key (epoch seconds) for incremental sync
@@ -79,6 +82,33 @@ public class BudgetTable {
 
     public void setCurrencyCode(final String currencyCode) {
         this.currencyCode = currencyCode;
+    }
+
+    @DynamoDbAttribute("rolloverEnabled")
+    public Boolean getRolloverEnabled() {
+        return rolloverEnabled;
+    }
+
+    public void setRolloverEnabled(final Boolean rolloverEnabled) {
+        this.rolloverEnabled = rolloverEnabled;
+    }
+
+    @DynamoDbAttribute("carriedAmount")
+    public BigDecimal getCarriedAmount() {
+        return carriedAmount;
+    }
+
+    public void setCarriedAmount(final BigDecimal carriedAmount) {
+        this.carriedAmount = carriedAmount;
+    }
+
+    @DynamoDbAttribute("goalId")
+    public String getGoalId() {
+        return goalId;
+    }
+
+    public void setGoalId(final String goalId) {
+        this.goalId = goalId;
     }
 
     @DynamoDbAttribute("createdAt")

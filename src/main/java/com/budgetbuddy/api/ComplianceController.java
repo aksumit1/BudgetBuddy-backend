@@ -1,6 +1,8 @@
 package com.budgetbuddy.api;
 
 import com.budgetbuddy.compliance.gdpr.GDPRComplianceService;
+import com.budgetbuddy.exception.AppException;
+import com.budgetbuddy.exception.ErrorCode;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -37,7 +39,7 @@ public class ComplianceController {
     public ResponseEntity<GDPRComplianceService.GDPRDataExport> exportData(
             @AuthenticationPrincipal UserDetails userDetails) {
         com.budgetbuddy.model.dynamodb.UserTable user = userService.findByEmail(userDetails.getUsername())
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
 
         GDPRComplianceService.GDPRDataExport export = gdprComplianceService.exportUserData(user.getUserId());
         return ResponseEntity.ok(export);
@@ -51,7 +53,7 @@ public class ComplianceController {
     public ResponseEntity<String> exportDataPortable(
             @AuthenticationPrincipal UserDetails userDetails) {
         com.budgetbuddy.model.dynamodb.UserTable user = userService.findByEmail(userDetails.getUsername())
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
 
         String json = gdprComplianceService.exportDataPortable(user.getUserId());
         return ResponseEntity.ok()
@@ -72,7 +74,7 @@ public class ComplianceController {
         }
 
         com.budgetbuddy.model.dynamodb.UserTable user = userService.findByEmail(userDetails.getUsername())
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
 
         gdprComplianceService.deleteUserData(user.getUserId());
         return ResponseEntity.noContent().build();
@@ -87,7 +89,7 @@ public class ComplianceController {
             @AuthenticationPrincipal UserDetails userDetails,
             @RequestBody UpdateDataRequest request) {
         com.budgetbuddy.model.dynamodb.UserTable user = userService.findByEmail(userDetails.getUsername())
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
 
         com.budgetbuddy.model.dynamodb.UserTable updatedData = new com.budgetbuddy.model.dynamodb.UserTable();
         updatedData.setFirstName(request.getFirstName());

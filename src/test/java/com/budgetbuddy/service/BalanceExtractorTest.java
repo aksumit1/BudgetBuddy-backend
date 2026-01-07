@@ -110,4 +110,25 @@ class BalanceExtractorTest {
         assertNotNull(result);
         assertEquals(new BigDecimal("1234.56"), result);
     }
+
+    @Test
+    @DisplayName("Extract Discover card balance - Should NOT concatenate repeated values")
+    void testDiscoverBalance_ShouldNotConcatenateRepeatedValues() {
+        // This is the problematic case: "New Balance: $5.66" followed by repeated values
+        // Should extract ONLY $5.66, not concatenate to 56656656611
+        String text = "New Balance: $5.66, 5.66 5.66 11/13/2025, 5.66, 5.66, 11/13/2025";
+        BigDecimal result = balanceExtractor.extractCreditCardBalance(text);
+        assertNotNull(result, "Should extract balance from Discover format");
+        assertEquals(new BigDecimal("5.66"), result, "Should extract ONLY 5.66, not concatenate repeated values");
+    }
+
+    @Test
+    @DisplayName("Extract Discover card balance - With repeated values after colon")
+    void testDiscoverBalance_WithRepeatedValuesAfterColon() {
+        // Another problematic case: "New Balance: $5.66 5.66 5.66 11/13/2025"
+        String text = "New Balance: $5.66 5.66 5.66 11/13/2025";
+        BigDecimal result = balanceExtractor.extractCreditCardBalance(text);
+        assertNotNull(result, "Should extract balance from Discover format");
+        assertEquals(new BigDecimal("5.66"), result, "Should extract ONLY 5.66, not concatenate repeated values");
+    }
 }

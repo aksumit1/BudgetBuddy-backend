@@ -18,11 +18,14 @@ public final class AuthRequest {
     @Email(message = "Email should be valid")
     private String email;
 
-    // Secure field - client-side hashed password (PBKDF2)
+    // Secure field - client-side hashed password (PBKDF2 with challenge nonce)
     // Accept both camelCase (passwordHash) and snake_case (password_hash) for compatibility
     @JsonProperty("passwordHash")
     @JsonAlias("password_hash")
     private String passwordHash;
+    
+    // Challenge nonce (PAKE2) - required for authentication/registration
+    private String challenge;
 
     public AuthRequest() {
     }
@@ -30,6 +33,12 @@ public final class AuthRequest {
     public AuthRequest(final String email, final String passwordHash) {
         this.email = email;
         this.passwordHash = passwordHash;
+    }
+    
+    public AuthRequest(final String email, final String passwordHash, final String challenge) {
+        this.email = email;
+        this.passwordHash = passwordHash;
+        this.challenge = challenge;
     }
 
     public String getEmail() {
@@ -53,8 +62,18 @@ public final class AuthRequest {
     }
 
     /**
+     * Challenge nonce for PAKE2 authentication
+     */
+    public String getChallenge() {
+        return challenge;
+    }
+
+    public void setChallenge(final String challenge) {
+        this.challenge = challenge;
+    }
+
+    /**
      * Check if request uses secure format (password_hash only)
-     * BREAKING CHANGE: No longer requires salt
      */
     @com.fasterxml.jackson.annotation.JsonIgnore
     public boolean isSecureFormat() {

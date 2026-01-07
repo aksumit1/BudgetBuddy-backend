@@ -40,7 +40,7 @@ class AccountDetectionServiceComprehensiveTest {
 
     @BeforeEach
     void setUp() {
-        accountDetectionService = new AccountDetectionService(accountRepository);
+        accountDetectionService = new AccountDetectionService(accountRepository, new com.budgetbuddy.service.BalanceExtractor());
     }
 
     // ========== Error Handling Tests ==========

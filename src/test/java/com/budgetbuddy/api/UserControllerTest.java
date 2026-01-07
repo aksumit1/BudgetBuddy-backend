@@ -79,7 +79,7 @@ class UserControllerTest {
         AppException exception = assertThrows(AppException.class, () -> {
             userController.getCurrentUser(null);
         });
-        assertEquals(ErrorCode.UNAUTHORIZED, exception.getErrorCode());
+        assertEquals(ErrorCode.UNAUTHORIZED_ACCESS, exception.getErrorCode());
         verify(userService, never()).findByEmail(anyString());
     }
 
@@ -92,7 +92,7 @@ class UserControllerTest {
         AppException exception = assertThrows(AppException.class, () -> {
             userController.getCurrentUser(userDetails);
         });
-        assertEquals(ErrorCode.UNAUTHORIZED, exception.getErrorCode());
+        assertEquals(ErrorCode.UNAUTHORIZED_ACCESS, exception.getErrorCode());
         verify(userService, never()).findByEmail(anyString());
     }
 
@@ -105,7 +105,7 @@ class UserControllerTest {
         AppException exception = assertThrows(AppException.class, () -> {
             userController.getCurrentUser(userDetails);
         });
-        assertEquals(ErrorCode.UNAUTHORIZED, exception.getErrorCode());
+        assertEquals(ErrorCode.UNAUTHORIZED_ACCESS, exception.getErrorCode());
         verify(userService, never()).findByEmail(anyString());
     }
 

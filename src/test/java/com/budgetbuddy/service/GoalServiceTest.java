@@ -73,7 +73,7 @@ class GoalServiceTest {
         String goalType = "SAVINGS";
 
         // When
-        GoalTable goal = goalService.createGoal(testUser, name, description, targetAmount, targetDate, goalType, null);
+        GoalTable goal = goalService.createGoal(testUser, name, description, targetAmount, targetDate, goalType, null, null, null);
 
         // Then
         assertNotNull(goal, "Goal should be created");
@@ -89,7 +89,7 @@ class GoalServiceTest {
     void testCreateGoal_WithNullUser_ThrowsException() {
         // When/Then
         assertThrows(AppException.class, () -> {
-            goalService.createGoal(null, "Test", "Desc", BigDecimal.TEN, LocalDate.now(), "SAVINGS", null);
+            goalService.createGoal(null, "Test", "Desc", BigDecimal.TEN, LocalDate.now(), "SAVINGS", null, null, null);
         }, "Should throw exception for null user");
     }
 
@@ -97,7 +97,7 @@ class GoalServiceTest {
     void testCreateGoal_WithEmptyName_ThrowsException() {
         // When/Then
         assertThrows(AppException.class, () -> {
-            goalService.createGoal(testUser, "", "Desc", BigDecimal.TEN, LocalDate.now(), "SAVINGS", null);
+            goalService.createGoal(testUser, "", "Desc", BigDecimal.TEN, LocalDate.now(), "SAVINGS", null, null, null);
         }, "Should throw exception for empty name");
     }
 
@@ -105,7 +105,7 @@ class GoalServiceTest {
     void testCreateGoal_WithInvalidTargetAmount_ThrowsException() {
         // When/Then
         assertThrows(AppException.class, () -> {
-            goalService.createGoal(testUser, "Test", "Desc", BigDecimal.ZERO, LocalDate.now(), "SAVINGS", null);
+            goalService.createGoal(testUser, "Test", "Desc", BigDecimal.ZERO, LocalDate.now(), "SAVINGS", null, null, null);
         }, "Should throw exception for zero target amount");
     }
 
@@ -113,9 +113,9 @@ class GoalServiceTest {
     void testGetActiveGoals_ReturnsUserGoals() {
         // Given - Create goals
         goalService.createGoal(testUser, "Goal 1", "Desc 1", 
-                new BigDecimal("1000.00"), LocalDate.now().plusMonths(6), "SAVINGS", null);
+                new BigDecimal("1000.00"), LocalDate.now().plusMonths(6), "SAVINGS", null, null, null);
         goalService.createGoal(testUser, "Goal 2", "Desc 2", 
-                new BigDecimal("2000.00"), LocalDate.now().plusMonths(12), "SAVINGS", null);
+                new BigDecimal("2000.00"), LocalDate.now().plusMonths(12), "SAVINGS", null, null, null);
 
         // When
         List<GoalTable> goals = goalService.getActiveGoals(testUser);
@@ -129,7 +129,7 @@ class GoalServiceTest {
     void testGetGoal_WithValidId_ReturnsGoal() {
         // Given - Create a goal
         GoalTable goal = goalService.createGoal(testUser, "Test Goal", "Desc", 
-                new BigDecimal("1000.00"), LocalDate.now().plusMonths(6), "SAVINGS", null);
+                new BigDecimal("1000.00"), LocalDate.now().plusMonths(6), "SAVINGS", null, null, null);
         String goalId = goal.getGoalId();
 
         // When
@@ -144,7 +144,7 @@ class GoalServiceTest {
     void testDeleteGoal_WithValidId_Succeeds() {
         // Given - Create a goal
         GoalTable goal = goalService.createGoal(testUser, "Test Goal", "Desc", 
-                new BigDecimal("1000.00"), LocalDate.now().plusMonths(6), "SAVINGS", null);
+                new BigDecimal("1000.00"), LocalDate.now().plusMonths(6), "SAVINGS", null, null, null);
         String goalId = goal.getGoalId();
 
         // When

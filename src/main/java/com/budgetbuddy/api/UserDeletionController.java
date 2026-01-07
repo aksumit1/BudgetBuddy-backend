@@ -75,7 +75,7 @@ public class UserDeletionController {
             @RequestParam(required = false, defaultValue = "false") boolean confirm) {
         
         if (userDetails == null || userDetails.getUsername() == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
         }
 
         if (!confirm) {
@@ -128,7 +128,7 @@ public class UserDeletionController {
             @RequestParam(required = false, defaultValue = "false") boolean confirm) {
         
         if (userDetails == null || userDetails.getUsername() == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
         }
 
         if (!confirm) {
@@ -183,7 +183,7 @@ public class UserDeletionController {
             @RequestParam(required = false, defaultValue = "false") boolean confirm) {
         
         if (userDetails == null || userDetails.getUsername() == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
         }
 
         if (!confirm) {

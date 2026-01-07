@@ -2,6 +2,7 @@ package com.budgetbuddy.api;
 
 import com.budgetbuddy.exception.AppException;
 import com.budgetbuddy.exception.ErrorCode;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import com.budgetbuddy.model.dynamodb.AccountTable;
 import com.budgetbuddy.model.dynamodb.TransactionTable;
 import com.budgetbuddy.model.dynamodb.UserTable;
@@ -17,6 +18,7 @@ import org.springframework.web.bind.annotation.*;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 
 /**
@@ -32,6 +34,7 @@ public class AccountController {
     private final UserService userService;
     private final TransactionService transactionService;
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP2", justification = "Spring dependency injection - services are singleton beans safe to share")
     public AccountController(final AccountRepository accountRepository, 
                             final UserService userService,
                             final TransactionService transactionService) {
@@ -145,12 +148,12 @@ public class AccountController {
                     org.slf4j.LoggerFactory.getLogger(AccountController.class)
                             .warn("Account with ID {} already exists but belongs to different user. Generating new UUID for security.", accountId);
                     // Generate new UUID for security
-                    accountId = UUID.randomUUID().toString().toLowerCase();
+                    accountId = UUID.randomUUID().toString().toLowerCase(Locale.ROOT);
                 }
             }
         } else {
             // Invalid UUID format, generate new one
-            accountId = UUID.randomUUID().toString().toLowerCase();
+            accountId = UUID.randomUUID().toString().toLowerCase(Locale.ROOT);
         }
 
         // Create account

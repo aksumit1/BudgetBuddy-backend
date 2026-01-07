@@ -242,6 +242,10 @@ public class DynamoDBTableManager {
                             AttributeDefinition.builder()
                                     .attributeName("updatedAtTimestamp")
                                     .attributeType(ScalarAttributeType.N)
+                                    .build(),
+                            AttributeDefinition.builder()
+                                    .attributeName("goalId")
+                                    .attributeType(ScalarAttributeType.S)
                                     .build())
                     .keySchema(
                             KeySchemaElement.builder()
@@ -299,6 +303,21 @@ public class DynamoDBTableManager {
                                                     .build(),
                                             KeySchemaElement.builder()
                                                     .attributeName("updatedAtTimestamp")
+                                                    .keyType(KeyType.RANGE)
+                                                    .build())
+                                    .projection(Projection.builder()
+                                            .projectionType(ProjectionType.ALL)
+                                            .build())
+                                    .build(),
+                            GlobalSecondaryIndex.builder()
+                                    .indexName("UserIdGoalIdIndex")
+                                    .keySchema(
+                                            KeySchemaElement.builder()
+                                                    .attributeName("userId")
+                                                    .keyType(KeyType.HASH)
+                                                    .build(),
+                                            KeySchemaElement.builder()
+                                                    .attributeName("goalId")
                                                     .keyType(KeyType.RANGE)
                                                     .build())
                                     .projection(Projection.builder()

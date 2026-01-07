@@ -2,6 +2,7 @@ package com.budgetbuddy.api;
 
 import com.budgetbuddy.AWSTestConfiguration;
 import com.budgetbuddy.service.AuthService;
+import com.budgetbuddy.service.ChallengeService;
 import com.budgetbuddy.service.PasswordResetService;
 import com.budgetbuddy.service.UserService;
 import com.budgetbuddy.util.MessageUtil;
@@ -64,6 +65,10 @@ class AuthControllerPasswordResetTest {
     @SuppressWarnings("deprecation")
     @MockBean
     private RateLimitService rateLimitService;
+
+    @SuppressWarnings("deprecation")
+    @MockBean
+    private ChallengeService challengeService;
 
     private String testEmail;
     private String testCode;
@@ -169,14 +174,19 @@ class AuthControllerPasswordResetTest {
     void testResetPassword_Success() throws Exception {
         // Given
         // BREAKING CHANGE: Client salt removed - backend handles salt management
+        // PAKE2: Challenge is now required
+        String testChallenge = "test-challenge-123";
         doNothing().when(passwordResetService).resetPassword(testEmail, testCode, "password_hash");
         doNothing().when(userService).resetPasswordByEmail(testEmail, "password_hash");
+        // Mock challenge verification to succeed
+        doNothing().when(challengeService).verifyAndConsumeChallenge(testChallenge, testEmail);
 
         AuthController.PasswordResetRequest request = new AuthController.PasswordResetRequest();
         request.setEmail(testEmail);
         request.setCode(testCode);
         request.setPasswordHash("password_hash");
-        // BREAKING CHANGE: Client salt removed
+        request.setChallenge(testChallenge);
+        // BREAKING CHANGE: Client salt removed, PAKE2 challenge required
 
         // When/Then
         mockMvc.perform(post("/api/auth/reset-password")
@@ -189,6 +199,7 @@ class AuthControllerPasswordResetTest {
         // BREAKING CHANGE: Client salt removed
         verify(passwordResetService).resetPassword(testEmail, testCode, "password_hash");
         verify(userService).resetPasswordByEmail(testEmail, "password_hash");
+        verify(challengeService).verifyAndConsumeChallenge(testChallenge, testEmail);
     }
 
     @Test

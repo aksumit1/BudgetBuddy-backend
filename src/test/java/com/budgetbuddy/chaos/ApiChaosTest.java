@@ -69,7 +69,9 @@ class ApiChaosTest {
     void setUp() {
         SecurityContextHolder.clearContext();
         testEmail = "chaos-" + UUID.randomUUID() + "@example.com";
-        testPasswordHash = Base64.getEncoder().encodeToString("hashed-password".getBytes());
+        // Use a consistent base64-encoded string as client hash (representing a client-side PBKDF2 hash)
+        // This must be the same for both createUserSecure and authenticate
+        testPasswordHash = java.util.Base64.getEncoder().encodeToString("testPassword123".getBytes());
 
         // Create test user - tables should be initialized before tests run
         // BREAKING CHANGE: firstName and lastName are optional (can be null)

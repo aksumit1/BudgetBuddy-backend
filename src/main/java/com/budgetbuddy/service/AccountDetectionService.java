@@ -382,31 +382,6 @@ public class AccountDetectionService {
         "product type", "card type", "account classification"
     );
     
-    // Legacy constructor for backwards compatibility - should use constructor with BalanceExtractor
-    @org.springframework.beans.factory.annotation.Autowired(required = false)
-    public AccountDetectionService(AccountRepository accountRepository) {
-        this.accountRepository = accountRepository;
-        // Try to get BalanceExtractor from Spring context, or create a new one
-        // Note: This legacy constructor is for backwards compatibility
-        // In Spring-managed contexts, use the constructor with BalanceExtractor parameter
-        BalanceExtractor extractor;
-        try {
-            // Try to get from Spring application context if available
-            org.springframework.context.ApplicationContext context = 
-                org.springframework.web.context.support.WebApplicationContextUtils
-                    .getWebApplicationContext((jakarta.servlet.ServletContext) null);
-            if (context != null) {
-                extractor = context.getBean(BalanceExtractor.class);
-            } else {
-                extractor = new BalanceExtractor();
-            }
-        } catch (Exception e) {
-            // Fallback to creating a new instance if Spring context is not available
-            extractor = new BalanceExtractor();
-        }
-        this.balanceExtractor = extractor;
-    }
-    
     /**
      * Detected account information
      */

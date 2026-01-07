@@ -74,7 +74,7 @@ public class OAuth2Controller {
             @AuthenticationPrincipal Jwt jwt) {
 
         if (jwt == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED, "JWT token is missing");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "JWT token is missing");
         }
 
         Map<String, Object> userInfo = Map.of(

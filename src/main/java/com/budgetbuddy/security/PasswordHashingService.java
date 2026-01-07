@@ -116,7 +116,7 @@ public class PasswordHashingService {
     }
 
     /**
-     * Verify a client-side hashed password against stored server hash
+     * Verify a client-side hashed password against stored server hash (standard method)
      * BREAKING CHANGE: Client salt removed - Zero Trust architecture
      *
      * @param clientHash Base64-encoded client-side hash

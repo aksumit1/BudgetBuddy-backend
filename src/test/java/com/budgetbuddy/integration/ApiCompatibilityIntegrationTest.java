@@ -25,6 +25,7 @@ import org.springframework.test.context.ActiveProfiles;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
@@ -200,6 +201,86 @@ class ApiCompatibilityIntegrationTest {
         assertTrue(json.contains("\"currentAmount\""), "JSON must contain 'currentAmount' field");
         assertTrue(json.contains("\"targetDate\""), "JSON must contain 'targetDate' field");
         assertTrue(json.contains("\"monthlyContribution\""), "JSON must contain 'monthlyContribution' field");
+    }
+
+    @Test
+    void testGoalResponse_AccountIds_AlwaysIncludedInJSON() throws Exception {
+        // Test Case 1: Goal with null accountIds
+        // Given - Create a goal without accountIds (defaults to null)
+        GoalTable goalWithNull = goalService.createGoal(
+                testUser,
+                "Goal Without Accounts",
+                "Test Description",
+                new BigDecimal("5000.00"),
+                LocalDate.now().plusYears(1),
+                "CUSTOM",
+                null, // goalId
+                null, // currentAmount
+                null  // accountIds - null
+        );
+
+        // When - Serialize to JSON
+        String jsonWithNull = objectMapper.writeValueAsString(goalWithNull);
+
+        // Then - accountIds field must be present (even if null)
+        // With @JsonInclude(JsonInclude.Include.ALWAYS), null should be included as "accountIds":null
+        assertTrue(jsonWithNull.contains("\"accountIds\""), 
+                "JSON must contain 'accountIds' field even when null. JSON: " + jsonWithNull);
+        // Verify it's either null or an empty array
+        assertTrue(jsonWithNull.contains("\"accountIds\":null") || jsonWithNull.contains("\"accountIds\":[]"),
+                "accountIds should be null or empty array when not set. JSON: " + jsonWithNull);
+
+        // Test Case 2: Goal with empty accountIds list
+        // Given - Create a goal with empty accountIds
+        GoalTable goalWithEmpty = goalService.createGoal(
+                testUser,
+                "Goal With Empty Accounts",
+                "Test Description",
+                new BigDecimal("5000.00"),
+                LocalDate.now().plusYears(1),
+                "CUSTOM",
+                null, // goalId
+                null, // currentAmount
+                java.util.Collections.emptyList()  // accountIds - empty list
+        );
+
+        // When - Serialize to JSON
+        String jsonWithEmpty = objectMapper.writeValueAsString(goalWithEmpty);
+
+        // Then - accountIds field must be present as empty array
+        assertTrue(jsonWithEmpty.contains("\"accountIds\""), 
+                "JSON must contain 'accountIds' field even when empty. JSON: " + jsonWithEmpty);
+        assertTrue(jsonWithEmpty.contains("\"accountIds\":[]") || jsonWithEmpty.contains("\"accountIds\" : []"),
+                "accountIds should be empty array when set to empty list. JSON: " + jsonWithEmpty);
+
+        // Test Case 3: Goal with accountIds (requires valid account)
+        // Given - Create a test account first
+        AccountTable testAccount = createTestAccount();
+        
+        // Create goal with accountIds
+        GoalTable goalWithAccounts = goalService.createGoal(
+                testUser,
+                "Goal With Accounts",
+                "Test Description",
+                new BigDecimal("5000.00"),
+                LocalDate.now().plusYears(1),
+                "CUSTOM",
+                null, // goalId
+                null, // currentAmount
+                Arrays.asList(testAccount.getAccountId())  // accountIds - with account
+        );
+
+        // When - Serialize to JSON
+        String jsonWithAccounts = objectMapper.writeValueAsString(goalWithAccounts);
+
+        // Then - accountIds field must be present with account IDs
+        assertTrue(jsonWithAccounts.contains("\"accountIds\""), 
+                "JSON must contain 'accountIds' field when accounts are linked. JSON: " + jsonWithAccounts);
+        assertTrue(jsonWithAccounts.contains(testAccount.getAccountId().toLowerCase()),
+                "JSON must contain the account ID in accountIds array. JSON: " + jsonWithAccounts);
+        // Verify it's an array format
+        assertTrue(jsonWithAccounts.matches(".*\"accountIds\"\\s*:\\s*\\[.*" + testAccount.getAccountId().toLowerCase() + ".*\\].*"),
+                "accountIds should be a JSON array containing the account ID. JSON: " + jsonWithAccounts);
     }
 
     @Test

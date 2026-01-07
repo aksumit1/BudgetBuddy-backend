@@ -4,6 +4,9 @@ import com.budgetbuddy.aws.cloudformation.CloudFormationService;
 import com.budgetbuddy.aws.cloudtrail.CloudTrailService;
 import com.budgetbuddy.service.aws.CloudWatchService;
 import com.budgetbuddy.aws.codepipeline.CodePipelineService;
+import com.budgetbuddy.exception.AppException;
+import com.budgetbuddy.exception.ErrorCode;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -27,6 +30,7 @@ public class AWSMonitoringController {
     private final CodePipelineService codePipelineService;
     private final com.budgetbuddy.service.UserService userService;
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP2", justification = "Spring dependency injection - services are singleton beans safe to share")
     public AWSMonitoringController(
             final CloudWatchService cloudWatchService,
             final CloudTrailService cloudTrailService,
@@ -45,12 +49,12 @@ public class AWSMonitoringController {
      */
     @GetMapping("/cloudwatch/metrics")
     public ResponseEntity<Map<String, Object>> getCloudWatchMetrics(
-            @AuthenticationPrincipal UserDetails userDetails,
-            @RequestParam String metricName,
-            @RequestParam Instant startTime,
-            @RequestParam Instant endTime) {
+            @AuthenticationPrincipal final UserDetails userDetails,
+            @RequestParam final String metricName,
+            @RequestParam final Instant startTime,
+            @RequestParam final Instant endTime) {
         com.budgetbuddy.model.dynamodb.UserTable user = userService.findByEmail(userDetails.getUsername())
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
 
         if (!hasMonitoringAccess(user)) {
             return ResponseEntity.status(403).build();
@@ -70,7 +74,7 @@ public class AWSMonitoringController {
             @RequestParam Instant startTime,
             @RequestParam Instant endTime) {
         com.budgetbuddy.model.dynamodb.UserTable user = userService.findByEmail(userDetails.getUsername())
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
 
         if (!hasMonitoringAccess(user)) {
             return ResponseEntity.status(403).build();
@@ -89,7 +93,7 @@ public class AWSMonitoringController {
     public ResponseEntity<List<software.amazon.awssdk.services.cloudformation.model.StackSummary>> getCloudFormationStacks(
             @AuthenticationPrincipal UserDetails userDetails) {
         com.budgetbuddy.model.dynamodb.UserTable user = userService.findByEmail(userDetails.getUsername())
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
 
         if (!hasMonitoringAccess(user)) {
             return ResponseEntity.status(403).build();
@@ -108,7 +112,7 @@ public class AWSMonitoringController {
             @AuthenticationPrincipal UserDetails userDetails,
             @RequestParam String pipelineName) {
         com.budgetbuddy.model.dynamodb.UserTable user = userService.findByEmail(userDetails.getUsername())
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
 
         if (!hasMonitoringAccess(user)) {
             return ResponseEntity.status(403).build();

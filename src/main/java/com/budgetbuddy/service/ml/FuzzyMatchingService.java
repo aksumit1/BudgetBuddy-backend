@@ -44,12 +44,6 @@ public class FuzzyMatchingService {
             return null;
         }
         
-        // CRITICAL: Validate threshold values are reasonable
-        if (LOW_CONFIDENCE_THRESHOLD < 0 || LOW_CONFIDENCE_THRESHOLD > 1.0) {
-            logger.error("Invalid LOW_CONFIDENCE_THRESHOLD: {}", LOW_CONFIDENCE_THRESHOLD);
-            return null;
-        }
-        
         // CRITICAL: Handle very large candidate lists (performance protection)
         if (candidates.size() > 10000) {
             logger.warn("Candidate list is very large ({}), limiting to first 10000", candidates.size());

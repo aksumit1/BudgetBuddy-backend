@@ -94,7 +94,8 @@ class PlaidCategoryIntegrationTest {
                 null, // reviewStatus
                 null, // isHidden
                 null, // transactionType
-                false // clearNotesIfNull = false means preserve existing notes
+                false, // clearNotesIfNull = false means preserve existing notes
+                null  // goalId
         );
 
         // Then - Verify override is applied

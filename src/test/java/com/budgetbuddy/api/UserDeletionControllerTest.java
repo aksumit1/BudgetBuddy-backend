@@ -112,7 +112,7 @@ class UserDeletionControllerTest {
         AppException exception = assertThrows(AppException.class, () -> {
             userDeletionController.deleteAllData(null, true);
         });
-        assertEquals(ErrorCode.UNAUTHORIZED, exception.getErrorCode());
+        assertEquals(ErrorCode.UNAUTHORIZED_ACCESS, exception.getErrorCode());
         verify(userDeletionService, never()).deleteAllUserData(anyString());
     }
 

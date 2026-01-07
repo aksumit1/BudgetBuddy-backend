@@ -113,7 +113,9 @@ class TransactionBugFixesIntegrationTest {
                 "Test Transaction",
                 "dining",
                 "dining",
-                transactionId,
+                        null, // importerCategoryPrimary
+                        null, // importerCategoryDetailed
+                        transactionId,
                 originalNotes,
                 null, // plaidAccountId
                 null,  // plaidTransactionId
@@ -121,9 +123,13 @@ class TransactionBugFixesIntegrationTest {
                 null, // currencyCode
                 null, // importSource
                 null, // importBatchId
-                null  // importFileName
-        );
-        assertEquals(originalNotes, transaction.getNotes());
+                null, // importFileName
+                null, // reviewStatus
+                        null, // merchantName
+                        null, // paymentChannel
+                        null, // userName
+                        null  // goalId
+                );
 
         // When - Update notes
         String updatedNotes = "Updated note with more details";
@@ -138,7 +144,8 @@ class TransactionBugFixesIntegrationTest {
                 null, // reviewStatus
                 null, // isHidden
                 null, // transactionType
-                false // clearNotesIfNull = false (notes is provided, so this doesn't matter)
+                false, // clearNotesIfNull = false (notes is provided, so this doesn't matter)
+                null  // goalId
         );
         assertEquals(updatedNotes, updated.getNotes());
 
@@ -178,7 +185,9 @@ class TransactionBugFixesIntegrationTest {
                 "Test Transaction",
                 "dining",
                 "dining",
-                transactionId,
+                        null, // importerCategoryPrimary
+                        null, // importerCategoryDetailed
+                        transactionId,
                 notes,
                 null, // plaidAccountId
                 null, // plaidTransactionId
@@ -186,9 +195,13 @@ class TransactionBugFixesIntegrationTest {
                 null, // currencyCode
                 null, // importSource
                 null, // importBatchId
-                null  // importFileName
-        );
-
+                null, // importFileName
+                null, // reviewStatus
+                        null, // merchantName
+                        null, // paymentChannel
+                        null, // userName
+                        null  // goalId
+                );
         // When - Update only plaidTransactionId (notes should be null in request)
         String plaidTransactionId = "plaid-txn-" + UUID.randomUUID();
         TransactionTable updated = transactionService.updateTransaction(
@@ -202,7 +215,8 @@ class TransactionBugFixesIntegrationTest {
                 null, // reviewStatus
                 null, // isHidden
                 null, // transactionType
-                false // clearNotesIfNull = false means preserve existing notes
+                false, // clearNotesIfNull = false means preserve existing notes
+                null  // goalId
         );
 
         // Then - Notes should be preserved
@@ -228,7 +242,9 @@ class TransactionBugFixesIntegrationTest {
                 "Test Transaction",
                 "dining",
                 "dining",
-                transactionId,
+                        null, // importerCategoryPrimary
+                        null, // importerCategoryDetailed
+                        transactionId,
                 notes,
                 null, // plaidAccountId
                 null, // plaidTransactionId
@@ -236,9 +252,13 @@ class TransactionBugFixesIntegrationTest {
                 null, // currencyCode
                 null, // importSource
                 null, // importBatchId
-                null  // importFileName
-        );
-        assertNotNull(transaction1);
+                null, // importFileName
+                null, // reviewStatus
+                        null, // merchantName
+                        null, // paymentChannel
+                        null, // userName
+                        null  // goalId
+                );
         assertEquals(transactionId, transaction1.getTransactionId());
 
         // When - Try to create same transaction again (duplicate POST)
@@ -250,7 +270,9 @@ class TransactionBugFixesIntegrationTest {
                 "Test Transaction",
                 "dining",
                 "dining",
-                transactionId, // Same ID
+                        null, // importerCategoryPrimary
+                        null, // importerCategoryDetailed
+                        transactionId, // Same ID
                 notes,
                 null, // plaidAccountId
                 null, // plaidTransactionId
@@ -258,9 +280,13 @@ class TransactionBugFixesIntegrationTest {
                 null, // currencyCode
                 null, // importSource
                 null, // importBatchId
-                null  // importFileName
-        );
-
+                null, // importFileName
+                null, // reviewStatus
+                        null, // merchantName
+                        null, // paymentChannel
+                        null, // userName
+                        null  // goalId
+                );
         // Then - Should return existing transaction (idempotent)
         assertNotNull(transaction2);
         assertEquals(transactionId, transaction2.getTransactionId());
@@ -289,7 +315,9 @@ class TransactionBugFixesIntegrationTest {
                 "Test Transaction",
                 "dining",
                 "dining",
-                transactionId1,
+                        null, // importerCategoryPrimary
+                        null, // importerCategoryDetailed
+                        transactionId1,
                 "Notes",
                 null, // plaidAccountId
                 plaidTransactionId, // plaidTransactionId
@@ -297,9 +325,13 @@ class TransactionBugFixesIntegrationTest {
                 null, // currencyCode
                 null, // importSource
                 null, // importBatchId
-                null  // importFileName
-        );
-
+                null, // importFileName
+                null, // reviewStatus
+                        null, // merchantName
+                        null, // paymentChannel
+                        null, // userName
+                        null  // goalId
+                );
         // When - Try to create another transaction with same Plaid ID but different transaction ID
         // This simulates the bug where multiple POST calls were made
         TransactionTable transaction2 = transactionService.createTransaction(
@@ -310,7 +342,9 @@ class TransactionBugFixesIntegrationTest {
                 "Test Transaction",
                 "dining",
                 "dining",
-                transactionId2, // Different transaction ID
+                        null, // importerCategoryPrimary
+                        null, // importerCategoryDetailed
+                        transactionId2, // Different transaction ID
                 "Notes",
                 null, // plaidAccountId
                 plaidTransactionId, // Same Plaid ID
@@ -318,9 +352,13 @@ class TransactionBugFixesIntegrationTest {
                 null, // currencyCode
                 null, // importSource
                 null, // importBatchId
-                null  // importFileName
-        );
-
+                null, // importFileName
+                null, // reviewStatus
+                        null, // merchantName
+                        null, // paymentChannel
+                        null, // userName
+                        null  // goalId
+                );
         // Then - Backend should handle this appropriately
         // If Plaid ID matches, it should return existing or generate new ID
         assertNotNull(transaction2);
@@ -350,6 +388,8 @@ class TransactionBugFixesIntegrationTest {
                 "Test Transaction",
                 "dining",
                 "dining",
+                null, // importerCategoryPrimary
+                null, // importerCategoryDetailed
                 mixedCaseId,
                 "Notes",
                 null, // plaidAccountId
@@ -358,9 +398,13 @@ class TransactionBugFixesIntegrationTest {
                 null, // currencyCode
                 null, // importSource
                 null, // importBatchId
-                null  // importFileName
-        );
-
+                null, // importFileName
+                null, // reviewStatus
+                null, // merchantName
+                null, // paymentChannel
+                null, // userName
+                null  // goalId
+                );
         // Then - Backend should normalize to lowercase
         assertNotNull(transaction);
         assertEquals(normalizedId, transaction.getTransactionId(), 
@@ -387,6 +431,8 @@ class TransactionBugFixesIntegrationTest {
                 "Existing Transaction",
                 "dining",
                 "dining",
+                null, // importerCategoryPrimary
+                null, // importerCategoryDetailed
                 existingTransactionId,
                 "Notes",
                 null, // plaidAccountId
@@ -395,9 +441,13 @@ class TransactionBugFixesIntegrationTest {
                 null, // currencyCode
                 null, // importSource
                 null, // importBatchId
-                null  // importFileName
-        );
-
+                null, // importFileName
+                null, // reviewStatus
+                null, // merchantName
+                null, // paymentChannel
+                null, // userName
+                null  // goalId
+                );
         // When - Try to create transaction with same transaction ID but different Plaid ID
         // This simulates the conflict scenario
         String conflictingPlaidId = "plaid-txn-different-" + UUID.randomUUID();
@@ -409,6 +459,8 @@ class TransactionBugFixesIntegrationTest {
                 "New Transaction",
                 "dining",
                 "dining",
+                null, // importerCategoryPrimary
+                null, // importerCategoryDetailed
                 existingTransactionId, // Same transaction ID
                 "New Notes",
                 null, // plaidAccountId
@@ -417,9 +469,13 @@ class TransactionBugFixesIntegrationTest {
                 null, // currencyCode
                 null, // importSource
                 null, // importBatchId
-                null  // importFileName
-        );
-
+                null, // importFileName
+                null, // reviewStatus
+                null, // merchantName
+                null, // paymentChannel
+                null, // userName
+                null  // goalId
+                );
         // Then - Backend should generate new transaction ID due to conflict
         assertNotNull(newTransaction);
         // The backend should return existing transaction if Plaid ID doesn't match
@@ -444,7 +500,9 @@ class TransactionBugFixesIntegrationTest {
                 "Test Transaction",
                 "dining",
                 "dining",
-                transactionId,
+                        null, // importerCategoryPrimary
+                        null, // importerCategoryDetailed
+                        transactionId,
                 "Notes",
                 null, // plaidAccountId
                 plaidTransactionId, // plaidTransactionId
@@ -452,9 +510,13 @@ class TransactionBugFixesIntegrationTest {
                 null, // currencyCode
                 null, // importSource
                 null, // importBatchId
-                null  // importFileName
-        );
-
+                null, // importFileName
+                null, // reviewStatus
+                        null, // merchantName
+                        null, // paymentChannel
+                        null, // userName
+                        null  // goalId
+                );
         // When - Create transaction again with same Plaid ID
         TransactionTable transaction2 = transactionService.createTransaction(
                 testUser,
@@ -464,7 +526,9 @@ class TransactionBugFixesIntegrationTest {
                 "Test Transaction",
                 "dining",
                 "dining",
-                transactionId, // Same transaction ID
+                        null, // importerCategoryPrimary
+                        null, // importerCategoryDetailed
+                        transactionId, // Same transaction ID
                 "Notes",
                 null, // plaidAccountId
                 plaidTransactionId, // Same Plaid ID
@@ -472,9 +536,13 @@ class TransactionBugFixesIntegrationTest {
                 null, // currencyCode
                 null, // importSource
                 null, // importBatchId
-                null  // importFileName
-        );
-
+                null, // importFileName
+                null, // reviewStatus
+                        null, // merchantName
+                        null, // paymentChannel
+                        null, // userName
+                        null  // goalId
+                );
         // Then - Should return same transaction (idempotent)
         assertEquals(transaction1.getTransactionId(), transaction2.getTransactionId(),
                 "Should return same transaction when Plaid ID matches");
@@ -496,7 +564,9 @@ class TransactionBugFixesIntegrationTest {
                 "Test Transaction",
                 "dining",
                 "dining",
-                transactionId,
+                        null, // importerCategoryPrimary
+                        null, // importerCategoryDetailed
+                        transactionId,
                 "Notes",
                 null, // plaidAccountId
                 null, // No Plaid ID
@@ -504,9 +574,13 @@ class TransactionBugFixesIntegrationTest {
                 null, // currencyCode
                 null, // importSource
                 null, // importBatchId
-                null  // importFileName
-        );
-
+                null, // importFileName
+                null, // reviewStatus
+                        null, // merchantName
+                        null, // paymentChannel
+                        null, // userName
+                        null  // goalId
+                );
         TransactionTable transaction2 = transactionService.createTransaction(
                 testUser,
                 testAccount.getAccountId(),
@@ -515,7 +589,9 @@ class TransactionBugFixesIntegrationTest {
                 "Test Transaction",
                 "dining",
                 "dining",
-                transactionId, // Same ID
+                        null, // importerCategoryPrimary
+                        null, // importerCategoryDetailed
+                        transactionId, // Same ID
                 "Notes",
                 null, // plaidAccountId
                 null, // No Plaid ID
@@ -523,9 +599,13 @@ class TransactionBugFixesIntegrationTest {
                 null, // currencyCode
                 null, // importSource
                 null, // importBatchId
-                null  // importFileName
-        );
-
+                null, // importFileName
+                null, // reviewStatus
+                        null, // merchantName
+                        null, // paymentChannel
+                        null, // userName
+                        null  // goalId
+                );
         // Then - Should return same transaction
         assertEquals(transaction1.getTransactionId(), transaction2.getTransactionId(),
                 "Manual transactions should be idempotent");
@@ -551,7 +631,9 @@ class TransactionBugFixesIntegrationTest {
                 "Test Transaction",
                 "dining",
                 "dining",
-                transactionId,
+                        null, // importerCategoryPrimary
+                        null, // importerCategoryDetailed
+                        transactionId,
                 "Notes",
                 null, // plaidAccountId
                 plaidTransactionId, // plaidTransactionId
@@ -559,9 +641,13 @@ class TransactionBugFixesIntegrationTest {
                 null, // currencyCode
                 null, // importSource
                 null, // importBatchId
-                null  // importFileName
-        );
-
+                null, // importFileName
+                null, // reviewStatus
+                        null, // merchantName
+                        null, // paymentChannel
+                        null, // userName
+                        null  // goalId
+                );
         // When - Create transaction again with same Plaid ID
         TransactionTable transaction2 = transactionService.createTransaction(
                 testUser,
@@ -571,7 +657,9 @@ class TransactionBugFixesIntegrationTest {
                 "Test Transaction",
                 "dining",
                 "dining",
-                transactionId, // Same transaction ID
+                        null, // importerCategoryPrimary
+                        null, // importerCategoryDetailed
+                        transactionId, // Same transaction ID
                 "Notes",
                 null, // plaidAccountId
                 plaidTransactionId, // Same Plaid ID
@@ -579,9 +667,13 @@ class TransactionBugFixesIntegrationTest {
                 null, // currencyCode
                 null, // importSource
                 null, // importBatchId
-                null  // importFileName
-        );
-
+                null, // importFileName
+                null, // reviewStatus
+                        null, // merchantName
+                        null, // paymentChannel
+                        null, // userName
+                        null  // goalId
+                );
         // Then - Should return same transaction (idempotent)
         assertEquals(transaction1.getTransactionId(), transaction2.getTransactionId(),
                 "Transactions with matching Plaid ID should be idempotent");
@@ -603,6 +695,8 @@ class TransactionBugFixesIntegrationTest {
                 "Existing Transaction",
                 "dining",
                 "dining",
+                null, // importerCategoryPrimary
+                null, // importerCategoryDetailed
                 existingTransactionId,
                 "Notes",
                 null, // plaidAccountId
@@ -611,9 +705,13 @@ class TransactionBugFixesIntegrationTest {
                 null, // currencyCode
                 null, // importSource
                 null, // importBatchId
-                null  // importFileName
-        );
-
+                null, // importFileName
+                null, // reviewStatus
+                null, // merchantName
+                null, // paymentChannel
+                null, // userName
+                null  // goalId
+                );
         // When - Try to create transaction with same transaction ID but different Plaid ID
         String conflictingPlaidId = "plaid-txn-different-" + UUID.randomUUID();
         TransactionTable newTransaction = transactionService.createTransaction(
@@ -624,6 +722,8 @@ class TransactionBugFixesIntegrationTest {
                 "New Transaction",
                 "dining",
                 "dining",
+                null, // importerCategoryPrimary
+                null, // importerCategoryDetailed
                 existingTransactionId, // Same transaction ID
                 "New Notes",
                 null, // plaidAccountId
@@ -632,9 +732,13 @@ class TransactionBugFixesIntegrationTest {
                 null, // currencyCode
                 null, // importSource
                 null, // importBatchId
-                null  // importFileName
-        );
-
+                null, // importFileName
+                null, // reviewStatus
+                null, // merchantName
+                null, // paymentChannel
+                null, // userName
+                null  // goalId
+                );
         // Then - Backend should handle conflict (return existing or generate new ID)
         assertNotNull(newTransaction);
         // The exact behavior depends on implementation, but transaction should exist
@@ -657,6 +761,8 @@ class TransactionBugFixesIntegrationTest {
                     "Test Transaction " + i,
                     "dining",
                     "dining",
+                    null, // importerCategoryPrimary
+                    null, // importerCategoryDetailed
                     null, // transactionId
                     null, // notes
                     null, // plaidAccountId
@@ -665,14 +771,19 @@ class TransactionBugFixesIntegrationTest {
                     null, // currencyCode
                     null, // importSource
                     null, // importBatchId
-                    null  // importFileName
-            );
-        }
+                    null, // importFileName
+                    null, // reviewStatus
+                    null, // merchantName
+                    null, // paymentChannel
+                    null, // userName
+                    null  // goalId
+                );
+                }
 
         // Then - All should return same transaction (idempotent)
         String firstTransactionId = transactions[0].getTransactionId();
-        for (int i = 1; i < 5; i++) {
-            assertEquals(firstTransactionId, transactions[i].getTransactionId(),
+        for (int j = 1; j < 5; j++) {
+            assertEquals(firstTransactionId, transactions[j].getTransactionId(),
                     "All rapid POST requests should return same transaction");
         }
 
@@ -690,5 +801,5 @@ class TransactionBugFixesIntegrationTest {
                 .count();
         assertEquals(1, count, "Should have only one transaction with same account, amount, and date");
     }
-}
 
+}

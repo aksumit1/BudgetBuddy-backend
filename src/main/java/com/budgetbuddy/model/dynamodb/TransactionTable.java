@@ -44,6 +44,7 @@ public class TransactionTable {
     private String importBatchId; // UUID for grouping imports
     private String importFileName; // Original file name for imports
     private Instant importedAt; // When transaction was imported
+    private String goalId; // Optional: Goal this transaction contributes to
     private Instant createdAt;
     private Instant updatedAt;
     private Long updatedAtTimestamp; // GSI sort key (epoch seconds) for incremental sync
@@ -58,7 +59,7 @@ public class TransactionTable {
         this.transactionId = transactionId;
     }
 
-    @DynamoDbSecondaryPartitionKey(indexNames = {"UserIdDateIndex", "UserIdUpdatedAtIndex"})
+    @DynamoDbSecondaryPartitionKey(indexNames = {"UserIdDateIndex", "UserIdUpdatedAtIndex", "UserIdGoalIdIndex"})
     @DynamoDbAttribute("userId")
     public String getUserId() {
         return userId;
@@ -297,6 +298,16 @@ public class TransactionTable {
 
     public void setImportedAt(final Instant importedAt) {
         this.importedAt = importedAt;
+    }
+
+    @DynamoDbSecondarySortKey(indexNames = "UserIdGoalIdIndex")
+    @DynamoDbAttribute("goalId")
+    public String getGoalId() {
+        return goalId;
+    }
+
+    public void setGoalId(final String goalId) {
+        this.goalId = goalId;
     }
 
     @DynamoDbAttribute("createdAt")

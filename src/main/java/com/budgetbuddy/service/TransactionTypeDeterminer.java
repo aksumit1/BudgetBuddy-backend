@@ -9,10 +9,12 @@ import org.springframework.stereotype.Component;
 import java.math.BigDecimal;
 
 /**
- * Determines the transaction type (Income, Investment, Loan, Expense) based on:
- * - Account type (for Investment and Loan)
+ * Determines the transaction type (Income, Investment, Payment, Expense) based on:
+ * - Account type (for Investment and Payment)
  * - Transaction category (for Investment and Income)
  * - Amount sign (for Income vs Expense)
+ * 
+ * Note: LOAN type has been removed. Payments are now PAYMENT type.
  */
 @Component
 public class TransactionTypeDeterminer {
@@ -32,7 +34,7 @@ public class TransactionTypeDeterminer {
      * @param categoryPrimary Primary category (e.g., "income", "investment", "other")
      * @param categoryDetailed Detailed category (e.g., "interest", "cd", "groceries")
      * @param amount Transaction amount (positive = income, negative = expense typically)
-     * @return TransactionType (INCOME, INVESTMENT, LOAN, or EXPENSE)
+     * @return TransactionType (INCOME, INVESTMENT, PAYMENT, or EXPENSE)
      */
     public TransactionType determineTransactionType(final AccountTable account,
                                                     final String categoryPrimary,
@@ -69,11 +71,9 @@ public class TransactionTypeDeterminer {
             return TransactionType.INVESTMENT;
         }
         
-        // 3. LOAN: Check account type (mortgage, credit card, student loan, etc.)
-        if (isLoanAccount(accountType, accountSubtype)) {
-            logger.debug("Transaction determined as LOAN based on account type: {} / {}", accountType, accountSubtype);
-            return TransactionType.LOAN;
-        }
+        // 3. Payment/Loan accounts: These are handled by TransactionTypeCategoryService
+        // TransactionTypeDeterminer doesn't determine PAYMENT type - that's done by TransactionTypeCategoryService
+        // based on payment patterns and account context
         
         // 4. INCOME: Check category primary
         if ("income".equals(categoryPrimaryLower)) {

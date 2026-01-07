@@ -28,7 +28,8 @@ class CSVImportServiceExtendedFormatsTest {
                 org.mockito.Mockito.mock(com.budgetbuddy.service.ml.FuzzyMatchingService.class);
         csvImportService = new CSVImportService(accountDetectionService, enhancedCategoryDetection, fuzzyMatchingService,
                 org.mockito.Mockito.mock(TransactionTypeCategoryService.class),
-                org.mockito.Mockito.mock(ImportCategoryParser.class));
+                org.mockito.Mockito.mock(ImportCategoryParser.class),
+                org.mockito.Mockito.mock(com.budgetbuddy.service.category.strategy.CategoryDetectionManager.class));
     }
 
     // MARK: - ICICI Direct Tests

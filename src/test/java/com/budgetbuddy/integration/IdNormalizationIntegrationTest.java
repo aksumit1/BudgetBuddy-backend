@@ -206,7 +206,9 @@ class IdNormalizationIntegrationTest {
                 BigDecimal.valueOf(1000.00),
                 LocalDate.now().plusMonths(6),
                 "SAVINGS",
-                mixedCaseGoalId
+                mixedCaseGoalId,
+                null, // currentAmount
+                null // accountIds
         );
 
         // Then - ID should be normalized to lowercase
@@ -319,7 +321,9 @@ class IdNormalizationIntegrationTest {
                 BigDecimal.valueOf(5000.00),
                 LocalDate.now().plusMonths(12),
                 "SAVINGS",
-                null
+                null, // goalId - let backend generate
+                null, // currentAmount
+                null // accountIds
         );
 
         // Then - Generated ID should be lowercase

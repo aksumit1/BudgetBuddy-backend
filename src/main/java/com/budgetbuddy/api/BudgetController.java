@@ -2,6 +2,7 @@ package com.budgetbuddy.api;
 
 import com.budgetbuddy.exception.AppException;
 import com.budgetbuddy.exception.ErrorCode;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import com.budgetbuddy.model.dynamodb.BudgetTable;
 import com.budgetbuddy.model.dynamodb.UserTable;
 import com.budgetbuddy.service.BudgetService;
@@ -28,6 +29,7 @@ public class BudgetController {
     private final BudgetService budgetService;
     private final UserService userService;
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP2", justification = "Spring dependency injection - services are singleton beans safe to share")
     public BudgetController(final BudgetService budgetService, final UserService userService) {
         this.budgetService = budgetService;
         this.userService = userService;
@@ -61,8 +63,9 @@ public class BudgetController {
         UserTable user = userService.findByEmail(userDetails.getUsername())
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
 
-        if (request.getMonthlyLimit() == null || request.getMonthlyLimit().compareTo(BigDecimal.ZERO) <= 0) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "Monthly limit must be positive");
+        // Allow zero budgets for zero-based budgeting support
+        if (request.getMonthlyLimit() == null || request.getMonthlyLimit().compareTo(BigDecimal.ZERO) < 0) {
+            throw new AppException(ErrorCode.INVALID_INPUT, "Monthly limit must be non-negative");
         }
 
         if (request.getCategory() == null || request.getCategory().isEmpty()) {
@@ -73,7 +76,10 @@ public class BudgetController {
             user, 
             request.getCategory(), 
             request.getMonthlyLimit(),
-            request.getBudgetId() // Pass optional budget ID from app
+            request.getBudgetId(), // Pass optional budget ID from app
+            request.getRolloverEnabled(), // Pass optional rollover enabled flag
+            request.getCarriedAmount(), // Pass optional carried amount
+            request.getGoalId() // Pass optional goal ID
         );
         return ResponseEntity.status(HttpStatus.CREATED).body(budget);
     }
@@ -101,6 +107,9 @@ public class BudgetController {
         private String budgetId; // Optional: ID from app for consistency
         private String category;
         private BigDecimal monthlyLimit;
+        private Boolean rolloverEnabled; // Optional: Whether budget rollover/carryover is enabled
+        private BigDecimal carriedAmount; // Optional: Amount carried from previous month
+        private String goalId; // Optional: ID of the goal this budget is linked to
 
         public String getBudgetId() { return budgetId; }
         public void setBudgetId(final String budgetId) { this.budgetId = budgetId; }
@@ -108,5 +117,11 @@ public class BudgetController {
         public void setCategory(final String category) { this.category = category; }
         public BigDecimal getMonthlyLimit() { return monthlyLimit; }
         public void setMonthlyLimit(final BigDecimal monthlyLimit) { this.monthlyLimit = monthlyLimit; }
+        public Boolean getRolloverEnabled() { return rolloverEnabled; }
+        public void setRolloverEnabled(final Boolean rolloverEnabled) { this.rolloverEnabled = rolloverEnabled; }
+        public BigDecimal getCarriedAmount() { return carriedAmount; }
+        public void setCarriedAmount(final BigDecimal carriedAmount) { this.carriedAmount = carriedAmount; }
+        public String getGoalId() { return goalId; }
+        public void setGoalId(final String goalId) { this.goalId = goalId; }
     }
 }

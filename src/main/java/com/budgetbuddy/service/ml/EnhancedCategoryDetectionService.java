@@ -905,6 +905,60 @@ public class EnhancedCategoryDetectionService {
         knownMerchants.put("anthem", "insurance");
         knownMerchants.put("anthem blue cross", "insurance");
         
+        // ========== TRAVEL (Airlines, Hotels, Airport Lounges) ==========
+        // Airport Lounges
+        knownMerchants.put("centurion lounge", "travel");
+        knownMerchants.put("centurionlounge", "travel");
+        knownMerchants.put("axp centurion", "travel");
+        knownMerchants.put("american express centurion", "travel");
+        knownMerchants.put("amex centurion", "travel");
+        knownMerchants.put("priority pass", "travel");
+        knownMerchants.put("prioritypass", "travel");
+        knownMerchants.put("admirals club", "travel");
+        knownMerchants.put("admiralsclub", "travel");
+        knownMerchants.put("delta sky club", "travel");
+        knownMerchants.put("deltaskyclub", "travel");
+        knownMerchants.put("united club", "travel");
+        knownMerchants.put("unitedclub", "travel");
+        knownMerchants.put("american express lounge", "travel");
+        knownMerchants.put("amex lounge", "travel");
+        knownMerchants.put("plaza premium lounge", "travel");
+        knownMerchants.put("plazapremiumlounge", "travel");
+        knownMerchants.put("airport lounge", "travel");
+        knownMerchants.put("airportlounge", "travel");
+        knownMerchants.put("encalm lounge", "travel");
+        knownMerchants.put("encalmlounge", "travel");
+        knownMerchants.put("encalm", "travel");
+        // Airlines
+        knownMerchants.put("delta", "travel");
+        knownMerchants.put("united", "travel");
+        knownMerchants.put("american airlines", "travel");
+        knownMerchants.put("americanairlines", "travel");
+        knownMerchants.put("southwest", "travel");
+        knownMerchants.put("jetblue", "travel");
+        knownMerchants.put("alaska", "travel");
+        knownMerchants.put("spirit", "travel");
+        knownMerchants.put("frontier", "travel");
+        knownMerchants.put("allegiant", "travel");
+        knownMerchants.put("hawaiian", "travel");
+        knownMerchants.put("airline", "travel");
+        knownMerchants.put("airlines", "travel");
+        // Hotels
+        knownMerchants.put("marriott", "travel");
+        knownMerchants.put("hilton", "travel");
+        knownMerchants.put("hyatt", "travel");
+        knownMerchants.put("holiday inn", "travel");
+        knownMerchants.put("holidayinn", "travel");
+        knownMerchants.put("airbnb", "travel");
+        knownMerchants.put("booking.com", "travel");
+        knownMerchants.put("expedia", "travel");
+        knownMerchants.put("travelocity", "travel");
+        knownMerchants.put("priceline", "travel");
+        knownMerchants.put("hotel", "travel");
+        knownMerchants.put("motel", "travel");
+        knownMerchants.put("resort", "travel");
+        knownMerchants.put("inn", "travel");
+        
         // ========== ELECTRONICS & AI PROVIDERS ==========
         knownMerchants.put("samsung", "tech");
         knownMerchants.put("lg", "tech");
@@ -2145,9 +2199,43 @@ public class EnhancedCategoryDetectionService {
         knownMerchants.put("naics 92", "utilities"); // Public Administration
         
         // ========== EDUCATION/SCHOOL PAYMENTS ==========
-        // Bellevue School District - school district payment (education/other, not charity)
-        knownMerchants.put("bellevue school district", "other");
-        knownMerchants.put("bellevueschooldistrict", "other");
+        // School District payments - should be categorized as "education"
+        knownMerchants.put("school district", "education");
+        knownMerchants.put("schooldistrict", "education");
+        knownMerchants.put("bellevue school district", "education");
+        knownMerchants.put("bellevueschooldistrict", "education");
+        
+        // School types (middle school, high school, elementary school, etc.)
+        knownMerchants.put("middle school", "education");
+        knownMerchants.put("middleschool", "education");
+        knownMerchants.put("high school", "education");
+        knownMerchants.put("highschool", "education");
+        knownMerchants.put("elementary school", "education");
+        knownMerchants.put("elementaryschool", "education");
+        knownMerchants.put("elementary", "education");
+        knownMerchants.put("secondary school", "education");
+        knownMerchants.put("secondaryschool", "education");
+        knownMerchants.put("senior secondary school", "education");
+        knownMerchants.put("seniorschool", "education");
+        knownMerchants.put("tyee middle school", "education");
+        knownMerchants.put("tyeemiddleschool", "education");
+        
+        // Educational media (newspapers, magazines, journals, books)
+        knownMerchants.put("newspaper", "education");
+        knownMerchants.put("magazine", "education");
+        knownMerchants.put("journal", "education");
+        knownMerchants.put("academic journal", "education");
+        knownMerchants.put("research journal", "education");
+        knownMerchants.put("scientific journal", "education");
+        knownMerchants.put("library", "education");
+        
+        // Advanced degrees
+        knownMerchants.put("phd", "education");
+        knownMerchants.put("ph.d", "education");
+        knownMerchants.put("ph.d.", "education");
+        knownMerchants.put("doctorate", "education");
+        knownMerchants.put("graduate school", "education");
+        knownMerchants.put("graduateschool", "education");
         
         // ========== HEALTH/BEAUTY SERVICES ==========
         // Stop 4 Nails - nail salon (health)
@@ -2167,24 +2255,67 @@ public class EnhancedCategoryDetectionService {
         knownMerchants.put("makeupstore", "health");
         
         // ========== EDUCATION ==========
-        // Education items (school, books, reading, etc.) - categorized as "other"
-        knownMerchants.put("gurukul", "other");
-        knownMerchants.put("school", "other");
-        knownMerchants.put("university", "other");
-        knownMerchants.put("college", "other");
-        knownMerchants.put("tuition", "other");
-        knownMerchants.put("books", "other");
-        knownMerchants.put("bookstore", "other");
-        knownMerchants.put("book store", "other");
-        knownMerchants.put("reading", "other");
-        knownMerchants.put("textbook", "other");
-        knownMerchants.put("text book", "other");
-        knownMerchants.put("education", "other");
-        knownMerchants.put("educational", "other");
-        knownMerchants.put("course", "other");
-        knownMerchants.put("class", "other");
-        knownMerchants.put("lesson", "other");
-        knownMerchants.put("training", "other");
+        // Education items (school, books, reading, etc.) - categorized as "education"
+        // Regional school/college names
+        knownMerchants.put("gurukul", "education");
+        knownMerchants.put("vidyalaya", "education");
+        knownMerchants.put("shiksha", "education");
+        knownMerchants.put("pathshala", "education");
+        knownMerchants.put("escuela", "education");
+        knownMerchants.put("colegio", "education");
+        knownMerchants.put("universidad", "education");
+        knownMerchants.put("école", "education");
+        knownMerchants.put("collège", "education");
+        knownMerchants.put("université", "education");
+        knownMerchants.put("schule", "education");
+        knownMerchants.put("universität", "education");
+        knownMerchants.put("madrasa", "education");
+        knownMerchants.put("madrassa", "education");
+        knownMerchants.put("kuttab", "education");
+        knownMerchants.put("school", "education");
+        knownMerchants.put("university", "education");
+        knownMerchants.put("college", "education");
+        knownMerchants.put("tuition", "education");
+        knownMerchants.put("books", "education");
+        knownMerchants.put("bookstore", "education");
+        knownMerchants.put("book store", "education");
+        knownMerchants.put("reading", "education");
+        knownMerchants.put("textbook", "education");
+        knownMerchants.put("text book", "education");
+        knownMerchants.put("education", "education");
+        knownMerchants.put("educational", "education");
+        knownMerchants.put("course", "education");
+        knownMerchants.put("class", "education");
+        knownMerchants.put("lesson", "education");
+        knownMerchants.put("training", "education");
+        
+        // Exam/testing services and keywords (AAMC, SAT, TOEFL, GRE, GMAT, LSAT, MCAT, etc.)
+        knownMerchants.put("pearson vue", "education");
+        knownMerchants.put("pearsonvue", "education");
+        knownMerchants.put("vue", "education"); // Pearson VUE testing center
+        knownMerchants.put("aamc", "education"); // Medical College Admission Test
+        knownMerchants.put("sat", "education"); // Scholastic Assessment Test
+        knownMerchants.put("toefl", "education"); // Test of English as a Foreign Language
+        knownMerchants.put("gre", "education"); // Graduate Record Examination
+        knownMerchants.put("gmat", "education"); // Graduate Management Admission Test
+        knownMerchants.put("lsat", "education"); // Law School Admission Test
+        knownMerchants.put("mcat", "education"); // Medical College Admission Test
+        knownMerchants.put("act", "education"); // American College Testing
+        knownMerchants.put("ap exam", "education"); // Advanced Placement
+        knownMerchants.put("ib exam", "education"); // International Baccalaureate
+        knownMerchants.put("clep", "education"); // College Level Examination Program
+        knownMerchants.put("praxis", "education"); // Teacher certification exam
+        knownMerchants.put("bar exam", "education"); // Bar examination
+        knownMerchants.put("nclex", "education"); // Nursing exam
+        knownMerchants.put("usmle", "education"); // Medical licensing exam
+        knownMerchants.put("comlex", "education"); // Osteopathic medical licensing exam
+        knownMerchants.put("ets", "education"); // Educational Testing Service
+        knownMerchants.put("prometric", "education"); // Testing center
+        knownMerchants.put("test registration", "education");
+        knownMerchants.put("test fee", "education");
+        knownMerchants.put("test center", "education");
+        knownMerchants.put("exam fee", "education");
+        knownMerchants.put("exam registration", "education");
         
         // ========== ANSI X9 FINANCIAL SERVICES STANDARDS ==========
         knownMerchants.put("ansi x9", "transfer");

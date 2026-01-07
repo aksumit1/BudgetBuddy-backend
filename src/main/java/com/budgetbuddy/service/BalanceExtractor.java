@@ -225,20 +225,23 @@ public class BalanceExtractor {
     private BigDecimal extractDiscoverBalance(String text) {
         // Pattern: "New Balance:" (case-insensitive) followed by optional whitespace,
         // optional currency symbol, and then a single monetary amount
-        // Use a simpler, more reliable pattern that stops at the first comma or whitespace boundary
+        // CRITICAL: Must stop at the FIRST amount and not concatenate repeated values
         // 
         // Pattern breakdown:
         // - (?i)new\s+balance\s*[:：] - "New Balance:" with optional whitespace
         // - \s* - optional whitespace after colon
-        // - ([$€£¥₹]?\s* - optional currency symbol and whitespace (captured)
-        // - \(? - optional opening parenthesis for negative
-        // - [\d,]+ - digits and commas (for thousands separators)
-        // - (?:\.\d{1,2})? - optional decimal point with 1-2 digits
-        // - \)? - optional closing parenthesis
-        // - ) - end of capture group
+        // - (?:[$€£¥₹]\s*)? - optional currency symbol BEFORE number (not in parentheses)
+        // - (?:\( - OR optional opening parenthesis for negative
+        // - (?:[$€£¥₹]\s*)? - optional currency symbol inside parentheses
+        // - )? - end of optional parentheses group
+        // - ([\d,]+(?:\.\d{1,2})?) - capture the amount (digits, optional comma thousands, optional decimal)
+        // - (?:\))? - optional closing parenthesis
         // - (?:[,;]|\s|$) - stop at comma, semicolon, whitespace, or end of string
+        // 
+        // This pattern ensures we match ONLY the first amount after "New Balance:" and stop
+        // before any subsequent numbers (like "5.66 5.66 11/13/2025")
         Pattern discoverPattern = Pattern.compile(
-            "(?i)new\\s+balance\\s*[:：]\\s*((?:\\([\\$€£¥₹]?\\s*)?[\\d,]+(?:\\.\\d{1,2})?(?:\\s*[\\$€£¥₹]?\\))?)(?:[,;]|\\s|$)",
+            "(?i)new\\s+balance\\s*[:：]\\s*(?:[\\$€£¥₹]\\s*)?(?:\\([\\$€£¥₹]?\\s*)?([\\d,]+(?:\\.[\\d]{1,2})?)(?:\\s*[\\$€£¥₹]?\\))?(?:[,;]|\\s|$)",
             Pattern.CASE_INSENSITIVE
         );
         
@@ -247,15 +250,21 @@ public class BalanceExtractor {
             // Found "New Balance:" - extract the amount immediately after it
             String amountStr = matcher.group(1);
             if (amountStr != null && amountStr.trim().length() > 0) {
-                // Clean up the amount string - remove trailing whitespace
-                amountStr = amountStr.trim();
-                
-                // Check if amount is in parentheses (negative) - handle both ($1,234.56) and (1,234.56) formats
-                boolean isNegativeFromParentheses = amountStr.startsWith("(") && amountStr.endsWith(")");
-                // If parentheses present, strip them before parsing (parseAmount expects parentheses to be stripped or handled separately)
-                if (isNegativeFromParentheses) {
-                    amountStr = amountStr.substring(1, amountStr.length() - 1).trim();
+                // Check if the text after "New Balance:" has parentheses around the amount
+                // Look at the matched portion to see if it contains parentheses
+                String matchedText = text.substring(matcher.start(), matcher.end());
+                // Find the position after "New Balance:" or "New Balance："
+                int colonPos = matchedText.indexOf(':');
+                if (colonPos == -1) {
+                    colonPos = matchedText.indexOf('：'); // Unicode colon
                 }
+                boolean isNegativeFromParentheses = false;
+                if (colonPos >= 0) {
+                    String afterColon = matchedText.substring(colonPos + 1).trim();
+                    // Check if amount is wrapped in parentheses
+                    isNegativeFromParentheses = afterColon.startsWith("(") && afterColon.endsWith(")");
+                }
+                
                 BigDecimal balance = parseAmount(amountStr, isNegativeFromParentheses);
                 
                 if (balance != null && isValidBalance(balance)) {
@@ -392,7 +401,6 @@ public class BalanceExtractor {
                     String amountStr = matcher.group(1);
                     
                     if (amountStr != null && amountStr.trim().length() > 0) {
-                        String fullMatch = matcher.group(0);
                         // CRITICAL: Check for parentheses - handle both ($1,234.56) and (1,234.56) formats
                         String trimmedAmount = amountStr.trim();
                         boolean isNegativeFromParentheses = trimmedAmount.startsWith("(") && trimmedAmount.endsWith(")");

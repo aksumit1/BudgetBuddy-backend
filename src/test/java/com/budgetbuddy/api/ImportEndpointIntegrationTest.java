@@ -84,8 +84,13 @@ class ImportEndpointIntegrationTest {
 
     @Mock
     private TransactionService transactionService;
+    
+    @Mock
+    private com.budgetbuddy.service.AccountDetectionService accountDetectionService;
+    
+    @Mock
+    private com.budgetbuddy.api.config.TransactionControllerConfig config;
 
-    @InjectMocks
     private TransactionController transactionController;
 
     private UserTable testUser;
@@ -116,6 +121,27 @@ class ImportEndpointIntegrationTest {
         when(fileQuarantineService.quarantineFile(any(InputStream.class), anyString(), anyString(), anyString())).thenReturn("quarantine-id");
         // FileIntegrityService.verifyIntegrity takes (String fileId, InputStream) and returns boolean
         when(fileIntegrityService.verifyIntegrity(anyString(), any(InputStream.class))).thenReturn(true);
+        
+        // Setup config mock to return all service mocks
+        when(config.getTransactionService()).thenReturn(transactionService);
+        when(config.getUserService()).thenReturn(userService);
+        when(config.getAccountRepository()).thenReturn(accountRepository);
+        when(config.getFileUploadRateLimiter()).thenReturn(fileUploadRateLimiter);
+        when(config.getFileSecurityValidator()).thenReturn(fileSecurityValidator);
+        when(config.getFileContentScanner()).thenReturn(fileContentScanner);
+        when(config.getFileQuarantineService()).thenReturn(fileQuarantineService);
+        when(config.getFileIntegrityService()).thenReturn(fileIntegrityService);
+        when(config.getCsvImportService()).thenReturn(csvImportService);
+        when(config.getExcelImportService()).thenReturn(excelImportService);
+        when(config.getPdfImportService()).thenReturn(pdfImportService);
+        when(config.getDuplicateDetectionService()).thenReturn(duplicateDetectionService);
+        when(config.getTransactionTypeCategoryService()).thenReturn(transactionTypeCategoryService);
+        when(config.getChunkedUploadService()).thenReturn(chunkedUploadService);
+        when(config.getAccountDetectionService()).thenReturn(accountDetectionService);
+        when(config.getObjectMapper()).thenReturn(org.mockito.Mockito.mock(com.fasterxml.jackson.databind.ObjectMapper.class));
+        
+        // Create controller with mocked config
+        transactionController = new TransactionController(config);
     }
 
     @Test
@@ -376,8 +402,8 @@ class ImportEndpointIntegrationTest {
         // Mock transaction creation
         TransactionTable mockTransaction = new TransactionTable();
         mockTransaction.setTransactionId("test-transaction-id");
-        // Use the 22-parameter main method (import code uses full signature)
-        when(transactionService.createTransaction(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+        // Use the 23-parameter main method (import code uses full signature, including goalId)
+        when(transactionService.createTransaction(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(mockTransaction);
 
         // Act

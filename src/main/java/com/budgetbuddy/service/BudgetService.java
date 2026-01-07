@@ -40,16 +40,20 @@ public class BudgetService {
      * Create or update budget
      * @param budgetId Optional budget ID from app. If provided and valid, use it for consistency.
      *                 If not provided, generate deterministic ID from user + category.
+     * @param rolloverEnabled Optional flag to enable budget rollover/carryover. If null, defaults to false.
+     * @param carriedAmount Optional amount carried from previous month. If null, defaults to zero.
+     * @param goalId Optional ID of the goal this budget is linked to. If null, budget is not linked to any goal.
      */
-    public BudgetTable createOrUpdateBudget(final UserTable user, final String category, final BigDecimal monthlyLimit, final String budgetId) {
+    public BudgetTable createOrUpdateBudget(final UserTable user, final String category, final BigDecimal monthlyLimit, final String budgetId, final Boolean rolloverEnabled, final BigDecimal carriedAmount, final String goalId) {
         if (user == null || user.getUserId() == null || user.getUserId().isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "User is required");
         }
         if (category == null || category.isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Category is required");
         }
-        if (monthlyLimit == null || monthlyLimit.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "Monthly limit must be positive");
+        // Allow zero budgets for zero-based budgeting support
+        if (monthlyLimit == null || monthlyLimit.compareTo(BigDecimal.ZERO) < 0) {
+            throw new AppException(ErrorCode.INVALID_INPUT, "Monthly limit must be non-negative");
         }
 
         Optional<BudgetTable> existing = budgetRepository.findByUserIdAndCategory(user.getUserId(), category);
@@ -58,6 +62,17 @@ public class BudgetService {
         if (existing.isPresent()) {
             budget = existing.get();
             budget.setMonthlyLimit(monthlyLimit);
+            // Update rollover fields if provided
+            if (rolloverEnabled != null) {
+                budget.setRolloverEnabled(rolloverEnabled);
+            }
+            if (carriedAmount != null) {
+                budget.setCarriedAmount(carriedAmount);
+            }
+            // Update goalId if provided
+            if (goalId != null) {
+                budget.setGoalId(goalId);
+            }
         } else {
             budget = new BudgetTable();
             
@@ -108,6 +123,11 @@ public class BudgetService {
             budget.setCurrentSpent(BigDecimal.ZERO);
             budget.setCurrencyCode(user.getPreferredCurrency() != null && !user.getPreferredCurrency().isEmpty()
                     ? user.getPreferredCurrency() : "USD");
+            // Set rollover fields (default to false/zero if not provided)
+            budget.setRolloverEnabled(rolloverEnabled != null ? rolloverEnabled : false);
+            budget.setCarriedAmount(carriedAmount != null ? carriedAmount : BigDecimal.ZERO);
+            // Set goalId if provided
+            budget.setGoalId(goalId);
         }
 
         // Update current spent for current month
@@ -135,10 +155,17 @@ public class BudgetService {
     }
 
     /**
-     * Create or update budget (backward compatibility - generates deterministic ID)
+     * Create or update budget (backward compatibility - generates deterministic ID, no rollover, no goalId)
      */
     public BudgetTable createOrUpdateBudget(final UserTable user, final String category, final BigDecimal monthlyLimit) {
-        return createOrUpdateBudget(user, category, monthlyLimit, null);
+        return createOrUpdateBudget(user, category, monthlyLimit, null, null, null, null);
+    }
+
+    /**
+     * Create or update budget (backward compatibility - generates deterministic ID, no goalId)
+     */
+    public BudgetTable createOrUpdateBudget(final UserTable user, final String category, final BigDecimal monthlyLimit, final String budgetId) {
+        return createOrUpdateBudget(user, category, monthlyLimit, budgetId, null, null, null);
     }
 
     public List<BudgetTable> getBudgets(UserTable user) {

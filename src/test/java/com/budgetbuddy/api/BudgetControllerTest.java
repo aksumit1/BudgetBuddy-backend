@@ -19,6 +19,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 /**
@@ -101,7 +102,8 @@ class BudgetControllerTest {
         BudgetTable mockBudget = createBudget("budget-1");
         when(userDetails.getUsername()).thenReturn("test@example.com");
         when(userService.findByEmail("test@example.com")).thenReturn(java.util.Optional.of(testUser));
-        when(budgetService.createOrUpdateBudget(testUser, "FOOD", BigDecimal.valueOf(1000.00), null))
+        // Match the actual method signature: createOrUpdateBudget(user, category, monthlyLimit, budgetId, rolloverEnabled, carriedAmount, goalId)
+        when(budgetService.createOrUpdateBudget(eq(testUser), eq("FOOD"), eq(BigDecimal.valueOf(1000.00)), any(), any(), any(), any()))
                 .thenReturn(mockBudget);
 
         // When
@@ -142,19 +144,22 @@ class BudgetControllerTest {
     }
 
     @Test
-    void testCreateOrUpdateBudget_WithZeroLimit_ThrowsException() {
-        // Given
+    void testCreateOrUpdateBudget_WithZeroLimit_AllowsZero() {
+        // Given - Zero budgets are allowed for zero-based budgeting support
         BudgetController.CreateBudgetRequest request = new BudgetController.CreateBudgetRequest();
         request.setCategory("FOOD");
         request.setMonthlyLimit(BigDecimal.ZERO);
         when(userDetails.getUsername()).thenReturn("test@example.com");
         when(userService.findByEmail("test@example.com")).thenReturn(java.util.Optional.of(testUser));
+        when(budgetService.createOrUpdateBudget(eq(testUser), eq("FOOD"), eq(BigDecimal.ZERO), any(), any(), any(), any()))
+                .thenReturn(createBudget("budget-1"));
 
-        // When/Then
-        com.budgetbuddy.exception.AppException exception = assertThrows(
-                com.budgetbuddy.exception.AppException.class,
-                () -> budgetController.createOrUpdateBudget(userDetails, request));
-        assertEquals(com.budgetbuddy.exception.ErrorCode.INVALID_INPUT, exception.getErrorCode());
+        // When
+        ResponseEntity<BudgetTable> response = budgetController.createOrUpdateBudget(userDetails, request);
+
+        // Then - Should succeed (zero budgets are allowed)
+        assertEquals(HttpStatus.CREATED, response.getStatusCode());
+        assertNotNull(response.getBody());
     }
 
     @Test

@@ -81,7 +81,7 @@ public class PlaidController {
     public ResponseEntity<LinkTokenResponse> createLinkToken(
             @AuthenticationPrincipal UserDetails userDetails) {
         if (userDetails == null || userDetails.getUsername() == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
         }
 
         UserTable user = userService.findByEmail(userDetails.getUsername())
@@ -123,7 +123,7 @@ public class PlaidController {
             @AuthenticationPrincipal UserDetails userDetails,
             @Valid @RequestBody ExchangeTokenRequest request) {
         if (userDetails == null || userDetails.getUsername() == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
         }
 
         if (request == null || request.getPublicToken() == null || request.getPublicToken().isEmpty()) {
@@ -181,7 +181,7 @@ public class PlaidController {
             @AuthenticationPrincipal UserDetails userDetails,
             @RequestParam(required = false) @Parameter(description = "Plaid access token (optional)") String accessToken) {
         if (userDetails == null || userDetails.getUsername() == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
         }
 
         UserTable user = userService.findByEmail(userDetails.getUsername())
@@ -285,7 +285,7 @@ public class PlaidController {
             @RequestParam(required = false) @Parameter(description = "Start date (YYYY-MM-DD)") String start,
             @RequestParam(required = false) @Parameter(description = "End date (YYYY-MM-DD)") String end) {
         if (userDetails == null || userDetails.getUsername() == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
         }
 
         UserTable user = userService.findByEmail(userDetails.getUsername())
@@ -358,7 +358,7 @@ public class PlaidController {
             @AuthenticationPrincipal UserDetails userDetails,
             @Valid @RequestBody SyncRequest request) {
         if (userDetails == null || userDetails.getUsername() == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
         }
 
         if (request == null || request.getAccessToken() == null || request.getAccessToken().isEmpty()) {
@@ -472,7 +472,7 @@ public class PlaidController {
             @AuthenticationPrincipal UserDetails userDetails,
             @RequestBody(required = false) List<AccountSyncSettingRequest> requests) {
         if (userDetails == null || userDetails.getUsername() == null) {
-            throw new AppException(ErrorCode.UNAUTHORIZED, "User not authenticated");
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
         }
 
         UserTable user = userService.findByEmail(userDetails.getUsername())

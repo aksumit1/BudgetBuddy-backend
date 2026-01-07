@@ -20,6 +20,8 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 
+import java.nio.charset.StandardCharsets;
+
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -91,7 +93,7 @@ class AuthControllerIntegrationTest {
         AuthRequest request = new AuthRequest();
         request.setEmail(uniqueEmail);
         // Use proper base64-encoded strings
-        request.setPasswordHash(java.util.Base64.getEncoder().encodeToString("hashed-password".getBytes()));
+        request.setPasswordHash(java.util.Base64.getEncoder().encodeToString("hashed-password".getBytes(StandardCharsets.UTF_8)));
         // BREAKING CHANGE: Client salt removed - backend handles salt management
         // request.setSalt(java.util.Base64.getEncoder().encodeToString("client-salt".getBytes()));
 
@@ -108,7 +110,7 @@ class AuthControllerIntegrationTest {
         AuthRequest request = new AuthRequest();
         request.setEmail("invalid-email");
         // Use proper base64-encoded strings
-        request.setPasswordHash(java.util.Base64.getEncoder().encodeToString("hashed-password".getBytes()));
+        request.setPasswordHash(java.util.Base64.getEncoder().encodeToString("hashed-password".getBytes(StandardCharsets.UTF_8)));
         // BREAKING CHANGE: Client salt removed - backend handles salt management
         // request.setSalt(java.util.Base64.getEncoder().encodeToString("client-salt".getBytes()));
 

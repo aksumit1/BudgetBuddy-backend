@@ -9,6 +9,7 @@ import com.budgetbuddy.service.DuplicateDetectionService;
 import com.budgetbuddy.service.TransactionService;
 import com.budgetbuddy.service.TransactionTypeCategoryService;
 import com.budgetbuddy.service.UserService;
+import com.budgetbuddy.api.config.TransactionControllerConfig;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -97,6 +98,9 @@ class CSVImportControllerTest {
     private com.budgetbuddy.service.AccountDetectionService accountDetectionService;
 
     @Mock
+    private TransactionControllerConfig config;
+
+    @Mock
     private UserDetails userDetails;
 
     // CRITICAL: Manually create TransactionController to avoid Mockito mocking issues with ExcelImportService
@@ -110,24 +114,26 @@ class CSVImportControllerTest {
     void setUp() {
         // CRITICAL: Manually create TransactionController to avoid Mockito mocking issues
         // This ensures all dependencies are properly mocked, including ExcelImportService
-        transactionController = new TransactionController(
-                transactionService,
-                userService,
-                accountRepository,
-                fileUploadRateLimiter,
-                fileSecurityValidator,
-                fileContentScanner,
-                fileQuarantineService,
-                fileIntegrityService,
-                csvImportService,
-                excelImportService,
-                pdfImportService,
-                duplicateDetectionService,
-                transactionTypeCategoryService,
-                chunkedUploadService,
-                objectMapper,
-                accountDetectionService
-        );
+        // Setup config mock to return all service mocks
+        when(config.getTransactionService()).thenReturn(transactionService);
+        when(config.getUserService()).thenReturn(userService);
+        when(config.getAccountRepository()).thenReturn(accountRepository);
+        when(config.getFileUploadRateLimiter()).thenReturn(fileUploadRateLimiter);
+        when(config.getFileSecurityValidator()).thenReturn(fileSecurityValidator);
+        when(config.getFileContentScanner()).thenReturn(fileContentScanner);
+        when(config.getFileQuarantineService()).thenReturn(fileQuarantineService);
+        when(config.getFileIntegrityService()).thenReturn(fileIntegrityService);
+        when(config.getCsvImportService()).thenReturn(csvImportService);
+        when(config.getExcelImportService()).thenReturn(excelImportService);
+        when(config.getPdfImportService()).thenReturn(pdfImportService);
+        when(config.getDuplicateDetectionService()).thenReturn(duplicateDetectionService);
+        when(config.getTransactionTypeCategoryService()).thenReturn(transactionTypeCategoryService);
+        when(config.getChunkedUploadService()).thenReturn(chunkedUploadService);
+        when(config.getAccountDetectionService()).thenReturn(accountDetectionService);
+        when(config.getObjectMapper()).thenReturn(objectMapper);
+        
+        // Create controller with mocked config
+        transactionController = new TransactionController(config);
         
         testUser = new UserTable();
         testUser.setUserId("user-123");
