@@ -45,6 +45,7 @@ public class TransactionTable {
     private String importFileName; // Original file name for imports
     private Instant importedAt; // When transaction was imported
     private String goalId; // Optional: Goal this transaction contributes to
+    private String linkedTransactionId; // Optional: ID of linked transaction (e.g., credit card payment linked to checking payment)
     private Instant createdAt;
     private Instant updatedAt;
     private Long updatedAtTimestamp; // GSI sort key (epoch seconds) for incremental sync
@@ -308,6 +309,15 @@ public class TransactionTable {
 
     public void setGoalId(final String goalId) {
         this.goalId = goalId;
+    }
+
+    @DynamoDbAttribute("linkedTransactionId")
+    public String getLinkedTransactionId() {
+        return linkedTransactionId;
+    }
+
+    public void setLinkedTransactionId(final String linkedTransactionId) {
+        this.linkedTransactionId = linkedTransactionId;
     }
 
     @DynamoDbAttribute("createdAt")

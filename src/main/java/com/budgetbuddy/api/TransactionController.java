@@ -233,7 +233,8 @@ public class TransactionController {
                 request.getMerchantName(), // Pass optional merchant name (where purchase was made)
                 request.getPaymentChannel(), // Pass optional payment channel
                 request.getUserName(), // Pass optional user name (card/account user - family member)
-                request.getGoalId() // Pass optional goal ID this transaction contributes to
+                request.getGoalId(), // Pass optional goal ID this transaction contributes to
+                request.getLinkedTransactionId() // Pass optional linked transaction ID (for cross-account duplicate detection)
         );
 
         return ResponseEntity.status(HttpStatus.CREATED).body(transaction);
@@ -268,7 +269,8 @@ public class TransactionController {
                 request.getIsHidden(), // Pass hidden state
                 request.getTransactionType(), // Pass optional user-selected transaction type
                 false, // Don't clear notes if null - preserve existing when doing partial updates
-                request.getGoalId() // Pass optional goal ID this transaction contributes to
+                request.getGoalId(), // Pass optional goal ID this transaction contributes to
+                request.getLinkedTransactionId() // Pass optional linked transaction ID (for cross-account duplicate detection)
         );
 
         return ResponseEntity.ok(transaction);
@@ -2711,7 +2713,8 @@ public class TransactionController {
                             parsed.getMerchantName(), // merchantName (where purchase was made)
                             parsed.getPaymentChannel(), // paymentChannel
                             null, // userName (not available in CSV/Excel imports)
-                            null // goalId
+                            null, // goalId
+                            null // linkedTransactionId
                     );
                     batchCreated++;
                     created++;
@@ -2796,7 +2799,8 @@ public class TransactionController {
                             parsed.getMerchantName(), // merchantName (where purchase was made)
                             parsed.getPaymentChannel(), // paymentChannel
                             parsed.getUserName(), // userName (card/account user - family member)
-                            null // goalId
+                            null, // goalId
+                            null // linkedTransactionId
                     );
                     
                     // CRITICAL: Log amount after creation to verify sign preservation
@@ -2890,6 +2894,9 @@ public class TransactionController {
         
         @jakarta.validation.constraints.Size(max = 100, message = "Goal ID cannot exceed 100 characters")
         private String goalId; // Optional: Goal this transaction contributes to
+        
+        @jakarta.validation.constraints.Size(max = 100, message = "Linked transaction ID cannot exceed 100 characters")
+        private String linkedTransactionId; // Optional: ID of linked transaction (e.g., credit card payment linked to checking payment)
 
         // Getters and setters
         public String getTransactionId() { return transactionId; }
@@ -2944,6 +2951,9 @@ public class TransactionController {
         
         public String getGoalId() { return goalId; }
         public void setGoalId(final String goalId) { this.goalId = goalId; }
+        
+        public String getLinkedTransactionId() { return linkedTransactionId; }
+        public void setLinkedTransactionId(final String linkedTransactionId) { this.linkedTransactionId = linkedTransactionId; }
     }
 
     public static class TotalSpendingResponse {
@@ -2984,6 +2994,9 @@ public class TransactionController {
         
         @jakarta.validation.constraints.Size(max = 100, message = "Goal ID cannot exceed 100 characters")
         private String goalId; // Optional: Goal this transaction contributes to
+        
+        @jakarta.validation.constraints.Size(max = 100, message = "Linked transaction ID cannot exceed 100 characters")
+        private String linkedTransactionId; // Optional: ID of linked transaction (e.g., credit card payment linked to checking payment)
 
         public BigDecimal getAmount() { return amount; }
         public void setAmount(final BigDecimal amount) { this.amount = amount; }
@@ -3011,6 +3024,9 @@ public class TransactionController {
         
         public String getGoalId() { return goalId; }
         public void setGoalId(final String goalId) { this.goalId = goalId; }
+        
+        public String getLinkedTransactionId() { return linkedTransactionId; }
+        public void setLinkedTransactionId(final String linkedTransactionId) { this.linkedTransactionId = linkedTransactionId; }
     }
 
     public static class VerifyTransactionRequest {

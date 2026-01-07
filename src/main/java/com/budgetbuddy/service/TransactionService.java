@@ -400,7 +400,8 @@ public class TransactionService {
                         request.getMerchantName(), // Pass merchantName (where purchase was made)
                         request.getPaymentChannel(), // Pass paymentChannel
                         request.getUserName(), // Pass userName (card/account user - family member)
-                        null // goalId (not available in batch import request)
+                        null, // goalId (not available in batch import request)
+                        null // linkedTransactionId (not available in batch import request)
                 );
                 response.setCreated(response.getCreated() + 1);
                 if (transaction.getTransactionId() != null) {
@@ -595,16 +596,16 @@ public class TransactionService {
      * Create manual transaction (backward compatibility - generates new UUID)
      */
     public TransactionTable createTransaction(final UserTable user, final String accountId, final BigDecimal amount, final LocalDate transactionDate, final String description, final String categoryPrimary) {
-        // Call main method with 17 nulls after the 6 initial params (categoryDetailed, importerCategoryPrimary, importerCategoryDetailed, transactionId, notes, plaidAccountId, plaidTransactionId, transactionType, currencyCode, importSource, importBatchId, importFileName, reviewStatus, merchantName, paymentChannel, userName, goalId)
-        return createTransaction(user, accountId, amount, transactionDate, description, categoryPrimary, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null);
+        // Call main method with 18 nulls after the 6 initial params (categoryDetailed, importerCategoryPrimary, importerCategoryDetailed, transactionId, notes, plaidAccountId, plaidTransactionId, transactionType, currencyCode, importSource, importBatchId, importFileName, reviewStatus, merchantName, paymentChannel, userName, goalId, linkedTransactionId)
+        return createTransaction(user, accountId, amount, transactionDate, description, categoryPrimary, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null);
     }
 
     /**
      * Create manual transaction (backward compatibility - with categoryDetailed)
      */
     public TransactionTable createTransaction(final UserTable user, final String accountId, final BigDecimal amount, final LocalDate transactionDate, final String description, final String categoryPrimary, final String categoryDetailed) {
-        // Call main method with 15 nulls after the 7 initial params (importerCategoryPrimary, importerCategoryDetailed, transactionId, notes, plaidAccountId, plaidTransactionId, transactionType, currencyCode, importSource, importBatchId, importFileName, reviewStatus, merchantName, paymentChannel, userName)
-        return createTransaction(user, accountId, amount, transactionDate, description, categoryPrimary, categoryDetailed, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null);
+        // Call main method with 16 nulls after the 7 initial params (importerCategoryPrimary, importerCategoryDetailed, transactionId, notes, plaidAccountId, plaidTransactionId, transactionType, currencyCode, importSource, importBatchId, importFileName, reviewStatus, merchantName, paymentChannel, userName, goalId, linkedTransactionId)
+        return createTransaction(user, accountId, amount, transactionDate, description, categoryPrimary, categoryDetailed, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null);
     }
 
     /**
@@ -614,16 +615,16 @@ public class TransactionService {
      * @param notes Optional user notes for the transaction
      */
     public TransactionTable createTransaction(final UserTable user, final String accountId, final BigDecimal amount, final LocalDate transactionDate, final String description, final String categoryPrimary, final String categoryDetailed, final String transactionId, final String notes) {
-        // Call main method: 7 initial params, then importerCategoryPrimary (null), importerCategoryDetailed (null), transactionId, notes, then remaining 11 fields (plaidAccountId, plaidTransactionId, transactionType, currencyCode, importSource, importBatchId, importFileName, reviewStatus, merchantName, paymentChannel, userName)
-        return createTransaction(user, accountId, amount, transactionDate, description, categoryPrimary, categoryDetailed, null, null, transactionId, notes, null, null, null, null, null, null, null, null, null, null, null, null);
+        // Call main method: 7 initial params, then importerCategoryPrimary (null), importerCategoryDetailed (null), transactionId, notes, then remaining 12 fields (plaidAccountId, plaidTransactionId, transactionType, currencyCode, importSource, importBatchId, importFileName, reviewStatus, merchantName, paymentChannel, userName, goalId, linkedTransactionId)
+        return createTransaction(user, accountId, amount, transactionDate, description, categoryPrimary, categoryDetailed, null, null, transactionId, notes, null, null, null, null, null, null, null, null, null, null, null, null, null);
     }
     
     /**
      * Create transaction with optional Plaid account ID and Plaid transaction ID for fallback lookup
      */
     public TransactionTable createTransaction(final UserTable user, final String accountId, final BigDecimal amount, final LocalDate transactionDate, final String description, final String categoryPrimary, final String categoryDetailed, final String transactionId, final String notes, final String plaidAccountId) {
-        // Call main method: 7 initial params, then importerCategoryPrimary (null), importerCategoryDetailed (null), transactionId, notes, plaidAccountId, then remaining 10 fields (plaidTransactionId, transactionType, currencyCode, importSource, importBatchId, importFileName, reviewStatus, merchantName, paymentChannel, userName)
-        return createTransaction(user, accountId, amount, transactionDate, description, categoryPrimary, categoryDetailed, null, null, transactionId, notes, plaidAccountId, null, null, null, null, null, null, null, null, null, null, null);
+        // Call main method: 7 initial params, then importerCategoryPrimary (null), importerCategoryDetailed (null), transactionId, notes, plaidAccountId, then remaining 10 fields (plaidTransactionId, transactionType, currencyCode, importSource, importBatchId, importFileName, reviewStatus, merchantName, paymentChannel, userName, goalId, linkedTransactionId)
+        return createTransaction(user, accountId, amount, transactionDate, description, categoryPrimary, categoryDetailed, null, null, transactionId, notes, plaidAccountId, null, null, null, null, null, null, null, null, null, null, null, null);
     }
     
     /**
@@ -641,7 +642,7 @@ public class TransactionService {
         // Overload with importerCategory fields (defaults to null for backward compatibility)
         return createTransaction(user, accountId, amount, transactionDate, description, categoryPrimary, categoryDetailed,                                     
             null, null, transactionId, notes, plaidAccountId, plaidTransactionId, transactionType, currencyCode,                                               
-            importSource, importBatchId, importFileName, null, null, null, null, null);
+            importSource, importBatchId, importFileName, null, null, null, null, null, null);
     }
     
     /**
@@ -650,7 +651,7 @@ public class TransactionService {
      * @param paymentChannel Optional payment channel (online, in_store, ach, etc.)
      * @param userName Optional card/account user name (family member who made the transaction)
      */
-    public TransactionTable createTransaction(final UserTable user, final String accountId, final BigDecimal amount, final LocalDate transactionDate, final String description, final String categoryPrimary, final String categoryDetailed, final String importerCategoryPrimary, final String importerCategoryDetailed, final String transactionId, final String notes, final String plaidAccountId, final String plaidTransactionId, final String transactionType, final String currencyCode, final String importSource, final String importBatchId, final String importFileName, final String reviewStatus, final String merchantName, final String paymentChannel, final String userName, final String goalId) {
+    public TransactionTable createTransaction(final UserTable user, final String accountId, final BigDecimal amount, final LocalDate transactionDate, final String description, final String categoryPrimary, final String categoryDetailed, final String importerCategoryPrimary, final String importerCategoryDetailed, final String transactionId, final String notes, final String plaidAccountId, final String plaidTransactionId, final String transactionType, final String currencyCode, final String importSource, final String importBatchId, final String importFileName, final String reviewStatus, final String merchantName, final String paymentChannel, final String userName, final String goalId, final String linkedTransactionId) {
         if (user == null || user.getUserId() == null || user.getUserId().isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "User is required");
         }
@@ -923,6 +924,11 @@ public class TransactionService {
             transaction.setGoalId(goalId.trim());
         }
         
+        // Set linked transaction ID (for cross-account duplicate detection, e.g., credit card payment linked to checking payment)
+        if (linkedTransactionId != null && !linkedTransactionId.trim().isEmpty()) {
+            transaction.setLinkedTransactionId(linkedTransactionId.trim());
+        }
+        
         // CRITICAL: Set importer category fields (from import parser or Plaid)
         if (importerCategoryPrimary != null && !importerCategoryPrimary.isEmpty()) {
             transaction.setImporterCategoryPrimary(importerCategoryPrimary);
@@ -1180,7 +1186,7 @@ public class TransactionService {
     public TransactionTable updateTransaction(final UserTable user, final String transactionId, final String notes) {
         // When this 3-parameter method is called, notes is explicitly provided (even if null)
         // So null means clear notes, not preserve
-        return updateTransaction(user, transactionId, null, null, notes, null, null, null, null, null, true, null);
+        return updateTransaction(user, transactionId, null, null, notes, null, null, null, null, null, true, null, null);
     }
     
     /**
@@ -1196,7 +1202,7 @@ public class TransactionService {
      * @param clearNotesIfNull If true, null notes means clear notes. If false, null notes means preserve existing.
      * @param goalId Optional: Goal ID this transaction contributes to
      */
-    public TransactionTable updateTransaction(final UserTable user, final String transactionId, final String plaidTransactionId, final BigDecimal amount, final String notes, final String categoryPrimary, final String categoryDetailed, final String reviewStatus, final Boolean isHidden, final String transactionType, final boolean clearNotesIfNull, final String goalId) {
+    public TransactionTable updateTransaction(final UserTable user, final String transactionId, final String plaidTransactionId, final BigDecimal amount, final String notes, final String categoryPrimary, final String categoryDetailed, final String reviewStatus, final Boolean isHidden, final String transactionType, final boolean clearNotesIfNull, final String goalId, final String linkedTransactionId) {
         if (user == null || user.getUserId() == null || user.getUserId().isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "User is required");
         }
@@ -1395,6 +1401,15 @@ public class TransactionService {
                 transaction.setGoalId(null);
             } else {
                 transaction.setGoalId(goalId.trim());
+            }
+        }
+        
+        // Handle linkedTransactionId assignment/removal
+        if (linkedTransactionId != null) {
+            if (linkedTransactionId.trim().isEmpty()) {
+                transaction.setLinkedTransactionId(null);
+            } else {
+                transaction.setLinkedTransactionId(linkedTransactionId.trim());
             }
         }
         
