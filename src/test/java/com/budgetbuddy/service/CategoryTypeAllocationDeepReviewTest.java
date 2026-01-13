@@ -67,7 +67,6 @@ class CategoryTypeAllocationDeepReviewTest {
         csvImportService = new CSVImportService(
             accountDetectionService,
             enhancedCategoryDetection,
-            fuzzyMatchingService,
                 org.mockito.Mockito.mock(TransactionTypeCategoryService.class),
                 org.mockito.Mockito.mock(ImportCategoryParser.class),
                 categoryDetectionManager);

@@ -122,5 +122,44 @@ public class SyncController {
         
         return ResponseEntity.ok(response);
     }
+    
+    /**
+     * Get sync status
+     * Returns current sync status, last sync time, and data counts
+     * Used by offline mode to check sync state
+     * 
+     * @param userDetails Authenticated user details
+     * @return Sync status information
+     */
+    @GetMapping("/status")
+    @Operation(
+            summary = "Get Sync Status",
+            description = "Returns current sync status, last sync time, and data counts for offline mode support"
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Status retrieved successfully"),
+            @ApiResponse(responseCode = "401", description = "User not authenticated"),
+            @ApiResponse(responseCode = "404", description = "User not found")
+    })
+    public ResponseEntity<com.budgetbuddy.dto.SyncStatusResponse> getSyncStatus(
+            @AuthenticationPrincipal UserDetails userDetails) {
+        
+        if (userDetails == null || userDetails.getUsername() == null || userDetails.getUsername().isEmpty()) {
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+        }
+
+        UserTable user = userService.findByEmail(userDetails.getUsername())
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+
+        if (user.getUserId() == null || user.getUserId().isEmpty()) {
+            throw new AppException(ErrorCode.INVALID_INPUT, "User ID is invalid");
+        }
+
+        logger.info("Sync status request for user: {}", user.getUserId());
+        
+        com.budgetbuddy.dto.SyncStatusResponse response = syncService.getSyncStatus(user.getUserId());
+        
+        return ResponseEntity.ok(response);
+    }
 }
 

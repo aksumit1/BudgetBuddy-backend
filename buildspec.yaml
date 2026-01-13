@@ -9,6 +9,12 @@ phases:
       - COMMIT_HASH=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
       - IMAGE_TAG=${COMMIT_HASH:=latest}
       - echo Build started on `date`
+      - echo Downloading DistilBERT model (if needed)...
+      - |
+        if [ -f scripts/download-bert-model.sh ]; then
+          chmod +x scripts/download-bert-model.sh
+          scripts/download-bert-model.sh models || echo "Model download skipped (will download at runtime)"
+        fi
       - echo Validating YAML files...
       - |
         if command -v yamllint &> /dev/null; then

@@ -1,0 +1,89 @@
+DynamoDB Table Dump Summary
+===========================
+Timestamp: Sat Jan 10 16:57:14 PST 2026
+Endpoint: http://localhost:4566
+Output Directory: ./dynamodb-dumps/dump_20260110_165703
+
+Tables Found: 38
+Successfully Dumped: 38
+Failed: 0
+
+Tables:
+ 1. BudgetBuddy-Accounts
+ 2. BudgetBuddy-AuditLogs
+ 3. BudgetBuddy-Budgets
+ 4. BudgetBuddy-DDoSProtection
+ 5. BudgetBuddy-DeviceAttestation
+ 6. BudgetBuddy-DeviceAttestations
+ 7. BudgetBuddy-DeviceTokens
+ 8. BudgetBuddy-FIDO2Challenges
+ 9. BudgetBuddy-FIDO2Credentials
+10. BudgetBuddy-Goals
+11. BudgetBuddy-MFABackupCodes
+12. BudgetBuddy-MFACredentials
+13. BudgetBuddy-MFAOTPCodes
+14. BudgetBuddy-NotFoundTracking
+15. BudgetBuddy-RateLimits
+16. BudgetBuddy-Subscriptions
+17. BudgetBuddy-TransactionActions
+18. BudgetBuddy-Transactions
+19. BudgetBuddy-Users
+20. TestBudgetBuddy-Accounts
+21. TestBudgetBuddy-AuditLogs
+22. TestBudgetBuddy-Budgets
+23. TestBudgetBuddy-DDoSProtection
+24. TestBudgetBuddy-DeviceAttestation
+25. TestBudgetBuddy-DeviceAttestations
+26. TestBudgetBuddy-DeviceTokens
+27. TestBudgetBuddy-FIDO2Challenges
+28. TestBudgetBuddy-FIDO2Credentials
+29. TestBudgetBuddy-Goals
+30. TestBudgetBuddy-MFABackupCodes
+31. TestBudgetBuddy-MFACredentials
+32. TestBudgetBuddy-MFAOTPCodes
+33. TestBudgetBuddy-NotFoundTracking
+34. TestBudgetBuddy-RateLimits
+35. TestBudgetBuddy-Subscriptions
+36. TestBudgetBuddy-TransactionActions
+37. TestBudgetBuddy-Transactions
+38. TestBudgetBuddy-Users
+
+Files:
+./dynamodb-dumps/dump_20260110_165703/BudgetBuddy-Accounts.json (13K)
+./dynamodb-dumps/dump_20260110_165703/BudgetBuddy-AuditLogs.json (89B)
+./dynamodb-dumps/dump_20260110_165703/BudgetBuddy-Budgets.json (750B)
+./dynamodb-dumps/dump_20260110_165703/BudgetBuddy-DDoSProtection.json (732B)
+./dynamodb-dumps/dump_20260110_165703/BudgetBuddy-DeviceAttestation.json (89B)
+./dynamodb-dumps/dump_20260110_165703/BudgetBuddy-DeviceAttestations.json (89B)
+./dynamodb-dumps/dump_20260110_165703/BudgetBuddy-DeviceTokens.json (89B)
+./dynamodb-dumps/dump_20260110_165703/BudgetBuddy-FIDO2Challenges.json (89B)
+./dynamodb-dumps/dump_20260110_165703/BudgetBuddy-FIDO2Credentials.json (89B)
+./dynamodb-dumps/dump_20260110_165703/BudgetBuddy-Goals.json (89B)
+./dynamodb-dumps/dump_20260110_165703/BudgetBuddy-MFABackupCodes.json (89B)
+./dynamodb-dumps/dump_20260110_165703/BudgetBuddy-MFACredentials.json (89B)
+./dynamodb-dumps/dump_20260110_165703/BudgetBuddy-MFAOTPCodes.json (89B)
+./dynamodb-dumps/dump_20260110_165703/BudgetBuddy-NotFoundTracking.json (89B)
+./dynamodb-dumps/dump_20260110_165703/BudgetBuddy-RateLimits.json (783B)
+./dynamodb-dumps/dump_20260110_165703/BudgetBuddy-Subscriptions.json (22K)
+./dynamodb-dumps/dump_20260110_165703/BudgetBuddy-TransactionActions.json (89B)
+./dynamodb-dumps/dump_20260110_165703/BudgetBuddy-Transactions.json (1.9M)
+./dynamodb-dumps/dump_20260110_165703/BudgetBuddy-Users.json (1.2K)
+./dynamodb-dumps/dump_20260110_165703/TestBudgetBuddy-Accounts.json (20K)
+./dynamodb-dumps/dump_20260110_165703/TestBudgetBuddy-AuditLogs.json (89B)
+./dynamodb-dumps/dump_20260110_165703/TestBudgetBuddy-Budgets.json (89B)
+./dynamodb-dumps/dump_20260110_165703/TestBudgetBuddy-DDoSProtection.json (464B)
+./dynamodb-dumps/dump_20260110_165703/TestBudgetBuddy-DeviceAttestation.json (89B)
+./dynamodb-dumps/dump_20260110_165703/TestBudgetBuddy-DeviceAttestations.json (89B)
+./dynamodb-dumps/dump_20260110_165703/TestBudgetBuddy-DeviceTokens.json (89B)
+./dynamodb-dumps/dump_20260110_165703/TestBudgetBuddy-FIDO2Challenges.json (89B)
+./dynamodb-dumps/dump_20260110_165703/TestBudgetBuddy-FIDO2Credentials.json (89B)
+./dynamodb-dumps/dump_20260110_165703/TestBudgetBuddy-Goals.json (89B)
+./dynamodb-dumps/dump_20260110_165703/TestBudgetBuddy-MFABackupCodes.json (89B)
+./dynamodb-dumps/dump_20260110_165703/TestBudgetBuddy-MFACredentials.json (89B)
+./dynamodb-dumps/dump_20260110_165703/TestBudgetBuddy-MFAOTPCodes.json (89B)
+./dynamodb-dumps/dump_20260110_165703/TestBudgetBuddy-NotFoundTracking.json (89B)
+./dynamodb-dumps/dump_20260110_165703/TestBudgetBuddy-RateLimits.json (89B)
+./dynamodb-dumps/dump_20260110_165703/TestBudgetBuddy-Subscriptions.json (18K)
+./dynamodb-dumps/dump_20260110_165703/TestBudgetBuddy-TransactionActions.json (89B)
+./dynamodb-dumps/dump_20260110_165703/TestBudgetBuddy-Transactions.json (89B)
+./dynamodb-dumps/dump_20260110_165703/TestBudgetBuddy-Users.json (17K)

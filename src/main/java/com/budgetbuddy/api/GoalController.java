@@ -31,11 +31,16 @@ public class GoalController {
     private final GoalService goalService;
     private final GoalProgressService goalProgressService;
     private final UserService userService;
+    private final com.budgetbuddy.notification.DataChangeNotificationService dataChangeNotificationService;
 
-    public GoalController(final GoalService goalService, final GoalProgressService goalProgressService, final UserService userService) {
+    public GoalController(final GoalService goalService, 
+                         final GoalProgressService goalProgressService, 
+                         final UserService userService,
+                         final com.budgetbuddy.notification.DataChangeNotificationService dataChangeNotificationService) {
         this.goalService = goalService;
         this.goalProgressService = goalProgressService;
         this.userService = userService;
+        this.dataChangeNotificationService = dataChangeNotificationService;
     }
 
     @GetMapping
@@ -94,6 +99,15 @@ public class GoalController {
                 request.getAccountIds() // Pass optional account IDs (will be set/updated in createGoal)
         );
 
+        // Send push notification for real-time sync on other devices
+        try {
+            dataChangeNotificationService.notifyGoalChanged(user.getUserId(), goal.getGoalId());
+        } catch (Exception e) {
+            org.slf4j.LoggerFactory.getLogger(GoalController.class)
+                    .warn("Failed to send data change notification for goal creation: {}", e.getMessage());
+            // Don't fail the request if notification fails
+        }
+
         return ResponseEntity.status(HttpStatus.CREATED).body(goal);
     }
 
@@ -118,6 +132,16 @@ public class GoalController {
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
 
         GoalTable goal = goalService.updateGoalProgress(user, id, request.getAmount());
+        
+        // Send push notification for real-time sync on other devices
+        try {
+            dataChangeNotificationService.notifyGoalChanged(user.getUserId(), goal.getGoalId());
+        } catch (Exception e) {
+            org.slf4j.LoggerFactory.getLogger(GoalController.class)
+                    .warn("Failed to send data change notification for goal progress update: {}", e.getMessage());
+            // Don't fail the request if notification fails
+        }
+        
         return ResponseEntity.ok(goal);
     }
 
@@ -142,6 +166,16 @@ public class GoalController {
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
 
         GoalTable goal = goalService.associateAccounts(user, id, request.getAccountIds());
+        
+        // Send push notification for real-time sync on other devices
+        try {
+            dataChangeNotificationService.notifyGoalChanged(user.getUserId(), goal.getGoalId());
+        } catch (Exception e) {
+            org.slf4j.LoggerFactory.getLogger(GoalController.class)
+                    .warn("Failed to send data change notification for goal account association: {}", e.getMessage());
+            // Don't fail the request if notification fails
+        }
+        
         return ResponseEntity.ok(goal);
     }
 
@@ -161,6 +195,16 @@ public class GoalController {
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
 
         GoalTable goal = goalProgressService.calculateAndUpdateProgress(user, id);
+        
+        // Send push notification for real-time sync on other devices
+        try {
+            dataChangeNotificationService.notifyGoalChanged(user.getUserId(), goal.getGoalId());
+        } catch (Exception e) {
+            org.slf4j.LoggerFactory.getLogger(GoalController.class)
+                    .warn("Failed to send data change notification for goal recalculation: {}", e.getMessage());
+            // Don't fail the request if notification fails
+        }
+        
         return ResponseEntity.ok(goal);
     }
 
@@ -180,6 +224,16 @@ public class GoalController {
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
 
         goalService.deleteGoal(user, id);
+        
+        // Send push notification for real-time sync on other devices
+        try {
+            dataChangeNotificationService.notifyGoalChanged(user.getUserId(), id);
+        } catch (Exception e) {
+            org.slf4j.LoggerFactory.getLogger(GoalController.class)
+                    .warn("Failed to send data change notification for goal deletion: {}", e.getMessage());
+            // Don't fail the request if notification fails
+        }
+        
         return ResponseEntity.noContent().build();
     }
 

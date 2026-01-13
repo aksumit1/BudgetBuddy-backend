@@ -363,6 +363,16 @@ public class PlaidCategoryMapper {
                                      combinedTextLower.contains("autopayment") ||
                                      (combinedTextLower.contains("automatic") && combinedTextLower.contains("payment"));
         
+        // Direct payments: Check for "directpay", "direct pay", "direct payment", "directpayment", "automatyment"
+        // CRITICAL: Positive amounts with payment keywords like "DIRECTPAY" should be Payment type, not Expense
+        // This handles cases like "1% Cashback Bonus +$0.06 DIRECTPAY FULL BALANCE" with positive amount
+        boolean isDirectPayment = combinedTextLower.contains("directpay") || 
+                                  combinedTextLower.contains("direct pay") ||
+                                  combinedTextLower.contains("direct-pay") ||
+                                  combinedTextLower.contains("direct payment") ||
+                                  combinedTextLower.contains("directpayment") ||
+                                  combinedTextLower.contains("automatyment"); // Common misspelling
+        
         // ACH Debit: Check for "ACH Debit" or "ACH Electronic Debit" in description/merchant name
         // This should be categorized as payment, not expense
         boolean isACHDebitByDescription = !isACHCredit && // Don't treat ACH credits as debits
@@ -389,14 +399,75 @@ public class PlaidCategoryMapper {
         
         boolean isACHDebit = isACHDebitByDescription || isACHDebitByChannel;
         
-        if (isCreditCardPayment || isRecurringACHPayment || isACHDebit || isAutomaticPayment) {
+        if (isCreditCardPayment || isRecurringACHPayment || isACHDebit || isAutomaticPayment || isDirectPayment) {
             mappedDetailed = "payment";
             mappedPrimary = "payment";
             String paymentType = isCreditCardPayment ? "Credit card payment" : 
+                                isDirectPayment ? "Direct payment" :
                                 isAutomaticPayment ? "Automatic payment" :
                                 isACHDebit ? "ACH debit" : "Recurring ACH payment";
             logger.debug("Enhanced mapping: {} detected (description={}, paymentChannel={}, amount={}) - overriding category to payment", 
                     paymentType, description, paymentChannel, amount);
+        }
+        
+        // CRITICAL: Check for airline transactions and override to travel
+        // This MUST happen AFTER payment detection but BEFORE other enhanced categorization
+        // This ensures airline transactions are always categorized as travel, not utilities or other categories
+        // Check for airline keywords in merchant name and description
+        boolean isAirlineTransaction = detectAirlineTransaction(combinedTextLower, merchantLower, descriptionLower);
+        if (isAirlineTransaction) {
+            mappedDetailed = "travel";
+            mappedPrimary = "travel";
+            logger.debug("Enhanced mapping: airline transaction detected (merchant={}, description={}) - overriding category to travel", 
+                    merchantName, description);
+        }
+        
+        // CRITICAL: Check for airport lounge transactions and override to travel
+        // This MUST happen AFTER airline detection but BEFORE other enhanced categorization
+        // This ensures airport lounges (like AXP Centurion Lounge) are categorized as travel, not utilities or other categories
+        boolean isAirportLounge = detectAirportLounge(combinedTextLower, merchantLower, descriptionLower);
+        if (isAirportLounge) {
+            mappedDetailed = "travel";
+            mappedPrimary = "travel";
+            logger.debug("Enhanced mapping: airport lounge transaction detected (merchant={}, description={}) - overriding category to travel", 
+                    merchantName, description);
+        }
+        
+        // CRITICAL: Check for shopping/retail transactions and override to shopping
+        // This MUST happen AFTER airline detection but BEFORE transportation checks
+        // This ensures shopping retailers (like Lululemon) are categorized as shopping, not transportation
+        // The issue: "lul" in "lululemon" might match transportation keywords, so we need to detect shopping first
+        // BUT: Don't override if Plaid already categorized as GROCERIES (e.g., Walmart with GROCERIES category)
+        boolean isPlaidGroceries = (plaidCategoryDetailed != null && "GROCERIES".equalsIgnoreCase(plaidCategoryDetailed)) ||
+                                   (plaidCategoryPrimary != null && "GROCERIES".equalsIgnoreCase(plaidCategoryPrimary));
+        boolean isShoppingTransaction = !isPlaidGroceries && detectShoppingTransaction(combinedTextLower, merchantLower, descriptionLower);
+        if (isShoppingTransaction) {
+            mappedDetailed = "shopping";
+            mappedPrimary = "shopping";
+            logger.debug("Enhanced mapping: shopping transaction detected (merchant={}, description={}) - overriding category to shopping", 
+                    merchantName, description);
+        }
+        
+        // CRITICAL: Check for movie theater/entertainment transactions and override to entertainment
+        // This MUST happen AFTER shopping detection to ensure movie theaters are categorized as entertainment, not education or other categories
+        // This ensures AMC and other movie theaters are always categorized as entertainment
+        boolean isEntertainmentTransaction = detectEntertainmentTransaction(combinedTextLower, merchantLower, descriptionLower);
+        if (isEntertainmentTransaction) {
+            mappedDetailed = "entertainment";
+            mappedPrimary = "entertainment";
+            logger.debug("Enhanced mapping: entertainment transaction detected (merchant={}, description={}) - overriding category to entertainment", 
+                    merchantName, description);
+        }
+        
+        // CRITICAL: Check for holdings/company transactions and override to other
+        // This MUST happen BEFORE dining detection to prevent holdings companies from being categorized as dining
+        // Holdings companies (like TRG Holdings) are business entities and should be "other", not "dining"
+        boolean isHoldingsCompany = detectHoldingsCompany(combinedTextLower, merchantLower, descriptionLower);
+        if (isHoldingsCompany) {
+            mappedDetailed = "other";
+            mappedPrimary = "other";
+            logger.debug("Enhanced mapping: holdings company detected (merchant={}, description={}) - overriding category to other", 
+                    merchantName, description);
         }
         
         // Enhanced categorization based on merchant/description
@@ -695,6 +766,340 @@ public class PlaidCategoryMapper {
         // Default to salary (most common income type) if no specific match
         // CRITICAL: "income" is ONLY a primary category type, NOT a detailed category
         return "salary";
+    }
+    
+    /**
+     * Detects if a transaction is an airline transaction based on merchant name and description
+     * Checks for common airline names and airline-related keywords
+     * 
+     * @param combinedTextLower Combined merchant name and description in lowercase
+     * @param merchantLower Merchant name in lowercase
+     * @param descriptionLower Description in lowercase
+     * @return true if airline transaction detected, false otherwise
+     */
+    private boolean detectAirlineTransaction(final String combinedTextLower, final String merchantLower, final String descriptionLower) {
+        // Strong indicators of airline transactions
+        boolean hasPassengerTicket = combinedTextLower.contains("passenger ticket") || 
+                                     combinedTextLower.contains("passenger name") ||
+                                     combinedTextLower.contains("ticket number");
+        
+        boolean hasFlightDetails = combinedTextLower.contains("date of departure") || 
+                                  combinedTextLower.contains("carrier:") ||
+                                  (combinedTextLower.contains("from:") && combinedTextLower.contains("to:"));
+        
+        // Check for common airline names (case-insensitive matching already done via lowercase)
+        // DELTA AIR LINES, DELTA AIR, DELTA
+        boolean isDelta = combinedTextLower.contains("delta air lines") || 
+                         combinedTextLower.contains("delta air") ||
+                         (combinedTextLower.contains("delta") && 
+                          (combinedTextLower.contains("airline") || combinedTextLower.contains("airlines") ||
+                           combinedTextLower.contains("flight") || combinedTextLower.contains("ticket") ||
+                           combinedTextLower.contains("passenger") || combinedTextLower.contains("carrier") ||
+                           hasPassengerTicket || hasFlightDetails));
+        
+        // ALASKA AIRLINES, ALASKA AIR
+        boolean isAlaska = combinedTextLower.contains("alaska airlines") || 
+                          combinedTextLower.contains("alaska air") ||
+                          (combinedTextLower.contains("alaska") && 
+                           (combinedTextLower.contains("airline") || combinedTextLower.contains("airlines") ||
+                            combinedTextLower.contains("flight") || combinedTextLower.contains("ticket") ||
+                            combinedTextLower.contains("passenger") || combinedTextLower.contains("carrier") ||
+                            hasPassengerTicket || hasFlightDetails));
+        
+        // Other major airlines
+        boolean isUnited = combinedTextLower.contains("united airlines") || 
+                          combinedTextLower.contains("united air") ||
+                          (combinedTextLower.contains("united") && 
+                           (combinedTextLower.contains("airline") || combinedTextLower.contains("airlines") ||
+                            combinedTextLower.contains("flight") || combinedTextLower.contains("ticket") ||
+                            combinedTextLower.contains("passenger") || combinedTextLower.contains("carrier") ||
+                            hasPassengerTicket || hasFlightDetails));
+        
+        boolean isAmerican = combinedTextLower.contains("american airlines") || 
+                            combinedTextLower.contains("american air") ||
+                            (combinedTextLower.contains("american") && 
+                             (combinedTextLower.contains("airline") || combinedTextLower.contains("airlines") ||
+                              combinedTextLower.contains("flight") || combinedTextLower.contains("ticket") ||
+                              combinedTextLower.contains("passenger") || combinedTextLower.contains("carrier") ||
+                              hasPassengerTicket || hasFlightDetails));
+        
+        boolean isSouthwest = combinedTextLower.contains("southwest airlines") || 
+                             combinedTextLower.contains("southwest air");
+        
+        boolean isJetBlue = combinedTextLower.contains("jetblue") || 
+                           combinedTextLower.contains("jet blue");
+        
+        boolean isSpirit = combinedTextLower.contains("spirit airlines") || 
+                          combinedTextLower.contains("spirit air");
+        
+        boolean isFrontier = combinedTextLower.contains("frontier airlines") || 
+                            combinedTextLower.contains("frontier air");
+        
+        // Check for generic airline keywords (flight, ticket, passenger, carrier, departure, etc.)
+        // Only match if combined with airline context to avoid false positives
+        boolean hasAirlineKeywords = (combinedTextLower.contains("airline") || combinedTextLower.contains("airlines")) &&
+                                     (combinedTextLower.contains("flight") || combinedTextLower.contains("ticket") ||
+                                      combinedTextLower.contains("passenger") || combinedTextLower.contains("carrier") ||
+                                      combinedTextLower.contains("departure") || combinedTextLower.contains("airport") ||
+                                      hasPassengerTicket || hasFlightDetails);
+        
+        return isDelta || isAlaska || isUnited || isAmerican || isSouthwest || 
+               isJetBlue || isSpirit || isFrontier || hasAirlineKeywords;
+    }
+    
+    /**
+     * Detects if a transaction is an airport lounge transaction based on merchant name and description
+     * Checks for common airport lounge names (Centurion Lounge, Priority Pass, airline lounges, etc.)
+     * This is critical to prevent false positives where airport lounges are categorized as utilities or other categories
+     * 
+     * @param combinedTextLower Combined merchant name and description in lowercase
+     * @param merchantLower Merchant name in lowercase
+     * @param descriptionLower Description in lowercase
+     * @return true if airport lounge transaction detected, false otherwise
+     */
+    private boolean detectAirportLounge(final String combinedTextLower, final String merchantLower, final String descriptionLower) {
+        // AXP Centurion Lounge (American Express)
+        boolean isCenturionLounge = combinedTextLower.contains("centurion lounge") || 
+                                   combinedTextLower.contains("centurionlounge") ||
+                                   combinedTextLower.contains("axp centurion") ||
+                                   combinedTextLower.contains("axpcenturion") ||
+                                   (combinedTextLower.contains("axp") && combinedTextLower.contains("centurion")) ||
+                                   combinedTextLower.contains("american express centurion") ||
+                                   combinedTextLower.contains("amex centurion");
+        
+        // Priority Pass lounges
+        boolean isPriorityPass = combinedTextLower.contains("priority pass") || 
+                                combinedTextLower.contains("prioritypass");
+        
+        // Airline-specific lounges
+        boolean isDeltaSkyClub = combinedTextLower.contains("delta sky club") || 
+                                combinedTextLower.contains("deltaskyclub");
+        
+        boolean isUnitedClub = combinedTextLower.contains("united club") || 
+                              combinedTextLower.contains("unitedclub");
+        
+        boolean isAdmiralsClub = combinedTextLower.contains("admirals club") || 
+                                combinedTextLower.contains("admiralsclub") ||
+                                combinedTextLower.contains("american airlines lounge");
+        
+        boolean isAlaskaLounge = combinedTextLower.contains("alaska lounge") || 
+                                combinedTextLower.contains("alaskalounge") ||
+                                combinedTextLower.contains("alaska airlines lounge");
+        
+        boolean isJetBlueMint = combinedTextLower.contains("jetblue mint") || 
+                               combinedTextLower.contains("jet blue mint");
+        
+        // Other airport lounges
+        boolean isPlazaPremium = combinedTextLower.contains("plaza premium lounge") || 
+                                combinedTextLower.contains("plazapremiumlounge");
+        
+        boolean isEncalm = combinedTextLower.contains("encalm lounge") || 
+                          combinedTextLower.contains("encalmlounge") ||
+                          combinedTextLower.contains("encalm");
+        
+        boolean isAmericanExpressLounge = combinedTextLower.contains("american express lounge") || 
+                                         combinedTextLower.contains("amex lounge");
+        
+        // Generic airport lounge keywords (only if combined with airport/travel context)
+        boolean isGenericLounge = (combinedTextLower.contains("airport lounge") || 
+                                   combinedTextLower.contains("airportlounge") ||
+                                   (combinedTextLower.contains("lounge") && 
+                                    (combinedTextLower.contains("airport") || 
+                                     combinedTextLower.contains("terminal") ||
+                                     combinedTextLower.contains("gate")))) &&
+                                  !combinedTextLower.contains("hotel lounge") && // Exclude hotel lounges (different category)
+                                  !combinedTextLower.contains("restaurant lounge"); // Exclude restaurant lounges
+        
+        return isCenturionLounge || isPriorityPass || isDeltaSkyClub || isUnitedClub || 
+               isAdmiralsClub || isAlaskaLounge || isJetBlueMint || isPlazaPremium || 
+               isEncalm || isAmericanExpressLounge || isGenericLounge;
+    }
+    
+    /**
+     * Detects if a transaction is a shopping/retail transaction based on merchant name and description
+     * Checks for common shopping retailers and clothing stores
+     * This is critical to prevent false positives where shopping retailers are categorized as transportation
+     * (e.g., "lul" in "lululemon" might match transportation keywords)
+     * 
+     * @param combinedTextLower Combined merchant name and description in lowercase
+     * @param merchantLower Merchant name in lowercase
+     * @param descriptionLower Description in lowercase
+     * @return true if shopping transaction detected, false otherwise
+     */
+    private boolean detectShoppingTransaction(final String combinedTextLower, final String merchantLower, final String descriptionLower) {
+        // Clothing and athletic wear retailers
+        boolean isLululemon = combinedTextLower.contains("lululemon") || 
+                            combinedTextLower.contains("lulu lemon") ||
+                            combinedTextLower.contains("lululemon athletica");
+        
+        boolean isNike = combinedTextLower.contains("nike") || 
+                        combinedTextLower.contains("nikestore");
+        
+        boolean isAdidas = combinedTextLower.contains("adidas");
+        
+        boolean isUnderArmour = combinedTextLower.contains("under armour") || 
+                               combinedTextLower.contains("underarmour");
+        
+        boolean isAthleta = combinedTextLower.contains("athleta");
+        
+        boolean isFabletics = combinedTextLower.contains("fabletics");
+        
+        // Department stores and general retailers
+        boolean isNordstrom = combinedTextLower.contains("nordstrom");
+        
+        boolean isMacy = combinedTextLower.contains("macy") || 
+                        combinedTextLower.contains("macy's");
+        
+        boolean isTarget = combinedTextLower.contains("target");
+        
+        boolean isWalmart = combinedTextLower.contains("walmart");
+        
+        boolean isBestBuy = combinedTextLower.contains("best buy") || 
+                           combinedTextLower.contains("bestbuy");
+        
+        boolean isAmazon = combinedTextLower.contains("amazon");
+        
+        // Clothing-specific stores
+        boolean isGap = combinedTextLower.contains("gap");
+        
+        boolean isOldNavy = combinedTextLower.contains("old navy");
+        
+        boolean isBananaRepublic = combinedTextLower.contains("banana republic") || 
+                                  combinedTextLower.contains("bananarepublic");
+        
+        boolean isJCPenney = combinedTextLower.contains("jcpenney") || 
+                            combinedTextLower.contains("jc penney") ||
+                            combinedTextLower.contains("j.c. penney");
+        
+        boolean isKohls = combinedTextLower.contains("kohl") || 
+                         combinedTextLower.contains("kohl's");
+        
+        // Beauty and cosmetics
+        boolean isSephora = combinedTextLower.contains("sephora");
+        
+        boolean isUlta = combinedTextLower.contains("ulta");
+        
+        // Generic shopping keywords (only if combined with retail context)
+        boolean hasShoppingKeywords = (combinedTextLower.contains("clothing") || 
+                                      combinedTextLower.contains("apparel") ||
+                                      combinedTextLower.contains("retail") ||
+                                      combinedTextLower.contains("store") ||
+                                      combinedTextLower.contains("shop")) &&
+                                     !combinedTextLower.contains("gas station") &&
+                                     !combinedTextLower.contains("gas store");
+        
+        return isLululemon || isNike || isAdidas || isUnderArmour || isAthleta || isFabletics ||
+               isNordstrom || isMacy || isTarget || isWalmart || isBestBuy || isAmazon ||
+               isGap || isOldNavy || isBananaRepublic || isJCPenney || isKohls ||
+               isSephora || isUlta || hasShoppingKeywords;
+    }
+    
+    /**
+     * Detects if a transaction is an entertainment transaction (movie theaters, concerts, etc.) based on merchant name and description
+     * Checks for common movie theater chains and entertainment venues
+     * This is critical to prevent false positives where movie theaters are categorized as education or other categories
+     * 
+     * @param combinedTextLower Combined merchant name and description in lowercase
+     * @param merchantLower Merchant name in lowercase
+     * @param descriptionLower Description in lowercase
+     * @return true if entertainment transaction detected, false otherwise
+     */
+    private boolean detectEntertainmentTransaction(final String combinedTextLower, final String merchantLower, final String descriptionLower) {
+        // Movie theater chains
+        // AMC Theaters - check for "amc" but exclude AMC Networks (TV network)
+        // AMC theater locations often have patterns like "AMC 2434 FACTORIA" or "AMC THEATERS"
+        // If merchant/description starts with "AMC" or contains "AMC" followed by numbers, it's likely a theater
+        boolean isAMC = combinedTextLower.contains("amc") && 
+                       !combinedTextLower.contains("amc network") && // Exclude AMC Networks (TV network)
+                       !combinedTextLower.contains("amc theaters network") && // Exclude network-related
+                       (combinedTextLower.contains("theater") || 
+                        combinedTextLower.contains("theatre") ||
+                        combinedTextLower.contains("cinema") ||
+                        combinedTextLower.contains("movie") ||
+                        combinedTextLower.contains("factor") || // AMC locations often have "FACTORIA" in name
+                        merchantLower.startsWith("amc") || // Merchant name starts with "amc" (e.g., "AMC 2434 FACTORIA")
+                        descriptionLower.startsWith("amc") || // Description starts with "amc"
+                        java.util.regex.Pattern.compile(".*amc\\s+\\d+.*").matcher(combinedTextLower).find()); // Pattern like "AMC 2434"
+        
+        boolean isRegal = combinedTextLower.contains("regal") || 
+                         combinedTextLower.contains("regal cinemas");
+        
+        boolean isCinemark = combinedTextLower.contains("cinemark");
+        
+        boolean isCineplex = combinedTextLower.contains("cineplex");
+        
+        boolean isMarcus = combinedTextLower.contains("marcus theaters") || 
+                          combinedTextLower.contains("marcus cinema");
+        
+        boolean isAlamo = combinedTextLower.contains("alamo drafthouse");
+        
+        boolean isLandmark = combinedTextLower.contains("landmark theaters");
+        
+        boolean isShowcase = combinedTextLower.contains("showcase cinemas");
+        
+        // Generic movie theater keywords
+        boolean isMovieTheater = (combinedTextLower.contains("movie theater") || 
+                                 combinedTextLower.contains("movie theatre") ||
+                                 combinedTextLower.contains("cinema") ||
+                                 combinedTextLower.contains("theater") ||
+                                 combinedTextLower.contains("theatre")) &&
+                                !combinedTextLower.contains("home theater") && // Exclude home theater equipment
+                                !combinedTextLower.contains("theater equipment");
+        
+        // Other entertainment venues
+        boolean isConcertVenue = combinedTextLower.contains("concert") || 
+                                combinedTextLower.contains("live music") ||
+                                combinedTextLower.contains("music venue");
+        
+        boolean isSportsVenue = (combinedTextLower.contains("stadium") || 
+                               combinedTextLower.contains("arena") ||
+                               combinedTextLower.contains("ballpark")) &&
+                               !combinedTextLower.contains("home") && // Exclude home stadium equipment
+                               !combinedTextLower.contains("equipment");
+        
+        boolean isThemePark = combinedTextLower.contains("theme park") || 
+                             combinedTextLower.contains("amusement park") ||
+                             combinedTextLower.contains("disney") ||
+                             combinedTextLower.contains("universal studios") ||
+                             combinedTextLower.contains("six flags");
+        
+        return isAMC || isRegal || isCinemark || isCineplex || isMarcus || 
+               isAlamo || isLandmark || isShowcase || isMovieTheater || isConcertVenue || 
+               isSportsVenue || isThemePark;
+    }
+    
+    /**
+     * Detects if a transaction is from a holdings/company entity based on merchant name and description
+     * Checks for common holdings company patterns (e.g., "TRG HOLDINGS LIMITED")
+     * This is critical to prevent false positives where holdings companies are categorized as dining or other categories
+     * Holdings companies are business entities and should be categorized as "other", not "dining"
+     * 
+     * @param combinedTextLower Combined merchant name and description in lowercase
+     * @param merchantLower Merchant name in lowercase
+     * @param descriptionLower Description in lowercase
+     * @return true if holdings company detected, false otherwise
+     */
+    private boolean detectHoldingsCompany(final String combinedTextLower, final String merchantLower, final String descriptionLower) {
+        // Check for "holdings" keyword (most common indicator)
+        boolean hasHoldings = combinedTextLower.contains("holdings") || 
+                             combinedTextLower.contains("holdings limited") ||
+                             combinedTextLower.contains("holdingslimited");
+        
+        // Check for specific holdings companies
+        boolean isTRGHoldings = combinedTextLower.contains("trg holdings") || 
+                                combinedTextLower.contains("trgholdings") ||
+                                (combinedTextLower.contains("trg") && combinedTextLower.contains("holdings"));
+        
+        // Exclude healthcare-related holdings (they should be healthcare, not other)
+        boolean isHealthcareRelated = combinedTextLower.contains("health") || 
+                                     combinedTextLower.contains("medical") ||
+                                     combinedTextLower.contains("clinic") ||
+                                     combinedTextLower.contains("hospital") ||
+                                     combinedTextLower.contains("healthcare");
+        
+        // Holdings companies are business entities - default to "other"
+        // Only exclude if it's clearly healthcare-related
+        return (hasHoldings || isTRGHoldings) && !isHealthcareRelated;
     }
     
     /**

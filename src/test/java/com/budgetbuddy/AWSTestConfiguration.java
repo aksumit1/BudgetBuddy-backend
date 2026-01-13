@@ -339,6 +339,21 @@ public class AWSTestConfiguration {
         return mockPlaidService;
     }
 
+    /**
+     * Test DynamoDBTableManager - No-op bean to satisfy @DependsOn dependency
+     * 
+     * CRITICAL: UserRepository depends on "dynamoDBTableManager" via @DependsOn.
+     * Since DynamoDBTableManager is disabled in test profile, we provide a no-op bean here
+     * to satisfy the dependency. Tests use TableInitializer instead for table initialization.
+     */
+    @Bean
+    @Primary
+    public com.budgetbuddy.service.dynamodb.DynamoDBTableManager dynamoDBTableManager(
+            DynamoDbClient dynamoDbClient) {
+        // Return a no-op implementation that does nothing
+        // Tests use TableInitializer for table initialization instead
+        return Mockito.mock(com.budgetbuddy.service.dynamodb.DynamoDBTableManager.class);
+    }
 
 }
 

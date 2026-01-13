@@ -431,14 +431,12 @@ class CSVImportControllerTest {
         request.setTransactions(transactions);
 
         TransactionTable createdTx = createTransaction("tx-1");
-        // createTransaction signature: (UserTable, String, BigDecimal, LocalDate, String, String, String, String, String, String, String, String, String, String, String, String, String, String, String)
         // Use nullable() for optional String parameters that can be null
         when(transactionService.createTransaction(
                 any(UserTable.class), nullable(String.class), any(BigDecimal.class), any(LocalDate.class),
                 anyString(), anyString(), nullable(String.class), nullable(String.class), nullable(String.class), nullable(String.class),
                 nullable(String.class), nullable(String.class), nullable(String.class), nullable(String.class), nullable(String.class), nullable(String.class),
                 nullable(String.class), nullable(String.class), nullable(String.class)))
-                .thenReturn(createdTx);
 
         // When - NOTE: batchImportTransactions method doesn't exist
         // The actual batch import happens via /api/transactions/import-bulk endpoint
@@ -471,7 +469,6 @@ class CSVImportControllerTest {
         request.setTransactions(transactions);
 
         TransactionTable createdTx = createTransaction("tx-1");
-        when(transactionService.createTransaction(
                 any(UserTable.class), nullable(String.class), any(BigDecimal.class), any(LocalDate.class),
                 anyString(), anyString(), nullable(String.class), nullable(String.class), nullable(String.class), nullable(String.class),
                 nullable(String.class), nullable(String.class), nullable(String.class), nullable(String.class), nullable(String.class), nullable(String.class),
@@ -534,13 +531,11 @@ class CSVImportControllerTest {
         request.setTransactions(transactions);
 
         TransactionTable createdTx = createTransaction("tx-1");
-        // First call succeeds, second call throws exception
         when(transactionService.createTransaction(
                 any(UserTable.class), nullable(String.class), any(BigDecimal.class), any(LocalDate.class),
                 anyString(), anyString(), nullable(String.class), nullable(String.class), nullable(String.class), nullable(String.class),
                 nullable(String.class), nullable(String.class), nullable(String.class), nullable(String.class), nullable(String.class), nullable(String.class),
                 nullable(String.class), nullable(String.class), nullable(String.class)))
-                .thenReturn(createdTx)
                 .thenThrow(new AppException(ErrorCode.INVALID_INPUT, "Invalid transaction"));
 
         // When
@@ -584,13 +579,11 @@ class CSVImportControllerTest {
         request.setTransactions(transactions);
 
         TransactionTable createdTx = createTransaction("tx-1");
-        // createTransaction has 16 parameters total
         when(transactionService.createTransaction(
                 any(UserTable.class), nullable(String.class), any(BigDecimal.class), any(LocalDate.class),
                 anyString(), anyString(), nullable(String.class), nullable(String.class), nullable(String.class), nullable(String.class),
                 nullable(String.class), nullable(String.class), nullable(String.class), eq("INR"), nullable(String.class), nullable(String.class),
                 nullable(String.class), nullable(String.class), nullable(String.class)))
-                .thenReturn(createdTx);
 
         // When
         ResponseEntity<TransactionController.BatchImportResponse> response = 
@@ -625,7 +618,6 @@ class CSVImportControllerTest {
         request.setTransactions(transactions);
 
         TransactionTable createdTx = createTransaction("tx-1");
-        // createTransaction has 16 parameters: (UserTable, String, BigDecimal, LocalDate, String, String, String, String, String, String, String, String, String, String, String, String)
         // Parameters 13, 14, 15, 16 are: currencyCode, importSource, importBatchId, importFileName
         // createTransaction signature: (UserTable, String, BigDecimal, LocalDate, String, String, String, String, String, String, String, String, String, String, String, String)
         // 16 parameters total - last 4 are: currencyCode, importSource, importBatchId, importFileName
@@ -634,7 +626,6 @@ class CSVImportControllerTest {
                 anyString(), anyString(), nullable(String.class), nullable(String.class), nullable(String.class), nullable(String.class),
                 nullable(String.class), nullable(String.class), nullable(String.class), nullable(String.class), eq("CSV"), eq("batch-123"),
                 nullable(String.class), nullable(String.class), nullable(String.class)))
-                .thenReturn(createdTx);
 
         // When
         ResponseEntity<TransactionController.BatchImportResponse> response = 

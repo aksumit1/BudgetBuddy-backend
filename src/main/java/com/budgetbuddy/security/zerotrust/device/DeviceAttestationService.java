@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 import software.amazon.awssdk.services.dynamodb.model.*;
 import software.amazon.awssdk.services.dynamodb.model.UpdateTimeToLiveRequest;
+import software.amazon.awssdk.core.exception.SdkClientException;
 
 import java.time.Instant;
 import java.util.Map;
@@ -254,6 +255,10 @@ public class DeviceAttestationService {
         } catch (ResourceNotFoundException e) {
             // Table doesn't exist, proceed with creation
         } catch (Exception e) {
+            if (isCredentialsError(e)) {
+                logger.warn("⚠️ AWS credentials not configured for LocalStack or environment. Skipping device attestation table check. Error: {}", e.getMessage());
+                return; // Exit gracefully
+            }
             logger.warn("Failed to check if device attestation table exists: {}", e.getMessage());
             // Continue with creation attempt
         }
@@ -292,15 +297,40 @@ public class DeviceAttestationService {
                                 .build())
                         .build());
             } catch (Exception e) {
-                logger.warn("Failed to configure TTL for device attestation table: {}", e.getMessage());
+                if (isCredentialsError(e)) {
+                    logger.warn("⚠️ AWS credentials not configured. Skipping TTL configuration for device attestation table. Error: {}", e.getMessage());
+                } else {
+                    logger.warn("Failed to configure TTL for device attestation table: {}", e.getMessage());
+                }
             }
             logger.info("Device attestation table created");
         } catch (ResourceInUseException e) {
             // Table was created by another instance between check and create - this is fine
             logger.debug("Device attestation table already exists (race condition)");
         } catch (Exception e) {
+            if (isCredentialsError(e)) {
+                logger.warn("⚠️ AWS credentials not configured for LocalStack or environment. Skipping device attestation table creation. Error: {}", e.getMessage());
+                return; // Exit gracefully
+            }
             logger.error("Failed to create device attestation table: {}", e.getMessage());
         }
+    }
+
+    /**
+     * Helper method to check if an exception is related to AWS credentials
+     */
+    private boolean isCredentialsError(Exception e) {
+        if (e instanceof software.amazon.awssdk.core.exception.SdkClientException) {
+            String message = e.getMessage();
+            return message != null && message.contains("Unable to load credentials");
+        }
+        // Check for wrapped SdkClientException
+        Throwable cause = e.getCause();
+        if (cause instanceof software.amazon.awssdk.core.exception.SdkClientException) {
+            String causeMessage = cause.getMessage();
+            return causeMessage != null && causeMessage.contains("Unable to load credentials");
+        }
+        return false;
     }
 
     /**

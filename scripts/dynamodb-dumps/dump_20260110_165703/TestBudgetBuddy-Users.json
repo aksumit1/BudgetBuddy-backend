@@ -1,0 +1,644 @@
+{
+    "Items": [
+        {
+            "lastName": {
+                "S": "User"
+            },
+            "roles": {
+                "SS": [
+                    "USER"
+                ]
+            },
+            "userId": {
+                "S": "5059f376-bcbf-4e8a-878e-cf88224d97f1"
+            },
+            "enabled": {
+                "BOOL": true
+            },
+            "passwordHash": {
+                "S": "Ir8Z5eCSWZyNFQVxOvW0NJN3r5JgfSaDAxYzzhXSfvk="
+            },
+            "createdAt": {
+                "S": "2026-01-09T14:58:49.193593Z"
+            },
+            "emailVerified": {
+                "BOOL": false
+            },
+            "firstName": {
+                "S": "Test"
+            },
+            "twoFactorEnabled": {
+                "BOOL": false
+            },
+            "lastLoginAt": {
+                "S": "2026-01-09T14:58:49.635051Z"
+            },
+            "serverSalt": {
+                "S": "mZSqlkOdchqsP0CPGsE/rg=="
+            },
+            "activeStatus": {
+                "S": "ACTIVE"
+            },
+            "lastLoginAtTimestamp": {
+                "N": "1767970729"
+            },
+            "email": {
+                "S": "test-null-handling-20e6cda2-72b4-4f0a-bffe-9b2aebbcc704@example.com"
+            },
+            "updatedAt": {
+                "S": "2026-01-09T14:58:49.193595Z"
+            }
+        },
+        {
+            "lastName": {
+                "S": "User"
+            },
+            "roles": {
+                "SS": [
+                    "USER"
+                ]
+            },
+            "userId": {
+                "S": "49f794f5-9e0a-456d-a302-055bf142e9c8"
+            },
+            "enabled": {
+                "BOOL": true
+            },
+            "passwordHash": {
+                "S": "pISkh4S7AKPD+odcrObQq9X5R0frMhekP4a1P66rrwI="
+            },
+            "createdAt": {
+                "S": "2026-01-09T14:59:41.610887Z"
+            },
+            "emailVerified": {
+                "BOOL": false
+            },
+            "firstName": {
+                "S": "Test"
+            },
+            "twoFactorEnabled": {
+                "BOOL": false
+            },
+            "lastLoginAt": {
+                "S": "2026-01-09T14:59:41.899725Z"
+            },
+            "serverSalt": {
+                "S": "oU6tDsW5eVeLQ+N0umXmEg=="
+            },
+            "activeStatus": {
+                "S": "ACTIVE"
+            },
+            "lastLoginAtTimestamp": {
+                "N": "1767970781"
+            },
+            "email": {
+                "S": "test-null-handling-59d9ca7f-1b78-43d9-a701-422a403e5c11@example.com"
+            },
+            "updatedAt": {
+                "S": "2026-01-09T14:59:41.610889Z"
+            }
+        },
+        {
+            "lastName": {
+                "S": "User"
+            },
+            "roles": {
+                "SS": [
+                    "USER"
+                ]
+            },
+            "userId": {
+                "S": "44d2d515-6fd8-480b-a7fc-bbbf4f180f0f"
+            },
+            "enabled": {
+                "BOOL": true
+            },
+            "passwordHash": {
+                "S": "LdqewsCahCpKtRn2aqJiV4W5RaDRREGmaBNWRAZ3bPw="
+            },
+            "createdAt": {
+                "S": "2026-01-09T15:00:15.659916Z"
+            },
+            "emailVerified": {
+                "BOOL": false
+            },
+            "firstName": {
+                "S": "Test"
+            },
+            "twoFactorEnabled": {
+                "BOOL": false
+            },
+            "lastLoginAt": {
+                "S": "2026-01-09T15:00:15.703028Z"
+            },
+            "serverSalt": {
+                "S": "dq5A/emNkt2pqOPYBVJSxw=="
+            },
+            "activeStatus": {
+                "S": "ACTIVE"
+            },
+            "lastLoginAtTimestamp": {
+                "N": "1767970815"
+            },
+            "email": {
+                "S": "test-null-handling-c0626c96-30cc-468e-b760-aebbcb9770f5@example.com"
+            },
+            "updatedAt": {
+                "S": "2026-01-09T15:00:15.659917Z"
+            }
+        },
+        {
+            "lastName": {
+                "S": "User"
+            },
+            "roles": {
+                "SS": [
+                    "USER"
+                ]
+            },
+            "userId": {
+                "S": "c39f23a3-884b-42a2-ae0c-ed61b5ba49b5"
+            },
+            "enabled": {
+                "BOOL": true
+            },
+            "passwordHash": {
+                "S": "JDgSUYHGSJpK21TiEJWzwpNpJIiS5iH9TNnyYcWqvWY="
+            },
+            "createdAt": {
+                "S": "2026-01-09T15:00:20.969606Z"
+            },
+            "emailVerified": {
+                "BOOL": false
+            },
+            "firstName": {
+                "S": "Test"
+            },
+            "twoFactorEnabled": {
+                "BOOL": false
+            },
+            "lastLoginAt": {
+                "S": "2026-01-09T15:00:21.018061Z"
+            },
+            "serverSalt": {
+                "S": "jPm5vJiQ4YzB6rkFfmGfYA=="
+            },
+            "activeStatus": {
+                "S": "ACTIVE"
+            },
+            "lastLoginAtTimestamp": {
+                "N": "1767970821"
+            },
+            "email": {
+                "S": "test-null-handling-90420108-21b3-471c-a250-901cbfd337ae@example.com"
+            },
+            "updatedAt": {
+                "S": "2026-01-09T15:00:20.969606Z"
+            }
+        },
+        {
+            "lastName": {
+                "S": "User"
+            },
+            "roles": {
+                "SS": [
+                    "USER"
+                ]
+            },
+            "userId": {
+                "S": "d5b7884f-b339-4dd3-8745-d5d9d7c96350"
+            },
+            "enabled": {
+                "BOOL": true
+            },
+            "passwordHash": {
+                "S": "2w6NFoxc2goEUvqm8TZ43gdaVSVM4UcpoauLpAhdEjU="
+            },
+            "createdAt": {
+                "S": "2026-01-09T15:00:15.011206Z"
+            },
+            "emailVerified": {
+                "BOOL": false
+            },
+            "firstName": {
+                "S": "Test"
+            },
+            "twoFactorEnabled": {
+                "BOOL": false
+            },
+            "lastLoginAt": {
+                "S": "2026-01-09T15:00:15.047203Z"
+            },
+            "serverSalt": {
+                "S": "xXdIYJvc7QGk5j5K3BePzg=="
+            },
+            "activeStatus": {
+                "S": "ACTIVE"
+            },
+            "lastLoginAtTimestamp": {
+                "N": "1767970815"
+            },
+            "email": {
+                "S": "test-null-handling-ecf072c3-3b57-408c-b65c-74e4ae61eeb5@example.com"
+            },
+            "updatedAt": {
+                "S": "2026-01-09T15:00:15.011207Z"
+            }
+        },
+        {
+            "lastName": {
+                "S": "User"
+            },
+            "roles": {
+                "SS": [
+                    "USER"
+                ]
+            },
+            "userId": {
+                "S": "cb858b1f-ea99-450a-9a04-7f0b69c60a24"
+            },
+            "enabled": {
+                "BOOL": true
+            },
+            "passwordHash": {
+                "S": "O62nu+BoNd7KYiOXTZ0DqjYt/d+OGL9YGtzpusq3WJQ="
+            },
+            "createdAt": {
+                "S": "2026-01-09T15:00:18.329313Z"
+            },
+            "emailVerified": {
+                "BOOL": false
+            },
+            "firstName": {
+                "S": "Test"
+            },
+            "twoFactorEnabled": {
+                "BOOL": false
+            },
+            "lastLoginAt": {
+                "S": "2026-01-09T15:00:18.371976Z"
+            },
+            "serverSalt": {
+                "S": "xS6B2ONUVPYBOymCugDJFw=="
+            },
+            "activeStatus": {
+                "S": "ACTIVE"
+            },
+            "lastLoginAtTimestamp": {
+                "N": "1767970818"
+            },
+            "email": {
+                "S": "test-null-handling-3cb828ed-9548-4274-b8b2-958e73fffc31@example.com"
+            },
+            "updatedAt": {
+                "S": "2026-01-09T15:00:18.329313Z"
+            }
+        },
+        {
+            "lastName": {
+                "S": "User"
+            },
+            "roles": {
+                "SS": [
+                    "USER"
+                ]
+            },
+            "userId": {
+                "S": "cb6e4efe-4e3f-4792-8025-4c60fba9763e"
+            },
+            "enabled": {
+                "BOOL": true
+            },
+            "passwordHash": {
+                "S": "pfn/Ir/UHFKmUPS7M7BNaT8yboqUM2zADJ90oYXPWBs="
+            },
+            "createdAt": {
+                "S": "2026-01-09T15:00:16.962892Z"
+            },
+            "emailVerified": {
+                "BOOL": false
+            },
+            "firstName": {
+                "S": "Test"
+            },
+            "twoFactorEnabled": {
+                "BOOL": false
+            },
+            "lastLoginAt": {
+                "S": "2026-01-09T15:00:17.004629Z"
+            },
+            "serverSalt": {
+                "S": "vutewvHW6mzSvqsWMt+RSA=="
+            },
+            "activeStatus": {
+                "S": "ACTIVE"
+            },
+            "lastLoginAtTimestamp": {
+                "N": "1767970817"
+            },
+            "email": {
+                "S": "test-null-handling-bc896fef-852f-49c7-8cda-9834c3f7af8f@example.com"
+            },
+            "updatedAt": {
+                "S": "2026-01-09T15:00:16.962911Z"
+            }
+        },
+        {
+            "lastName": {
+                "S": "User"
+            },
+            "roles": {
+                "SS": [
+                    "USER"
+                ]
+            },
+            "userId": {
+                "S": "118cf572-1999-4de2-ad03-9843fbac6e5c"
+            },
+            "enabled": {
+                "BOOL": true
+            },
+            "passwordHash": {
+                "S": "Dk7kyUEZTidiQYSxVpm+iiQmjN0mKBXPpiYMKWF/9UU="
+            },
+            "createdAt": {
+                "S": "2026-01-09T15:00:14.116600Z"
+            },
+            "emailVerified": {
+                "BOOL": false
+            },
+            "firstName": {
+                "S": "Test"
+            },
+            "twoFactorEnabled": {
+                "BOOL": false
+            },
+            "lastLoginAt": {
+                "S": "2026-01-09T15:00:14.281055Z"
+            },
+            "serverSalt": {
+                "S": "d5xII6R29GxpAZc6T0RXgg=="
+            },
+            "activeStatus": {
+                "S": "ACTIVE"
+            },
+            "lastLoginAtTimestamp": {
+                "N": "1767970814"
+            },
+            "email": {
+                "S": "test-null-handling-21ea8414-7bce-4f2d-bbd3-0a30245ee4c2@example.com"
+            },
+            "updatedAt": {
+                "S": "2026-01-09T15:00:14.116601Z"
+            }
+        },
+        {
+            "lastName": {
+                "S": "User"
+            },
+            "roles": {
+                "SS": [
+                    "USER"
+                ]
+            },
+            "userId": {
+                "S": "35141e16-a66d-4cd7-9974-e1e3efc5ae72"
+            },
+            "enabled": {
+                "BOOL": true
+            },
+            "passwordHash": {
+                "S": "h2/fxfy8FpEog6smTal4znYzv4UtKL5KEOpBcITe5tE="
+            },
+            "createdAt": {
+                "S": "2026-01-09T15:00:20.326341Z"
+            },
+            "emailVerified": {
+                "BOOL": false
+            },
+            "firstName": {
+                "S": "Test"
+            },
+            "twoFactorEnabled": {
+                "BOOL": false
+            },
+            "lastLoginAt": {
+                "S": "2026-01-09T15:00:20.353858Z"
+            },
+            "serverSalt": {
+                "S": "r656W8UIQlodenz0idzhPQ=="
+            },
+            "activeStatus": {
+                "S": "ACTIVE"
+            },
+            "lastLoginAtTimestamp": {
+                "N": "1767970820"
+            },
+            "email": {
+                "S": "test-null-handling-78ecff58-3032-4541-b61b-ec09e0faf9ae@example.com"
+            },
+            "updatedAt": {
+                "S": "2026-01-09T15:00:20.326341Z"
+            }
+        },
+        {
+            "lastName": {
+                "S": "User"
+            },
+            "roles": {
+                "SS": [
+                    "USER"
+                ]
+            },
+            "userId": {
+                "S": "115cd5c0-17a4-4f33-850d-5e317ca3e656"
+            },
+            "enabled": {
+                "BOOL": true
+            },
+            "passwordHash": {
+                "S": "TXxsrh5WNi1bP2/KtdCwzdnYu027q5U979gLGKzJdig="
+            },
+            "createdAt": {
+                "S": "2026-01-09T15:00:17.655242Z"
+            },
+            "emailVerified": {
+                "BOOL": false
+            },
+            "firstName": {
+                "S": "Test"
+            },
+            "twoFactorEnabled": {
+                "BOOL": false
+            },
+            "lastLoginAt": {
+                "S": "2026-01-09T15:00:17.693508Z"
+            },
+            "serverSalt": {
+                "S": "o/IFi00LLawiEp71pd/Q3A=="
+            },
+            "activeStatus": {
+                "S": "ACTIVE"
+            },
+            "lastLoginAtTimestamp": {
+                "N": "1767970817"
+            },
+            "email": {
+                "S": "test-null-handling-fb367507-7c4a-4eba-9d18-0dd6cc5b0466@example.com"
+            },
+            "updatedAt": {
+                "S": "2026-01-09T15:00:17.655242Z"
+            }
+        },
+        {
+            "lastName": {
+                "S": "User"
+            },
+            "roles": {
+                "SS": [
+                    "USER"
+                ]
+            },
+            "userId": {
+                "S": "e2dc8e2f-22a1-4471-b11c-1110eec4bcb0"
+            },
+            "enabled": {
+                "BOOL": true
+            },
+            "passwordHash": {
+                "S": "EeKECUNfcpT7fKBwXxCql6gmSuWS8L8MPzFacnWxiHk="
+            },
+            "createdAt": {
+                "S": "2026-01-09T15:00:19.007596Z"
+            },
+            "emailVerified": {
+                "BOOL": false
+            },
+            "firstName": {
+                "S": "Test"
+            },
+            "twoFactorEnabled": {
+                "BOOL": false
+            },
+            "lastLoginAt": {
+                "S": "2026-01-09T15:00:19.046731Z"
+            },
+            "serverSalt": {
+                "S": "Qen5hoVJtY5TJLLJTLEk7A=="
+            },
+            "activeStatus": {
+                "S": "ACTIVE"
+            },
+            "lastLoginAtTimestamp": {
+                "N": "1767970819"
+            },
+            "email": {
+                "S": "test-null-handling-6f87625d-2d14-4fa1-98c9-18a5ccb64c2f@example.com"
+            },
+            "updatedAt": {
+                "S": "2026-01-09T15:00:19.007596Z"
+            }
+        },
+        {
+            "lastName": {
+                "S": "User"
+            },
+            "roles": {
+                "SS": [
+                    "USER"
+                ]
+            },
+            "userId": {
+                "S": "ff734458-fec7-4a00-9a4d-950882e4da7f"
+            },
+            "enabled": {
+                "BOOL": true
+            },
+            "passwordHash": {
+                "S": "fjaDHZy3/mV+8gmrozkfUFY6n/iX60lx7ogcu4KiaXQ="
+            },
+            "createdAt": {
+                "S": "2026-01-09T15:00:19.672348Z"
+            },
+            "emailVerified": {
+                "BOOL": false
+            },
+            "firstName": {
+                "S": "Test"
+            },
+            "twoFactorEnabled": {
+                "BOOL": false
+            },
+            "lastLoginAt": {
+                "S": "2026-01-09T15:00:19.714296Z"
+            },
+            "serverSalt": {
+                "S": "L1JqBA6xItpPVgO72Nf0RQ=="
+            },
+            "activeStatus": {
+                "S": "ACTIVE"
+            },
+            "lastLoginAtTimestamp": {
+                "N": "1767970819"
+            },
+            "email": {
+                "S": "test-null-handling-3a05078c-809c-413b-8c4e-300e83323a3d@example.com"
+            },
+            "updatedAt": {
+                "S": "2026-01-09T15:00:19.672348Z"
+            }
+        },
+        {
+            "lastName": {
+                "S": "User"
+            },
+            "roles": {
+                "SS": [
+                    "USER"
+                ]
+            },
+            "userId": {
+                "S": "91df49b9-f3d2-47c3-b18c-79363e6d59c4"
+            },
+            "enabled": {
+                "BOOL": true
+            },
+            "passwordHash": {
+                "S": "fK0DTMbub6SX5XgwkH9jiqX5URHcRUjsV7eiQkDQv1c="
+            },
+            "createdAt": {
+                "S": "2026-01-09T15:00:16.302628Z"
+            },
+            "emailVerified": {
+                "BOOL": false
+            },
+            "firstName": {
+                "S": "Test"
+            },
+            "twoFactorEnabled": {
+                "BOOL": false
+            },
+            "lastLoginAt": {
+                "S": "2026-01-09T15:00:16.332663Z"
+            },
+            "serverSalt": {
+                "S": "qB6a+0KRjt+S8CG6n5ltEQ=="
+            },
+            "activeStatus": {
+                "S": "ACTIVE"
+            },
+            "lastLoginAtTimestamp": {
+                "N": "1767970816"
+            },
+            "email": {
+                "S": "test-null-handling-f963440c-29c4-4744-9ede-f9c4aac15951@example.com"
+            },
+            "updatedAt": {
+                "S": "2026-01-09T15:00:16.302629Z"
+            }
+        }
+    ],
+    "Count": 13,
+    "ScannedCount": 13,
+    "ConsumedCapacity": null
+}

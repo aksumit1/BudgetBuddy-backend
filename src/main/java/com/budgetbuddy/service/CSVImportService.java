@@ -6,7 +6,6 @@ import com.budgetbuddy.exception.AppException;
 import com.budgetbuddy.exception.ErrorCode;
 import com.budgetbuddy.service.ml.EnhancedCategoryDetectionService;
 import com.budgetbuddy.service.category.strategy.CategoryDetectionManager;
-import com.budgetbuddy.service.ml.FuzzyMatchingService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -37,25 +36,18 @@ public class CSVImportService {
 
 private final AccountDetectionService accountDetectionService;
     private final EnhancedCategoryDetectionService enhancedCategoryDetection;
-    // NOTE: fuzzyMatchingService is injected but used indirectly via enhancedCategoryDetection
-    // Kept in constructor for potential future direct use
-    @SuppressWarnings("unused")
-    private final FuzzyMatchingService fuzzyMatchingService;
     private final TransactionTypeCategoryService transactionTypeCategoryService;
     private final ImportCategoryParser importCategoryParser;
     
     public CSVImportService(AccountDetectionService accountDetectionService,
                            EnhancedCategoryDetectionService enhancedCategoryDetection,
-                           FuzzyMatchingService fuzzyMatchingService,
                            TransactionTypeCategoryService transactionTypeCategoryService,
                            ImportCategoryParser importCategoryParser, final CategoryDetectionManager categoryDetectionManager) {
         this.accountDetectionService = accountDetectionService;
         this.enhancedCategoryDetection = enhancedCategoryDetection;
-        this.fuzzyMatchingService = fuzzyMatchingService;
         this.transactionTypeCategoryService = transactionTypeCategoryService;
-        
         this.categoryDetectionManager = categoryDetectionManager;
-this.importCategoryParser = importCategoryParser;
+        this.importCategoryParser = importCategoryParser;
     }
     
     // Date formatters matching iOS app - supports global formats
@@ -1610,61 +1602,50 @@ this.importCategoryParser = importCategoryParser;
                 String.format("%.2f", typeResult.getConfidence()));
         }
         
-        // CRITICAL: Preserve categories from preview if account hasn't changed
-        // If preserveCategoryPrimary is provided, it means we're importing and account matches preview
-        // In this case, use the categories from preview instead of re-parsing
-        if (preserveCategoryPrimary != null && preserveImporterCategoryPrimary != null) {
-            // Account hasn't changed - preserve categories from preview
-            transaction.setCategoryPrimary(preserveCategoryPrimary);
-            transaction.setCategoryDetailed(preserveCategoryDetailed != null ? preserveCategoryDetailed : preserveCategoryPrimary);
-            transaction.setImporterCategoryPrimary(preserveImporterCategoryPrimary);
-            transaction.setImporterCategoryDetailed(preserveImporterCategoryDetailed != null ? preserveImporterCategoryDetailed : preserveImporterCategoryPrimary);
-            logger.debug("✅ Category preserved from preview: merchant='{}', description='{}', amount={}, category='{}' (account unchanged: '{}')",
-                    merchantName, description, amount, preserveCategoryPrimary, preserveAccountId);
+        // CRITICAL: During Preview, category may not be available. So recalculte.
+        // Account changed or first time parsing - parse categories with context
+        // CRITICAL: Parse category using import parser with transaction type and account type context
+        String parsedCategory = importCategoryParser.parseCategory(
+            categoryString, description, merchantName, amount, paymentChannel, transactionTypeIndicator,
+            transactionType, accountTypeString, accountSubtypeString);
+        
+        // Set importer category fields (context-aware parsed category)
+        transaction.setImporterCategoryPrimary(parsedCategory);
+        transaction.setImporterCategoryDetailed(parsedCategory);
+        
+        // CRITICAL: Use unified service to determine internal categories (hybrid logic)
+        // Account will be null during parsing, but unified service can still work
+        // Account will be available when transaction is created in TransactionService
+        TransactionTypeCategoryService.CategoryResult categoryResult = 
+            transactionTypeCategoryService.determineCategory(
+                parsedCategory,  // Importer category (from parser)
+                parsedCategory,
+                null,  // Account not available during parsing
+                merchantName,
+                description,
+                amount,
+                paymentChannel,
+                transactionTypeIndicator,
+                "CSV"  // Import source
+            );
+        
+        if (categoryResult != null) {
+            transaction.setCategoryPrimary(categoryResult.getCategoryPrimary());
+            transaction.setCategoryDetailed(categoryResult.getCategoryDetailed());
+            logger.debug("✅ Category assigned: merchant='{}', description='{}', amount={}, category='{}' (source: {}, confidence: {}, from categoryString='{}')",
+                    merchantName, description, amount, categoryResult.getCategoryPrimary(),
+                    categoryResult.getSource(), String.format("%.2f", categoryResult.getConfidence()), categoryString);
         } else {
-            // Account changed or first time parsing - parse categories with context
-            // CRITICAL: Parse category using import parser with transaction type and account type context
-            String parsedCategory = importCategoryParser.parseCategory(
-                categoryString, description, merchantName, amount, paymentChannel, transactionTypeIndicator,
-                transactionType, accountTypeString, accountSubtypeString);
-            
-            // Set importer category fields (context-aware parsed category)
-            transaction.setImporterCategoryPrimary(parsedCategory);
-            transaction.setImporterCategoryDetailed(parsedCategory);
-            
-            // CRITICAL: Use unified service to determine internal categories (hybrid logic)
-            // Account will be null during parsing, but unified service can still work
-            // Account will be available when transaction is created in TransactionService
-            TransactionTypeCategoryService.CategoryResult categoryResult = 
-                transactionTypeCategoryService.determineCategory(
-                    parsedCategory,  // Importer category (from parser)
-                    parsedCategory,
-                    null,  // Account not available during parsing
-                    merchantName,
-                    description,
-                    amount,
-                    paymentChannel,
-                    transactionTypeIndicator,
-                    "CSV"  // Import source
-                );
-            
-            if (categoryResult != null) {
-                transaction.setCategoryPrimary(categoryResult.getCategoryPrimary());
-                transaction.setCategoryDetailed(categoryResult.getCategoryDetailed());
-                logger.debug("✅ Category assigned: merchant='{}', description='{}', amount={}, category='{}' (source: {}, confidence: {}, from categoryString='{}')",
-                        merchantName, description, amount, categoryResult.getCategoryPrimary(),
-                        categoryResult.getSource(), String.format("%.2f", categoryResult.getConfidence()), categoryString);
-            } else {
-                // Fallback
-                transaction.setCategoryPrimary(parsedCategory);
-                transaction.setCategoryDetailed(parsedCategory);
-                logger.debug("✅ Category assigned: merchant='{}', description='{}', amount={}, category='{}' (from categoryString='{}')",
-                        merchantName, description, amount, parsedCategory, categoryString);
-            }
+            // Fallback
+            transaction.setCategoryPrimary(parsedCategory);
+            transaction.setCategoryDetailed(parsedCategory);
+            logger.debug("✅ Category assigned: merchant='{}', description='{}', amount={}, category='{}' (from categoryString='{}')",
+                    merchantName, description, amount, parsedCategory, categoryString);
         }
         
         // Fallback to category-based determination if transaction type not yet determined
         if (transactionType == null) {
+            logger.info("-----SUMIT PRIORITY  ENTERING DETERMINE TRANSACTIONTYPE--------");
             typeResult = transactionTypeCategoryService.determineTransactionType(
                 null,  // Account not available during parsing
                 transaction.getCategoryPrimary(),
@@ -3971,8 +3952,36 @@ this.importCategoryParser = importCategoryParser;
         // Normalize merchant name for matching
         String normalized = StringUtils.normalizeMerchantName(merchantName).toLowerCase();
         String descLower = description != null ? description.toLowerCase() : "";
+        String merchantLower = merchantName.toLowerCase();
       
         logger.debug("detectCategoryFromMerchantName: Analyzing merchant='{}', normalized='{}'", merchantName, normalized);
+        
+        // CRITICAL: Subscription merchants (WSJ, NYTimes, etc.) - subscriptions, NOT education
+        // Must come BEFORE education checks to avoid false positives
+        String[] subscriptionMerchants = {"wsj", "wall street journal", 
+                                          "the wall street journal", "nytimes", "new york times", 
+                                          "financial times", "ft.com", "the financial times",
+                                          "economist", "the economist", "bloomberg", "bloomberg news"};
+        for (String merchant : subscriptionMerchants) {
+            if (merchantLower.contains(merchant) || normalized.contains(merchant) || 
+                descLower.contains(merchant)) {
+                logger.debug("🏷️ detectCategoryFromMerchantName: Detected subscription merchant '{}' → 'subscriptions'", merchant);
+                return "subscriptions";
+            }
+        }
+        
+        // CRITICAL: Toll patterns (Eractoll, etc.) - transportation
+        // Must come BEFORE education checks to prevent "eractoll" from being caught by education
+        if (merchantLower.contains("eractoll") || merchantLower.contains("era toll") ||
+            normalized.contains("eractoll") || normalized.contains("eratoll") ||
+            descLower.contains("eractoll") || descLower.contains("era toll") ||
+            descLower.contains("toll payment") || descLower.contains("toll charge") ||
+            descLower.contains("toll fee") || descLower.contains("road toll") ||
+            descLower.contains("bridge toll") || descLower.contains("tunnel toll") ||
+            descLower.contains("highway toll") || descLower.contains("expressway toll")) {
+            logger.debug("🏷️ detectCategoryFromMerchantName: Detected toll → 'transportation'");
+            return "transportation";
+        }
         
         // Use strategy manager to detect category
         String category = categoryDetectionManager.detectCategory(normalized, descLower, merchantName);
@@ -4098,13 +4107,15 @@ this.importCategoryParser = importCategoryParser;
             }
         }
         
-        // CRITICAL FIX: Gas stations (Exxon, Shell, Chevron, BP, Mobil, etc.) - transportation, NOT subscriptions
+        // CRITICAL FIX: Gas stations (Exxon, Shell, Chevron, BP, Mobil, Buc-ee's, etc.) - transportation, NOT subscriptions
         // Well-known gas station brands - always transportation
+        // CRITICAL: Buc-ee's is a gas station/convenience store chain, not shopping
         String[] knownGasStations = {"exxon", "shell", "chevron", "mobil", "esso",
                                      "speedway", "valero", "citgo", "phillips 66", "phillips66",
                                      "arco", "marathon", "sunoco", "conoco",
                                      "murphy usa", "murphyusa", "love's", "loves",
-                                     "pilot", "flying j", "flyingj", "ta", "travel centers", "truck stop"};
+                                     "pilot", "flying j", "flyingj", "ta", "travel centers", "truck stop",
+                                     "buc-ee", "bucee", "buc-ees", "bucees", "buc-ee's"};
         for (String station : knownGasStations) {
             if (descLower.contains(station)) {
                 logger.debug("🏷️ detectCategoryFromDescription: Detected gas station '{}' → 'transportation'", station);
@@ -4554,15 +4565,42 @@ this.importCategoryParser = importCategoryParser;
             }
         }
         
+        // CRITICAL: Subscription merchants (WSJ, NYTimes, etc.) - subscriptions, NOT education
+        // Must come BEFORE all education checks to avoid false positives
+        String[] subscriptionMerchants = {"wsj", "wall street journal", 
+                                          "the wall street journal", "nytimes", "new york times", 
+                                          "financial times", "ft.com", "the financial times",
+                                          "economist", "the economist", "bloomberg", "bloomberg news"};
+        for (String merchant : subscriptionMerchants) {
+            if (descLower.contains(merchant) || normalizedDesc.contains(merchant) || 
+                (merchantName != null && merchantName.toLowerCase().contains(merchant))) {
+                logger.debug("🏷️ detectCategoryFromDescription: Detected subscription merchant '{}' → 'subscriptions'", merchant);
+                return "subscriptions";
+            }
+        }
+        
         // Educational media (books, newspapers, magazines, journals) → education
-        String[] educationalMedia = {"newspaper", "magazine", "journal", "books", "bookstore",
+        // CRITICAL: Don't match "journal" alone - it matches subscription journals like "Wall Street Journal"
+        // Only match specific academic journal types or "journal" in educational context
+        String[] educationalMedia = {"newspaper", "magazine", "books", "bookstore",
                                      "book store", "textbook", "text book", "library",
-                                     "academic journal", "research journal", "scientific journal"};
+                                     "academic journal", "research journal", "scientific journal",
+                                     "scholarly journal", "peer-reviewed journal"};
         for (String media : educationalMedia) {
             if (descLower.contains(media)) {
                 logger.debug("🏷️ detectCategoryFromDescription: Detected educational media '{}' → 'education'", media);
                 return "education";
             }
+        }
+        
+        // Check for "journal" only in educational context (not subscription journals like WSJ)
+        // Must check AFTER subscription merchant check to avoid false positives
+        if (descLower.contains("journal") && 
+            (descLower.contains("academic") || descLower.contains("research") || 
+             descLower.contains("scientific") || descLower.contains("scholarly") ||
+             descLower.contains("peer-reviewed") || descLower.contains("education journal"))) {
+            logger.debug("🏷️ detectCategoryFromDescription: Detected educational journal → 'education'");
+            return "education";
         }
         
         // Charity keywords (Go Fund Me, donations) - ONLY actual charity, NOT schools
@@ -4648,8 +4686,22 @@ this.importCategoryParser = importCategoryParser;
             return "transportation";
         }
         
-        // Toll patterns (Eractoll, etc.)
+        // CRITICAL: Financial education publications (Barrons, etc.) - education, NOT subscriptions
+        // Must come AFTER subscription merchant check to avoid false positives
+        if (descLower.contains("barrons") || descLower.contains("barron") ||
+            descLower.contains("barron's") || descLower.contains("dj*barrons") ||
+            descLower.contains("d j*barrons") || normalizedDesc.contains("barrons") ||
+            normalizedDesc.contains("barron") || (merchantName != null && 
+            (merchantName.toLowerCase().contains("barrons") || merchantName.toLowerCase().contains("barron")))) {
+            logger.debug("🏷️ detectCategoryFromDescription: Detected Barrons financial education publication → 'education'");
+            return "education";
+        }
+        
+        // Toll patterns (Eractoll, etc.) - transportation
+        // Must come BEFORE education check to prevent "eractoll" from being caught by education
         if (descLower.contains("eractoll") || descLower.contains("era toll") ||
+            normalizedDesc.contains("eractoll") || normalizedDesc.contains("eratoll") ||
+            (merchantName != null && (merchantName.toLowerCase().contains("eractoll") || merchantName.toLowerCase().contains("era toll"))) ||
             descLower.contains("toll payment") || descLower.contains("toll charge") ||
             descLower.contains("toll fee") || descLower.contains("road toll") ||
             descLower.contains("bridge toll") || descLower.contains("tunnel toll") ||
@@ -4681,19 +4733,34 @@ this.importCategoryParser = importCategoryParser;
         // CRITICAL FIX: Check for exam/testing keywords FIRST (AAMC, SAT, TOEFL, GRE, GMAT, LSAT, MCAT, etc.)
         // These should be categorized as "education" even if they're sometimes miscategorized as "entertainment"
         // VUE (Pearson VUE) - testing center for professional exams
+        // CRITICAL: Don't check for "act" here - it matches "eractoll". ACT is handled separately below.
         if (descLower.contains("vue") && 
             (descLower.contains("exam") || descLower.contains("test") || 
              descLower.contains("aamc") || descLower.contains("sat") || 
              descLower.contains("toefl") || descLower.contains("gre") || 
              descLower.contains("gmat") || descLower.contains("lsat") || 
-             descLower.contains("mcat") || descLower.contains("act"))) {
+             descLower.contains("mcat"))) {
             logger.debug("🏷️ detectCategoryFromDescription: Detected VUE exam/testing → 'education'");
             return "education";
         }
         
+        // CRITICAL: Toll patterns (Eractoll, etc.) - transportation
+        // Must come BEFORE education/ACT check to prevent "eractoll" from being caught by education
+        if (descLower.contains("eractoll") || descLower.contains("era toll") ||
+            normalizedDesc.contains("eractoll") || normalizedDesc.contains("eratoll") ||
+            (merchantName != null && (merchantName.toLowerCase().contains("eractoll") || merchantName.toLowerCase().contains("era toll"))) ||
+            descLower.contains("toll payment") || descLower.contains("toll charge") ||
+            descLower.contains("toll fee") || descLower.contains("road toll") ||
+            descLower.contains("bridge toll") || descLower.contains("tunnel toll") ||
+            descLower.contains("highway toll") || descLower.contains("expressway toll")) {
+            logger.debug("🏷️ detectCategoryFromDescription: Detected toll → 'transportation'");
+            return "transportation";
+        }
+        
         // Exam/testing keywords (AAMC, SAT, TOEFL, GRE, GMAT, LSAT, MCAT, ACT, AP, IB, etc.)
+        // CRITICAL: "act" must be checked as whole word to avoid matching "eractoll"
         String[] examKeywords = {"aamc", "sat", "toefl", "gre", "gmat", "lsat", "mcat", 
-                                 "act", "ap exam", "ib exam", "clep", "praxis", "bar exam",
+                                 "ap exam", "ib exam", "clep", "praxis", "bar exam",
                                  "nclex", "usmle", "comlex", "test registration",
                                  "test fee", "test center", "pearson vue", "ets", "prometric"};
         for (String exam : examKeywords) {
@@ -4701,6 +4768,14 @@ this.importCategoryParser = importCategoryParser;
                 logger.debug("🏷️ detectCategoryFromDescription: Detected exam/testing keyword '{}' → 'education'", exam);
                 return "education";
             }
+        }
+        // Check for "act" as whole word (ACT exam) - must come AFTER toll check to avoid matching "eractoll"
+        // Check for "act exam", "act test", or "act" at word boundaries, but exclude "eractoll"
+        if (!descLower.contains("eractoll") && !descLower.contains("era toll") &&
+            (descLower.contains("act exam") || descLower.contains("act test") || 
+             descLower.matches(".*\\bact\\b.*"))) {
+            logger.debug("🏷️ detectCategoryFromDescription: Detected ACT exam → 'education'");
+            return "education";
         }
         
         // Regional school/college names - Education
@@ -4733,6 +4808,7 @@ this.importCategoryParser = importCategoryParser;
         // Education keywords (school, books, reading, newspapers, magazines, journals, etc.) - categorized as "education"
         // NOTE: School types (middle school, high school, etc.) and educational media are handled separately above
         // NOTE: "gurukul" is handled separately above to ensure it's always detected
+        // NOTE: Subscription merchants (WSJ, Barrons, etc.) are checked BEFORE this to prevent false positives
         if (descLower.contains("school") ||
             descLower.contains("university") || descLower.contains("college") ||
             descLower.contains("tuition") || descLower.contains("books") ||
@@ -4743,7 +4819,8 @@ this.importCategoryParser = importCategoryParser;
             descLower.contains("class") || descLower.contains("lesson") ||
             descLower.contains("training") || descLower.contains("anki") ||
             descLower.contains("newspaper") || descLower.contains("magazine") ||
-            descLower.contains("journal") || descLower.contains("phd") ||
+            // Note: "journal" is handled separately above to avoid matching subscription journals
+            descLower.contains("phd") ||
             descLower.contains("ph.d") || descLower.contains("ph.d.") ||
             descLower.contains("doctorate") || descLower.contains("library")) {
             // Skip if it's a school payment (PayPAMS) - those are handled separately

@@ -28,11 +28,15 @@ public class BudgetController {
 
     private final BudgetService budgetService;
     private final UserService userService;
+    private final com.budgetbuddy.notification.DataChangeNotificationService dataChangeNotificationService;
 
     @SuppressFBWarnings(value = "EI_EXPOSE_REP2", justification = "Spring dependency injection - services are singleton beans safe to share")
-    public BudgetController(final BudgetService budgetService, final UserService userService) {
+    public BudgetController(final BudgetService budgetService, 
+                           final UserService userService,
+                           final com.budgetbuddy.notification.DataChangeNotificationService dataChangeNotificationService) {
         this.budgetService = budgetService;
         this.userService = userService;
+        this.dataChangeNotificationService = dataChangeNotificationService;
     }
 
     @GetMapping
@@ -81,6 +85,16 @@ public class BudgetController {
             request.getCarriedAmount(), // Pass optional carried amount
             request.getGoalId() // Pass optional goal ID
         );
+        
+        // Send push notification for real-time sync on other devices
+        try {
+            dataChangeNotificationService.notifyBudgetChanged(user.getUserId(), budget.getBudgetId());
+        } catch (Exception e) {
+            org.slf4j.LoggerFactory.getLogger(BudgetController.class)
+                    .warn("Failed to send data change notification for budget creation/update: {}", e.getMessage());
+            // Don't fail the request if notification fails
+        }
+        
         return ResponseEntity.status(HttpStatus.CREATED).body(budget);
     }
 
@@ -100,6 +114,16 @@ public class BudgetController {
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
 
         budgetService.deleteBudget(user, id);
+        
+        // Send push notification for real-time sync on other devices
+        try {
+            dataChangeNotificationService.notifyBudgetChanged(user.getUserId(), id);
+        } catch (Exception e) {
+            org.slf4j.LoggerFactory.getLogger(BudgetController.class)
+                    .warn("Failed to send data change notification for budget deletion: {}", e.getMessage());
+            // Don't fail the request if notification fails
+        }
+        
         return ResponseEntity.noContent().build();
     }
 

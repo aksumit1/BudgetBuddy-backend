@@ -1,0 +1,761 @@
+{
+    "Items": [
+        {
+            "accountId": {
+                "S": "ed342c64-e166-3495-88fb-11927d2414e2"
+            },
+            "createdAt": {
+                "S": "2026-01-09T15:00:18.355699Z"
+            },
+            "accountSubtype": {
+                "S": "manual"
+            },
+            "balance": {
+                "N": "0"
+            },
+            "accountName": {
+                "S": "Manual Transactions"
+            },
+            "accountType": {
+                "S": "other"
+            },
+            "institutionName": {
+                "S": "BudgetBuddy"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1767970818"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "cb858b1f-ea99-450a-9a04-7f0b69c60a24"
+            },
+            "updatedAt": {
+                "S": "2026-01-09T15:00:18.355700Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "639ec6c7-764d-4146-ad9a-a05c54934644"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "userId": {
+                "S": "ff734458-fec7-4a00-9a4d-950882e4da7f"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            }
+        },
+        {
+            "accountId": {
+                "S": "7d29dfd2-edd5-487a-8430-5ae0db1ac1b5"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "userId": {
+                "S": "cb6e4efe-4e3f-4792-8025-4c60fba9763e"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            }
+        },
+        {
+            "accountId": {
+                "S": "c8284c4b-b5ef-389b-9094-378ee0385f39"
+            },
+            "createdAt": {
+                "S": "2026-01-09T15:00:17.680612Z"
+            },
+            "accountSubtype": {
+                "S": "manual"
+            },
+            "balance": {
+                "N": "0"
+            },
+            "accountName": {
+                "S": "Manual Transactions"
+            },
+            "accountType": {
+                "S": "other"
+            },
+            "institutionName": {
+                "S": "BudgetBuddy"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1767970817"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "115cd5c0-17a4-4f33-850d-5e317ca3e656"
+            },
+            "updatedAt": {
+                "S": "2026-01-09T15:00:17.680612Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "4f034e64-064e-45cf-ab54-ed4826ff0c9c"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "userId": {
+                "S": "e2dc8e2f-22a1-4471-b11c-1110eec4bcb0"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            }
+        },
+        {
+            "accountId": {
+                "S": "70e3f7d4-ddb6-42e2-bfa0-f54bd86024f5"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "userId": {
+                "S": "115cd5c0-17a4-4f33-850d-5e317ca3e656"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            }
+        },
+        {
+            "accountId": {
+                "S": "0e641fda-9bb2-3279-89df-a484457f3e22"
+            },
+            "createdAt": {
+                "S": "2026-01-09T15:00:16.320756Z"
+            },
+            "accountSubtype": {
+                "S": "manual"
+            },
+            "balance": {
+                "N": "0"
+            },
+            "accountName": {
+                "S": "Manual Transactions"
+            },
+            "accountType": {
+                "S": "other"
+            },
+            "institutionName": {
+                "S": "BudgetBuddy"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1767970816"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "91df49b9-f3d2-47c3-b18c-79363e6d59c4"
+            },
+            "updatedAt": {
+                "S": "2026-01-09T15:00:16.320757Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "5fbb022a-16e3-4739-bdfa-83d41f3675a7"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "userId": {
+                "S": "c39f23a3-884b-42a2-ae0c-ed61b5ba49b5"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            }
+        },
+        {
+            "accountId": {
+                "S": "397a7348-f281-4de7-b21e-41905249f38b"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "userId": {
+                "S": "5059f376-bcbf-4e8a-878e-cf88224d97f1"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            }
+        },
+        {
+            "accountId": {
+                "S": "0478141a-95c9-34a0-a045-198fe2c1853d"
+            },
+            "createdAt": {
+                "S": "2026-01-09T15:00:19.697489Z"
+            },
+            "accountSubtype": {
+                "S": "manual"
+            },
+            "balance": {
+                "N": "0"
+            },
+            "accountName": {
+                "S": "Manual Transactions"
+            },
+            "accountType": {
+                "S": "other"
+            },
+            "institutionName": {
+                "S": "BudgetBuddy"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1767970819"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "ff734458-fec7-4a00-9a4d-950882e4da7f"
+            },
+            "updatedAt": {
+                "S": "2026-01-09T15:00:19.697490Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "a8215fe0-385d-3315-aa9e-be0ff3b22a3a"
+            },
+            "createdAt": {
+                "S": "2026-01-09T15:00:15.688793Z"
+            },
+            "accountSubtype": {
+                "S": "manual"
+            },
+            "balance": {
+                "N": "0"
+            },
+            "accountName": {
+                "S": "Manual Transactions"
+            },
+            "accountType": {
+                "S": "other"
+            },
+            "institutionName": {
+                "S": "BudgetBuddy"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1767970815"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "44d2d515-6fd8-480b-a7fc-bbbf4f180f0f"
+            },
+            "updatedAt": {
+                "S": "2026-01-09T15:00:15.688794Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "1f6d7e62-c0e4-3863-b22a-ae7f672d745c"
+            },
+            "createdAt": {
+                "S": "2026-01-09T15:00:19.031256Z"
+            },
+            "accountSubtype": {
+                "S": "manual"
+            },
+            "balance": {
+                "N": "0"
+            },
+            "accountName": {
+                "S": "Manual Transactions"
+            },
+            "accountType": {
+                "S": "other"
+            },
+            "institutionName": {
+                "S": "BudgetBuddy"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1767970819"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "e2dc8e2f-22a1-4471-b11c-1110eec4bcb0"
+            },
+            "updatedAt": {
+                "S": "2026-01-09T15:00:19.031256Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "6865c7ac-a758-33ab-b1c4-f30d16bafdd2"
+            },
+            "createdAt": {
+                "S": "2026-01-09T15:00:16.990158Z"
+            },
+            "accountSubtype": {
+                "S": "manual"
+            },
+            "balance": {
+                "N": "0"
+            },
+            "accountName": {
+                "S": "Manual Transactions"
+            },
+            "accountType": {
+                "S": "other"
+            },
+            "institutionName": {
+                "S": "BudgetBuddy"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1767970816"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "cb6e4efe-4e3f-4792-8025-4c60fba9763e"
+            },
+            "updatedAt": {
+                "S": "2026-01-09T15:00:16.990159Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "5e2e4630-e306-34f0-b272-1099230ef05f"
+            },
+            "createdAt": {
+                "S": "2026-01-09T15:00:20.993903Z"
+            },
+            "accountSubtype": {
+                "S": "manual"
+            },
+            "balance": {
+                "N": "0"
+            },
+            "accountName": {
+                "S": "Manual Transactions"
+            },
+            "accountType": {
+                "S": "other"
+            },
+            "institutionName": {
+                "S": "BudgetBuddy"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1767970820"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "c39f23a3-884b-42a2-ae0c-ed61b5ba49b5"
+            },
+            "updatedAt": {
+                "S": "2026-01-09T15:00:20.993904Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "7395f15c-bceb-40d5-bea5-a892cc852e94"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "userId": {
+                "S": "91df49b9-f3d2-47c3-b18c-79363e6d59c4"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            }
+        },
+        {
+            "accountId": {
+                "S": "525ca600-56c1-3b94-a1d2-7dcfa5dc4148"
+            },
+            "createdAt": {
+                "S": "2026-01-09T14:58:49.311974Z"
+            },
+            "accountSubtype": {
+                "S": "manual"
+            },
+            "balance": {
+                "N": "0"
+            },
+            "accountName": {
+                "S": "Manual Transactions"
+            },
+            "accountType": {
+                "S": "other"
+            },
+            "institutionName": {
+                "S": "BudgetBuddy"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1767970729"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "5059f376-bcbf-4e8a-878e-cf88224d97f1"
+            },
+            "updatedAt": {
+                "S": "2026-01-09T14:58:49.311976Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "9739058e-5c26-4651-84b1-452cbb073960"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "userId": {
+                "S": "44d2d515-6fd8-480b-a7fc-bbbf4f180f0f"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            }
+        },
+        {
+            "accountId": {
+                "S": "ad560989-e900-4721-82da-d3c10a32f210"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "userId": {
+                "S": "cb858b1f-ea99-450a-9a04-7f0b69c60a24"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            }
+        },
+        {
+            "accountId": {
+                "S": "695e7fac-3cd6-4e3c-a5df-b10f2745074a"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "userId": {
+                "S": "d5b7884f-b339-4dd3-8745-d5d9d7c96350"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            }
+        },
+        {
+            "accountId": {
+                "S": "4f9c419d-f0d4-35a6-8344-9871c6d9611e"
+            },
+            "createdAt": {
+                "S": "2026-01-09T15:00:15.033254Z"
+            },
+            "accountSubtype": {
+                "S": "manual"
+            },
+            "balance": {
+                "N": "0"
+            },
+            "accountName": {
+                "S": "Manual Transactions"
+            },
+            "accountType": {
+                "S": "other"
+            },
+            "institutionName": {
+                "S": "BudgetBuddy"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1767970815"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "d5b7884f-b339-4dd3-8745-d5d9d7c96350"
+            },
+            "updatedAt": {
+                "S": "2026-01-09T15:00:15.033255Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "bc50d4b2-bd3b-3096-94bb-b33f1ef1c866"
+            },
+            "createdAt": {
+                "S": "2026-01-09T15:00:20.341662Z"
+            },
+            "accountSubtype": {
+                "S": "manual"
+            },
+            "balance": {
+                "N": "0"
+            },
+            "accountName": {
+                "S": "Manual Transactions"
+            },
+            "accountType": {
+                "S": "other"
+            },
+            "institutionName": {
+                "S": "BudgetBuddy"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1767970820"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "35141e16-a66d-4cd7-9974-e1e3efc5ae72"
+            },
+            "updatedAt": {
+                "S": "2026-01-09T15:00:20.341663Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "d7252e50-4723-4a4e-9de2-27eab6a4d934"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "userId": {
+                "S": "35141e16-a66d-4cd7-9974-e1e3efc5ae72"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            }
+        },
+        {
+            "accountId": {
+                "S": "9668c812-40c8-3d47-ade3-ad7cc0a42f5a"
+            },
+            "createdAt": {
+                "S": "2026-01-09T14:59:41.657149Z"
+            },
+            "accountSubtype": {
+                "S": "manual"
+            },
+            "balance": {
+                "N": "0"
+            },
+            "accountName": {
+                "S": "Manual Transactions"
+            },
+            "accountType": {
+                "S": "other"
+            },
+            "institutionName": {
+                "S": "BudgetBuddy"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1767970781"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "49f794f5-9e0a-456d-a302-055bf142e9c8"
+            },
+            "updatedAt": {
+                "S": "2026-01-09T14:59:41.657150Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "6dfad82a-b658-329c-afea-d5e4e5ab9498"
+            },
+            "createdAt": {
+                "S": "2026-01-09T15:00:14.156776Z"
+            },
+            "accountSubtype": {
+                "S": "manual"
+            },
+            "balance": {
+                "N": "0"
+            },
+            "accountName": {
+                "S": "Manual Transactions"
+            },
+            "accountType": {
+                "S": "other"
+            },
+            "institutionName": {
+                "S": "BudgetBuddy"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1767970814"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "118cf572-1999-4de2-ad03-9843fbac6e5c"
+            },
+            "updatedAt": {
+                "S": "2026-01-09T15:00:14.156776Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "52e3d300-653e-4b52-8b9c-b84e3342b69b"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "userId": {
+                "S": "49f794f5-9e0a-456d-a302-055bf142e9c8"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            }
+        },
+        {
+            "accountId": {
+                "S": "8e1244da-0d24-4bfe-b0d0-953e944dd90a"
+            },
+            "balance": {
+                "N": "1000"
+            },
+            "accountName": {
+                "S": "Test Account"
+            },
+            "userId": {
+                "S": "118cf572-1999-4de2-ad03-9843fbac6e5c"
+            },
+            "accountType": {
+                "S": "CHECKING"
+            },
+            "institutionName": {
+                "S": "Test Bank"
+            }
+        }
+    ],
+    "Count": 26,
+    "ScannedCount": 26,
+    "ConsumedCapacity": null
+}

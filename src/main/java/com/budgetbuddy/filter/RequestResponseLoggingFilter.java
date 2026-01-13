@@ -126,7 +126,16 @@ public class RequestResponseLoggingFilter extends OncePerRequestFilter {
                 // Copy response body back to original response
                 wrappedResponse.copyBodyToResponse();
             } catch (Exception e) {
-                logger.error("Error copying response body [{}]: {}", correlationId, e.getMessage(), e);
+                // Handle client disconnection gracefully - this is expected behavior
+                // when clients navigate away, timeout, or cancel requests
+                if (isClientAbortException(e)) {
+                    // Log at debug level since this is expected behavior
+                    logger.debug("Client disconnected before response could be copied [{}]: {}", 
+                        correlationId, e.getMessage());
+                } else {
+                    // Log other errors at error level
+                    logger.error("Error copying response body [{}]: {}", correlationId, e.getMessage(), e);
+                }
             }
         }
     }
@@ -461,6 +470,44 @@ public class RequestResponseLoggingFilter extends OncePerRequestFilter {
     
     private String getSanitizedBody(final byte[] bodyBytes) {
         return getSanitizedBody(bodyBytes, null);
+    }
+
+    /**
+     * Check if exception is a client abort (broken pipe) exception
+     * These are expected when clients disconnect before response is fully written
+     */
+    private boolean isClientAbortException(Exception e) {
+        // Check for ClientAbortException (Tomcat)
+        if (e.getClass().getName().contains("ClientAbortException")) {
+            return true;
+        }
+        
+        // Check for IOException with "Broken pipe" message
+        if (e instanceof IOException) {
+            String message = e.getMessage();
+            if (message != null && (message.contains("Broken pipe") || 
+                                   message.contains("Connection reset by peer"))) {
+                return true;
+            }
+        }
+        
+        // Check cause chain
+        Throwable cause = e.getCause();
+        while (cause != null) {
+            if (cause.getClass().getName().contains("ClientAbortException")) {
+                return true;
+            }
+            if (cause instanceof IOException) {
+                String message = cause.getMessage();
+                if (message != null && (message.contains("Broken pipe") || 
+                                      message.contains("Connection reset by peer"))) {
+                    return true;
+                }
+            }
+            cause = cause.getCause();
+        }
+        
+        return false;
     }
 
     @Override

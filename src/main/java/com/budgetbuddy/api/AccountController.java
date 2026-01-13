@@ -33,14 +33,17 @@ public class AccountController {
     private final AccountRepository accountRepository;
     private final UserService userService;
     private final TransactionService transactionService;
+    private final com.budgetbuddy.notification.DataChangeNotificationService dataChangeNotificationService;
 
     @SuppressFBWarnings(value = "EI_EXPOSE_REP2", justification = "Spring dependency injection - services are singleton beans safe to share")
     public AccountController(final AccountRepository accountRepository, 
                             final UserService userService,
-                            final TransactionService transactionService) {
+                            final TransactionService transactionService,
+                            final com.budgetbuddy.notification.DataChangeNotificationService dataChangeNotificationService) {
         this.accountRepository = accountRepository;
         this.userService = userService;
         this.transactionService = transactionService;
+        this.dataChangeNotificationService = dataChangeNotificationService;
     }
 
     @GetMapping
@@ -178,6 +181,16 @@ public class AccountController {
         account.setUpdatedAtTimestamp(now.getEpochSecond());
 
         accountRepository.save(account);
+        
+        // Send push notification for real-time sync on other devices
+        try {
+            dataChangeNotificationService.notifyAccountChanged(user.getUserId(), account.getAccountId());
+        } catch (Exception e) {
+            org.slf4j.LoggerFactory.getLogger(AccountController.class)
+                    .warn("Failed to send data change notification for account creation: {}", e.getMessage());
+            // Don't fail the request if notification fails
+        }
+        
         return ResponseEntity.status(HttpStatus.CREATED).body(account);
     }
 
@@ -251,6 +264,16 @@ public class AccountController {
         account.setUpdatedAtTimestamp(now.getEpochSecond());
 
         accountRepository.save(account);
+        
+        // Send push notification for real-time sync on other devices
+        try {
+            dataChangeNotificationService.notifyAccountChanged(user.getUserId(), account.getAccountId());
+        } catch (Exception e) {
+            org.slf4j.LoggerFactory.getLogger(AccountController.class)
+                    .warn("Failed to send data change notification for account update: {}", e.getMessage());
+            // Don't fail the request if notification fails
+        }
+        
         return ResponseEntity.ok(account);
     }
 
@@ -288,6 +311,16 @@ public class AccountController {
 
         // Delete account
         accountRepository.delete(id);
+        
+        // Send push notification for real-time sync on other devices
+        try {
+            dataChangeNotificationService.notifyAccountChanged(user.getUserId(), id);
+        } catch (Exception e) {
+            org.slf4j.LoggerFactory.getLogger(AccountController.class)
+                    .warn("Failed to send data change notification for account deletion: {}", e.getMessage());
+            // Don't fail the request if notification fails
+        }
+        
         return ResponseEntity.noContent().build();
     }
 

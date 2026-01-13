@@ -219,6 +219,33 @@
             <artifactId>commons-math3</artifactId>
             <version>3.6.1</version>
         </dependency>
+        
+        <!-- ONNX Runtime for CPU-optimized BERT embeddings -->
+        <!-- ONNX Runtime provides better cross-platform support and simpler dependencies -->
+        <dependency>
+            <groupId>com.microsoft.onnxruntime</groupId>
+            <artifactId>onnxruntime</artifactId>
+            <version>1.18.0</version>
+        </dependency>
+        <!-- Alternative: Deep Java Library (DJL) for BERT embeddings - CPU optimized -->
+        <!-- Uncomment if you prefer DJL over ONNX Runtime -->
+        <!--
+        <dependency>
+            <groupId>ai.djl</groupId>
+            <artifactId>api</artifactId>
+            <version>0.27.0</version>
+        </dependency>
+        <dependency>
+            <groupId>ai.djl.onnxruntime</groupId>
+            <artifactId>onnxruntime-engine</artifactId>
+            <version>0.27.0</version>
+        </dependency>
+        <dependency>
+            <groupId>ai.djl.huggingface</groupId>
+            <artifactId>tokenizers</artifactId>
+            <version>0.27.0</version>
+        </dependency>
+        -->
 
         <!-- Test Dependencies -->
         <!-- Reflections for classpath scanning in tests -->
@@ -513,6 +540,8 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <configuration>
+                    <!-- CRITICAL FIX: Specify main class explicitly to avoid ambiguity with SubscriptionScanner -->
+                    <mainClass>com.budgetbuddy.BudgetBuddyApplication</mainClass>
                     <excludes>
                         <exclude>
                             <groupId>org.projectlombok</groupId>
@@ -538,6 +567,7 @@
                     <reuseForks>true</reuseForks>  <!-- Reuse forks to avoid JVM startup overhead -->
                     <parallel>methods</parallel>  <!-- Run tests in parallel -->
                     <threadCount>4</threadCount>  <!-- Use 4 threads for parallel test execution -->
+                    <!-- Support both skipTest (singular) and skipTests (plural) -->
                     <skipTests>${skipTests}</skipTests>
                     <!-- Use @{argLine} to include JaCoCo's agent, then append our JVM flags -->
                     <argLine>@{argLine} ${surefire.jvm.args}</argLine>
@@ -939,5 +969,20 @@
                 </plugin>
         </plugins>
     </build>
+
+    <profiles>
+        <!-- Profile to support -DskipTest (singular) by mapping it to skipTests -->
+        <profile>
+            <id>skip-test-singular</id>
+            <activation>
+                <property>
+                    <name>skipTest</name>
+                </property>
+            </activation>
+            <properties>
+                <skipTests>${skipTest}</skipTests>
+            </properties>
+        </profile>
+    </profiles>
 </project>
 

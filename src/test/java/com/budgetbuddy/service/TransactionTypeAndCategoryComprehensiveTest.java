@@ -1,5 +1,6 @@
 package com.budgetbuddy.service;
 
+import com.budgetbuddy.AWSTestConfiguration;
 import com.budgetbuddy.model.TransactionType;
 import com.budgetbuddy.model.dynamodb.AccountTable;
 import org.junit.jupiter.api.BeforeEach;
@@ -7,6 +8,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
+import org.springframework.test.context.ActiveProfiles;
 
 import java.math.BigDecimal;
 import java.util.UUID;
@@ -23,6 +26,8 @@ import static org.junit.jupiter.api.Assertions.*;
  * - DepositAndInterestCategorizationTests.swift
  */
 @SpringBootTest
+@ActiveProfiles("test")
+@Import(AWSTestConfiguration.class)
 class TransactionTypeAndCategoryComprehensiveTest {
 
     @Autowired

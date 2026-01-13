@@ -402,8 +402,8 @@ class ImportEndpointIntegrationTest {
         // Mock transaction creation
         TransactionTable mockTransaction = new TransactionTable();
         mockTransaction.setTransactionId("test-transaction-id");
-        // Use the 23-parameter main method (import code uses full signature, including goalId)
-        when(transactionService.createTransaction(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
+        // Use the 24-parameter main method (import code uses full signature, including goalId and linkedTransactionId)
+        when(transactionService.createTransaction(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(mockTransaction);
 
         // Act

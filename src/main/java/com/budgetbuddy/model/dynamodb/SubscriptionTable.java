@@ -26,6 +26,10 @@ public class SubscriptionTable {
     private String nextPaymentDate; // YYYY-MM-DD format
     private String lastPaymentDate; // YYYY-MM-DD format
     private String category;
+    private String subscriptionType; // Type of subscription: "streaming", "software", "membership", "cloud_storage", "other"
+    private String subscriptionCategory; // High-level category: "subscription" (merchant-based) or "recurring" (bills, loans)
+    private String originalCategoryPrimary; // Original transaction categoryPrimary
+    private String originalCategoryDetailed; // Original transaction categoryDetailed
     private Boolean active;
     private String plaidTransactionId;
     private Instant createdAt;
@@ -130,6 +134,42 @@ public class SubscriptionTable {
 
     public void setCategory(final String category) {
         this.category = category;
+    }
+
+    @DynamoDbAttribute("subscriptionType")
+    public String getSubscriptionType() {
+        return subscriptionType;
+    }
+
+    public void setSubscriptionType(final String subscriptionType) {
+        this.subscriptionType = subscriptionType;
+    }
+
+    @DynamoDbAttribute("subscriptionCategory")
+    public String getSubscriptionCategory() {
+        return subscriptionCategory;
+    }
+
+    public void setSubscriptionCategory(final String subscriptionCategory) {
+        this.subscriptionCategory = subscriptionCategory;
+    }
+
+    @DynamoDbAttribute("originalCategoryPrimary")
+    public String getOriginalCategoryPrimary() {
+        return originalCategoryPrimary;
+    }
+
+    public void setOriginalCategoryPrimary(final String originalCategoryPrimary) {
+        this.originalCategoryPrimary = originalCategoryPrimary;
+    }
+
+    @DynamoDbAttribute("originalCategoryDetailed")
+    public String getOriginalCategoryDetailed() {
+        return originalCategoryDetailed;
+    }
+
+    public void setOriginalCategoryDetailed(final String originalCategoryDetailed) {
+        this.originalCategoryDetailed = originalCategoryDetailed;
     }
 
     @DynamoDbAttribute("active")

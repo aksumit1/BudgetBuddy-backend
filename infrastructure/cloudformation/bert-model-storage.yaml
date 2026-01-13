@@ -1,0 +1,107 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'S3 Bucket for DistilBERT ONNX model storage with optimized access patterns'
+
+Parameters:
+  Environment:
+    Type: String
+    Default: production
+    AllowedValues: [development, staging, production]
+    Description: Deployment environment
+  
+  ECSTaskRoleArn:
+    Type: String
+    Description: ARN of the ECS task role that needs access to the model bucket
+    Default: ''
+
+Conditions:
+  HasECSTaskRole: !Not [!Equals [!Ref ECSTaskRoleArn, '']]
+
+Resources:
+  # S3 Bucket for BERT model storage
+  BertModelBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub 'budgetbuddy-bert-models-${Environment}'
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      VersioningConfiguration:
+        Status: Enabled
+      # Lifecycle: Keep model versions but delete old non-current versions
+      LifecycleConfiguration:
+        Rules:
+          # Delete old non-current versions after 30 days (keep current version)
+          - Id: DeleteOldVersions
+            Status: Enabled
+            NoncurrentVersionExpirationInDays: 30
+          # Delete incomplete multipart uploads after 1 day
+          - Id: DeleteIncompleteUploads
+            Status: Enabled
+            AbortIncompleteMultipartUpload:
+              DaysAfterInitiation: 1
+      # Encryption: Use AES256 (KMS not needed for model files)
+      ServerSideEncryptionConfiguration:
+        Rules:
+          - ApplyServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+            BucketKeyEnabled: false
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Application
+          Value: BudgetBuddy
+        - Key: Component
+          Value: BERT-Model
+        - Key: ManagedBy
+          Value: CloudFormation
+        - Key: CostCenter
+          Value: engineering
+
+  # Bucket Policy for ECS Task Role access
+  BertModelBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Condition: HasECSTaskRole
+    Properties:
+      Bucket: !Ref BertModelBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: AllowECSTaskRoleReadAccess
+            Effect: Allow
+            Principal:
+              AWS: !Ref ECSTaskRoleArn
+            Action:
+              - s3:GetObject
+              - s3:GetObjectVersion
+            Resource: !Sub '${BertModelBucket}/*'
+          - Sid: AllowECSTaskRoleListBucket
+            Effect: Allow
+            Principal:
+              AWS: !Ref ECSTaskRoleArn
+            Action:
+              - s3:ListBucket
+            Resource: !Ref BertModelBucket
+            Condition:
+              StringEquals:
+                's3:prefix': 'distilbert-base-uncased.onnx'
+
+Outputs:
+  BucketName:
+    Description: Name of the S3 bucket for BERT models
+    Value: !Ref BertModelBucket
+    Export:
+      Name: !Sub '${AWS::StackName}-BertModelBucketName'
+  
+  BucketArn:
+    Description: ARN of the S3 bucket for BERT models
+    Value: !GetAtt BertModelBucket.Arn
+    Export:
+      Name: !Sub '${AWS::StackName}-BertModelBucketArn'
+  
+  ModelS3Path:
+    Description: S3 path to the DistilBERT model
+    Value: !Sub 's3://${BertModelBucket}/distilbert-base-uncased.onnx'
+    Export:
+      Name: !Sub '${AWS::StackName}-BertModelS3Path'

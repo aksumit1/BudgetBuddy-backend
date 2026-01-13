@@ -39,7 +39,7 @@ class CSVImportServiceGlobalImportTest {
                 org.mockito.Mockito.mock(com.budgetbuddy.service.ml.EnhancedCategoryDetectionService.class);
         com.budgetbuddy.service.ml.FuzzyMatchingService fuzzyMatchingService = 
                 org.mockito.Mockito.mock(com.budgetbuddy.service.ml.FuzzyMatchingService.class);
-        csvImportService = new CSVImportService(accountDetectionService, enhancedCategoryDetection, fuzzyMatchingService,
+        csvImportService = new CSVImportService(accountDetectionService, enhancedCategoryDetection,
                 org.mockito.Mockito.mock(TransactionTypeCategoryService.class),
                 org.mockito.Mockito.mock(ImportCategoryParser.class),
                 org.mockito.Mockito.mock(com.budgetbuddy.service.category.strategy.CategoryDetectionManager.class));

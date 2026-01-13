@@ -59,6 +59,17 @@ class TransactionTypeFromAccountTypeTest {
         when(importCategoryConfig.getCreditCardKeywords()).thenReturn(java.util.Arrays.asList("autopay", "auto pay", "e-payment", "credit card", "creditcard"));
         
         // Create service with mocked dependencies
+        com.budgetbuddy.service.category.InMemoryMerchantService merchantService = 
+            org.mockito.Mockito.mock(com.budgetbuddy.service.category.InMemoryMerchantService.class);
+        // Mock merchant service to return null by default (no matches)
+        org.mockito.Mockito.lenient().when(merchantService.detectCategory(anyString(), anyString(), anyString()))
+            .thenReturn(null);
+        
+        CategoryLearningService learningService = org.mockito.Mockito.mock(CategoryLearningService.class);
+        // Mock learning service to return null by default (no custom mappings)
+        org.mockito.Mockito.lenient().when(learningService.getCustomMapping(anyString(), anyString()))
+            .thenReturn(null);
+        
         transactionTypeCategoryService = new TransactionTypeCategoryService(
             transactionTypeDeterminer,
             plaidCategoryMapper,
@@ -66,7 +77,9 @@ class TransactionTypeFromAccountTypeTest {
             enhancedCategoryDetection,
             importCategoryConfig,
             globalFinancialConfig,
-            circuitBreakerService
+            circuitBreakerService,
+            merchantService,
+            learningService
         );
     }
 

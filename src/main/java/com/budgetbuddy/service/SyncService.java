@@ -2,6 +2,7 @@ package com.budgetbuddy.service;
 
 import com.budgetbuddy.dto.IncrementalSyncResponse;
 import com.budgetbuddy.dto.SyncAllResponse;
+import com.budgetbuddy.dto.SyncStatusResponse;
 import com.budgetbuddy.exception.AppException;
 import com.budgetbuddy.exception.ErrorCode;
 import com.budgetbuddy.model.dynamodb.*;
@@ -205,6 +206,118 @@ public class SyncService {
         } catch (Exception e) {
             logger.error("Error fetching incremental changes for user {}: {}", userId, e.getMessage(), e);
             throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to fetch incremental changes", null, null, e);
+        }
+    }
+    
+    /**
+     * Get sync status for user
+     * Returns current sync status, last sync time, and data counts
+     * Used by offline mode to check sync state
+     */
+    public SyncStatusResponse getSyncStatus(final String userId) {
+        if (userId == null || userId.isEmpty()) {
+            throw new AppException(ErrorCode.INVALID_INPUT, "User ID is required");
+        }
+        
+        logger.info("Fetching sync status for user: {}", userId);
+        
+        try {
+            // Get data counts
+            List<AccountTable> accounts = accountRepository.findByUserId(userId);
+            List<TransactionTable> transactions = transactionRepository.findByUserId(userId, 0, 1); // Just count
+            List<BudgetTable> budgets = budgetRepository.findByUserId(userId);
+            List<GoalTable> goals = goalRepository.findByUserId(userId);
+            
+            // Get actual transaction count (need to paginate)
+            int transactionCount = 0;
+            int skip = 0;
+            int batchSize = 100;
+            boolean hasMore = true;
+            while (hasMore) {
+                List<TransactionTable> batch = transactionRepository.findByUserId(userId, skip, batchSize);
+                if (batch.isEmpty()) {
+                    hasMore = false;
+                } else {
+                    transactionCount += batch.size();
+                    skip += batch.size();
+                    if (batch.size() < batchSize) {
+                        hasMore = false;
+                    }
+                }
+            }
+            
+            // Get last sync timestamp (use most recent updatedAt from any entity)
+            Long lastSyncTimestamp = null;
+            Instant latestUpdate = null;
+            
+            // Check accounts
+            for (AccountTable account : accounts) {
+                if (account.getUpdatedAt() != null) {
+                    if (latestUpdate == null || account.getUpdatedAt().isAfter(latestUpdate)) {
+                        latestUpdate = account.getUpdatedAt();
+                    }
+                }
+            }
+            
+            // Check transactions (sample first 100 for performance)
+            List<TransactionTable> sampleTransactions = transactionRepository.findByUserId(userId, 0, 100);
+            for (TransactionTable transaction : sampleTransactions) {
+                if (transaction.getUpdatedAt() != null) {
+                    if (latestUpdate == null || transaction.getUpdatedAt().isAfter(latestUpdate)) {
+                        latestUpdate = transaction.getUpdatedAt();
+                    }
+                }
+            }
+            
+            // Check budgets
+            for (BudgetTable budget : budgets) {
+                if (budget.getUpdatedAt() != null) {
+                    if (latestUpdate == null || budget.getUpdatedAt().isAfter(latestUpdate)) {
+                        latestUpdate = budget.getUpdatedAt();
+                    }
+                }
+            }
+            
+            // Check goals
+            for (GoalTable goal : goals) {
+                if (goal.getUpdatedAt() != null) {
+                    if (latestUpdate == null || goal.getUpdatedAt().isAfter(latestUpdate)) {
+                        latestUpdate = goal.getUpdatedAt();
+                    }
+                }
+            }
+            
+            if (latestUpdate != null) {
+                lastSyncTimestamp = latestUpdate.getEpochSecond();
+            }
+            
+            // Create data counts
+            SyncStatusResponse.DataCounts dataCounts = new SyncStatusResponse.DataCounts(
+                    accounts.size(),
+                    transactionCount,
+                    budgets.size(),
+                    goals.size()
+            );
+            
+            // Server is always online (this endpoint wouldn't be reachable if offline)
+            // Pending sync count is managed client-side, so we return 0
+            // Sync status is IDLE (no active sync operations on server)
+            SyncStatusResponse response = new SyncStatusResponse(
+                    true, // isOnline - server is always online if this endpoint is reachable
+                    lastSyncTimestamp,
+                    0, // pendingSyncCount - managed client-side
+                    SyncStatusResponse.SyncStatus.IDLE,
+                    dataCounts,
+                    Instant.now().getEpochSecond() // serverTime
+            );
+            
+            logger.info("Sync status for user {}: {} accounts, {} transactions, {} budgets, {} goals, lastSync: {}",
+                    userId, accounts.size(), transactionCount, budgets.size(), goals.size(), lastSyncTimestamp);
+            
+            return response;
+        } catch (Exception e) {
+            logger.error("Error fetching sync status for user {}: {}", userId, e.getMessage(), e);
+            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to fetch sync status", null, null, e);
         }
     }
 }

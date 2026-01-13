@@ -21,15 +21,6 @@ class CacheConfigTest {
     @Autowired
     private CacheManager cacheManager;
 
-    @Autowired(required = false)
-    private CacheManager userCacheManager;
-
-    @Autowired(required = false)
-    private CacheManager transactionCacheManager;
-
-    @Autowired(required = false)
-    private CacheManager accountCacheManager;
-
     @Test
     void testCacheManager_IsCreated() {
         // Then
@@ -56,26 +47,6 @@ class CacheConfigTest {
         }
     }
 
-    @Test
-    void testUserCacheManager_IsCreated() {
-        // Then
-        // User cache manager might not be created in test profile
-        assertNotNull(cacheManager, "At least primary cache manager should exist");
-    }
-
-    @Test
-    void testTransactionCacheManager_IsCreated() {
-        // Then
-        // Transaction cache manager might not be created in test profile
-        assertNotNull(cacheManager, "At least primary cache manager should exist");
-    }
-
-    @Test
-    void testAccountCacheManager_IsCreated() {
-        // Then
-        // Account cache manager might not be created in test profile
-        assertNotNull(cacheManager, "At least primary cache manager should exist");
-    }
 
     @Test
     void testCacheManager_WithNullKey_ThrowsException() {

@@ -156,6 +156,21 @@ Resources:
               Value: '/usr/share/tesseract-ocr/5/tessdata'
             - Name: OCR_ENABLED
               Value: 'true'
+            # BERT Model Configuration
+            - Name: BERT_ENABLED
+              Value: ${BERT_ENABLED:false}
+            - Name: BERT_MODEL_PATH
+              Value: ${BERT_MODEL_PATH:models/distilbert-base-uncased.onnx}
+            - Name: BERT_MODEL_BUCKET
+              Value: !Sub 'budgetbuddy-bert-models-${Environment}'
+            - Name: BERT_MODEL_S3_KEY
+              Value: ${BERT_MODEL_S3_KEY:distilbert-base-uncased.onnx}
+            - Name: BERT_DOWNLOAD_MAX_RETRIES
+              Value: ${BERT_DOWNLOAD_MAX_RETRIES:3}
+            - Name: BERT_DOWNLOAD_RETRY_DELAY
+              Value: ${BERT_DOWNLOAD_RETRY_DELAY:5}
+            - Name: BERT_DOWNLOAD_TIMEOUT
+              Value: ${BERT_DOWNLOAD_TIMEOUT:300}
           Secrets:
             - Name: JWT_SECRET
               ValueFrom: !Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:budgetbuddy/${Environment}/jwt-secret'

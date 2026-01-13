@@ -100,10 +100,11 @@ class TransactionCategorizationIssuesTest {
     
     @Test
     void testSubscriptionRefund_Barrons() {
-        // Given: BARRONS subscription refund (positive amount on credit card)
+        // Given: BARRONS refund (positive amount on credit card)
         // "Platinum Digital Entertainment Credit D J*BARRONS" with amount 4.41
+        // UPDATED: Barrons is now categorized as education (financial education publication), not subscriptions
         TransactionTypeCategoryService.CategoryResult categoryResult = service.determineCategory(
-            "subscriptions",
+            "subscriptions", // Importer says subscriptions, but should be overridden to education
             "subscriptions",
             creditCardAccount,
             "Platinum Digital Entertainment Credit D J*BARRONS",
@@ -114,9 +115,10 @@ class TransactionCategorizationIssuesTest {
             "PDF"
         );
 
-        // Then: Should be subscriptions, not credit
+        // Then: Should be education (financial education publication), not subscriptions or credit
         assertNotNull(categoryResult);
-        assertEquals("subscriptions", categoryResult.getCategoryPrimary());
+        assertEquals("education", categoryResult.getCategoryPrimary(),
+            "Barrons should be categorized as education (financial education publication), not subscriptions");
     }
 
     @Test
@@ -537,6 +539,1223 @@ class TransactionCategorizationIssuesTest {
         // Then: Should be groceries, not other
         assertNotNull(categoryResult);
         assertEquals("groceries", categoryResult.getCategoryPrimary());
+    }
+
+    // ========== Lululemon Transaction Tests ==========
+    
+    @Test
+    void testLululemon_Shopping_NotTransportation() {
+        // Given: Lululemon purchase transaction that was incorrectly categorized as transportation
+        // Transaction: "LULULEMON ATHLETICA USA B TO C (877)263-9300 CA CLOTHING 877-263-9300"
+        // Amount: -129.26 (negative = expense)
+        TransactionTypeCategoryService.CategoryResult categoryResult = service.determineCategory(
+            null, // No importer category (from PDF import)
+            null,
+            creditCardAccount,
+            "LULULEMON ATHLETICA USA B TO C (877)263-9300 CA CLOTHING 877-263-9300",
+            "LULULEMON ATHLETICA USA B TO C (877)263-9300 CA CLOTHING 877-263-9300",
+            BigDecimal.valueOf(-129.26),
+            null,
+            null,
+            "PDF"
+        );
+
+        TransactionTypeCategoryService.TypeResult typeResult = service.determineTransactionType(
+            creditCardAccount,
+            categoryResult.getCategoryPrimary(),
+            categoryResult.getCategoryDetailed(),
+            BigDecimal.valueOf(-129.26),
+            null,
+            "LULULEMON ATHLETICA USA B TO C (877)263-9300 CA CLOTHING 877-263-9300",
+            null
+        );
+
+        // Then: Should be shopping category and EXPENSE type (not transportation/PAYMENT)
+        assertNotNull(categoryResult);
+        assertEquals("shopping", categoryResult.getCategoryPrimary(), 
+            "Lululemon should be categorized as shopping, not transportation");
+        assertNotNull(typeResult);
+        assertEquals(TransactionType.EXPENSE, typeResult.getTransactionType(),
+            "Lululemon purchase should be EXPENSE, not PAYMENT");
+    }
+
+    @Test
+    void testLululemon_WithShoppingImporterCategory() {
+        // Given: Lululemon transaction with importer category "shopping" (from CSV/PDF import)
+        TransactionTypeCategoryService.CategoryResult categoryResult = service.determineCategory(
+            "shopping",
+            "shopping",
+            creditCardAccount,
+            "LULULEMON ATHLETICA USA B TO C (877)263-9300 CA CLOTHING 877-263-9300",
+            "LULULEMON ATHLETICA USA B TO C (877)263-9300 CA CLOTHING 877-263-9300",
+            BigDecimal.valueOf(-129.26),
+            null,
+            null,
+            "PDF"
+        );
+
+        TransactionTypeCategoryService.TypeResult typeResult = service.determineTransactionType(
+            creditCardAccount,
+            categoryResult.getCategoryPrimary(),
+            categoryResult.getCategoryDetailed(),
+            BigDecimal.valueOf(-129.26),
+            null,
+            "LULULEMON ATHLETICA USA B TO C (877)263-9300 CA CLOTHING 877-263-9300",
+            null
+        );
+
+        // Then: Should preserve shopping category and be EXPENSE type
+        assertNotNull(categoryResult);
+        assertEquals("shopping", categoryResult.getCategoryPrimary());
+        assertNotNull(typeResult);
+        assertEquals(TransactionType.EXPENSE, typeResult.getTransactionType());
+    }
+
+    // ========== Xfinity/Comcast Transaction Tests ==========
+    
+    @Test
+    void testXfinityMobile_Utilities_NotTransportation() {
+        // Given: Xfinity Mobile transaction that was incorrectly categorized as transportation
+        // Transaction: "2469216AD2YMLKAPM XFINITY MOBILE 888-936-4968 PA"
+        // Amount: -158.03 (negative = expense)
+        // Importer category: "utilities" (correct)
+        TransactionTypeCategoryService.CategoryResult categoryResult = service.determineCategory(
+            "utilities",
+            "utilities",
+            creditCardAccount,
+            "2469216AD2YMLKAPM XFINITY MOBILE 888-936-4968 PA",
+            "2469216AD2YMLKAPM XFINITY MOBILE 888-936-4968 PA",
+            BigDecimal.valueOf(-158.03),
+            null,
+            null,
+            "PDF"
+        );
+
+        TransactionTypeCategoryService.TypeResult typeResult = service.determineTransactionType(
+            creditCardAccount,
+            categoryResult.getCategoryPrimary(),
+            categoryResult.getCategoryDetailed(),
+            BigDecimal.valueOf(-158.03),
+            null,
+            "2469216AD2YMLKAPM XFINITY MOBILE 888-936-4968 PA",
+            null
+        );
+
+        // Then: Should be utilities category and EXPENSE type (not transportation/PAYMENT)
+        assertNotNull(categoryResult);
+        assertEquals("utilities", categoryResult.getCategoryPrimary(),
+            "Xfinity Mobile should be categorized as utilities, not transportation");
+        assertNotNull(typeResult);
+        assertEquals(TransactionType.EXPENSE, typeResult.getTransactionType(),
+            "Xfinity Mobile bill should be EXPENSE, not PAYMENT");
+    }
+
+    @Test
+    void testXfinity_Utilities_NotTransportation() {
+        // Given: Xfinity (internet/cable) transaction
+        TransactionTypeCategoryService.CategoryResult categoryResult = service.determineCategory(
+            null,
+            null,
+            creditCardAccount,
+            "XFINITY INTERNET PAYMENT",
+            "XFINITY INTERNET PAYMENT",
+            BigDecimal.valueOf(-89.99),
+            null,
+            null,
+            "PDF"
+        );
+
+        TransactionTypeCategoryService.TypeResult typeResult = service.determineTransactionType(
+            creditCardAccount,
+            categoryResult.getCategoryPrimary(),
+            categoryResult.getCategoryDetailed(),
+            BigDecimal.valueOf(-89.99),
+            null,
+            "XFINITY INTERNET PAYMENT",
+            null
+        );
+
+        // Then: Should be utilities category and EXPENSE type
+        assertNotNull(categoryResult);
+        assertEquals("utilities", categoryResult.getCategoryPrimary());
+        assertNotNull(typeResult);
+        assertEquals(TransactionType.EXPENSE, typeResult.getTransactionType());
+    }
+
+    @Test
+    void testComcast_Utilities_NotTransportation() {
+        // Given: Comcast transaction
+        TransactionTypeCategoryService.CategoryResult categoryResult = service.determineCategory(
+            null,
+            null,
+            creditCardAccount,
+            "COMCAST / XFINITY",
+            "COMCAST / XFINITY",
+            BigDecimal.valueOf(-79.99),
+            null,
+            null,
+            "PDF"
+        );
+
+        TransactionTypeCategoryService.TypeResult typeResult = service.determineTransactionType(
+            creditCardAccount,
+            categoryResult.getCategoryPrimary(),
+            categoryResult.getCategoryDetailed(),
+            BigDecimal.valueOf(-79.99),
+            null,
+            "COMCAST / XFINITY",
+            null
+        );
+
+        // Then: Should be utilities category and EXPENSE type
+        assertNotNull(categoryResult);
+        assertEquals("utilities", categoryResult.getCategoryPrimary());
+        assertNotNull(typeResult);
+        assertEquals(TransactionType.EXPENSE, typeResult.getTransactionType());
+    }
+
+    // ========== Passport Services Transaction Tests ==========
+    
+    @Test
+    void testPassportServices_Travel_NotTransfer() {
+        // Given: Check transaction for passport services that was incorrectly categorized as transfer
+        // Transaction: "CHECK # 0165      PASSPORTSERVICES PAYMENT           ARC ID: 1900000119"
+        TransactionTypeCategoryService.CategoryResult categoryResult = service.determineCategory(
+            "transfer", // Importer incorrectly categorized as transfer
+            "transfer",
+            checkingAccount,
+            "CHECK PASSPORTSERVICES PAYMENT ARC ID:",
+            "CHECK # 0165      PASSPORTSERVICES PAYMENT           ARC ID: 1900000119",
+            BigDecimal.valueOf(-150.00),
+            null,
+            null,
+            "PDF"
+        );
+
+        TransactionTypeCategoryService.TypeResult typeResult = service.determineTransactionType(
+            checkingAccount,
+            categoryResult.getCategoryPrimary(),
+            categoryResult.getCategoryDetailed(),
+            BigDecimal.valueOf(-150.00),
+            null,
+            "CHECK # 0165      PASSPORTSERVICES PAYMENT           ARC ID: 1900000119",
+            null
+        );
+
+        // Then: Should be travel category and EXPENSE type (not transfer)
+        assertNotNull(categoryResult);
+        assertEquals("travel", categoryResult.getCategoryPrimary(),
+            "Passport services should be categorized as travel, not transfer");
+        assertNotNull(typeResult);
+        assertEquals(TransactionType.EXPENSE, typeResult.getTransactionType(),
+            "Passport services expense should be EXPENSE type");
+    }
+
+    @Test
+    void testVisaService_Travel() {
+        // Given: Visa application service transaction
+        TransactionTypeCategoryService.CategoryResult categoryResult = service.determineCategory(
+            null,
+            null,
+            checkingAccount,
+            "VISA APPLICATION SERVICE",
+            "VISA APPLICATION SERVICE PAYMENT",
+            BigDecimal.valueOf(-200.00),
+            null,
+            null,
+            "PDF"
+        );
+
+        // Then: Should be travel category
+        assertNotNull(categoryResult);
+        assertEquals("travel", categoryResult.getCategoryPrimary(),
+            "Visa service should be categorized as travel");
+    }
+
+    @Test
+    void testGlobalEntry_Travel() {
+        // Given: Global Entry application transaction
+        TransactionTypeCategoryService.CategoryResult categoryResult = service.determineCategory(
+            null,
+            null,
+            creditCardAccount,
+            "GLOBAL ENTRY APPLICATION",
+            "GLOBAL ENTRY APPLICATION FEE",
+            BigDecimal.valueOf(-100.00),
+            null,
+            null,
+            "PDF"
+        );
+
+        // Then: Should be travel category
+        assertNotNull(categoryResult);
+        assertEquals("travel", categoryResult.getCategoryPrimary(),
+            "Global Entry should be categorized as travel");
+    }
+
+    @Test
+    void testTSAPrecheck_Travel() {
+        // Given: TSA PreCheck application transaction
+        TransactionTypeCategoryService.CategoryResult categoryResult = service.determineCategory(
+            null,
+            null,
+            creditCardAccount,
+            "TSA PRECHECK",
+            "TSA PRECHECK APPLICATION FEE",
+            BigDecimal.valueOf(-78.00),
+            null,
+            null,
+            "PDF"
+        );
+
+        // Then: Should be travel category
+        assertNotNull(categoryResult);
+        assertEquals("travel", categoryResult.getCategoryPrimary(),
+            "TSA PreCheck should be categorized as travel");
+    }
+
+    // ========== Money Transfer Services Tests ==========
+    
+    @Test
+    void testRemitly_Transfer_NotTravel() {
+        // Given: Remitly money transfer transaction that was incorrectly categorized as travel
+        // Transaction: "Remitly United S PAYMENTS   720176389717143 CCD ID: 2452441988"
+        // Amount: -20000 (negative = expense/transfer)
+        // Importer category: "transfer" (correct)
+        TransactionTypeCategoryService.CategoryResult categoryResult = service.determineCategory(
+            "transfer", // Importer correctly categorized as transfer
+            "transfer",
+            checkingAccount,
+            "REMITLY UNITED S PAYMENTS CCD ID:",
+            "Remitly United S PAYMENTS   720176389717143 CCD ID: 2452441988",
+            BigDecimal.valueOf(-20000),
+            null,
+            null,
+            "CSV"
+        );
+
+        TransactionTypeCategoryService.TypeResult typeResult = service.determineTransactionType(
+            checkingAccount,
+            categoryResult.getCategoryPrimary(),
+            categoryResult.getCategoryDetailed(),
+            BigDecimal.valueOf(-20000),
+            null,
+            "Remitly United S PAYMENTS   720176389717143 CCD ID: 2452441988",
+            null
+        );
+
+        // Then: Should be transfer category (not travel, despite "United" keyword)
+        assertNotNull(categoryResult);
+        assertEquals("transfer", categoryResult.getCategoryPrimary(),
+            "Remitly money transfer should be categorized as transfer, not travel (United is not United Airlines)");
+        assertNotNull(typeResult);
+        assertEquals(TransactionType.EXPENSE, typeResult.getTransactionType(),
+            "Remitly transfer should be EXPENSE type");
+    }
+
+    @Test
+    void testWesternUnion_Transfer() {
+        // Given: Western Union money transfer transaction
+        TransactionTypeCategoryService.CategoryResult categoryResult = service.determineCategory(
+            null,
+            null,
+            checkingAccount,
+            "WESTERN UNION",
+            "WESTERN UNION MONEY TRANSFER",
+            BigDecimal.valueOf(-500.00),
+            null,
+            null,
+            "PDF"
+        );
+
+        // Then: Should be transfer category
+        assertNotNull(categoryResult);
+        assertEquals("transfer", categoryResult.getCategoryPrimary(),
+            "Western Union should be categorized as transfer");
+    }
+
+    @Test
+    void testWise_Transfer() {
+        // Given: Wise (formerly TransferWise) money transfer transaction
+        TransactionTypeCategoryService.CategoryResult categoryResult = service.determineCategory(
+            null,
+            null,
+            creditCardAccount,
+            "WISE",
+            "WISE MONEY TRANSFER",
+            BigDecimal.valueOf(-1000.00),
+            null,
+            null,
+            "PDF"
+        );
+
+        // Then: Should be transfer category
+        assertNotNull(categoryResult);
+        assertEquals("transfer", categoryResult.getCategoryPrimary(),
+            "Wise should be categorized as transfer");
+    }
+
+    // ========== Financial/Account Terms Tests ==========
+    
+    @Test
+    void testPromotionalAPR_Other_NotTravel() {
+        // Given: Promotional APR ended transaction that was incorrectly categorized as travel
+        // Transaction: "OFFER 04 PROMOTIONAL APR ENDED 12/12/25"
+        // Importer category: "other" (correct)
+        TransactionTypeCategoryService.CategoryResult categoryResult = service.determineCategory(
+            "other", // Importer correctly categorized as other
+            "other",
+            creditCardAccount,
+            "OFFER 04 PROMOTIONAL APR ENDED 12/12/25",
+            "OFFER 04 PROMOTIONAL APR ENDED 12/12/25",
+            BigDecimal.valueOf(-0.00), // Could be any amount
+            null,
+            null,
+            "CSV"
+        );
+
+        // Then: Should be other category (not travel, despite potential keyword matches)
+        assertNotNull(categoryResult);
+        assertEquals("other", categoryResult.getCategoryPrimary(),
+            "Promotional APR/account terms should be categorized as other, not travel");
+    }
+
+    @Test
+    void testFinancialTerms_Other_NotTravel() {
+        // Given: Transaction with financial/accounting terms
+        TransactionTypeCategoryService.CategoryResult categoryResult = service.determineCategory(
+            "other",
+            "other",
+            creditCardAccount,
+            "CREDIT CARD STATEMENT",
+            "CREDIT CARD STATEMENT",
+            BigDecimal.valueOf(-0.00),
+            null,
+            null,
+            "PDF"
+        );
+
+        // Then: Should be other category (not travel)
+        assertNotNull(categoryResult);
+        assertEquals("other", categoryResult.getCategoryPrimary(),
+            "Financial/accounting terms should be categorized as other, not travel");
+    }
+
+    // ========== Healthcare False Positive Tests ==========
+    
+    @Test
+    void testOfferStandardPurch_Other_NotHealthcare() {
+        // Given: Offer transaction that was incorrectly categorized as healthcare
+        // Transaction: "OFFER 04 MOVED TO STANDARD PURCH"
+        // Importer category: "other" (correct)
+        TransactionTypeCategoryService.CategoryResult categoryResult = service.determineCategory(
+            "other", // Importer correctly categorized as other
+            "other",
+            creditCardAccount,
+            "OFFER 04 MOVED TO STANDARD PURCH",
+            "OFFER 04 MOVED TO STANDARD PURCH",
+            BigDecimal.valueOf(-0.00),
+            null,
+            null,
+            "CSV"
+        );
+
+        // Then: Should be other category (not healthcare)
+        assertNotNull(categoryResult);
+        assertEquals("other", categoryResult.getCategoryPrimary(),
+            "Offer/standard purch financial terms should be categorized as other, not healthcare");
+    }
+
+    @Test
+    void testTRGHoldings_OtherOrDining_NotHealthcare() {
+        // Given: TRG Holdings transaction that was incorrectly categorized as healthcare
+        // Transaction: "TRG HOLDINGS LIMITED LONDON"
+        // Importer category: "other" (correct)
+        TransactionTypeCategoryService.CategoryResult categoryResult = service.determineCategory(
+            "other", // Importer correctly categorized as other
+            "other",
+            creditCardAccount,
+            "TRG HOLDINGS LIMITED LONDON",
+            "TRG HOLDINGS LIMITED LONDON",
+            BigDecimal.valueOf(-13.46),
+            null,
+            null,
+            "CSV"
+        );
+
+        // Then: Should be other or dining category (not healthcare)
+        assertNotNull(categoryResult);
+        assertTrue("other".equals(categoryResult.getCategoryPrimary()) || 
+                  "dining".equals(categoryResult.getCategoryPrimary()),
+            "TRG Holdings should be categorized as other or dining, not healthcare");
+    }
+
+    @Test
+    void testDepositIDNumber_Deposit_NotHealthcare() {
+        // Given: Deposit transaction that was incorrectly categorized as healthcare
+        // Transaction: "DEPOSIT ID NUMBER 716081" with positive amount
+        // Amount: 1000 (positive = deposit/income)
+        // Importer category: "other" (should be deposit)
+        TransactionTypeCategoryService.CategoryResult categoryResult = service.determineCategory(
+            "other",
+            "other",
+            checkingAccount,
+            "DEPOSIT ID NUMBER",
+            "DEPOSIT  ID NUMBER 716081",
+            BigDecimal.valueOf(1000),
+            null,
+            null,
+            "CSV"
+        );
+
+        TransactionTypeCategoryService.TypeResult typeResult = service.determineTransactionType(
+            checkingAccount,
+            categoryResult.getCategoryPrimary(),
+            categoryResult.getCategoryDetailed(),
+            BigDecimal.valueOf(1000),
+            null,
+            "DEPOSIT  ID NUMBER 716081",
+            null
+        );
+
+        // Then: Should be deposit category and INCOME type (not healthcare/expense)
+        assertNotNull(categoryResult);
+        assertEquals("deposit", categoryResult.getCategoryPrimary(),
+            "Deposit transaction should be categorized as deposit, not healthcare");
+        assertNotNull(typeResult);
+        assertEquals(TransactionType.INCOME, typeResult.getTransactionType(),
+            "Deposit transaction should be INCOME type, not EXPENSE");
+    }
+
+    @Test
+    void testUSPS_Other_NotHealthcare() {
+        // Given: USPS transaction that was incorrectly categorized as healthcare
+        // Transaction: "USPS PO 5406030193 BELLEVUE WA"
+        // Importer category: "other" (correct)
+        TransactionTypeCategoryService.CategoryResult categoryResult = service.determineCategory(
+            "other", // Importer correctly categorized as other
+            "other",
+            creditCardAccount,
+            "USPS PO 5406030193 BELLEVUE WA",
+            "USPS PO 5406030193 BELLEVUE WA",
+            BigDecimal.valueOf(-10.00),
+            null,
+            null,
+            "CSV"
+        );
+
+        // Then: Should be other category (not healthcare)
+        assertNotNull(categoryResult);
+        assertEquals("other", categoryResult.getCategoryPrimary(),
+            "USPS/post office should be categorized as other (postage), not healthcare");
+    }
+
+    @Test
+    void testAOWSocialClub_EntertainmentOrOther_NotHealthcare() {
+        // Given: AOW social club transaction that was incorrectly categorized as healthcare
+        // Transaction: "AOW-AGRAWALSWA MIDDLETOWN DE"
+        // Importer category: "other" (correct)
+        TransactionTypeCategoryService.CategoryResult categoryResult = service.determineCategory(
+            "other", // Importer correctly categorized as other
+            "other",
+            creditCardAccount,
+            "AOW-AGRAWALSWA MIDDLETOWN DE",
+            "AOW-AGRAWALSWA MIDDLETOWN DE",
+            BigDecimal.valueOf(-135),
+            null,
+            null,
+            "CSV"
+        );
+
+        // Then: Should be entertainment or other category (not healthcare)
+        assertNotNull(categoryResult);
+        assertTrue("entertainment".equals(categoryResult.getCategoryPrimary()) || 
+                  "other".equals(categoryResult.getCategoryPrimary()),
+            "AOW social club should be categorized as entertainment or other, not healthcare");
+    }
+
+    // ========== Gas Station Categorization Tests ==========
+    
+    @Test
+    void testBucees_Transportation_NotShopping() {
+        // Given: Buc-ee's transaction that was incorrectly categorized as shopping/PAYMENT
+        // Transaction: "BUC-EE'S #50 CROSSVILLE TN"
+        // Importer category: "shopping" (incorrect - should be transportation)
+        // Amount: -18.43 (negative = expense)
+        TransactionTypeCategoryService.CategoryResult categoryResult = service.determineCategory(
+            "shopping", // Importer incorrectly categorized as shopping
+            "shopping",
+            creditCardAccount,
+            "BUC-EE'S #50 CROSSVILLE TN",
+            "BUC-EE'S #50 CROSSVILLE TN",
+            BigDecimal.valueOf(-18.43),
+            null,
+            null,
+            "CSV"
+        );
+
+        TransactionTypeCategoryService.TypeResult typeResult = service.determineTransactionType(
+            creditCardAccount,
+            categoryResult.getCategoryPrimary(),
+            categoryResult.getCategoryDetailed(),
+            BigDecimal.valueOf(-18.43),
+            null,
+            "BUC-EE'S #50 CROSSVILLE TN",
+            null
+        );
+
+        // Then: Should be transportation category and EXPENSE type (not shopping/PAYMENT)
+        assertNotNull(categoryResult);
+        assertEquals("transportation", categoryResult.getCategoryPrimary(),
+            "Buc-ee's (gas station) should be categorized as transportation, not shopping");
+        assertNotNull(typeResult);
+        assertEquals(TransactionType.EXPENSE, typeResult.getTransactionType(),
+            "Buc-ee's transaction should be EXPENSE type, not PAYMENT");
+    }
+
+    // ========== Barrons Education Tests ==========
+    
+    @Test
+    void testBarronsExpense_Education_NotSubscription() {
+        // Given: Barrons expense transaction that was incorrectly categorized as subscriptions
+        // Transaction: "D J*BARRONS 800-544-0422 NJ SUBSRIPTION"
+        // Amount: -4.41 (negative = expense)
+        // Importer category: "subscriptions" (should be overridden to education)
+        TransactionTypeCategoryService.CategoryResult categoryResult = service.determineCategory(
+            "subscriptions", // Importer incorrectly categorized as subscriptions
+            "subscriptions",
+            creditCardAccount,
+            "D J*BARRONS 800-544-0422 NJ SUBSRIPTION",
+            "D J*BARRONS 800-544-0422 NJ SUBSRIPTION",
+            BigDecimal.valueOf(-4.41),
+            null,
+            null,
+            "PDF"
+        );
+
+        TransactionTypeCategoryService.TypeResult typeResult = service.determineTransactionType(
+            creditCardAccount,
+            categoryResult.getCategoryPrimary(),
+            categoryResult.getCategoryDetailed(),
+            BigDecimal.valueOf(-4.41),
+            null,
+            "D J*BARRONS 800-544-0422 NJ SUBSRIPTION",
+            null
+        );
+
+        // Then: Should be education category and EXPENSE type (not subscriptions)
+        assertNotNull(categoryResult);
+        assertEquals("education", categoryResult.getCategoryPrimary(),
+            "Barrons (financial education publication) should be categorized as education, not subscriptions");
+        assertNotNull(typeResult);
+        assertEquals(TransactionType.EXPENSE, typeResult.getTransactionType(),
+            "Barrons expense transaction should be EXPENSE type");
+    }
+
+    @Test
+    void testBarronsCredit_Education_NotSubscription() {
+        // Given: Barrons credit transaction (Platinum Digital Entertainment Credit)
+        // Transaction: "Platinum Digital Entertainment Credit D J*BARRONS"
+        // Amount: 4.41 (positive = credit/refund)
+        // Importer category: "subscriptions" (should be overridden to education)
+        TransactionTypeCategoryService.CategoryResult categoryResult = service.determineCategory(
+            "subscriptions", // Importer incorrectly categorized as subscriptions
+            "subscriptions",
+            creditCardAccount,
+            "AGARWAL SUMIT KUMAR Platinum Digital Entertainment Credit D J*BARRONS",
+            "AGARWAL SUMIT KUMAR Platinum Digital Entertainment Credit D J*BARRONS",
+            BigDecimal.valueOf(4.41),
+            null,
+            null,
+            "PDF"
+        );
+
+        TransactionTypeCategoryService.TypeResult typeResult = service.determineTransactionType(
+            creditCardAccount,
+            categoryResult.getCategoryPrimary(),
+            categoryResult.getCategoryDetailed(),
+            BigDecimal.valueOf(4.41),
+            null,
+            "AGARWAL SUMIT KUMAR Platinum Digital Entertainment Credit D J*BARRONS",
+            null
+        );
+
+        // Then: Should be education category (matching the expense) and EXPENSE type (credit card credit)
+        assertNotNull(categoryResult);
+        assertEquals("education", categoryResult.getCategoryPrimary(),
+            "Barrons credit (refund) should be categorized as education to match the expense, not subscriptions");
+        assertNotNull(typeResult);
+        assertEquals(TransactionType.EXPENSE, typeResult.getTransactionType(),
+            "Barrons credit transaction should be EXPENSE type (credit card credit)");
+    }
+
+    // ========== Shopping Categorization Tests ==========
+    
+    @Test
+    void testCharlesTyrwhitt_Shopping_NotCredit() {
+        // Given: Charles Tyrwhitt Shirts transaction (expense) and credit
+        // Transaction 1: "CHARLES TYRWHITT SHIRTS LIMITED WILMINGTON" (expense)
+        TransactionTypeCategoryService.CategoryResult categoryResult1 = service.determineCategory(
+            "other",
+            "other",
+            creditCardAccount,
+            "CHARLES TYRWHITT SHIRTS LIMITED WILMINGTON",
+            "CHARLES TYRWHITT SHIRTS LIMITED WILMINGTON",
+            BigDecimal.valueOf(-50.00),
+            null,
+            null,
+            "PDF"
+        );
+
+        TransactionTypeCategoryService.TypeResult typeResult1 = service.determineTransactionType(
+            creditCardAccount,
+            categoryResult1.getCategoryPrimary(),
+            categoryResult1.getCategoryDetailed(),
+            BigDecimal.valueOf(-50.00),
+            null,
+            "CHARLES TYRWHITT SHIRTS LIMITED WILMINGTON",
+            null
+        );
+
+        // Transaction 2: "CHARLES TYRWHITT SHIRTS LIMITED WILMINGTON Amex Offer Credit" (credit)
+        TransactionTypeCategoryService.CategoryResult categoryResult2 = service.determineCategory(
+            "other",
+            "other",
+            creditCardAccount,
+            "CHARLES TYRWHITT SHIRTS LIMITED WILMINGTON Amex Offer Credit",
+            "CHARLES TYRWHITT SHIRTS LIMITED WILMINGTON Amex Offer Credit",
+            BigDecimal.valueOf(10.00),
+            null,
+            null,
+            "PDF"
+        );
+
+        TransactionTypeCategoryService.TypeResult typeResult2 = service.determineTransactionType(
+            creditCardAccount,
+            categoryResult2.getCategoryPrimary(),
+            categoryResult2.getCategoryDetailed(),
+            BigDecimal.valueOf(10.00),
+            null,
+            "CHARLES TYRWHITT SHIRTS LIMITED WILMINGTON Amex Offer Credit",
+            null
+        );
+
+        // Then: Both should be shopping category and EXPENSE type (not credit)
+        assertNotNull(categoryResult1);
+        assertEquals("shopping", categoryResult1.getCategoryPrimary(),
+            "Charles Tyrwhitt (shirts) should be categorized as shopping");
+        assertNotNull(typeResult1);
+        assertEquals(TransactionType.EXPENSE, typeResult1.getTransactionType(),
+            "Charles Tyrwhitt expense should be EXPENSE type");
+        
+        assertNotNull(categoryResult2);
+        assertEquals("shopping", categoryResult2.getCategoryPrimary(),
+            "Charles Tyrwhitt credit should be categorized as shopping to match expense");
+        assertNotNull(typeResult2);
+        assertEquals(TransactionType.EXPENSE, typeResult2.getTransactionType(),
+            "Charles Tyrwhitt credit should be EXPENSE type (credit card credit)");
+    }
+
+    @Test
+    void testEsteeLauder_Shopping_NotCredit() {
+        // Given: Estee Lauder transaction (credit/refund from Amex Offer)
+        // Transaction: "ESTEE LAUDER ONLINE MELVILLE Amex Offer Credit"
+        // Amount: 15 (positive = credit)
+        TransactionTypeCategoryService.CategoryResult categoryResult = service.determineCategory(
+            "other",
+            "other",
+            creditCardAccount,
+            "GARIMA DIPTI AGARWAL ESTEE LAUDER ONLINE MELVILLE Amex Offer Credit",
+            "GARIMA DIPTI AGARWAL ESTEE LAUDER ONLINE MELVILLE Amex Offer Credit",
+            BigDecimal.valueOf(15),
+            null,
+            null,
+            "PDF"
+        );
+
+        TransactionTypeCategoryService.TypeResult typeResult = service.determineTransactionType(
+            creditCardAccount,
+            categoryResult.getCategoryPrimary(),
+            categoryResult.getCategoryDetailed(),
+            BigDecimal.valueOf(15),
+            null,
+            "GARIMA DIPTI AGARWAL ESTEE LAUDER ONLINE MELVILLE Amex Offer Credit",
+            null
+        );
+
+        // Then: Should be shopping category and EXPENSE type (not credit)
+        assertNotNull(categoryResult);
+        assertEquals("shopping", categoryResult.getCategoryPrimary(),
+            "Estee Lauder (cosmetics/skincare) should be categorized as shopping");
+        assertNotNull(typeResult);
+        assertEquals(TransactionType.EXPENSE, typeResult.getTransactionType(),
+            "Estee Lauder credit should be EXPENSE type (credit card credit), not categorized as 'credit'");
+    }
+
+    @Test
+    void testAXPCenturionLounge_Travel_NotUtilities() {
+        // Given: AXP Centurion Lounge transaction
+        // Transaction: "AXP CENTURION LOUNGE 3067 SEATTLE WA 3228 98158 OTHER"
+        // Importer category: "utilities" (incorrect - should be travel)
+        TransactionTypeCategoryService.CategoryResult categoryResult = service.determineCategory(
+            "utilities", // Importer incorrectly categorized as utilities
+            "utilities",
+            creditCardAccount,
+            "AXP CENTURION LOUNGE 3067 SEATTLE WA 3228 98158 OTHER",
+            "AXP CENTURION LOUNGE 3067 SEATTLE WA 3228 98158 OTHER",
+            BigDecimal.valueOf(-30),
+            null,
+            null,
+            "PDF"
+        );
+
+        TransactionTypeCategoryService.TypeResult typeResult = service.determineTransactionType(
+            creditCardAccount,
+            categoryResult.getCategoryPrimary(),
+            categoryResult.getCategoryDetailed(),
+            BigDecimal.valueOf(-30),
+            null,
+            "AXP CENTURION LOUNGE 3067 SEATTLE WA 3228 98158 OTHER",
+            null
+        );
+
+        // Then: Should be travel category and EXPENSE type (not utilities)
+        assertNotNull(categoryResult);
+        assertEquals("travel", categoryResult.getCategoryPrimary(),
+            "AXP Centurion Lounge should be categorized as travel, not utilities");
+        assertNotNull(typeResult);
+        assertEquals(TransactionType.EXPENSE, typeResult.getTransactionType(),
+            "Centurion Lounge transaction should be EXPENSE type");
+    }
+
+    // ========== Education Overmatching Fix Tests ==========
+    
+    @Test
+    void testOnlineTransferTo_Transfer_NotEducation() {
+        // Given: Online transfer to checking account (expense)
+        // Transaction: "Online Transfer to CHK ...9994 transaction#: 27390930759 12/19"
+        TransactionTypeCategoryService.CategoryResult categoryResult = service.determineCategory(
+            "transfer",
+            "transfer",
+            checkingAccount,
+            "ONLINE TRANSFER TO CHK ...9994 TRANSACTION#: 12/19",
+            "Online Transfer to CHK ...9994 transaction#: 27390930759 12/19",
+            BigDecimal.valueOf(-600),
+            null,
+            null,
+            "PDF"
+        );
+
+        TransactionTypeCategoryService.TypeResult typeResult = service.determineTransactionType(
+            checkingAccount,
+            categoryResult.getCategoryPrimary(),
+            categoryResult.getCategoryDetailed(),
+            BigDecimal.valueOf(-600),
+            null,
+            "Online Transfer to CHK ...9994 transaction#: 27390930759 12/19",
+            null
+        );
+
+        // Then: Should be transfer category and EXPENSE type (not education)
+        assertNotNull(categoryResult);
+        assertEquals("transfer", categoryResult.getCategoryPrimary(),
+            "Online transfer to checking should be 'transfer', not 'education'");
+        assertNotNull(typeResult);
+        assertEquals(TransactionType.EXPENSE, typeResult.getTransactionType());
+    }
+
+    @Test
+    void testOnlineTransferFrom_Deposit_NotEducation() {
+        // Given: Online transfer from investment account (income/deposit)
+        // Transaction: "Online Transfer 27265796721 from Morganstanley #########7477 transaction #: 27265796721 12/10"
+        TransactionTypeCategoryService.CategoryResult categoryResult = service.determineCategory(
+            "deposit",
+            "deposit",
+            checkingAccount,
+            "ONLINE TRANSFER FROM MORGANSTANLEY ######## TRANSACTION #: 12/10",
+            "Online Transfer 27265796721 from Morganstanley #########7477 transaction #: 27265796721 12/10",
+            BigDecimal.valueOf(10000),
+            null,
+            null,
+            "PDF"
+        );
+
+        TransactionTypeCategoryService.TypeResult typeResult = service.determineTransactionType(
+            checkingAccount,
+            categoryResult.getCategoryPrimary(),
+            categoryResult.getCategoryDetailed(),
+            BigDecimal.valueOf(10000),
+            null,
+            "Online Transfer 27265796721 from Morganstanley #########7477 transaction #: 27265796721 12/10",
+            null
+        );
+
+        // Then: Should be deposit category and INCOME type (not education)
+        assertNotNull(categoryResult);
+        assertEquals("deposit", categoryResult.getCategoryPrimary(),
+            "Online transfer from investment should be 'deposit', not 'education'");
+        assertNotNull(typeResult);
+        assertEquals(TransactionType.INCOME, typeResult.getTransactionType());
+    }
+
+    @Test
+    void testVIASAT_Travel_NotEducation() {
+        // Given: VIASAT transaction (satellite internet for travel)
+        // Transaction: "AplPay VIASAT, INC. CARLSBAD CA COMPUTER NETWORK/INFO 18.99 Pounds Sterling"
+        TransactionTypeCategoryService.CategoryResult categoryResult = service.determineCategory(
+            "education",
+            "education",
+            creditCardAccount,
+            "AplPay VIASAT, INC. CARLSBAD CA COMPUTER NETWORK/INFO 18.99 Pounds Sterling",
+            "AplPay VIASAT, INC. CARLSBAD CA COMPUTER NETWORK/INFO 18.99 Pounds Sterling",
+            BigDecimal.valueOf(-25.27),
+            null,
+            null,
+            "PDF"
+        );
+
+        // Then: Should be travel category (not education)
+        assertNotNull(categoryResult);
+        assertEquals("travel", categoryResult.getCategoryPrimary(),
+            "VIASAT (satellite internet for travel) should be 'travel', not 'education'");
+    }
+
+    @Test
+    void testAirlineFeeReimbursement_Travel_NotEducation() {
+        // Given: Airline fee reimbursement (credit)
+        // Transaction: "AMEX Airline Fee Reimbursement TRANSACTION PROCESSED BY AMERICAN EXPRESS"
+        TransactionTypeCategoryService.CategoryResult categoryResult = service.determineCategory(
+            "other",
+            "other",
+            creditCardAccount,
+            "AGARWAL SUMIT KUMAR AMEX Airline Fee Reimbursement TRANSACTION PROCESSED BY AMERICAN EXPRESS",
+            "AGARWAL SUMIT KUMAR AMEX Airline Fee Reimbursement TRANSACTION PROCESSED BY AMERICAN EXPRESS",
+            BigDecimal.valueOf(80),
+            null,
+            null,
+            "PDF"
+        );
+
+        // Then: Should be travel category (not education)
+        assertNotNull(categoryResult);
+        assertEquals("travel", categoryResult.getCategoryPrimary(),
+            "Airline fee reimbursement should be 'travel', not 'education'");
+    }
+
+    @Test
+    void testPetSmart_Pet_NotEducation() {
+        // Given: PetSmart transaction
+        // Transaction: "PETSMART # 0374 ISSAQUAH WA"
+        TransactionTypeCategoryService.CategoryResult categoryResult = service.determineCategory(
+            "pet",
+            "pet",
+            creditCardAccount,
+            "PETSMART # 0374 ISSAQUAH WA",
+            "PETSMART # 0374 ISSAQUAH WA",
+            BigDecimal.valueOf(-113),
+            null,
+            null,
+            "PDF"
+        );
+
+        // Then: Should be pet category (not education)
+        assertNotNull(categoryResult);
+        assertEquals("pet", categoryResult.getCategoryPrimary(),
+            "PetSmart should be 'pet', not 'education'");
+    }
+
+    @Test
+    void testPetsBestInsurance_Pet_NotEducation() {
+        // Given: Pets Best Insurance transaction
+        // Transaction: "PETS BEST INSURANCE SE ALTAMONTE SPR FL"
+        TransactionTypeCategoryService.CategoryResult categoryResult = service.determineCategory(
+            "pet",
+            "pet",
+            creditCardAccount,
+            "PETS BEST INSURANCE SE ALTAMONTE SPR FL",
+            "PETS BEST INSURANCE SE ALTAMONTE SPR FL",
+            BigDecimal.valueOf(-523.73),
+            null,
+            null,
+            "PDF"
+        );
+
+        // Then: Should be pet category (not education)
+        assertNotNull(categoryResult);
+        assertEquals("pet", categoryResult.getCategoryPrimary(),
+            "Pets Best Insurance should be 'pet', not 'education'");
+    }
+
+    @Test
+    void testForeignTransactionFee_Fees_NotEducation() {
+        // Given: Foreign transaction fee
+        // Transaction: "FOREIGN TRANSACTION FEE"
+        TransactionTypeCategoryService.CategoryResult categoryResult = service.determineCategory(
+            "education",
+            "education",
+            creditCardAccount,
+            "FOREIGN TRANSACTION FEE",
+            "FOREIGN TRANSACTION FEE",
+            BigDecimal.valueOf(-0.4),
+            null,
+            null,
+            "PDF"
+        );
+
+        TransactionTypeCategoryService.TypeResult typeResult = service.determineTransactionType(
+            creditCardAccount,
+            categoryResult.getCategoryPrimary(),
+            categoryResult.getCategoryDetailed(),
+            BigDecimal.valueOf(-0.4),
+            null,
+            "FOREIGN TRANSACTION FEE",
+            null
+        );
+
+        // Then: Should be fees category and EXPENSE type (not education/PAYMENT)
+        assertNotNull(categoryResult);
+        assertEquals("fees", categoryResult.getCategoryPrimary(),
+            "Foreign transaction fee should be 'fees', not 'education'");
+        assertNotNull(typeResult);
+        assertEquals(TransactionType.EXPENSE, typeResult.getTransactionType(),
+            "Foreign transaction fee should be EXPENSE type, not PAYMENT");
+    }
+
+    @Test
+    void testActMinimountain_Health_NotEducation() {
+        // Given: Ski rental (act*minimountain)
+        // Transaction: "act*minimountain BELLEVUE WA"
+        TransactionTypeCategoryService.CategoryResult categoryResult = service.determineCategory(
+            "shopping",
+            "shopping",
+            creditCardAccount,
+            "act*minimountain BELLEVUE WA",
+            "act*minimountain BELLEVUE WA",
+            BigDecimal.valueOf(-138.04),
+            null,
+            null,
+            "PDF"
+        );
+
+        TransactionTypeCategoryService.TypeResult typeResult = service.determineTransactionType(
+            creditCardAccount,
+            categoryResult.getCategoryPrimary(),
+            categoryResult.getCategoryDetailed(),
+            BigDecimal.valueOf(-138.04),
+            null,
+            "act*minimountain BELLEVUE WA",
+            null
+        );
+
+        // Then: Should be health category and EXPENSE type (not education/PAYMENT)
+        assertNotNull(categoryResult);
+        assertEquals("health", categoryResult.getCategoryPrimary(),
+            "act*minimountain (ski rental) should be 'health', not 'education'");
+        assertNotNull(typeResult);
+        assertEquals(TransactionType.EXPENSE, typeResult.getTransactionType(),
+            "Ski rental should be EXPENSE type, not PAYMENT");
+    }
+
+    @Test
+    void testRBL_Dining_NotEducation() {
+        // Given: RBL* restaurant POS transaction
+        // Transaction: "RBL*BOTTLE LAB TECHNOLOGIES BANGALORE BANGALORE KA"
+        TransactionTypeCategoryService.CategoryResult categoryResult = service.determineCategory(
+            "dining",
+            "dining",
+            creditCardAccount,
+            "RBL*BOTTLE LAB TECHNOLOGIES BANGALORE BANGALORE KA edc.bankinvoices@[REDACTED] 104.00 Indian Rupees",
+            "RBL*BOTTLE LAB TECHNOLOGIES BANGALORE BANGALORE KA edc.bankinvoices@[REDACTED] 104.00 Indian Rupees",
+            BigDecimal.valueOf(-1.21),
+            null,
+            null,
+            "PDF"
+        );
+
+        // Then: Should be dining category (not education)
+        assertNotNull(categoryResult);
+        assertEquals("dining", categoryResult.getCategoryPrimary(),
+            "RBL* (restaurant POS) should be 'dining', not 'education'");
+    }
+
+    @Test
+    void testEractoll_Transportation_NotEducation() {
+        // Given: Eractoll (toll payment)
+        // Transaction: "ERACTOLL 7PK03R 877-860-1258 WA"
+        TransactionTypeCategoryService.CategoryResult categoryResult = service.determineCategory(
+            "education",
+            "education",
+            creditCardAccount,
+            "ERACTOLL 7PK03R 877-860-1258 WA",
+            "ERACTOLL 7PK03R 877-860-1258 WA",
+            BigDecimal.valueOf(-7.95),
+            null,
+            null,
+            "PDF"
+        );
+
+        // Then: Should be transportation category (not education)
+        assertNotNull(categoryResult);
+        assertEquals("transportation", categoryResult.getCategoryPrimary(),
+            "Eractoll (toll) should be 'transportation', not 'education'");
+    }
+
+    @Test
+    void testPayPalTransfer_Transfer_NotEducation() {
+        // Given: PayPal transfer (expense from checking)
+        // Transaction: "PAYPAL INST XFER GOYALANKITA0311 WEB ID: PAYPALSI77"
+        TransactionTypeCategoryService.CategoryResult categoryResult = service.determineCategory(
+            "payment",
+            "payment",
+            checkingAccount,
+            "PAYPAL INST XFER GOYALANKITA0311 WEB ID: PAYPALSI77",
+            "PAYPAL INST XFER GOYALANKITA0311 WEB ID: PAYPALSI77",
+            BigDecimal.valueOf(-100),
+            null,
+            null,
+            "PDF"
+        );
+
+        TransactionTypeCategoryService.TypeResult typeResult = service.determineTransactionType(
+            checkingAccount,
+            categoryResult.getCategoryPrimary(),
+            categoryResult.getCategoryDetailed(),
+            BigDecimal.valueOf(-100),
+            null,
+            "PAYPAL INST XFER GOYALANKITA0311 WEB ID: PAYPALSI77",
+            null
+        );
+
+        // Then: Should be transfer category and EXPENSE type (not education)
+        assertNotNull(categoryResult);
+        assertEquals("transfer", categoryResult.getCategoryPrimary(),
+            "PayPal transfer should be 'transfer', not 'education'");
+        assertNotNull(typeResult);
+        assertEquals(TransactionType.EXPENSE, typeResult.getTransactionType());
+    }
+
+    // ========== Override Validation Tests ==========
+    // These tests verify we don't incorrectly override correct importer categories
+    
+    @Test
+    void testDontOverrideCorrectPlaidCategory() {
+        // Given: Correct Plaid category that should NOT be overridden
+        // Transaction: "STARBUCKS #123 SEATTLE WA"
+        // Importer (Plaid): "dining" (correct)
+        // Merchant detection might also find "dining" or something else, but should trust Plaid
+        TransactionTypeCategoryService.CategoryResult categoryResult = service.determineCategory(
+            "dining", // Plaid correctly categorizes as dining
+            "restaurants", // Plaid detailed category
+            creditCardAccount,
+            "STARBUCKS #123 SEATTLE WA",
+            "STARBUCKS #123 SEATTLE WA",
+            BigDecimal.valueOf(-5.50),
+            null,
+            null,
+            "PLAID" // High-confidence Plaid source
+        );
+
+        // Then: Should trust Plaid category "dining" (not override unless merchant confirms)
+        assertNotNull(categoryResult);
+        // Should be "dining" - either from Plaid or merchant detection (both should agree)
+        assertTrue("dining".equals(categoryResult.getCategoryPrimary()),
+            "Should trust or confirm Plaid 'dining' category for Starbucks, not override incorrectly");
+    }
+    
+    @Test
+    void testOverrideIncorrectGenericCategory() {
+        // Given: Incorrect generic category that SHOULD be overridden
+        // Transaction: "TST* DEEP DIVE SEATTLE WA" (restaurant)
+        // Importer: "utilities" (incorrect)
+        // Merchant detection: "dining" (correct)
+        TransactionTypeCategoryService.CategoryResult categoryResult = service.determineCategory(
+            "utilities", // Importer incorrectly categorizes as utilities
+            "utilities",
+            creditCardAccount,
+            "TST* DEEP DIVE SEATTLE WA",
+            "TST* DEEP DIVE SEATTLE WA",
+            BigDecimal.valueOf(-45.00),
+            null,
+            null,
+            "PDF" // Non-Plaid source, less reliable
+        );
+
+        // Then: Should override "utilities" with "dining" (merchant detection is clearly better)
+        assertNotNull(categoryResult);
+        assertEquals("dining", categoryResult.getCategoryPrimary(),
+            "Should override incorrect 'utilities' with correct 'dining' for restaurant transaction");
+    }
+    
+    @Test
+    void testDontOverrideCorrectSpecificCategory() {
+        // Given: Correct specific category that should NOT be overridden incorrectly
+        // Transaction: "WHOLE FOODS MARKET #456 SEATTLE WA"
+        // Importer: "groceries" (correct)
+        // Merchant detection might find "groceries" or "shopping", but should trust "groceries"
+        TransactionTypeCategoryService.CategoryResult categoryResult = service.determineCategory(
+            "groceries", // Correct category
+            "groceries",
+            creditCardAccount,
+            "WHOLE FOODS MARKET #456 SEATTLE WA",
+            "WHOLE FOODS MARKET #456 SEATTLE WA",
+            BigDecimal.valueOf(-85.50),
+            null,
+            null,
+            "PLAID" // High-confidence Plaid source
+        );
+
+        // Then: Should trust or confirm "groceries" (not override with "shopping" or other)
+        assertNotNull(categoryResult);
+        assertEquals("groceries", categoryResult.getCategoryPrimary(),
+            "Should trust correct 'groceries' category for Whole Foods, not override with wrong category");
+    }
+    
+    @Test
+    void testOverrideGenericOtherCategory() {
+        // Given: Generic "other" category that SHOULD be overridden
+        // Transaction: "ESTEE LAUDER ONLINE MELVILLE" (shopping)
+        // Importer: "other" (generic, unhelpful)
+        // Merchant detection: "shopping" (correct)
+        TransactionTypeCategoryService.CategoryResult categoryResult = service.determineCategory(
+            "other", // Generic category - should be overridden
+            "other",
+            creditCardAccount,
+            "GARIMA DIPTI AGARWAL ESTEE LAUDER ONLINE MELVILLE Amex Offer Credit",
+            "GARIMA DIPTI AGARWAL ESTEE LAUDER ONLINE MELVILLE Amex Offer Credit",
+            BigDecimal.valueOf(15),
+            null,
+            null,
+            "PDF"
+        );
+
+        // Then: Should override "other" with "shopping" (merchant detection is better)
+        assertNotNull(categoryResult);
+        assertEquals("shopping", categoryResult.getCategoryPrimary(),
+            "Should override generic 'other' with specific 'shopping' category for Estee Lauder");
+    }
+    
+    @Test
+    void testOverrideEducationForTransfer() {
+        // Given: Incorrect "education" category for transfer transaction
+        // Transaction: "ONLINE TRANSFER TO CHK ...9994 TRANSACTION#: 12/19"
+        // Importer: "education" (incorrect - wrong category)
+        // Merchant detection: "transfer" (correct)
+        TransactionTypeCategoryService.CategoryResult categoryResult = service.determineCategory(
+            "education", // Incorrect category
+            "education",
+            checkingAccount,
+            "ONLINE TRANSFER TO CHK ...9994 TRANSACTION#: 12/19",
+            "Online Transfer to CHK ...9994 transaction#: 27390930759 12/19",
+            BigDecimal.valueOf(-600),
+            null,
+            null,
+            "PDF" // Non-Plaid source
+        );
+
+        // Then: Should override "education" with "transfer" (merchant detection is clearly correct)
+        assertNotNull(categoryResult);
+        assertEquals("transfer", categoryResult.getCategoryPrimary(),
+            "Should override incorrect 'education' with correct 'transfer' for transfer transaction");
     }
 }
 

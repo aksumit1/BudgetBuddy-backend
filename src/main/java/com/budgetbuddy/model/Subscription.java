@@ -22,15 +22,22 @@ public class Subscription implements java.io.Serializable {
     private LocalDate nextPaymentDate; // Next expected payment date
     private LocalDate lastPaymentDate; // Last payment date
     private String category; // Transaction category (e.g., "subscriptions")
+    private String subscriptionType; // Type of subscription: "streaming", "software", "membership", "cloud_storage", "other"
+    private String subscriptionCategory; // High-level category: "subscription" (merchant-based like Netflix) or "recurring" (bills like mortgage, utilities)
+    private String originalCategoryPrimary; // Original transaction categoryPrimary (for context)
+    private String originalCategoryDetailed; // Original transaction categoryDetailed (for context)
     private Boolean active; // Whether subscription is still active
     private String plaidTransactionId; // Reference to a Plaid transaction
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
     public enum SubscriptionFrequency {
+        DAILY,        // Every day
+        WEEKLY,       // Every week
+        BI_WEEKLY,    // Every 2 weeks
         MONTHLY,      // Every month
         QUARTERLY,    // Every 3 months
-        SEMI_ANNUAL, // Every 6 months
+        SEMI_ANNUAL,  // Every 6 months
         ANNUAL        // Every year
     }
 
@@ -60,6 +67,9 @@ public class Subscription implements java.io.Serializable {
         }
         
         return switch (frequency) {
+            case DAILY -> startDate.plusDays(1);
+            case WEEKLY -> startDate.plusWeeks(1);
+            case BI_WEEKLY -> startDate.plusWeeks(2);
             case MONTHLY -> startDate.plusMonths(1);
             case QUARTERLY -> startDate.plusMonths(3);
             case SEMI_ANNUAL -> startDate.plusMonths(6);
@@ -194,6 +204,38 @@ public class Subscription implements java.io.Serializable {
 
     public void setUpdatedAt(final LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public String getSubscriptionType() {
+        return subscriptionType;
+    }
+
+    public void setSubscriptionType(final String subscriptionType) {
+        this.subscriptionType = subscriptionType;
+    }
+
+    public String getSubscriptionCategory() {
+        return subscriptionCategory;
+    }
+
+    public void setSubscriptionCategory(final String subscriptionCategory) {
+        this.subscriptionCategory = subscriptionCategory;
+    }
+
+    public String getOriginalCategoryPrimary() {
+        return originalCategoryPrimary;
+    }
+
+    public void setOriginalCategoryPrimary(final String originalCategoryPrimary) {
+        this.originalCategoryPrimary = originalCategoryPrimary;
+    }
+
+    public String getOriginalCategoryDetailed() {
+        return originalCategoryDetailed;
+    }
+
+    public void setOriginalCategoryDetailed(final String originalCategoryDetailed) {
+        this.originalCategoryDetailed = originalCategoryDetailed;
     }
 
     /**

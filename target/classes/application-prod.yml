@@ -1,0 +1,131 @@
+spring:
+  # Multipart File Upload Configuration
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 10MB  # Maximum size per file (10MB for large CSV/Excel/PDF imports)
+      max-request-size: 10MB  # Maximum size for entire multipart request (10MB)
+      file-size-threshold: 2KB  # Files larger than this will be written to disk
+  
+  # Production logging configuration
+  logging:
+    level:
+      root: WARN
+      com.budgetbuddy: INFO
+      org.springframework.security: WARN
+      software.amazon.awssdk: WARN
+      org.springframework.web: WARN
+      org.hibernate: WARN
+
+# Server Configuration
+server:
+  error:
+    include-message: always
+    include-binding-errors: always
+    include-stacktrace: never  # Never expose stack traces in production
+    include-exception: false
+
+# Application Configuration
+app:
+  # Security - Production settings
+  security:
+    cors:
+      allowed-origins: ${CORS_ALLOWED_ORIGINS:} # Must be set via environment variable
+    tls:
+      min-version: TLSv1.2
+      enabled-protocols: TLSv1.2,TLSv1.3
+    certificate-pinning:
+      enabled: true
+      certificates: ${CERTIFICATE_PINNED_HASHES:} # Must be set via environment variable
+
+  # JWT Configuration - Must use Secrets Manager
+  jwt:
+    secret: ${JWT_SECRET:} # Must be set from Secrets Manager
+    secret-name: budgetbuddy/${ENVIRONMENT:production}/jwt-secret
+
+  # Plaid Configuration - Must use Secrets Manager
+  plaid:
+    client-id: ${PLAID_CLIENT_ID:} # Must be set from Secrets Manager
+    secret: ${PLAID_SECRET:} # Must be set from Secrets Manager
+    environment: ${PLAID_ENVIRONMENT:production}
+    webhook-verification-key: ${PLAID_WEBHOOK_VERIFICATION_KEY:} # Must be set from Secrets Manager
+
+# Actuator Configuration - Minimal exposure in production
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info  # Only health and info endpoints
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: never  # Never show details in production
+      probes:
+        enabled: true
+  metrics:
+    export:
+      cloudwatch:
+        enabled: true
+        namespace: ${spring.application.name}
+
+# Logging Configuration - Production settings
+logging:
+  level:
+    root: WARN
+    com.budgetbuddy: INFO
+    org.springframework.security: WARN
+    software.amazon.awssdk: WARN
+    org.springframework.web: WARN
+    org.hibernate: WARN
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] [%X{correlationId}] %-5level %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] [%X{correlationId}] %-5level %logger{36} - %msg%n"
+
+# Metrics Configuration - Production settings
+metrics:
+  enabled: true
+  filter-unnecessary: true
+  export:
+    cloudwatch:
+      enabled: true
+      namespace: ${spring.application.name}
+      batch-size: 20  # Batch metrics to reduce costs
+
+# OpenAPI/Swagger Configuration - Disabled in production
+springdoc:
+  api-docs:
+    path: /api-docs
+    enabled: false  # Disable Swagger in production
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: false  # Disable Swagger UI in production
+
+# Feature Flags - Production settings
+app:
+  features:
+    enable-plaid: ${FEATURE_PLAID_ENABLED:true}
+    enable-stripe: ${FEATURE_STRIPE_ENABLED:true}
+    enable-oauth2: ${FEATURE_OAUTH2_ENABLED:false}
+    enable-advanced-analytics: ${FEATURE_ADVANCED_ANALYTICS_ENABLED:false}
+    enable-notifications: ${FEATURE_NOTIFICATIONS_ENABLED:true}
+
+# Performance Configuration - Production optimized
+performance:
+  async:
+    core-pool-size: ${ASYNC_CORE_POOL_SIZE:20}
+    max-pool-size: ${ASYNC_MAX_POOL_SIZE:100}
+    queue-capacity: ${ASYNC_QUEUE_CAPACITY:500}
+  cache:
+    default-ttl: ${CACHE_DEFAULT_TTL:3600}
+    max-size: ${CACHE_MAX_SIZE:50000}
+
+# Resilience Configuration - Production settings
+resilience:
+  circuit-breaker:
+    failure-rate-threshold: ${CIRCUIT_BREAKER_FAILURE_RATE:50}
+    wait-duration: ${CIRCUIT_BREAKER_WAIT_DURATION:60}
+    sliding-window-size: ${CIRCUIT_BREAKER_WINDOW_SIZE:10}
+  retry:
+    max-attempts: ${RETRY_MAX_ATTEMPTS:3}
+    wait-duration: ${RETRY_WAIT_DURATION:1000}
+

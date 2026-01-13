@@ -45,45 +45,4 @@ public class CacheConfig {
         return cacheManager;
     }
 
-    /**
-     * User cache manager - longer TTL for user data
-     */
-    @Bean
-    public CacheManager userCacheManager() {
-        CaffeineCacheManager cacheManager = new CaffeineCacheManager("users", "userProfiles");
-        cacheManager.setCaffeine(Caffeine.newBuilder()
-                .maximumSize(5_000)
-                .expireAfterWrite(1, TimeUnit.HOURS)
-                .expireAfterAccess(30, TimeUnit.MINUTES)
-                .recordStats());
-        return cacheManager;
-    }
-
-    /**
-     * Transaction cache manager - shorter TTL for frequently changing data
-     */
-    @Bean
-    public CacheManager transactionCacheManager() {
-        CaffeineCacheManager cacheManager = new CaffeineCacheManager("transactions", "transactionSummaries");
-        cacheManager.setCaffeine(Caffeine.newBuilder()
-                .maximumSize(50_000)
-                .expireAfterWrite(5, TimeUnit.MINUTES)
-                .expireAfterAccess(2, TimeUnit.MINUTES)
-                .recordStats());
-        return cacheManager;
-    }
-
-    /**
-     * Account cache manager - medium TTL for account data
-     */
-    @Bean
-    public CacheManager accountCacheManager() {
-        CaffeineCacheManager cacheManager = new CaffeineCacheManager("accounts", "accountBalances");
-        cacheManager.setCaffeine(Caffeine.newBuilder()
-                .maximumSize(10_000)
-                .expireAfterWrite(15, TimeUnit.MINUTES)
-                .expireAfterAccess(10, TimeUnit.MINUTES)
-                .recordStats());
-        return cacheManager;
-    }
 }

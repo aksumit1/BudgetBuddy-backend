@@ -38,6 +38,7 @@ public class TransactionService {
     private final TransactionTypeDeterminer transactionTypeDeterminer;
     private final TransactionTypeCategoryService transactionTypeCategoryService;
     private final AuditService auditService; // P2: Audit logging
+    private final CategoryLearningService learningService; // User corrections and learning
     private final org.springframework.context.ApplicationContext applicationContext; // For lazy access to GoalProgressService
 
     public TransactionService(final TransactionRepository transactionRepository, 
@@ -45,12 +46,14 @@ public class TransactionService {
                              final TransactionTypeDeterminer transactionTypeDeterminer,
                              final TransactionTypeCategoryService transactionTypeCategoryService,
                              final AuditService auditService,
+                             final CategoryLearningService learningService,
                              final org.springframework.context.ApplicationContext applicationContext) {
         this.transactionRepository = transactionRepository;
         this.accountRepository = accountRepository;
         this.transactionTypeDeterminer = transactionTypeDeterminer;
         this.transactionTypeCategoryService = transactionTypeCategoryService;
         this.auditService = auditService;
+        this.learningService = learningService;
         this.applicationContext = applicationContext;
     }
 
@@ -201,7 +204,7 @@ public class TransactionService {
         if (isLoanAccount) {
             // For loan accounts, return negative amounts (payments made TO the loan)
             return accountTransactions.stream()
-                    .filter(t -> t.getAmount() != null && t.getAmount().compareTo(BigDecimal.ZERO) < 0)
+                    .filter(t -> t.getAmount() != null && t.getAmount().compareTo(BigDecimal.ZERO) > 0)
                     .collect(Collectors.toList());
         } else if (isCreditCardAccount) {
             // For credit card accounts, return positive amounts (payments made TO the credit card)
@@ -471,6 +474,14 @@ public class TransactionService {
                     transaction.getAmount()
             );
             transaction.setTransactionType(calculatedType.name());
+            StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
+            String callerInfo = stackTrace.length > 2 ? stackTrace[2].getFileName() + ":" + stackTrace[2].getLineNumber() : "unknown";
+            logger.info("🔍 [TransactionType] Set transaction type | Line: {} | TransactionId: {} | Amount: {} | Description: '{}' | Category: {} | Account: {} | Type: {} | Method: ensureTransactionTypeSet", 
+                callerInfo, transaction.getTransactionId(), transaction.getAmount(), 
+                transaction.getDescription() != null ? transaction.getDescription() : "null",
+                transaction.getCategoryPrimary() != null ? transaction.getCategoryPrimary() : "null",
+                transaction.getAccountId() != null ? transaction.getAccountId() : "null",
+                calculatedType.name());
             // Calculated and set transactionType
         }
     }
@@ -509,10 +520,22 @@ public class TransactionService {
         Optional<com.budgetbuddy.model.TransactionType> userTypeOpt = parseUserTransactionType(userProvidedType);
         
         if (userTypeOpt.isPresent()) {
-            // User provided valid transactionType - use it and mark as overridden
+            // User provided valid transactionType - use it and mark as overridden only if different from existing
             com.budgetbuddy.model.TransactionType userType = userTypeOpt.get();
+            String existingType = transaction.getTransactionType();
             transaction.setTransactionType(userType.name());
-            transaction.setTransactionTypeOverridden(true);
+            // Only mark as overridden if new type differs from existing type
+            if (existingType == null || !userType.name().equals(existingType)) {
+                transaction.setTransactionTypeOverridden(true);
+            }
+            StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
+            String callerInfo = stackTrace.length > 2 ? stackTrace[2].getFileName() + ":" + stackTrace[2].getLineNumber() : "unknown";
+            logger.info("🔍 [TransactionType] Set transaction type (USER PROVIDED) | Line: {} | TransactionId: {} | Amount: {} | Description: '{}' | Category: {} | Account: {} | Type: {} | PreviousType: {} | Method: setTransactionTypeFromUserOrCalculate", 
+                callerInfo, transaction.getTransactionId(), amount, 
+                transaction.getDescription() != null ? transaction.getDescription() : "null",
+                categoryPrimary != null ? categoryPrimary : "null",
+                account != null ? account.getAccountId() : "null",
+                userType.name(), existingType != null ? existingType : "null");
             // Using user-provided transaction type
             return true;
         } else {
@@ -528,6 +551,14 @@ public class TransactionService {
             if (transaction.getTransactionTypeOverridden() == null) {
                 transaction.setTransactionTypeOverridden(false);
             }
+            StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
+            String callerInfo = stackTrace.length > 2 ? stackTrace[2].getFileName() + ":" + stackTrace[2].getLineNumber() : "unknown";
+            logger.info("🔍 [TransactionType] Set transaction type (CALCULATED) | Line: {} | TransactionId: {} | Amount: {} | Description: '{}' | Category: {} | Account: {} | Type: {} | Method: setTransactionTypeFromUserOrCalculate (fallback determiner)", 
+                callerInfo, transaction.getTransactionId(), amount, 
+                transaction.getDescription() != null ? transaction.getDescription() : "null",
+                categoryPrimary != null ? categoryPrimary : "null",
+                account != null ? account.getAccountId() : "null",
+                calculatedType.name());
             // Calculated transaction type
             return false;
         }
@@ -561,6 +592,14 @@ public class TransactionService {
                 if (transaction.getTransactionTypeOverridden() == null) {
                     transaction.setTransactionTypeOverridden(false);
                 }
+                StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
+                String callerInfo = stackTrace.length > 2 ? stackTrace[2].getFileName() + ":" + stackTrace[2].getLineNumber() : "unknown";
+                logger.info("🔍 [TransactionType] Set transaction type (UNIFIED SERVICE) | Line: {} | TransactionId: {} | Amount: {} | Description: '{}' | Category: {} | Account: {} | Type: {} | Source: {} | Confidence: {} | Method: setTransactionTypeFromUnifiedServiceOrCalculate", 
+                    callerInfo, transaction.getTransactionId(), amount, 
+                    transaction.getDescription() != null ? transaction.getDescription() : "null",
+                    categoryPrimary != null ? categoryPrimary : "null",
+                    account != null ? account.getAccountId() : "null",
+                    typeResult.getTransactionType().name(), typeResult.getSource(), typeResult.getConfidence());
                 // Calculated transaction type using unified service
             } else {
                 // Fallback to old determiner
@@ -574,6 +613,14 @@ public class TransactionService {
                 if (transaction.getTransactionTypeOverridden() == null) {
                     transaction.setTransactionTypeOverridden(false);
                 }
+                StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
+                String callerInfo = stackTrace.length > 2 ? stackTrace[2].getFileName() + ":" + stackTrace[2].getLineNumber() : "unknown";
+                logger.info("🔍 [TransactionType] Set transaction type (FALLBACK DETERMINER) | Line: {} | TransactionId: {} | Amount: {} | Description: '{}' | Category: {} | Account: {} | Type: {} | Method: setTransactionTypeFromUnifiedServiceOrCalculate (fallback)", 
+                    callerInfo, transaction.getTransactionId(), amount, 
+                    transaction.getDescription() != null ? transaction.getDescription() : "null",
+                    categoryPrimary != null ? categoryPrimary : "null",
+                    account != null ? account.getAccountId() : "null",
+                    calculatedType.name());
                 // Calculated transaction type using fallback determiner
             }
         } catch (Exception e) {
@@ -589,6 +636,14 @@ public class TransactionService {
             if (transaction.getTransactionTypeOverridden() == null) {
                 transaction.setTransactionTypeOverridden(false);
             }
+            StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
+            String callerInfo = stackTrace.length > 2 ? stackTrace[2].getFileName() + ":" + stackTrace[2].getLineNumber() : "unknown";
+            logger.info("🔍 [TransactionType] Set transaction type (EXCEPTION FALLBACK) | Line: {} | TransactionId: {} | Amount: {} | Description: '{}' | Category: {} | Account: {} | Type: {} | Error: {} | Method: setTransactionTypeFromUnifiedServiceOrCalculate (exception fallback)", 
+                callerInfo, transaction.getTransactionId(), amount, 
+                transaction.getDescription() != null ? transaction.getDescription() : "null",
+                categoryPrimary != null ? categoryPrimary : "null",
+                account != null ? account.getAccountId() : "null",
+                calculatedType.name(), e.getMessage());
         }
     }
 
@@ -765,9 +820,12 @@ public class TransactionService {
                                 if (transactionType != null && !transactionType.trim().isEmpty()) {
                                     try {
                                         com.budgetbuddy.model.TransactionType userTransactionType = com.budgetbuddy.model.TransactionType.valueOf(transactionType.trim().toUpperCase());
-                                        if (!userTransactionType.name().equals(existing.getTransactionType())) {
-                                            // User provided different transactionType - update it
+                                        String existingType = existing.getTransactionType();
+                                        if (!userTransactionType.name().equals(existingType)) {
+                                            // User provided different transactionType - update it and mark as overridden
                                             existing.setTransactionType(userTransactionType.name());
+                                            // Only mark as overridden if new type differs from existing type
+                                            existing.setTransactionTypeOverridden(true);
                                             transactionRepository.save(existing);
                                             logger.info("Updated transactionType to {} for existing transaction {} (user override)", 
                                                     userTransactionType, normalizedId);
@@ -798,8 +856,13 @@ public class TransactionService {
                                 // Update transactionType if user provided one
                                 Optional<com.budgetbuddy.model.TransactionType> userTypeOpt = parseUserTransactionType(transactionType);
                                 if (userTypeOpt.isPresent()) {
-                                    existing.setTransactionType(userTypeOpt.get().name());
-                                    existing.setTransactionTypeOverridden(true);
+                                    com.budgetbuddy.model.TransactionType userType = userTypeOpt.get();
+                                    String existingType = existing.getTransactionType();
+                                    existing.setTransactionType(userType.name());
+                                    // Only mark as overridden if new type differs from existing type
+                                    if (existingType == null || !userType.name().equals(existingType)) {
+                                        existing.setTransactionTypeOverridden(true);
+                                    }
                                     // Updated transactionType (user override)
                                 }
                                 transactionRepository.save(existing);
@@ -811,14 +874,37 @@ public class TransactionService {
                             Optional<com.budgetbuddy.model.TransactionType> userTypeOpt = parseUserTransactionType(transactionType);
                             if (userTypeOpt.isPresent()) {
                                 com.budgetbuddy.model.TransactionType userType = userTypeOpt.get();
-                                if (!userType.name().equals(existing.getTransactionType())) {
-                                    // User provided different transactionType - update it and mark as overridden
-                                    existing.setTransactionType(userType.name());
-                                    existing.setTransactionTypeOverridden(true);
-                                    transactionRepository.save(existing);
-                                    logger.info("Updated transactionType to {} for existing transaction {} (user override)", 
-                                            userType, normalizedId);
+                                String existingType = existing.getTransactionType();
+                                existing.setTransactionType(userType.name());
+                                
+                                // Determine if this is an import (CSV, PDF, etc.)
+                                boolean isImport = importSource != null && !importSource.trim().isEmpty() && 
+                                                  (importSource.equalsIgnoreCase("CSV") || importSource.equalsIgnoreCase("PDF") || 
+                                                   importSource.equalsIgnoreCase("EXCEL"));
+                                
+                                if (isImport) {
+                                    // For imports: Only mark as overridden if transaction was already overridden and new type differs
+                                    boolean wasOverridden = Boolean.TRUE.equals(existing.getTransactionTypeOverridden());
+                                    if (wasOverridden && existingType != null && !userType.name().equals(existingType)) {
+                                        // Transaction was already overridden and new type differs - keep override flag
+                                        existing.setTransactionTypeOverridden(true);
+                                    } else {
+                                        // First time setting value from import - don't mark as overridden
+                                        // Only set to false if currently null (preserve existing state)
+                                        if (existing.getTransactionTypeOverridden() == null) {
+                                            existing.setTransactionTypeOverridden(false);
+                                        }
+                                    }
+                                } else {
+                                    // For non-imports (user API calls): Only mark as overridden if new type differs from existing
+                                    if (existingType == null || !userType.name().equals(existingType)) {
+                                        existing.setTransactionTypeOverridden(true);
+                                    }
                                 }
+                                
+                                transactionRepository.save(existing);
+                                logger.info("Updated transactionType to {} for existing transaction {} (user override)", 
+                                        userType, normalizedId);
                             }
                             logger.info("Transaction with ID {} already exists (no Plaid ID in request). Returning existing for idempotency.", 
                                     normalizedId);
@@ -997,7 +1083,7 @@ public class TransactionService {
                     transaction.setCategoryOverridden(isInternalOverride);
                     
                     if (isInternalOverride) {
-                        logger.info("✅ Internal category override applied for import: Importer='{}' → Determined='{}' (source: {}, confidence: {:.2f}). " +
+                        logger.info("✅ Internal category override applied for import: Importer='{}' → Determined='{}' (source: {}, confidence: {}). " +
                             "This override will be preserved during re-import.",
                             importerCategoryPrimary != null ? importerCategoryPrimary : categoryPrimary,
                             determinedPrimary, source, categoryResult.getConfidence());
@@ -1059,11 +1145,36 @@ public class TransactionService {
         // CRITICAL: Use user-provided transactionType if available, otherwise calculate using unified service
         // This allows users to override the automatic determination
         if (transactionType != null && !transactionType.trim().isEmpty()) {
-            // User provided transaction type - use it and mark as overridden
+            // User provided transaction type - use it
             try {
                 com.budgetbuddy.model.TransactionType userType = com.budgetbuddy.model.TransactionType.valueOf(transactionType.trim().toUpperCase());
+                String existingType = transaction.getTransactionType();
                 transaction.setTransactionType(userType.name());
-                transaction.setTransactionTypeOverridden(true);
+                
+                // Determine if this is an import (CSV, PDF, etc.)
+                boolean isImport = importSource != null && !importSource.trim().isEmpty() && 
+                                  (importSource.equalsIgnoreCase("CSV") || importSource.equalsIgnoreCase("PDF") || 
+                                   importSource.equalsIgnoreCase("EXCEL"));
+                
+                if (isImport) {
+                    // For imports: Only mark as overridden if transaction was already overridden and new type differs
+                    boolean wasOverridden = Boolean.TRUE.equals(transaction.getTransactionTypeOverridden());
+                    if (wasOverridden && existingType != null && !userType.name().equals(existingType)) {
+                        // Transaction was already overridden and new type differs - keep override flag
+                        transaction.setTransactionTypeOverridden(true);
+                    } else {
+                        // First time setting value from import - don't mark as overridden
+                        // Only set to false if currently null (preserve existing state)
+                        if (transaction.getTransactionTypeOverridden() == null) {
+                            transaction.setTransactionTypeOverridden(false);
+                        }
+                    }
+                } else {
+                    // For non-imports (user API calls): Only mark as overridden if new type differs from existing
+                    if (existingType == null || !userType.name().equals(existingType)) {
+                        transaction.setTransactionTypeOverridden(true);
+                    }
+                }
                 // Using user-provided transaction type
             } catch (IllegalArgumentException e) {
                 logger.warn("Invalid transaction type '{}' provided, will calculate automatically", transactionType);
@@ -1279,6 +1390,25 @@ public class TransactionService {
                     oldCategoryPrimary, trimmedPrimary,
                     "USER_OVERRIDE", "User manually changed category"
                 );
+                
+                // Record correction for learning (async, best effort)
+                try {
+                    learningService.recordCorrection(
+                        user.getUserId(),
+                        transaction.getTransactionId(),
+                        transaction.getMerchantName(),
+                        oldCategoryPrimary,
+                        transaction.getCategoryDetailed(), // Original detailed
+                        trimmedPrimary,
+                        trimmedDetailed,
+                        transaction.getTransactionType(), // Original type
+                        transaction.getTransactionType(), // Corrected type (same, unless user changes it)
+                        transaction.getDescription()
+                    );
+                } catch (Exception e) {
+                    logger.debug("Failed to record correction (non-blocking): {}", e.getMessage());
+                    // Don't fail transaction update if correction recording fails
+                }
             }
             
             // CRITICAL: Always set categoryOverridden=true when category is changed
@@ -1309,8 +1439,12 @@ public class TransactionService {
         if (userTypeOpt.isPresent()) {
             // User provided transaction type - use it (override automatic calculation)
             com.budgetbuddy.model.TransactionType userType = userTypeOpt.get();
+            String existingType = transaction.getTransactionType();
             transaction.setTransactionType(userType.name());
-            transaction.setTransactionTypeOverridden(true);
+            // Only mark as overridden if new type differs from existing type
+            if (existingType == null || !userType.name().equals(existingType)) {
+                transaction.setTransactionTypeOverridden(true);
+            }
             // Using user-provided transaction type
         } else if (!Boolean.TRUE.equals(transaction.getTransactionTypeOverridden()) && (categoryChanged || amount != null)) {
             // User didn't provide type, transaction not overridden, and category/amount changed - recalculate

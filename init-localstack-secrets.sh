@@ -204,5 +204,51 @@ fi
 
 echo "✅ S3 bucket configuration completed!"
 
+# 5. Create S3 bucket for BERT model storage (for LocalStack testing)
+BERT_MODEL_BUCKET="${BERT_MODEL_BUCKET:-budgetbuddy-bert-models}"
+echo "🤖 Creating BERT model S3 bucket: ${BERT_MODEL_BUCKET}..."
+
+# Create bucket if it doesn't exist
+if ! aws s3 ls "s3://${BERT_MODEL_BUCKET}" \
+    --endpoint-url "${LOCALSTACK_ENDPOINT}" \
+    --region "${AWS_REGION}" \
+    > /dev/null 2>&1; then
+    if aws s3 mb "s3://${BERT_MODEL_BUCKET}" \
+        --endpoint-url "${LOCALSTACK_ENDPOINT}" \
+        --region "${AWS_REGION}" \
+        2>&1; then
+        echo "✅ BERT model S3 bucket ${BERT_MODEL_BUCKET} created successfully"
+        
+        # Enable versioning for model version management
+        if aws s3api put-bucket-versioning \
+            --endpoint-url "${LOCALSTACK_ENDPOINT}" \
+            --region "${AWS_REGION}" \
+            --bucket "${BERT_MODEL_BUCKET}" \
+            --versioning-configuration Status=Enabled \
+            2>&1; then
+            echo "✅ Versioning enabled for BERT model bucket"
+        else
+            echo "⚠️ Failed to enable versioning for BERT bucket (non-fatal)"
+        fi
+        
+        # Block public access
+        if aws s3api put-public-access-block \
+            --endpoint-url "${LOCALSTACK_ENDPOINT}" \
+            --region "${AWS_REGION}" \
+            --bucket "${BERT_MODEL_BUCKET}" \
+            --public-access-block-configuration \
+            "BlockPublicAcls=true,IgnorePublicAcls=true,BlockPublicPolicy=true,RestrictPublicBuckets=true" \
+            2>&1; then
+            echo "✅ Public access blocked for BERT model bucket"
+        else
+            echo "⚠️ Failed to block public access for BERT bucket (non-fatal)"
+        fi
+    else
+        echo "⚠️ Failed to create BERT model S3 bucket ${BERT_MODEL_BUCKET} (this is non-fatal)"
+    fi
+else
+    echo "✅ BERT model S3 bucket ${BERT_MODEL_BUCKET} already exists"
+fi
+
 echo "✅ Secrets initialization completed!"
 

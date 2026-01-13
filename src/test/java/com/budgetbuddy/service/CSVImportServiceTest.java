@@ -29,7 +29,7 @@ class CSVImportServiceTest {
                 org.mockito.Mockito.mock(ImportCategoryParser.class);
         com.budgetbuddy.service.category.strategy.CategoryDetectionManager categoryDetectionManager = 
                 org.mockito.Mockito.mock(com.budgetbuddy.service.category.strategy.CategoryDetectionManager.class);
-        csvImportService = new CSVImportService(accountDetectionService, enhancedCategoryDetection, fuzzyMatchingService,
+        csvImportService = new CSVImportService(accountDetectionService, enhancedCategoryDetection,
             transactionTypeCategoryService, importCategoryParser, categoryDetectionManager);
     }
 

@@ -1,0 +1,507 @@
+{
+    "Items": [
+        {
+            "accountName": {
+                "S": "Chase checking 3100"
+            },
+            "accountType": {
+                "S": "depository"
+            },
+            "lastSyncedAt": {
+                "S": "2026-01-09T15:16:33.594752301Z"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "accountNumber": {
+                "S": "3100"
+            },
+            "updatedAtTimestamp": {
+                "N": "1767971793"
+            },
+            "userId": {
+                "S": "c8920e3b-7293-4674-a5f3-fa4c0c6f115a"
+            },
+            "accountId": {
+                "S": "e5559a9e-188e-4c83-aed7-1974ca0294dc"
+            },
+            "createdAt": {
+                "S": "2026-01-09T15:16:33.594752301Z"
+            },
+            "accountSubtype": {
+                "S": "checking"
+            },
+            "balance": {
+                "N": "4714.71"
+            },
+            "balanceDate": {
+                "S": "2025-12-19"
+            },
+            "institutionName": {
+                "S": "Chase"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "updatedAt": {
+                "S": "2026-01-09T15:16:33.594752301Z"
+            }
+        },
+        {
+            "accountName": {
+                "S": "Marriott Bonvoy® Premier"
+            },
+            "accountType": {
+                "S": "credit"
+            },
+            "lastSyncedAt": {
+                "S": "2026-01-09T15:16:13.674259083Z"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "minimumPaymentDue": {
+                "N": "40"
+            },
+            "accountNumber": {
+                "S": "0912"
+            },
+            "updatedAtTimestamp": {
+                "N": "1767971773"
+            },
+            "userId": {
+                "S": "c8920e3b-7293-4674-a5f3-fa4c0c6f115a"
+            },
+            "accountId": {
+                "S": "8bb6abb2-7ed8-4731-b3c8-ff6d25875647"
+            },
+            "createdAt": {
+                "S": "2026-01-09T15:16:13.674259083Z"
+            },
+            "paymentDueDate": {
+                "S": "2025-12-14"
+            },
+            "accountSubtype": {
+                "S": "credit card"
+            },
+            "balance": {
+                "N": "1746.59"
+            },
+            "institutionName": {
+                "S": "Chase"
+            },
+            "rewardPoints": {
+                "N": "5000"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "updatedAt": {
+                "S": "2026-01-09T15:16:13.674259083Z"
+            }
+        },
+        {
+            "accountName": {
+                "S": "Prime Visa"
+            },
+            "accountType": {
+                "S": "credit"
+            },
+            "lastSyncedAt": {
+                "S": "2026-01-09T15:17:20.460960295Z"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "minimumPaymentDue": {
+                "N": "35"
+            },
+            "accountNumber": {
+                "S": "5468"
+            },
+            "updatedAtTimestamp": {
+                "N": "1767971840"
+            },
+            "userId": {
+                "S": "c8920e3b-7293-4674-a5f3-fa4c0c6f115a"
+            },
+            "accountId": {
+                "S": "7fb23e35-e03f-4066-a0bc-dcc79c9b31e1"
+            },
+            "createdAt": {
+                "S": "2026-01-09T15:17:20.460960295Z"
+            },
+            "paymentDueDate": {
+                "S": "2025-12-09"
+            },
+            "accountSubtype": {
+                "S": "credit card"
+            },
+            "balance": {
+                "N": "377.32"
+            },
+            "institutionName": {
+                "S": "Chase"
+            },
+            "rewardPoints": {
+                "N": "49825"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "updatedAt": {
+                "S": "2026-01-09T15:17:20.460960295Z"
+            }
+        },
+        {
+            "accountName": {
+                "S": "CHASE FREEDOM: ULTIMATE"
+            },
+            "accountType": {
+                "S": "credit"
+            },
+            "lastSyncedAt": {
+                "S": "2026-01-09T15:16:17.592110169Z"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "minimumPaymentDue": {
+                "N": "13.86"
+            },
+            "accountNumber": {
+                "S": "4666"
+            },
+            "updatedAtTimestamp": {
+                "N": "1767971777"
+            },
+            "userId": {
+                "S": "c8920e3b-7293-4674-a5f3-fa4c0c6f115a"
+            },
+            "accountId": {
+                "S": "efe1334c-ac78-4290-906b-9df479688660"
+            },
+            "createdAt": {
+                "S": "2026-01-09T15:16:17.592110169Z"
+            },
+            "paymentDueDate": {
+                "S": "2025-10-01"
+            },
+            "accountSubtype": {
+                "S": "credit card"
+            },
+            "balance": {
+                "N": "13.86"
+            },
+            "institutionName": {
+                "S": "Chase"
+            },
+            "rewardPoints": {
+                "N": "9480"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "updatedAt": {
+                "S": "2026-01-09T15:16:17.592110169Z"
+            }
+        },
+        {
+            "accountName": {
+                "S": "ACTIVE CASH VISA SIGNATURE"
+            },
+            "accountType": {
+                "S": "credit"
+            },
+            "lastSyncedAt": {
+                "S": "2026-01-09T15:16:08.786529179Z"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "minimumPaymentDue": {
+                "N": "25"
+            },
+            "accountNumber": {
+                "S": "6779"
+            },
+            "updatedAtTimestamp": {
+                "N": "1767971768"
+            },
+            "userId": {
+                "S": "c8920e3b-7293-4674-a5f3-fa4c0c6f115a"
+            },
+            "accountId": {
+                "S": "6f8d92b8-c9fc-48e4-a3eb-0a748d8a1573"
+            },
+            "createdAt": {
+                "S": "2026-01-09T15:16:08.786529179Z"
+            },
+            "paymentDueDate": {
+                "S": "2026-01-12"
+            },
+            "accountSubtype": {
+                "S": "credit card"
+            },
+            "balance": {
+                "N": "612.54"
+            },
+            "institutionName": {
+                "S": "Wells Fargo"
+            },
+            "rewardPoints": {
+                "N": "6000"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "updatedAt": {
+                "S": "2026-01-09T15:16:08.786529179Z"
+            }
+        },
+        {
+            "accountName": {
+                "S": "Costco Anywhere Visa® Card by Citi"
+            },
+            "accountType": {
+                "S": "credit"
+            },
+            "lastSyncedAt": {
+                "S": "2026-01-09T15:15:48.111147710Z"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "minimumPaymentDue": {
+                "N": "43"
+            },
+            "accountNumber": {
+                "S": "5050"
+            },
+            "updatedAtTimestamp": {
+                "N": "1767971748"
+            },
+            "userId": {
+                "S": "c8920e3b-7293-4674-a5f3-fa4c0c6f115a"
+            },
+            "accountId": {
+                "S": "d9e9b150-b520-4997-87a5-de8dc2b4032e"
+            },
+            "createdAt": {
+                "S": "2026-01-09T15:15:48.111147710Z"
+            },
+            "paymentDueDate": {
+                "S": "2026-01-17"
+            },
+            "accountSubtype": {
+                "S": "credit card"
+            },
+            "balance": {
+                "N": "4321.85"
+            },
+            "institutionName": {
+                "S": "Citibank"
+            },
+            "rewardPoints": {
+                "N": "1000"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "updatedAt": {
+                "S": "2026-01-09T15:15:48.111147710Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "0dfe4ea4-cd2f-39d8-b068-087456825da9"
+            },
+            "createdAt": {
+                "S": "2026-01-09T15:15:02.676779592Z"
+            },
+            "accountSubtype": {
+                "S": "manual"
+            },
+            "balance": {
+                "N": "0"
+            },
+            "accountName": {
+                "S": "Manual Transactions"
+            },
+            "accountType": {
+                "S": "other"
+            },
+            "institutionName": {
+                "S": "BudgetBuddy"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "updatedAtTimestamp": {
+                "N": "1767971702"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "userId": {
+                "S": "c8920e3b-7293-4674-a5f3-fa4c0c6f115a"
+            },
+            "updatedAt": {
+                "S": "2026-01-09T15:15:02.676780342Z"
+            }
+        },
+        {
+            "accountName": {
+                "S": "DISCOVER IT CARD ENDING IN 2364"
+            },
+            "accountType": {
+                "S": "credit"
+            },
+            "lastSyncedAt": {
+                "S": "2026-01-09T15:16:10.203400804Z"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "accountNumber": {
+                "S": "2364"
+            },
+            "updatedAtTimestamp": {
+                "N": "1767971770"
+            },
+            "userId": {
+                "S": "c8920e3b-7293-4674-a5f3-fa4c0c6f115a"
+            },
+            "accountId": {
+                "S": "614f69f7-59e4-45d0-9e12-db9d111477c5"
+            },
+            "createdAt": {
+                "S": "2026-01-09T15:16:10.203400804Z"
+            },
+            "accountSubtype": {
+                "S": "credit card"
+            },
+            "balance": {
+                "N": "5.66"
+            },
+            "institutionName": {
+                "S": "Discover"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "updatedAt": {
+                "S": "2026-01-09T15:16:10.203400804Z"
+            }
+        },
+        {
+            "accountName": {
+                "S": "Morgan Stanley Platinum Card®"
+            },
+            "accountType": {
+                "S": "credit"
+            },
+            "lastSyncedAt": {
+                "S": "2026-01-09T15:15:54.644048422Z"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "minimumPaymentDue": {
+                "N": "40"
+            },
+            "accountNumber": {
+                "S": "1007"
+            },
+            "updatedAtTimestamp": {
+                "N": "1767971754"
+            },
+            "userId": {
+                "S": "c8920e3b-7293-4674-a5f3-fa4c0c6f115a"
+            },
+            "accountId": {
+                "S": "33170ec5-8f03-4cc9-b524-28a257508beb"
+            },
+            "createdAt": {
+                "S": "2026-01-09T15:15:54.644048422Z"
+            },
+            "paymentDueDate": {
+                "S": "2026-01-07"
+            },
+            "accountSubtype": {
+                "S": "credit card"
+            },
+            "balance": {
+                "N": "381.6"
+            },
+            "institutionName": {
+                "S": "American Express"
+            },
+            "rewardPoints": {
+                "N": "63093"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "updatedAt": {
+                "S": "2026-01-09T15:15:54.644048422Z"
+            }
+        },
+        {
+            "accountName": {
+                "S": "Citi Double Cash® Card"
+            },
+            "accountType": {
+                "S": "credit"
+            },
+            "lastSyncedAt": {
+                "S": "2026-01-09T15:16:03.545497509Z"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "minimumPaymentDue": {
+                "N": "41"
+            },
+            "accountNumber": {
+                "S": "1618"
+            },
+            "updatedAtTimestamp": {
+                "N": "1767971784"
+            },
+            "userId": {
+                "S": "c8920e3b-7293-4674-a5f3-fa4c0c6f115a"
+            },
+            "accountId": {
+                "S": "1dfe4c39-4d2b-44b3-9a2a-1cd50bb21e72"
+            },
+            "createdAt": {
+                "S": "2026-01-09T15:16:03.545497509Z"
+            },
+            "paymentDueDate": {
+                "S": "2025-12-28"
+            },
+            "accountSubtype": {
+                "S": "credit card"
+            },
+            "balance": {
+                "N": "1708.54"
+            },
+            "institutionName": {
+                "S": "Citibank"
+            },
+            "rewardPoints": {
+                "N": "30690"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "updatedAt": {
+                "S": "2026-01-09T15:16:24.256709422Z"
+            }
+        }
+    ],
+    "Count": 10,
+    "ScannedCount": 10,
+    "ConsumedCapacity": null
+}

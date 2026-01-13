@@ -276,6 +276,11 @@ public class RateLimitService {
         } catch (ResourceNotFoundException e) {
             // Table doesn't exist, proceed with creation
         } catch (Exception e) {
+            // CRITICAL: Handle credentials errors gracefully (e.g., in tests without LocalStack)
+            if (isCredentialsError(e)) {
+                logger.warn("DynamoDB credentials not available - skipping table initialization (likely in test environment without LocalStack)");
+                return;
+            }
             logger.warn("Failed to check if rate limit table exists: {}", e.getMessage());
             // Continue with creation attempt
         }
@@ -312,9 +317,50 @@ public class RateLimitService {
         } catch (ResourceInUseException e) {
             // Table was created by another instance between check and create - this is fine
             logger.debug("Rate limit table already exists (race condition)");
+        } catch (software.amazon.awssdk.core.exception.SdkClientException e) {
+            // CRITICAL: Handle credentials errors gracefully (e.g., in tests without LocalStack)
+            if (isCredentialsError(e)) {
+                logger.warn("DynamoDB credentials not available - skipping table initialization (likely in test environment without LocalStack)");
+                return;
+            }
+            logger.error("Failed to create rate limit table: {}", e.getMessage());
         } catch (Exception e) {
+            // CRITICAL: Handle credentials errors gracefully
+            if (isCredentialsError(e)) {
+                logger.warn("DynamoDB credentials not available - skipping table initialization (likely in test environment without LocalStack)");
+                return;
+            }
             logger.error("Failed to create rate limit table: {}", e.getMessage());
         }
+    }
+    
+    /**
+     * Check if the exception is due to missing AWS credentials
+     */
+    private boolean isCredentialsError(Exception e) {
+        String message = e.getMessage();
+        if (message != null && message.contains("Unable to load credentials")) {
+            return true;
+        }
+        // Check for SdkClientException with credentials error
+        if (e instanceof software.amazon.awssdk.core.exception.SdkClientException) {
+            String exceptionMessage = e.getMessage();
+            if (exceptionMessage != null && exceptionMessage.contains("Unable to load credentials")) {
+                return true;
+            }
+        }
+        // Check cause chain
+        Throwable cause = e.getCause();
+        while (cause != null) {
+            if (cause instanceof software.amazon.awssdk.core.exception.SdkClientException) {
+                String causeMessage = cause.getMessage();
+                if (causeMessage != null && causeMessage.contains("Unable to load credentials")) {
+                    return true;
+                }
+            }
+            cause = cause.getCause();
+        }
+        return false;
     }
 
     /**

@@ -13,9 +13,12 @@ import software.amazon.awssdk.services.dynamodb.model.*;
  * DynamoDB Table Manager
  * Creates tables on application startup if they don't exist
  * Uses on-demand billing for cost optimization
+ * 
+ * CRITICAL: This service does NOT run in test profile - tests use TableInitializer instead
  */
 @Service
 @ConditionalOnProperty(name = "app.aws.dynamodb.auto-create-tables", havingValue = "true", matchIfMissing = true)
+@org.springframework.context.annotation.Profile("!test") // Don't run in tests - tests use TableInitializer
 public class DynamoDBTableManager {
 
     private static final Logger logger = LoggerFactory.getLogger(DynamoDBTableManager.class);
@@ -51,6 +54,7 @@ public class DynamoDBTableManager {
         createMFACredentialsTable();
         createMFABackupCodesTable();
         createMFAOTPCodesTable();
+        createImportHistoryTable();
         // BREAKING CHANGE: DevicePin table creation removed - PIN backend endpoints removed
         // DevicePin table is deprecated and removed - PIN is now local-only
         logger.info("DynamoDB tables initialized");
@@ -1018,6 +1022,66 @@ public class DynamoDBTableManager {
             logger.debug("Table {} already exists", tableName);
         } catch (Exception e) {
             logger.error("Failed to create table {}: {}", tableName, e.getMessage());
+        }
+    }
+
+    private void createImportHistoryTable() {
+        String tableName = tablePrefix + "-ImportHistory";
+        try {
+            dynamoDbClient.createTable(CreateTableRequest.builder()
+                    .tableName(tableName)
+                    .billingMode(BillingMode.PAY_PER_REQUEST)
+                    .attributeDefinitions(
+                            AttributeDefinition.builder()
+                                    .attributeName("importId")
+                                    .attributeType(ScalarAttributeType.S)
+                                    .build(),
+                            AttributeDefinition.builder()
+                                    .attributeName("userId")
+                                    .attributeType(ScalarAttributeType.S)
+                                    .build(),
+                            AttributeDefinition.builder()
+                                    .attributeName("createdAtTimestamp")
+                                    .attributeType(ScalarAttributeType.N)
+                                    .build())
+                    .keySchema(
+                            KeySchemaElement.builder()
+                                    .attributeName("importId")
+                                    .keyType(KeyType.HASH)
+                                    .build())
+                    .globalSecondaryIndexes(
+                            GlobalSecondaryIndex.builder()
+                                    .indexName("UserIdIndex")
+                                    .keySchema(
+                                            KeySchemaElement.builder()
+                                                    .attributeName("userId")
+                                                    .keyType(KeyType.HASH)
+                                                    .build())
+                                    .projection(Projection.builder()
+                                            .projectionType(ProjectionType.ALL)
+                                            .build())
+                                    .build(),
+                            GlobalSecondaryIndex.builder()
+                                    .indexName("UserIdCreatedAtIndex")
+                                    .keySchema(
+                                            KeySchemaElement.builder()
+                                                    .attributeName("userId")
+                                                    .keyType(KeyType.HASH)
+                                                    .build(),
+                                            KeySchemaElement.builder()
+                                                    .attributeName("createdAtTimestamp")
+                                                    .keyType(KeyType.RANGE)
+                                                    .build())
+                                    .projection(Projection.builder()
+                                            .projectionType(ProjectionType.ALL)
+                                            .build())
+                                    .build())
+                    .build());
+            logger.info("Created table: {}", tableName);
+        } catch (ResourceInUseException e) {
+            logger.debug("Table {} already exists", tableName);
+        } catch (Exception e) {
+            logger.warn("Failed to create table {}: {}. This may be expected if LocalStack is not running.", tableName, e.getMessage());
         }
     }
 }

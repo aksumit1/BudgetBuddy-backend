@@ -1,5 +1,7 @@
 package com.budgetbuddy.config;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -9,6 +11,7 @@ import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.S3Configuration;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 
 import java.net.URI;
@@ -24,6 +27,8 @@ import java.net.URI;
 @Configuration
 @org.springframework.context.annotation.Profile("!test") // Don't load in tests - use AWSTestConfiguration instead
 public class AwsConfig {
+
+    private static final Logger logger = LoggerFactory.getLogger(AwsConfig.class);
 
     @Value("${app.aws.region:us-east-1}")
     private String awsRegion;
@@ -58,8 +63,27 @@ public class AwsConfig {
                 .credentialsProvider(getCredentialsProvider());
         
         // Use LocalStack endpoint if configured
-        if (!s3Endpoint.isEmpty()) {
-            builder.endpointOverride(URI.create(s3Endpoint));
+        // Also check environment variable directly as fallback (Spring @Value might not always map env vars correctly)
+        String endpoint = s3Endpoint;
+        if (endpoint.isEmpty()) {
+            endpoint = System.getenv("AWS_S3_ENDPOINT");
+            if (endpoint == null) {
+                endpoint = "";
+            }
+        }
+        
+        if (!endpoint.isEmpty()) {
+            try {
+                URI endpointUri = URI.create(endpoint);
+                builder.endpointOverride(endpointUri);
+                // LocalStack requires path-based access style (not virtual-hosted)
+                builder.serviceConfiguration(S3Configuration.builder()
+                        .pathStyleAccessEnabled(true)
+                        .build());
+                logger.info("✅ S3Client configured with LocalStack endpoint: {} (path-style access enabled)", endpoint);
+            } catch (Exception e) {
+                logger.warn("⚠️ Failed to configure S3 endpoint override: {} - {}", endpoint, e.getMessage());
+            }
         }
         
         return builder.build();
@@ -72,8 +96,27 @@ public class AwsConfig {
                 .credentialsProvider(getCredentialsProvider());
         
         // Use LocalStack endpoint if configured
-        if (!s3Endpoint.isEmpty()) {
-            builder.endpointOverride(URI.create(s3Endpoint));
+        // Also check environment variable directly as fallback (Spring @Value might not always map env vars correctly)
+        String endpoint = s3Endpoint;
+        if (endpoint.isEmpty()) {
+            endpoint = System.getenv("AWS_S3_ENDPOINT");
+            if (endpoint == null) {
+                endpoint = "";
+            }
+        }
+        
+        if (!endpoint.isEmpty()) {
+            try {
+                URI endpointUri = URI.create(endpoint);
+                builder.endpointOverride(endpointUri);
+                // LocalStack requires path-based access style (not virtual-hosted)
+                builder.serviceConfiguration(S3Configuration.builder()
+                        .pathStyleAccessEnabled(true)
+                        .build());
+                logger.info("✅ S3Presigner configured with LocalStack endpoint: {} (path-style access enabled)", endpoint);
+            } catch (Exception e) {
+                logger.warn("⚠️ Failed to configure S3Presigner endpoint override: {} - {}", endpoint, e.getMessage());
+            }
         }
         
         return builder.build();

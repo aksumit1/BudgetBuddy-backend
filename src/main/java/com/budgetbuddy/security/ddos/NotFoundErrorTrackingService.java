@@ -211,6 +211,11 @@ public class NotFoundErrorTrackingService {
         } catch (ResourceNotFoundException e) {
             // Table doesn't exist, proceed with creation
         } catch (Exception e) {
+            if (isCredentialsError(e)) {
+                logger.warn("⚠️ AWS credentials not configured for LocalStack or environment. Skipping 404 tracking table check. Error: {}", e.getMessage());
+                dynamoDbAvailable = false;
+                return false;
+            }
             logger.debug("Failed to check if 404 tracking table exists: {}", e.getMessage());
             // Continue with creation attempt
         }
@@ -252,6 +257,11 @@ public class NotFoundErrorTrackingService {
             dynamoDbAvailable = true;
             return true;
         } catch (Exception e) {
+            if (isCredentialsError(e)) {
+                logger.warn("⚠️ AWS credentials not configured for LocalStack or environment. 404 tracking will work in in-memory only mode. Error: {}", e.getMessage());
+                dynamoDbAvailable = false;
+                return false;
+            }
             // Log at WARN level - table creation failure indicates configuration issue
             // In test environments, ensure LocalStack is running and auto-create-tables is enabled
             logger.warn("Failed to create 404 tracking table: {}. " +
@@ -283,7 +293,11 @@ public class NotFoundErrorTrackingService {
                 }
             }
         } catch (Exception e) {
-            logger.debug("Failed to check blocked source in DynamoDB: {}. Using in-memory cache only.", e.getMessage());
+            if (isCredentialsError(e)) {
+                logger.debug("AWS credentials not configured. Using in-memory cache only.");
+            } else {
+                logger.debug("Failed to check blocked source in DynamoDB: {}. Using in-memory cache only.", e.getMessage());
+            }
             dynamoDbAvailable = false;
         }
         return false;
@@ -325,6 +339,23 @@ public class NotFoundErrorTrackingService {
                 logger.error("Error in async source blocking for {}: {}", sourceId, e.getMessage(), e);
             }
         });
+    }
+
+    /**
+     * Helper method to check if an exception is related to AWS credentials
+     */
+    private boolean isCredentialsError(Exception e) {
+        if (e instanceof software.amazon.awssdk.core.exception.SdkClientException) {
+            String message = e.getMessage();
+            return message != null && message.contains("Unable to load credentials");
+        }
+        // Check for wrapped SdkClientException
+        Throwable cause = e.getCause();
+        if (cause instanceof software.amazon.awssdk.core.exception.SdkClientException) {
+            String causeMessage = cause.getMessage();
+            return causeMessage != null && causeMessage.contains("Unable to load credentials");
+        }
+        return false;
     }
 
     /**

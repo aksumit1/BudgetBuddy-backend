@@ -223,9 +223,11 @@ class PlaidCategorySyncTest {
         TransactionService transactionService = new TransactionService(
                 transactionRepository, accountRepository, new com.budgetbuddy.service.TransactionTypeDeterminer(),
                 org.mockito.Mockito.mock(TransactionTypeCategoryService.class),
-                org.mockito.Mockito.mock(com.budgetbuddy.audit.AuditService.class), org.mockito.Mockito.mock(org.springframework.context.ApplicationContext.class));
+                org.mockito.Mockito.mock(com.budgetbuddy.audit.AuditService.class),
+                org.mockito.Mockito.mock(CategoryLearningService.class),
+                org.mockito.Mockito.mock(org.springframework.context.ApplicationContext.class));
         TransactionTable updated = transactionService.updateTransaction(
-                testUser, "txn-123", null, null, null, "groceries", "groceries", null, null, null, false, null  // goalId
+                testUser, "txn-123", null, null, null, "groceries", "groceries", null, null, null, false, null, null  // goalId, linkedTransactionId
         );
 
         // Then - Verify override is stored

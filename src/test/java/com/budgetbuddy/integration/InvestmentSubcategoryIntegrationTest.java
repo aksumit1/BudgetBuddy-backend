@@ -260,8 +260,9 @@ class InvestmentSubcategoryIntegrationTest {
             null, // isHidden
             null, // transactionType
             false, // clearNotesIfNull = false means preserve existing notes
-            null  // goalId
-        );
+            null,  // goalId
+            null   // linkedTransactionId
+                );
 
         // Then - Verify override is applied
         assertNotNull(updated);

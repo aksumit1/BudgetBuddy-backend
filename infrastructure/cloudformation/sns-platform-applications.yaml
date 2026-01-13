@@ -1,0 +1,178 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'SNS Platform Applications for BudgetBuddy Push Notifications (iOS APNS and Android GCM)'
+
+Parameters:
+  Environment:
+    Type: String
+    Default: dev
+    AllowedValues:
+      - dev
+      - staging
+      - production
+    Description: Environment name
+
+  TablePrefix:
+    Type: String
+    Default: BudgetBuddy
+    Description: Prefix for resource names
+
+  # iOS APNS Configuration
+  IOSAPNSCertificate:
+    Type: String
+    Description: ARN of the APNS certificate stored in AWS Certificate Manager (ACM) or Secrets Manager
+    Default: ''
+    NoEcho: true
+
+  IOSAPNSPrivateKey:
+    Type: String
+    Description: ARN of the APNS private key stored in AWS Secrets Manager
+    Default: ''
+    NoEcho: true
+
+  IOSAPNSPlatformPrincipal:
+    Type: String
+    Description: APNS Platform Principal (for token-based authentication) - ARN in Secrets Manager
+    Default: ''
+    NoEcho: true
+
+  IOSAPNSPlatformCredential:
+    Type: String
+    Description: APNS Platform Credential (for token-based authentication) - ARN in Secrets Manager
+    Default: ''
+    NoEcho: true
+
+  IOSAPNSBundleId:
+    Type: String
+    Description: iOS Bundle ID (e.g., com.budgetbuddy.app)
+    Default: 'com.budgetbuddy.app'
+
+  IOSAPNSEnvironment:
+    Type: String
+    Description: APNS Environment (sandbox or production)
+    Default: sandbox
+    AllowedValues:
+      - sandbox
+      - production
+
+  # Android GCM Configuration
+  AndroidGCMAPIKey:
+    Type: String
+    Description: GCM/FCM API Key stored in AWS Secrets Manager ARN
+    Default: ''
+    NoEcho: true
+
+Resources:
+  # iOS Platform Application (APNS)
+  IOSPlatformApplication:
+    Type: AWS::SNS::PlatformApplication
+    Properties:
+      Name: !Sub '${TablePrefix}-iOS-APNS-${Environment}'
+      Platform: APNS
+      Attributes:
+        # Use token-based authentication (recommended) or certificate-based
+        # Token-based (recommended for production):
+        PlatformPrincipal: !If
+          - UseTokenAuth
+          - !Ref IOSAPNSPlatformPrincipal
+          - !Ref 'AWS::NoValue'
+        PlatformCredential: !If
+          - UseTokenAuth
+          - !Ref IOSAPNSPlatformCredential
+          - !Ref 'AWS::NoValue'
+        # Certificate-based (legacy):
+        Certificate: !If
+          - UseCertificateAuth
+          - !Ref IOSAPNSCertificate
+          - !Ref 'AWS::NoValue'
+        PrivateKey: !If
+          - UseCertificateAuth
+          - !Ref IOSAPNSPrivateKey
+          - !Ref 'AWS::NoValue'
+        # Bundle ID for iOS
+        BundleId: !Ref IOSAPNSBundleId
+        # APNS Environment
+        Enabled: 'true'
+        # Note: Token-based auth is preferred. Certificate-based auth is legacy.
+        # For token-based: Set PlatformPrincipal and PlatformCredential
+        # For certificate-based: Set Certificate and PrivateKey
+
+  # Android Platform Application (GCM/FCM)
+  AndroidPlatformApplication:
+    Type: AWS::SNS::PlatformApplication
+    Properties:
+      Name: !Sub '${TablePrefix}-Android-GCM-${Environment}'
+      Platform: GCM
+      Attributes:
+        GCMAPIKey: !Ref AndroidGCMAPIKey
+        Enabled: 'true'
+
+  # IAM Role for SNS Platform Applications
+  SNSPlatformApplicationRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub '${TablePrefix}-SNSPlatformApplicationRole-${Environment}'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: sns.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: SNSPlatformApplicationPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - sns:CreatePlatformEndpoint
+                  - sns:DeletePlatformEndpoint
+                  - sns:GetEndpointAttributes
+                  - sns:SetEndpointAttributes
+                  - sns:Publish
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - secretsmanager:GetSecretValue
+                Resource:
+                  - !If
+                    - UseTokenAuth
+                    - !Ref IOSAPNSPlatformPrincipal
+                    - !Ref 'AWS::NoValue'
+                  - !If
+                    - UseTokenAuth
+                    - !Ref IOSAPNSPlatformCredential
+                    - !Ref 'AWS::NoValue'
+                  - !If
+                    - UseCertificateAuth
+                    - !Ref IOSAPNSPrivateKey
+                    - !Ref 'AWS::NoValue'
+                  - !Ref AndroidGCMAPIKey
+
+Conditions:
+  UseTokenAuth: !And
+    - !Not [!Equals [!Ref IOSAPNSPlatformPrincipal, '']]
+    - !Not [!Equals [!Ref IOSAPNSPlatformCredential, '']]
+  UseCertificateAuth: !And
+    - !Not [!Equals [!Ref IOSAPNSCertificate, '']]
+    - !Not [!Equals [!Ref IOSAPNSPrivateKey, '']]
+  HasAndroidKey: !Not [!Equals [!Ref AndroidGCMAPIKey, '']]
+
+Outputs:
+  IOSPlatformApplicationArn:
+    Description: ARN of the iOS APNS Platform Application
+    Value: !Ref IOSPlatformApplication
+    Export:
+      Name: !Sub '${AWS::StackName}-IOSPlatformApplicationArn'
+
+  AndroidPlatformApplicationArn:
+    Description: ARN of the Android GCM Platform Application
+    Value: !Ref AndroidPlatformApplication
+    Export:
+      Name: !Sub '${AWS::StackName}-AndroidPlatformApplicationArn'
+
+  SNSPlatformApplicationRoleArn:
+    Description: ARN of the IAM Role for SNS Platform Applications
+    Value: !GetAtt SNSPlatformApplicationRole.Arn
+    Export:
+      Name: !Sub '${AWS::StackName}-SNSPlatformApplicationRoleArn'

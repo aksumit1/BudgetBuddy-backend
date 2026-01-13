@@ -469,14 +469,29 @@ public class UserDeletionService {
     private void deleteImportHistoryForUser(final String userId) {
         try {
             List<com.budgetbuddy.model.ImportHistory> imports = importHistoryService.getUserImportHistory(userId);
+            if (imports.isEmpty()) {
+                logger.debug("No import history records found for user: {}", userId);
+                return;
+            }
+            
+            int successfulDeletions = 0;
+            int failedDeletions = 0;
             for (com.budgetbuddy.model.ImportHistory importHistory : imports) {
                 try {
                     importHistoryService.deleteImportHistory(importHistory.getImportId());
+                    successfulDeletions++;
                 } catch (Exception e) {
+                    failedDeletions++;
                     logger.warn("Failed to delete import history {}: {}", importHistory.getImportId(), e.getMessage());
                 }
             }
-            logger.info("Deleted {} import history records for user: {}", imports.size(), userId);
+            
+            if (failedDeletions == 0) {
+                logger.info("Deleted {} import history records for user: {}", successfulDeletions, userId);
+            } else {
+                logger.warn("Deleted {} of {} import history records for user: {} ({} failed)", 
+                    successfulDeletions, imports.size(), userId, failedDeletions);
+            }
         } catch (Exception e) {
             logger.warn("Failed to delete import history for user {}: {}", userId, e.getMessage());
             // Don't fail deletion if import history deletion fails

@@ -966,23 +966,29 @@ public class PDFImportService {
             }
         }
         
-        // ========== EXCLUDE STANDALONE WORDS ==========
-        // Only reject if the entire line is a single excluded word (for backward compatibility)
+        // ========== EXCLUDE WORDS ==========
+        // Reject if line contains any excluded word (using word boundaries to avoid false positives)
+        // This prevents "Standard Purchases", "Credits Amount", etc. from being detected as names
         List<String> excludedWords = Arrays.asList(
-            "transaction", "account", "promo", "phone", "number", "date", "amount",
+            "transaction", "account", "promo", "phone", "number", "date", "amount", "amounts",
             "balance", "statement", "period", "page", "card", "member", "holder",
             "cardholder", "summary", "details", "information", "sale", "post", "charges", "payment",
-            "history", "%", "$", "+", "-", "0","apr","variable","interest", "fee", "fees", "standard", "tty",
+            "history", "apr", "variable", "interest", "fee", "fees", "standard", "tty",
             "annual", "rate", "percentage", "subject", "from", "to", "available", "pay", "over", "time", 
             "limit", "about", "trailing", "dated", "your", "is", "the", "on", "continued", "next",
             "new", "cash", "advances", "autopay", "enclosed", "express", "digital", "goods", "apps",
-            "news", "rewards" // Reject words like "News", "Summary", "Rewards" that appear in section headers
+            "news", "rewards", "purchases", "credits", "debits", "deposits", "withdrawals",
+            "merchant", "description", "vendor", "store", "shop", "retail", "service", "services"
         );
         
-        // Only reject if the entire line is exactly one of these words (not if it's part of a name)
-        for (String word : excludedWords) {
-            if (lowerTrimmed.equals(word)) {
-                return false; // Reject if entire line is just this word
+        // Reject if line contains any excluded word (using word boundaries)
+        // This catches cases like "Standard Purchases", "Credits Amount", etc.
+        String[] lineWords = lowerTrimmed.split("\\s+");
+        for (String lineWord : lineWords) {
+            // Remove punctuation for comparison
+            String cleanWord = lineWord.replaceAll("[.,;:!?()\\[\\]{}\"']+$", "").trim();
+            if (!cleanWord.isEmpty() && excludedWords.contains(cleanWord)) {
+                return false; // Reject if line contains any excluded word
             }
         }
         
@@ -1053,10 +1059,12 @@ public class PDFImportService {
         
         // Reject if line contains multiple excluded words (likely a header, not a name)
         // E.g., "Transaction Details", "Account Summary" - these are headers, not names
+        // Note: lineWords was already declared above, so we reuse it here
         int excludedWordCount = 0;
-        String[] lineWords = lowerTrimmed.split("\\s+");
         for (String lineWord : lineWords) {
-            if (excludedWords.contains(lineWord)) {
+            // Remove punctuation for comparison (consistent with earlier check)
+            String cleanWord = lineWord.replaceAll("[.,;:!?()\\[\\]{}\"']+$", "").trim();
+            if (!cleanWord.isEmpty() && excludedWords.contains(cleanWord)) {
                 excludedWordCount++;
             }
         }
@@ -1083,6 +1091,17 @@ public class PDFImportService {
         
         // Check for percentage signs, asterisks, equals signs, and colons (used in headers/descriptions)
         if (trimmed.contains("%") || trimmed.contains("*") || trimmed.contains("=") || trimmed.contains(":")) {
+            return false;
+        }
+        
+        // Check for forward slashes and backslashes (used in URLs, paths, domains - e.g., "HULU.COM/BILL")
+        if (trimmed.contains("/") || trimmed.contains("\\")) {
+            return false;
+        }
+        
+        // Check for domain patterns (e.g., ".COM", ".NET", ".ORG", ".BILL", etc.)
+        // This catches merchant names like "HULU.COM/BILL"
+        if (trimmed.matches(".*\\.[A-Z]{2,4}(?:/.*)?") || trimmed.matches(".*\\.[a-z]{2,4}(?:/.*)?")) {
             return false;
         }
         
@@ -1177,19 +1196,110 @@ public class PDFImportService {
             "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC",
             "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY", "DC"
         );
+        
+        // Reject names containing country names or country codes
+        // Check both single-word and multi-word country names
+        List<String> countryNames = Arrays.asList(
+            "USA", "US", "UNITED STATES", "UNITED STATES OF AMERICA", "AMERICA",
+            "UK", "UNITED KINGDOM", "BRITAIN", "GREAT BRITAIN",
+            "INDIA", "IND", "BHARAT",
+            "CANADA", "CAN",
+            "AUSTRALIA", "AUS",
+            "GERMANY", "DEU",
+            "FRANCE", "FRA",
+            "JAPAN", "JPN",
+            "CHINA", "CHN",
+            "INT", "INTERNATIONAL" // Common in airport codes and transaction descriptions
+        );
+        
+        // Reject names containing common 2-letter codes that appear in transaction descriptions/airport codes
+        // These are often false positives (e.g., "DELHI DL K", "SEATTLE-TACOMA INT DL H")
+        // Note: We only reject these in all-caps contexts to avoid false positives with valid names
+        List<String> commonTwoLetterCodes = Arrays.asList(
+            "DL", "INT", "UK", "US", "CA", "NY", "LA", "TX", "FL" // Common airport/state/country codes
+        );
+        
+        // Reject common airline/merchant names that appear in transaction descriptions
+        List<String> airlineMerchantNames = Arrays.asList(
+            "DELTA AIR LINES", "DELTA AIR", "DELTA",
+            "AMERICAN AIRLINES", "AMERICAN AIR",
+            "UNITED AIRLINES", "UNITED AIR",
+            "SOUTHWEST AIRLINES", "SOUTHWEST AIR",
+            "JETBLUE", "JET BLUE",
+            "LULULEMON ATHLETICA", "LULULEMON",
+            "AMAZON", "AMAZON.COM",
+            "WALMART", "TARGET", "STARBUCKS"
+        );
+        
+        // First, check if entire line matches a country name (handles multi-word names like "UNITED STATES")
+        String upperTrimmed = trimmed.toUpperCase();
+        for (String countryName : countryNames) {
+            if (upperTrimmed.equals(countryName) || upperTrimmed.contains(" " + countryName + " ") || 
+                upperTrimmed.startsWith(countryName + " ") || upperTrimmed.endsWith(" " + countryName)) {
+                // Rejected name candidate - matches or contains country name
+                return false;
+            }
+        }
+        
+        // Check if entire line matches an airline/merchant name
+        for (String merchantName : airlineMerchantNames) {
+            if (upperTrimmed.equals(merchantName) || upperTrimmed.contains(merchantName)) {
+                // Rejected name candidate - matches or contains airline/merchant name
+                return false;
+            }
+        }
+        
         String[] nameWords = trimmed.split("\\s+");
         // Guard against empty array (shouldn't happen due to earlier checks, but defensive)
         if (nameWords.length > 0) {
+            boolean isAllCaps = trimmed.equals(trimmed.toUpperCase()) && trimmed.matches(".*[A-Z].*");
+            
             for (String word : nameWords) {
                 if (word == null || word.trim().isEmpty()) {
                     continue; // Skip null or empty words
                 }
                 // Remove punctuation for comparison (e.g., "WA," -> "WA")
                 String cleanWord = word.replaceAll("[.,;:]+$", "").trim().toUpperCase();
-                if (!cleanWord.isEmpty() && usStateAbbreviations.contains(cleanWord)) {
+                if (cleanWord.isEmpty()) continue;
+                
+                // Check US state abbreviations
+                if (usStateAbbreviations.contains(cleanWord)) {
                     // Rejected name candidate - contains US state abbreviation
                     return false;
                 }
+                
+                // Check single-word country names (multi-word already checked above)
+                if (countryNames.contains(cleanWord)) {
+                    // Rejected name candidate - contains country name
+                    return false;
+                }
+                
+                // Check 2-letter codes - only reject in all-caps contexts (to avoid false positives)
+                // Single letter words are allowed (e.g., "J." in "John J. Smith", "O" in "O'Brien")
+                // But 2-letter codes in all-caps are likely airport/location codes, not names
+                if (isAllCaps && cleanWord.length() == 2 && commonTwoLetterCodes.contains(cleanWord)) {
+                    // Rejected name candidate - contains 2-letter code in all-caps context
+                    // Examples: "DELHI DL K", "SEATTLE-TACOMA INT DL H"
+                    return false;
+                }
+            }
+        }
+        
+        // Reject all-caps names ending with standalone single letters (likely airport/location codes)
+        // Examples: "DELHI DL K", "SEATTLE-TACOMA INT DL H"
+        // Single letters are valid in names when part of proper patterns (e.g., "J." in "John J. Smith")
+        // But standalone single letters at the end of all-caps lines are suspicious
+        // Note: 'words' variable was already declared above, so we reuse it here
+        if (trimmed.equals(trimmed.toUpperCase()) && trimmed.matches(".*[A-Z].*") && words.length > 1) {
+            String lastWord = words[words.length - 1].trim();
+            // Remove punctuation
+            String cleanLastWord = lastWord.replaceAll("[.,;:]+$", "").trim();
+            // If last word is a single letter (and line has multiple words), it's likely a code, not a name
+            // Allow single letter if it's the only word (might be a valid single-letter name, though rare)
+            if (cleanLastWord.length() == 1 && cleanLastWord.matches("[A-Z]")) {
+                // Rejected name candidate - all-caps name ending with standalone single letter
+                // This catches patterns like "DELHI DL K", "SEATTLE-TACOMA INT DL H"
+                return false;
             }
         }
         
@@ -1306,8 +1416,8 @@ public class PDFImportService {
             return true;
         }
         
-        // Check for address keywords
-        if (lowerLine.matches(".*\\b(address|street|avenue|road|boulevard|drive|lane|city|state|zip|po\\s+box|p\\.o\\.\\s+box|apt\\.?|apartment)\\b.*")) {
+        // Check for address keywords (including common abbreviations)
+        if (lowerLine.matches(".*\\b(address|street|st\\.?|avenue|ave\\.?|road|rd\\.?|boulevard|blvd\\.?|drive|dr\\.?|lane|ln\\.?|city|state|zip|po\\s+box|p\\.o\\.\\s+box|apt\\.?|apartment)\\b.*")) {
             return true;
         }
         
@@ -1348,8 +1458,47 @@ public class PDFImportService {
     }
     
     /**
+     * Check if a line looks like a transaction line (contains date and/or amount patterns)
+     * This helps avoid picking merchant names or transaction descriptions as usernames
+     */
+    private boolean isTransactionLine(String line) {
+        if (line == null || line.trim().isEmpty()) {
+            return false;
+        }
+        String trimmed = line.trim();
+        
+        // Check for date patterns (MM/DD/YYYY, DD/MM/YYYY, MM-DD-YYYY, etc.)
+        if (trimmed.matches(".*\\d{1,2}[/-]\\d{1,2}(?:[/-]\\d{2,4})?.*")) {
+            return true;
+        }
+        
+        // Check for currency symbols followed by numbers (amounts)
+        if (trimmed.matches(".*[\\$€£¥₹]\\s*\\d+.*") || trimmed.matches(".*\\d+[\\$€£¥₹].*")) {
+            return true;
+        }
+        
+        // Check for amount patterns with decimals (e.g., "123.45", "1,234.56")
+        if (trimmed.matches(".*\\b\\d{1,3}(?:,\\d{3})*\\.\\d{2}\\b.*") || 
+            trimmed.matches(".*\\b\\d+\\.\\d{2}\\b.*")) {
+            return true;
+        }
+        
+        // Check for common transaction indicators
+        String lowerLine = trimmed.toLowerCase();
+        if (lowerLine.matches(".*\\b(purchase|sale|payment|refund|credit|debit|deposit|withdrawal|transfer|fee|charge)\\b.*")) {
+            // But only if it also has numbers (to avoid false positives on headers)
+            if (trimmed.matches(".*\\d.*")) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+    
+    /**
      * Find username candidates from lines before a transaction (1-6 lines before)
      * Enhanced with contextual patterns: all-caps names followed by address/zip/card/account patterns
+     * Excludes transaction lines to avoid picking merchant names or transaction descriptions
      */
     private List<String> findUsernameCandidates(String[] lines, int transactionLineIndex, int minLinesBefore, int maxLinesBefore) {
         List<String> candidates = new ArrayList<>();
@@ -1377,6 +1526,11 @@ public class PDFImportService {
             // CRITICAL: Strip trailing commas and whitespace (CSV-like formats: "TOM TRACKER ,")
             line = line.replaceAll(",\\s*$", "").trim();
             if (line.isEmpty()) continue;
+            
+            // CRITICAL: Skip transaction lines (prevents picking merchant names or transaction descriptions)
+            if (isTransactionLine(line)) {
+                continue; // Skip transaction lines - they contain merchant names, not usernames
+            }
             
             // CRITICAL: Skip lines that are clearly not name lines (prevents false positives)
             // This matches the approach used in extractAccountHolderNameFromPDF for consistency
@@ -1505,11 +1659,16 @@ public class PDFImportService {
                 
                 if (hasContextualPattern) {
                     candidates.add(line);
-                    continue;
+                    continue; // Skip Pattern 4 if we found a contextual pattern
                 }
+                // If all-caps name but no contextual pattern, still add it (Pattern 4 will validate)
+                // This ensures all-caps names are considered even without address context
+                candidates.add(line);
+                continue;
             }
             
             // Pattern 4: Standalone name (validated by isValidNameFormat)
+            // Only check if Pattern 3 didn't match (not all-caps or didn't pass isValidNameFormat)
             if (isValidNameFormat(line)) {
                 candidates.add(line);
             }
@@ -1561,43 +1720,41 @@ public class PDFImportService {
             }
         }
         
-        // If account holder name available, validate matches and prefer all-caps
+        // CRITICAL: Only pick all-caps candidates (deprioritize all lower cases, camel cases, title cases)
+        // This prevents false positives from merchant names, transaction descriptions, etc.
+        // that may appear in title case or mixed case
+        
+        // If account holder name available, prefer matches but still return all-caps if no match
         if (accountHolderName != null) {
-            // First, try to find matches with account holder name (prefer all-caps matches)
+            // First, try to find all-caps candidates that match account holder name
             List<String> matchingAllCaps = new ArrayList<>();
-            List<String> matchingMixedCase = new ArrayList<>();
             
             for (String candidate : allCapsCandidates) {
                 if (matchesAccountHolderName(candidate, accountHolderName)) {
                     matchingAllCaps.add(candidate);
                 }
             }
-            for (String candidate : mixedCaseCandidates) {
-                if (matchesAccountHolderName(candidate, accountHolderName)) {
-                    matchingMixedCase.add(candidate);
-                }
-            }
             
-            // Prefer all-caps matches over mixed-case matches
+            // Prefer all-caps matches with account holder name
             if (!matchingAllCaps.isEmpty()) {
                 logger.info("Detected username (all-caps, validated against account holder name): '{}'", matchingAllCaps.get(0));
                 return matchingAllCaps.get(0);
             }
-            if (!matchingMixedCase.isEmpty()) {
-                logger.info("Detected username (validated against account holder name): '{}'", matchingMixedCase.get(0));
-                return matchingMixedCase.get(0);
+            
+            // No match found, but still return first all-caps candidate if available
+            // This handles multi-user statements where different users appear in the same PDF
+            if (!allCapsCandidates.isEmpty()) {
+                logger.info("Detected username (all-caps, no account holder name match): '{}'", allCapsCandidates.get(0));
+                return allCapsCandidates.get(0);
             }
+            // No all-caps candidates found - return null (don't fall back to mixed-case)
         } else {
-            // No account holder name available - prefer all-caps names
+            // No account holder name available - only return all-caps names
             if (!allCapsCandidates.isEmpty()) {
                 logger.info("Detected username (all-caps, no account holder name): '{}'", allCapsCandidates.get(0));
                 return allCapsCandidates.get(0);
             }
-            // Return first mixed-case candidate if no all-caps found
-            if (!mixedCaseCandidates.isEmpty()) {
-                logger.info("Detected username (no account holder name): '{}'", mixedCaseCandidates.get(0));
-                return mixedCaseCandidates.get(0);
-            }
+            // No all-caps candidates found - return null (don't fall back to mixed-case)
         }
         
         return null;
@@ -4045,6 +4202,7 @@ public class PDFImportService {
             transaction.setTransactionType(transactionType);
         } else {
             // Fallback to amount sign (should not happen if account type is detected)
+            
             transactionType = amount.compareTo(BigDecimal.ZERO) < 0 ? "EXPENSE" : "INCOME";
             transaction.setTransactionType(transactionType);
         }
@@ -4055,21 +4213,21 @@ public class PDFImportService {
         
         // CRITICAL: Parse category using import parser with transaction type and account type context
         // Reuse accountTypeString and accountSubtypeString already extracted above for transaction type
-        String parsedCategory = importCategoryParser.parseCategory(
-            categoryString, description, merchantName, amount, paymentChannel, null,
-            transactionType, accountTypeString, accountSubtypeString);
+        //String parsedCategory = importCategoryParser.parseCategory(
+        //    categoryString, description, merchantName, amount, paymentChannel, null,
+        //    transactionType, accountTypeString, accountSubtypeString);
         
         // Set importer category fields (raw parsed category)
-        transaction.setImporterCategoryPrimary(parsedCategory);
-        transaction.setImporterCategoryDetailed(parsedCategory);
+        //transaction.setImporterCategoryPrimary(parsedCategory);
+        //transaction.setImporterCategoryDetailed(parsedCategory);
         
-        // CRITICAL: Use unified service to determine internal categories (hybrid logic)
+        //CRITICAL: Use unified service to determine internal categories (hybrid logic)
         // Account will be null during parsing, but unified service can still work
         // Categories can use transaction type for better assessment
         TransactionTypeCategoryService.CategoryResult categoryResult = 
             transactionTypeCategoryService.determineCategory(
-                parsedCategory,  // Importer category (from parser)
-                parsedCategory,
+                null,  // Importer category (from parser)
+                null,
                 null,  // Account not available during parsing
                 merchantName,
                 description,
@@ -4080,12 +4238,24 @@ public class PDFImportService {
             );
         
         if (categoryResult != null) {
+            logger.info("-----SUMIT PRIORITY  CATEGORY RESULT NOT NULL--------");
+            logger.info("Category result: {}", categoryResult.getCategoryPrimary());
+            logger.info("Category result: {}", categoryResult.getCategoryDetailed());
             transaction.setCategoryPrimary(categoryResult.getCategoryPrimary());
             transaction.setCategoryDetailed(categoryResult.getCategoryDetailed());
+            transaction.setImporterCategoryPrimary(categoryResult.getCategoryPrimary());
+            transaction.setImporterCategoryDetailed(categoryResult.getCategoryDetailed());
         } else {
             // Fallback
+            String parsedCategory = importCategoryParser.parseCategory(
+                categoryString, description, merchantName, amount, paymentChannel, null,
+                transactionType, accountTypeString, accountSubtypeString);
+        
+            // Set importer category fields (raw parsed category)
             transaction.setCategoryPrimary(parsedCategory);
             transaction.setCategoryDetailed(parsedCategory);
+            transaction.setImporterCategoryPrimary(parsedCategory);
+            transaction.setImporterCategoryDetailed(parsedCategory);
         }
         
         return transaction;

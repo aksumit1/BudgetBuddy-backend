@@ -1,0 +1,33 @@
+{
+    "Items": [
+        {
+            "currentSpent": {
+                "N": "0"
+            },
+            "rolloverEnabled": {
+                "BOOL": true
+            },
+            "budgetId": {
+                "S": "3a7d6239-1706-5444-ae90-6dd51584b497"
+            },
+            "category": {
+                "S": "groceries"
+            },
+            "currencyCode": {
+                "S": "USD"
+            },
+            "monthlyLimit": {
+                "N": "1000"
+            },
+            "userId": {
+                "S": "c8920e3b-7293-4674-a5f3-fa4c0c6f115a"
+            },
+            "carriedAmount": {
+                "N": "0"
+            }
+        }
+    ],
+    "Count": 1,
+    "ScannedCount": 1,
+    "ConsumedCapacity": null
+}

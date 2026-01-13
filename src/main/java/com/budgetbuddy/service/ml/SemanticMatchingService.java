@@ -916,7 +916,7 @@ public class SemanticMatchingService {
                 // Calculate semantic similarity (Jaccard similarity for now)
                 logger.trace("Checking category '{}' with {} keywords against text '{}'", category, clusterSnapshot.size(), combinedText);
                 double baseSimilarity = calculateSemanticSimilarity(tokens, clusterSnapshot, combinedText);
-                logger.trace("Category '{}' base similarity: {:.4f}", category, baseSimilarity);
+                logger.trace("Category '{}' base similarity: {}", category, baseSimilarity);
                 
                 // CRITICAL: Apply context-aware matching to boost/penalize similarity
                 double contextBoost = calculateContextBoost(
@@ -935,7 +935,7 @@ public class SemanticMatchingService {
                 // CRITICAL: Ensure similarity is in valid range [0, 1]
                 similarity = Math.max(0.0, Math.min(1.0, similarity));
                 
-                logger.trace("Category '{}' final similarity: {:.4f} (base: {:.4f}, context boost: {:.4f}, threshold: {:.4f})", 
+                logger.trace("Category '{}' final similarity: {} (base: {}, context boost: {}, threshold: {})", 
                     category, similarity, baseSimilarity, contextBoost, SEMANTIC_SIMILARITY_THRESHOLD);
                 
                 if (similarity > bestScore && similarity >= SEMANTIC_SIMILARITY_THRESHOLD) {
@@ -952,7 +952,7 @@ public class SemanticMatchingService {
             }
             
             if (bestCategory != null) {
-                logger.debug("Semantic match found: '{}' → '{}' (similarity: {:.2f})",
+                logger.debug("Semantic match found: '{}' → '{}' (similarity: {})",
                     combinedText.substring(0, Math.min(50, combinedText.length())),
                     bestCategory, bestScore);
                 return new SemanticMatchResult(bestCategory, bestScore, "SEMANTIC_CONTEXT_AWARE");

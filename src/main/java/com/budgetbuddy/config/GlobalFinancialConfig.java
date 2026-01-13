@@ -63,10 +63,12 @@ public class GlobalFinancialConfig {
      */
     private Map<String, List<String>> regionCreditCardKeywords = Map.of(
         "US", List.of(
-            "citi autopay", "citi card", "citicard", "chase autopay", "chase credit",
-            "wells fargo autopay", "wf autopay", "bofa autopay", "bank of america",
-            "discover autopay", "discover e-payment", "amex autopay", "american express",
-            "capital one autopay", "web id:", "ppd id:", "e-payment", "epayment"
+            "citi autopay", "citi card", "citicard", "chase credit",
+            "wells fargo credit", "wf credit", "wf card", "bank of america",
+            "discover autopay", "discover e-payment", "amex autopay", "american express ach",
+            "capital one autopay", "web id:", "ppd id:", "e-payment", "epayment", "amz_storecrd_pmt",
+            "ppcr cc", "target card srvc payment", "discover e-payment", "discover autopay",
+            "credit card", "credit crd", "walmart card", "walmart cc"
         ),
         "UK", List.of(
             "barclaycard payment", "hsbc card payment", "lloyds card payment",

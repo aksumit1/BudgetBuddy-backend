@@ -1,0 +1,35 @@
+{
+    "Items": [
+        {
+            "tokens": {
+                "N": "999994"
+            },
+            "lastRefill": {
+                "N": "1767971716230"
+            },
+            "ttl": {
+                "N": "1767975317"
+            },
+            "key": {
+                "S": "ska@yahoo.com:/api/transactions/import-pdf/preview"
+            }
+        },
+        {
+            "tokens": {
+                "N": "999997"
+            },
+            "lastRefill": {
+                "N": "1767971788542"
+            },
+            "ttl": {
+                "N": "1767975439"
+            },
+            "key": {
+                "S": "ska@yahoo.com:/api/transactions/import-csv"
+            }
+        }
+    ],
+    "Count": 2,
+    "ScannedCount": 2,
+    "ConsumedCapacity": null
+}

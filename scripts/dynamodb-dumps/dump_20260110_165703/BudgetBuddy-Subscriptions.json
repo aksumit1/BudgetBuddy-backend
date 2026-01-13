@@ -1,0 +1,802 @@
+{
+    "Items": [
+        {
+            "originalCategoryDetailed": {
+                "S": "transportation"
+            },
+            "amount": {
+                "N": "-10.53"
+            },
+            "nextPaymentDate": {
+                "S": "2025-10-07"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "SHELL OIL 57444213508 SANTA CLARA CA"
+            },
+            "userId": {
+                "S": "c8920e3b-7293-4674-a5f3-fa4c0c6f115a"
+            },
+            "frequency": {
+                "S": "MONTHLY"
+            },
+            "merchantName": {
+                "S": "TYEE MIDDLE SCHOOL PTS BELLEVUE WA"
+            },
+            "accountId": {
+                "S": "d9e9b150-b520-4997-87a5-de8dc2b4032e"
+            },
+            "createdAt": {
+                "S": "2026-01-09T15:16:17.781018002Z"
+            },
+            "subscriptionType": {
+                "S": "other"
+            },
+            "originalCategoryPrimary": {
+                "S": "transportation"
+            },
+            "lastPaymentDate": {
+                "S": "2025-09-07"
+            },
+            "category": {
+                "S": "subscriptions"
+            },
+            "subscriptionId": {
+                "S": "e71d533b-2537-3827-8832-ce34568465ba"
+            },
+            "startDate": {
+                "S": "2025-07-02"
+            },
+            "updatedAt": {
+                "S": "2026-01-09T15:16:17.781018085Z"
+            }
+        },
+        {
+            "originalCategoryDetailed": {
+                "S": "groceries"
+            },
+            "amount": {
+                "N": "-8"
+            },
+            "nextPaymentDate": {
+                "S": "2025-06-29"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "COSTCO WHSE #0002 PORTLAND OR"
+            },
+            "userId": {
+                "S": "c8920e3b-7293-4674-a5f3-fa4c0c6f115a"
+            },
+            "frequency": {
+                "S": "MONTHLY"
+            },
+            "merchantName": {
+                "S": "MEET FRESH (BELLEVUE) BELLEVUE WA"
+            },
+            "accountId": {
+                "S": "d9e9b150-b520-4997-87a5-de8dc2b4032e"
+            },
+            "createdAt": {
+                "S": "2026-01-09T15:16:27.999736757Z"
+            },
+            "subscriptionType": {
+                "S": "membership"
+            },
+            "originalCategoryPrimary": {
+                "S": "groceries"
+            },
+            "lastPaymentDate": {
+                "S": "2025-06-06"
+            },
+            "category": {
+                "S": "subscriptions"
+            },
+            "subscriptionId": {
+                "S": "43c39089-8b29-3e87-a1dd-1ff7209ce05c"
+            },
+            "startDate": {
+                "S": "2025-05-29"
+            },
+            "updatedAt": {
+                "S": "2026-01-09T15:16:27.999736840Z"
+            }
+        },
+        {
+            "originalCategoryDetailed": {
+                "S": "transportation"
+            },
+            "amount": {
+                "N": "-8.15"
+            },
+            "nextPaymentDate": {
+                "S": "2025-11-26"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "UW PAY BY PHONE 0202 SEATTLE WA 206-685-1553"
+            },
+            "userId": {
+                "S": "c8920e3b-7293-4674-a5f3-fa4c0c6f115a"
+            },
+            "frequency": {
+                "S": "WEEKLY"
+            },
+            "merchantName": {
+                "S": "SP ANKI REMOTE NEWBURGH IN +17864744370"
+            },
+            "accountId": {
+                "S": "33170ec5-8f03-4cc9-b524-28a257508beb"
+            },
+            "createdAt": {
+                "S": "2026-01-09T15:15:57.529230382Z"
+            },
+            "subscriptionType": {
+                "S": "other"
+            },
+            "originalCategoryPrimary": {
+                "S": "transportation"
+            },
+            "lastPaymentDate": {
+                "S": "2025-11-19"
+            },
+            "category": {
+                "S": "subscriptions"
+            },
+            "subscriptionId": {
+                "S": "06422cde-0185-31d9-8cfe-91447d5eeff4"
+            },
+            "startDate": {
+                "S": "2025-10-13"
+            },
+            "updatedAt": {
+                "S": "2026-01-09T15:15:57.529230423Z"
+            }
+        },
+        {
+            "originalCategoryDetailed": {
+                "S": "payment"
+            },
+            "amount": {
+                "N": "-355.17"
+            },
+            "nextPaymentDate": {
+                "S": "2024-04-11"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "CHASE CREDIT CRD AUTOPAY                    PPD ID: 4760039224"
+            },
+            "userId": {
+                "S": "c8920e3b-7293-4674-a5f3-fa4c0c6f115a"
+            },
+            "frequency": {
+                "S": "MONTHLY"
+            },
+            "merchantName": {
+                "S": "TD AUTO FINANCE LOAN PYMT WEB ID:"
+            },
+            "accountId": {
+                "S": "e5559a9e-188e-4c83-aed7-1974ca0294dc"
+            },
+            "createdAt": {
+                "S": "2026-01-10T22:05:55.394339003Z"
+            },
+            "subscriptionType": {
+                "S": "other"
+            },
+            "originalCategoryPrimary": {
+                "S": "payment"
+            },
+            "lastPaymentDate": {
+                "S": "2024-03-11"
+            },
+            "category": {
+                "S": "subscriptions"
+            },
+            "subscriptionId": {
+                "S": "6d33eded-bb5d-35bb-aee8-e6239c6e1593"
+            },
+            "startDate": {
+                "S": "2024-01-10"
+            },
+            "updatedAt": {
+                "S": "2026-01-10T22:05:55.394339086Z"
+            }
+        },
+        {
+            "originalCategoryDetailed": {
+                "S": "payment"
+            },
+            "amount": {
+                "N": "-4792.45"
+            },
+            "nextPaymentDate": {
+                "S": "2024-07-03"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "JPMORGAN CHASE   CHASE ACH                  PPD ID: 1000008113"
+            },
+            "userId": {
+                "S": "c8920e3b-7293-4674-a5f3-fa4c0c6f115a"
+            },
+            "frequency": {
+                "S": "MONTHLY"
+            },
+            "merchantName": {
+                "S": "TD AUTO FINANCE LOAN PYMT WEB ID:"
+            },
+            "accountId": {
+                "S": "e5559a9e-188e-4c83-aed7-1974ca0294dc"
+            },
+            "createdAt": {
+                "S": "2026-01-10T22:05:55.475931545Z"
+            },
+            "subscriptionType": {
+                "S": "other"
+            },
+            "originalCategoryPrimary": {
+                "S": "payment"
+            },
+            "lastPaymentDate": {
+                "S": "2024-06-03"
+            },
+            "category": {
+                "S": "subscriptions"
+            },
+            "subscriptionId": {
+                "S": "2c317e14-2835-3297-806c-b79bd0eb7a77"
+            },
+            "startDate": {
+                "S": "2024-01-02"
+            },
+            "updatedAt": {
+                "S": "2026-01-10T22:05:55.475932711Z"
+            }
+        },
+        {
+            "originalCategoryDetailed": {
+                "S": "groceries"
+            },
+            "amount": {
+                "N": "-8"
+            },
+            "nextPaymentDate": {
+                "S": "2025-10-19"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "COSTCO WHSE #0002 PORTLAND OR"
+            },
+            "userId": {
+                "S": "c8920e3b-7293-4674-a5f3-fa4c0c6f115a"
+            },
+            "frequency": {
+                "S": "MONTHLY"
+            },
+            "merchantName": {
+                "S": "TST*KK RESTAURANT SANTA CLARA CA"
+            },
+            "accountId": {
+                "S": "d9e9b150-b520-4997-87a5-de8dc2b4032e"
+            },
+            "createdAt": {
+                "S": "2026-01-09T15:16:04.114496218Z"
+            },
+            "subscriptionType": {
+                "S": "membership"
+            },
+            "originalCategoryPrimary": {
+                "S": "groceries"
+            },
+            "lastPaymentDate": {
+                "S": "2025-09-19"
+            },
+            "category": {
+                "S": "subscriptions"
+            },
+            "subscriptionId": {
+                "S": "cbe4fb84-a137-3d07-bcbf-a60d15dabc90"
+            },
+            "startDate": {
+                "S": "2025-05-29"
+            },
+            "updatedAt": {
+                "S": "2026-01-09T15:16:04.114496301Z"
+            }
+        },
+        {
+            "originalCategoryDetailed": {
+                "S": "dining"
+            },
+            "amount": {
+                "N": "-8.08"
+            },
+            "nextPaymentDate": {
+                "S": "2025-12-06"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "AMZ SJ14 CAFE SUNNYVALE CA"
+            },
+            "userId": {
+                "S": "c8920e3b-7293-4674-a5f3-fa4c0c6f115a"
+            },
+            "frequency": {
+                "S": "DAILY"
+            },
+            "merchantName": {
+                "S": "CUCINA VENTI MOUNTAIN VIEWCA"
+            },
+            "accountId": {
+                "S": "d9e9b150-b520-4997-87a5-de8dc2b4032e"
+            },
+            "createdAt": {
+                "S": "2026-01-09T15:15:51.758875129Z"
+            },
+            "subscriptionType": {
+                "S": "other"
+            },
+            "originalCategoryPrimary": {
+                "S": "dining"
+            },
+            "lastPaymentDate": {
+                "S": "2025-12-05"
+            },
+            "category": {
+                "S": "subscriptions"
+            },
+            "subscriptionId": {
+                "S": "ebeb1330-19e2-36eb-865d-e721ddd38164"
+            },
+            "startDate": {
+                "S": "2025-12-02"
+            },
+            "updatedAt": {
+                "S": "2026-01-09T15:15:51.758875212Z"
+            }
+        },
+        {
+            "originalCategoryDetailed": {
+                "S": "transportation"
+            },
+            "amount": {
+                "N": "-21"
+            },
+            "nextPaymentDate": {
+                "S": "2025-11-20"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "UW PAY BY PHONE SEATTLE WA 206-685-1553"
+            },
+            "userId": {
+                "S": "c8920e3b-7293-4674-a5f3-fa4c0c6f115a"
+            },
+            "frequency": {
+                "S": "WEEKLY"
+            },
+            "merchantName": {
+                "S": "SP ANKI REMOTE NEWBURGH IN +17864744370"
+            },
+            "accountId": {
+                "S": "33170ec5-8f03-4cc9-b524-28a257508beb"
+            },
+            "createdAt": {
+                "S": "2026-01-09T15:16:01.160625717Z"
+            },
+            "subscriptionType": {
+                "S": "other"
+            },
+            "originalCategoryPrimary": {
+                "S": "transportation"
+            },
+            "lastPaymentDate": {
+                "S": "2025-11-13"
+            },
+            "category": {
+                "S": "subscriptions"
+            },
+            "subscriptionId": {
+                "S": "54d55d7a-4e01-322a-9497-69af7fccc795"
+            },
+            "startDate": {
+                "S": "2025-10-24"
+            },
+            "updatedAt": {
+                "S": "2026-01-09T15:16:01.160625758Z"
+            }
+        },
+        {
+            "originalCategoryDetailed": {
+                "S": "groceries"
+            },
+            "amount": {
+                "N": "-10.97"
+            },
+            "nextPaymentDate": {
+                "S": "2025-09-01"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "COSTCO WHSE #0006 TUKWILA WA"
+            },
+            "userId": {
+                "S": "c8920e3b-7293-4674-a5f3-fa4c0c6f115a"
+            },
+            "frequency": {
+                "S": "MONTHLY"
+            },
+            "merchantName": {
+                "S": "MEET FRESH (BELLEVUE) BELLEVUE WA"
+            },
+            "accountId": {
+                "S": "d9e9b150-b520-4997-87a5-de8dc2b4032e"
+            },
+            "createdAt": {
+                "S": "2026-01-09T15:16:27.995610798Z"
+            },
+            "subscriptionType": {
+                "S": "membership"
+            },
+            "originalCategoryPrimary": {
+                "S": "groceries"
+            },
+            "lastPaymentDate": {
+                "S": "2025-08-01"
+            },
+            "category": {
+                "S": "subscriptions"
+            },
+            "subscriptionId": {
+                "S": "6e1f0b17-1f10-37af-a109-5ce40f98ea9c"
+            },
+            "startDate": {
+                "S": "2025-05-29"
+            },
+            "updatedAt": {
+                "S": "2026-01-09T15:16:27.995610923Z"
+            }
+        },
+        {
+            "originalCategoryDetailed": {
+                "S": "transportation"
+            },
+            "amount": {
+                "N": "-7.85"
+            },
+            "nextPaymentDate": {
+                "S": "2025-11-26"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "UW PAY BY PHONE 0202 SEATTLE WA 206-685-1553"
+            },
+            "userId": {
+                "S": "c8920e3b-7293-4674-a5f3-fa4c0c6f115a"
+            },
+            "frequency": {
+                "S": "WEEKLY"
+            },
+            "merchantName": {
+                "S": "SP ANKI REMOTE NEWBURGH IN +17864744370"
+            },
+            "accountId": {
+                "S": "33170ec5-8f03-4cc9-b524-28a257508beb"
+            },
+            "createdAt": {
+                "S": "2026-01-09T15:15:59.300654549Z"
+            },
+            "subscriptionType": {
+                "S": "other"
+            },
+            "originalCategoryPrimary": {
+                "S": "transportation"
+            },
+            "lastPaymentDate": {
+                "S": "2025-11-19"
+            },
+            "category": {
+                "S": "subscriptions"
+            },
+            "subscriptionId": {
+                "S": "a1634ccf-97a3-32bb-8a5b-0ff03bdc78e6"
+            },
+            "startDate": {
+                "S": "2025-10-13"
+            },
+            "updatedAt": {
+                "S": "2026-01-09T15:15:59.300654632Z"
+            }
+        },
+        {
+            "originalCategoryDetailed": {
+                "S": "dining"
+            },
+            "amount": {
+                "N": "-8.08"
+            },
+            "nextPaymentDate": {
+                "S": "2025-12-06"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "AMZ SJ14 CAFE SUNNYVALE CA"
+            },
+            "userId": {
+                "S": "c8920e3b-7293-4674-a5f3-fa4c0c6f115a"
+            },
+            "frequency": {
+                "S": "DAILY"
+            },
+            "merchantName": {
+                "S": "D J*BARRONS 800-544-0422 NJ SUBSRIPTION"
+            },
+            "accountId": {
+                "S": "d9e9b150-b520-4997-87a5-de8dc2b4032e"
+            },
+            "createdAt": {
+                "S": "2026-01-09T15:15:55.486102881Z"
+            },
+            "subscriptionType": {
+                "S": "other"
+            },
+            "originalCategoryPrimary": {
+                "S": "dining"
+            },
+            "lastPaymentDate": {
+                "S": "2025-12-05"
+            },
+            "category": {
+                "S": "subscriptions"
+            },
+            "subscriptionId": {
+                "S": "2907dc1d-f45b-3339-8b3a-64e8f2ef5a84"
+            },
+            "startDate": {
+                "S": "2025-12-02"
+            },
+            "updatedAt": {
+                "S": "2026-01-09T15:15:55.486103006Z"
+            }
+        },
+        {
+            "originalCategoryDetailed": {
+                "S": "dining"
+            },
+            "amount": {
+                "N": "-8.08"
+            },
+            "nextPaymentDate": {
+                "S": "2025-12-06"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "AMZ SJ14 CAFE SUNNYVALE CA"
+            },
+            "userId": {
+                "S": "c8920e3b-7293-4674-a5f3-fa4c0c6f115a"
+            },
+            "frequency": {
+                "S": "DAILY"
+            },
+            "merchantName": {
+                "S": "AMZ SJ14 CAFE SUNNYVALE CA"
+            },
+            "accountId": {
+                "S": "d9e9b150-b520-4997-87a5-de8dc2b4032e"
+            },
+            "createdAt": {
+                "S": "2026-01-09T15:15:57.533803423Z"
+            },
+            "subscriptionType": {
+                "S": "other"
+            },
+            "originalCategoryPrimary": {
+                "S": "dining"
+            },
+            "lastPaymentDate": {
+                "S": "2025-12-05"
+            },
+            "category": {
+                "S": "subscriptions"
+            },
+            "subscriptionId": {
+                "S": "63ef9bc1-9d3b-3c4d-a47e-cecdfdb9aec7"
+            },
+            "startDate": {
+                "S": "2025-12-02"
+            },
+            "updatedAt": {
+                "S": "2026-01-09T15:15:57.533803507Z"
+            }
+        },
+        {
+            "originalCategoryDetailed": {
+                "S": "transportation"
+            },
+            "amount": {
+                "N": "-60.76"
+            },
+            "nextPaymentDate": {
+                "S": "2025-08-19"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "LYFT *RIDE FRI 4PM LYFT.COM CA"
+            },
+            "userId": {
+                "S": "c8920e3b-7293-4674-a5f3-fa4c0c6f115a"
+            },
+            "frequency": {
+                "S": "MONTHLY"
+            },
+            "merchantName": {
+                "S": "HLU*HULUPLUS HULU.COM/BILL CA HULU.COM/BILL"
+            },
+            "accountId": {
+                "S": "d9e9b150-b520-4997-87a5-de8dc2b4032e"
+            },
+            "createdAt": {
+                "S": "2026-01-09T15:16:27.989734340Z"
+            },
+            "subscriptionType": {
+                "S": "membership"
+            },
+            "originalCategoryPrimary": {
+                "S": "transportation"
+            },
+            "lastPaymentDate": {
+                "S": "2025-07-19"
+            },
+            "category": {
+                "S": "subscriptions"
+            },
+            "subscriptionId": {
+                "S": "619ad328-778a-301e-a0be-cf11b2ec13b6"
+            },
+            "startDate": {
+                "S": "2025-05-24"
+            },
+            "updatedAt": {
+                "S": "2026-01-09T15:16:27.989734423Z"
+            }
+        },
+        {
+            "originalCategoryDetailed": {
+                "S": "payment"
+            },
+            "amount": {
+                "N": "-1021.9"
+            },
+            "nextPaymentDate": {
+                "S": "2024-07-05"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "TD AUTO FINANCE  LOAN PYMT  002941104514183 WEB ID: 8202614244"
+            },
+            "userId": {
+                "S": "c8920e3b-7293-4674-a5f3-fa4c0c6f115a"
+            },
+            "frequency": {
+                "S": "MONTHLY"
+            },
+            "merchantName": {
+                "S": "TD AUTO FINANCE LOAN PYMT WEB ID:"
+            },
+            "accountId": {
+                "S": "e5559a9e-188e-4c83-aed7-1974ca0294dc"
+            },
+            "createdAt": {
+                "S": "2026-01-10T22:05:55.507910836Z"
+            },
+            "subscriptionType": {
+                "S": "other"
+            },
+            "originalCategoryPrimary": {
+                "S": "payment"
+            },
+            "lastPaymentDate": {
+                "S": "2024-06-05"
+            },
+            "category": {
+                "S": "subscriptions"
+            },
+            "subscriptionId": {
+                "S": "784ff24e-5854-3e1e-8eac-e3ef8d73fa99"
+            },
+            "startDate": {
+                "S": "2024-01-05"
+            },
+            "updatedAt": {
+                "S": "2026-01-10T22:05:55.507925086Z"
+            }
+        },
+        {
+            "originalCategoryDetailed": {
+                "S": "groceries"
+            },
+            "amount": {
+                "N": "-16.61"
+            },
+            "nextPaymentDate": {
+                "S": "2025-10-09"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "COSTCO WHSE #0110 ISSAQUAH WA"
+            },
+            "userId": {
+                "S": "c8920e3b-7293-4674-a5f3-fa4c0c6f115a"
+            },
+            "frequency": {
+                "S": "MONTHLY"
+            },
+            "merchantName": {
+                "S": "URVASHI BEAUTY STUDIO BELLEVUE WA"
+            },
+            "accountId": {
+                "S": "d9e9b150-b520-4997-87a5-de8dc2b4032e"
+            },
+            "createdAt": {
+                "S": "2026-01-09T15:16:05.562949844Z"
+            },
+            "subscriptionType": {
+                "S": "membership"
+            },
+            "originalCategoryPrimary": {
+                "S": "groceries"
+            },
+            "lastPaymentDate": {
+                "S": "2025-09-09"
+            },
+            "category": {
+                "S": "subscriptions"
+            },
+            "subscriptionId": {
+                "S": "7c629867-e7d3-3897-9502-a5387da43699"
+            },
+            "startDate": {
+                "S": "2025-06-06"
+            },
+            "updatedAt": {
+                "S": "2026-01-09T15:16:05.562949927Z"
+            }
+        }
+    ],
+    "Count": 15,
+    "ScannedCount": 15,
+    "ConsumedCapacity": null
+}

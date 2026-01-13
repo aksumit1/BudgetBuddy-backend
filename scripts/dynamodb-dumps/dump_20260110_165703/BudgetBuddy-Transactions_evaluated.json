@@ -1,0 +1,3350 @@
+{
+  "evaluation_date": "2026-01-10T17:04:00.940902",
+  "total_detected": 13,
+  "subscriptions": [],
+  "recurring": [
+    {
+      "merchant": "CONSUMER USD INTERNATIONAL WIRE FEE",
+      "merchant_key": "CONSUMER USD INTERNATIONAL WIRE FEE",
+      "amount": "-50",
+      "frequency": "MONTHLY",
+      "subscription_type": "other",
+      "subscription_category": "recurring",
+      "transaction_count": 2,
+      "transactions": [
+        {
+          "amount": {
+            "N": "-50"
+          },
+          "categoryDetailed": {
+            "S": "fee"
+          },
+          "importedAt": {
+            "S": "2026-01-09T15:16:41.686297180Z"
+          },
+          "importerCategoryPrimary": {
+            "S": "fee"
+          },
+          "description": {
+            "S": "CONSUMER USD INTERNATIONAL WIRE FEE"
+          },
+          "importBatchId": {
+            "S": "e1af5723-42c2-4757-8882-61ca55b4094d"
+          },
+          "transactionTypeOverridden": {
+            "BOOL": true
+          },
+          "transactionDate": {
+            "S": "2025-08-11"
+          },
+          "updatedAtTimestamp": {
+            "N": "1767971801"
+          },
+          "userId": {
+            "S": "c8920e3b-7293-4674-a5f3-fa4c0c6f115a"
+          },
+          "transactionId": {
+            "S": "43c7d92b-d2b4-305f-9432-c75d09dde58b"
+          },
+          "merchantName": {
+            "S": "CONSUMER USD INTERNATIONAL WIRE FEE"
+          },
+          "categoryOverridden": {
+            "BOOL": true
+          },
+          "transactionType": {
+            "S": "EXPENSE"
+          },
+          "accountId": {
+            "S": "e5559a9e-188e-4c83-aed7-1974ca0294dc"
+          },
+          "createdAt": {
+            "S": "2026-01-09T15:16:41.728933388Z"
+          },
+          "categoryPrimary": {
+            "S": "fee"
+          },
+          "importFileName": {
+            "S": "Chase3100_Activity_20251221.CSV"
+          },
+          "importSource": {
+            "S": "CSV"
+          },
+          "currencyCode": {
+            "S": "USD"
+          },
+          "importerCategoryDetailed": {
+            "S": "fee"
+          },
+          "updatedAt": {
+            "S": "2026-01-09T15:16:41.728933388Z"
+          }
+        },
+        {
+          "amount": {
+            "N": "-50"
+          },
+          "categoryDetailed": {
+            "S": "fee"
+          },
+          "importedAt": {
+            "S": "2026-01-09T15:16:40.537645971Z"
+          },
+          "importerCategoryPrimary": {
+            "S": "fee"
+          },
+          "description": {
+            "S": "CONSUMER USD INTERNATIONAL WIRE FEE"
+          },
+          "importBatchId": {
+            "S": "e1af5723-42c2-4757-8882-61ca55b4094d"
+          },
+          "transactionTypeOverridden": {
+            "BOOL": true
+          },
+          "transactionDate": {
+            "S": "2025-09-05"
+          },
+          "updatedAtTimestamp": {
+            "N": "1767971800"
+          },
+          "userId": {
+            "S": "c8920e3b-7293-4674-a5f3-fa4c0c6f115a"
+          },
+          "transactionId": {
+            "S": "438c137e-e6fa-3838-92d5-47457882f2ec"
+          },
+          "merchantName": {
+            "S": "CONSUMER USD INTERNATIONAL WIRE FEE"
+          },
+          "categoryOverridden": {
+            "BOOL": true
+          },
+          "transactionType": {
+            "S": "EXPENSE"
+          },
+          "accountId": {
+            "S": "e5559a9e-188e-4c83-aed7-1974ca0294dc"
+          },
+          "createdAt": {
+            "S": "2026-01-09T15:16:40.579679721Z"
+          },
+          "categoryPrimary": {
+            "S": "fee"
+          },
+          "importFileName": {
+            "S": "Chase3100_Activity_20251221.CSV"
+          },
+          "importSource": {
+            "S": "CSV"
+          },
+          "currencyCode": {
+            "S": "USD"
+          },
+          "importerCategoryDetailed": {
+            "S": "fee"
+          },
+          "updatedAt": {
+            "S": "2026-01-09T15:16:40.579679721Z"
+          }
+        }
+      ],
+      "dates": [
+        "2025-08-11",
+        "2025-09-05"
+      ]
+    },
+    {
+      "merchant": "CHASE CREDIT CRD AUTOPAY PPD ID:",
+      "merchant_key": "CHASE CREDIT CRD AUTOPAY PPD ID",
+      "amount": "-333.16",
+      "frequency": "MONTHLY",
+      "subscription_type": "other",
+      "subscription_category": "recurring",
+      "transaction_count": 2,
+      "transactions": [
+        {
+          "amount": {
+            "N": "-333.16"
+          },
+          "categoryDetailed": {
+            "S": "payment"
+          },
+          "importedAt": {
+            "S": "2026-01-09T15:17:02.509407467Z"
+          },
+          "importerCategoryPrimary": {
+            "S": "payment"
+          },
+          "description": {
+            "S": "CHASE CREDIT CRD AUTOPAY                    PPD ID: 4760039224"
+          },
+          "importBatchId": {
+            "S": "e1af5723-42c2-4757-8882-61ca55b4094d"
+          },
+          "transactionTypeOverridden": {
+            "BOOL": true
+          },
+          "transactionDate": {
+            "S": "2024-07-10"
+          },
+          "updatedAtTimestamp": {
+            "N": "1767971822"
+          },
+          "userId": {
+            "S": "c8920e3b-7293-4674-a5f3-fa4c0c6f115a"
+          },
+          "transactionId": {
+            "S": "646d5668-fa82-3a2d-a221-5c839b560f9d"
+          },
+          "merchantName": {
+            "S": "CHASE CREDIT CRD AUTOPAY PPD ID:"
+          },
+          "categoryOverridden": {
+            "BOOL": true
+          },
+          "transactionType": {
+            "S": "EXPENSE"
+          },
+          "accountId": {
+            "S": "e5559a9e-188e-4c83-aed7-1974ca0294dc"
+          },
+          "createdAt": {
+            "S": "2026-01-09T15:17:02.573394092Z"
+          },
+          "categoryPrimary": {
+            "S": "payment"
+          },
+          "importFileName": {
+            "S": "Chase3100_Activity_20251221.CSV"
+          },
+          "importSource": {
+            "S": "CSV"
+          },
+          "currencyCode": {
+            "S": "USD"
+          },
+          "importerCategoryDetailed": {
+            "S": "payment"
+          },
+          "updatedAt": {
+            "S": "2026-01-09T15:17:02.573394092Z"
+          }
+        },
+        {
+          "amount": {
+            "N": "-326.74"
+          },
+          "categoryDetailed": {
+            "S": "payment"
+          },
+          "importedAt": {
+            "S": "2026-01-09T15:17:00.846105050Z"
+          },
+          "importerCategoryPrimary": {
+            "S": "payment"
+          },
+          "description": {
+            "S": "CHASE CREDIT CRD AUTOPAY                    PPD ID: 4760039224"
+          },
+          "importBatchId": {
+            "S": "e1af5723-42c2-4757-8882-61ca55b4094d"
+          },
+          "transactionTypeOverridden": {
+            "BOOL": true
+          },
+          "transactionDate": {
+            "S": "2024-08-12"
+          },
+          "updatedAtTimestamp": {
+            "N": "1767971820"
+          },
+          "userId": {
+            "S": "c8920e3b-7293-4674-a5f3-fa4c0c6f115a"
+          },
+          "transactionId": {
+            "S": "db9b49c0-58bf-3b48-81a3-3a30066cc6bd"
+          },
+          "merchantName": {
+            "S": "CHASE CREDIT CRD AUTOPAY PPD ID:"
+          },
+          "categoryOverridden": {
+            "BOOL": true
+          },
+          "transactionType": {
+            "S": "EXPENSE"
+          },
+          "accountId": {
+            "S": "e5559a9e-188e-4c83-aed7-1974ca0294dc"
+          },
+          "createdAt": {
+            "S": "2026-01-09T15:17:00.908591842Z"
+          },
+          "categoryPrimary": {
+            "S": "payment"
+          },
+          "importFileName": {
+            "S": "Chase3100_Activity_20251221.CSV"
+          },
+          "importSource": {
+            "S": "CSV"
+          },
+          "currencyCode": {
+            "S": "USD"
+          },
+          "importerCategoryDetailed": {
+            "S": "payment"
+          },
+          "updatedAt": {
+            "S": "2026-01-09T15:17:00.908591842Z"
+          }
+        }
+      ],
+      "dates": [
+        "2024-07-10",
+        "2024-08-12"
+      ]
+    },
+    {
+      "merchant": "CHASE CREDIT CRD AUTOPAY PPD ID:",
+      "merchant_key": "CHASE CREDIT CRD AUTOPAY PPD ID",
+      "amount": "-489.25",
+      "frequency": "MONTHLY",
+      "subscription_type": "other",
+      "subscription_category": "recurring",
+      "transaction_count": 3,
+      "transactions": [
+        {
+          "amount": {
+            "N": "-498.67"
+          },
+          "categoryDetailed": {
+            "S": "payment"
+          },
+          "importedAt": {
+            "S": "2026-01-09T15:17:11.082940305Z"
+          },
+          "importerCategoryPrimary": {
+            "S": "payment"
+          },
+          "description": {
+            "S": "CHASE CREDIT CRD AUTOPAY                    PPD ID: 4760039224"
+          },
+          "importBatchId": {
+            "S": "ee153f59-892b-417c-b712-dfb1ee076f4c"
+          },
+          "transactionTypeOverridden": {
+            "BOOL": true
+          },
+          "transactionDate": {
+            "S": "2024-04-10"
+          },
+          "updatedAtTimestamp": {
+            "N": "1767971831"
+          },
+          "userId": {
+            "S": "c8920e3b-7293-4674-a5f3-fa4c0c6f115a"
+          },
+          "transactionId": {
+            "S": "d43fc567-2a97-3b21-aa89-a63ec17e18e1"
+          },
+          "merchantName": {
+            "S": "CHASE CREDIT CRD AUTOPAY PPD ID:"
+          },
+          "categoryOverridden": {
+            "BOOL": true
+          },
+          "transactionType": {
+            "S": "EXPENSE"
+          },
+          "accountId": {
+            "S": "e5559a9e-188e-4c83-aed7-1974ca0294dc"
+          },
+          "createdAt": {
+            "S": "2026-01-09T15:17:11.247785055Z"
+          },
+          "categoryPrimary": {
+            "S": "payment"
+          },
+          "importFileName": {
+            "S": "Chase3100_Activity_20251221.CSV"
+          },
+          "importSource": {
+            "S": "CSV"
+          },
+          "currencyCode": {
+            "S": "USD"
+          },
+          "importerCategoryDetailed": {
+            "S": "payment"
+          },
+          "updatedAt": {
+            "S": "2026-01-09T15:17:11.247785055Z"
+          }
+        },
+        {
+          "amount": {
+            "N": "-509.15"
+          },
+          "categoryDetailed": {
+            "S": "payment"
+          },
+          "importedAt": {
+            "S": "2026-01-09T15:17:05.744186344Z"
+          },
+          "importerCategoryPrimary": {
+            "S": "payment"
+          },
+          "description": {
+            "S": "CHASE CREDIT CRD AUTOPAY                    PPD ID: 4760039224"
+          },
+          "importBatchId": {
+            "S": "e1af5723-42c2-4757-8882-61ca55b4094d"
+          },
+          "transactionTypeOverridden": {
+            "BOOL": true
+          },
+          "transactionDate": {
+            "S": "2024-06-10"
+          },
+          "updatedAtTimestamp": {
+            "N": "1767971825"
+          },
+          "userId": {
+            "S": "c8920e3b-7293-4674-a5f3-fa4c0c6f115a"
+          },
+          "transactionId": {
+            "S": "22b51b94-f643-3123-b6ba-89c4ca490e22"
+          },
+          "merchantName": {
+            "S": "CHASE CREDIT CRD AUTOPAY PPD ID:"
+          },
+          "categoryOverridden": {
+            "BOOL": true
+          },
+          "transactionType": {
+            "S": "EXPENSE"
+          },
+          "accountId": {
+            "S": "e5559a9e-188e-4c83-aed7-1974ca0294dc"
+          },
+          "createdAt": {
+            "S": "2026-01-09T15:17:05.863840052Z"
+          },
+          "categoryPrimary": {
+            "S": "payment"
+          },
+          "importFileName": {
+            "S": "Chase3100_Activity_20251221.CSV"
+          },
+          "importSource": {
+            "S": "CSV"
+          },
+          "currencyCode": {
+            "S": "USD"
+          },
+          "importerCategoryDetailed": {
+            "S": "payment"
+          },
+          "updatedAt": {
+            "S": "2026-01-09T15:17:05.863840052Z"
+          }
+        },
+        {
+          "amount": {
+            "N": "-489.25"
+          },
+          "categoryDetailed": {
+            "S": "payment"
+          },
+          "importedAt": {
+            "S": "2026-01-09T15:16:38.870672845Z"
+          },
+          "importerCategoryPrimary": {
+            "S": "payment"
+          },
+          "description": {
+            "S": "CHASE CREDIT CRD AUTOPAY                    PPD ID: 4760039224"
+          },
+          "importBatchId": {
+            "S": "e1af5723-42c2-4757-8882-61ca55b4094d"
+          },
+          "transactionTypeOverridden": {
+            "BOOL": true
+          },
+          "transactionDate": {
+            "S": "2025-10-10"
+          },
+          "updatedAtTimestamp": {
+            "N": "1767971798"
+          },
+          "userId": {
+            "S": "c8920e3b-7293-4674-a5f3-fa4c0c6f115a"
+          },
+          "transactionId": {
+            "S": "7eabcb87-2d55-33ac-a7e5-74b3f92ae665"
+          },
+          "merchantName": {
+            "S": "CHASE CREDIT CRD AUTOPAY PPD ID:"
+          },
+          "categoryOverridden": {
+            "BOOL": true
+          },
+          "transactionType": {
+            "S": "EXPENSE"
+          },
+          "accountId": {
+            "S": "e5559a9e-188e-4c83-aed7-1974ca0294dc"
+          },
+          "createdAt": {
+            "S": "2026-01-09T15:16:38.910220512Z"
+          },
+          "categoryPrimary": {
+            "S": "payment"
+          },
+          "importFileName": {
+            "S": "Chase3100_Activity_20251221.CSV"
+          },
+          "importSource": {
+            "S": "CSV"
+          },
+          "currencyCode": {
+            "S": "USD"
+          },
+          "importerCategoryDetailed": {
+            "S": "payment"
+          },
+          "updatedAt": {
+            "S": "2026-01-09T15:16:38.910220512Z"
+          }
+        }
+      ],
+      "dates": [
+        "2024-04-10",
+        "2024-06-10",
+        "2025-10-10"
+      ]
+    },
+    {
+      "merchant": "CHASE CREDIT CRD AUTOPAY PPD ID:",
+      "merchant_key": "CHASE CREDIT CRD AUTOPAY PPD ID",
+      "amount": "-122.4",
+      "frequency": "SEMI_ANNUAL",
+      "subscription_type": "other",
+      "subscription_category": "recurring",
+      "transaction_count": 2,
+      "transactions": [
+        {
+          "amount": {
+            "N": "-122.4"
+          },
+          "categoryDetailed": {
+            "S": "payment"
+          },
+          "importedAt": {
+            "S": "2026-01-09T15:17:13.372652500Z"
+          },
+          "importerCategoryPrimary": {
+            "S": "payment"
+          },
+          "description": {
+            "S": "CHASE CREDIT CRD AUTOPAY                    PPD ID: 4760039224"
+          },
+          "importBatchId": {
+            "S": "e1af5723-42c2-4757-8882-61ca55b4094d"
+          },
+          "transactionTypeOverridden": {
+            "BOOL": true
+          },
+          "transactionDate": {
+            "S": "2024-03-11"
+          },
+          "updatedAtTimestamp": {
+            "N": "1767971833"
+          },
+          "userId": {
+            "S": "c8920e3b-7293-4674-a5f3-fa4c0c6f115a"
+          },
+          "transactionId": {
+            "S": "3f942ef3-f863-3139-b9bd-1da5bdac1121"
+          },
+          "merchantName": {
+            "S": "CHASE CREDIT CRD AUTOPAY PPD ID:"
+          },
+          "categoryOverridden": {
+            "BOOL": true
+          },
+          "transactionType": {
+            "S": "EXPENSE"
+          },
+          "accountId": {
+            "S": "e5559a9e-188e-4c83-aed7-1974ca0294dc"
+          },
+          "createdAt": {
+            "S": "2026-01-09T15:17:13.552948625Z"
+          },
+          "categoryPrimary": {
+            "S": "payment"
+          },
+          "importFileName": {
+            "S": "Chase3100_Activity_20251221.CSV"
+          },
+          "importSource": {
+            "S": "CSV"
+          },
+          "currencyCode": {
+            "S": "USD"
+          },
+          "importerCategoryDetailed": {
+            "S": "payment"
+          },
+          "updatedAt": {
+            "S": "2026-01-09T15:17:13.552948625Z"
+          }
+        },
+        {
+          "amount": {
+            "N": "-120.95"
+          },
+          "categoryDetailed": {
+            "S": "payment"
+          },
+          "importedAt": {
+            "S": "2026-01-09T15:16:59.410436549Z"
+          },
+          "importerCategoryPrimary": {
+            "S": "payment"
+          },
+          "description": {
+            "S": "CHASE CREDIT CRD AUTOPAY                    PPD ID: 4760039224"
+          },
+          "importBatchId": {
+            "S": "e1af5723-42c2-4757-8882-61ca55b4094d"
+          },
+          "transactionTypeOverridden": {
+            "BOOL": true
+          },
+          "transactionDate": {
+            "S": "2024-09-10"
+          },
+          "updatedAtTimestamp": {
+            "N": "1767971819"
+          },
+          "userId": {
+            "S": "c8920e3b-7293-4674-a5f3-fa4c0c6f115a"
+          },
+          "transactionId": {
+            "S": "4af69c68-851d-3aa0-8440-85725617fbbb"
+          },
+          "merchantName": {
+            "S": "CHASE CREDIT CRD AUTOPAY PPD ID:"
+          },
+          "categoryOverridden": {
+            "BOOL": true
+          },
+          "transactionType": {
+            "S": "EXPENSE"
+          },
+          "accountId": {
+            "S": "e5559a9e-188e-4c83-aed7-1974ca0294dc"
+          },
+          "createdAt": {
+            "S": "2026-01-09T15:16:59.471889091Z"
+          },
+          "categoryPrimary": {
+            "S": "payment"
+          },
+          "importFileName": {
+            "S": "Chase3100_Activity_20251221.CSV"
+          },
+          "importSource": {
+            "S": "CSV"
+          },
+          "currencyCode": {
+            "S": "USD"
+          },
+          "importerCategoryDetailed": {
+            "S": "payment"
+          },
+          "updatedAt": {
+            "S": "2026-01-09T15:16:59.471889091Z"
+          }
+        }
+      ],
+      "dates": [
+        "2024-03-11",
+        "2024-09-10"
+      ]
+    },
+    {
+      "merchant": "PUGET SOUND ENER BILLPAY PPD ID:",
+      "merchant_key": "PUGET SOUND ENER BILLPAY PPD ID",
+      "amount": "-179.04",
+      "frequency": "MONTHLY",
+      "subscription_type": "other",
+      "subscription_category": "recurring",
+      "transaction_count": 4,
+      "transactions": [
+        {
+          "amount": {
+            "N": "-184.62"
+          },
+          "categoryDetailed": {
+            "S": "utilities"
+          },
+          "importedAt": {
+            "S": "2026-01-09T15:17:04.096789760Z"
+          },
+          "importerCategoryPrimary": {
+            "S": "utilities"
+          },
+          "description": {
+            "S": "PUGET SOUND ENER BILLPAY                    PPD ID: 0000000160"
+          },
+          "importBatchId": {
+            "S": "e1af5723-42c2-4757-8882-61ca55b4094d"
+          },
+          "transactionTypeOverridden": {
+            "BOOL": true
+          },
+          "transactionDate": {
+            "S": "2024-06-18"
+          },
+          "updatedAtTimestamp": {
+            "N": "1767971824"
+          },
+          "userId": {
+            "S": "c8920e3b-7293-4674-a5f3-fa4c0c6f115a"
+          },
+          "transactionId": {
+            "S": "691c11bb-7dbe-3450-9935-30c99f8b1f7d"
+          },
+          "merchantName": {
+            "S": "PUGET SOUND ENER BILLPAY PPD ID:"
+          },
+          "categoryOverridden": {
+            "BOOL": true
+          },
+          "transactionType": {
+            "S": "EXPENSE"
+          },
+          "accountId": {
+            "S": "e5559a9e-188e-4c83-aed7-1974ca0294dc"
+          },
+          "createdAt": {
+            "S": "2026-01-09T15:17:04.211463385Z"
+          },
+          "categoryPrimary": {
+            "S": "utilities"
+          },
+          "importFileName": {
+            "S": "Chase3100_Activity_20251221.CSV"
+          },
+          "importSource": {
+            "S": "CSV"
+          },
+          "currencyCode": {
+            "S": "USD"
+          },
+          "importerCategoryDetailed": {
+            "S": "utilities"
+          },
+          "updatedAt": {
+            "S": "2026-01-09T15:17:04.211463385Z"
+          }
+        },
+        {
+          "amount": {
+            "N": "-184.27"
+          },
+          "categoryDetailed": {
+            "S": "utilities"
+          },
+          "importedAt": {
+            "S": "2026-01-09T15:17:01.973077217Z"
+          },
+          "importerCategoryPrimary": {
+            "S": "utilities"
+          },
+          "description": {
+            "S": "PUGET SOUND ENER BILLPAY                    PPD ID: 0000000160"
+          },
+          "importBatchId": {
+            "S": "e1af5723-42c2-4757-8882-61ca55b4094d"
+          },
+          "transactionTypeOverridden": {
+            "BOOL": true
+          },
+          "transactionDate": {
+            "S": "2024-07-18"
+          },
+          "updatedAtTimestamp": {
+            "N": "1767971822"
+          },
+          "userId": {
+            "S": "c8920e3b-7293-4674-a5f3-fa4c0c6f115a"
+          },
+          "transactionId": {
+            "S": "0bedccbd-f6ac-388b-a874-3b5eaaeca7ac"
+          },
+          "merchantName": {
+            "S": "PUGET SOUND ENER BILLPAY PPD ID:"
+          },
+          "categoryOverridden": {
+            "BOOL": true
+          },
+          "transactionType": {
+            "S": "EXPENSE"
+          },
+          "accountId": {
+            "S": "e5559a9e-188e-4c83-aed7-1974ca0294dc"
+          },
+          "createdAt": {
+            "S": "2026-01-09T15:17:02.044133050Z"
+          },
+          "categoryPrimary": {
+            "S": "utilities"
+          },
+          "importFileName": {
+            "S": "Chase3100_Activity_20251221.CSV"
+          },
+          "importSource": {
+            "S": "CSV"
+          },
+          "currencyCode": {
+            "S": "USD"
+          },
+          "importerCategoryDetailed": {
+            "S": "utilities"
+          },
+          "updatedAt": {
+            "S": "2026-01-09T15:17:02.044133050Z"
+          }
+        },
+        {
+          "amount": {
+            "N": "-180.42"
+          },
+          "categoryDetailed": {
+            "S": "utilities"
+          },
+          "importedAt": {
+            "S": "2026-01-09T15:17:00.511081841Z"
+          },
+          "importerCategoryPrimary": {
+            "S": "utilities"
+          },
+          "description": {
+            "S": "PUGET SOUND ENER BILLPAY                    PPD ID: 0000000160"
+          },
+          "importBatchId": {
+            "S": "e1af5723-42c2-4757-8882-61ca55b4094d"
+          },
+          "transactionTypeOverridden": {
+            "BOOL": true
+          },
+          "transactionDate": {
+            "S": "2024-08-16"
+          },
+          "updatedAtTimestamp": {
+            "N": "1767971820"
+          },
+          "userId": {
+            "S": "c8920e3b-7293-4674-a5f3-fa4c0c6f115a"
+          },
+          "transactionId": {
+            "S": "8db9569d-20ab-309c-a148-75c1ff791a27"
+          },
+          "merchantName": {
+            "S": "PUGET SOUND ENER BILLPAY PPD ID:"
+          },
+          "categoryOverridden": {
+            "BOOL": true
+          },
+          "transactionType": {
+            "S": "EXPENSE"
+          },
+          "accountId": {
+            "S": "e5559a9e-188e-4c83-aed7-1974ca0294dc"
+          },
+          "createdAt": {
+            "S": "2026-01-09T15:17:00.579717925Z"
+          },
+          "categoryPrimary": {
+            "S": "utilities"
+          },
+          "importFileName": {
+            "S": "Chase3100_Activity_20251221.CSV"
+          },
+          "importSource": {
+            "S": "CSV"
+          },
+          "currencyCode": {
+            "S": "USD"
+          },
+          "importerCategoryDetailed": {
+            "S": "utilities"
+          },
+          "updatedAt": {
+            "S": "2026-01-09T15:17:00.579717925Z"
+          }
+        },
+        {
+          "amount": {
+            "N": "-179.04"
+          },
+          "categoryDetailed": {
+            "S": "utilities"
+          },
+          "importedAt": {
+            "S": "2026-01-09T15:16:56.039747256Z"
+          },
+          "importerCategoryPrimary": {
+            "S": "utilities"
+          },
+          "description": {
+            "S": "PUGET SOUND ENER BILLPAY                    PPD ID: 0000000160"
+          },
+          "importBatchId": {
+            "S": "e1af5723-42c2-4757-8882-61ca55b4094d"
+          },
+          "transactionTypeOverridden": {
+            "BOOL": true
+          },
+          "transactionDate": {
+            "S": "2024-11-19"
+          },
+          "updatedAtTimestamp": {
+            "N": "1767971816"
+          },
+          "userId": {
+            "S": "c8920e3b-7293-4674-a5f3-fa4c0c6f115a"
+          },
+          "transactionId": {
+            "S": "76b74cf2-c6f5-3180-9f6b-a7fb8b3cb551"
+          },
+          "merchantName": {
+            "S": "PUGET SOUND ENER BILLPAY PPD ID:"
+          },
+          "categoryOverridden": {
+            "BOOL": true
+          },
+          "transactionType": {
+            "S": "EXPENSE"
+          },
+          "accountId": {
+            "S": "e5559a9e-188e-4c83-aed7-1974ca0294dc"
+          },
+          "createdAt": {
+            "S": "2026-01-09T15:16:56.098467298Z"
+          },
+          "categoryPrimary": {
+            "S": "utilities"
+          },
+          "importFileName": {
+            "S": "Chase3100_Activity_20251221.CSV"
+          },
+          "importSource": {
+            "S": "CSV"
+          },
+          "currencyCode": {
+            "S": "USD"
+          },
+          "importerCategoryDetailed": {
+            "S": "utilities"
+          },
+          "updatedAt": {
+            "S": "2026-01-09T15:16:56.098467298Z"
+          }
+        }
+      ],
+      "dates": [
+        "2024-06-18",
+        "2024-07-18",
+        "2024-08-16",
+        "2024-11-19"
+      ]
+    },
+    {
+      "merchant": "PUGET SOUND ENER BILLPAY PPD ID:",
+      "merchant_key": "PUGET SOUND ENER BILLPAY PPD ID",
+      "amount": "-249.24",
+      "frequency": "MONTHLY",
+      "subscription_type": "other",
+      "subscription_category": "recurring",
+      "transaction_count": 3,
+      "transactions": [
+        {
+          "amount": {
+            "N": "-252.93"
+          },
+          "categoryDetailed": {
+            "S": "utilities"
+          },
+          "importedAt": {
+            "S": "2026-01-09T15:17:10.360736596Z"
+          },
+          "importerCategoryPrimary": {
+            "S": "utilities"
+          },
+          "description": {
+            "S": "PUGET SOUND ENER BILLPAY                    PPD ID: 0000000160"
+          },
+          "importBatchId": {
+            "S": "e1af5723-42c2-4757-8882-61ca55b4094d"
+          },
+          "transactionTypeOverridden": {
+            "BOOL": true
+          },
+          "transactionDate": {
+            "S": "2024-04-17"
+          },
+          "updatedAtTimestamp": {
+            "N": "1767971830"
+          },
+          "userId": {
+            "S": "c8920e3b-7293-4674-a5f3-fa4c0c6f115a"
+          },
+          "transactionId": {
+            "S": "e93989e0-e184-3a05-8648-f1a219e3efd2"
+          },
+          "merchantName": {
+            "S": "PUGET SOUND ENER BILLPAY PPD ID:"
+          },
+          "categoryOverridden": {
+            "BOOL": true
+          },
+          "transactionType": {
+            "S": "EXPENSE"
+          },
+          "accountId": {
+            "S": "e5559a9e-188e-4c83-aed7-1974ca0294dc"
+          },
+          "createdAt": {
+            "S": "2026-01-09T15:17:10.482119138Z"
+          },
+          "categoryPrimary": {
+            "S": "utilities"
+          },
+          "importFileName": {
+            "S": "Chase3100_Activity_20251221.CSV"
+          },
+          "importSource": {
+            "S": "CSV"
+          },
+          "currencyCode": {
+            "S": "USD"
+          },
+          "importerCategoryDetailed": {
+            "S": "utilities"
+          },
+          "updatedAt": {
+            "S": "2026-01-09T15:17:10.482119138Z"
+          }
+        },
+        {
+          "amount": {
+            "N": "-252.58"
+          },
+          "categoryDetailed": {
+            "S": "utilities"
+          },
+          "importedAt": {
+            "S": "2026-01-09T15:16:54.759747672Z"
+          },
+          "importerCategoryPrimary": {
+            "S": "utilities"
+          },
+          "description": {
+            "S": "PUGET SOUND ENER BILLPAY                    PPD ID: 0000000160"
+          },
+          "importBatchId": {
+            "S": "e1af5723-42c2-4757-8882-61ca55b4094d"
+          },
+          "transactionTypeOverridden": {
+            "BOOL": true
+          },
+          "transactionDate": {
+            "S": "2024-12-19"
+          },
+          "updatedAtTimestamp": {
+            "N": "1767971814"
+          },
+          "userId": {
+            "S": "c8920e3b-7293-4674-a5f3-fa4c0c6f115a"
+          },
+          "transactionId": {
+            "S": "10effe9b-f75a-3de1-96a4-a28d878df00b"
+          },
+          "merchantName": {
+            "S": "PUGET SOUND ENER BILLPAY PPD ID:"
+          },
+          "categoryOverridden": {
+            "BOOL": true
+          },
+          "transactionType": {
+            "S": "EXPENSE"
+          },
+          "accountId": {
+            "S": "e5559a9e-188e-4c83-aed7-1974ca0294dc"
+          },
+          "createdAt": {
+            "S": "2026-01-09T15:16:54.814027255Z"
+          },
+          "categoryPrimary": {
+            "S": "utilities"
+          },
+          "importFileName": {
+            "S": "Chase3100_Activity_20251221.CSV"
+          },
+          "importSource": {
+            "S": "CSV"
+          },
+          "currencyCode": {
+            "S": "USD"
+          },
+          "importerCategoryDetailed": {
+            "S": "utilities"
+          },
+          "updatedAt": {
+            "S": "2026-01-09T15:16:54.814027255Z"
+          }
+        },
+        {
+          "amount": {
+            "N": "-249.24"
+          },
+          "categoryDetailed": {
+            "S": "utilities"
+          },
+          "importedAt": {
+            "S": "2026-01-09T15:16:44.613687917Z"
+          },
+          "importerCategoryPrimary": {
+            "S": "utilities"
+          },
+          "description": {
+            "S": "PUGET SOUND ENER BILLPAY                    PPD ID: 0000000160"
+          },
+          "importBatchId": {
+            "S": "e1af5723-42c2-4757-8882-61ca55b4094d"
+          },
+          "transactionTypeOverridden": {
+            "BOOL": true
+          },
+          "transactionDate": {
+            "S": "2025-06-18"
+          },
+          "updatedAtTimestamp": {
+            "N": "1767971804"
+          },
+          "userId": {
+            "S": "c8920e3b-7293-4674-a5f3-fa4c0c6f115a"
+          },
+          "transactionId": {
+            "S": "8bb00055-068c-3441-abba-ce14f33af6ad"
+          },
+          "merchantName": {
+            "S": "PUGET SOUND ENER BILLPAY PPD ID:"
+          },
+          "categoryOverridden": {
+            "BOOL": true
+          },
+          "transactionType": {
+            "S": "EXPENSE"
+          },
+          "accountId": {
+            "S": "e5559a9e-188e-4c83-aed7-1974ca0294dc"
+          },
+          "createdAt": {
+            "S": "2026-01-09T15:16:44.660873334Z"
+          },
+          "categoryPrimary": {
+            "S": "utilities"
+          },
+          "importFileName": {
+            "S": "Chase3100_Activity_20251221.CSV"
+          },
+          "importSource": {
+            "S": "CSV"
+          },
+          "currencyCode": {
+            "S": "USD"
+          },
+          "importerCategoryDetailed": {
+            "S": "utilities"
+          },
+          "updatedAt": {
+            "S": "2026-01-09T15:16:44.660873334Z"
+          }
+        }
+      ],
+      "dates": [
+        "2024-04-17",
+        "2024-12-19",
+        "2025-06-18"
+      ]
+    },
+    {
+      "merchant": "CITY OF BELLEVUE UTILITY TEL ID:",
+      "merchant_key": "CITY OF BELLEVUE UTILITY TEL ID",
+      "amount": "-388.53",
+      "frequency": "MONTHLY",
+      "subscription_type": "other",
+      "subscription_category": "recurring",
+      "transaction_count": 4,
+      "transactions": [
+        {
+          "amount": {
+            "N": "-373.34"
+          },
+          "categoryDetailed": {
+            "S": "utilities"
+          },
+          "importedAt": {
+            "S": "2026-01-09T15:16:53.494476296Z"
+          },
+          "importerCategoryPrimary": {
+            "S": "utilities"
+          },
+          "description": {
+            "S": "CITY OF BELLEVUE UTILITY    1340050         TEL ID: 0000063576"
+          },
+          "importBatchId": {
+            "S": "e1af5723-42c2-4757-8882-61ca55b4094d"
+          },
+          "transactionTypeOverridden": {
+            "BOOL": true
+          },
+          "transactionDate": {
+            "S": "2025-01-17"
+          },
+          "updatedAtTimestamp": {
+            "N": "1767971813"
+          },
+          "userId": {
+            "S": "c8920e3b-7293-4674-a5f3-fa4c0c6f115a"
+          },
+          "transactionId": {
+            "S": "d17223e4-1678-33cb-a21e-1d5f21e8071a"
+          },
+          "merchantName": {
+            "S": "CITY OF BELLEVUE UTILITY TEL ID:"
+          },
+          "categoryOverridden": {
+            "BOOL": true
+          },
+          "transactionType": {
+            "S": "EXPENSE"
+          },
+          "accountId": {
+            "S": "e5559a9e-188e-4c83-aed7-1974ca0294dc"
+          },
+          "createdAt": {
+            "S": "2026-01-09T15:16:53.550103421Z"
+          },
+          "categoryPrimary": {
+            "S": "utilities"
+          },
+          "importFileName": {
+            "S": "Chase3100_Activity_20251221.CSV"
+          },
+          "importSource": {
+            "S": "CSV"
+          },
+          "currencyCode": {
+            "S": "USD"
+          },
+          "importerCategoryDetailed": {
+            "S": "utilities"
+          },
+          "updatedAt": {
+            "S": "2026-01-09T15:16:53.550103421Z"
+          }
+        },
+        {
+          "amount": {
+            "N": "-374.55"
+          },
+          "categoryDetailed": {
+            "S": "utilities"
+          },
+          "importedAt": {
+            "S": "2026-01-09T15:16:50.517904712Z"
+          },
+          "importerCategoryPrimary": {
+            "S": "utilities"
+          },
+          "description": {
+            "S": "CITY OF BELLEVUE UTILITY    7475319         TEL ID: 0000063576"
+          },
+          "importBatchId": {
+            "S": "e1af5723-42c2-4757-8882-61ca55b4094d"
+          },
+          "transactionTypeOverridden": {
+            "BOOL": true
+          },
+          "transactionDate": {
+            "S": "2025-03-28"
+          },
+          "updatedAtTimestamp": {
+            "N": "1767971810"
+          },
+          "userId": {
+            "S": "c8920e3b-7293-4674-a5f3-fa4c0c6f115a"
+          },
+          "transactionId": {
+            "S": "f74a923a-2c2a-3964-a447-350fb34c3dc7"
+          },
+          "merchantName": {
+            "S": "CITY OF BELLEVUE UTILITY TEL ID:"
+          },
+          "categoryOverridden": {
+            "BOOL": true
+          },
+          "transactionType": {
+            "S": "EXPENSE"
+          },
+          "accountId": {
+            "S": "e5559a9e-188e-4c83-aed7-1974ca0294dc"
+          },
+          "createdAt": {
+            "S": "2026-01-09T15:16:50.594012503Z"
+          },
+          "categoryPrimary": {
+            "S": "utilities"
+          },
+          "importFileName": {
+            "S": "Chase3100_Activity_20251221.CSV"
+          },
+          "importSource": {
+            "S": "CSV"
+          },
+          "currencyCode": {
+            "S": "USD"
+          },
+          "importerCategoryDetailed": {
+            "S": "utilities"
+          },
+          "updatedAt": {
+            "S": "2026-01-09T15:16:50.594012503Z"
+          }
+        },
+        {
+          "amount": {
+            "N": "-388.53"
+          },
+          "categoryDetailed": {
+            "S": "utilities"
+          },
+          "importedAt": {
+            "S": "2026-01-09T15:16:45.998576876Z"
+          },
+          "importerCategoryPrimary": {
+            "S": "utilities"
+          },
+          "description": {
+            "S": "CITY OF BELLEVUE UTILITY    8189891         TEL ID: 0000063576"
+          },
+          "importBatchId": {
+            "S": "e1af5723-42c2-4757-8882-61ca55b4094d"
+          },
+          "transactionTypeOverridden": {
+            "BOOL": true
+          },
+          "transactionDate": {
+            "S": "2025-05-23"
+          },
+          "updatedAtTimestamp": {
+            "N": "1767971806"
+          },
+          "userId": {
+            "S": "c8920e3b-7293-4674-a5f3-fa4c0c6f115a"
+          },
+          "transactionId": {
+            "S": "1325cba9-daea-3107-86b3-e5484fce2f14"
+          },
+          "merchantName": {
+            "S": "CITY OF BELLEVUE UTILITY TEL ID:"
+          },
+          "categoryOverridden": {
+            "BOOL": true
+          },
+          "transactionType": {
+            "S": "EXPENSE"
+          },
+          "accountId": {
+            "S": "e5559a9e-188e-4c83-aed7-1974ca0294dc"
+          },
+          "createdAt": {
+            "S": "2026-01-09T15:16:46.048509793Z"
+          },
+          "categoryPrimary": {
+            "S": "utilities"
+          },
+          "importFileName": {
+            "S": "Chase3100_Activity_20251221.CSV"
+          },
+          "importSource": {
+            "S": "CSV"
+          },
+          "currencyCode": {
+            "S": "USD"
+          },
+          "importerCategoryDetailed": {
+            "S": "utilities"
+          },
+          "updatedAt": {
+            "S": "2026-01-09T15:16:46.048509793Z"
+          }
+        },
+        {
+          "amount": {
+            "N": "-405.44"
+          },
+          "categoryDetailed": {
+            "S": "utilities"
+          },
+          "importedAt": {
+            "S": "2026-01-09T15:16:43.357729583Z"
+          },
+          "importerCategoryPrimary": {
+            "S": "utilities"
+          },
+          "description": {
+            "S": "CITY OF BELLEVUE UTILITY    9421458         TEL ID: 0000063576"
+          },
+          "importBatchId": {
+            "S": "e1af5723-42c2-4757-8882-61ca55b4094d"
+          },
+          "transactionTypeOverridden": {
+            "BOOL": true
+          },
+          "transactionDate": {
+            "S": "2025-07-18"
+          },
+          "updatedAtTimestamp": {
+            "N": "1767971803"
+          },
+          "userId": {
+            "S": "c8920e3b-7293-4674-a5f3-fa4c0c6f115a"
+          },
+          "transactionId": {
+            "S": "1e0ebf55-b845-3bab-9b67-7efe3a843e9b"
+          },
+          "merchantName": {
+            "S": "CITY OF BELLEVUE UTILITY TEL ID:"
+          },
+          "categoryOverridden": {
+            "BOOL": true
+          },
+          "transactionType": {
+            "S": "EXPENSE"
+          },
+          "accountId": {
+            "S": "e5559a9e-188e-4c83-aed7-1974ca0294dc"
+          },
+          "createdAt": {
+            "S": "2026-01-09T15:16:43.403624Z"
+          },
+          "categoryPrimary": {
+            "S": "utilities"
+          },
+          "importFileName": {
+            "S": "Chase3100_Activity_20251221.CSV"
+          },
+          "importSource": {
+            "S": "CSV"
+          },
+          "currencyCode": {
+            "S": "USD"
+          },
+          "importerCategoryDetailed": {
+            "S": "utilities"
+          },
+          "updatedAt": {
+            "S": "2026-01-09T15:16:43.403624Z"
+          }
+        }
+      ],
+      "dates": [
+        "2025-01-17",
+        "2025-03-28",
+        "2025-05-23",
+        "2025-07-18"
+      ]
+    },
+    {
+      "merchant": "CHASE CREDIT CRD AUTOPAYBUS PPD ID:",
+      "merchant_key": "CHASE CREDIT CRD AUTOPAYBUS PPD ID",
+      "amount": "-97",
+      "frequency": "MONTHLY",
+      "subscription_type": "other",
+      "subscription_category": "recurring",
+      "transaction_count": 7,
+      "transactions": [
+        {
+          "amount": {
+            "N": "-99"
+          },
+          "categoryDetailed": {
+            "S": "payment"
+          },
+          "importedAt": {
+            "S": "2026-01-09T15:16:45.802170293Z"
+          },
+          "importerCategoryPrimary": {
+            "S": "payment"
+          },
+          "description": {
+            "S": "CHASE CREDIT CRD AUTOPAYBUS                 PPD ID: 4760039224"
+          },
+          "importBatchId": {
+            "S": "e1af5723-42c2-4757-8882-61ca55b4094d"
+          },
+          "transactionTypeOverridden": {
+            "BOOL": true
+          },
+          "transactionDate": {
+            "S": "2025-05-27"
+          },
+          "updatedAtTimestamp": {
+            "N": "1767971805"
+          },
+          "userId": {
+            "S": "c8920e3b-7293-4674-a5f3-fa4c0c6f115a"
+          },
+          "transactionId": {
+            "S": "96c72074-acce-3afe-918f-9f5296d72614"
+          },
+          "merchantName": {
+            "S": "CHASE CREDIT CRD AUTOPAYBUS PPD ID:"
+          },
+          "categoryOverridden": {
+            "BOOL": true
+          },
+          "transactionType": {
+            "S": "EXPENSE"
+          },
+          "accountId": {
+            "S": "e5559a9e-188e-4c83-aed7-1974ca0294dc"
+          },
+          "createdAt": {
+            "S": "2026-01-09T15:16:45.851226543Z"
+          },
+          "categoryPrimary": {
+            "S": "payment"
+          },
+          "importFileName": {
+            "S": "Chase3100_Activity_20251221.CSV"
+          },
+          "importSource": {
+            "S": "CSV"
+          },
+          "currencyCode": {
+            "S": "USD"
+          },
+          "importerCategoryDetailed": {
+            "S": "payment"
+          },
+          "updatedAt": {
+            "S": "2026-01-09T15:16:45.851226543Z"
+          }
+        },
+        {
+          "amount": {
+            "N": "-98"
+          },
+          "categoryDetailed": {
+            "S": "payment"
+          },
+          "importedAt": {
+            "S": "2026-01-09T15:16:44.407221500Z"
+          },
+          "importerCategoryPrimary": {
+            "S": "payment"
+          },
+          "description": {
+            "S": "CHASE CREDIT CRD AUTOPAYBUS                 PPD ID: 4760039224"
+          },
+          "importBatchId": {
+            "S": "e1af5723-42c2-4757-8882-61ca55b4094d"
+          },
+          "transactionTypeOverridden": {
+            "BOOL": true
+          },
+          "transactionDate": {
+            "S": "2025-06-27"
+          },
+          "updatedAtTimestamp": {
+            "N": "1767971804"
+          },
+          "userId": {
+            "S": "c8920e3b-7293-4674-a5f3-fa4c0c6f115a"
+          },
+          "transactionId": {
+            "S": "25a7ea45-210d-349c-a545-0be7b149cfcc"
+          },
+          "merchantName": {
+            "S": "CHASE CREDIT CRD AUTOPAYBUS PPD ID:"
+          },
+          "categoryOverridden": {
+            "BOOL": true
+          },
+          "transactionType": {
+            "S": "EXPENSE"
+          },
+          "accountId": {
+            "S": "e5559a9e-188e-4c83-aed7-1974ca0294dc"
+          },
+          "createdAt": {
+            "S": "2026-01-09T15:16:44.457346792Z"
+          },
+          "categoryPrimary": {
+            "S": "payment"
+          },
+          "importFileName": {
+            "S": "Chase3100_Activity_20251221.CSV"
+          },
+          "importSource": {
+            "S": "CSV"
+          },
+          "currencyCode": {
+            "S": "USD"
+          },
+          "importerCategoryDetailed": {
+            "S": "payment"
+          },
+          "updatedAt": {
+            "S": "2026-01-09T15:16:44.457346792Z"
+          }
+        },
+        {
+          "amount": {
+            "N": "-97"
+          },
+          "categoryDetailed": {
+            "S": "payment"
+          },
+          "importedAt": {
+            "S": "2026-01-09T15:16:43.154881250Z"
+          },
+          "importerCategoryPrimary": {
+            "S": "payment"
+          },
+          "description": {
+            "S": "CHASE CREDIT CRD AUTOPAYBUS                 PPD ID: 4760039224"
+          },
+          "importBatchId": {
+            "S": "e1af5723-42c2-4757-8882-61ca55b4094d"
+          },
+          "transactionTypeOverridden": {
+            "BOOL": true
+          },
+          "transactionDate": {
+            "S": "2025-07-28"
+          },
+          "updatedAtTimestamp": {
+            "N": "1767971803"
+          },
+          "userId": {
+            "S": "c8920e3b-7293-4674-a5f3-fa4c0c6f115a"
+          },
+          "transactionId": {
+            "S": "bfb19878-8c44-378b-b0c6-bd637444c988"
+          },
+          "merchantName": {
+            "S": "CHASE CREDIT CRD AUTOPAYBUS PPD ID:"
+          },
+          "categoryOverridden": {
+            "BOOL": true
+          },
+          "transactionType": {
+            "S": "EXPENSE"
+          },
+          "accountId": {
+            "S": "e5559a9e-188e-4c83-aed7-1974ca0294dc"
+          },
+          "createdAt": {
+            "S": "2026-01-09T15:16:43.199471416Z"
+          },
+          "categoryPrimary": {
+            "S": "payment"
+          },
+          "importFileName": {
+            "S": "Chase3100_Activity_20251221.CSV"
+          },
+          "importSource": {
+            "S": "CSV"
+          },
+          "currencyCode": {
+            "S": "USD"
+          },
+          "importerCategoryDetailed": {
+            "S": "payment"
+          },
+          "updatedAt": {
+            "S": "2026-01-09T15:16:43.199471416Z"
+          }
+        },
+        {
+          "amount": {
+            "N": "-96"
+          },
+          "categoryDetailed": {
+            "S": "payment"
+          },
+          "importedAt": {
+            "S": "2026-01-09T15:16:41.235390680Z"
+          },
+          "importerCategoryPrimary": {
+            "S": "payment"
+          },
+          "description": {
+            "S": "CHASE CREDIT CRD AUTOPAYBUS                 PPD ID: 4760039224"
+          },
+          "importBatchId": {
+            "S": "e1af5723-42c2-4757-8882-61ca55b4094d"
+          },
+          "transactionTypeOverridden": {
+            "BOOL": true
+          },
+          "transactionDate": {
+            "S": "2025-08-27"
+          },
+          "updatedAtTimestamp": {
+            "N": "1767971801"
+          },
+          "userId": {
+            "S": "c8920e3b-7293-4674-a5f3-fa4c0c6f115a"
+          },
+          "transactionId": {
+            "S": "71cde907-0b4b-3a73-b285-182fa873bb64"
+          },
+          "merchantName": {
+            "S": "CHASE CREDIT CRD AUTOPAYBUS PPD ID:"
+          },
+          "categoryOverridden": {
+            "BOOL": true
+          },
+          "transactionType": {
+            "S": "EXPENSE"
+          },
+          "accountId": {
+            "S": "e5559a9e-188e-4c83-aed7-1974ca0294dc"
+          },
+          "createdAt": {
+            "S": "2026-01-09T15:16:41.277165471Z"
+          },
+          "categoryPrimary": {
+            "S": "payment"
+          },
+          "importFileName": {
+            "S": "Chase3100_Activity_20251221.CSV"
+          },
+          "importSource": {
+            "S": "CSV"
+          },
+          "currencyCode": {
+            "S": "USD"
+          },
+          "importerCategoryDetailed": {
+            "S": "payment"
+          },
+          "updatedAt": {
+            "S": "2026-01-09T15:16:41.277165471Z"
+          }
+        },
+        {
+          "amount": {
+            "N": "-95"
+          },
+          "categoryDetailed": {
+            "S": "payment"
+          },
+          "importedAt": {
+            "S": "2026-01-09T15:16:39.527654762Z"
+          },
+          "importerCategoryPrimary": {
+            "S": "payment"
+          },
+          "description": {
+            "S": "CHASE CREDIT CRD AUTOPAYBUS                 PPD ID: 4760039224"
+          },
+          "importBatchId": {
+            "S": "e1af5723-42c2-4757-8882-61ca55b4094d"
+          },
+          "transactionTypeOverridden": {
+            "BOOL": true
+          },
+          "transactionDate": {
+            "S": "2025-09-29"
+          },
+          "updatedAtTimestamp": {
+            "N": "1767971799"
+          },
+          "userId": {
+            "S": "c8920e3b-7293-4674-a5f3-fa4c0c6f115a"
+          },
+          "transactionId": {
+            "S": "7e2431ec-a055-3dc1-b5f5-eaeaec6e3a1e"
+          },
+          "merchantName": {
+            "S": "CHASE CREDIT CRD AUTOPAYBUS PPD ID:"
+          },
+          "categoryOverridden": {
+            "BOOL": true
+          },
+          "transactionType": {
+            "S": "EXPENSE"
+          },
+          "accountId": {
+            "S": "e5559a9e-188e-4c83-aed7-1974ca0294dc"
+          },
+          "createdAt": {
+            "S": "2026-01-09T15:16:39.568183346Z"
+          },
+          "categoryPrimary": {
+            "S": "payment"
+          },
+          "importFileName": {
+            "S": "Chase3100_Activity_20251221.CSV"
+          },
+          "importSource": {
+            "S": "CSV"
+          },
+          "currencyCode": {
+            "S": "USD"
+          },
+          "importerCategoryDetailed": {
+            "S": "payment"
+          },
+          "updatedAt": {
+            "S": "2026-01-09T15:16:39.568183346Z"
+          }
+        },
+        {
+          "amount": {
+            "N": "-94"
+          },
+          "categoryDetailed": {
+            "S": "payment"
+          },
+          "importedAt": {
+            "S": "2026-01-09T15:16:38.373407387Z"
+          },
+          "importerCategoryPrimary": {
+            "S": "payment"
+          },
+          "description": {
+            "S": "CHASE CREDIT CRD AUTOPAYBUS                 PPD ID: 4760039224"
+          },
+          "importBatchId": {
+            "S": "e1af5723-42c2-4757-8882-61ca55b4094d"
+          },
+          "transactionTypeOverridden": {
+            "BOOL": true
+          },
+          "transactionDate": {
+            "S": "2025-10-27"
+          },
+          "updatedAtTimestamp": {
+            "N": "1767971798"
+          },
+          "userId": {
+            "S": "c8920e3b-7293-4674-a5f3-fa4c0c6f115a"
+          },
+          "transactionId": {
+            "S": "a904c605-40f2-36ab-b07e-086620dea646"
+          },
+          "merchantName": {
+            "S": "CHASE CREDIT CRD AUTOPAYBUS PPD ID:"
+          },
+          "categoryOverridden": {
+            "BOOL": true
+          },
+          "transactionType": {
+            "S": "EXPENSE"
+          },
+          "accountId": {
+            "S": "e5559a9e-188e-4c83-aed7-1974ca0294dc"
+          },
+          "createdAt": {
+            "S": "2026-01-09T15:16:38.412163220Z"
+          },
+          "categoryPrimary": {
+            "S": "payment"
+          },
+          "importFileName": {
+            "S": "Chase3100_Activity_20251221.CSV"
+          },
+          "importSource": {
+            "S": "CSV"
+          },
+          "currencyCode": {
+            "S": "USD"
+          },
+          "importerCategoryDetailed": {
+            "S": "payment"
+          },
+          "updatedAt": {
+            "S": "2026-01-09T15:16:38.412163220Z"
+          }
+        },
+        {
+          "amount": {
+            "N": "-94"
+          },
+          "categoryDetailed": {
+            "S": "payment"
+          },
+          "importedAt": {
+            "S": "2026-01-09T15:16:36.537205803Z"
+          },
+          "importerCategoryPrimary": {
+            "S": "payment"
+          },
+          "description": {
+            "S": "CHASE CREDIT CRD AUTOPAYBUS                 PPD ID: 4760039224"
+          },
+          "importBatchId": {
+            "S": "e1af5723-42c2-4757-8882-61ca55b4094d"
+          },
+          "transactionTypeOverridden": {
+            "BOOL": true
+          },
+          "transactionDate": {
+            "S": "2025-11-28"
+          },
+          "updatedAtTimestamp": {
+            "N": "1767971796"
+          },
+          "userId": {
+            "S": "c8920e3b-7293-4674-a5f3-fa4c0c6f115a"
+          },
+          "transactionId": {
+            "S": "bd6e3a17-dd57-36d0-881e-815602821e24"
+          },
+          "merchantName": {
+            "S": "CHASE CREDIT CRD AUTOPAYBUS PPD ID:"
+          },
+          "categoryOverridden": {
+            "BOOL": true
+          },
+          "transactionType": {
+            "S": "EXPENSE"
+          },
+          "accountId": {
+            "S": "e5559a9e-188e-4c83-aed7-1974ca0294dc"
+          },
+          "createdAt": {
+            "S": "2026-01-09T15:16:36.573576928Z"
+          },
+          "categoryPrimary": {
+            "S": "payment"
+          },
+          "importFileName": {
+            "S": "Chase3100_Activity_20251221.CSV"
+          },
+          "importSource": {
+            "S": "CSV"
+          },
+          "currencyCode": {
+            "S": "USD"
+          },
+          "importerCategoryDetailed": {
+            "S": "payment"
+          },
+          "updatedAt": {
+            "S": "2026-01-09T15:16:36.573576928Z"
+          }
+        }
+      ],
+      "dates": [
+        "2025-05-27",
+        "2025-06-27",
+        "2025-07-28",
+        "2025-08-27",
+        "2025-09-29",
+        "2025-10-27",
+        "2025-11-28"
+      ]
+    },
+    {
+      "merchant": "PAYPAL INST XFER PPCR CC REPAYME WEB ID: PAYPALSI77",
+      "merchant_key": "PAYPAL INST XFER PPCR CC REPAYME WEB ID PAYPALSI77",
+      "amount": "-0.99",
+      "frequency": "MONTHLY",
+      "subscription_type": "other",
+      "subscription_category": "recurring",
+      "transaction_count": 8,
+      "transactions": [
+        {
+          "amount": {
+            "N": "-0.99"
+          },
+          "categoryDetailed": {
+            "S": "transfer"
+          },
+          "importedAt": {
+            "S": "2026-01-09T15:16:56.763426590Z"
+          },
+          "importerCategoryPrimary": {
+            "S": "payment"
+          },
+          "description": {
+            "S": "PAYPAL           INST XFER  PPCR CC REPAYME WEB ID: PAYPALSI77"
+          },
+          "importBatchId": {
+            "S": "e1af5723-42c2-4757-8882-61ca55b4094d"
+          },
+          "transactionTypeOverridden": {
+            "BOOL": true
+          },
+          "transactionDate": {
+            "S": "2024-11-05"
+          },
+          "updatedAtTimestamp": {
+            "N": "1767971816"
+          },
+          "userId": {
+            "S": "c8920e3b-7293-4674-a5f3-fa4c0c6f115a"
+          },
+          "transactionId": {
+            "S": "93f60a8b-4b6c-3d9f-9a6c-b92595f01910"
+          },
+          "merchantName": {
+            "S": "PAYPAL INST XFER PPCR CC REPAYME WEB ID: PAYPALSI77"
+          },
+          "categoryOverridden": {
+            "BOOL": true
+          },
+          "transactionType": {
+            "S": "EXPENSE"
+          },
+          "accountId": {
+            "S": "e5559a9e-188e-4c83-aed7-1974ca0294dc"
+          },
+          "createdAt": {
+            "S": "2026-01-09T15:16:56.822722756Z"
+          },
+          "categoryPrimary": {
+            "S": "transfer"
+          },
+          "importFileName": {
+            "S": "Chase3100_Activity_20251221.CSV"
+          },
+          "importSource": {
+            "S": "CSV"
+          },
+          "currencyCode": {
+            "S": "USD"
+          },
+          "importerCategoryDetailed": {
+            "S": "payment"
+          },
+          "updatedAt": {
+            "S": "2026-01-09T15:16:56.822722756Z"
+          }
+        },
+        {
+          "amount": {
+            "N": "-0.99"
+          },
+          "categoryDetailed": {
+            "S": "transfer"
+          },
+          "importedAt": {
+            "S": "2026-01-09T15:16:55.309354464Z"
+          },
+          "importerCategoryPrimary": {
+            "S": "payment"
+          },
+          "description": {
+            "S": "PAYPAL           INST XFER  PPCR CC REPAYME WEB ID: PAYPALSI77"
+          },
+          "importBatchId": {
+            "S": "e1af5723-42c2-4757-8882-61ca55b4094d"
+          },
+          "transactionTypeOverridden": {
+            "BOOL": true
+          },
+          "transactionDate": {
+            "S": "2024-12-04"
+          },
+          "updatedAtTimestamp": {
+            "N": "1767971815"
+          },
+          "userId": {
+            "S": "c8920e3b-7293-4674-a5f3-fa4c0c6f115a"
+          },
+          "transactionId": {
+            "S": "eaf9ace1-7f09-3703-8ab2-f637cf4fbd8b"
+          },
+          "merchantName": {
+            "S": "PAYPAL INST XFER PPCR CC REPAYME WEB ID: PAYPALSI77"
+          },
+          "categoryOverridden": {
+            "BOOL": true
+          },
+          "transactionType": {
+            "S": "EXPENSE"
+          },
+          "accountId": {
+            "S": "e5559a9e-188e-4c83-aed7-1974ca0294dc"
+          },
+          "createdAt": {
+            "S": "2026-01-09T15:16:55.371899714Z"
+          },
+          "categoryPrimary": {
+            "S": "transfer"
+          },
+          "importFileName": {
+            "S": "Chase3100_Activity_20251221.CSV"
+          },
+          "importSource": {
+            "S": "CSV"
+          },
+          "currencyCode": {
+            "S": "USD"
+          },
+          "importerCategoryDetailed": {
+            "S": "payment"
+          },
+          "updatedAt": {
+            "S": "2026-01-09T15:16:55.371899714Z"
+          }
+        },
+        {
+          "amount": {
+            "N": "-0.99"
+          },
+          "categoryDetailed": {
+            "S": "transfer"
+          },
+          "importedAt": {
+            "S": "2026-01-09T15:16:53.933848713Z"
+          },
+          "importerCategoryPrimary": {
+            "S": "payment"
+          },
+          "description": {
+            "S": "PAYPAL           INST XFER  PPCR CC REPAYME WEB ID: PAYPALSI77"
+          },
+          "importBatchId": {
+            "S": "e1af5723-42c2-4757-8882-61ca55b4094d"
+          },
+          "transactionTypeOverridden": {
+            "BOOL": true
+          },
+          "transactionDate": {
+            "S": "2025-01-06"
+          },
+          "updatedAtTimestamp": {
+            "N": "1767971813"
+          },
+          "userId": {
+            "S": "c8920e3b-7293-4674-a5f3-fa4c0c6f115a"
+          },
+          "transactionId": {
+            "S": "767f79bf-dac0-36c7-bf77-fac5ca223b17"
+          },
+          "merchantName": {
+            "S": "PAYPAL INST XFER PPCR CC REPAYME WEB ID: PAYPALSI77"
+          },
+          "categoryOverridden": {
+            "BOOL": true
+          },
+          "transactionType": {
+            "S": "EXPENSE"
+          },
+          "accountId": {
+            "S": "e5559a9e-188e-4c83-aed7-1974ca0294dc"
+          },
+          "createdAt": {
+            "S": "2026-01-09T15:16:53.990822422Z"
+          },
+          "categoryPrimary": {
+            "S": "transfer"
+          },
+          "importFileName": {
+            "S": "Chase3100_Activity_20251221.CSV"
+          },
+          "importSource": {
+            "S": "CSV"
+          },
+          "currencyCode": {
+            "S": "USD"
+          },
+          "importerCategoryDetailed": {
+            "S": "payment"
+          },
+          "updatedAt": {
+            "S": "2026-01-09T15:16:53.990822422Z"
+          }
+        },
+        {
+          "amount": {
+            "N": "-0.99"
+          },
+          "categoryDetailed": {
+            "S": "transfer"
+          },
+          "importedAt": {
+            "S": "2026-01-09T15:16:52.628441838Z"
+          },
+          "importerCategoryPrimary": {
+            "S": "payment"
+          },
+          "description": {
+            "S": "PAYPAL           INST XFER  PPCR CC REPAYME WEB ID: PAYPALSI77"
+          },
+          "importBatchId": {
+            "S": "e1af5723-42c2-4757-8882-61ca55b4094d"
+          },
+          "transactionTypeOverridden": {
+            "BOOL": true
+          },
+          "transactionDate": {
+            "S": "2025-02-04"
+          },
+          "updatedAtTimestamp": {
+            "N": "1767971812"
+          },
+          "userId": {
+            "S": "c8920e3b-7293-4674-a5f3-fa4c0c6f115a"
+          },
+          "transactionId": {
+            "S": "edf770fb-1b28-3ef9-8ba6-0f97b318cb47"
+          },
+          "merchantName": {
+            "S": "PAYPAL INST XFER PPCR CC REPAYME WEB ID: PAYPALSI77"
+          },
+          "categoryOverridden": {
+            "BOOL": true
+          },
+          "transactionType": {
+            "S": "EXPENSE"
+          },
+          "accountId": {
+            "S": "e5559a9e-188e-4c83-aed7-1974ca0294dc"
+          },
+          "createdAt": {
+            "S": "2026-01-09T15:16:52.682523338Z"
+          },
+          "categoryPrimary": {
+            "S": "transfer"
+          },
+          "importFileName": {
+            "S": "Chase3100_Activity_20251221.CSV"
+          },
+          "importSource": {
+            "S": "CSV"
+          },
+          "currencyCode": {
+            "S": "USD"
+          },
+          "importerCategoryDetailed": {
+            "S": "payment"
+          },
+          "updatedAt": {
+            "S": "2026-01-09T15:16:52.682523338Z"
+          }
+        },
+        {
+          "amount": {
+            "N": "-0.99"
+          },
+          "categoryDetailed": {
+            "S": "transfer"
+          },
+          "importedAt": {
+            "S": "2026-01-09T15:16:51.492502212Z"
+          },
+          "importerCategoryPrimary": {
+            "S": "payment"
+          },
+          "description": {
+            "S": "PAYPAL           INST XFER  PPCR CC REPAYME WEB ID: PAYPALSI77"
+          },
+          "importBatchId": {
+            "S": "e1af5723-42c2-4757-8882-61ca55b4094d"
+          },
+          "transactionTypeOverridden": {
+            "BOOL": true
+          },
+          "transactionDate": {
+            "S": "2025-03-04"
+          },
+          "updatedAtTimestamp": {
+            "N": "1767971811"
+          },
+          "userId": {
+            "S": "c8920e3b-7293-4674-a5f3-fa4c0c6f115a"
+          },
+          "transactionId": {
+            "S": "e58273f1-8635-390d-9a22-f44a9fc469b3"
+          },
+          "merchantName": {
+            "S": "PAYPAL INST XFER PPCR CC REPAYME WEB ID: PAYPALSI77"
+          },
+          "categoryOverridden": {
+            "BOOL": true
+          },
+          "transactionType": {
+            "S": "EXPENSE"
+          },
+          "accountId": {
+            "S": "e5559a9e-188e-4c83-aed7-1974ca0294dc"
+          },
+          "createdAt": {
+            "S": "2026-01-09T15:16:51.545546295Z"
+          },
+          "categoryPrimary": {
+            "S": "transfer"
+          },
+          "importFileName": {
+            "S": "Chase3100_Activity_20251221.CSV"
+          },
+          "importSource": {
+            "S": "CSV"
+          },
+          "currencyCode": {
+            "S": "USD"
+          },
+          "importerCategoryDetailed": {
+            "S": "payment"
+          },
+          "updatedAt": {
+            "S": "2026-01-09T15:16:51.545546295Z"
+          }
+        },
+        {
+          "amount": {
+            "N": "-0.99"
+          },
+          "categoryDetailed": {
+            "S": "transfer"
+          },
+          "importedAt": {
+            "S": "2026-01-09T15:16:49.728466003Z"
+          },
+          "importerCategoryPrimary": {
+            "S": "payment"
+          },
+          "description": {
+            "S": "PAYPAL           INST XFER  PPCR CC REPAYME WEB ID: PAYPALSI77"
+          },
+          "importBatchId": {
+            "S": "e1af5723-42c2-4757-8882-61ca55b4094d"
+          },
+          "transactionTypeOverridden": {
+            "BOOL": true
+          },
+          "transactionDate": {
+            "S": "2025-04-04"
+          },
+          "updatedAtTimestamp": {
+            "N": "1767971809"
+          },
+          "userId": {
+            "S": "c8920e3b-7293-4674-a5f3-fa4c0c6f115a"
+          },
+          "transactionId": {
+            "S": "3e76b49f-e5fa-3d8f-8051-46a3fcc82b05"
+          },
+          "merchantName": {
+            "S": "PAYPAL INST XFER PPCR CC REPAYME WEB ID: PAYPALSI77"
+          },
+          "categoryOverridden": {
+            "BOOL": true
+          },
+          "transactionType": {
+            "S": "EXPENSE"
+          },
+          "accountId": {
+            "S": "e5559a9e-188e-4c83-aed7-1974ca0294dc"
+          },
+          "createdAt": {
+            "S": "2026-01-09T15:16:49.811511503Z"
+          },
+          "categoryPrimary": {
+            "S": "transfer"
+          },
+          "importFileName": {
+            "S": "Chase3100_Activity_20251221.CSV"
+          },
+          "importSource": {
+            "S": "CSV"
+          },
+          "currencyCode": {
+            "S": "USD"
+          },
+          "importerCategoryDetailed": {
+            "S": "payment"
+          },
+          "updatedAt": {
+            "S": "2026-01-09T15:16:49.811511503Z"
+          }
+        },
+        {
+          "amount": {
+            "N": "-0.99"
+          },
+          "categoryDetailed": {
+            "S": "transfer"
+          },
+          "importedAt": {
+            "S": "2026-01-09T15:16:47.048752752Z"
+          },
+          "importerCategoryPrimary": {
+            "S": "payment"
+          },
+          "description": {
+            "S": "PAYPAL           INST XFER  PPCR CC REPAYME WEB ID: PAYPALSI77"
+          },
+          "importBatchId": {
+            "S": "e1af5723-42c2-4757-8882-61ca55b4094d"
+          },
+          "transactionTypeOverridden": {
+            "BOOL": true
+          },
+          "transactionDate": {
+            "S": "2025-05-06"
+          },
+          "updatedAtTimestamp": {
+            "N": "1767971807"
+          },
+          "userId": {
+            "S": "c8920e3b-7293-4674-a5f3-fa4c0c6f115a"
+          },
+          "transactionId": {
+            "S": "bdb18320-ec3c-3524-93fe-8e8ae3ef2fc6"
+          },
+          "merchantName": {
+            "S": "PAYPAL INST XFER PPCR CC REPAYME WEB ID: PAYPALSI77"
+          },
+          "categoryOverridden": {
+            "BOOL": true
+          },
+          "transactionType": {
+            "S": "EXPENSE"
+          },
+          "accountId": {
+            "S": "e5559a9e-188e-4c83-aed7-1974ca0294dc"
+          },
+          "createdAt": {
+            "S": "2026-01-09T15:16:47.098433252Z"
+          },
+          "categoryPrimary": {
+            "S": "transfer"
+          },
+          "importFileName": {
+            "S": "Chase3100_Activity_20251221.CSV"
+          },
+          "importSource": {
+            "S": "CSV"
+          },
+          "currencyCode": {
+            "S": "USD"
+          },
+          "importerCategoryDetailed": {
+            "S": "payment"
+          },
+          "updatedAt": {
+            "S": "2026-01-09T15:16:47.098433252Z"
+          }
+        },
+        {
+          "amount": {
+            "N": "-0.99"
+          },
+          "categoryDetailed": {
+            "S": "transfer"
+          },
+          "importedAt": {
+            "S": "2026-01-09T15:16:39.165624595Z"
+          },
+          "importerCategoryPrimary": {
+            "S": "payment"
+          },
+          "description": {
+            "S": "PAYPAL           INST XFER  PPCR CC REPAYME WEB ID: PAYPALSI77"
+          },
+          "importBatchId": {
+            "S": "e1af5723-42c2-4757-8882-61ca55b4094d"
+          },
+          "transactionTypeOverridden": {
+            "BOOL": true
+          },
+          "transactionDate": {
+            "S": "2025-10-06"
+          },
+          "updatedAtTimestamp": {
+            "N": "1767971799"
+          },
+          "userId": {
+            "S": "c8920e3b-7293-4674-a5f3-fa4c0c6f115a"
+          },
+          "transactionId": {
+            "S": "5069058b-ecdf-3905-bd16-80f2888ed1e7"
+          },
+          "merchantName": {
+            "S": "PAYPAL INST XFER PPCR CC REPAYME WEB ID: PAYPALSI77"
+          },
+          "categoryOverridden": {
+            "BOOL": true
+          },
+          "transactionType": {
+            "S": "EXPENSE"
+          },
+          "accountId": {
+            "S": "e5559a9e-188e-4c83-aed7-1974ca0294dc"
+          },
+          "createdAt": {
+            "S": "2026-01-09T15:16:39.204708304Z"
+          },
+          "categoryPrimary": {
+            "S": "transfer"
+          },
+          "importFileName": {
+            "S": "Chase3100_Activity_20251221.CSV"
+          },
+          "importSource": {
+            "S": "CSV"
+          },
+          "currencyCode": {
+            "S": "USD"
+          },
+          "importerCategoryDetailed": {
+            "S": "payment"
+          },
+          "updatedAt": {
+            "S": "2026-01-09T15:16:39.204708304Z"
+          }
+        }
+      ],
+      "dates": [
+        "2024-11-05",
+        "2024-12-04",
+        "2025-01-06",
+        "2025-02-04",
+        "2025-03-04",
+        "2025-04-04",
+        "2025-05-06",
+        "2025-10-06"
+      ]
+    },
+    {
+      "merchant": "PAYPAL INST XFER PPCR CC REPAYME WEB ID: PAYPALSI77",
+      "merchant_key": "PAYPAL INST XFER PPCR CC REPAYME WEB ID PAYPALSI77",
+      "amount": "-44.99",
+      "frequency": "MONTHLY",
+      "subscription_type": "other",
+      "subscription_category": "recurring",
+      "transaction_count": 3,
+      "transactions": [
+        {
+          "amount": {
+            "N": "-44.99"
+          },
+          "categoryDetailed": {
+            "S": "transfer"
+          },
+          "importedAt": {
+            "S": "2026-01-09T15:17:02.825746676Z"
+          },
+          "importerCategoryPrimary": {
+            "S": "payment"
+          },
+          "description": {
+            "S": "PAYPAL           INST XFER  PPCR CC REPAYME WEB ID: PAYPALSI77"
+          },
+          "importBatchId": {
+            "S": "e1af5723-42c2-4757-8882-61ca55b4094d"
+          },
+          "transactionTypeOverridden": {
+            "BOOL": true
+          },
+          "transactionDate": {
+            "S": "2024-07-05"
+          },
+          "updatedAtTimestamp": {
+            "N": "1767971822"
+          },
+          "userId": {
+            "S": "c8920e3b-7293-4674-a5f3-fa4c0c6f115a"
+          },
+          "transactionId": {
+            "S": "77200ea8-46e9-345a-8871-06f6f806972d"
+          },
+          "merchantName": {
+            "S": "PAYPAL INST XFER PPCR CC REPAYME WEB ID: PAYPALSI77"
+          },
+          "categoryOverridden": {
+            "BOOL": true
+          },
+          "transactionType": {
+            "S": "EXPENSE"
+          },
+          "accountId": {
+            "S": "e5559a9e-188e-4c83-aed7-1974ca0294dc"
+          },
+          "createdAt": {
+            "S": "2026-01-09T15:17:02.888208676Z"
+          },
+          "categoryPrimary": {
+            "S": "transfer"
+          },
+          "importFileName": {
+            "S": "Chase3100_Activity_20251221.CSV"
+          },
+          "importSource": {
+            "S": "CSV"
+          },
+          "currencyCode": {
+            "S": "USD"
+          },
+          "importerCategoryDetailed": {
+            "S": "payment"
+          },
+          "updatedAt": {
+            "S": "2026-01-09T15:17:02.888208676Z"
+          }
+        },
+        {
+          "amount": {
+            "N": "-44.99"
+          },
+          "categoryDetailed": {
+            "S": "transfer"
+          },
+          "importedAt": {
+            "S": "2026-01-09T15:17:01.160419092Z"
+          },
+          "importerCategoryPrimary": {
+            "S": "payment"
+          },
+          "description": {
+            "S": "PAYPAL           INST XFER  PPCR CC REPAYME WEB ID: PAYPALSI77"
+          },
+          "importBatchId": {
+            "S": "e1af5723-42c2-4757-8882-61ca55b4094d"
+          },
+          "transactionTypeOverridden": {
+            "BOOL": true
+          },
+          "transactionDate": {
+            "S": "2024-08-05"
+          },
+          "updatedAtTimestamp": {
+            "N": "1767971821"
+          },
+          "userId": {
+            "S": "c8920e3b-7293-4674-a5f3-fa4c0c6f115a"
+          },
+          "transactionId": {
+            "S": "ab9e845a-0309-3f97-985d-6721a3e17099"
+          },
+          "merchantName": {
+            "S": "PAYPAL INST XFER PPCR CC REPAYME WEB ID: PAYPALSI77"
+          },
+          "categoryOverridden": {
+            "BOOL": true
+          },
+          "transactionType": {
+            "S": "EXPENSE"
+          },
+          "accountId": {
+            "S": "e5559a9e-188e-4c83-aed7-1974ca0294dc"
+          },
+          "createdAt": {
+            "S": "2026-01-09T15:17:01.236023967Z"
+          },
+          "categoryPrimary": {
+            "S": "transfer"
+          },
+          "importFileName": {
+            "S": "Chase3100_Activity_20251221.CSV"
+          },
+          "importSource": {
+            "S": "CSV"
+          },
+          "currencyCode": {
+            "S": "USD"
+          },
+          "importerCategoryDetailed": {
+            "S": "payment"
+          },
+          "updatedAt": {
+            "S": "2026-01-09T15:17:01.236023967Z"
+          }
+        },
+        {
+          "amount": {
+            "N": "-45.98"
+          },
+          "categoryDetailed": {
+            "S": "transfer"
+          },
+          "importedAt": {
+            "S": "2026-01-09T15:16:58.463139549Z"
+          },
+          "importerCategoryPrimary": {
+            "S": "payment"
+          },
+          "description": {
+            "S": "PAYPAL           INST XFER  PPCR CC REPAYME WEB ID: PAYPALSI77"
+          },
+          "importBatchId": {
+            "S": "e1af5723-42c2-4757-8882-61ca55b4094d"
+          },
+          "transactionTypeOverridden": {
+            "BOOL": true
+          },
+          "transactionDate": {
+            "S": "2024-10-04"
+          },
+          "updatedAtTimestamp": {
+            "N": "1767971818"
+          },
+          "userId": {
+            "S": "c8920e3b-7293-4674-a5f3-fa4c0c6f115a"
+          },
+          "transactionId": {
+            "S": "f0b1faf6-0cb9-3289-8ba0-eebdfaca36d2"
+          },
+          "merchantName": {
+            "S": "PAYPAL INST XFER PPCR CC REPAYME WEB ID: PAYPALSI77"
+          },
+          "categoryOverridden": {
+            "BOOL": true
+          },
+          "transactionType": {
+            "S": "EXPENSE"
+          },
+          "accountId": {
+            "S": "e5559a9e-188e-4c83-aed7-1974ca0294dc"
+          },
+          "createdAt": {
+            "S": "2026-01-09T15:16:58.521681882Z"
+          },
+          "categoryPrimary": {
+            "S": "transfer"
+          },
+          "importFileName": {
+            "S": "Chase3100_Activity_20251221.CSV"
+          },
+          "importSource": {
+            "S": "CSV"
+          },
+          "currencyCode": {
+            "S": "USD"
+          },
+          "importerCategoryDetailed": {
+            "S": "payment"
+          },
+          "updatedAt": {
+            "S": "2026-01-09T15:16:58.521681882Z"
+          }
+        }
+      ],
+      "dates": [
+        "2024-07-05",
+        "2024-08-05",
+        "2024-10-04"
+      ]
+    },
+    {
+      "merchant": "DISCOVER E-PAYMENT WEB ID:",
+      "merchant_key": "DISCOVER EPAYMENT WEB ID",
+      "amount": "-524.79",
+      "frequency": "MONTHLY",
+      "subscription_type": "other",
+      "subscription_category": "recurring",
+      "transaction_count": 2,
+      "transactions": [
+        {
+          "amount": {
+            "N": "-504.08"
+          },
+          "categoryDetailed": {
+            "S": "payment"
+          },
+          "importedAt": {
+            "S": "2026-01-09T15:17:13.863877708Z"
+          },
+          "importerCategoryPrimary": {
+            "S": "payment"
+          },
+          "description": {
+            "S": "DISCOVER         E-PAYMENT  2364            WEB ID: 3510020270"
+          },
+          "importBatchId": {
+            "S": "e1af5723-42c2-4757-8882-61ca55b4094d"
+          },
+          "transactionTypeOverridden": {
+            "BOOL": true
+          },
+          "transactionDate": {
+            "S": "2024-03-07"
+          },
+          "updatedAtTimestamp": {
+            "N": "1767971833"
+          },
+          "userId": {
+            "S": "c8920e3b-7293-4674-a5f3-fa4c0c6f115a"
+          },
+          "transactionId": {
+            "S": "2b7cc3f0-7fa3-3e35-853c-90f84b9ac8b9"
+          },
+          "merchantName": {
+            "S": "DISCOVER E-PAYMENT WEB ID:"
+          },
+          "categoryOverridden": {
+            "BOOL": true
+          },
+          "transactionType": {
+            "S": "EXPENSE"
+          },
+          "accountId": {
+            "S": "e5559a9e-188e-4c83-aed7-1974ca0294dc"
+          },
+          "createdAt": {
+            "S": "2026-01-09T15:17:13.983619833Z"
+          },
+          "categoryPrimary": {
+            "S": "payment"
+          },
+          "importFileName": {
+            "S": "Chase3100_Activity_20251221.CSV"
+          },
+          "importSource": {
+            "S": "CSV"
+          },
+          "currencyCode": {
+            "S": "USD"
+          },
+          "importerCategoryDetailed": {
+            "S": "payment"
+          },
+          "updatedAt": {
+            "S": "2026-01-09T15:17:13.983619833Z"
+          }
+        },
+        {
+          "amount": {
+            "N": "-524.79"
+          },
+          "categoryDetailed": {
+            "S": "payment"
+          },
+          "importedAt": {
+            "S": "2026-01-09T15:17:11.412359722Z"
+          },
+          "importerCategoryPrimary": {
+            "S": "payment"
+          },
+          "description": {
+            "S": "DISCOVER         E-PAYMENT  2364            WEB ID: 3510020270"
+          },
+          "importBatchId": {
+            "S": "e1af5723-42c2-4757-8882-61ca55b4094d"
+          },
+          "transactionTypeOverridden": {
+            "BOOL": true
+          },
+          "transactionDate": {
+            "S": "2024-04-08"
+          },
+          "updatedAtTimestamp": {
+            "N": "1767971831"
+          },
+          "userId": {
+            "S": "c8920e3b-7293-4674-a5f3-fa4c0c6f115a"
+          },
+          "transactionId": {
+            "S": "c5a53277-a5f5-3873-947e-e8872e39b73b"
+          },
+          "merchantName": {
+            "S": "DISCOVER E-PAYMENT WEB ID:"
+          },
+          "categoryOverridden": {
+            "BOOL": true
+          },
+          "transactionType": {
+            "S": "EXPENSE"
+          },
+          "accountId": {
+            "S": "e5559a9e-188e-4c83-aed7-1974ca0294dc"
+          },
+          "createdAt": {
+            "S": "2026-01-09T15:17:11.530020472Z"
+          },
+          "categoryPrimary": {
+            "S": "payment"
+          },
+          "importFileName": {
+            "S": "Chase3100_Activity_20251221.CSV"
+          },
+          "importSource": {
+            "S": "CSV"
+          },
+          "currencyCode": {
+            "S": "USD"
+          },
+          "importerCategoryDetailed": {
+            "S": "payment"
+          },
+          "updatedAt": {
+            "S": "2026-01-09T15:17:11.530020472Z"
+          }
+        }
+      ],
+      "dates": [
+        "2024-03-07",
+        "2024-04-08"
+      ]
+    },
+    {
+      "merchant": "AMZ_STORECRD_PMT PAYMENT WEB ID:",
+      "merchant_key": "AMZSTORECRDPMT PAYMENT WEB ID",
+      "amount": "-270.93",
+      "frequency": "SEMI_ANNUAL",
+      "subscription_type": "other",
+      "subscription_category": "recurring",
+      "transaction_count": 3,
+      "transactions": [
+        {
+          "amount": {
+            "N": "-264.58"
+          },
+          "categoryDetailed": {
+            "S": "payment"
+          },
+          "importedAt": {
+            "S": "2026-01-09T15:17:15.891506584Z"
+          },
+          "importerCategoryPrimary": {
+            "S": "payment"
+          },
+          "description": {
+            "S": "AMZ_STORECRD_PMT PAYMENT    604578162822612 WEB ID: 9130142001"
+          },
+          "importBatchId": {
+            "S": "e1af5723-42c2-4757-8882-61ca55b4094d"
+          },
+          "transactionTypeOverridden": {
+            "BOOL": true
+          },
+          "transactionDate": {
+            "S": "2024-02-09"
+          },
+          "updatedAtTimestamp": {
+            "N": "1767971836"
+          },
+          "userId": {
+            "S": "c8920e3b-7293-4674-a5f3-fa4c0c6f115a"
+          },
+          "transactionId": {
+            "S": "1d29a28f-2321-3829-81f4-18e358419463"
+          },
+          "merchantName": {
+            "S": "AMZ_STORECRD_PMT PAYMENT WEB ID:"
+          },
+          "categoryOverridden": {
+            "BOOL": true
+          },
+          "transactionType": {
+            "S": "EXPENSE"
+          },
+          "accountId": {
+            "S": "e5559a9e-188e-4c83-aed7-1974ca0294dc"
+          },
+          "createdAt": {
+            "S": "2026-01-09T15:17:16.009042751Z"
+          },
+          "categoryPrimary": {
+            "S": "payment"
+          },
+          "importFileName": {
+            "S": "Chase3100_Activity_20251221.CSV"
+          },
+          "importSource": {
+            "S": "CSV"
+          },
+          "currencyCode": {
+            "S": "USD"
+          },
+          "importerCategoryDetailed": {
+            "S": "payment"
+          },
+          "updatedAt": {
+            "S": "2026-01-09T15:17:16.009042751Z"
+          }
+        },
+        {
+          "amount": {
+            "N": "-270.93"
+          },
+          "categoryDetailed": {
+            "S": "payment"
+          },
+          "importedAt": {
+            "S": "2026-01-09T15:16:55.077331130Z"
+          },
+          "importerCategoryPrimary": {
+            "S": "payment"
+          },
+          "description": {
+            "S": "AMZ_STORECRD_PMT PAYMENT    604578162822612 WEB ID: 9130142001"
+          },
+          "importBatchId": {
+            "S": "e1af5723-42c2-4757-8882-61ca55b4094d"
+          },
+          "transactionTypeOverridden": {
+            "BOOL": true
+          },
+          "transactionDate": {
+            "S": "2024-12-09"
+          },
+          "updatedAtTimestamp": {
+            "N": "1767971815"
+          },
+          "userId": {
+            "S": "c8920e3b-7293-4674-a5f3-fa4c0c6f115a"
+          },
+          "transactionId": {
+            "S": "a59879dd-d521-3844-84bf-d0360e52ab08"
+          },
+          "merchantName": {
+            "S": "AMZ_STORECRD_PMT PAYMENT WEB ID:"
+          },
+          "categoryOverridden": {
+            "BOOL": true
+          },
+          "transactionType": {
+            "S": "EXPENSE"
+          },
+          "accountId": {
+            "S": "e5559a9e-188e-4c83-aed7-1974ca0294dc"
+          },
+          "createdAt": {
+            "S": "2026-01-09T15:16:55.132805255Z"
+          },
+          "categoryPrimary": {
+            "S": "payment"
+          },
+          "importFileName": {
+            "S": "Chase3100_Activity_20251221.CSV"
+          },
+          "importSource": {
+            "S": "CSV"
+          },
+          "currencyCode": {
+            "S": "USD"
+          },
+          "importerCategoryDetailed": {
+            "S": "payment"
+          },
+          "updatedAt": {
+            "S": "2026-01-09T15:16:55.132805255Z"
+          }
+        },
+        {
+          "amount": {
+            "N": "-277.02"
+          },
+          "categoryDetailed": {
+            "S": "payment"
+          },
+          "importedAt": {
+            "S": "2026-01-09T15:16:52.327056962Z"
+          },
+          "importerCategoryPrimary": {
+            "S": "payment"
+          },
+          "description": {
+            "S": "AMZ_STORECRD_PMT PAYMENT    604578162822612 WEB ID: 9130142001"
+          },
+          "importBatchId": {
+            "S": "e1af5723-42c2-4757-8882-61ca55b4094d"
+          },
+          "transactionTypeOverridden": {
+            "BOOL": true
+          },
+          "transactionDate": {
+            "S": "2025-02-10"
+          },
+          "updatedAtTimestamp": {
+            "N": "1767971812"
+          },
+          "userId": {
+            "S": "c8920e3b-7293-4674-a5f3-fa4c0c6f115a"
+          },
+          "transactionId": {
+            "S": "fce689a8-66b0-3d2c-926a-29397511683b"
+          },
+          "merchantName": {
+            "S": "AMZ_STORECRD_PMT PAYMENT WEB ID:"
+          },
+          "categoryOverridden": {
+            "BOOL": true
+          },
+          "transactionType": {
+            "S": "EXPENSE"
+          },
+          "accountId": {
+            "S": "e5559a9e-188e-4c83-aed7-1974ca0294dc"
+          },
+          "createdAt": {
+            "S": "2026-01-09T15:16:52.388227712Z"
+          },
+          "categoryPrimary": {
+            "S": "payment"
+          },
+          "importFileName": {
+            "S": "Chase3100_Activity_20251221.CSV"
+          },
+          "importSource": {
+            "S": "CSV"
+          },
+          "currencyCode": {
+            "S": "USD"
+          },
+          "importerCategoryDetailed": {
+            "S": "payment"
+          },
+          "updatedAt": {
+            "S": "2026-01-09T15:16:52.388227712Z"
+          }
+        }
+      ],
+      "dates": [
+        "2024-02-09",
+        "2024-12-09",
+        "2025-02-10"
+      ]
+    },
+    {
+      "merchant": "T-MOBILE PCS SVC WEB ID:",
+      "merchant_key": "TMOBILE PCS SVC WEB ID",
+      "amount": "-194.42",
+      "frequency": "MONTHLY",
+      "subscription_type": "other",
+      "subscription_category": "recurring",
+      "transaction_count": 3,
+      "transactions": [
+        {
+          "amount": {
+            "N": "-190.42"
+          },
+          "categoryDetailed": {
+            "S": "utilities"
+          },
+          "importedAt": {
+            "S": "2026-01-09T15:17:09.119207929Z"
+          },
+          "importerCategoryPrimary": {
+            "S": "utilities"
+          },
+          "description": {
+            "S": "T-MOBILE         PCS SVC    3410642         WEB ID: 0000450304"
+          },
+          "importBatchId": {
+            "S": "ee153f59-892b-417c-b712-dfb1ee076f4c"
+          },
+          "transactionTypeOverridden": {
+            "BOOL": true
+          },
+          "transactionDate": {
+            "S": "2024-05-01"
+          },
+          "updatedAtTimestamp": {
+            "N": "1767971829"
+          },
+          "userId": {
+            "S": "c8920e3b-7293-4674-a5f3-fa4c0c6f115a"
+          },
+          "transactionId": {
+            "S": "485a0598-caa0-3cbb-8485-b354da32459b"
+          },
+          "merchantName": {
+            "S": "T-MOBILE PCS SVC WEB ID:"
+          },
+          "categoryOverridden": {
+            "BOOL": true
+          },
+          "transactionType": {
+            "S": "EXPENSE"
+          },
+          "accountId": {
+            "S": "e5559a9e-188e-4c83-aed7-1974ca0294dc"
+          },
+          "createdAt": {
+            "S": "2026-01-09T15:17:09.230719971Z"
+          },
+          "categoryPrimary": {
+            "S": "utilities"
+          },
+          "importFileName": {
+            "S": "Chase3100_Activity_20251221.CSV"
+          },
+          "importSource": {
+            "S": "CSV"
+          },
+          "currencyCode": {
+            "S": "USD"
+          },
+          "importerCategoryDetailed": {
+            "S": "utilities"
+          },
+          "updatedAt": {
+            "S": "2026-01-09T15:17:09.230719971Z"
+          }
+        },
+        {
+          "amount": {
+            "N": "-194.42"
+          },
+          "categoryDetailed": {
+            "S": "utilities"
+          },
+          "importedAt": {
+            "S": "2026-01-09T15:17:03.154075634Z"
+          },
+          "importerCategoryPrimary": {
+            "S": "utilities"
+          },
+          "description": {
+            "S": "T-MOBILE         PCS SVC    2574636         WEB ID: 0000450304"
+          },
+          "importBatchId": {
+            "S": "e1af5723-42c2-4757-8882-61ca55b4094d"
+          },
+          "transactionTypeOverridden": {
+            "BOOL": true
+          },
+          "transactionDate": {
+            "S": "2024-07-01"
+          },
+          "updatedAtTimestamp": {
+            "N": "1767971823"
+          },
+          "userId": {
+            "S": "c8920e3b-7293-4674-a5f3-fa4c0c6f115a"
+          },
+          "transactionId": {
+            "S": "2d999c50-6042-3fa8-956d-b21a1180384f"
+          },
+          "merchantName": {
+            "S": "T-MOBILE PCS SVC WEB ID:"
+          },
+          "categoryOverridden": {
+            "BOOL": true
+          },
+          "transactionType": {
+            "S": "EXPENSE"
+          },
+          "accountId": {
+            "S": "e5559a9e-188e-4c83-aed7-1974ca0294dc"
+          },
+          "createdAt": {
+            "S": "2026-01-09T15:17:03.273245218Z"
+          },
+          "categoryPrimary": {
+            "S": "utilities"
+          },
+          "importFileName": {
+            "S": "Chase3100_Activity_20251221.CSV"
+          },
+          "importSource": {
+            "S": "CSV"
+          },
+          "currencyCode": {
+            "S": "USD"
+          },
+          "importerCategoryDetailed": {
+            "S": "utilities"
+          },
+          "updatedAt": {
+            "S": "2026-01-09T15:17:03.273245218Z"
+          }
+        },
+        {
+          "amount": {
+            "N": "-194.42"
+          },
+          "categoryDetailed": {
+            "S": "utilities"
+          },
+          "importedAt": {
+            "S": "2026-01-09T15:16:59.928048091Z"
+          },
+          "importerCategoryPrimary": {
+            "S": "utilities"
+          },
+          "description": {
+            "S": "T-MOBILE         PCS SVC    2988832         WEB ID: 0000450304"
+          },
+          "importBatchId": {
+            "S": "e1af5723-42c2-4757-8882-61ca55b4094d"
+          },
+          "transactionTypeOverridden": {
+            "BOOL": true
+          },
+          "transactionDate": {
+            "S": "2024-09-03"
+          },
+          "updatedAtTimestamp": {
+            "N": "1767971819"
+          },
+          "userId": {
+            "S": "c8920e3b-7293-4674-a5f3-fa4c0c6f115a"
+          },
+          "transactionId": {
+            "S": "490cdfc3-c7aa-328b-859e-991178fdb4cb"
+          },
+          "merchantName": {
+            "S": "T-MOBILE PCS SVC WEB ID:"
+          },
+          "categoryOverridden": {
+            "BOOL": true
+          },
+          "transactionType": {
+            "S": "EXPENSE"
+          },
+          "accountId": {
+            "S": "e5559a9e-188e-4c83-aed7-1974ca0294dc"
+          },
+          "createdAt": {
+            "S": "2026-01-09T15:16:59.994348258Z"
+          },
+          "categoryPrimary": {
+            "S": "utilities"
+          },
+          "importFileName": {
+            "S": "Chase3100_Activity_20251221.CSV"
+          },
+          "importSource": {
+            "S": "CSV"
+          },
+          "currencyCode": {
+            "S": "USD"
+          },
+          "importerCategoryDetailed": {
+            "S": "utilities"
+          },
+          "updatedAt": {
+            "S": "2026-01-09T15:16:59.994348258Z"
+          }
+        }
+      ],
+      "dates": [
+        "2024-05-01",
+        "2024-07-01",
+        "2024-09-03"
+      ]
+    }
+  ]
+}

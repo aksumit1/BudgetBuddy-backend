@@ -42,7 +42,11 @@ public class TransactionTypeDeterminer {
                                                     final BigDecimal amount) {
         if (account == null && categoryPrimary == null && categoryDetailed == null) {
             // No information available - default to expense
-            logger.debug("No account or category information available, defaulting to EXPENSE");
+            if (amount != null && amount.compareTo(BigDecimal.ZERO) > 0) {
+                logger.debug("No account or category information available, defaulting to INCOME");
+                return TransactionType.INCOME;
+            }
+            logger.info("No account or category information available, defaulting to EXPENSE");
             return TransactionType.EXPENSE;
         }
         
@@ -54,20 +58,20 @@ public class TransactionTypeDeterminer {
         // CRITICAL: ACH credits with "deposit" category should be INCOME, not INVESTMENT
         // Check this BEFORE investment account/category checks to ensure ACH credits are always income
         // "deposit" with "income" primary is always income (e.g., ACH Electronic Credit from Gusto)
-        if ("income".equals(categoryPrimaryLower) && "deposit".equals(categoryDetailedLower)) {
-            logger.debug("Transaction determined as INCOME based on income/deposit category (ACH credit)");
-            return TransactionType.INCOME;
-        }
+        // if ("income".equals(categoryPrimaryLower) && "deposit".equals(categoryDetailedLower)) {
+        //     logger.debug("Transaction determined as INCOME based on income/deposit category (ACH credit)");
+        //     return TransactionType.INCOME;
+        // }
         
         // 1. INVESTMENT: Check account type first (highest priority)
         if (isInvestmentAccount(accountType, accountSubtype)) {
-            logger.debug("Transaction determined as INVESTMENT based on account type: {} / {}", accountType, accountSubtype);
+            logger.info("Transaction determined as INVESTMENT based on account type: {} / {}", accountType, accountSubtype);
             return TransactionType.INVESTMENT;
         }
         
         // 2. INVESTMENT: Check category (CD deposits, stocks, bonds, etc.)
         if (isInvestmentCategory(categoryPrimaryLower, categoryDetailedLower)) {
-            logger.debug("Transaction determined as INVESTMENT based on category: {} / {}", categoryPrimary, categoryDetailed);
+            logger.info("Transaction determined as INVESTMENT based on category: {} / {}", categoryPrimary, categoryDetailed);
             return TransactionType.INVESTMENT;
         }
         
@@ -77,13 +81,13 @@ public class TransactionTypeDeterminer {
         
         // 4. INCOME: Check category primary
         if ("income".equals(categoryPrimaryLower)) {
-            logger.debug("Transaction determined as INCOME based on categoryPrimary: {}", categoryPrimary);
+            logger.info("Transaction determined as INCOME based on categoryPrimary: {}", categoryPrimary);
             return TransactionType.INCOME;
         }
         
         // 5. INCOME: Check for income-related detailed categories
         if (isIncomeCategory(categoryDetailedLower)) {
-            logger.debug("Transaction determined as INCOME based on categoryDetailed: {}", categoryDetailed);
+            logger.info("Transaction determined as INCOME based on categoryDetailed: {}", categoryDetailed);
             return TransactionType.INCOME;
         }
         
@@ -94,13 +98,13 @@ public class TransactionTypeDeterminer {
             if (categoryPrimaryLower == null || 
                 !isExpenseCategory(categoryPrimaryLower, categoryDetailedLower) ||
                 "other".equals(categoryPrimaryLower)) {
-                logger.debug("Transaction determined as INCOME based on positive amount: {}", amount);
+                logger.info("Transaction determined as INCOME based on positive amount: {}", amount);
                 return TransactionType.INCOME;
             }
         }
         
         // 7. EXPENSE: Default for everything else
-        logger.debug("Transaction determined as EXPENSE (default)");
+        logger.info("Transaction determined as EXPENSE (default)");
         return TransactionType.EXPENSE;
     }
     

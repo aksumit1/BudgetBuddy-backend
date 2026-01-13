@@ -1,5 +1,6 @@
 package com.budgetbuddy.api.config;
 
+import com.budgetbuddy.notification.DataChangeNotificationService;
 import com.budgetbuddy.security.*;
 import com.budgetbuddy.service.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -34,6 +35,15 @@ public class TransactionControllerConfig {
     
     // Utilities
     private final ObjectMapper objectMapper;
+    
+    // Notification service
+    private final DataChangeNotificationService dataChangeNotificationService;
+    
+    // Subscription service for automatic detection
+    private final SubscriptionService subscriptionService;
+    
+    // Import history service
+    private final ImportHistoryService importHistoryService;
 
     public TransactionControllerConfig(
             final TransactionService transactionService,
@@ -51,7 +61,10 @@ public class TransactionControllerConfig {
             final TransactionTypeCategoryService transactionTypeCategoryService,
             final ChunkedUploadService chunkedUploadService,
             final ObjectMapper objectMapper,
-            final AccountDetectionService accountDetectionService) {
+            final AccountDetectionService accountDetectionService,
+            final DataChangeNotificationService dataChangeNotificationService,
+            final SubscriptionService subscriptionService,
+            final ImportHistoryService importHistoryService) {
         this.transactionService = transactionService;
         this.userService = userService;
         this.accountRepository = accountRepository;
@@ -68,6 +81,9 @@ public class TransactionControllerConfig {
         this.chunkedUploadService = chunkedUploadService;
         this.accountDetectionService = accountDetectionService;
         this.objectMapper = objectMapper;
+        this.dataChangeNotificationService = dataChangeNotificationService;
+        this.subscriptionService = subscriptionService;
+        this.importHistoryService = importHistoryService;
     }
 
     // Getters
@@ -87,5 +103,8 @@ public class TransactionControllerConfig {
     public ChunkedUploadService getChunkedUploadService() { return chunkedUploadService; }
     public AccountDetectionService getAccountDetectionService() { return accountDetectionService; }
     public ObjectMapper getObjectMapper() { return objectMapper; }
+    public DataChangeNotificationService getDataChangeNotificationService() { return dataChangeNotificationService; }
+    public SubscriptionService getSubscriptionService() { return subscriptionService; }
+    public ImportHistoryService getImportHistoryService() { return importHistoryService; }
 }
 

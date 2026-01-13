@@ -476,6 +476,43 @@ Resources:
         - Key: ManagedBy
           Value: CloudFormation
 
+  # Device Tokens Table (for push notifications)
+  # Cost Optimization: Streams disabled (token changes are infrequent)
+  # PITR disabled for cost optimization (device tokens can be re-registered)
+  DeviceTokensTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub '${TablePrefix}-DeviceTokens'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: userId
+          AttributeType: S
+        - AttributeName: deviceToken
+          AttributeType: S
+      KeySchema:
+        - AttributeName: userId
+          KeyType: HASH
+        - AttributeName: deviceToken
+          KeyType: RANGE
+      # StreamSpecification: Disabled for cost optimization (token changes are infrequent)
+      # PointInTimeRecoverySpecification: Disabled for cost optimization (tokens can be re-registered)
+      # Security: Server-side encryption (KMS - uses AWS managed key if KMSKeyId not provided)
+      SSESpecification:
+        SSEEnabled: true
+        SSEType: KMS
+        KMSMasterKeyId: !If
+          - HasKMSKey
+          - !Ref KMSKeyId
+          - !Ref AWS::NoValue
+          # Uses AWS managed key (alias/aws/dynamodb) if KMSKeyId is empty
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Application
+          Value: BudgetBuddy
+        - Key: ManagedBy
+          Value: CloudFormation
+
   # Device PIN Table
   # Cost Optimization: Streams and PITR disabled (PIN changes are infrequent)
   DevicePinTable:
@@ -722,6 +759,206 @@ Resources:
         - Key: ManagedBy
           Value: CloudFormation
 
+  # User Corrections Table (for learning from user category corrections)
+  # Cost Optimization: Streams and PITR disabled (corrections can use regular backups)
+  UserCorrectionsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub '${TablePrefix}-UserCorrections'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: correctionId
+          AttributeType: S
+        - AttributeName: userId
+          AttributeType: S
+        - AttributeName: merchantName
+          AttributeType: S
+        - AttributeName: correctedAtTimestamp
+          AttributeType: N
+      KeySchema:
+        - AttributeName: correctionId
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: UserIdMerchantIndex
+          KeySchema:
+            - AttributeName: userId
+              KeyType: HASH
+            - AttributeName: merchantName
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+        - IndexName: UserIdDateIndex
+          KeySchema:
+            - AttributeName: userId
+              KeyType: HASH
+            - AttributeName: correctedAtTimestamp
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+      # StreamSpecification: Disabled for cost optimization (corrections are batch processed)
+      # PointInTimeRecoverySpecification: Disabled for cost optimization (use regular backups instead)
+      # Security: Server-side encryption (KMS - uses AWS managed key if KMSKeyId not provided)
+      SSESpecification:
+        SSEEnabled: true
+        SSEType: KMS
+        KMSMasterKeyId: !If
+          - HasKMSKey
+          - !Ref KMSKeyId
+          - !Ref AWS::NoValue
+          # Uses AWS managed key (alias/aws/dynamodb) if KMSKeyId is empty
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Application
+          Value: BudgetBuddy
+        - Key: ManagedBy
+          Value: CloudFormation
+
+  # Custom Merchant Mappings Table (for user-defined merchant/category mappings)
+  # Cost Optimization: Streams and PITR disabled (mappings can use regular backups)
+  CustomMerchantMappingsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub '${TablePrefix}-CustomMerchantMappings'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: mappingId
+          AttributeType: S
+        - AttributeName: userId
+          AttributeType: S
+        - AttributeName: merchantName
+          AttributeType: S
+        - AttributeName: isActive
+          AttributeType: S
+      KeySchema:
+        - AttributeName: mappingId
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: UserIdMerchantIndex
+          KeySchema:
+            - AttributeName: userId
+              KeyType: HASH
+            - AttributeName: merchantName
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+        - IndexName: UserIdActiveIndex
+          KeySchema:
+            - AttributeName: userId
+              KeyType: HASH
+            - AttributeName: merchantName
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+      # StreamSpecification: Disabled for cost optimization (mappings are infrequently changed)
+      # PointInTimeRecoverySpecification: Disabled for cost optimization (use regular backups instead)
+      # Security: Server-side encryption (KMS - uses AWS managed key if KMSKeyId not provided)
+      SSESpecification:
+        SSEEnabled: true
+        SSEType: KMS
+        KMSMasterKeyId: !If
+          - HasKMSKey
+          - !Ref KMSKeyId
+          - !Ref AWS::NoValue
+          # Uses AWS managed key (alias/aws/dynamodb) if KMSKeyId is empty
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Application
+          Value: BudgetBuddy
+        - Key: ManagedBy
+          Value: CloudFormation
+
+  # User Corrections Table (for category learning)
+  UserCorrectionsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub '${TablePrefix}-UserCorrections'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: correctionId
+          AttributeType: S
+        - AttributeName: userId
+          AttributeType: S
+        - AttributeName: merchantName
+          AttributeType: S
+        - AttributeName: correctedCategoryPrimary
+          AttributeType: S
+      KeySchema:
+        - AttributeName: correctionId
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: UserIdMerchantCategoryIndex
+          KeySchema:
+            - AttributeName: userId
+              KeyType: HASH
+            - AttributeName: merchantName
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+      StreamSpecification:
+        StreamViewType: NEW_AND_OLD_IMAGES
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      SSESpecification:
+        SSEEnabled: true
+        SSEType: KMS
+        KMSMasterKeyId: !If
+          - HasKMSKey
+          - !Ref KMSKeyId
+          - !Ref AWS::NoValue
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Application
+          Value: BudgetBuddy
+        - Key: ManagedBy
+          Value: CloudFormation
+
+  # Custom Merchant Mappings Table (for user-defined category rules)
+  CustomMerchantMappingsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub '${TablePrefix}-CustomMerchantMappings'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: mappingId
+          AttributeType: S
+        - AttributeName: userId
+          AttributeType: S
+        - AttributeName: merchantName
+          AttributeType: S
+      KeySchema:
+        - AttributeName: mappingId
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: UserIdMerchantNameIndex
+          KeySchema:
+            - AttributeName: userId
+              KeyType: HASH
+            - AttributeName: merchantName
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+      StreamSpecification:
+        StreamViewType: NEW_AND_OLD_IMAGES
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      SSESpecification:
+        SSEEnabled: true
+        SSEType: KMS
+        KMSMasterKeyId: !If
+          - HasKMSKey
+          - !Ref KMSKeyId
+          - !Ref AWS::NoValue
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Application
+          Value: BudgetBuddy
+        - Key: ManagedBy
+          Value: CloudFormation
+
 Outputs:
   UsersTableName:
     Description: Name of the Users table
@@ -800,3 +1037,15 @@ Outputs:
     Value: !Ref MFAOTPCodesTable
     Export:
       Name: !Sub '${AWS::StackName}-MFAOTPCodesTable'
+  
+  UserCorrectionsTableName:
+    Description: Name of the User Corrections table
+    Value: !Ref UserCorrectionsTable
+    Export:
+      Name: !Sub '${AWS::StackName}-UserCorrectionsTable'
+  
+  CustomMerchantMappingsTableName:
+    Description: Name of the Custom Merchant Mappings table
+    Value: !Ref CustomMerchantMappingsTable
+    Export:
+      Name: !Sub '${AWS::StackName}-CustomMerchantMappingsTable'

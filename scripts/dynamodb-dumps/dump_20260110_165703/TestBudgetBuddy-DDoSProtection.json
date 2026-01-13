@@ -1,0 +1,21 @@
+{
+    "Items": [
+        {
+            "ipAddress": {
+                "S": "127.0.0.1"
+            },
+            "ttl": {
+                "N": "1768057220"
+            },
+            "userId": {
+                "S": "test-null-handling-78ecff58-3032-4541-b61b-ec09e0faf9ae@example.com"
+            },
+            "timestamp": {
+                "N": "1767970820"
+            }
+        }
+    ],
+    "Count": 1,
+    "ScannedCount": 1,
+    "ConsumedCapacity": null
+}

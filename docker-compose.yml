@@ -133,6 +133,12 @@ services:
       AWS_APPCONFIG_ENDPOINT: http://localstack:4566
       AWS_CLOUDWATCH_ENDPOINT: http://localstack:4566
       AWS_S3_BUCKET: budgetbuddy-storage
+      # BERT Model Configuration
+      BERT_ENABLED: ${BERT_ENABLED:-false}
+      BERT_MODEL_PATH: ${BERT_MODEL_PATH:-models/distilbert-base-uncased.onnx}
+      BERT_MODEL_BUCKET: ${BERT_MODEL_BUCKET:-budgetbuddy-bert-models}
+      BERT_MODEL_S3_KEY: ${BERT_MODEL_S3_KEY:-distilbert-base-uncased.onnx}
+      BERT_MODEL_S3_ENDPOINT: http://localstack:4566
       JWT_SECRET: test-secret-change-in-production-this-must-be-at-least-64-characters-long-for-hs512-algorithm-to-work-properly
       # Plaid credentials - use environment variables or .env file (NEVER commit real credentials)
       # For local development, create a .env file with:

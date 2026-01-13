@@ -67,6 +67,17 @@ class TransactionTypeCategoryServiceTest {
         lenient().when(circuitBreakerService.execute(anyString(), any(), any())).thenReturn(null);
         
         // CRITICAL: Manually create service with all required dependencies
+        com.budgetbuddy.service.category.InMemoryMerchantService merchantService = 
+            mock(com.budgetbuddy.service.category.InMemoryMerchantService.class);
+        // Mock merchant service to return null by default (no matches)
+        lenient().when(merchantService.detectCategory(anyString(), anyString(), anyString()))
+            .thenReturn(null);
+        
+        CategoryLearningService learningService = mock(CategoryLearningService.class);
+        // Mock learning service to return null by default (no custom mappings)
+        lenient().when(learningService.getCustomMapping(anyString(), anyString()))
+            .thenReturn(null);
+        
         service = new TransactionTypeCategoryService(
             transactionTypeDeterminer,
             plaidCategoryMapper,
@@ -74,7 +85,9 @@ class TransactionTypeCategoryServiceTest {
             enhancedCategoryDetection,
             importCategoryConfig,
             globalFinancialConfig,
-            circuitBreakerService
+            circuitBreakerService,
+            merchantService,
+            learningService
         );
         // Setup checking account
         checkingAccount = new AccountTable();
@@ -101,29 +114,40 @@ class TransactionTypeCategoryServiceTest {
 
     @Test
     void testDetermineTransactionType_WithInvestmentAccount() {
-        // Given: Investment account with positive amount
-        when(transactionTypeDeterminer.determineTransactionType(
-            eq(investmentAccount), anyString(), anyString(), any(BigDecimal.class)))
-            .thenReturn(TransactionType.INVESTMENT);
-
-        // When: Determine type
+        // Given: Investment account with positive amount (transfer/deposit)
+        // When: Determine type for investment transfer
         TransactionTypeCategoryService.TypeResult result = service.determineTransactionType(
             investmentAccount,
             "investment",
-            "stocks",
+            "investment",
             BigDecimal.valueOf(1000),
             null,
-            "Stock purchase",
+            "Online Transfer from Morgan Stanley",
             null
         );
 
-        // Then: Should be INVESTMENT
+        // Then: Should be INVESTMENT (transfers are INVESTMENT, not INCOME)
         assertNotNull(result);
-        // Investment account with positive amount → INCOME (dividends/interest)
-        // Investment account with negative amount → INVESTMENT (purchases) or EXPENSE (fees)
-        // This test has positive amount, so it should be INCOME
-        assertEquals(TransactionType.INCOME, result.getTransactionType());
+        assertEquals(TransactionType.INVESTMENT, result.getTransactionType());
+        
+        // Test 2: Investment account with positive amount (dividend/interest) → INCOME
+        // Use "income" category to ensure it's not detected as a transfer
+        TransactionTypeCategoryService.TypeResult result2 = service.determineTransactionType(
+            investmentAccount,
+            "income", // Use "income" category, not "investment"
+            "dividend",
+            BigDecimal.valueOf(100),
+            null,
+            "Dividend payment",
+            null
+        );
+        
+        assertNotNull(result2);
+        assertEquals(TransactionType.INCOME, result2.getTransactionType());
+        // result is for transfer, should be INVESTMENT (already asserted above)
+        // result2 is for dividend, should be INCOME (already asserted above)
         assertTrue(result.getConfidence() > 0.5);
+        assertTrue(result2.getConfidence() > 0.5);
     }
 
     @Test

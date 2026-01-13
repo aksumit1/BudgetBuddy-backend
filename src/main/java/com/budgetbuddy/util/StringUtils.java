@@ -55,6 +55,11 @@ public final class StringUtils {
         // This prevents removing years or legitimate numbers, but removes store IDs
         normalized = normalized.replaceAll("\\s+\\d{4,}(?=\\s|$)", ""); // Remove long numeric IDs (4+ digits) at end or followed by space
         
+        // CRITICAL FIX: Normalize special characters that appear in merchant names
+        // Handle "*" which appears in merchant names like "DJ*Barrons", "D J*BARRONS"
+        normalized = normalized.replaceAll("\\*", " "); // Replace * with space
+        normalized = normalized.replaceAll("\\s*\\*\\s*", " "); // Also handle * with spaces around it
+        
         // Normalize whitespace (multiple spaces to single space)
         normalized = normalized.replaceAll("\\s+", " ");
         normalized = normalized.replaceAll("\\s+-\\s+", " ");

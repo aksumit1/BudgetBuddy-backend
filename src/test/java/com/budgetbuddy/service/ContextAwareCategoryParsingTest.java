@@ -67,7 +67,6 @@ class ContextAwareCategoryParsingTest {
         csvImportService = new CSVImportService(
             accountDetectionService,
             enhancedCategoryDetection,
-            fuzzyMatchingService,
             transactionTypeCategoryService,
             mockImportCategoryParser,
             categoryDetectionManager
@@ -1077,14 +1076,14 @@ class ContextAwareCategoryParsingTest {
     
     @Test
     @DisplayName("Bellevue School District - school district payment should be other (not charity)")
-    void testBellevueSchoolDistrict_Other() {
+    void testBellevueSchoolDistrict_Education() {
         String category = csvImportService.parseCategory(
             null, "Bellevue School District Payment", "Bellevue School District",
             BigDecimal.valueOf(-150.00), "card", "DEBIT",
             "EXPENSE", "depository", "checking"
         );
-        assertEquals("other", category, 
-            "Bellevue School District (school district payment) should be categorized as other, not charity");
+        assertEquals("education", category, 
+            "Bellevue School District (school district payment) should be categorized as education");
     }
     
     @Test
@@ -1184,15 +1183,15 @@ class ContextAwareCategoryParsingTest {
     }
     
     @Test
-    @DisplayName("Gurukul - education should be other")
-    void testGurukul_Other() {
+    @DisplayName("Gurukul - education should be education")
+    void testGurukul_Education() {
         String category = csvImportService.parseCategory(
             null, "Gurukul", "Gurukul",
             BigDecimal.valueOf(-200.00), "card", "DEBIT",
             "EXPENSE", "depository", "checking"
         );
-        assertEquals("other", category, 
-            "Gurukul (education) should be categorized as other");
+        assertEquals("education", category, 
+            "Gurukul (Indian term for school) should be categorized as education");
     }
     
     @Test

@@ -17,6 +17,15 @@ COPY checkstyle.xml .
 
 # Copy source code and build
 COPY src ./src
+
+# Copy scripts for downloading BERT model
+COPY scripts/download-bert-model.sh ./scripts/
+RUN chmod +x ./scripts/download-bert-model.sh
+
+# Download DistilBERT model during build (optional - can also download at runtime)
+# Uncomment the following line to include model in Docker image:
+# RUN ./scripts/download-bert-model.sh models || echo "Model download skipped (will download at runtime)"
+
 RUN mvn clean package -DskipTests
 
 # Runtime stage - Use ARM64/Graviton2 base image with JDK 25
@@ -59,12 +68,30 @@ ENV TESSDATA_PREFIX=/usr/share/tesseract-ocr/5/tessdata
 # Verify Tesseract installation
 RUN tesseract --version || echo "Tesseract installation verification"
 
+# Install AWS CLI for downloading model from S3 at runtime (if needed)
+RUN apk add --no-cache \
+    aws-cli \
+    curl \
+    bash
+
+# Create models directory
+RUN mkdir -p /app/models
+
 # Create non-root user
 RUN addgroup -S spring && adduser -S spring -G spring
-USER spring:spring
 
 # Copy jar from build stage
 COPY --from=build /app/target/*.jar app.jar
+
+# Copy model download script (for runtime download from S3)
+COPY --from=build /app/scripts/download-bert-model.sh /app/scripts/
+RUN chmod +x /app/scripts/download-bert-model.sh
+
+# Copy entrypoint script that downloads model from S3 if needed
+COPY scripts/docker-entrypoint.sh /app/
+RUN chmod +x /app/docker-entrypoint.sh
+
+USER spring:spring
 
 # Health check for ECS
 HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
@@ -72,13 +99,5 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
 
 EXPOSE 8080
 
-# Use exec form for better signal handling
-# JDK 21 optimizations: ZGC for low latency, optimized container support
-ENTRYPOINT ["java", \
-  "-XX:+UseContainerSupport", \
-  "-XX:MaxRAMPercentage=75.0", \
-  "-XX:+UseZGC", \
-  "-XX:+UnlockExperimentalVMOptions", \
-  "-XX:+UseTransparentHugePages", \
-  "-Djava.security.egd=file:/dev/./urandom", \
-  "-jar", "app.jar"]
+# Use entrypoint script that handles model download before starting app
+ENTRYPOINT ["/app/docker-entrypoint.sh"]

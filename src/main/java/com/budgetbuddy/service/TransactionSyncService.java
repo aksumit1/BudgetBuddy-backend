@@ -38,16 +38,19 @@ public class TransactionSyncService {
     private final TransactionRepository transactionRepository;
     private final AccountRepository accountRepository;
     private final PlaidDataExtractor dataExtractor;
+    private final SubscriptionService subscriptionService;
 
     public TransactionSyncService(
             final PlaidService plaidService,
             final TransactionRepository transactionRepository,
             final AccountRepository accountRepository,
-            final PlaidDataExtractor dataExtractor) {
+            final PlaidDataExtractor dataExtractor,
+            final SubscriptionService subscriptionService) {
         this.plaidService = plaidService;
         this.transactionRepository = transactionRepository;
         this.accountRepository = accountRepository;
         this.dataExtractor = dataExtractor;
+        this.subscriptionService = subscriptionService;
     }
 
     /**
@@ -186,6 +189,30 @@ public class TransactionSyncService {
             logger.info("Transaction sync completed for user: {} - New: {}, Updated: {}, Errors: {}",
                     userId, newCount, updatedCount, errorCount);
 
+            // CRITICAL FIX: Automatically detect subscriptions after Plaid sync
+            // Run asynchronously to avoid blocking the response
+            final int finalNewCount = newCount; // Capture for lambda
+            if (finalNewCount > 0) {
+                try {
+                    CompletableFuture.runAsync(() -> {
+                        try {
+                            java.util.List<com.budgetbuddy.model.Subscription> detected = subscriptionService.detectSubscriptions(userId);
+                            if (!detected.isEmpty()) {
+                                subscriptionService.saveSubscriptions(userId, detected);
+                                logger.info("Detected {} subscriptions after Plaid sync ({} new transactions)", 
+                                        detected.size(), finalNewCount);
+                            }
+                        } catch (Exception e) {
+                            logger.warn("Failed to detect subscriptions after Plaid sync: {}", e.getMessage());
+                            // Don't fail the sync if subscription detection fails
+                        }
+                    });
+                } catch (Exception e) {
+                    logger.warn("Failed to trigger subscription detection after Plaid sync: {}", e.getMessage());
+                    // Don't fail the sync if subscription detection fails
+                }
+            }
+
             return CompletableFuture.completedFuture(result);
         } catch (Exception e) {
             logger.error("Transaction sync failed for user {}: {}", userId, e.getMessage(), e);
@@ -319,6 +346,30 @@ public class TransactionSyncService {
             result.setNewCount(newCount);
             result.setUpdatedCount(updatedCount);
             result.setTotalProcessed(newCount + updatedCount);
+
+            // CRITICAL FIX: Automatically detect subscriptions after incremental Plaid sync
+            // Run asynchronously to avoid blocking the response
+            final int finalNewCount = newCount; // Capture for lambda
+            if (finalNewCount > 0) {
+                try {
+                    CompletableFuture.runAsync(() -> {
+                        try {
+                            java.util.List<com.budgetbuddy.model.Subscription> detected = subscriptionService.detectSubscriptions(userId);
+                            if (!detected.isEmpty()) {
+                                subscriptionService.saveSubscriptions(userId, detected);
+                                logger.info("Detected {} subscriptions after incremental Plaid sync ({} new transactions)", 
+                                        detected.size(), finalNewCount);
+                            }
+                        } catch (Exception e) {
+                            logger.warn("Failed to detect subscriptions after incremental Plaid sync: {}", e.getMessage());
+                            // Don't fail the sync if subscription detection fails
+                        }
+                    });
+                } catch (Exception e) {
+                    logger.warn("Failed to trigger subscription detection after incremental Plaid sync: {}", e.getMessage());
+                    // Don't fail the sync if subscription detection fails
+                }
+            }
 
             return CompletableFuture.completedFuture(result);
         } catch (Exception e) {

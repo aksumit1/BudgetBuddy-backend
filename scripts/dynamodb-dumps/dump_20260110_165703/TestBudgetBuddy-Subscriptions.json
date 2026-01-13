@@ -1,0 +1,686 @@
+{
+    "Items": [
+        {
+            "amount": {
+                "N": "-9.99"
+            },
+            "nextPaymentDate": {
+                "S": "2026-01-09"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Spotify Subscription"
+            },
+            "userId": {
+                "S": "cb858b1f-ea99-450a-9a04-7f0b69c60a24"
+            },
+            "frequency": {
+                "S": "MONTHLY"
+            },
+            "merchantName": {
+                "S": "Spotify"
+            },
+            "accountId": {
+                "S": "ad560989-e900-4721-82da-d3c10a32f210"
+            },
+            "createdAt": {
+                "S": "2026-01-09T15:00:18.410075Z"
+            },
+            "subscriptionType": {
+                "S": "streaming"
+            },
+            "category": {
+                "S": "subscriptions"
+            },
+            "subscriptionId": {
+                "S": "3ecc3a9e-e8c1-430e-b3b0-4a98e91faec5"
+            },
+            "startDate": {
+                "S": "2025-12-09"
+            },
+            "updatedAt": {
+                "S": "2026-01-09T15:00:18.410075Z"
+            }
+        },
+        {
+            "amount": {
+                "N": "-15.99"
+            },
+            "nextPaymentDate": {
+                "S": "2026-01-09"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Netflix Subscription"
+            },
+            "userId": {
+                "S": "cb858b1f-ea99-450a-9a04-7f0b69c60a24"
+            },
+            "frequency": {
+                "S": "MONTHLY"
+            },
+            "merchantName": {
+                "S": "Netflix"
+            },
+            "accountId": {
+                "S": "ad560989-e900-4721-82da-d3c10a32f210"
+            },
+            "createdAt": {
+                "S": "2026-01-09T15:00:18.402732Z"
+            },
+            "subscriptionType": {
+                "S": "streaming"
+            },
+            "category": {
+                "S": "subscriptions"
+            },
+            "subscriptionId": {
+                "S": "923d0334-e515-49af-bf7d-a3f104455e45"
+            },
+            "startDate": {
+                "S": "2025-12-09"
+            },
+            "updatedAt": {
+                "S": "2026-01-09T15:00:18.402732Z"
+            }
+        },
+        {
+            "amount": {
+                "N": "-9.99"
+            },
+            "nextPaymentDate": {
+                "S": "2026-01-09"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Spotify Subscription"
+            },
+            "userId": {
+                "S": "cb6e4efe-4e3f-4792-8025-4c60fba9763e"
+            },
+            "frequency": {
+                "S": "MONTHLY"
+            },
+            "merchantName": {
+                "S": "Spotify"
+            },
+            "accountId": {
+                "S": "7d29dfd2-edd5-487a-8430-5ae0db1ac1b5"
+            },
+            "createdAt": {
+                "S": "2026-01-09T15:00:17.037664Z"
+            },
+            "subscriptionType": {
+                "S": "streaming"
+            },
+            "category": {
+                "S": "subscriptions"
+            },
+            "subscriptionId": {
+                "S": "c1542896-fd95-455c-bbea-0547f7b0a5bb"
+            },
+            "startDate": {
+                "S": "2025-12-09"
+            },
+            "updatedAt": {
+                "S": "2026-01-09T15:00:17.037664Z"
+            }
+        },
+        {
+            "amount": {
+                "N": "-15.99"
+            },
+            "nextPaymentDate": {
+                "S": "2026-01-09"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Netflix Subscription"
+            },
+            "userId": {
+                "S": "44d2d515-6fd8-480b-a7fc-bbbf4f180f0f"
+            },
+            "frequency": {
+                "S": "MONTHLY"
+            },
+            "merchantName": {
+                "S": "Netflix"
+            },
+            "accountId": {
+                "S": "9739058e-5c26-4651-84b1-452cbb073960"
+            },
+            "createdAt": {
+                "S": "2026-01-09T15:00:15.735909Z"
+            },
+            "subscriptionType": {
+                "S": "streaming"
+            },
+            "category": {
+                "S": "subscriptions"
+            },
+            "subscriptionId": {
+                "S": "ce10de9c-c381-4093-a37a-5c343782ab8e"
+            },
+            "startDate": {
+                "S": "2025-12-09"
+            },
+            "updatedAt": {
+                "S": "2026-01-09T15:00:15.735909Z"
+            }
+        },
+        {
+            "subscriptionId": {
+                "S": "b86f56e4-241c-4a73-a4d5-9a234ea211cf"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "userId": {
+                "S": "cb858b1f-ea99-450a-9a04-7f0b69c60a24"
+            }
+        },
+        {
+            "accountId": {
+                "S": "397a7348-f281-4de7-b21e-41905249f38b"
+            },
+            "createdAt": {
+                "S": "2026-01-09T14:58:49.704925Z"
+            },
+            "amount": {
+                "N": "-10"
+            },
+            "nextPaymentDate": {
+                "S": "2026-02-09"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "category": {
+                "S": "subscriptions"
+            },
+            "subscriptionId": {
+                "S": "03f2411a-f0ba-4f72-b3b3-f672493037fe"
+            },
+            "userId": {
+                "S": "5059f376-bcbf-4e8a-878e-cf88224d97f1"
+            },
+            "startDate": {
+                "S": "2025-12-09"
+            },
+            "frequency": {
+                "S": "MONTHLY"
+            },
+            "merchantName": {
+                "S": "Test Merchant"
+            },
+            "updatedAt": {
+                "S": "2026-01-09T14:58:49.704926Z"
+            }
+        },
+        {
+            "amount": {
+                "N": "-9.99"
+            },
+            "nextPaymentDate": {
+                "S": "2026-01-09"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Spotify Subscription"
+            },
+            "userId": {
+                "S": "115cd5c0-17a4-4f33-850d-5e317ca3e656"
+            },
+            "frequency": {
+                "S": "MONTHLY"
+            },
+            "merchantName": {
+                "S": "Spotify"
+            },
+            "accountId": {
+                "S": "70e3f7d4-ddb6-42e2-bfa0-f54bd86024f5"
+            },
+            "createdAt": {
+                "S": "2026-01-09T15:00:17.724958Z"
+            },
+            "subscriptionType": {
+                "S": "streaming"
+            },
+            "category": {
+                "S": "subscriptions"
+            },
+            "subscriptionId": {
+                "S": "1ebca5bb-5291-4d11-9846-e14500ac8799"
+            },
+            "startDate": {
+                "S": "2025-12-09"
+            },
+            "updatedAt": {
+                "S": "2026-01-09T15:00:17.724958Z"
+            }
+        },
+        {
+            "amount": {
+                "N": "-15.99"
+            },
+            "nextPaymentDate": {
+                "S": "2026-01-09"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Netflix Subscription"
+            },
+            "userId": {
+                "S": "115cd5c0-17a4-4f33-850d-5e317ca3e656"
+            },
+            "frequency": {
+                "S": "MONTHLY"
+            },
+            "merchantName": {
+                "S": "Netflix"
+            },
+            "accountId": {
+                "S": "70e3f7d4-ddb6-42e2-bfa0-f54bd86024f5"
+            },
+            "createdAt": {
+                "S": "2026-01-09T15:00:17.724934Z"
+            },
+            "subscriptionType": {
+                "S": "streaming"
+            },
+            "category": {
+                "S": "subscriptions"
+            },
+            "subscriptionId": {
+                "S": "c9842982-8fa0-499d-84f8-e18c29bffc43"
+            },
+            "startDate": {
+                "S": "2025-12-09"
+            },
+            "updatedAt": {
+                "S": "2026-01-09T15:00:17.724935Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "7395f15c-bceb-40d5-bea5-a892cc852e94"
+            },
+            "createdAt": {
+                "S": "2026-01-09T15:00:16.361417Z"
+            },
+            "amount": {
+                "N": "-10"
+            },
+            "nextPaymentDate": {
+                "S": "2026-02-09"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "category": {
+                "S": "subscriptions"
+            },
+            "subscriptionId": {
+                "S": "077e8259-b8d0-4dc1-b8e6-81d260091f94"
+            },
+            "userId": {
+                "S": "91df49b9-f3d2-47c3-b18c-79363e6d59c4"
+            },
+            "startDate": {
+                "S": "2025-12-09"
+            },
+            "frequency": {
+                "S": "MONTHLY"
+            },
+            "merchantName": {
+                "S": "Test Merchant"
+            },
+            "updatedAt": {
+                "S": "2026-01-09T15:00:16.361417Z"
+            }
+        },
+        {
+            "amount": {
+                "N": "-10"
+            },
+            "nextPaymentDate": {
+                "S": "2026-01-09"
+            },
+            "active": {
+                "BOOL": false
+            },
+            "description": {
+                "S": "Cancelled Subscription"
+            },
+            "userId": {
+                "S": "115cd5c0-17a4-4f33-850d-5e317ca3e656"
+            },
+            "frequency": {
+                "S": "MONTHLY"
+            },
+            "merchantName": {
+                "S": "Cancelled"
+            },
+            "accountId": {
+                "S": "70e3f7d4-ddb6-42e2-bfa0-f54bd86024f5"
+            },
+            "createdAt": {
+                "S": "2026-01-09T15:00:17.724974Z"
+            },
+            "subscriptionType": {
+                "S": "streaming"
+            },
+            "category": {
+                "S": "subscriptions"
+            },
+            "subscriptionId": {
+                "S": "7cb2487b-6055-4b08-9f87-1d77febc86f0"
+            },
+            "startDate": {
+                "S": "2025-12-09"
+            },
+            "updatedAt": {
+                "S": "2026-01-09T15:00:17.724974Z"
+            }
+        },
+        {
+            "amount": {
+                "N": "-15.99"
+            },
+            "nextPaymentDate": {
+                "S": "2026-01-09"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Netflix Subscription"
+            },
+            "userId": {
+                "S": "cb6e4efe-4e3f-4792-8025-4c60fba9763e"
+            },
+            "frequency": {
+                "S": "MONTHLY"
+            },
+            "merchantName": {
+                "S": "Netflix"
+            },
+            "accountId": {
+                "S": "7d29dfd2-edd5-487a-8430-5ae0db1ac1b5"
+            },
+            "createdAt": {
+                "S": "2026-01-09T15:00:17.037638Z"
+            },
+            "subscriptionType": {
+                "S": "streaming"
+            },
+            "category": {
+                "S": "subscriptions"
+            },
+            "subscriptionId": {
+                "S": "59540d46-f503-4c39-a5d8-ca6f7c2936e1"
+            },
+            "startDate": {
+                "S": "2025-12-09"
+            },
+            "updatedAt": {
+                "S": "2026-01-09T15:00:17.037639Z"
+            }
+        },
+        {
+            "amount": {
+                "N": "-15.99"
+            },
+            "nextPaymentDate": {
+                "S": "2026-01-09"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Netflix Subscription"
+            },
+            "userId": {
+                "S": "e2dc8e2f-22a1-4471-b11c-1110eec4bcb0"
+            },
+            "frequency": {
+                "S": "MONTHLY"
+            },
+            "merchantName": {
+                "S": "Netflix"
+            },
+            "accountId": {
+                "S": "4f034e64-064e-45cf-ab54-ed4826ff0c9c"
+            },
+            "createdAt": {
+                "S": "2026-01-09T15:00:19.077929Z"
+            },
+            "subscriptionType": {
+                "S": "streaming"
+            },
+            "category": {
+                "S": "subscriptions"
+            },
+            "subscriptionId": {
+                "S": "312bc20c-04c4-45e4-a4a6-486f677713b9"
+            },
+            "startDate": {
+                "S": "2025-12-09"
+            },
+            "updatedAt": {
+                "S": "2026-01-09T15:00:19.077929Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "d7252e50-4723-4a4e-9de2-27eab6a4d934"
+            },
+            "createdAt": {
+                "S": "2026-01-09T15:00:20.382815Z"
+            },
+            "amount": {
+                "N": "-10"
+            },
+            "nextPaymentDate": {
+                "S": "2026-02-09"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "category": {
+                "S": "subscriptions"
+            },
+            "subscriptionId": {
+                "S": "a48963fd-8a3d-4076-844b-7cd736a7616e"
+            },
+            "userId": {
+                "S": "35141e16-a66d-4cd7-9974-e1e3efc5ae72"
+            },
+            "startDate": {
+                "S": "2025-12-09"
+            },
+            "frequency": {
+                "S": "MONTHLY"
+            },
+            "merchantName": {
+                "S": "Test Merchant"
+            },
+            "updatedAt": {
+                "S": "2026-01-09T15:00:20.382815Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "639ec6c7-764d-4146-ad9a-a05c54934644"
+            },
+            "createdAt": {
+                "S": "2026-01-09T15:00:19.750606Z"
+            },
+            "amount": {
+                "N": "-10"
+            },
+            "nextPaymentDate": {
+                "S": "2026-02-09"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "category": {
+                "S": "subscriptions"
+            },
+            "subscriptionId": {
+                "S": "9cd71c22-fad2-4178-be71-c240dcef5397"
+            },
+            "userId": {
+                "S": "ff734458-fec7-4a00-9a4d-950882e4da7f"
+            },
+            "startDate": {
+                "S": "invalid-date-format"
+            },
+            "frequency": {
+                "S": "MONTHLY"
+            },
+            "merchantName": {
+                "S": "Test Merchant"
+            },
+            "updatedAt": {
+                "S": "2026-01-09T15:00:19.750606Z"
+            }
+        },
+        {
+            "amount": {
+                "N": "-10"
+            },
+            "nextPaymentDate": {
+                "S": "2026-01-09"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "description": {
+                "S": "Test Subscription"
+            },
+            "userId": {
+                "S": "c39f23a3-884b-42a2-ae0c-ed61b5ba49b5"
+            },
+            "frequency": {
+                "S": "MONTHLY"
+            },
+            "merchantName": {
+                "S": "Test"
+            },
+            "accountId": {
+                "S": "5fbb022a-16e3-4739-bdfa-83d41f3675a7"
+            },
+            "createdAt": {
+                "S": "2026-01-09T15:00:21.052675Z"
+            },
+            "subscriptionType": {
+                "S": "streaming"
+            },
+            "category": {
+                "S": "subscriptions"
+            },
+            "subscriptionId": {
+                "S": "a02f5955-2050-4079-a67b-715bd0009456"
+            },
+            "startDate": {
+                "S": "2025-12-09"
+            },
+            "updatedAt": {
+                "S": "2026-01-09T15:00:21.052675Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "695e7fac-3cd6-4e3c-a5df-b10f2745074a"
+            },
+            "createdAt": {
+                "S": "2026-01-09T15:00:15.082920Z"
+            },
+            "amount": {
+                "N": "-10"
+            },
+            "nextPaymentDate": {
+                "S": "2026-02-09"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "category": {
+                "S": "subscriptions"
+            },
+            "subscriptionId": {
+                "S": "bef31ad1-5dc0-41fa-99a7-6ae843e973c2"
+            },
+            "userId": {
+                "S": "d5b7884f-b339-4dd3-8745-d5d9d7c96350"
+            },
+            "startDate": {
+                "S": "2025-12-09"
+            },
+            "frequency": {
+                "S": "INVALID_FREQUENCY"
+            },
+            "merchantName": {
+                "S": "Test Merchant"
+            },
+            "updatedAt": {
+                "S": "2026-01-09T15:00:15.082920Z"
+            }
+        },
+        {
+            "accountId": {
+                "S": "52e3d300-653e-4b52-8b9c-b84e3342b69b"
+            },
+            "createdAt": {
+                "S": "2026-01-09T14:59:41.958689Z"
+            },
+            "amount": {
+                "N": "-10"
+            },
+            "nextPaymentDate": {
+                "S": "2026-02-09"
+            },
+            "active": {
+                "BOOL": true
+            },
+            "category": {
+                "S": "subscriptions"
+            },
+            "subscriptionId": {
+                "S": "b0151081-91e6-4275-a127-caefb0afd780"
+            },
+            "userId": {
+                "S": "49f794f5-9e0a-456d-a302-055bf142e9c8"
+            },
+            "startDate": {
+                "S": "2025-12-09"
+            },
+            "frequency": {
+                "S": "MONTHLY"
+            },
+            "merchantName": {
+                "S": "Test Merchant"
+            },
+            "updatedAt": {
+                "S": "2026-01-09T14:59:41.958690Z"
+            }
+        }
+    ],
+    "Count": 17,
+    "ScannedCount": 17,
+    "ConsumedCapacity": null
+}

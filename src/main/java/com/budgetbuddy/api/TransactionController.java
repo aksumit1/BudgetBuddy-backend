@@ -60,6 +60,9 @@ public class TransactionController {
     private final ChunkedUploadService chunkedUploadService; // Chunked upload support
     private final ObjectMapper objectMapper; // For parsing JSON request bodies
     private final AccountDetectionService accountDetectionService; // For account balance date comparison
+    private final com.budgetbuddy.notification.DataChangeNotificationService dataChangeNotificationService; // For push notifications
+    private final SubscriptionService subscriptionService; // For automatic subscription detection
+    private final ImportHistoryService importHistoryService; // For import history and statistics
     
     // Allowed file extensions
     private static final Set<String> CSV_EXTENSIONS = Set.of("csv");
@@ -87,6 +90,9 @@ public class TransactionController {
         this.chunkedUploadService = config.getChunkedUploadService();
         this.accountDetectionService = config.getAccountDetectionService();
         this.objectMapper = config.getObjectMapper();
+        this.dataChangeNotificationService = config.getDataChangeNotificationService();
+        this.subscriptionService = config.getSubscriptionService();
+        this.importHistoryService = config.getImportHistoryService();
     }
 
     @GetMapping
@@ -158,6 +164,49 @@ public class TransactionController {
 
         BigDecimal total = transactionService.getTotalSpending(user, startDate, endDate);
         return ResponseEntity.ok(new TotalSpendingResponse(total));
+    }
+
+    /**
+     * Get import history for the authenticated user
+     * Returns a list of all import operations (CSV, Excel, PDF, etc.)
+     */
+    @GetMapping("/import-history")
+    public ResponseEntity<List<ImportHistoryResponse>> getImportHistory(
+            @AuthenticationPrincipal UserDetails userDetails) {
+        if (userDetails == null || userDetails.getUsername() == null) {
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+        }
+
+        UserTable user = userService.findByEmail(userDetails.getUsername())
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+
+        List<com.budgetbuddy.model.ImportHistory> historyList = importHistoryService.getUserImportHistory(user.getUserId());
+        
+        List<ImportHistoryResponse> responseList = historyList.stream()
+                .map(ImportHistoryResponse::from)
+                .collect(java.util.stream.Collectors.toList());
+        
+        return ResponseEntity.ok(responseList);
+    }
+
+    /**
+     * Get import statistics for the authenticated user
+     * Returns aggregated statistics about all import operations
+     */
+    @GetMapping("/import-statistics")
+    public ResponseEntity<ImportStatisticsResponse> getImportStatistics(
+            @AuthenticationPrincipal UserDetails userDetails) {
+        if (userDetails == null || userDetails.getUsername() == null) {
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
+        }
+
+        UserTable user = userService.findByEmail(userDetails.getUsername())
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+
+        java.util.Map<String, Object> stats = importHistoryService.getImportStatistics(user.getUserId());
+        
+        ImportStatisticsResponse response = ImportStatisticsResponse.from(stats);
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/{id}")
@@ -237,6 +286,34 @@ public class TransactionController {
                 request.getLinkedTransactionId() // Pass optional linked transaction ID (for cross-account duplicate detection)
         );
 
+        // Send push notification for real-time sync on other devices
+        try {
+            dataChangeNotificationService.notifyTransactionCreated(user.getUserId(), transaction.getTransactionId());
+        } catch (Exception e) {
+            logger.warn("Failed to send data change notification for transaction creation: {}", e.getMessage());
+            // Don't fail the request if notification fails
+        }
+
+        // CRITICAL FIX: Automatically detect subscriptions after transaction creation
+        // Run asynchronously to avoid blocking the response
+        try {
+            java.util.concurrent.CompletableFuture.runAsync(() -> {
+                try {
+                    List<com.budgetbuddy.model.Subscription> detected = subscriptionService.detectSubscriptions(user.getUserId());
+                    if (!detected.isEmpty()) {
+                        subscriptionService.saveSubscriptions(user.getUserId(), detected);
+                        logger.info("Detected {} subscriptions after transaction creation", detected.size());
+                    }
+                } catch (Exception e) {
+                    logger.warn("Failed to detect subscriptions after transaction creation: {}", e.getMessage());
+                    // Don't fail the request if subscription detection fails
+                }
+            });
+        } catch (Exception e) {
+            logger.warn("Failed to trigger subscription detection after transaction creation: {}", e.getMessage());
+            // Don't fail the request if subscription detection fails
+        }
+
         return ResponseEntity.status(HttpStatus.CREATED).body(transaction);
     }
 
@@ -272,6 +349,43 @@ public class TransactionController {
                 request.getGoalId(), // Pass optional goal ID this transaction contributes to
                 request.getLinkedTransactionId() // Pass optional linked transaction ID (for cross-account duplicate detection)
         );
+
+        // Send push notification for real-time sync on other devices
+        try {
+            dataChangeNotificationService.notifyTransactionUpdated(user.getUserId(), transaction.getTransactionId());
+        } catch (Exception e) {
+            logger.warn("Failed to send data change notification for transaction update: {}", e.getMessage());
+            // Don't fail the request if notification fails
+        }
+
+        // CRITICAL FIX: Automatically detect subscriptions after transaction update
+        // Especially important when category changes to subscription-related
+        // Run asynchronously to avoid blocking the response
+        try {
+            java.util.concurrent.CompletableFuture.runAsync(() -> {
+                try {
+                    // Check if category changed to subscription-related
+                    boolean isSubscriptionCategory = (request.getCategoryPrimary() != null && 
+                            "subscriptions".equalsIgnoreCase(request.getCategoryPrimary())) ||
+                            (request.getCategoryDetailed() != null && 
+                            "subscriptions".equalsIgnoreCase(request.getCategoryDetailed()));
+                    
+                    // Always run detection after update (category might have changed, or new transaction pattern might emerge)
+                    List<com.budgetbuddy.model.Subscription> detected = subscriptionService.detectSubscriptions(user.getUserId());
+                    if (!detected.isEmpty()) {
+                        subscriptionService.saveSubscriptions(user.getUserId(), detected);
+                        logger.info("Detected {} subscriptions after transaction update (category changed to subscription: {})", 
+                                detected.size(), isSubscriptionCategory);
+                    }
+                } catch (Exception e) {
+                    logger.warn("Failed to detect subscriptions after transaction update: {}", e.getMessage());
+                    // Don't fail the request if subscription detection fails
+                }
+            });
+        } catch (Exception e) {
+            logger.warn("Failed to trigger subscription detection after transaction update: {}", e.getMessage());
+            // Don't fail the request if subscription detection fails
+        }
 
         return ResponseEntity.ok(transaction);
     }
@@ -368,6 +482,41 @@ public class TransactionController {
                 request.getTransactions()
         );
         
+        // Send push notification for real-time sync on other devices (batch import)
+        try {
+            int totalCount = response.getCreated(); // Number of successfully created transactions
+            if (totalCount > 0) {
+                dataChangeNotificationService.notifyBatchTransactionsImported(user.getUserId(), totalCount);
+            }
+        } catch (Exception e) {
+            logger.warn("Failed to send data change notification for batch import: {}", e.getMessage());
+            // Don't fail the request if notification fails
+        }
+        
+        // CRITICAL FIX: Automatically detect subscriptions after batch import
+        // Run asynchronously to avoid blocking the response
+        final int finalCreated = response.getCreated(); // Capture for lambda
+        if (finalCreated > 0) {
+            try {
+                java.util.concurrent.CompletableFuture.runAsync(() -> {
+                    try {
+                        List<com.budgetbuddy.model.Subscription> detected = subscriptionService.detectSubscriptions(user.getUserId());
+                        if (!detected.isEmpty()) {
+                            subscriptionService.saveSubscriptions(user.getUserId(), detected);
+                            logger.info("Detected {} subscriptions after batch import ({} transactions created)", 
+                                    detected.size(), finalCreated);
+                        }
+                    } catch (Exception e) {
+                        logger.warn("Failed to detect subscriptions after batch import: {}", e.getMessage());
+                        // Don't fail the request if subscription detection fails
+                    }
+                });
+            } catch (Exception e) {
+                logger.warn("Failed to trigger subscription detection after batch import: {}", e.getMessage());
+                // Don't fail the request if subscription detection fails
+            }
+        }
+        
         // CRITICAL FIX: Include createdAccountId in response if account was created or matched
         // Only include if accountIdToUse is valid and was successfully used
         if (accountIdToUse != null && !accountIdToUse.trim().isEmpty()) {
@@ -423,6 +572,28 @@ public class TransactionController {
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
 
         transactionService.deleteTransaction(user, id);
+        
+        // CRITICAL FIX: Automatically detect subscriptions after transaction deletion
+        // Deletion might affect existing subscription patterns, so re-run detection
+        // Run asynchronously to avoid blocking the response
+        try {
+            java.util.concurrent.CompletableFuture.runAsync(() -> {
+                try {
+                    List<com.budgetbuddy.model.Subscription> detected = subscriptionService.detectSubscriptions(user.getUserId());
+                    if (!detected.isEmpty()) {
+                        subscriptionService.saveSubscriptions(user.getUserId(), detected);
+                        logger.info("Detected {} subscriptions after transaction deletion", detected.size());
+                    }
+                } catch (Exception e) {
+                    logger.warn("Failed to detect subscriptions after transaction deletion: {}", e.getMessage());
+                    // Don't fail the request if subscription detection fails
+                }
+            });
+        } catch (Exception e) {
+            logger.warn("Failed to trigger subscription detection after transaction deletion: {}", e.getMessage());
+            // Don't fail the request if subscription detection fails
+        }
+        
         return ResponseEntity.noContent().build();
     }
 
@@ -2056,6 +2227,7 @@ public class TransactionController {
                     }
                 }
                 
+                
                 // CRITICAL: Update account metadata with latest values from PDF import
                 // This updates payment due date, minimum payment due, reward points, and balance
                 // based on the latest payment due date
@@ -2738,6 +2910,31 @@ public class TransactionController {
         logger.info("🎉 Import completed: {} total transactions, {} created, {} failed, {} duplicates", 
                 totalTransactions, created, failed, duplicates);
         
+        // CRITICAL FIX: Automatically detect subscriptions after import
+        // Run asynchronously to avoid blocking the response
+        final int finalCreated = created; // Capture for lambda
+        final String finalImportSource = importSource; // Capture for lambda
+        if (finalCreated > 0) {
+            try {
+                java.util.concurrent.CompletableFuture.runAsync(() -> {
+                    try {
+                        List<com.budgetbuddy.model.Subscription> detected = subscriptionService.detectSubscriptions(user.getUserId());
+                        if (!detected.isEmpty()) {
+                            subscriptionService.saveSubscriptions(user.getUserId(), detected);
+                            logger.info("Detected {} subscriptions after {} import ({} transactions created)", 
+                                    detected.size(), finalImportSource, finalCreated);
+                        }
+                    } catch (Exception e) {
+                        logger.warn("Failed to detect subscriptions after {} import: {}", finalImportSource, e.getMessage());
+                        // Don't fail the request if subscription detection fails
+                    }
+                });
+            } catch (Exception e) {
+                logger.warn("Failed to trigger subscription detection after {} import: {}", finalImportSource, e.getMessage());
+                // Don't fail the request if subscription detection fails
+            }
+        }
+        
         return ResponseEntity.ok(response);
     }
 
@@ -2772,6 +2969,7 @@ public class TransactionController {
             
             for (PDFImportService.ParsedTransaction parsed : batch) {
                 try {
+
                     // CRITICAL: Log amount before creating transaction to track sign preservation
                     logger.info("📥 [PDF Import] Creating transaction: description='{}', parsedAmount={}, transactionType='{}', category='{}'", 
                             parsed.getDescription(), parsed.getAmount(), parsed.getTransactionType(), parsed.getCategoryPrimary());
@@ -2828,6 +3026,30 @@ public class TransactionController {
         
         logger.info("🎉 Import completed: {} total transactions, {} created, {} failed", 
                 totalTransactions, created, failed);
+        
+        // CRITICAL FIX: Automatically detect subscriptions after PDF import
+        // Run asynchronously to avoid blocking the response
+        final int finalCreated = created; // Capture for lambda
+        if (finalCreated > 0) {
+            try {
+                java.util.concurrent.CompletableFuture.runAsync(() -> {
+                    try {
+                        List<com.budgetbuddy.model.Subscription> detected = subscriptionService.detectSubscriptions(user.getUserId());
+                        if (!detected.isEmpty()) {
+                            subscriptionService.saveSubscriptions(user.getUserId(), detected);
+                            logger.info("Detected {} subscriptions after PDF import ({} transactions created)", 
+                                    detected.size(), finalCreated);
+                        }
+                    } catch (Exception e) {
+                        logger.warn("Failed to detect subscriptions after PDF import: {}", e.getMessage());
+                        // Don't fail the request if subscription detection fails
+                    }
+                });
+            } catch (Exception e) {
+                logger.warn("Failed to trigger subscription detection after PDF import: {}", e.getMessage());
+                // Don't fail the request if subscription detection fails
+            }
+        }
         
         return ResponseEntity.ok(response);
     }
@@ -3398,7 +3620,7 @@ public class TransactionController {
                 // Use the provided account name (sanitize it)
                 accountName = sanitizeAccountName(accountName);
             } else {
-                // Generate account name in format: <institutionName><accountType><last4digits>
+                // Generate account name in format: <institutionName> <accountType> <last4digits>
                 // CRITICAL: If all original fields were null/empty, pass null to generateAccountName
                 // so it returns "Imported Account" (for test compatibility)
                 if (allFieldsNullOrEmpty) {
@@ -3540,8 +3762,8 @@ public class TransactionController {
      * Sanitize account name/institution name - remove control characters and truncate if too long
      */
     /**
-     * Generate account name in format: <institutionName><accountType><last4digits>
-     * Example: "ChaseChecking1234" (uses subtype "checking" if available, otherwise type "depository")
+     * Generate account name in format: <institutionName> <accountType> <last4digits>
+     * Example: "Chase checking 1234" (uses subtype "checking" if available, otherwise type "depository")
      * 
      * @param institutionName Institution name (e.g., "Chase Bank")
      * @param accountType Account type (e.g., "depository")
@@ -3576,8 +3798,14 @@ public class TransactionController {
         }
         
         if (typeToUse != null) {
+            if (name.length() > 0) {
+                name.append(" ");
+            }
             name.append(typeToUse);
         } else {
+            if (name.length() > 0) {
+                name.append(" ");
+            }
             name.append("other");
         }
         
@@ -3587,9 +3815,15 @@ public class TransactionController {
             // Extract last 4 digits (handle cases where account number might have non-digits)
             String digitsOnly = accountNum.replaceAll("[^0-9]", "");
             if (digitsOnly.length() >= 4) {
+                if (name.length() > 0) {
+                    name.append(" ");
+                }
                 name.append(digitsOnly.substring(digitsOnly.length() - 4));
             } else if (!digitsOnly.isEmpty()) {
                 // If less than 4 digits, use what we have
+                if (name.length() > 0) {
+                    name.append(" ");
+                }
                 name.append(digitsOnly);
             }
         }
@@ -4009,5 +4243,142 @@ public class TransactionController {
             logger.error("❌ Error updating account metadata for account '{}': {}", accountId, e.getMessage(), e);
             // Don't fail the import if metadata update fails
         }
+    }
+
+    // MARK: - Import History Response DTOs
+
+    /**
+     * Import History Response DTO
+     * Matches the BackendImportHistory format expected by iOS app
+     */
+    public static class ImportHistoryResponse {
+        @com.fasterxml.jackson.annotation.JsonProperty("importId")
+        private String id;
+        private String userId;
+        private String fileName;
+        private String fileType;
+        private String importSource;
+        private String status;
+        private int totalTransactions;
+        private int successfulTransactions;
+        private int failedTransactions;
+        private int skippedTransactions;
+        private int duplicateTransactions;
+        private String accountId;
+        @com.fasterxml.jackson.annotation.JsonFormat(shape = com.fasterxml.jackson.annotation.JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", timezone = "UTC")
+        private Instant startedAt;
+        @com.fasterxml.jackson.annotation.JsonFormat(shape = com.fasterxml.jackson.annotation.JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", timezone = "UTC")
+        private Instant completedAt;
+        private String errorMessage;
+        private boolean canResume;
+        private String importBatchId;
+
+        public ImportHistoryResponse() {
+        }
+
+        public static ImportHistoryResponse from(com.budgetbuddy.model.ImportHistory history) {
+            ImportHistoryResponse response = new ImportHistoryResponse();
+            response.id = history.getImportId();
+            response.userId = history.getUserId();
+            response.fileName = history.getFileName();
+            response.fileType = history.getFileType();
+            response.importSource = history.getImportSource();
+            response.status = history.getStatus();
+            response.totalTransactions = history.getTotalTransactions();
+            response.successfulTransactions = history.getSuccessfulTransactions();
+            response.failedTransactions = history.getFailedTransactions();
+            response.skippedTransactions = history.getSkippedTransactions();
+            response.duplicateTransactions = history.getDuplicateTransactions();
+            response.accountId = history.getAccountId();
+            response.startedAt = history.getStartedAt();
+            response.completedAt = history.getCompletedAt();
+            response.errorMessage = history.getErrorMessage();
+            response.canResume = history.isCanResume();
+            response.importBatchId = history.getImportBatchId();
+            return response;
+        }
+
+        // Getters and setters
+        @com.fasterxml.jackson.annotation.JsonProperty("importId")
+        public String getId() { return id; }
+        @com.fasterxml.jackson.annotation.JsonProperty("importId")
+        public void setId(String id) { this.id = id; }
+        public String getUserId() { return userId; }
+        public void setUserId(String userId) { this.userId = userId; }
+        public String getFileName() { return fileName; }
+        public void setFileName(String fileName) { this.fileName = fileName; }
+        public String getFileType() { return fileType; }
+        public void setFileType(String fileType) { this.fileType = fileType; }
+        public String getImportSource() { return importSource; }
+        public void setImportSource(String importSource) { this.importSource = importSource; }
+        public String getStatus() { return status; }
+        public void setStatus(String status) { this.status = status; }
+        public int getTotalTransactions() { return totalTransactions; }
+        public void setTotalTransactions(int totalTransactions) { this.totalTransactions = totalTransactions; }
+        public int getSuccessfulTransactions() { return successfulTransactions; }
+        public void setSuccessfulTransactions(int successfulTransactions) { this.successfulTransactions = successfulTransactions; }
+        public int getFailedTransactions() { return failedTransactions; }
+        public void setFailedTransactions(int failedTransactions) { this.failedTransactions = failedTransactions; }
+        public int getSkippedTransactions() { return skippedTransactions; }
+        public void setSkippedTransactions(int skippedTransactions) { this.skippedTransactions = skippedTransactions; }
+        public int getDuplicateTransactions() { return duplicateTransactions; }
+        public void setDuplicateTransactions(int duplicateTransactions) { this.duplicateTransactions = duplicateTransactions; }
+        public String getAccountId() { return accountId; }
+        public void setAccountId(String accountId) { this.accountId = accountId; }
+        public Instant getStartedAt() { return startedAt; }
+        public void setStartedAt(Instant startedAt) { this.startedAt = startedAt; }
+        public Instant getCompletedAt() { return completedAt; }
+        public void setCompletedAt(Instant completedAt) { this.completedAt = completedAt; }
+        public String getErrorMessage() { return errorMessage; }
+        public void setErrorMessage(String errorMessage) { this.errorMessage = errorMessage; }
+        public boolean isCanResume() { return canResume; }
+        public void setCanResume(boolean canResume) { this.canResume = canResume; }
+        public String getImportBatchId() { return importBatchId; }
+        public void setImportBatchId(String importBatchId) { this.importBatchId = importBatchId; }
+    }
+
+    /**
+     * Import Statistics Response DTO
+     * Matches the ImportStatistics format expected by iOS app
+     */
+    public static class ImportStatisticsResponse {
+        private int totalImports;
+        private int completedImports;
+        private int failedImports;
+        private int partialImports;
+        private int totalTransactionsImported;
+        private int totalTransactionsFailed;
+        private int totalDuplicates;
+
+        public ImportStatisticsResponse() {
+        }
+
+        public static ImportStatisticsResponse from(java.util.Map<String, Object> stats) {
+            ImportStatisticsResponse response = new ImportStatisticsResponse();
+            response.totalImports = ((Number) stats.getOrDefault("totalImports", 0)).intValue();
+            response.completedImports = ((Number) stats.getOrDefault("completedImports", 0)).intValue();
+            response.failedImports = ((Number) stats.getOrDefault("failedImports", 0)).intValue();
+            response.partialImports = ((Number) stats.getOrDefault("partialImports", 0)).intValue();
+            response.totalTransactionsImported = ((Number) stats.getOrDefault("totalTransactionsImported", 0)).intValue();
+            response.totalTransactionsFailed = ((Number) stats.getOrDefault("totalTransactionsFailed", 0)).intValue();
+            response.totalDuplicates = ((Number) stats.getOrDefault("totalDuplicates", 0)).intValue();
+            return response;
+        }
+
+        // Getters and setters
+        public int getTotalImports() { return totalImports; }
+        public void setTotalImports(int totalImports) { this.totalImports = totalImports; }
+        public int getCompletedImports() { return completedImports; }
+        public void setCompletedImports(int completedImports) { this.completedImports = completedImports; }
+        public int getFailedImports() { return failedImports; }
+        public void setFailedImports(int failedImports) { this.failedImports = failedImports; }
+        public int getPartialImports() { return partialImports; }
+        public void setPartialImports(int partialImports) { this.partialImports = partialImports; }
+        public int getTotalTransactionsImported() { return totalTransactionsImported; }
+        public void setTotalTransactionsImported(int totalTransactionsImported) { this.totalTransactionsImported = totalTransactionsImported; }
+        public int getTotalTransactionsFailed() { return totalTransactionsFailed; }
+        public void setTotalTransactionsFailed(int totalTransactionsFailed) { this.totalTransactionsFailed = totalTransactionsFailed; }
+        public int getTotalDuplicates() { return totalDuplicates; }
+        public void setTotalDuplicates(int totalDuplicates) { this.totalDuplicates = totalDuplicates; }
     }
 }
