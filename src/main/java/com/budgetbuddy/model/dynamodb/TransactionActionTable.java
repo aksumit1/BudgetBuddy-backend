@@ -1,19 +1,18 @@
 package com.budgetbuddy.model.dynamodb;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import java.time.Instant;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbAttribute;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbBean;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbPartitionKey;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbSecondaryPartitionKey;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbSecondarySortKey;
 
-import java.time.Instant;
-
 /**
- * DynamoDB table for Transaction Actions/Reminders
- * GSI: TransactionIdIndex (transactionId as partition key) for querying actions by transaction
- * GSI: UserIdIndex (userId as partition key) for querying actions by user
- * GSI: ReminderDateIndex (reminderDatePartition as partition key, reminderDate as sort key) for querying reminders by date
+ * DynamoDB table for Transaction Actions/Reminders GSI: TransactionIdIndex (transactionId as
+ * partition key) for querying actions by transaction GSI: UserIdIndex (userId as partition key) for
+ * querying actions by user GSI: ReminderDateIndex (reminderDatePartition as partition key,
+ * reminderDate as sort key) for querying reminders by date
  */
 @DynamoDbBean
 public class TransactionActionTable {
@@ -25,11 +24,14 @@ public class TransactionActionTable {
     private String description;
     private String dueDate; // ISO date string (YYYY-MM-DD) or ISO datetime
     private String reminderDate; // ISO datetime - GSI sort key for ReminderDateIndex
-    private String reminderDatePartition; // Partition key for ReminderDateIndex (YYYY-MM-DD format for distribution)
+    private String
+            reminderDatePartition; // Partition key for ReminderDateIndex (YYYY-MM-DD format for
+    // distribution)
     private Boolean isCompleted;
     private String priority; // LOW, MEDIUM, HIGH
     private String notificationId; // For tracking scheduled notifications
-    private Boolean reminderDismissed; // If true, user dismissed the reminder and it won't be sent again
+    private Boolean
+            reminderDismissed; // If true, user dismissed the reminder and it won't be sent again
     private Instant createdAt;
     private Instant updatedAt;
     private Long updatedAtTimestamp; // GSI sort key (epoch seconds) for incremental sync
@@ -102,12 +104,15 @@ public class TransactionActionTable {
         // Auto-set partition key from reminder date (YYYY-MM-DD format)
         if (reminderDate != null && !reminderDate.isEmpty()) {
             try {
-                // Extract date part from ISO datetime (e.g., "2024-12-30T10:00:00Z" -> "2024-12-30")
+                // Extract date part from ISO datetime (e.g., "2024-12-30T10:00:00Z" ->
+                // "2024-12-30")
                 if (reminderDate.contains("T")) {
-                    this.reminderDatePartition = reminderDate.substring(0, reminderDate.indexOf("T"));
+                    this.reminderDatePartition =
+                            reminderDate.substring(0, reminderDate.indexOf("T"));
                 } else {
                     // Already a date string
-                    this.reminderDatePartition = reminderDate.substring(0, Math.min(10, reminderDate.length()));
+                    this.reminderDatePartition =
+                            reminderDate.substring(0, Math.min(10, reminderDate.length()));
                 }
             } catch (Exception e) {
                 // If parsing fails, use a default partition
@@ -117,13 +122,13 @@ public class TransactionActionTable {
             this.reminderDatePartition = null;
         }
     }
-    
+
     @DynamoDbSecondaryPartitionKey(indexNames = "ReminderDateIndex")
     @DynamoDbAttribute("reminderDatePartition")
     public String getReminderDatePartition() {
         return reminderDatePartition;
     }
-    
+
     public void setReminderDatePartition(final String reminderDatePartition) {
         this.reminderDatePartition = reminderDatePartition;
     }
@@ -165,7 +170,10 @@ public class TransactionActionTable {
     }
 
     @DynamoDbAttribute("createdAt")
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", timezone = "UTC")
+    @JsonFormat(
+            shape = JsonFormat.Shape.STRING,
+            pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
+            timezone = "UTC")
     public Instant getCreatedAt() {
         return createdAt;
     }
@@ -175,7 +183,10 @@ public class TransactionActionTable {
     }
 
     @DynamoDbAttribute("updatedAt")
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", timezone = "UTC")
+    @JsonFormat(
+            shape = JsonFormat.Shape.STRING,
+            pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
+            timezone = "UTC")
     public Instant getUpdatedAt() {
         return updatedAt;
     }
@@ -196,4 +207,3 @@ public class TransactionActionTable {
         this.updatedAtTimestamp = updatedAtTimestamp;
     }
 }
-

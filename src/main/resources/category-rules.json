@@ -1,0 +1,86 @@
+{
+  "_comment": [
+    "Data-driven category context rules — extending this file does NOT require a code change.",
+    "Each rule matches when any of its `textContains` substrings appears in the combined",
+    "merchant+description (case-insensitive), or — for account-context rules — when the",
+    "account type/subtype contains any of `accountMatches`.",
+    "",
+    "Fields:",
+    "  source      — telemetry label; prefix CONTEXT_ identifies where the decision came from",
+    "  category    — resolved category name, must exist in the TransactionCategory enum",
+    "  confidence  — 0.0–1.0; callers typically require >= 0.60 to trust a non-ML source",
+    "  textContains — list of lower-case substrings; any match counts",
+    "  accountMatches — list of lower-case account-type keywords; any match counts",
+    "  requiresPaymentPhrase — when true, the rule only fires if the text also contains a",
+    "                          payment-action phrase (see PaymentPhrases.PAYMENT_ACTION)"
+  ],
+  "rules": [
+    {
+      "source": "CONTEXT_INVESTMENT",
+      "category": "investment",
+      "confidence": 0.70,
+      "accountMatches": ["investment", "brokerage", "ira", "401k", "cd"]
+    },
+    {
+      "source": "CONTEXT_LOAN",
+      "category": "payment",
+      "confidence": 0.70,
+      "accountMatches": ["loan", "mortgage"]
+    },
+    {
+      "source": "CONTEXT_CREDIT_PAYMENT",
+      "category": "payment",
+      "confidence": 0.70,
+      "accountMatches": ["credit", "credit card"],
+      "requiresPaymentPhrase": true
+    },
+    {
+      "source": "CONTEXT_GROCERY_KEYWORD",
+      "category": "groceries",
+      "confidence": 0.65,
+      "textContains": [
+        "grocery", "supermarket", "food market", "farmers market",
+        "fresh food", "produce market", "food shopping"
+      ]
+    },
+    {
+      "source": "CONTEXT_DINING_KEYWORD",
+      "category": "dining",
+      "confidence": 0.65,
+      "textContains": [
+        "coffee", "cafe", "restaurant", "diner",
+        "fast food", "dining", "takeout", "take out",
+        "delivery meal", "lunch"
+      ]
+    },
+    {
+      "source": "CONTEXT_TRANSPORT_KEYWORD",
+      "category": "transportation",
+      "confidence": 0.65,
+      "textContains": [
+        "gas station", "fuel", "petrol", "uber", "lyft",
+        "taxi", "parking", "rideshare", "ride share", "transit", "subway"
+      ]
+    },
+    {
+      "source": "CONTEXT_HEALTH_KEYWORD",
+      "category": "health",
+      "confidence": 0.65,
+      "textContains": [
+        "pharmacy", "drug store", "doctor", "hospital", "medical",
+        "clinic", "dentist", "urgent care"
+      ]
+    },
+    {
+      "source": "CONTEXT_UTILITIES_KEYWORD",
+      "category": "utilities",
+      "confidence": 0.65,
+      "textContains": [
+        "electric bill", "water bill", "gas bill", "internet bill",
+        "cable bill", "phone bill", "utility", "electricity",
+        "internet service", "cable service", "trash service",
+        "sewer service", "cable tv", "cabletv"
+      ]
+    }
+  ]
+}

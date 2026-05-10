@@ -1,6 +1,9 @@
 package com.budgetbuddy.repository.dynamodb;
 
 import com.budgetbuddy.model.dynamodb.TransactionActionTable;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Repository;
@@ -14,14 +17,16 @@ import software.amazon.awssdk.enhanced.dynamodb.model.Page;
 import software.amazon.awssdk.enhanced.dynamodb.model.QueryConditional;
 import software.amazon.awssdk.services.dynamodb.model.ResourceNotFoundException;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-
 /**
- * DynamoDB Repository for Transaction Actions
- * Uses GSI for efficient queries by transactionId and userId
+ * DynamoDB Repository for Transaction Actions Uses GSI for efficient queries by transactionId and
+ * userId
  */
+// SDK / Spring integration — the underlying APIs (AWS SDK, Plaid SDK,
+// Spring services, reflection) throw arbitrary RuntimeException subtypes
+// that can't reasonably be enumerated. Broad catches log + recover (or
+// translate to AppException). Suppress at class level since narrowing
+// here would mean catch (RuntimeException) which PMD flags identically.
+@SuppressWarnings("PMD.AvoidCatchingGenericException")
 @Repository
 public class TransactionActionRepository {
 
@@ -34,10 +39,13 @@ public class TransactionActionRepository {
 
     public TransactionActionRepository(
             final DynamoDbEnhancedClient enhancedClient,
-            @org.springframework.beans.factory.annotation.Value("${app.aws.dynamodb.table-prefix:BudgetBuddy}") final String tablePrefix) {
+            @org.springframework.beans.factory.annotation.Value(
+                            "${app.aws.dynamodb.table-prefix:BudgetBuddy}")
+                    final String tablePrefix) {
         this.tableName = tablePrefix + "-TransactionActions";
-        this.actionTable = enhancedClient.table(this.tableName,
-                TableSchema.fromBean(TransactionActionTable.class));
+        this.actionTable =
+                enhancedClient.table(
+                        this.tableName, TableSchema.fromBean(TransactionActionTable.class));
         this.transactionIdIndex = actionTable.index("TransactionIdIndex");
         this.userIdIndex = actionTable.index("UserIdIndex");
         this.reminderDateIndex = actionTable.index("ReminderDateIndex");
@@ -50,10 +58,11 @@ public class TransactionActionRepository {
             throw new IllegalArgumentException("Transaction action cannot be null");
         }
         // CRITICAL FIX: Add retry logic for DynamoDB throttling and transient errors
-        com.budgetbuddy.util.RetryHelper.executeDynamoDbWithRetry(() -> {
-            actionTable.putItem(action);
-            return null;
-        });
+        com.budgetbuddy.util.RetryHelper.executeDynamoDbWithRetry(
+                () -> {
+                    actionTable.putItem(action);
+                    return null;
+                });
     }
 
     public Optional<TransactionActionTable> findById(final String actionId) {
@@ -61,77 +70,81 @@ public class TransactionActionRepository {
             return Optional.empty();
         }
         // Normalize ID to lowercase for case-insensitive lookup
-        String normalizedId = com.budgetbuddy.util.IdGenerator.normalizeUUID(actionId);
-        TransactionActionTable action = actionTable.getItem(
-                Key.builder().partitionValue(normalizedId).build());
+        final String normalizedId = com.budgetbuddy.util.IdGenerator.normalizeUUID(actionId);
+        final TransactionActionTable action =
+                actionTable.getItem(Key.builder().partitionValue(normalizedId).build());
         return Optional.ofNullable(action);
     }
 
-    /**
-     * Find all actions for a transaction using GSI
-     */
+    /** Find all actions for a transaction using GSI */
     public List<TransactionActionTable> findByTransactionId(final String transactionId) {
         if (transactionId == null || transactionId.isEmpty()) {
             return List.of();
         }
         // Normalize ID to lowercase for case-insensitive lookup
-        String normalizedId = com.budgetbuddy.util.IdGenerator.normalizeUUID(transactionId);
-        List<TransactionActionTable> results = new ArrayList<>();
-        SdkIterable<Page<TransactionActionTable>> pages = transactionIdIndex.query(
-                QueryConditional.keyEqualTo(Key.builder().partitionValue(normalizedId).build())
-        );
-        for (Page<TransactionActionTable> page : pages) {
+        final String normalizedId = com.budgetbuddy.util.IdGenerator.normalizeUUID(transactionId);
+        final List<TransactionActionTable> results = new ArrayList<>();
+        final SdkIterable<Page<TransactionActionTable>> pages =
+                transactionIdIndex.query(
+                        QueryConditional.keyEqualTo(
+                                Key.builder().partitionValue(normalizedId).build()));
+        for (final Page<TransactionActionTable> page : pages) {
             results.addAll(page.items());
         }
         return results;
     }
 
-    /**
-     * Find all actions for a user using GSI
-     */
-    @Cacheable(value = "transactionActions", key = "#userId", unless = "#result == null || #result.isEmpty()")
+    /** Find all actions for a user using GSI */
+    @Cacheable(
+            value = "transactionActions",
+            key = "#userId",
+            unless = "#result == null || #result.isEmpty()")
     public List<TransactionActionTable> findByUserId(final String userId) {
         if (userId == null || userId.isEmpty()) {
             return List.of();
         }
-        List<TransactionActionTable> results = new ArrayList<>();
-        SdkIterable<Page<TransactionActionTable>> pages = userIdIndex.query(
-                QueryConditional.keyEqualTo(Key.builder().partitionValue(userId).build())
-        );
-        for (Page<TransactionActionTable> page : pages) {
+        final List<TransactionActionTable> results = new ArrayList<>();
+        final SdkIterable<Page<TransactionActionTable>> pages =
+                userIdIndex.query(
+                        QueryConditional.keyEqualTo(Key.builder().partitionValue(userId).build()));
+        for (final Page<TransactionActionTable> page : pages) {
             results.addAll(page.items());
         }
         return results;
     }
 
     /**
-     * Find transaction actions updated after a specific timestamp using GSI
-     * Optimized for incremental sync - queries only changed items
+     * Find transaction actions updated after a specific timestamp using GSI Optimized for
+     * incremental sync - queries only changed items
      */
     /**
-     * CRITICAL: Do NOT cache this method - incremental sync queries must always be fresh
-     * to handle DynamoDB GSI eventual consistency. Caching empty results would prevent
-     * finding updated items until cache expires.
+     * CRITICAL: Do NOT cache this method - incremental sync queries must always be fresh to handle
+     * DynamoDB GSI eventual consistency. Caching empty results would prevent finding updated items
+     * until cache expires.
      */
-    public List<TransactionActionTable> findByUserIdAndUpdatedAfter(String userId, Long updatedAfterTimestamp) {
+    public List<TransactionActionTable> findByUserIdAndUpdatedAfter(
+            final String userId, final Long updatedAfterTimestamp) {
         if (userId == null || userId.isEmpty() || updatedAfterTimestamp == null) {
             return List.of();
         }
-        
-        List<TransactionActionTable> results = new ArrayList<>();
+
+        final List<TransactionActionTable> results = new ArrayList<>();
         try {
-            // CRITICAL FIX: Cannot use filter expression on sort key (updatedAtTimestamp is GSI sort key)
+            // CRITICAL FIX: Cannot use filter expression on sort key (updatedAtTimestamp is GSI
+            // sort key)
             // Query all items for user, then filter in application code
             // This is still efficient because we're using the GSI partition key
-            SdkIterable<Page<TransactionActionTable>> pages = userIdUpdatedAtIndex.query(
-                    QueryConditional.keyEqualTo(Key.builder().partitionValue(userId).build()));
+            final SdkIterable<Page<TransactionActionTable>> pages =
+                    userIdUpdatedAtIndex.query(
+                            QueryConditional.keyEqualTo(
+                                    Key.builder().partitionValue(userId).build()));
 
-            for (Page<TransactionActionTable> page : pages) {
-                for (TransactionActionTable action : page.items()) {
+            for (final Page<TransactionActionTable> page : pages) {
+                for (final TransactionActionTable action : page.items()) {
                     // Filter in application code: updatedAtTimestamp >= updatedAfterTimestamp
                     // Use >= to include items updated exactly at the timestamp
-                    if (action.getUpdatedAtTimestamp() != null && 
-                        action.getUpdatedAtTimestamp() >= updatedAfterTimestamp) {
+                    if (action.getUpdatedAtTimestamp() != null
+                            && action.getUpdatedAtTimestamp() >= updatedAfterTimestamp) {
                         results.add(action);
                     }
                 }
@@ -139,24 +152,34 @@ public class TransactionActionRepository {
         } catch (ResourceNotFoundException e) {
             // GSI not available - fallback to findByUserId and filter in memory
             org.slf4j.LoggerFactory.getLogger(TransactionActionRepository.class)
-                    .warn("UserIdUpdatedAtIndex GSI not found for userId {}. Falling back to findByUserId and filtering in memory.", userId);
+                    .warn(
+                            "UserIdUpdatedAtIndex GSI not found for userId {}. Falling back to findByUserId and filtering in memory.",
+                            userId);
             try {
-                List<TransactionActionTable> allActions = findByUserId(userId);
-                for (TransactionActionTable action : allActions) {
-                    if (action.getUpdatedAtTimestamp() != null && 
-                        action.getUpdatedAtTimestamp() >= updatedAfterTimestamp) {
+                final List<TransactionActionTable> allActions = findByUserId(userId);
+                for (final TransactionActionTable action : allActions) {
+                    if (action.getUpdatedAtTimestamp() != null
+                            && action.getUpdatedAtTimestamp() >= updatedAfterTimestamp) {
                         results.add(action);
                     }
                 }
             } catch (Exception fallbackException) {
                 org.slf4j.LoggerFactory.getLogger(TransactionActionRepository.class)
-                        .error("Error in fallback query for userId {}: {}", userId, fallbackException.getMessage(), fallbackException);
+                        .error(
+                                "Error in fallback query for userId {}: {}",
+                                userId,
+                                fallbackException.getMessage(),
+                                fallbackException);
             }
         } catch (Exception e) {
             org.slf4j.LoggerFactory.getLogger(TransactionActionRepository.class)
-                    .error("Error finding transaction actions by userId and updatedAfter {}: {}", userId, e.getMessage(), e);
+                    .error(
+                            "Error finding transaction actions by userId and updatedAfter {}: {}",
+                            userId,
+                            e.getMessage(),
+                            e);
         }
-        
+
         return results;
     }
 
@@ -167,55 +190,53 @@ public class TransactionActionRepository {
         }
         actionTable.deleteItem(Key.builder().partitionValue(actionId).build());
     }
-    
+
     /**
-     * Find actions with reminder dates in the specified range using GSI
-     * Queries across all date partitions that fall within the range
-     * 
+     * Find actions with reminder dates in the specified range using GSI Queries across all date
+     * partitions that fall within the range
+     *
      * @param startDate Start of date range (ISO datetime string)
      * @param endDate End of date range (ISO datetime string)
      * @return List of actions with reminder dates in the range
      */
-    public List<TransactionActionTable> findByReminderDateRange(final String startDate, final String endDate) {
+    public List<TransactionActionTable> findByReminderDateRange(
+            final String startDate, final String endDate) {
         if (startDate == null || endDate == null) {
             return List.of();
         }
-        
-        List<TransactionActionTable> results = new ArrayList<>();
-        
+
+        final List<TransactionActionTable> results = new ArrayList<>();
+
         try {
             // Extract date partitions from start and end dates
-            String startDatePartition = extractDatePartition(startDate);
-            String endDatePartition = extractDatePartition(endDate);
-            
+            final String startDatePartition = extractDatePartition(startDate);
+            final String endDatePartition = extractDatePartition(endDate);
+
             // Query each date partition in the range
-            java.time.LocalDate start = java.time.LocalDate.parse(startDatePartition);
-            java.time.LocalDate end = java.time.LocalDate.parse(endDatePartition);
-            
+            final java.time.LocalDate start = java.time.LocalDate.parse(startDatePartition);
+            final java.time.LocalDate end = java.time.LocalDate.parse(endDatePartition);
+
             java.time.LocalDate current = start;
             while (!current.isAfter(end)) {
-                String partitionKey = current.toString(); // YYYY-MM-DD format
-                
+                final String partitionKey = current.toString(); // YYYY-MM-DD format
+
                 // Query this partition with date range filter on sort key
-                SdkIterable<Page<TransactionActionTable>> pages = reminderDateIndex.query(
-                        QueryConditional.keyEqualTo(
-                                Key.builder()
-                                        .partitionValue(partitionKey)
-                                        .build()
-                        )
-                );
-                
-                for (Page<TransactionActionTable> page : pages) {
-                    for (TransactionActionTable action : page.items()) {
+                final SdkIterable<Page<TransactionActionTable>> pages =
+                        reminderDateIndex.query(
+                                QueryConditional.keyEqualTo(
+                                        Key.builder().partitionValue(partitionKey).build()));
+
+                for (final Page<TransactionActionTable> page : pages) {
+                    for (final TransactionActionTable action : page.items()) {
                         // Filter by actual reminderDate range (sort key)
-                        if (action.getReminderDate() != null && 
-                            action.getReminderDate().compareTo(startDate) >= 0 &&
-                            action.getReminderDate().compareTo(endDate) <= 0) {
+                        if (action.getReminderDate() != null
+                                && action.getReminderDate().compareTo(startDate) >= 0
+                                && action.getReminderDate().compareTo(endDate) <= 0) {
                             results.add(action);
                         }
                     }
                 }
-                
+
                 current = current.plusDays(1);
             }
         } catch (Exception e) {
@@ -223,13 +244,11 @@ public class TransactionActionRepository {
             org.slf4j.LoggerFactory.getLogger(TransactionActionRepository.class)
                     .warn("Error querying reminder date range: {}", e.getMessage());
         }
-        
+
         return results;
     }
-    
-    /**
-     * Extract date partition (YYYY-MM-DD) from ISO datetime string
-     */
+
+    /** Extract date partition (YYYY-MM-DD) from ISO datetime string */
     private String extractDatePartition(final String dateTimeStr) {
         if (dateTimeStr == null || dateTimeStr.isEmpty()) {
             return null;
@@ -245,4 +264,3 @@ public class TransactionActionRepository {
         }
     }
 }
-

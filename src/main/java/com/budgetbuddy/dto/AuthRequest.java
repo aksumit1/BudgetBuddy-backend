@@ -6,11 +6,8 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 
 /**
- * Authentication request DTO
- * Zero Trust: Client sends password_hash (client-side hashed), backend performs
- * additional server-side hashing with server salt only
- *
- * BREAKING CHANGE: Client salt removed - no backward compatibility
+ * Authentication request DTO Zero Trust: Client sends password_hash (client-side hashed), backend
+ * performs additional server-side hashing with server salt only
  */
 public final class AuthRequest {
 
@@ -21,20 +18,20 @@ public final class AuthRequest {
     // Secure field - client-side hashed password (PBKDF2 with challenge nonce)
     // Accept both camelCase (passwordHash) and snake_case (password_hash) for compatibility
     @JsonProperty("passwordHash")
+    // TO DO: Remove the alias password_hash. Need to have only one.
     @JsonAlias("password_hash")
     private String passwordHash;
-    
+
     // Challenge nonce (PAKE2) - required for authentication/registration
     private String challenge;
 
-    public AuthRequest() {
-    }
+    public AuthRequest() {}
 
     public AuthRequest(final String email, final String passwordHash) {
         this.email = email;
         this.passwordHash = passwordHash;
     }
-    
+
     public AuthRequest(final String email, final String passwordHash, final String challenge) {
         this.email = email;
         this.passwordHash = passwordHash;
@@ -50,8 +47,8 @@ public final class AuthRequest {
     }
 
     /**
-     * Client-side hashed password (PBKDF2)
-     * Backend will perform additional server-side hashing with server salt
+     * Client-side hashed password (PBKDF2) Backend will perform additional server-side hashing with
+     * server salt
      */
     public String getPasswordHash() {
         return passwordHash;
@@ -61,9 +58,7 @@ public final class AuthRequest {
         this.passwordHash = passwordHash;
     }
 
-    /**
-     * Challenge nonce for PAKE2 authentication
-     */
+    /** Challenge nonce for PAKE2 authentication */
     public String getChallenge() {
         return challenge;
     }
@@ -72,9 +67,7 @@ public final class AuthRequest {
         this.challenge = challenge;
     }
 
-    /**
-     * Check if request uses secure format (password_hash only)
-     */
+    /** Check if request uses secure format (password_hash only) */
     @com.fasterxml.jackson.annotation.JsonIgnore
     public boolean isSecureFormat() {
         return passwordHash != null && !passwordHash.isEmpty();

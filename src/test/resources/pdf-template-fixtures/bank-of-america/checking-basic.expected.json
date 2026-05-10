@@ -1,0 +1,10 @@
+{
+  "institution": "Bank of America",
+  "note": "synthetic BoA checking — 4-column layout with running balance",
+  "expected": [
+    { "date": "2024-03-15", "description": "WHOLE FOODS MKT #12345",              "amount": "-42.18" },
+    { "date": "2024-03-17", "description": "SHELL OIL 57534451212 SAN JOSE CA",   "amount": "-38.50" },
+    { "date": "2024-03-19", "description": "DIRECT DEPOSIT ACME CORP",            "amount": "2,500.00" },
+    { "date": "2024-03-22", "description": "ATM WITHDRAWAL 03/21 WELLS FARGO",    "amount": "-100.00" }
+  ]
+}

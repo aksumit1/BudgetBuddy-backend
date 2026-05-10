@@ -1,0 +1,10 @@
+{
+  "institution": "Wells Fargo",
+  "note": "synthetic WF checking — single-date + balance column",
+  "expected": [
+    { "date": "2024-03-15", "description": "TRADER JOE'S #201",               "amount": "-67.89" },
+    { "date": "2024-03-18", "description": "PAYROLL DEPOSIT ACME INDUSTRIES", "amount": "3,200.00" },
+    { "date": "2024-03-20", "description": "COMCAST CABLE BILL",              "amount": "-89.99" },
+    { "date": "2024-03-22", "description": "ATM WITHDRAWAL FEE",              "amount": "-3.00" }
+  ]
+}

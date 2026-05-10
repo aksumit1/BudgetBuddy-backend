@@ -1,5 +1,10 @@
 package com.budgetbuddy.integration;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import com.budgetbuddy.AWSTestConfiguration;
 import com.budgetbuddy.model.dynamodb.AccountTable;
 import com.budgetbuddy.model.dynamodb.TransactionTable;
@@ -9,6 +14,10 @@ import com.budgetbuddy.repository.dynamodb.TransactionRepository;
 import com.budgetbuddy.repository.dynamodb.UserRepository;
 import com.budgetbuddy.service.TransactionService;
 import com.budgetbuddy.util.TableInitializer;
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.Optional;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -21,39 +30,25 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 
-import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.util.Optional;
-import java.util.UUID;
-
-import static org.junit.jupiter.api.Assertions.*;
-
-/**
- * Integration Tests for Transaction Notes
- * Tests notes creation, update, and failover scenarios
- */
+/** Integration Tests for Transaction Notes Tests notes creation, update, and failover scenarios */
 @SpringBootTest(classes = com.budgetbuddy.BudgetBuddyApplication.class)
 @ActiveProfiles("test")
 @Import(AWSTestConfiguration.class)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class TransactionNotesIntegrationTest {
 
-    private static final Logger logger = LoggerFactory.getLogger(TransactionNotesIntegrationTest.class);
+    private static final Logger LOGGER =
+            LoggerFactory.getLogger(TransactionNotesIntegrationTest.class);
 
-    @Autowired
-    private TransactionService transactionService;
+    @Autowired private TransactionService transactionService;
 
-    @Autowired
-    private TransactionRepository transactionRepository;
+    @Autowired private TransactionRepository transactionRepository;
 
-    @Autowired
-    private UserRepository userRepository;
+    @Autowired private UserRepository userRepository;
 
-    @Autowired
-    private AccountRepository accountRepository;
+    @Autowired private AccountRepository accountRepository;
 
-    @Autowired
-    private DynamoDbClient dynamoDbClient;
+    @Autowired private DynamoDbClient dynamoDbClient;
 
     private UserTable testUser;
     private AccountTable testAccount;
@@ -87,23 +82,23 @@ class TransactionNotesIntegrationTest {
     }
 
     @Test
-    void testCreateTransaction_WithNotes_SavesNotes() {
+    void testCreateTransactionWithNotesSavesNotes() {
         // Given
-        String transactionId = UUID.randomUUID().toString();
-        String notes = "Important transaction note";
+        final String transactionId = UUID.randomUUID().toString();
+        final String notes = "Important transaction note";
 
         // When
-        TransactionTable transaction = transactionService.createTransaction(
-                testUser,
-                testAccount.getAccountId(),
-                BigDecimal.valueOf(-50.00),
-                LocalDate.now(),
-                "Test Transaction",
-                "dining",
-                "dining",
-                transactionId,
-                notes
-        );
+        final TransactionTable transaction =
+                transactionService.createTransaction(
+                        testUser,
+                        testAccount.getAccountId(),
+                        BigDecimal.valueOf(-50.00),
+                        LocalDate.now(),
+                        "Test Transaction",
+                        "dining",
+                        "dining",
+                        transactionId,
+                        notes);
 
         // Then
         assertNotNull(transaction);
@@ -111,56 +106,58 @@ class TransactionNotesIntegrationTest {
         assertEquals(notes, transaction.getNotes());
 
         // Verify in repository
-        Optional<TransactionTable> saved = transactionRepository.findById(transactionId);
+        final Optional<TransactionTable> saved = transactionRepository.findById(transactionId);
         assertTrue(saved.isPresent());
         assertEquals(notes, saved.get().getNotes());
     }
 
     @Test
-    void testCreateTransaction_WithEmptyNotes_SavesNull() {
+    void testCreateTransactionWithEmptyNotesSavesNull() {
         // Given
-        String transactionId = UUID.randomUUID().toString();
+        final String transactionId = UUID.randomUUID().toString();
 
         // When
-        TransactionTable transaction = transactionService.createTransaction(
-                testUser,
-                testAccount.getAccountId(),
-                BigDecimal.valueOf(-50.00),
-                LocalDate.now(),
-                "Test Transaction",
-                "dining",
-                "dining",
-                transactionId,
-                "" // Empty notes
-        );
+        final TransactionTable transaction =
+                transactionService.createTransaction(
+                        testUser,
+                        testAccount.getAccountId(),
+                        BigDecimal.valueOf(-50.00),
+                        LocalDate.now(),
+                        "Test Transaction",
+                        "dining",
+                        "dining",
+                        transactionId,
+                        "" // Empty notes
+                );
 
         // Then
         assertNotNull(transaction);
         assertNull(transaction.getNotes());
 
         // Verify in repository
-        Optional<TransactionTable> saved = transactionRepository.findById(transactionId);
+        final Optional<TransactionTable> saved = transactionRepository.findById(transactionId);
         assertTrue(saved.isPresent());
         assertNull(saved.get().getNotes());
     }
 
     @Test
-    void testCreateTransaction_WithNullNotes_SavesNull() {
+    void testCreateTransactionWithNullNotesSavesNull() {
         // Given
-        String transactionId = UUID.randomUUID().toString();
+        final String transactionId = UUID.randomUUID().toString();
 
         // When
-        TransactionTable transaction = transactionService.createTransaction(
-                testUser,
-                testAccount.getAccountId(),
-                BigDecimal.valueOf(-50.00),
-                LocalDate.now(),
-                "Test Transaction",
-                "dining",
-                "dining",
-                transactionId,
-                null // Null notes
-        );
+        final TransactionTable transaction =
+                transactionService.createTransaction(
+                        testUser,
+                        testAccount.getAccountId(),
+                        BigDecimal.valueOf(-50.00),
+                        LocalDate.now(),
+                        "Test Transaction",
+                        "dining",
+                        "dining",
+                        transactionId,
+                        null // Null notes
+                );
 
         // Then
         assertNotNull(transaction);
@@ -168,97 +165,88 @@ class TransactionNotesIntegrationTest {
     }
 
     @Test
-    void testUpdateTransaction_WithNotes_UpdatesNotes() {
+    void testUpdateTransactionWithNotesUpdatesNotes() {
         // Given - Create transaction without notes
-        String transactionId = UUID.randomUUID().toString();
-        TransactionTable transaction = transactionService.createTransaction(
-                testUser,
-                testAccount.getAccountId(),
-                BigDecimal.valueOf(-50.00),
-                LocalDate.now(),
-                "Test Transaction",
-                "dining",
-                "dining",
-                transactionId,
-                null
-        );
+        final String transactionId = UUID.randomUUID().toString();
+        final TransactionTable transaction =
+                transactionService.createTransaction(
+                        testUser,
+                        testAccount.getAccountId(),
+                        BigDecimal.valueOf(-50.00),
+                        LocalDate.now(),
+                        "Test Transaction",
+                        "dining",
+                        "dining",
+                        transactionId,
+                        null);
         assertNull(transaction.getNotes());
 
         // When - Update with notes
-        String notes = "Updated note";
-        TransactionTable updated = transactionService.updateTransaction(
-                testUser,
-                transactionId,
-                notes
-        );
+        final String notes = "Updated note";
+        final TransactionTable updated =
+                transactionService.updateTransaction(testUser, transactionId, notes);
 
         // Then
         assertNotNull(updated);
         assertEquals(notes, updated.getNotes());
 
         // Verify in repository
-        Optional<TransactionTable> saved = transactionRepository.findById(transactionId);
+        final Optional<TransactionTable> saved = transactionRepository.findById(transactionId);
         assertTrue(saved.isPresent());
         assertEquals(notes, saved.get().getNotes());
     }
 
     @Test
-    void testUpdateTransaction_WithEmptyNotes_ClearsNotes() {
+    void testUpdateTransactionWithEmptyNotesClearsNotes() {
         // Given - Create transaction with notes
-        String transactionId = UUID.randomUUID().toString();
-        TransactionTable transaction = transactionService.createTransaction(
-                testUser,
-                testAccount.getAccountId(),
-                BigDecimal.valueOf(-50.00),
-                LocalDate.now(),
-                "Test Transaction",
-                "dining",
-                "dining",
-                transactionId,
-                "Original note"
-        );
+        final String transactionId = UUID.randomUUID().toString();
+        final TransactionTable transaction =
+                transactionService.createTransaction(
+                        testUser,
+                        testAccount.getAccountId(),
+                        BigDecimal.valueOf(-50.00),
+                        LocalDate.now(),
+                        "Test Transaction",
+                        "dining",
+                        "dining",
+                        transactionId,
+                        "Original note");
         assertEquals("Original note", transaction.getNotes());
 
         // When - Update with empty notes
-        TransactionTable updated = transactionService.updateTransaction(
-                testUser,
-                transactionId,
-                ""
-        );
+        final TransactionTable updated =
+                transactionService.updateTransaction(testUser, transactionId, "");
 
         // Then
         assertNotNull(updated);
         assertNull(updated.getNotes());
 
         // Verify in repository
-        Optional<TransactionTable> saved = transactionRepository.findById(transactionId);
+        final Optional<TransactionTable> saved = transactionRepository.findById(transactionId);
         assertTrue(saved.isPresent());
         assertNull(saved.get().getNotes());
     }
 
     @Test
-    void testUpdateTransaction_WithNullNotes_ClearsNotes() {
+    void testUpdateTransactionWithNullNotesClearsNotes() {
         // Given - Create transaction with notes
-        String transactionId = UUID.randomUUID().toString();
-        TransactionTable transaction = transactionService.createTransaction(
-                testUser,
-                testAccount.getAccountId(),
-                BigDecimal.valueOf(-50.00),
-                LocalDate.now(),
-                "Test Transaction",
-                "dining",
-                "dining",
-                transactionId,
-                "Original note"
-        );
+        final String transactionId = UUID.randomUUID().toString();
+        final TransactionTable transaction =
+                transactionService.createTransaction(
+                        testUser,
+                        testAccount.getAccountId(),
+                        BigDecimal.valueOf(-50.00),
+                        LocalDate.now(),
+                        "Test Transaction",
+                        "dining",
+                        "dining",
+                        transactionId,
+                        "Original note");
         assertEquals("Original note", transaction.getNotes());
 
         // When - Update with null notes
-        TransactionTable updated = transactionService.updateTransaction(
-                testUser,
-                transactionId,
-                null
-        );
+        final TransactionTable updated =
+                transactionService.updateTransaction(testUser, transactionId, null);
 
         // Then
         assertNotNull(updated);
@@ -266,58 +254,55 @@ class TransactionNotesIntegrationTest {
     }
 
     @Test
-    void testCreateTransaction_WithNotes_ThenUpdateNotes_UpdatesCorrectly() {
+    void testCreateTransactionWithNotesThenUpdateNotesUpdatesCorrectly() {
         // Given - Create transaction with notes
-        String transactionId = UUID.randomUUID().toString();
-        String originalNotes = "Original note";
-        TransactionTable transaction = transactionService.createTransaction(
-                testUser,
-                testAccount.getAccountId(),
-                BigDecimal.valueOf(-50.00),
-                LocalDate.now(),
-                "Test Transaction",
-                "dining",
-                "dining",
-                transactionId,
-                originalNotes
-        );
+        final String transactionId = UUID.randomUUID().toString();
+        final String originalNotes = "Original note";
+        final TransactionTable transaction =
+                transactionService.createTransaction(
+                        testUser,
+                        testAccount.getAccountId(),
+                        BigDecimal.valueOf(-50.00),
+                        LocalDate.now(),
+                        "Test Transaction",
+                        "dining",
+                        "dining",
+                        transactionId,
+                        originalNotes);
         assertEquals(originalNotes, transaction.getNotes());
 
         // When - Update notes
-        String updatedNotes = "Updated note";
-        TransactionTable updated = transactionService.updateTransaction(
-                testUser,
-                transactionId,
-                updatedNotes
-        );
+        final String updatedNotes = "Updated note";
+        final TransactionTable updated =
+                transactionService.updateTransaction(testUser, transactionId, updatedNotes);
 
         // Then
         assertEquals(updatedNotes, updated.getNotes());
 
         // Verify in repository
-        Optional<TransactionTable> saved = transactionRepository.findById(transactionId);
+        final Optional<TransactionTable> saved = transactionRepository.findById(transactionId);
         assertTrue(saved.isPresent());
         assertEquals(updatedNotes, saved.get().getNotes());
     }
 
     @Test
-    void testCreateTransaction_WithWhitespaceNotes_TrimsAndSaves() {
+    void testCreateTransactionWithWhitespaceNotesTrimsAndSaves() {
         // Given
-        String transactionId = UUID.randomUUID().toString();
-        String notesWithWhitespace = "   Important note   ";
+        final String transactionId = UUID.randomUUID().toString();
+        final String notesWithWhitespace = "   Important note   ";
 
         // When
-        TransactionTable transaction = transactionService.createTransaction(
-                testUser,
-                testAccount.getAccountId(),
-                BigDecimal.valueOf(-50.00),
-                LocalDate.now(),
-                "Test Transaction",
-                "dining",
-                "dining",
-                transactionId,
-                notesWithWhitespace
-        );
+        final TransactionTable transaction =
+                transactionService.createTransaction(
+                        testUser,
+                        testAccount.getAccountId(),
+                        BigDecimal.valueOf(-50.00),
+                        LocalDate.now(),
+                        "Test Transaction",
+                        "dining",
+                        "dining",
+                        transactionId,
+                        notesWithWhitespace);
 
         // Then - Notes should be trimmed
         assertNotNull(transaction);
@@ -325,27 +310,26 @@ class TransactionNotesIntegrationTest {
     }
 
     @Test
-    void testCreateTransaction_WithOnlyWhitespaceNotes_SavesNull() {
+    void testCreateTransactionWithOnlyWhitespaceNotesSavesNull() {
         // Given
-        String transactionId = UUID.randomUUID().toString();
-        String whitespaceOnly = "   ";
+        final String transactionId = UUID.randomUUID().toString();
+        final String whitespaceOnly = "   ";
 
         // When
-        TransactionTable transaction = transactionService.createTransaction(
-                testUser,
-                testAccount.getAccountId(),
-                BigDecimal.valueOf(-50.00),
-                LocalDate.now(),
-                "Test Transaction",
-                "dining",
-                "dining",
-                transactionId,
-                whitespaceOnly
-        );
+        final TransactionTable transaction =
+                transactionService.createTransaction(
+                        testUser,
+                        testAccount.getAccountId(),
+                        BigDecimal.valueOf(-50.00),
+                        LocalDate.now(),
+                        "Test Transaction",
+                        "dining",
+                        "dining",
+                        transactionId,
+                        whitespaceOnly);
 
         // Then - Empty/whitespace notes should be saved as null
         assertNotNull(transaction);
         assertNull(transaction.getNotes());
     }
 }
-

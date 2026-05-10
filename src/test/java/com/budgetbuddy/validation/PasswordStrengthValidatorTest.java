@@ -1,19 +1,19 @@
 package com.budgetbuddy.validation;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import jakarta.validation.ConstraintValidatorContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
-import static org.junit.jupiter.api.Assertions.*;
-
 class PasswordStrengthValidatorTest {
 
     private PasswordStrengthValidator validator;
 
-    @Mock
-    private ConstraintValidatorContext context;
+    @Mock private ConstraintValidatorContext context;
 
     @BeforeEach
     void setUp() {
@@ -23,124 +23,124 @@ class PasswordStrengthValidatorTest {
     }
 
     @Test
-    void testIsValid_ValidPassword_ShouldReturnTrue() {
+    void testIsValidValidPasswordShouldReturnTrue() {
         // Given
-        String password = "Password123!";
-        
+        final String password = "Password123!";
+
         // When
-        boolean result = validator.isValid(password, context);
-        
+        final boolean result = validator.isValid(password, context);
+
         // Then
         assertTrue(result);
     }
 
     @Test
-    void testIsValid_TooShort_ShouldReturnFalse() {
+    void testIsValidTooShortShouldReturnFalse() {
         // Given
-        String password = "Pass1!";
-        
+        final String password = "Pass1!";
+
         // When
-        boolean result = validator.isValid(password, context);
-        
+        final boolean result = validator.isValid(password, context);
+
         // Then
         assertFalse(result);
     }
 
     @Test
-    void testIsValid_NoUppercase_ShouldReturnFalse() {
+    void testIsValidNoUppercaseShouldReturnFalse() {
         // Given
-        String password = "password123!";
-        
+        final String password = "password123!";
+
         // When
-        boolean result = validator.isValid(password, context);
-        
+        final boolean result = validator.isValid(password, context);
+
         // Then
         assertFalse(result);
     }
 
     @Test
-    void testIsValid_NoLowercase_ShouldReturnFalse() {
+    void testIsValidNoLowercaseShouldReturnFalse() {
         // Given
-        String password = "PASSWORD123!";
-        
+        final String password = "PASSWORD123!";
+
         // When
-        boolean result = validator.isValid(password, context);
-        
+        final boolean result = validator.isValid(password, context);
+
         // Then
         assertFalse(result);
     }
 
     @Test
-    void testIsValid_NoDigit_ShouldReturnFalse() {
+    void testIsValidNoDigitShouldReturnFalse() {
         // Given
-        String password = "Password!";
-        
+        final String password = "Password!";
+
         // When
-        boolean result = validator.isValid(password, context);
-        
+        final boolean result = validator.isValid(password, context);
+
         // Then
         assertFalse(result);
     }
 
     @Test
-    void testIsValid_NoSpecialCharacter_ShouldReturnFalse() {
+    void testIsValidNoSpecialCharacterShouldReturnFalse() {
         // Given
-        String password = "Password123";
-        
+        final String password = "Password123";
+
         // When
-        boolean result = validator.isValid(password, context);
-        
+        final boolean result = validator.isValid(password, context);
+
         // Then
         assertFalse(result);
     }
 
     @Test
-    void testIsValid_NullPassword_ShouldReturnFalse() {
+    void testIsValidNullPasswordShouldReturnFalse() {
         // When
-        boolean result = validator.isValid(null, context);
-        
+        final boolean result = validator.isValid(null, context);
+
         // Then
         assertFalse(result);
     }
 
     @Test
-    void testIsValid_EmptyPassword_ShouldReturnFalse() {
+    void testIsValidEmptyPasswordShouldReturnFalse() {
         // When
-        boolean result = validator.isValid("", context);
-        
+        final boolean result = validator.isValid("", context);
+
         // Then
         assertFalse(result);
     }
 
     @Test
-    void testIsValid_LongPassword_ShouldReturnFalse() {
+    void testIsValidLongPasswordShouldReturnFalse() {
         // Given - Password longer than 128 characters
-        String password = "A".repeat(129) + "1!";
-        
+        final String password = "A".repeat(129) + "1!";
+
         // When
-        boolean result = validator.isValid(password, context);
-        
+        final boolean result = validator.isValid(password, context);
+
         // Then
         assertFalse(result);
     }
 
     @Test
-    void testIsValid_ValidPasswordWithDifferentSpecialChars_ShouldReturnTrue() {
+    void testIsValidValidPasswordWithDifferentSpecialCharsShouldReturnTrue() {
         // Given
-        String[] validPasswords = {
-            "Password123@",
-            "Password123$",
-            "Password123!",
-            "Password123%",
-            "Password123*",
-            "Password123?",
-            "Password123&"
+        final String[] validPasswords = {
+                "Password123@",
+                "Password123$",
+                "Password123!",
+                "Password123%",
+                "Password123*",
+                "Password123?",
+                "Password123&"
         };
-        
+
         // When/Then
-        for (String password : validPasswords) {
-            assertTrue(validator.isValid(password, context), 
-                    "Password should be valid: " + password);
+        for (final String password : validPasswords) {
+            assertTrue(
+                    validator.isValid(password, context), "Password should be valid: " + password);
         }
     }
 }

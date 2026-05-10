@@ -1,34 +1,33 @@
 package com.budgetbuddy.compliance;
 
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import com.budgetbuddy.compliance.hipaa.HIPAAComplianceService;
 import com.budgetbuddy.compliance.iso27001.ISO27001ComplianceService;
 import com.budgetbuddy.compliance.soc2.SOC2ComplianceService;
 import com.budgetbuddy.repository.dynamodb.AuditLogRepository;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.Map;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
-
-/**
- * Unit Tests for AuditLogService
- */
+/** Unit Tests for AuditLogService */
 @ExtendWith(MockitoExtension.class)
 class AuditLogServiceTest {
 
-    @Mock
-    private AuditLogRepository auditLogRepository;
+    @Mock private AuditLogRepository auditLogRepository;
 
-    @Mock
-    private ObjectMapper objectMapper;
+    @Mock private ObjectMapper objectMapper;
 
     private AuditLogService auditLogService;
 
@@ -38,29 +37,33 @@ class AuditLogServiceTest {
     }
 
     @Test
-    void testConstructor_WithNullRepository_ThrowsException() {
-        assertThrows(IllegalArgumentException.class, () -> {
-            new AuditLogService(null, objectMapper);
-        });
+    void testConstructorWithNullRepositoryThrowsException() {
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> {
+                    new AuditLogService(null, objectMapper);
+                });
     }
 
     @Test
-    void testConstructor_WithNullObjectMapper_ThrowsException() {
-        assertThrows(IllegalArgumentException.class, () -> {
-            new AuditLogService(auditLogRepository, null);
-        });
+    void testConstructorWithNullObjectMapperThrowsException() {
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> {
+                    new AuditLogService(auditLogRepository, null);
+                });
     }
 
     @Test
-    void testLogAction_WithValidInput_LogsAction() {
+    void testLogActionWithValidInputLogsAction() {
         // Given
-        String userId = "user-123";
-        String action = "CREATE_ACCOUNT";
-        String resourceType = "ACCOUNT";
-        String resourceId = "acc-123";
-        Map<String, Object> details = Map.of("key", "value");
-        String ipAddress = "127.0.0.1";
-        String userAgent = "Mozilla/5.0";
+        final String userId = "user-123";
+        final String action = "CREATE_ACCOUNT";
+        final String resourceType = "ACCOUNT";
+        final String resourceId = "acc-123";
+        final Map<String, Object> details = Map.of("key", "value");
+        final String ipAddress = "127.0.0.1";
+        final String userAgent = "Mozilla/5.0";
 
         try {
             when(objectMapper.writeValueAsString(any())).thenReturn("{\"key\":\"value\"}");
@@ -70,14 +73,15 @@ class AuditLogServiceTest {
         doNothing().when(auditLogRepository).save(any(AuditLogTable.class));
 
         // When
-        auditLogService.logAction(userId, action, resourceType, resourceId, details, ipAddress, userAgent);
+        auditLogService.logAction(
+                userId, action, resourceType, resourceId, details, ipAddress, userAgent);
 
         // Then
         verify(auditLogRepository).save(any(AuditLogTable.class));
     }
 
     @Test
-    void testLogAction_WithNullAction_SkipsLogging() {
+    void testLogActionWithNullActionSkipsLogging() {
         // When
         auditLogService.logAction("user-123", null, "ACCOUNT", "acc-123", Map.of(), null, null);
 
@@ -86,7 +90,7 @@ class AuditLogServiceTest {
     }
 
     @Test
-    void testLogAction_WithEmptyAction_SkipsLogging() {
+    void testLogActionWithEmptyActionSkipsLogging() {
         // When
         auditLogService.logAction("user-123", "", "ACCOUNT", "acc-123", Map.of(), null, null);
 
@@ -95,7 +99,7 @@ class AuditLogServiceTest {
     }
 
     @Test
-    void testLogControlActivity_WithValidInput_LogsActivity() {
+    void testLogControlActivityWithValidInputLogsActivity() {
         // Given
         try {
             when(objectMapper.writeValueAsString(any())).thenReturn("{}");
@@ -112,7 +116,7 @@ class AuditLogServiceTest {
     }
 
     @Test
-    void testLogSystemChange_WithValidInput_LogsChange() {
+    void testLogSystemChangeWithValidInputLogsChange() {
         // Given
         try {
             when(objectMapper.writeValueAsString(any())).thenReturn("{}");
@@ -129,9 +133,10 @@ class AuditLogServiceTest {
     }
 
     @Test
-    void testLogRiskAssessment_WithValidAssessment_LogsAssessment() {
+    void testLogRiskAssessmentWithValidAssessmentLogsAssessment() {
         // Given
-        SOC2ComplianceService.RiskAssessment assessment = new SOC2ComplianceService.RiskAssessment();
+        final SOC2ComplianceService.RiskAssessment assessment =
+                new SOC2ComplianceService.RiskAssessment();
         assessment.setUserId("user-123");
         assessment.setResource("resource-123");
         assessment.setRiskScore(75);
@@ -152,7 +157,7 @@ class AuditLogServiceTest {
     }
 
     @Test
-    void testLogRiskAssessment_WithNullAssessment_SkipsLogging() {
+    void testLogRiskAssessmentWithNullAssessmentSkipsLogging() {
         // When
         auditLogService.logRiskAssessment(null);
 
@@ -161,7 +166,7 @@ class AuditLogServiceTest {
     }
 
     @Test
-    void testLogAccessControl_WithValidInput_LogsAccess() {
+    void testLogAccessControlWithValidInputLogsAccess() {
         // Given
         try {
             when(objectMapper.writeValueAsString(any())).thenReturn("{}");
@@ -178,9 +183,9 @@ class AuditLogServiceTest {
     }
 
     @Test
-    void testLogSystemHealth_WithValidHealth_LogsHealth() {
+    void testLogSystemHealthWithValidHealthLogsHealth() {
         // Given
-        SOC2ComplianceService.SystemHealth health = new SOC2ComplianceService.SystemHealth();
+        final SOC2ComplianceService.SystemHealth health = new SOC2ComplianceService.SystemHealth();
         health.setAvailability(99.9);
         health.setPerformance(95.0);
         health.setErrorRate(0.1);
@@ -200,7 +205,7 @@ class AuditLogServiceTest {
     }
 
     @Test
-    void testLogSystemHealth_WithNullHealth_SkipsLogging() {
+    void testLogSystemHealthWithNullHealthSkipsLogging() {
         // When
         auditLogService.logSystemHealth(null);
 
@@ -209,7 +214,7 @@ class AuditLogServiceTest {
     }
 
     @Test
-    void testLogPHIAccess_WithValidInput_LogsAccess() {
+    void testLogPHIAccessWithValidInputLogsAccess() {
         // Given
         try {
             when(objectMapper.writeValueAsString(any())).thenReturn("{}");
@@ -226,7 +231,7 @@ class AuditLogServiceTest {
     }
 
     @Test
-    void testAuditPHIActivity_WithValidInput_LogsActivity() {
+    void testAuditPHIActivityWithValidInputLogsActivity() {
         // Given
         try {
             when(objectMapper.writeValueAsString(any())).thenReturn("{}");
@@ -243,7 +248,7 @@ class AuditLogServiceTest {
     }
 
     @Test
-    void testLogPHIModification_WithValidInput_LogsModification() {
+    void testLogPHIModificationWithValidInputLogsModification() {
         // Given
         try {
             when(objectMapper.writeValueAsString(any())).thenReturn("{}");
@@ -260,9 +265,9 @@ class AuditLogServiceTest {
     }
 
     @Test
-    void testLogBreach_WithValidReport_LogsBreach() {
+    void testLogBreachWithValidReportLogsBreach() {
         // Given
-        HIPAAComplianceService.BreachReport report = new HIPAAComplianceService.BreachReport();
+        final HIPAAComplianceService.BreachReport report = new HIPAAComplianceService.BreachReport();
         report.setUserId("user-123");
         report.setPhiId("phi-123");
         report.setBreachType("UNAUTHORIZED_ACCESS");
@@ -283,7 +288,7 @@ class AuditLogServiceTest {
     }
 
     @Test
-    void testLogBreach_WithNullReport_SkipsLogging() {
+    void testLogBreachWithNullReportSkipsLogging() {
         // When
         auditLogService.logBreach(null);
 
@@ -292,7 +297,7 @@ class AuditLogServiceTest {
     }
 
     @Test
-    void testLogWorkforceAccess_WithValidInput_LogsAccess() {
+    void testLogWorkforceAccessWithValidInputLogsAccess() {
         // Given
         try {
             when(objectMapper.writeValueAsString(any())).thenReturn("{}");
@@ -309,7 +314,7 @@ class AuditLogServiceTest {
     }
 
     @Test
-    void testLogAuthentication_WithValidInput_LogsAuthentication() {
+    void testLogAuthenticationWithValidInputLogsAuthentication() {
         // Given
         try {
             when(objectMapper.writeValueAsString(any())).thenReturn("{}");
@@ -326,7 +331,7 @@ class AuditLogServiceTest {
     }
 
     @Test
-    void testLogUserRegistration_WithValidInput_LogsRegistration() {
+    void testLogUserRegistrationWithValidInputLogsRegistration() {
         // Given
         try {
             when(objectMapper.writeValueAsString(any())).thenReturn("{}");
@@ -343,7 +348,7 @@ class AuditLogServiceTest {
     }
 
     @Test
-    void testLogAccessProvisioning_WithValidInput_LogsProvisioning() {
+    void testLogAccessProvisioningWithValidInputLogsProvisioning() {
         // Given
         try {
             when(objectMapper.writeValueAsString(any())).thenReturn("{}");
@@ -360,7 +365,7 @@ class AuditLogServiceTest {
     }
 
     @Test
-    void testLogPrivilegedAccess_WithValidInput_LogsAccess() {
+    void testLogPrivilegedAccessWithValidInputLogsAccess() {
         // Given
         try {
             when(objectMapper.writeValueAsString(any())).thenReturn("{}");
@@ -377,7 +382,7 @@ class AuditLogServiceTest {
     }
 
     @Test
-    void testLogCredentialChange_WithValidInput_LogsChange() {
+    void testLogCredentialChangeWithValidInputLogsChange() {
         // Given
         try {
             when(objectMapper.writeValueAsString(any())).thenReturn("{}");
@@ -394,9 +399,10 @@ class AuditLogServiceTest {
     }
 
     @Test
-    void testLogAccessReview_WithValidReview_LogsReview() {
+    void testLogAccessReviewWithValidReviewLogsReview() {
         // Given
-        ISO27001ComplianceService.AccessReview review = new ISO27001ComplianceService.AccessReview();
+        final ISO27001ComplianceService.AccessReview review =
+                new ISO27001ComplianceService.AccessReview();
         review.setUserId("user-123");
         review.setStatus("APPROVED");
 
@@ -415,7 +421,7 @@ class AuditLogServiceTest {
     }
 
     @Test
-    void testLogAccessReview_WithNullReview_SkipsLogging() {
+    void testLogAccessReviewWithNullReviewSkipsLogging() {
         // When
         auditLogService.logAccessReview(null);
 
@@ -424,7 +430,7 @@ class AuditLogServiceTest {
     }
 
     @Test
-    void testLogAccessRemoval_WithValidInput_LogsRemoval() {
+    void testLogAccessRemovalWithValidInputLogsRemoval() {
         // Given
         try {
             when(objectMapper.writeValueAsString(any())).thenReturn("{}");
@@ -441,7 +447,7 @@ class AuditLogServiceTest {
     }
 
     @Test
-    void testLogSecureLogon_WithValidInput_LogsLogon() {
+    void testLogSecureLogonWithValidInputLogsLogon() {
         // Given
         try {
             when(objectMapper.writeValueAsString(any())).thenReturn("{}");
@@ -458,7 +464,7 @@ class AuditLogServiceTest {
     }
 
     @Test
-    void testLogPasswordManagement_WithValidInput_LogsManagement() {
+    void testLogPasswordManagementWithValidInputLogsManagement() {
         // Given
         try {
             when(objectMapper.writeValueAsString(any())).thenReturn("{}");
@@ -475,7 +481,7 @@ class AuditLogServiceTest {
     }
 
     @Test
-    void testLogSecurityEvent_WithValidInput_LogsEvent() {
+    void testLogSecurityEventWithValidInputLogsEvent() {
         // Given
         try {
             when(objectMapper.writeValueAsString(any())).thenReturn("{}");
@@ -492,7 +498,7 @@ class AuditLogServiceTest {
     }
 
     @Test
-    void testProtectLogInformation_WithValidInput_LogsProtection() {
+    void testProtectLogInformationWithValidInputLogsProtection() {
         // Given
         try {
             when(objectMapper.writeValueAsString(any())).thenReturn("{}");
@@ -509,7 +515,7 @@ class AuditLogServiceTest {
     }
 
     @Test
-    void testLogAdministratorActivity_WithValidInput_LogsActivity() {
+    void testLogAdministratorActivityWithValidInputLogsActivity() {
         // Given
         try {
             when(objectMapper.writeValueAsString(any())).thenReturn("{}");
@@ -526,7 +532,7 @@ class AuditLogServiceTest {
     }
 
     @Test
-    void testLogClockSynchronization_WithValidInput_LogsSynchronization() {
+    void testLogClockSynchronizationWithValidInputLogsSynchronization() {
         // Given
         try {
             when(objectMapper.writeValueAsString(any())).thenReturn("{}");
@@ -543,9 +549,10 @@ class AuditLogServiceTest {
     }
 
     @Test
-    void testLogSecurityIncident_WithValidIncident_LogsIncident() {
+    void testLogSecurityIncidentWithValidIncidentLogsIncident() {
         // Given
-        ISO27001ComplianceService.SecurityIncident incident = new ISO27001ComplianceService.SecurityIncident();
+        final ISO27001ComplianceService.SecurityIncident incident =
+                new ISO27001ComplianceService.SecurityIncident();
         incident.setIncidentType("BREACH");
         incident.setSeverity("HIGH");
         incident.setDetails("Details");
@@ -566,7 +573,7 @@ class AuditLogServiceTest {
     }
 
     @Test
-    void testLogSecurityIncident_WithNullIncident_SkipsLogging() {
+    void testLogSecurityIncidentWithNullIncidentSkipsLogging() {
         // When
         auditLogService.logSecurityIncident(null);
 
@@ -575,7 +582,7 @@ class AuditLogServiceTest {
     }
 
     @Test
-    void testLogComplianceCheck_WithValidInput_LogsCheck() {
+    void testLogComplianceCheckWithValidInputLogsCheck() {
         // Given
         try {
             when(objectMapper.writeValueAsString(any())).thenReturn("{}");
@@ -592,7 +599,7 @@ class AuditLogServiceTest {
     }
 
     @Test
-    void testLogCardDataAccess_WithValidInput_LogsAccess() {
+    void testLogCardDataAccessWithValidInputLogsAccess() {
         // Given
         try {
             when(objectMapper.writeValueAsString(any())).thenReturn("{}");
@@ -609,7 +616,7 @@ class AuditLogServiceTest {
     }
 
     @Test
-    void testLogCardholderDataAccess_WithValidInput_LogsAccess() {
+    void testLogCardholderDataAccessWithValidInputLogsAccess() {
         // Given
         try {
             when(objectMapper.writeValueAsString(any())).thenReturn("{}");
@@ -626,7 +633,7 @@ class AuditLogServiceTest {
     }
 
     @Test
-    void testLogFinancialDataAccess_WithValidInput_LogsAccess() {
+    void testLogFinancialDataAccessWithValidInputLogsAccess() {
         // Given
         try {
             when(objectMapper.writeValueAsString(any())).thenReturn("{}");
@@ -643,7 +650,7 @@ class AuditLogServiceTest {
     }
 
     @Test
-    void testLogFinancialDataModification_WithValidInput_LogsModification() {
+    void testLogFinancialDataModificationWithValidInputLogsModification() {
         // Given
         try {
             when(objectMapper.writeValueAsString(any())).thenReturn("{}");
@@ -659,4 +666,3 @@ class AuditLogServiceTest {
         verify(auditLogRepository).save(any(AuditLogTable.class));
     }
 }
-

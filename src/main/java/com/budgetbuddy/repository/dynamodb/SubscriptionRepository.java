@@ -1,6 +1,10 @@
 package com.budgetbuddy.repository.dynamodb;
 
 import com.budgetbuddy.model.dynamodb.SubscriptionTable;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Repository;
@@ -11,14 +15,7 @@ import software.amazon.awssdk.enhanced.dynamodb.Key;
 import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
 import software.amazon.awssdk.enhanced.dynamodb.model.QueryConditional;
 
-import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
-
-/**
- * DynamoDB Repository for Subscriptions
- */
+/** DynamoDB Repository for Subscriptions */
 @Repository
 public class SubscriptionRepository {
 
@@ -28,10 +25,12 @@ public class SubscriptionRepository {
 
     public SubscriptionRepository(
             final DynamoDbEnhancedClient enhancedClient,
-            @org.springframework.beans.factory.annotation.Value("${app.aws.dynamodb.table-prefix:BudgetBuddy}") final String tablePrefix) {
+            @org.springframework.beans.factory.annotation.Value(
+                            "${app.aws.dynamodb.table-prefix:BudgetBuddy}")
+                    final String tablePrefix) {
         this.tableName = tablePrefix + "-Subscriptions";
-        this.subscriptionTable = enhancedClient.table(this.tableName,
-                TableSchema.fromBean(SubscriptionTable.class));
+        this.subscriptionTable =
+                enhancedClient.table(this.tableName, TableSchema.fromBean(SubscriptionTable.class));
         this.userIdIndex = subscriptionTable.index("UserIdIndex");
     }
 
@@ -48,23 +47,29 @@ public class SubscriptionRepository {
             return Optional.empty();
         }
         // CRITICAL FIX: Normalize ID to lowercase for case-insensitive lookup
-        String normalizedId = com.budgetbuddy.util.IdGenerator.normalizeUUID(subscriptionId);
-        SubscriptionTable subscription = subscriptionTable.getItem(
-                Key.builder().partitionValue(normalizedId).build());
+        final String normalizedId = com.budgetbuddy.util.IdGenerator.normalizeUUID(subscriptionId);
+        final SubscriptionTable subscription =
+                subscriptionTable.getItem(Key.builder().partitionValue(normalizedId).build());
         return Optional.ofNullable(subscription);
     }
 
-    @Cacheable(value = "subscriptions", key = "'user:' + #userId", unless = "#result == null || #result.isEmpty()")
+    @Cacheable(
+            value = "subscriptions",
+            key = "'user:' + #userId",
+            unless = "#result == null || #result.isEmpty()")
     public List<SubscriptionTable> findByUserId(final String userId) {
         if (userId == null || userId.isEmpty()) {
             return List.of();
         }
-        
+
         try {
             return StreamSupport.stream(
-                    userIdIndex.query(QueryConditional.keyEqualTo(
-                            Key.builder().partitionValue(userId).build())).spliterator(),
-                    false)
+                            userIdIndex
+                                    .query(
+                                            QueryConditional.keyEqualTo(
+                                                    Key.builder().partitionValue(userId).build()))
+                                    .spliterator(),
+                            false)
                     .flatMap(page -> page.items().stream())
                     .collect(Collectors.toList());
         } catch (software.amazon.awssdk.services.dynamodb.model.ResourceNotFoundException e) {
@@ -75,12 +80,15 @@ public class SubscriptionRepository {
         }
     }
 
-    @Cacheable(value = "subscriptions", key = "'user:' + #userId + ':active'", unless = "#result == null || #result.isEmpty()")
+    @Cacheable(
+            value = "subscriptions",
+            key = "'user:' + #userId + ':active'",
+            unless = "#result == null || #result.isEmpty()")
     public List<SubscriptionTable> findActiveByUserId(final String userId) {
         if (userId == null || userId.isEmpty()) {
             return List.of();
         }
-        
+
         return findByUserId(userId).stream()
                 .filter(sub -> sub.getActive() != null && sub.getActive())
                 .collect(Collectors.toList());
@@ -98,4 +106,3 @@ public class SubscriptionRepository {
         return tableName;
     }
 }
-

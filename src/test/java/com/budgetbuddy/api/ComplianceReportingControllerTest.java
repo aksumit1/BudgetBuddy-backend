@@ -1,11 +1,21 @@
 package com.budgetbuddy.api;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import com.budgetbuddy.compliance.financial.FinancialComplianceService;
 import com.budgetbuddy.compliance.hipaa.HIPAAComplianceService;
 import com.budgetbuddy.compliance.iso27001.ISO27001ComplianceService;
 import com.budgetbuddy.compliance.soc2.SOC2ComplianceService;
 import com.budgetbuddy.model.dynamodb.UserTable;
 import com.budgetbuddy.service.UserService;
+import java.time.Instant;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -16,40 +26,28 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.userdetails.UserDetails;
 
-import java.time.Instant;
-import java.util.Arrays;
-import java.util.Optional;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.*;
-
-/**
- * Unit Tests for ComplianceReportingController
- */
+/** Unit Tests for ComplianceReportingController */
+// PMD's LawOfDemeter is documented as imprecise on chains involving
+// standard library types (BigDecimal, String, Optional) and DTO
+// getters; this class has many such idiomatic uses. Suppress at
+// class level rather than littering every method.
+@SuppressWarnings("PMD.LawOfDemeter")
 @ExtendWith(MockitoExtension.class)
 class ComplianceReportingControllerTest {
 
-    @Mock
-    private SOC2ComplianceService soc2ComplianceService;
+    @Mock private SOC2ComplianceService soc2ComplianceService;
 
-    @Mock
-    private HIPAAComplianceService hipaaComplianceService;
+    @Mock private HIPAAComplianceService hipaaComplianceService;
 
-    @Mock
-    private ISO27001ComplianceService iso27001ComplianceService;
+    @Mock private ISO27001ComplianceService iso27001ComplianceService;
 
-    @Mock
-    private FinancialComplianceService financialComplianceService;
+    @Mock private FinancialComplianceService financialComplianceService;
 
-    @Mock
-    private UserService userService;
+    @Mock private UserService userService;
 
-    @Mock
-    private UserDetails userDetails;
+    @Mock private UserDetails userDetails;
 
-    @InjectMocks
-    private ComplianceReportingController controller;
+    @InjectMocks private ComplianceReportingController controller;
 
     private UserTable testUser;
     private UserTable adminUser;
@@ -70,16 +68,17 @@ class ComplianceReportingControllerTest {
     }
 
     @Test
-    void testGetSOC2Report_WithAdminAccess_ReturnsReport() {
+    void testGetSOC2ReportWithAdminAccessReturnsReport() {
         // Given
         when(userService.findByEmail("admin@example.com")).thenReturn(Optional.of(adminUser));
         when(userDetails.getUsername()).thenReturn("admin@example.com");
-        
-        SOC2ComplianceService.SystemHealth health = mock(SOC2ComplianceService.SystemHealth.class);
+
+        final SOC2ComplianceService.SystemHealth health = mock(SOC2ComplianceService.SystemHealth.class);
         when(soc2ComplianceService.checkSystemHealth()).thenReturn(health);
 
         // When
-        ResponseEntity<SOC2ComplianceService.SystemHealth> response = controller.getSOC2Report(userDetails);
+        final ResponseEntity<SOC2ComplianceService.SystemHealth> response =
+                controller.getSOC2Report(userDetails);
 
         // Then
         assertEquals(HttpStatus.OK, response.getStatusCode());
@@ -88,12 +87,13 @@ class ComplianceReportingControllerTest {
     }
 
     @Test
-    void testGetSOC2Report_WithUserAccess_ReturnsForbidden() {
+    void testGetSOC2ReportWithUserAccessReturnsForbidden() {
         // Given
         when(userService.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
 
         // When
-        ResponseEntity<SOC2ComplianceService.SystemHealth> response = controller.getSOC2Report(userDetails);
+        final ResponseEntity<SOC2ComplianceService.SystemHealth> response =
+                controller.getSOC2Report(userDetails);
 
         // Then
         assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
@@ -101,13 +101,13 @@ class ComplianceReportingControllerTest {
     }
 
     @Test
-    void testGetHIPAABreaches_WithAdminAccess_ReturnsReport() {
+    void testGetHIPAABreachesWithAdminAccessReturnsReport() {
         // Given
         when(userService.findByEmail("admin@example.com")).thenReturn(Optional.of(adminUser));
         when(userDetails.getUsername()).thenReturn("admin@example.com");
 
         // When
-        ResponseEntity<HIPAAComplianceService.BreachReport> response = 
+        final ResponseEntity<HIPAAComplianceService.BreachReport> response =
                 controller.getHIPAABreaches(userDetails, null);
 
         // Then
@@ -115,12 +115,12 @@ class ComplianceReportingControllerTest {
     }
 
     @Test
-    void testGetHIPAABreaches_WithUserAccess_ReturnsForbidden() {
+    void testGetHIPAABreachesWithUserAccessReturnsForbidden() {
         // Given
         when(userService.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
 
         // When
-        ResponseEntity<HIPAAComplianceService.BreachReport> response = 
+        final ResponseEntity<HIPAAComplianceService.BreachReport> response =
                 controller.getHIPAABreaches(userDetails, null);
 
         // Then
@@ -128,13 +128,13 @@ class ComplianceReportingControllerTest {
     }
 
     @Test
-    void testGetISO27001Incidents_WithAdminAccess_ReturnsReport() {
+    void testGetISO27001IncidentsWithAdminAccessReturnsReport() {
         // Given
         when(userService.findByEmail("admin@example.com")).thenReturn(Optional.of(adminUser));
         when(userDetails.getUsername()).thenReturn("admin@example.com");
 
         // When
-        ResponseEntity<ISO27001ComplianceService.SecurityIncident> response = 
+        final ResponseEntity<ISO27001ComplianceService.SecurityIncident> response =
                 controller.getISO27001Incidents(userDetails);
 
         // Then
@@ -142,12 +142,12 @@ class ComplianceReportingControllerTest {
     }
 
     @Test
-    void testGetISO27001Incidents_WithUserAccess_ReturnsForbidden() {
+    void testGetISO27001IncidentsWithUserAccessReturnsForbidden() {
         // Given
         when(userService.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
 
         // When
-        ResponseEntity<ISO27001ComplianceService.SecurityIncident> response = 
+        final ResponseEntity<ISO27001ComplianceService.SecurityIncident> response =
                 controller.getISO27001Incidents(userDetails);
 
         // Then
@@ -155,15 +155,15 @@ class ComplianceReportingControllerTest {
     }
 
     @Test
-    void testGetFinancialComplianceReport_WithAdminAccess_ReturnsReport() {
+    void testGetFinancialComplianceReportWithAdminAccessReturnsReport() {
         // Given
-        Instant startDate = Instant.now().minusSeconds(86400);
-        Instant endDate = Instant.now();
+        final Instant startDate = Instant.now().minusSeconds(86_400);
+        final Instant endDate = Instant.now();
         when(userService.findByEmail("admin@example.com")).thenReturn(Optional.of(adminUser));
         when(userDetails.getUsername()).thenReturn("admin@example.com");
 
         // When
-        ResponseEntity<ComplianceReportingController.FinancialComplianceReport> response = 
+        final ResponseEntity<ComplianceReportingController.FinancialComplianceReport> response =
                 controller.getFinancialComplianceReport(userDetails, startDate, endDate);
 
         // Then
@@ -175,14 +175,14 @@ class ComplianceReportingControllerTest {
     }
 
     @Test
-    void testGetFinancialComplianceReport_WithUserAccess_ReturnsForbidden() {
+    void testGetFinancialComplianceReportWithUserAccessReturnsForbidden() {
         // Given
-        Instant startDate = Instant.now().minusSeconds(86400);
-        Instant endDate = Instant.now();
+        final Instant startDate = Instant.now().minusSeconds(86_400);
+        final Instant endDate = Instant.now();
         when(userService.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
 
         // When
-        ResponseEntity<ComplianceReportingController.FinancialComplianceReport> response = 
+        final ResponseEntity<ComplianceReportingController.FinancialComplianceReport> response =
                 controller.getFinancialComplianceReport(userDetails, startDate, endDate);
 
         // Then
@@ -190,25 +190,26 @@ class ComplianceReportingControllerTest {
     }
 
     @Test
-    void testGetSOC2Report_WithComplianceRole_ReturnsReport() {
+    void testGetSOC2ReportWithComplianceRoleReturnsReport() {
         // Given
-        UserTable complianceUser = new UserTable();
+        final UserTable complianceUser = new UserTable();
         complianceUser.setUserId("compliance-123");
         complianceUser.setEmail("compliance@example.com");
         complianceUser.setRoles(java.util.Set.of("COMPLIANCE"));
-        
-        when(userService.findByEmail("compliance@example.com")).thenReturn(Optional.of(complianceUser));
+
+        when(userService.findByEmail("compliance@example.com"))
+                .thenReturn(Optional.of(complianceUser));
         when(userDetails.getUsername()).thenReturn("compliance@example.com");
-        
-        SOC2ComplianceService.SystemHealth health = mock(SOC2ComplianceService.SystemHealth.class);
+
+        final SOC2ComplianceService.SystemHealth health = mock(SOC2ComplianceService.SystemHealth.class);
         when(soc2ComplianceService.checkSystemHealth()).thenReturn(health);
 
         // When
-        ResponseEntity<SOC2ComplianceService.SystemHealth> response = controller.getSOC2Report(userDetails);
+        final ResponseEntity<SOC2ComplianceService.SystemHealth> response =
+                controller.getSOC2Report(userDetails);
 
         // Then
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
     }
 }
-

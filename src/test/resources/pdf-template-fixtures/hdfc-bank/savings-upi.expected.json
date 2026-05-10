@@ -1,0 +1,10 @@
+{
+  "institution": "HDFC Bank",
+  "note": "synthetic HDFC savings narration — UPI + POS + NEFT + ATM",
+  "expected": [
+    { "date": "2024-03-15", "description": "UPI-AMAZON-amazon@apl-UPIREF123456",       "amount": "1,234.50" },
+    { "date": "2024-03-16", "description": "POS-STARBUCKS MUMBAI T123",                "amount": "450.00" },
+    { "date": "2024-03-18", "description": "NEFT CR-ACME CORP SALARY APRIL 2024",      "amount": "50,000.00" },
+    { "date": "2024-03-20", "description": "ATM WDL-HDFC0000123-CASH WITHDRAWAL",       "amount": "5,000.00" }
+  ]
+}

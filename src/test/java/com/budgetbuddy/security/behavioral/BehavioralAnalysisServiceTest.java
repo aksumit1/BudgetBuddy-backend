@@ -1,17 +1,17 @@
 package com.budgetbuddy.security.behavioral;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.util.HashMap;
+import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import java.util.HashMap;
-import java.util.Map;
-
-import static org.junit.jupiter.api.Assertions.*;
-
-/**
- * Comprehensive tests for BehavioralAnalysisService
- */
+/** Comprehensive tests for BehavioralAnalysisService */
 class BehavioralAnalysisServiceTest {
 
     private BehavioralAnalysisService behavioralAnalysisService;
@@ -25,45 +25,53 @@ class BehavioralAnalysisServiceTest {
     @DisplayName("Should record activity successfully")
     void testRecordActivity() {
         // Given
-        String userId = "user-123";
-        BehavioralAnalysisService.ActivityType type = BehavioralAnalysisService.ActivityType.AUTHENTICATION;
-        String resource = "/api/auth/login";
-        String action = "POST";
-        Map<String, String> metadata = new HashMap<>();
+        final String userId = "user-123";
+        final BehavioralAnalysisService.ActivityType type =
+                BehavioralAnalysisService.ActivityType.AUTHENTICATION;
+        final String resource = "/api/auth/login";
+        final String action = "POST";
+        final Map<String, String> metadata = new HashMap<>();
         metadata.put("ip", "192.168.1.1");
 
         // When
-        assertDoesNotThrow(() -> {
-            behavioralAnalysisService.recordActivity(userId, type, resource, action, metadata);
-        });
+        assertDoesNotThrow(
+                () -> {
+                    behavioralAnalysisService.recordActivity(
+                            userId, type, resource, action, metadata);
+                });
     }
 
     @Test
     @DisplayName("Should handle null userId gracefully")
-    void testRecordActivity_NullUserId() {
+    void testRecordActivityNullUserId() {
         // Given
-        BehavioralAnalysisService.ActivityType type = BehavioralAnalysisService.ActivityType.AUTHENTICATION;
-        String resource = "/api/auth/login";
-        String action = "POST";
+        final BehavioralAnalysisService.ActivityType type =
+                BehavioralAnalysisService.ActivityType.AUTHENTICATION;
+        final String resource = "/api/auth/login";
+        final String action = "POST";
 
         // When - Should not throw
-        assertDoesNotThrow(() -> {
-            behavioralAnalysisService.recordActivity(null, type, resource, action, null);
-        });
+        assertDoesNotThrow(
+                () -> {
+                    behavioralAnalysisService.recordActivity(null, type, resource, action, null);
+                });
     }
 
     @Test
     @DisplayName("Should calculate risk score")
     void testCalculateRiskScore() {
         // Given
-        String userId = "user-123";
-        BehavioralAnalysisService.ActivityType type = BehavioralAnalysisService.ActivityType.AUTHENTICATION;
-        String resource = "/api/transactions";
-        String action = "GET";
-        Map<String, String> context = new HashMap<>();
+        final String userId = "user-123";
+        final BehavioralAnalysisService.ActivityType type =
+                BehavioralAnalysisService.ActivityType.AUTHENTICATION;
+        final String resource = "/api/transactions";
+        final String action = "GET";
+        final Map<String, String> context = new HashMap<>();
 
         // When
-        BehavioralAnalysisService.RiskScore riskScore = behavioralAnalysisService.calculateRiskScore(userId, type, resource, action, context);
+        final BehavioralAnalysisService.RiskScore riskScore =
+                behavioralAnalysisService.calculateRiskScore(
+                        userId, type, resource, action, context);
 
         // Then
         assertNotNull(riskScore);
@@ -73,16 +81,19 @@ class BehavioralAnalysisServiceTest {
 
     @Test
     @DisplayName("Should calculate higher risk for sensitive resources")
-    void testCalculateRiskScore_SensitiveResource() {
+    void testCalculateRiskScoreSensitiveResource() {
         // Given
-        String userId = "user-123";
-        BehavioralAnalysisService.ActivityType type = BehavioralAnalysisService.ActivityType.DATA_ACCESS;
-        String resource = "/api/admin/users";
-        String action = "DELETE";
-        Map<String, String> context = new HashMap<>();
+        final String userId = "user-123";
+        final BehavioralAnalysisService.ActivityType type =
+                BehavioralAnalysisService.ActivityType.DATA_ACCESS;
+        final String resource = "/api/admin/users";
+        final String action = "DELETE";
+        final Map<String, String> context = new HashMap<>();
 
         // When
-        BehavioralAnalysisService.RiskScore riskScore = behavioralAnalysisService.calculateRiskScore(userId, type, resource, action, context);
+        final BehavioralAnalysisService.RiskScore riskScore =
+                behavioralAnalysisService.calculateRiskScore(
+                        userId, type, resource, action, context);
 
         // Then
         assertNotNull(riskScore);
@@ -93,14 +104,20 @@ class BehavioralAnalysisServiceTest {
     @DisplayName("Should detect anomalies")
     void testDetectAnomalies() {
         // Given
-        String userId = "user-123";
+        final String userId = "user-123";
         // Record normal activities first
         for (int i = 0; i < 5; i++) {
-            behavioralAnalysisService.recordActivity(userId, BehavioralAnalysisService.ActivityType.AUTHENTICATION, "/api/auth/login", "POST", null);
+            behavioralAnalysisService.recordActivity(
+                    userId,
+                    BehavioralAnalysisService.ActivityType.AUTHENTICATION,
+                    "/api/auth/login",
+                    "POST",
+                    null);
         }
 
         // When
-        java.util.List<BehavioralAnalysisService.Anomaly> anomalies = behavioralAnalysisService.detectAnomalies(userId);
+        final java.util.List<BehavioralAnalysisService.Anomaly> anomalies =
+                behavioralAnalysisService.detectAnomalies(userId);
 
         // Then
         assertNotNull(anomalies);
@@ -108,12 +125,13 @@ class BehavioralAnalysisServiceTest {
 
     @Test
     @DisplayName("Should return empty result for user with no activities")
-    void testDetectAnomalies_NoActivities() {
+    void testDetectAnomaliesNoActivities() {
         // Given
-        String userId = "user-123";
+        final String userId = "user-123";
 
         // When
-        java.util.List<BehavioralAnalysisService.Anomaly> anomalies = behavioralAnalysisService.detectAnomalies(userId);
+        final java.util.List<BehavioralAnalysisService.Anomaly> anomalies =
+                behavioralAnalysisService.detectAnomalies(userId);
 
         // Then
         assertNotNull(anomalies);

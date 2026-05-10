@@ -1,9 +1,24 @@
 package com.budgetbuddy.api;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.anyMap;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.anyMap;
+import static org.mockito.Mockito.anyString;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.isNull;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import com.budgetbuddy.compliance.AuditLogService;
 import com.budgetbuddy.exception.AppException;
 import com.budgetbuddy.exception.ErrorCode;
 import com.budgetbuddy.plaid.PlaidWebhookService;
+import java.util.HashMap;
+import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -13,31 +28,15 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
-import java.util.HashMap;
-import java.util.Map;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyMap;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.isNull;
-import static org.mockito.Mockito.*;
-
-/**
- * Unit Tests for PlaidWebhookController
- */
+/** Unit Tests for PlaidWebhookController */
 @ExtendWith(MockitoExtension.class)
 class PlaidWebhookControllerTest {
 
-    @Mock
-    private PlaidWebhookService webhookService;
+    @Mock private PlaidWebhookService webhookService;
 
-    @Mock
-    private AuditLogService auditLogService;
+    @Mock private AuditLogService auditLogService;
 
-    @InjectMocks
-    private PlaidWebhookController controller;
+    @InjectMocks private PlaidWebhookController controller;
 
     private Map<String, Object> validPayload;
 
@@ -50,14 +49,24 @@ class PlaidWebhookControllerTest {
     }
 
     @Test
-    void testHandleWebhook_WithValidTransactionWebhook_ReturnsSuccess() {
+    void testHandleWebhookWithValidTransactionWebhookReturnsSuccess() {
         // Given
         when(webhookService.verifyWebhookSignature(anyMap(), anyString())).thenReturn(true);
         doNothing().when(webhookService).handleTransactionWebhook(anyMap());
-        doNothing().when(auditLogService).logAction(anyString(), anyString(), anyString(), anyString(), anyMap(), isNull(), isNull());
+        doNothing()
+                .when(auditLogService)
+                .logAction(
+                        anyString(),
+                        anyString(),
+                        anyString(),
+                        anyString(),
+                        anyMap(),
+                        isNull(),
+                        isNull());
 
         // When
-        ResponseEntity<Map<String, String>> response = controller.handleWebhook(validPayload, "verification-header");
+        final ResponseEntity<Map<String, String>> response =
+                controller.handleWebhook(validPayload, "verification-header");
 
         // Then
         assertEquals(HttpStatus.OK, response.getStatusCode());
@@ -66,15 +75,25 @@ class PlaidWebhookControllerTest {
     }
 
     @Test
-    void testHandleWebhook_WithItemWebhook_ProcessesItem() {
+    void testHandleWebhookWithItemWebhookProcessesItem() {
         // Given
         validPayload.put("webhook_type", "ITEM");
         when(webhookService.verifyWebhookSignature(anyMap(), anyString())).thenReturn(true);
         doNothing().when(webhookService).handleItemWebhook(anyMap());
-        doNothing().when(auditLogService).logAction(anyString(), anyString(), anyString(), anyString(), anyMap(), isNull(), isNull());
+        doNothing()
+                .when(auditLogService)
+                .logAction(
+                        anyString(),
+                        anyString(),
+                        anyString(),
+                        anyString(),
+                        anyMap(),
+                        isNull(),
+                        isNull());
 
         // When
-        ResponseEntity<Map<String, String>> response = controller.handleWebhook(validPayload, "verification-header");
+        final ResponseEntity<Map<String, String>> response =
+                controller.handleWebhook(validPayload, "verification-header");
 
         // Then
         assertEquals(HttpStatus.OK, response.getStatusCode());
@@ -82,15 +101,25 @@ class PlaidWebhookControllerTest {
     }
 
     @Test
-    void testHandleWebhook_WithAuthWebhook_ProcessesAuth() {
+    void testHandleWebhookWithAuthWebhookProcessesAuth() {
         // Given
         validPayload.put("webhook_type", "AUTH");
         when(webhookService.verifyWebhookSignature(anyMap(), anyString())).thenReturn(true);
         doNothing().when(webhookService).handleAuthWebhook(anyMap());
-        doNothing().when(auditLogService).logAction(anyString(), anyString(), anyString(), anyString(), anyMap(), isNull(), isNull());
+        doNothing()
+                .when(auditLogService)
+                .logAction(
+                        anyString(),
+                        anyString(),
+                        anyString(),
+                        anyString(),
+                        anyMap(),
+                        isNull(),
+                        isNull());
 
         // When
-        ResponseEntity<Map<String, String>> response = controller.handleWebhook(validPayload, "verification-header");
+        final ResponseEntity<Map<String, String>> response =
+                controller.handleWebhook(validPayload, "verification-header");
 
         // Then
         assertEquals(HttpStatus.OK, response.getStatusCode());
@@ -98,15 +127,25 @@ class PlaidWebhookControllerTest {
     }
 
     @Test
-    void testHandleWebhook_WithIncomeWebhook_ProcessesIncome() {
+    void testHandleWebhookWithIncomeWebhookProcessesIncome() {
         // Given
         validPayload.put("webhook_type", "INCOME");
         when(webhookService.verifyWebhookSignature(anyMap(), anyString())).thenReturn(true);
         doNothing().when(webhookService).handleIncomeWebhook(anyMap());
-        doNothing().when(auditLogService).logAction(anyString(), anyString(), anyString(), anyString(), anyMap(), isNull(), isNull());
+        doNothing()
+                .when(auditLogService)
+                .logAction(
+                        anyString(),
+                        anyString(),
+                        anyString(),
+                        anyString(),
+                        anyMap(),
+                        isNull(),
+                        isNull());
 
         // When
-        ResponseEntity<Map<String, String>> response = controller.handleWebhook(validPayload, "verification-header");
+        final ResponseEntity<Map<String, String>> response =
+                controller.handleWebhook(validPayload, "verification-header");
 
         // Then
         assertEquals(HttpStatus.OK, response.getStatusCode());
@@ -114,12 +153,13 @@ class PlaidWebhookControllerTest {
     }
 
     @Test
-    void testHandleWebhook_WithEmptyPayload_ReturnsBadRequest() {
+    void testHandleWebhookWithEmptyPayloadReturnsBadRequest() {
         // Given
-        Map<String, Object> emptyPayload = new HashMap<>();
+        final Map<String, Object> emptyPayload = new HashMap<>();
 
         // When
-        ResponseEntity<Map<String, String>> response = controller.handleWebhook(emptyPayload, "verification-header");
+        final ResponseEntity<Map<String, String>> response =
+                controller.handleWebhook(emptyPayload, "verification-header");
 
         // Then
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
@@ -127,22 +167,24 @@ class PlaidWebhookControllerTest {
     }
 
     @Test
-    void testHandleWebhook_WithNullPayload_ReturnsBadRequest() {
+    void testHandleWebhookWithNullPayloadReturnsBadRequest() {
         // When
-        ResponseEntity<Map<String, String>> response = controller.handleWebhook(null, "verification-header");
+        final ResponseEntity<Map<String, String>> response =
+                controller.handleWebhook(null, "verification-header");
 
         // Then
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
     }
 
     @Test
-    void testHandleWebhook_WithMissingWebhookType_ReturnsBadRequest() {
+    void testHandleWebhookWithMissingWebhookTypeReturnsBadRequest() {
         // Given
-        Map<String, Object> payload = new HashMap<>();
+        final Map<String, Object> payload = new HashMap<>();
         payload.put("webhook_code", "SYNC_UPDATES_AVAILABLE");
 
         // When
-        ResponseEntity<Map<String, String>> response = controller.handleWebhook(payload, "verification-header");
+        final ResponseEntity<Map<String, String>> response =
+                controller.handleWebhook(payload, "verification-header");
 
         // Then
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
@@ -150,25 +192,37 @@ class PlaidWebhookControllerTest {
     }
 
     @Test
-    void testHandleWebhook_WithInvalidSignature_ThrowsException() {
+    void testHandleWebhookWithInvalidSignatureThrowsException() {
         // Given
         when(webhookService.verifyWebhookSignature(anyMap(), anyString())).thenReturn(false);
 
         // When/Then
-        AppException exception = assertThrows(AppException.class, () -> 
-                controller.handleWebhook(validPayload, "invalid-header"));
+        final AppException exception =
+                assertThrows(
+                        AppException.class,
+                        () -> controller.handleWebhook(validPayload, "invalid-header"));
         assertEquals(ErrorCode.PLAID_WEBHOOK_ERROR, exception.getErrorCode());
     }
 
     @Test
-    void testHandleWebhook_WithUnknownWebhookType_LogsWarning() {
+    void testHandleWebhookWithUnknownWebhookTypeLogsWarning() {
         // Given
         validPayload.put("webhook_type", "UNKNOWN_TYPE");
         when(webhookService.verifyWebhookSignature(anyMap(), anyString())).thenReturn(true);
-        doNothing().when(auditLogService).logAction(anyString(), anyString(), anyString(), anyString(), anyMap(), isNull(), isNull());
+        doNothing()
+                .when(auditLogService)
+                .logAction(
+                        anyString(),
+                        anyString(),
+                        anyString(),
+                        anyString(),
+                        anyMap(),
+                        isNull(),
+                        isNull());
 
         // When
-        ResponseEntity<Map<String, String>> response = controller.handleWebhook(validPayload, "verification-header");
+        final ResponseEntity<Map<String, String>> response =
+                controller.handleWebhook(validPayload, "verification-header");
 
         // Then
         assertEquals(HttpStatus.OK, response.getStatusCode());
@@ -177,4 +231,3 @@ class PlaidWebhookControllerTest {
         verify(webhookService, never()).handleItemWebhook(anyMap());
     }
 }
-

@@ -5,28 +5,31 @@ import com.budgetbuddy.exception.ErrorCode;
 import com.budgetbuddy.model.dynamodb.UserTable;
 import com.budgetbuddy.security.zerotrust.device.DeviceAttestationService;
 import com.budgetbuddy.service.UserService;
-import org.springframework.web.bind.annotation.*;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import java.util.HashMap;
+import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
-
-import java.util.HashMap;
-import java.util.Map;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 /**
- * Device Attestation REST Controller
- * Handles device attestation verification for Zero Trust security
+ * Device Attestation REST Controller Handles device attestation verification for Zero Trust
+ * security
  */
 @RestController
 @RequestMapping("/api/device/attestation")
 @CrossOrigin(origins = "*", maxAge = 3600)
 public class DeviceAttestationController {
 
-    private static final Logger logger = LoggerFactory.getLogger(DeviceAttestationController.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(DeviceAttestationController.class);
 
     private final DeviceAttestationService deviceAttestationService;
     private final UserService userService;
@@ -38,18 +41,17 @@ public class DeviceAttestationController {
         this.userService = userService;
     }
 
-    /**
-     * Verify device attestation
-     * POST /api/device/attestation/verify
-     */
+    /** Verify device attestation POST /api/device/attestation/verify */
     @PostMapping("/verify")
-    @Operation(summary = "Verify Device Attestation", description = "Verifies device integrity and trustworthiness")
+    @Operation(
+            summary = "Verify Device Attestation",
+            description = "Verifies device integrity and trustworthiness")
     @ApiResponse(responseCode = "200", description = "Device attestation verified successfully")
     @ApiResponse(responseCode = "401", description = "User not authenticated")
     @ApiResponse(responseCode = "400", description = "Device attestation failed")
     public ResponseEntity<Map<String, Object>> verifyDevice(
-            @AuthenticationPrincipal UserDetails userDetails,
-            @RequestBody VerifyDeviceRequest request) {
+            @AuthenticationPrincipal final UserDetails userDetails,
+            @RequestBody final VerifyDeviceRequest request) {
         if (userDetails == null || userDetails.getUsername() == null) {
             throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
         }
@@ -57,27 +59,33 @@ public class DeviceAttestationController {
             throw new AppException(ErrorCode.INVALID_INPUT, "Device ID is required");
         }
 
-        UserTable user = userService.findByEmail(userDetails.getUsername())
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+        final UserTable user =
+                userService
+                        .findByEmail(userDetails.getUsername())
+                        .orElseThrow(
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
 
-        boolean isTrusted = deviceAttestationService.verifyDevice(
-                request.getDeviceId(),
-                user.getUserId(),
-                request.getAttestationToken(),
-                request.getPlatform()
-        );
+        final boolean isTrusted =
+                deviceAttestationService.verifyDevice(
+                        request.getDeviceId(),
+                        user.getUserId(),
+                        request.getAttestationToken(),
+                        request.getPlatform());
 
         if (!isTrusted) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Device attestation failed");
         }
 
-        Map<String, Object> response = new HashMap<>();
+        final Map<String, Object> response = new HashMap<>();
         response.put("success", true);
         response.put("message", "Device attestation verified successfully");
         response.put("deviceId", request.getDeviceId());
         response.put("trusted", true);
 
-        logger.info("Device attestation verified for device: {} user: {}", request.getDeviceId(), user.getUserId());
+        LOGGER.info(
+                "Device attestation verified for device: {} user: {}",
+                request.getDeviceId(),
+                user.getUserId());
         return ResponseEntity.ok(response);
     }
 
@@ -113,4 +121,3 @@ public class DeviceAttestationController {
         }
     }
 }
-

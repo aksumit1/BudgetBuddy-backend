@@ -1,25 +1,22 @@
 package com.budgetbuddy.model;
 
 import jakarta.validation.constraints.NotNull;
-
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 /**
- * Transaction entity representing a financial transaction
- * Note: This is a domain model. For DynamoDB persistence, use TransactionTable.
+ * Transaction entity representing a financial transaction Note: This is a domain model. For
+ * DynamoDB persistence, use TransactionTable.
  */
 public class Transaction implements java.io.Serializable {
     private static final long serialVersionUID = 1L;
 
     private Long id;
 
-    @NotNull
-    private User user;
+    @NotNull private User user;
 
-    @NotNull
-    private Account account;
+    @NotNull private Account account;
 
     private BigDecimal amount;
 
@@ -48,10 +45,13 @@ public class Transaction implements java.io.Serializable {
     private LocalDateTime updatedAt;
 
     // Constructors
-    public Transaction() {
-    }
+    public Transaction() {}
 
-    public Transaction(final User user, final Account account, final BigDecimal amount, final LocalDate transactionDate) {
+    public Transaction(
+            final User user,
+            final Account account,
+            final BigDecimal amount,
+            final LocalDate transactionDate) {
         this.user = user;
         this.account = account;
         this.amount = amount;
@@ -208,7 +208,7 @@ public class Transaction implements java.io.Serializable {
         SAVINGS, // Savings allocation for zero-based budgeting
         EMERGENCY_FUND, // Emergency fund allocation for zero-based budgeting
         OTHER,
-        
+
         // Income categories
         SALARY,
         INTEREST, // Interest income
@@ -219,7 +219,7 @@ public class Transaction implements java.io.Serializable {
         DEPOSIT, // Generic deposit/ACH credit
         OTHER_INCOME, // Other income types
         INCOME, // Legacy - use specific income categories instead
-        
+
         // Investment categories
         INVESTMENT, // Legacy - use specific investment types
         CD, // Certificate of Deposit
@@ -236,9 +236,8 @@ public class Transaction implements java.io.Serializable {
         PRECIOUS_METALS, // Precious Metals
         CRYPTO, // Crypto
         OTHER_INVESTMENT, // Other investment types
-        
+
         // Transfer (legacy - use payment for transfers)
         TRANSFER
     }
 }
-

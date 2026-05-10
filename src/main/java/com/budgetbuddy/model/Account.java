@@ -2,24 +2,21 @@ package com.budgetbuddy.model;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 /**
- * Account entity representing a linked financial account
- * Note: This is a domain model. For DynamoDB persistence, use AccountTable.
+ * Account entity representing a linked financial account Note: This is a domain model. For DynamoDB
+ * persistence, use AccountTable.
  */
 public class Account implements java.io.Serializable {
     private static final long serialVersionUID = 1L;
 
     private Long id;
 
-    @NotNull
-    private User user;
+    @NotNull private User user;
 
-    @NotBlank
-    private String accountName;
+    @NotBlank private String accountName;
 
     private String institutionName;
 
@@ -44,8 +41,7 @@ public class Account implements java.io.Serializable {
     private LocalDateTime updatedAt;
 
     // Constructors
-    public Account() {
-    }
+    public Account() {}
 
     public Account(final User user, final String accountName, final AccountType accountType) {
         this.user = user;
@@ -196,4 +192,3 @@ public class Account implements java.io.Serializable {
         OTHER
     }
 }
-

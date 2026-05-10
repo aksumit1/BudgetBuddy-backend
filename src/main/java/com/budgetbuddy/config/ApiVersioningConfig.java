@@ -3,10 +3,7 @@ package com.budgetbuddy.config;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
-/**
- * API Versioning Configuration
- * Supports multiple API versions for backward compatibility
- */
+/** API Versioning Configuration Supports multiple API versions for backward compatibility */
 @Configuration
 public class ApiVersioningConfig implements WebMvcConfigurer {
 
@@ -17,4 +14,3 @@ public class ApiVersioningConfig implements WebMvcConfigurer {
 
     // Controllers should use @RequestMapping("/api/v1/...") for versioning
 }
-

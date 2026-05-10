@@ -1,17 +1,14 @@
 package com.budgetbuddy.model.dynamodb;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import java.math.BigDecimal;
+import java.time.Instant;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbAttribute;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbBean;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbPartitionKey;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbSecondaryPartitionKey;
-import java.math.BigDecimal;
-import java.time.Instant;
 
-/**
- * DynamoDB table for Subscriptions
- * Optimized with GSI for user queries
- */
+/** DynamoDB table for Subscriptions Optimized with GSI for user queries */
 @DynamoDbBean
 public class SubscriptionTable {
 
@@ -26,8 +23,10 @@ public class SubscriptionTable {
     private String nextPaymentDate; // YYYY-MM-DD format
     private String lastPaymentDate; // YYYY-MM-DD format
     private String category;
-    private String subscriptionType; // Type of subscription: "streaming", "software", "membership", "cloud_storage", "other"
-    private String subscriptionCategory; // High-level category: "subscription" (merchant-based) or "recurring" (bills, loans)
+    private String subscriptionType; // Type of subscription: "streaming", "software", "membership",
+    // "cloud_storage", "other"
+    private String subscriptionCategory; // High-level category: "subscription" (merchant-based) or
+    // "recurring" (bills, loans)
     private String originalCategoryPrimary; // Original transaction categoryPrimary
     private String originalCategoryDetailed; // Original transaction categoryDetailed
     private Boolean active;
@@ -191,7 +190,10 @@ public class SubscriptionTable {
     }
 
     @DynamoDbAttribute("createdAt")
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", timezone = "UTC")
+    @JsonFormat(
+            shape = JsonFormat.Shape.STRING,
+            pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
+            timezone = "UTC")
     public Instant getCreatedAt() {
         return createdAt;
     }
@@ -201,7 +203,10 @@ public class SubscriptionTable {
     }
 
     @DynamoDbAttribute("updatedAt")
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", timezone = "UTC")
+    @JsonFormat(
+            shape = JsonFormat.Shape.STRING,
+            pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
+            timezone = "UTC")
     public Instant getUpdatedAt() {
         return updatedAt;
     }
@@ -210,4 +215,3 @@ public class SubscriptionTable {
         this.updatedAt = updatedAt;
     }
 }
-

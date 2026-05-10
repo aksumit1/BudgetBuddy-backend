@@ -1,0 +1,10 @@
+{
+  "institution": "Capital One",
+  "note": "synthetic Capital One credit card — abbreviated month format",
+  "expected": [
+    { "date": "2024-03-15", "description": "AMAZON MARKETPLACE SEATTLE WA",   "amount": "34.99" },
+    { "date": "2024-03-17", "description": "STARBUCKS #1234 SEATTLE WA",      "amount": "6.75" },
+    { "date": "2024-03-20", "description": "FOREIGN TRANSACTION FEE",         "amount": "0.75" },
+    { "date": "2024-03-25", "description": "AUTOMATIC PAYMENT - THANK YOU",   "amount": "-500.00" }
+  ]
+}

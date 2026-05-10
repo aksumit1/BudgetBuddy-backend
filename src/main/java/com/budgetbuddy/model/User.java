@@ -3,23 +3,20 @@ package com.budgetbuddy.model;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
-
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
 
 /**
- * User entity representing an application user
- * Note: This is a domain model. For DynamoDB persistence, use UserTable.
+ * User entity representing an application user Note: This is a domain model. For DynamoDB
+ * persistence, use UserTable.
  */
 public class User implements java.io.Serializable {
     private static final long serialVersionUID = 1L;
 
     private Long id;
 
-    @NotBlank
-    @Email
-    private String email;
+    @NotBlank @Email private String email;
 
     @NotBlank
     @Size(min = 8, max = 255)
@@ -53,8 +50,7 @@ public class User implements java.io.Serializable {
     private LocalDateTime passwordChangedAt;
 
     // Constructors
-    public User() {
-    }
+    public User() {}
 
     public User(final String email, final String password) {
         this.email = email;
@@ -192,7 +188,8 @@ public class User implements java.io.Serializable {
     }
 
     public enum Role {
-        USER, ADMIN, SUPPORT
+        USER,
+        ADMIN,
+        SUPPORT
     }
 }
-

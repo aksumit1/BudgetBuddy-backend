@@ -1,0 +1,10 @@
+{
+  "institution": "Chase",
+  "note": "synthetic — Chase credit card two-date layout",
+  "expected": [
+    { "date": "2024-03-16", "description": "AMAZON MARKETPLACE SEATTLE WA",    "amount": "34.99" },
+    { "date": "2024-03-18", "description": "STARBUCKS #1234 SEATTLE WA",       "amount": "6.75" },
+    { "date": "2024-03-21", "description": "NETFLIX.COM LOS GATOS CA",         "amount": "15.49" },
+    { "date": "2024-03-26", "description": "AUTOMATIC PAYMENT - THANK YOU",    "amount": "-500.00" }
+  ]
+}

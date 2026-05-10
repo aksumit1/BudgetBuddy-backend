@@ -1,0 +1,4 @@
+03/15/24 APPLE.COM/BILL                            9.99
+03/18/24 STARBUCKS #812 SAN FRANCISCO CA           7.25
+03/20/24 UBER TRIP HELP.UBER.COM                  14.80
+03/25/24 PAYMENT RECEIVED                       -250.00

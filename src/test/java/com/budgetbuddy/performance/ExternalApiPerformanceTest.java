@@ -1,9 +1,19 @@
 package com.budgetbuddy.performance;
 
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import com.budgetbuddy.AWSTestConfiguration;
 import com.budgetbuddy.plaid.PlaidService;
+import com.budgetbuddy.util.TableInitializer;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -12,32 +22,28 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
-import com.budgetbuddy.util.TableInitializer;
-
-import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * External API Performance Tests
- * Tests Plaid API latency, circuit breaker performance, and retry behavior
+ * External API Performance Tests Tests Plaid API latency, circuit breaker performance, and retry
+ * behavior
  */
+// PMD's LawOfDemeter is documented as imprecise on chains involving
+// standard library types (BigDecimal, String, Optional) and DTO
+// getters; this class has many such idiomatic uses. Suppress at
+// class level rather than littering every method.
+@SuppressWarnings({"PMD.LawOfDemeter", "PMD.AvoidCatchingGenericException"})
 @SpringBootTest(classes = com.budgetbuddy.BudgetBuddyApplication.class)
 @ActiveProfiles("test")
 @Import(AWSTestConfiguration.class)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class ExternalApiPerformanceTest {
 
-    @Autowired
-    private PlaidService plaidService;
+    @Autowired private PlaidService plaidService;
 
     @Autowired(required = false)
     private CircuitBreakerRegistry circuitBreakerRegistry;
 
-    @Autowired
-    private DynamoDbClient dynamoDbClient;
+    @Autowired private DynamoDbClient dynamoDbClient;
 
     @BeforeAll
     void ensureTablesInitialized() {
@@ -45,19 +51,19 @@ class ExternalApiPerformanceTest {
     }
 
     @Test
-    void testPlaidApiLatency_WhenConfigured() {
+    void testPlaidApiLatencyWhenConfigured() {
         // Test Plaid API latency (if configured)
         // Note: This will fail gracefully if Plaid is not configured
         try {
-            int iterations = 10;
-            AtomicLong totalTime = new AtomicLong(0);
-            AtomicInteger successCount = new AtomicInteger(0);
+            final int iterations = 10;
+            final AtomicLong totalTime = new AtomicLong(0);
+            final AtomicInteger successCount = new AtomicInteger(0);
 
             for (int i = 0; i < iterations; i++) {
                 try {
-                    long startTime = System.nanoTime();
+                    final long startTime = System.nanoTime();
                     plaidService.createLinkToken("test-user-" + i, "Test App");
-                    long duration = System.nanoTime() - startTime;
+                    final long duration = System.nanoTime() - startTime;
                     totalTime.addAndGet(duration);
                     successCount.incrementAndGet();
                 } catch (Exception e) {
@@ -70,13 +76,15 @@ class ExternalApiPerformanceTest {
             }
 
             if (successCount.get() > 0) {
-                double avgTimeMs = (totalTime.get() / (double) successCount.get()) / 1_000_000;
+                final double avgTimeMs = (totalTime.get() / (double) successCount.get()) / 1_000_000;
                 System.out.println("Plaid API Latency:");
                 System.out.println("Average time: " + String.format("%.2f", avgTimeMs) + "ms");
                 System.out.println("Successful calls: " + successCount.get() + "/" + iterations);
 
                 // Plaid API should respond within 2 seconds
-                assertTrue(avgTimeMs < 2000, "Average Plaid API latency should be < 2000ms, was: " + avgTimeMs + "ms");
+                assertTrue(
+                        avgTimeMs < 2000,
+                        "Average Plaid API latency should be < 2000ms, was: " + avgTimeMs + "ms");
             }
         } catch (Exception e) {
             // Plaid not configured - this is acceptable
@@ -92,15 +100,15 @@ class ExternalApiPerformanceTest {
             return;
         }
 
-        CircuitBreaker circuitBreaker = circuitBreakerRegistry.circuitBreaker("plaid");
+        final CircuitBreaker circuitBreaker = circuitBreakerRegistry.circuitBreaker("plaid");
         if (circuitBreaker == null) {
             System.out.println("Plaid circuit breaker not found - test skipped");
             return;
         }
 
         // Get circuit breaker metrics
-        CircuitBreaker.Metrics metrics = circuitBreaker.getMetrics();
-        
+        final CircuitBreaker.Metrics metrics = circuitBreaker.getMetrics();
+
         System.out.println("Circuit Breaker Performance:");
         System.out.println("State: " + circuitBreaker.getState());
         System.out.println("Failure rate: " + metrics.getFailureRate());
@@ -114,48 +122,48 @@ class ExternalApiPerformanceTest {
     @Test
     void testConcurrentExternalApiCalls() throws InterruptedException {
         // Test concurrent external API calls
-        int concurrentThreads = 10;
-        int callsPerThread = 5;
-        ExecutorService executor = Executors.newFixedThreadPool(concurrentThreads);
-        CountDownLatch latch = new CountDownLatch(concurrentThreads);
-        AtomicInteger successCount = new AtomicInteger(0);
-        AtomicInteger failureCount = new AtomicInteger(0);
-        AtomicLong totalTime = new AtomicLong(0);
+        final int concurrentThreads = 10;
+        final int callsPerThread = 5;
+        final ExecutorService executor = Executors.newFixedThreadPool(concurrentThreads);
+        final CountDownLatch latch = new CountDownLatch(concurrentThreads);
+        final AtomicInteger successCount = new AtomicInteger(0);
+        final AtomicInteger failureCount = new AtomicInteger(0);
+        final AtomicLong totalTime = new AtomicLong(0);
 
         for (int i = 0; i < concurrentThreads; i++) {
             final int threadId = i;
-            executor.submit(() -> {
-                try {
-                    for (int j = 0; j < callsPerThread; j++) {
+            executor.submit(
+                    () -> {
                         try {
-                            long startTime = System.nanoTime();
-                            plaidService.createLinkToken("test-user-" + threadId + "-" + j, "Test App");
-                            long duration = System.nanoTime() - startTime;
-                            totalTime.addAndGet(duration);
-                            successCount.incrementAndGet();
-                        } catch (Exception e) {
-                            failureCount.incrementAndGet();
-                            // Expected if Plaid not configured
-                            if (e.getMessage() != null && e.getMessage().contains("not configured")) {
-                                // This is acceptable
+                            for (int j = 0; j < callsPerThread; j++) {
+                                try {
+                                    final long startTime = System.nanoTime();
+                                    plaidService.createLinkToken(
+                                            "test-user-" + threadId + "-" + j, "Test App");
+                                    final long duration = System.nanoTime() - startTime;
+                                    totalTime.addAndGet(duration);
+                                    successCount.incrementAndGet();
+                                } catch (Exception e) {
+                                    failureCount.incrementAndGet();
+                                    e.getMessage();
+                                    e.getMessage().contains("not configured");
+                                }
                             }
+                        } finally {
+                            latch.countDown();
                         }
-                    }
-                } finally {
-                    latch.countDown();
-                }
-            });
+                    });
         }
 
-        boolean completed = latch.await(60, TimeUnit.SECONDS); // Increased timeout
+        final boolean completed = latch.await(60, TimeUnit.SECONDS); // Increased timeout
         executor.shutdown();
-        
+
         // Force shutdown if not completed
         if (!executor.awaitTermination(5, TimeUnit.SECONDS)) {
             executor.shutdownNow();
         }
 
-        int totalCalls = concurrentThreads * callsPerThread;
+        final int totalCalls = concurrentThreads * callsPerThread;
         System.out.println("Concurrent External API Calls:");
         System.out.println("Total calls: " + totalCalls);
         System.out.println("Successful: " + successCount.get());
@@ -164,19 +172,24 @@ class ExternalApiPerformanceTest {
         System.out.println("Remaining threads: " + latch.getCount());
 
         if (successCount.get() > 0) {
-            double avgTimeMs = (totalTime.get() / (double) successCount.get()) / 1_000_000;
+            final double avgTimeMs = (totalTime.get() / (double) successCount.get()) / 1_000_000;
             System.out.println("Average time: " + String.format("%.2f", avgTimeMs) + "ms");
         }
 
         // Test should complete - allow for some threads to not complete if Plaid is not configured
         // This is acceptable since Plaid API calls will fail gracefully in test environment
-        assertTrue(completed || (successCount.get() + failureCount.get()) > 0, 
-                "Test should complete or have some results. Completed: " + completed + 
-                ", Success: " + successCount.get() + ", Failed: " + failureCount.get());
+        assertTrue(
+                completed || (successCount.get() + failureCount.get()) > 0,
+                "Test should complete or have some results. Completed: "
+                        + completed
+                        + ", Success: "
+                        + successCount.get()
+                        + ", Failed: "
+                        + failureCount.get());
     }
 
     @Test
-    void testRetryBehavior_UnderFailures() {
+    void testRetryBehaviorUnderFailures() {
         // Test retry behavior when external API fails
         // This test documents expected retry behavior
         System.out.println("Retry Behavior Test:");
@@ -187,4 +200,3 @@ class ExternalApiPerformanceTest {
         assertTrue(true, "Retry behavior is configured via Resilience4j");
     }
 }
-

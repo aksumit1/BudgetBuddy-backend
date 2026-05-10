@@ -1,52 +1,69 @@
 package com.budgetbuddy.service;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.ArgumentMatchers.nullable;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.anyString;
+import static org.mockito.Mockito.argThat;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.isNull;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.nullable;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import com.budgetbuddy.model.dynamodb.AccountTable;
 import com.budgetbuddy.model.dynamodb.TransactionTable;
 import com.budgetbuddy.model.dynamodb.UserTable;
-import com.budgetbuddy.model.dynamodb.AccountTable;
-import com.budgetbuddy.repository.dynamodb.TransactionRepository;
-import com.budgetbuddy.repository.dynamodb.AccountRepository;
 import com.budgetbuddy.plaid.PlaidService;
+import com.budgetbuddy.repository.dynamodb.AccountRepository;
+import com.budgetbuddy.repository.dynamodb.TransactionRepository;
+import java.time.LocalDate;
+import java.util.Arrays;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.time.LocalDate;
-import java.util.*;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
-import static org.mockito.Mockito.lenient;
-import com.budgetbuddy.service.TransactionTypeCategoryService;
-
 /**
- * Integration tests for Plaid category sync
- * Tests that Plaid categories are properly extracted, mapped, and stored
+ * Integration tests for Plaid category sync Tests that Plaid categories are properly extracted,
+ * mapped, and stored
  */
+// PMD's LawOfDemeter is documented as imprecise on chains involving
+// standard library types (BigDecimal, String, Optional) and DTO
+// getters; this class has many such idiomatic uses. Suppress at
+// class level rather than littering every method.
+@SuppressWarnings({"PMD.LawOfDemeter", "PMD.AvoidCatchingGenericException"})
 @ExtendWith(MockitoExtension.class)
 @org.mockito.junit.jupiter.MockitoSettings(strictness = org.mockito.quality.Strictness.LENIENT)
 class PlaidCategorySyncTest {
 
-    @Mock
-    private PlaidService plaidService;
+    @Mock private PlaidService plaidService;
 
-    @Mock
-    private AccountRepository accountRepository;
+    @Mock private AccountRepository accountRepository;
 
-    @Mock
-    private TransactionRepository transactionRepository;
+    @Mock private TransactionRepository transactionRepository;
 
-    @Mock
-    private PlaidCategoryMapper categoryMapper;
+    @Mock private PlaidCategoryMapper categoryMapper;
 
-    @Mock
-    private com.budgetbuddy.service.plaid.PlaidDataExtractor dataExtractor;
+    @Mock private com.budgetbuddy.service.plaid.PlaidDataExtractor dataExtractor;
 
-    @Mock
-    private com.budgetbuddy.service.plaid.PlaidSyncOrchestrator syncOrchestrator;
+    @Mock private com.budgetbuddy.service.plaid.PlaidSyncOrchestrator syncOrchestrator;
 
     private PlaidSyncService plaidSyncService;
 
@@ -67,38 +84,59 @@ class PlaidCategorySyncTest {
         testAccount.setLastSyncedAt(null); // Ensure sync isn't skipped
 
         // Create real services with mocked dependencies so the actual sync logic runs
-        com.budgetbuddy.service.plaid.PlaidAccountSyncService accountSyncService = 
-            new com.budgetbuddy.service.plaid.PlaidAccountSyncService(
-                plaidService, accountRepository, categoryMapper, dataExtractor);
-        com.budgetbuddy.service.plaid.PlaidTransactionSyncService transactionSyncService = 
-            new com.budgetbuddy.service.plaid.PlaidTransactionSyncService(
-                plaidService, accountRepository, transactionRepository, dataExtractor);
-        com.budgetbuddy.service.plaid.PlaidSyncOrchestrator realOrchestrator = 
-            new com.budgetbuddy.service.plaid.PlaidSyncOrchestrator(accountSyncService, transactionSyncService);
-        
+        final com.budgetbuddy.service.plaid.PlaidAccountSyncService accountSyncService =
+                new com.budgetbuddy.service.plaid.PlaidAccountSyncService(
+                        plaidService,
+                        accountRepository,
+                        categoryMapper,
+                        dataExtractor,
+                        org.mockito.Mockito.mock(
+                                com.budgetbuddy.service.correctness.BalanceReconciliationService
+                                        .class));
+        final com.budgetbuddy.service.plaid.PlaidTransactionSyncService transactionSyncService =
+                new com.budgetbuddy.service.plaid.PlaidTransactionSyncService(
+                        plaidService, accountRepository, transactionRepository, dataExtractor);
+        final com.budgetbuddy.service.plaid.PlaidSyncOrchestrator realOrchestrator =
+                new com.budgetbuddy.service.plaid.PlaidSyncOrchestrator(
+                        accountSyncService, transactionSyncService);
+
         // Use doAnswer to call the real orchestrator methods so repository calls are made
         // Use nullable() for itemId since it can be null
         // Use lenient stubbing to avoid issues with tests that throw exceptions early
-        lenient().doAnswer(invocation -> {
-            realOrchestrator.syncAccountsOnly(invocation.getArgument(0), invocation.getArgument(1), invocation.getArgument(2));
-            return null;
-        }).when(syncOrchestrator).syncAccountsOnly(any(UserTable.class), anyString(), nullable(String.class));
-        
-        lenient().doAnswer(invocation -> {
-            realOrchestrator.syncTransactionsOnly(invocation.getArgument(0), invocation.getArgument(1));
-            return null;
-        }).when(syncOrchestrator).syncTransactionsOnly(any(UserTable.class), anyString());
-        
+        lenient()
+                .doAnswer(
+                        invocation -> {
+                            realOrchestrator.syncAccountsOnly(
+                                    invocation.getArgument(0),
+                                    invocation.getArgument(1),
+                                    invocation.getArgument(2));
+                            return null;
+                        })
+                .when(syncOrchestrator)
+                .syncAccountsOnly(any(UserTable.class), anyString(), nullable(String.class));
+
+        lenient()
+                .doAnswer(
+                        invocation -> {
+                            realOrchestrator.syncTransactionsOnly(
+                                    invocation.getArgument(0), invocation.getArgument(1));
+                            return null;
+                        })
+                .when(syncOrchestrator)
+                .syncTransactionsOnly(any(UserTable.class), anyString());
+
         // Manually inject the orchestrator to ensure it's set before tests run
         plaidSyncService = new PlaidSyncService(syncOrchestrator);
     }
 
     @Test
-    void testSyncTransaction_WithPlaidPersonalFinanceCategory_StoresCorrectly() throws Exception {
+    void testSyncTransactionWithPlaidPersonalFinanceCategoryStoresCorrectly() throws Exception {
         // Given - Transaction with Plaid personal_finance_category
-        com.plaid.client.model.Transaction plaidTransaction = mock(com.plaid.client.model.Transaction.class);
-        com.plaid.client.model.PersonalFinanceCategory pfc = mock(com.plaid.client.model.PersonalFinanceCategory.class);
-        
+        final com.plaid.client.model.Transaction plaidTransaction =
+                mock(com.plaid.client.model.Transaction.class);
+        final com.plaid.client.model.PersonalFinanceCategory pfc =
+                mock(com.plaid.client.model.PersonalFinanceCategory.class);
+
         when(pfc.getPrimary()).thenReturn("FOOD_AND_DRINK");
         when(pfc.getDetailed()).thenReturn("RESTAURANTS");
         when(plaidTransaction.getPersonalFinanceCategory()).thenReturn(pfc);
@@ -113,97 +151,126 @@ class PlaidCategorySyncTest {
         lenient().when(plaidTransaction.getPending()).thenReturn(false);
         lenient().when(plaidTransaction.getIsoCurrencyCode()).thenReturn("USD");
 
-        com.plaid.client.model.TransactionsGetResponse mockResponse = new com.plaid.client.model.TransactionsGetResponse();
+        final com.plaid.client.model.TransactionsGetResponse mockResponse =
+                new com.plaid.client.model.TransactionsGetResponse();
         mockResponse.setTransactions(Arrays.asList(plaidTransaction));
         mockResponse.setTotalTransactions(1);
 
-        when(accountRepository.findByUserId(testUser.getUserId())).thenReturn(Arrays.asList(testAccount));
-        when(plaidService.getTransactions(anyString(), anyString(), anyString())).thenReturn(mockResponse);
+        when(accountRepository.findByUserId(testUser.getUserId()))
+                .thenReturn(Arrays.asList(testAccount));
+        when(plaidService.getTransactions(anyString(), anyString(), anyString()))
+                .thenReturn(mockResponse);
         // Mock dataExtractor to return account ID for transaction grouping and transaction ID
-        when(dataExtractor.extractAccountIdFromTransaction(any()))
-                .thenReturn("plaid-account-123");
+        when(dataExtractor.extractAccountIdFromTransaction(any())).thenReturn("plaid-account-123");
         when(dataExtractor.extractTransactionId(any()))
-                .thenAnswer(invocation -> {
-                    Object transaction = invocation.getArgument(0);
-                    if (transaction instanceof com.plaid.client.model.Transaction) {
-                        return ((com.plaid.client.model.Transaction) transaction).getTransactionId();
-                    }
-                    return null;
-                });
+                .thenAnswer(
+                        invocation -> {
+                            final Object transaction = invocation.getArgument(0);
+                            if (transaction instanceof com.plaid.client.model.Transaction) {
+                                return ((com.plaid.client.model.Transaction) transaction)
+                                        .getTransactionId();
+                            }
+                            return null;
+                        });
         // Mock updateTransactionFromPlaid to actually populate transaction fields
-        doAnswer(invocation -> {
-            TransactionTable txTable = invocation.getArgument(0);
-            Object plaidTxObj = invocation.getArgument(1);
-            if (plaidTxObj instanceof com.plaid.client.model.Transaction) {
-                com.plaid.client.model.Transaction plaidTx = (com.plaid.client.model.Transaction) plaidTxObj;
-                txTable.setMerchantName(plaidTx.getMerchantName());
-                txTable.setDescription(plaidTx.getName());
-                if (plaidTx.getDate() != null) {
-                    txTable.setTransactionDate(plaidTx.getDate().format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE));
-                }
-                if (plaidTx.getAmount() != null) {
-                    txTable.setAmount(java.math.BigDecimal.valueOf(plaidTx.getAmount()));
-                }
-                
-                // Extract PersonalFinanceCategory
-                String plaidCategoryPrimary = null;
-                String plaidCategoryDetailed = null;
-                try {
-                    var personalFinanceCategory = plaidTx.getPersonalFinanceCategory();
-                    if (personalFinanceCategory != null) {
-                        plaidCategoryPrimary = personalFinanceCategory.getPrimary();
-                        plaidCategoryDetailed = personalFinanceCategory.getDetailed();
-                    }
-                } catch (Exception e) {
-                    // Ignore
-                }
-                
-                // Use categoryMapper to map categories
-                PlaidCategoryMapper.CategoryMapping categoryMapping;
-                if (plaidCategoryPrimary != null || plaidCategoryDetailed != null) {
-                    categoryMapping = categoryMapper.mapPlaidCategory(
-                        plaidCategoryPrimary,
-                        plaidCategoryDetailed,
-                        txTable.getMerchantName(),
-                        txTable.getDescription()
-                    );
-                } else {
-                    categoryMapping = new PlaidCategoryMapper.CategoryMapping("other", "other", false);
-                }
-                
-                txTable.setImporterCategoryPrimary(plaidCategoryPrimary);
-                txTable.setImporterCategoryDetailed(plaidCategoryDetailed);
-                txTable.setCategoryPrimary(categoryMapping.getPrimary());
-                txTable.setCategoryDetailed(categoryMapping.getDetailed());
-                txTable.setCategoryOverridden(categoryMapping.isOverridden());
-            }
-            return null;
-        }).when(dataExtractor).updateTransactionFromPlaid(any(TransactionTable.class), any());
-        when(transactionRepository.findByPlaidTransactionId(anyString())).thenReturn(Optional.empty());
-        doReturn(true).when(transactionRepository).saveIfPlaidTransactionNotExists(any(TransactionTable.class));
+        doAnswer(
+                        invocation -> {
+                            final TransactionTable txTable = invocation.getArgument(0);
+                            final Object plaidTxObj = invocation.getArgument(1);
+                            if (plaidTxObj instanceof com.plaid.client.model.Transaction) {
+                                final com.plaid.client.model.Transaction plaidTx =
+                                        (com.plaid.client.model.Transaction) plaidTxObj;
+                                txTable.setMerchantName(plaidTx.getMerchantName());
+                                txTable.setDescription(plaidTx.getName());
+                                if (plaidTx.getDate() != null) {
+                                    txTable.setTransactionDate(
+                                            plaidTx.getDate()
+                                                    .format(
+                                                            java.time.format.DateTimeFormatter
+                                                                    .ISO_LOCAL_DATE));
+                                }
+                                if (plaidTx.getAmount() != null) {
+                                    txTable.setAmount(
+                                            java.math.BigDecimal.valueOf(plaidTx.getAmount()));
+                                }
 
-        PlaidCategoryMapper.CategoryMapping categoryMapping = new PlaidCategoryMapper.CategoryMapping("dining", "dining", false);
-        when(categoryMapper.mapPlaidCategory(eq("FOOD_AND_DRINK"), eq("RESTAURANTS"), anyString(), anyString()))
+                                // Extract PersonalFinanceCategory
+                                String plaidCategoryPrimary = null;
+                                String plaidCategoryDetailed = null;
+                                try {
+                                    final var personalFinanceCategory =
+                                            plaidTx.getPersonalFinanceCategory();
+                                    if (personalFinanceCategory != null) {
+                                        plaidCategoryPrimary = personalFinanceCategory.getPrimary();
+                                        plaidCategoryDetailed =
+                                                personalFinanceCategory.getDetailed();
+                                    }
+                                } catch (Exception e) {
+                                    // Ignore
+                                }
+
+                                // Use categoryMapper to map categories
+                                final PlaidCategoryMapper.CategoryMapping categoryMapping;
+                                if (plaidCategoryPrimary != null || plaidCategoryDetailed != null) {
+                                    categoryMapping =
+                                            categoryMapper.mapPlaidCategory(
+                                                    plaidCategoryPrimary,
+                                                    plaidCategoryDetailed,
+                                                    txTable.getMerchantName(),
+                                                    txTable.getDescription());
+                                } else {
+                                    categoryMapping =
+                                            new PlaidCategoryMapper.CategoryMapping(
+                                                    "other", "other", false);
+                                }
+
+                                txTable.setImporterCategoryPrimary(plaidCategoryPrimary);
+                                txTable.setImporterCategoryDetailed(plaidCategoryDetailed);
+                                txTable.setCategoryPrimary(categoryMapping.getPrimary());
+                                txTable.setCategoryDetailed(categoryMapping.getDetailed());
+                                txTable.setCategoryOverridden(categoryMapping.isOverridden());
+                            }
+                            return null;
+                        })
+                .when(dataExtractor)
+                .updateTransactionFromPlaid(any(TransactionTable.class), any());
+        when(transactionRepository.findByPlaidTransactionId(anyString()))
+                .thenReturn(Optional.empty());
+        doReturn(true)
+                .when(transactionRepository)
+                .saveIfPlaidTransactionNotExists(any(TransactionTable.class));
+
+        final PlaidCategoryMapper.CategoryMapping categoryMapping =
+                new PlaidCategoryMapper.CategoryMapping("dining", "dining", false);
+        when(categoryMapper.mapPlaidCategory(
+                        eq("FOOD_AND_DRINK"), eq("RESTAURANTS"), anyString(), anyString()))
                 .thenReturn(categoryMapping);
 
         // When
         plaidSyncService.syncTransactions(testUser, "access-token");
 
         // Then - Verify category fields are set correctly
-        verify(transactionRepository, atLeastOnce()).saveIfPlaidTransactionNotExists(argThat(transaction -> {
-            assertEquals("FOOD_AND_DRINK", transaction.getImporterCategoryPrimary());
-            assertEquals("RESTAURANTS", transaction.getImporterCategoryDetailed());
-            assertEquals("dining", transaction.getCategoryPrimary());
-            assertEquals("dining", transaction.getCategoryDetailed());
-            assertFalse(transaction.getCategoryOverridden());
-            return true;
-        }));
+        verify(transactionRepository, atLeastOnce())
+                .saveIfPlaidTransactionNotExists(
+                        argThat(
+                                transaction -> {
+                                    assertEquals(
+                                            "FOOD_AND_DRINK",
+                                            transaction.getImporterCategoryPrimary());
+                                    assertEquals(
+                                            "RESTAURANTS",
+                                            transaction.getImporterCategoryDetailed());
+                                    assertEquals("dining", transaction.getCategoryPrimary());
+                                    assertEquals("dining", transaction.getCategoryDetailed());
+                                    assertFalse(transaction.getCategoryOverridden());
+                                    return true;
+                                }));
     }
 
     @Test
-    void testSyncTransaction_WithCategoryOverride_StoresOverride() throws Exception {
+    void testSyncTransactionWithCategoryOverrideStoresOverride() throws Exception {
         // Given - Transaction with category override
-        TransactionTable existingTransaction = new TransactionTable();
+        final TransactionTable existingTransaction = new TransactionTable();
         existingTransaction.setTransactionId("txn-123");
         existingTransaction.setUserId("user-123");
         existingTransaction.setAccountId("account-123");
@@ -213,22 +280,42 @@ class PlaidCategorySyncTest {
         existingTransaction.setCategoryDetailed("dining");
         existingTransaction.setCategoryOverridden(false);
 
-        when(transactionRepository.findById("txn-123")).thenReturn(Optional.of(existingTransaction));
-        doAnswer(invocation -> {
-            TransactionTable t = invocation.getArgument(0);
-            return t;
-        }).when(transactionRepository).save(any(TransactionTable.class));
+        when(transactionRepository.findById("txn-123"))
+                .thenReturn(Optional.of(existingTransaction));
+        doAnswer(
+                        invocation -> {
+                            final TransactionTable t = invocation.getArgument(0);
+                            return t;
+                        })
+                .when(transactionRepository)
+                .save(any(TransactionTable.class));
 
         // When - User overrides category via TransactionService
-        TransactionService transactionService = new TransactionService(
-                transactionRepository, accountRepository, new com.budgetbuddy.service.TransactionTypeDeterminer(),
-                org.mockito.Mockito.mock(TransactionTypeCategoryService.class),
-                org.mockito.Mockito.mock(com.budgetbuddy.audit.AuditService.class),
-                org.mockito.Mockito.mock(CategoryLearningService.class),
-                org.mockito.Mockito.mock(org.springframework.context.ApplicationContext.class));
-        TransactionTable updated = transactionService.updateTransaction(
-                testUser, "txn-123", null, null, null, "groceries", "groceries", null, null, null, false, null, null  // goalId, linkedTransactionId
-        );
+        final TransactionService transactionService =
+                new TransactionService(
+                        transactionRepository,
+                        accountRepository,
+                        org.mockito.Mockito.mock(TransactionTypeCategoryService.class),
+                        org.mockito.Mockito.mock(com.budgetbuddy.audit.AuditService.class),
+                        org.mockito.Mockito.mock(CategoryLearningService.class),
+                        org.mockito.Mockito.mock(
+                                org.springframework.context.ApplicationContext.class));
+        final TransactionTable updated =
+                transactionService.updateTransaction(
+                        testUser,
+                        "txn-123",
+                        null,
+                        null,
+                        null,
+                        "groceries",
+                        "groceries",
+                        null,
+                        null,
+                        null,
+                        false,
+                        null,
+                        null // goalId, linkedTransactionId
+                );
 
         // Then - Verify override is stored
         assertNotNull(updated);
@@ -241,10 +328,11 @@ class PlaidCategorySyncTest {
     }
 
     @Test
-    void testSyncTransaction_WithoutPlaidCategory_UsesDefaults() throws Exception {
+    void testSyncTransactionWithoutPlaidCategoryUsesDefaults() throws Exception {
         // Given - Transaction without Plaid category
-        com.plaid.client.model.Transaction plaidTransaction = mock(com.plaid.client.model.Transaction.class);
-        
+        final com.plaid.client.model.Transaction plaidTransaction =
+                mock(com.plaid.client.model.Transaction.class);
+
         when(plaidTransaction.getPersonalFinanceCategory()).thenReturn(null);
         when(plaidTransaction.getAccountId()).thenReturn("plaid-account-123");
         when(plaidTransaction.getAmount()).thenReturn(25.50);
@@ -255,107 +343,134 @@ class PlaidCategorySyncTest {
         lenient().when(plaidTransaction.getPending()).thenReturn(false);
         lenient().when(plaidTransaction.getIsoCurrencyCode()).thenReturn("USD");
 
-        com.plaid.client.model.TransactionsGetResponse mockResponse = new com.plaid.client.model.TransactionsGetResponse();
+        final com.plaid.client.model.TransactionsGetResponse mockResponse =
+                new com.plaid.client.model.TransactionsGetResponse();
         mockResponse.setTransactions(Arrays.asList(plaidTransaction));
         mockResponse.setTotalTransactions(1);
 
-        when(accountRepository.findByUserId(testUser.getUserId())).thenReturn(Arrays.asList(testAccount));
-        when(plaidService.getTransactions(anyString(), anyString(), anyString())).thenReturn(mockResponse);
+        when(accountRepository.findByUserId(testUser.getUserId()))
+                .thenReturn(Arrays.asList(testAccount));
+        when(plaidService.getTransactions(anyString(), anyString(), anyString()))
+                .thenReturn(mockResponse);
         // Mock dataExtractor to return account ID for transaction grouping and transaction ID
-        when(dataExtractor.extractAccountIdFromTransaction(any()))
-                .thenReturn("plaid-account-123");
+        when(dataExtractor.extractAccountIdFromTransaction(any())).thenReturn("plaid-account-123");
         when(dataExtractor.extractTransactionId(any()))
-                .thenAnswer(invocation -> {
-                    Object transaction = invocation.getArgument(0);
-                    if (transaction instanceof com.plaid.client.model.Transaction) {
-                        return ((com.plaid.client.model.Transaction) transaction).getTransactionId();
-                    }
-                    return null;
-                });
+                .thenAnswer(
+                        invocation -> {
+                            final Object transaction = invocation.getArgument(0);
+                            if (transaction instanceof com.plaid.client.model.Transaction) {
+                                return ((com.plaid.client.model.Transaction) transaction)
+                                        .getTransactionId();
+                            }
+                            return null;
+                        });
         // Mock updateTransactionFromPlaid to actually populate transaction fields
-        doAnswer(invocation -> {
-            TransactionTable txTable = invocation.getArgument(0);
-            Object plaidTxObj = invocation.getArgument(1);
-            if (plaidTxObj instanceof com.plaid.client.model.Transaction) {
-                com.plaid.client.model.Transaction plaidTx = (com.plaid.client.model.Transaction) plaidTxObj;
-                txTable.setMerchantName(plaidTx.getMerchantName());
-                txTable.setDescription(plaidTx.getName());
-                if (plaidTx.getDate() != null) {
-                    txTable.setTransactionDate(plaidTx.getDate().format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE));
-                }
-                if (plaidTx.getAmount() != null) {
-                    txTable.setAmount(java.math.BigDecimal.valueOf(plaidTx.getAmount()));
-                }
-                
-                // Extract PersonalFinanceCategory
-                String plaidCategoryPrimary = null;
-                String plaidCategoryDetailed = null;
-                try {
-                    var personalFinanceCategory = plaidTx.getPersonalFinanceCategory();
-                    if (personalFinanceCategory != null) {
-                        plaidCategoryPrimary = personalFinanceCategory.getPrimary();
-                        plaidCategoryDetailed = personalFinanceCategory.getDetailed();
-                    }
-                } catch (Exception e) {
-                    // Ignore
-                }
-                
-                // Use categoryMapper to map categories
-                PlaidCategoryMapper.CategoryMapping categoryMapping;
-                if (plaidCategoryPrimary != null || plaidCategoryDetailed != null) {
-                    categoryMapping = categoryMapper.mapPlaidCategory(
-                        plaidCategoryPrimary,
-                        plaidCategoryDetailed,
-                        txTable.getMerchantName(),
-                        txTable.getDescription()
-                    );
-                } else {
-                    categoryMapping = new PlaidCategoryMapper.CategoryMapping("other", "other", false);
-                }
-                
-                txTable.setImporterCategoryPrimary(plaidCategoryPrimary);
-                txTable.setImporterCategoryDetailed(plaidCategoryDetailed);
-                txTable.setCategoryPrimary(categoryMapping.getPrimary());
-                txTable.setCategoryDetailed(categoryMapping.getDetailed());
-                txTable.setCategoryOverridden(categoryMapping.isOverridden());
-            }
-            return null;
-        }).when(dataExtractor).updateTransactionFromPlaid(any(TransactionTable.class), any());
-        when(transactionRepository.findByPlaidTransactionId(anyString())).thenReturn(Optional.empty());
-        doReturn(true).when(transactionRepository).saveIfPlaidTransactionNotExists(any(TransactionTable.class));
+        doAnswer(
+                        invocation -> {
+                            final TransactionTable txTable = invocation.getArgument(0);
+                            final Object plaidTxObj = invocation.getArgument(1);
+                            if (plaidTxObj instanceof com.plaid.client.model.Transaction) {
+                                final com.plaid.client.model.Transaction plaidTx =
+                                        (com.plaid.client.model.Transaction) plaidTxObj;
+                                txTable.setMerchantName(plaidTx.getMerchantName());
+                                txTable.setDescription(plaidTx.getName());
+                                if (plaidTx.getDate() != null) {
+                                    txTable.setTransactionDate(
+                                            plaidTx.getDate()
+                                                    .format(
+                                                            java.time.format.DateTimeFormatter
+                                                                    .ISO_LOCAL_DATE));
+                                }
+                                if (plaidTx.getAmount() != null) {
+                                    txTable.setAmount(
+                                            java.math.BigDecimal.valueOf(plaidTx.getAmount()));
+                                }
 
-        // Only stub categoryMapper if it's actually used (when category is null, it may not be called)
-        PlaidCategoryMapper.CategoryMapping categoryMapping = new PlaidCategoryMapper.CategoryMapping("other", "other", false);
-        lenient().when(categoryMapper.mapPlaidCategory(isNull(), isNull(), anyString(), anyString()))
+                                // Extract PersonalFinanceCategory
+                                String plaidCategoryPrimary = null;
+                                String plaidCategoryDetailed = null;
+                                try {
+                                    final var personalFinanceCategory =
+                                            plaidTx.getPersonalFinanceCategory();
+                                    if (personalFinanceCategory != null) {
+                                        plaidCategoryPrimary = personalFinanceCategory.getPrimary();
+                                        plaidCategoryDetailed =
+                                                personalFinanceCategory.getDetailed();
+                                    }
+                                } catch (Exception e) {
+                                    // Ignore
+                                }
+
+                                // Use categoryMapper to map categories
+                                final PlaidCategoryMapper.CategoryMapping categoryMapping;
+                                if (plaidCategoryPrimary != null || plaidCategoryDetailed != null) {
+                                    categoryMapping =
+                                            categoryMapper.mapPlaidCategory(
+                                                    plaidCategoryPrimary,
+                                                    plaidCategoryDetailed,
+                                                    txTable.getMerchantName(),
+                                                    txTable.getDescription());
+                                } else {
+                                    categoryMapping =
+                                            new PlaidCategoryMapper.CategoryMapping(
+                                                    "other", "other", false);
+                                }
+
+                                txTable.setImporterCategoryPrimary(plaidCategoryPrimary);
+                                txTable.setImporterCategoryDetailed(plaidCategoryDetailed);
+                                txTable.setCategoryPrimary(categoryMapping.getPrimary());
+                                txTable.setCategoryDetailed(categoryMapping.getDetailed());
+                                txTable.setCategoryOverridden(categoryMapping.isOverridden());
+                            }
+                            return null;
+                        })
+                .when(dataExtractor)
+                .updateTransactionFromPlaid(any(TransactionTable.class), any());
+        when(transactionRepository.findByPlaidTransactionId(anyString()))
+                .thenReturn(Optional.empty());
+        doReturn(true)
+                .when(transactionRepository)
+                .saveIfPlaidTransactionNotExists(any(TransactionTable.class));
+
+        // Only stub categoryMapper if it's actually used (when category is null, it may not be
+        // called)
+        final PlaidCategoryMapper.CategoryMapping categoryMapping =
+                new PlaidCategoryMapper.CategoryMapping("other", "other", false);
+        lenient()
+                .when(categoryMapper.mapPlaidCategory(isNull(), isNull(), anyString(), anyString()))
                 .thenReturn(categoryMapping);
 
         // When
         plaidSyncService.syncTransactions(testUser, "access-token");
 
         // Then - Verify defaults are used
-        verify(transactionRepository, atLeastOnce()).saveIfPlaidTransactionNotExists(argThat(transaction -> {
-            assertNull(transaction.getImporterCategoryPrimary());
-            assertNull(transaction.getImporterCategoryDetailed());
-            assertEquals("other", transaction.getCategoryPrimary());
-            assertEquals("other", transaction.getCategoryDetailed());
-            return true;
-        }));
+        verify(transactionRepository, atLeastOnce())
+                .saveIfPlaidTransactionNotExists(
+                        argThat(
+                                transaction -> {
+                                    assertNull(transaction.getImporterCategoryPrimary());
+                                    assertNull(transaction.getImporterCategoryDetailed());
+                                    assertEquals("other", transaction.getCategoryPrimary());
+                                    assertEquals("other", transaction.getCategoryDetailed());
+                                    return true;
+                                }));
     }
 
     @Test
-    void testCategoryMapper_MapsPlaidCategoriesCorrectly() {
+    void testCategoryMapperMapsPlaidCategoriesCorrectly() {
         // Given
-        PlaidCategoryMapper mapper = new PlaidCategoryMapper();
+        final PlaidCategoryMapper mapper = new PlaidCategoryMapper();
 
         // When - Map Plaid categories
-        PlaidCategoryMapper.CategoryMapping result1 = mapper.mapPlaidCategory(
-                "FOOD_AND_DRINK", "RESTAURANTS", "McDonald's", "Fast food purchase");
-        
-        PlaidCategoryMapper.CategoryMapping result2 = mapper.mapPlaidCategory(
-                "TRANSPORTATION", "GAS_STATIONS", "Shell", "Gas purchase");
-        
-        PlaidCategoryMapper.CategoryMapping result3 = mapper.mapPlaidCategory(
-                "INCOME", "SALARY", "Employer", "Monthly salary");
+        final PlaidCategoryMapper.CategoryMapping result1 =
+                mapper.mapPlaidCategory(
+                        "FOOD_AND_DRINK", "RESTAURANTS", "McDonald's", "Fast food purchase");
+
+        final PlaidCategoryMapper.CategoryMapping result2 =
+                mapper.mapPlaidCategory("TRANSPORTATION", "GAS_STATIONS", "Shell", "Gas purchase");
+
+        final PlaidCategoryMapper.CategoryMapping result3 =
+                mapper.mapPlaidCategory("INCOME", "SALARY", "Employer", "Monthly salary");
 
         // Then - Verify mappings
         assertEquals("dining", result1.getPrimary());
@@ -368,18 +483,21 @@ class PlaidCategorySyncTest {
 
         assertEquals("income", result3.getPrimary());
         // Description contains "salary", so should be categorized as salary, not generic income
-        assertEquals("salary", result3.getDetailed(), "Income with salary description should be salary");
+        assertEquals(
+                "salary", result3.getDetailed(), "Income with salary description should be salary");
         assertFalse(result3.isOverridden());
     }
 
     @Test
-    void testCategoryMapper_AppliesOverride() {
+    void testCategoryMapperAppliesOverride() {
         // Given
-        PlaidCategoryMapper mapper = new PlaidCategoryMapper();
-        PlaidCategoryMapper.CategoryMapping original = new PlaidCategoryMapper.CategoryMapping("dining", "dining", false);
+        final PlaidCategoryMapper mapper = new PlaidCategoryMapper();
+        final PlaidCategoryMapper.CategoryMapping original =
+                new PlaidCategoryMapper.CategoryMapping("dining", "dining", false);
 
         // When - Apply override
-        PlaidCategoryMapper.CategoryMapping overridden = mapper.applyOverride(original, "groceries", "groceries");
+        final PlaidCategoryMapper.CategoryMapping overridden =
+                mapper.applyOverride(original, "groceries", "groceries");
 
         // Then
         assertEquals("groceries", overridden.getPrimary());
@@ -387,4 +505,3 @@ class PlaidCategorySyncTest {
         assertTrue(overridden.isOverridden());
     }
 }
-

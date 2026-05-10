@@ -1,0 +1,21 @@
+# State Bank of India (SBI) — savings + credit card.
+#
+# Status: UNVERIFIED. SBI statements use DD-MM-YYYY (hyphen) or DD/MM/YYYY.
+id: sbi-india-v1
+institution: State Bank of India
+description: "SBI India — savings, current"
+status: UNVERIFIED
+layouts:
+  - name: savings-hyphen-date
+    accountType: savings
+    lineRegex: '^\s*(?<date>\d{1,2}-\d{1,2}-\d{2,4})\s+(?<description>.+?)\s+(?<amount>\d{1,3}(?:,\d{3})*(?:\.\d{2}))\s+\d{1,3}(?:,\d{3})*(?:\.\d{2})\s*$'
+    dateFormat: "d-M-yy"
+    signConvention: negate
+    minAmount: 0.01
+
+  - name: savings-slash-date
+    accountType: savings
+    lineRegex: '^\s*(?<date>\d{1,2}/\d{1,2}/\d{2,4})\s+(?<description>.+?)\s+(?<amount>\d{1,3}(?:,\d{3})*(?:\.\d{2}))\s+\d{1,3}(?:,\d{3})*(?:\.\d{2})\s*$'
+    dateFormat: "d/M/yy"
+    signConvention: negate
+    minAmount: 0.01

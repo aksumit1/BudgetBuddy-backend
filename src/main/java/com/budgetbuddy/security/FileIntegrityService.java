@@ -1,30 +1,27 @@
 package com.budgetbuddy.security;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
-
 import java.io.InputStream;
 import java.security.MessageDigest;
 import java.util.Base64;
 import java.util.concurrent.ConcurrentHashMap;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
 
 /**
- * File integrity service for checksum generation and verification
- * Provides:
- * - SHA-256 checksums for uploaded files
- * - Checksum verification
- * - Checksum storage and lookup
+ * File integrity service for checksum generation and verification Provides: - SHA-256 checksums for
+ * uploaded files - Checksum verification - Checksum storage and lookup
  */
 @Service
 public class FileIntegrityService {
 
-    private static final Logger logger = LoggerFactory.getLogger(FileIntegrityService.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(FileIntegrityService.class);
 
     private static final String HASH_ALGORITHM = "SHA-256";
-    
+
     // Store checksums: fileId -> ChecksumRecord
-    private final ConcurrentHashMap<String, ChecksumRecord> checksumStore = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, ChecksumRecord> checksumStore =
+            new ConcurrentHashMap<>();
 
     /**
      * Calculate SHA-256 checksum for file
@@ -32,20 +29,20 @@ public class FileIntegrityService {
      * @param inputStream File input stream
      * @return Base64-encoded SHA-256 checksum
      */
-    public String calculateChecksum(InputStream inputStream) {
+    public String calculateChecksum(final InputStream inputStream) {
         try {
-            MessageDigest digest = MessageDigest.getInstance(HASH_ALGORITHM);
-            byte[] buffer = new byte[8192]; // 8KB buffer
+            final MessageDigest digest = MessageDigest.getInstance(HASH_ALGORITHM);
+            final byte[] buffer = new byte[8192]; // 8KB buffer
             int bytesRead;
 
             while ((bytesRead = inputStream.read(buffer)) != -1) {
                 digest.update(buffer, 0, bytesRead);
             }
 
-            byte[] hashBytes = digest.digest();
+            final byte[] hashBytes = digest.digest();
             return Base64.getEncoder().encodeToString(hashBytes);
         } catch (Exception e) {
-            logger.error("Failed to calculate checksum: {}", e.getMessage(), e);
+            LOGGER.error("Failed to calculate checksum: {}", e.getMessage(), e);
             throw new RuntimeException("Failed to calculate file checksum", e);
         }
     }
@@ -57,10 +54,12 @@ public class FileIntegrityService {
      * @param checksum SHA-256 checksum
      * @param metadata Optional metadata (file size, upload time, etc.)
      */
-    public void storeChecksum(String fileId, String checksum, java.util.Map<String, Object> metadata) {
-        ChecksumRecord record = new ChecksumRecord(fileId, checksum, metadata, System.currentTimeMillis());
+    public void storeChecksum(
+            final String fileId, final String checksum, final java.util.Map<String, Object> metadata) {
+        final ChecksumRecord record =
+                new ChecksumRecord(fileId, checksum, metadata, System.currentTimeMillis());
         checksumStore.put(fileId, record);
-        logger.debug("Stored checksum for file: {} -> {}", fileId, checksum);
+        LOGGER.debug("Stored checksum for file: {} -> {}", fileId, checksum);
     }
 
     /**
@@ -70,21 +69,24 @@ public class FileIntegrityService {
      * @param inputStream File input stream to verify
      * @return true if checksum matches, false otherwise
      */
-    public boolean verifyIntegrity(String fileId, InputStream inputStream) {
-        ChecksumRecord storedRecord = checksumStore.get(fileId);
+    public boolean verifyIntegrity(final String fileId, final InputStream inputStream) {
+        final ChecksumRecord storedRecord = checksumStore.get(fileId);
         if (storedRecord == null) {
-            logger.warn("No stored checksum found for file: {}", fileId);
+            LOGGER.warn("No stored checksum found for file: {}", fileId);
             return false;
         }
 
-        String calculatedChecksum = calculateChecksum(inputStream);
-        boolean matches = calculatedChecksum.equals(storedRecord.getChecksum());
+        final String calculatedChecksum = calculateChecksum(inputStream);
+        final boolean matches = calculatedChecksum.equals(storedRecord.getChecksum());
 
         if (!matches) {
-            logger.warn("Checksum mismatch for file: {} (stored: {}, calculated: {})", 
-                    fileId, storedRecord.getChecksum(), calculatedChecksum);
+            LOGGER.warn(
+                    "Checksum mismatch for file: {} (stored: {}, calculated: {})",
+                    fileId,
+                    storedRecord.getChecksum(),
+                    calculatedChecksum);
         } else {
-            logger.debug("Checksum verified for file: {}", fileId);
+            LOGGER.debug("Checksum verified for file: {}", fileId);
         }
 
         return matches;
@@ -96,7 +98,7 @@ public class FileIntegrityService {
      * @param fileId File identifier
      * @return ChecksumRecord or null if not found
      */
-    public ChecksumRecord getChecksum(String fileId) {
+    public ChecksumRecord getChecksum(final String fileId) {
         return checksumStore.get(fileId);
     }
 
@@ -105,32 +107,46 @@ public class FileIntegrityService {
      *
      * @param fileId File identifier
      */
-    public void removeChecksum(String fileId) {
+    public void removeChecksum(final String fileId) {
         checksumStore.remove(fileId);
-        logger.debug("Removed checksum for file: {}", fileId);
+        LOGGER.debug("Removed checksum for file: {}", fileId);
     }
 
-    /**
-     * Checksum record
-     */
+    /** Checksum record */
     public static class ChecksumRecord {
         private final String fileId;
         private final String checksum;
         private final java.util.Map<String, Object> metadata;
         private final long timestamp;
 
-        public ChecksumRecord(String fileId, String checksum, 
-                             java.util.Map<String, Object> metadata, long timestamp) {
+        public ChecksumRecord(
+                final String fileId,
+                final String checksum,
+                final java.util.Map<String, Object> metadata,
+                final long timestamp) {
             this.fileId = fileId;
             this.checksum = checksum;
-            this.metadata = metadata != null ? new java.util.HashMap<>(metadata) : new java.util.HashMap<>();
+            this.metadata =
+                    metadata != null
+                            ? new java.util.HashMap<>(metadata)
+                            : new java.util.HashMap<>();
             this.timestamp = timestamp;
         }
 
-        public String getFileId() { return fileId; }
-        public String getChecksum() { return checksum; }
-        public java.util.Map<String, Object> getMetadata() { return new java.util.HashMap<>(metadata); }
-        public long getTimestamp() { return timestamp; }
+        public String getFileId() {
+            return fileId;
+        }
+
+        public String getChecksum() {
+            return checksum;
+        }
+
+        public java.util.Map<String, Object> getMetadata() {
+            return new java.util.HashMap<>(metadata);
+        }
+
+        public long getTimestamp() {
+            return timestamp;
+        }
     }
 }
-

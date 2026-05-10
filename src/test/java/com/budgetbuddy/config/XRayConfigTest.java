@@ -1,14 +1,14 @@
 package com.budgetbuddy.config;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import static org.junit.jupiter.api.Assertions.*;
-
-/**
- * Unit Tests for XRayConfig
- */
+/** Unit Tests for XRayConfig */
 class XRayConfigTest {
 
     private XRayConfig config;
@@ -19,7 +19,7 @@ class XRayConfigTest {
     }
 
     @Test
-    void testXRayEnabled_True() {
+    void testXRayEnabledTrue() {
         // Given
         ReflectionTestUtils.setField(config, "xrayEnabled", true);
         ReflectionTestUtils.setField(config, "samplingRate", 0.1);
@@ -30,7 +30,7 @@ class XRayConfigTest {
     }
 
     @Test
-    void testXRayEnabled_False() {
+    void testXRayEnabledFalse() {
         // Given
         ReflectionTestUtils.setField(config, "xrayEnabled", false);
         ReflectionTestUtils.setField(config, "samplingRate", 0.0);
@@ -41,7 +41,7 @@ class XRayConfigTest {
     }
 
     @Test
-    void testSamplingRate_CanBeSet() {
+    void testSamplingRateCanBeSet() {
         // Given
         ReflectionTestUtils.setField(config, "xrayEnabled", true);
         ReflectionTestUtils.setField(config, "samplingRate", 0.5);

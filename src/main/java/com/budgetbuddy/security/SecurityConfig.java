@@ -1,5 +1,7 @@
 package com.budgetbuddy.security;
 
+import java.util.Arrays;
+import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,12 +25,8 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-import java.util.Arrays;
-import java.util.List;
-
 /**
- * Security configuration for the application
- * Supports both JWT and OAuth2 authentication
+ * Security configuration for the application Supports both JWT and OAuth2 authentication
  * Production-ready with proper CORS restrictions
  */
 @Configuration
@@ -36,7 +34,7 @@ import java.util.List;
 @EnableMethodSecurity(prePostEnabled = true)
 public class SecurityConfig {
 
-    private static final Logger logger = LoggerFactory.getLogger(SecurityConfig.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(SecurityConfig.class);
 
     private final UserDetailsService userDetailsService;
     private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
@@ -57,7 +55,10 @@ public class SecurityConfig {
     @Value("${spring.profiles.active:}")
     private String activeProfile;
 
-    public SecurityConfig(final UserDetailsService userDetailsService, final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint, final JwtTokenProvider tokenProvider) {
+    public SecurityConfig(
+            final UserDetailsService userDetailsService,
+            final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint,
+            final JwtTokenProvider tokenProvider) {
         this.userDetailsService = userDetailsService;
         this.jwtAuthenticationEntryPoint = jwtAuthenticationEntryPoint;
         this.tokenProvider = tokenProvider;
@@ -75,62 +76,101 @@ public class SecurityConfig {
 
     @Bean
     public DaoAuthenticationProvider authenticationProvider() {
-        DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
+        final DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
         authProvider.setUserDetailsService(userDetailsService);
         authProvider.setPasswordEncoder(passwordEncoder());
         return authProvider;
     }
 
     @Bean
-    public AuthenticationManager authenticationManager(final AuthenticationConfiguration authConfig) throws Exception {
+    public AuthenticationManager authenticationManager(final AuthenticationConfiguration authConfig)
+            throws Exception {
         return authConfig.getAuthenticationManager();
     }
 
     @Bean
     public SecurityFilterChain filterChain(final HttpSecurity http) throws Exception {
-        http
-            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-            .csrf(csrf -> csrf.disable())
-            .exceptionHandling(exception -> exception
-                .authenticationEntryPoint(jwtAuthenticationEntryPoint))
-            .sessionManagement(session -> session
-                .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .headers(headers -> headers
-                .httpStrictTransportSecurity(hsts -> hsts
-                    .maxAgeInSeconds(31536000)) // 1 year, includeSubdomains and preload are default
-                .frameOptions(frame -> frame.deny())
-                .contentTypeOptions(contentType -> {}) // Enable X-Content-Type-Options: nosniff (default behavior)
-                .xssProtection(xss -> xss
-                    .headerValue(org.springframework.security.web.header.writers.XXssProtectionHeaderWriter.HeaderValue.ENABLED_MODE_BLOCK))
-                .contentSecurityPolicy(csp -> csp
-                    .policyDirectives("default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https:; frame-ancestors 'none';")))
-            .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/actuator/health", "/actuator/info").permitAll()
-                .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html", "/api-docs/**").permitAll()
-                .requestMatchers("/api/auth/**").permitAll() // Authentication endpoints (register, login, refresh)
-                .requestMatchers("/api/public/**").permitAll()
-                .requestMatchers("/api/plaid/webhooks").permitAll()
-                .requestMatchers("/.well-known/**").permitAll() // Allow well-known files (apple-app-site-association, etc.)
-                .requestMatchers("/api/mfa/**").permitAll() // MFA endpoints (some require auth, handled in controller)
-                .requestMatchers("/api/fido2/**").permitAll() // FIDO2 endpoints (some require auth, handled in controller)
-                .requestMatchers("/api/device/attestation/**").authenticated() // Device attestation requires authentication
-                .requestMatchers("/api/system/**").hasRole("ADMIN") // System management endpoints - admin only
-                // BREAKING CHANGE: PIN endpoints removed - PIN is now local-only
-                // .requestMatchers("/api/pin/**").permitAll() // REMOVED - PIN backend endpoints deleted
-                .anyRequest().authenticated()
-            );
+        http.cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                .csrf(csrf -> csrf.disable())
+                .exceptionHandling(
+                        exception ->
+                                exception.authenticationEntryPoint(jwtAuthenticationEntryPoint))
+                .sessionManagement(
+                        session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .headers(
+                        headers ->
+                                headers.httpStrictTransportSecurity(
+                                                hsts -> hsts.maxAgeInSeconds(31_536_000)) // 1 year,
+                                        // includeSubdomains and
+                                        // preload are default
+                                        .frameOptions(frame -> frame.deny())
+                                        .contentTypeOptions(
+                                                contentType -> {}) // Enable X-Content-Type-Options:
+                                        // nosniff (default behavior)
+                                        .xssProtection(
+                                                xss ->
+                                                        xss.headerValue(
+                                                                org.springframework.security.web
+                                                                        .header.writers
+                                                                        .XXssProtectionHeaderWriter
+                                                                        .HeaderValue
+                                                                        .ENABLED_MODE_BLOCK))
+                                        .contentSecurityPolicy(
+                                                csp ->
+                                                        csp.policyDirectives(
+                                                                "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https:; frame-ancestors 'none';")))
+                .authorizeHttpRequests(
+                        auth ->
+                                auth.requestMatchers(
+                                                "/actuator/health",
+                                                "/actuator/health/**",
+                                                "/actuator/info")
+                                        .permitAll()
+                                        .requestMatchers(
+                                                "/swagger-ui/**",
+                                                "/v3/api-docs/**",
+                                                "/swagger-ui.html",
+                                                "/api-docs/**")
+                                        .permitAll()
+                                        .requestMatchers("/api/auth/**")
+                                        .permitAll() // Authentication endpoints (register, login,
+                                        // refresh)
+                                        .requestMatchers("/api/public/**")
+                                        .permitAll()
+                                        .requestMatchers("/api/plaid/webhooks")
+                                        .permitAll()
+                                        .requestMatchers("/.well-known/**")
+                                        .permitAll() // Allow well-known files
+                                        // (apple-app-site-association, etc.)
+                                        .requestMatchers("/api/mfa/**")
+                                        .permitAll() // MFA endpoints (some require auth, handled in
+                                        // controller)
+                                        .requestMatchers("/api/fido2/**")
+                                        .permitAll() // FIDO2 endpoints (some require auth, handled
+                                        // in controller)
+                                        .requestMatchers("/api/device/attestation/**")
+                                        .authenticated() // Device attestation requires
+                                        // authentication
+                                        .requestMatchers("/api/system/**")
+                                        .hasRole(
+                                                "ADMIN") // System management endpoints - admin only
+                                        // BREAKING CHANGE: PIN endpoints removed - PIN is now
+                                        // local-only
+                                        // .requestMatchers("/api/pin/**").permitAll() // REMOVED -
+                                        // PIN backend endpoints deleted
+                                        .anyRequest()
+                                        .authenticated());
 
         // Configure OAuth2 if enabled
         if (oauth2Enabled && jwtDecoder != null) {
-            http.oauth2ResourceServer(oauth2 -> oauth2
-                .jwt(jwt -> jwt.decoder(jwtDecoder))
-            );
+            http.oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.decoder(jwtDecoder)));
         }
 
         // Configure JWT if enabled
         if (jwtEnabled) {
             http.authenticationProvider(authenticationProvider());
-            http.addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
+            http.addFilterBefore(
+                    jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
         }
 
         return http.build();
@@ -138,18 +178,21 @@ public class SecurityConfig {
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration configuration = new CorsConfiguration();
+        final CorsConfiguration configuration = new CorsConfiguration();
 
         // Configure allowed origins based on environment
-        boolean isProduction = activeProfile != null && activeProfile.contains("prod");
+        final boolean isProduction = activeProfile != null && activeProfile.contains("prod");
 
-        if (allowedOrigins != null && !allowedOrigins.trim().isEmpty() && !allowedOrigins.equals("*")) {
-            List<String> origins = Arrays.asList(allowedOrigins.split(","));
+        if (allowedOrigins != null
+                && !allowedOrigins.isBlank()
+                && !"*".equals(allowedOrigins)) {
+            final List<String> origins = Arrays.asList(allowedOrigins.split(","));
             configuration.setAllowedOrigins(origins);
-            logger.info("CORS configured with specific origins: {}", origins);
+            LOGGER.info("CORS configured with specific origins: {}", origins);
         } else if (isProduction) {
             // Production: require explicit origins
-            logger.warn("Production environment detected but CORS origins not configured. Defaulting to empty list.");
+            LOGGER.warn(
+                    "Production environment detected but CORS origins not configured. Defaulting to empty list.");
             configuration.setAllowedOrigins(List.of());
         } else {
             // Development/Staging: allow all origins (localhost, IP addresses, etc.)
@@ -157,26 +200,28 @@ public class SecurityConfig {
             // - localhost (http://localhost:8080, http://127.0.0.1:8080)
             // - IP addresses (http://192.168.1.100:8080, http://192.168.4.46:8080)
             // - Any other origin for local development
-            configuration.setAllowedOriginPatterns(List.of("*"));  // Use patterns to allow credentials with wildcard
-            logger.info("CORS configured to allow all origins (non-production environment) - supports localhost and IP addresses");
+            configuration.setAllowedOriginPatterns(
+                    List.of("*")); // Use patterns to allow credentials with wildcard
+            LOGGER.info(
+                    "CORS configured to allow all origins (non-production environment) - supports localhost and IP addresses");
         }
 
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
+        configuration.setAllowedMethods(
+                Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(Arrays.asList("*"));
-        configuration.setExposedHeaders(Arrays.asList(
-                "Authorization",
-                "X-Request-ID",
-                "X-Rate-Limit-Remaining",
-                "X-Rate-Limit-Reset",
-                "X-Rate-Limit-Limit",
-                "X-API-Version"
-        ));
+        configuration.setExposedHeaders(
+                Arrays.asList(
+                        "Authorization",
+                        "X-Request-ID",
+                        "X-Rate-Limit-Remaining",
+                        "X-Rate-Limit-Reset",
+                        "X-Rate-Limit-Limit",
+                        "X-API-Version"));
         configuration.setMaxAge(3600L);
         configuration.setAllowCredentials(true);
 
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        final UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         return source;
     }
 }
-

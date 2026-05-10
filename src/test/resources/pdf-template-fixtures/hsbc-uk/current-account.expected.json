@@ -1,0 +1,9 @@
+{
+  "institution": "HSBC UK",
+  "note": "synthetic HSBC UK — Paid-out column + balance (debit rows)",
+  "expected": [
+    { "date": "2024-03-15", "description": "WAITROSE HIGH ST LONDON",   "amount": "42.18" },
+    { "date": "2024-03-18", "description": "TFL TRAVEL OYSTER TOP-UP",  "amount": "20.00" },
+    { "date": "2024-03-20", "description": "BT DIRECT DEBIT",           "amount": "35.00" }
+  ]
+}

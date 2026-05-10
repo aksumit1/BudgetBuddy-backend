@@ -5,13 +5,11 @@ import com.budgetbuddy.model.dynamodb.BudgetTable;
 import com.budgetbuddy.model.dynamodb.GoalTable;
 import com.budgetbuddy.model.dynamodb.TransactionActionTable;
 import com.budgetbuddy.model.dynamodb.TransactionTable;
-
 import java.util.List;
 
 /**
- * Response DTO for /api/sync/incremental endpoint
- * Returns only changed items since the specified timestamp
- * Used for periodic sync to minimize data transfer
+ * Response DTO for /api/sync/incremental endpoint Returns only changed items since the specified
+ * timestamp Used for periodic sync to minimize data transfer
  */
 public class IncrementalSyncResponse {
     private List<AccountTable> accounts;
@@ -22,8 +20,7 @@ public class IncrementalSyncResponse {
     private Long syncTimestamp; // Epoch seconds when sync was performed
     private boolean hasMore; // Indicates if there are more changes (for pagination if needed)
 
-    public IncrementalSyncResponse() {
-    }
+    public IncrementalSyncResponse() {}
 
     public IncrementalSyncResponse(
             final List<AccountTable> accounts,
@@ -98,4 +95,3 @@ public class IncrementalSyncResponse {
         this.hasMore = hasMore;
     }
 }
-

@@ -6,13 +6,11 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Annotation to inject the authenticated UserTable entity into controller methods
- * Must be used in conjunction with @RequireAuthenticatedUser on the method
- * 
- * The UserTable will be automatically loaded and injected by AuthenticationAspect
+ * Annotation to inject the authenticated UserTable entity into controller methods Must be used in
+ * conjunction with @RequireAuthenticatedUser on the method
+ *
+ * <p>The UserTable will be automatically loaded and injected by AuthenticationAspect
  */
 @Target(ElementType.PARAMETER)
 @Retention(RetentionPolicy.RUNTIME)
-public @interface AuthenticatedUser {
-}
-
+public @interface AuthenticatedUser {}

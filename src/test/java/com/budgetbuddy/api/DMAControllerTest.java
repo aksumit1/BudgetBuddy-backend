@@ -1,10 +1,17 @@
 package com.budgetbuddy.api;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.when;
+
 import com.budgetbuddy.compliance.dma.DMAComplianceService;
 import com.budgetbuddy.exception.AppException;
-import com.budgetbuddy.exception.ErrorCode;
 import com.budgetbuddy.model.dynamodb.UserTable;
 import com.budgetbuddy.service.UserService;
+import java.util.Map;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -16,33 +23,23 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.userdetails.UserDetails;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.*;
-
-/**
- * Unit Tests for DMAController
- */
+/** Unit Tests for DMAController */
+// PMD's LawOfDemeter is documented as imprecise on chains involving
+// standard library types (BigDecimal, String, Optional) and DTO
+// getters; this class has many such idiomatic uses. Suppress at
+// class level rather than littering every method.
+@SuppressWarnings("PMD.LawOfDemeter")
 @ExtendWith(MockitoExtension.class)
 @org.mockito.junit.jupiter.MockitoSettings(strictness = org.mockito.quality.Strictness.LENIENT)
 class DMAControllerTest {
 
-    @Mock
-    private DMAComplianceService dmaComplianceService;
+    @Mock private DMAComplianceService dmaComplianceService;
 
-    @Mock
-    private UserService userService;
+    @Mock private UserService userService;
 
-    @Mock
-    private UserDetails userDetails;
+    @Mock private UserDetails userDetails;
 
-    @InjectMocks
-    private DMAController controller;
+    @InjectMocks private DMAController controller;
 
     private UserTable testUser;
 
@@ -56,59 +53,69 @@ class DMAControllerTest {
     }
 
     @Test
-    void testExportData_WithJSONFormat_ReturnsJSON() {
+    void testExportDataWithJSONFormatReturnsJSON() {
         // Given
         when(userService.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
-        when(dmaComplianceService.exportDataPortable("user-123", "JSON")).thenReturn("{\"data\":\"test\"}");
+        when(dmaComplianceService.exportDataPortable("user-123", "JSON"))
+                .thenReturn("{\"data\":\"test\"}");
 
         // When
-        ResponseEntity<String> response = controller.exportData(userDetails, "JSON");
+        final ResponseEntity<String> response = controller.exportData(userDetails, "JSON");
 
         // Then
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(MediaType.APPLICATION_JSON, response.getHeaders().getContentType());
         assertNotNull(response.getBody());
-        assertTrue(response.getHeaders().getContentDisposition().toString().contains("user-data.json"));
+        assertTrue(
+                response.getHeaders()
+                        .getContentDisposition()
+                        .toString()
+                        .contains("user-data.json"));
     }
 
     @Test
-    void testExportData_WithCSVFormat_ReturnsCSV() {
+    void testExportDataWithCSVFormatReturnsCSV() {
         // Given
         when(userService.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
-        when(dmaComplianceService.exportDataPortable("user-123", "CSV")).thenReturn("col1,col2\nval1,val2");
+        when(dmaComplianceService.exportDataPortable("user-123", "CSV"))
+                .thenReturn("col1,col2\nval1,val2");
 
         // When
-        ResponseEntity<String> response = controller.exportData(userDetails, "CSV");
+        final ResponseEntity<String> response = controller.exportData(userDetails, "CSV");
 
         // Then
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(MediaType.parseMediaType("text/csv"), response.getHeaders().getContentType());
-        assertTrue(response.getHeaders().getContentDisposition().toString().contains("user-data.csv"));
+        assertTrue(
+                response.getHeaders().getContentDisposition().toString().contains("user-data.csv"));
     }
 
     @Test
-    void testExportData_WithXMLFormat_ReturnsXML() {
+    void testExportDataWithXMLFormatReturnsXML() {
         // Given
         when(userService.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
-        when(dmaComplianceService.exportDataPortable("user-123", "XML")).thenReturn("<data>test</data>");
+        when(dmaComplianceService.exportDataPortable("user-123", "XML"))
+                .thenReturn("<data>test</data>");
 
         // When
-        ResponseEntity<String> response = controller.exportData(userDetails, "XML");
+        final ResponseEntity<String> response = controller.exportData(userDetails, "XML");
 
         // Then
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(MediaType.APPLICATION_XML, response.getHeaders().getContentType());
-        assertTrue(response.getHeaders().getContentDisposition().toString().contains("user-data.xml"));
+        assertTrue(
+                response.getHeaders().getContentDisposition().toString().contains("user-data.xml"));
     }
 
     @Test
-    void testExportData_WithDefaultFormat_ReturnsJSON() {
+    void testExportDataWithDefaultFormatReturnsJSON() {
         // Given
         when(userService.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
-        when(dmaComplianceService.exportDataPortable("user-123", "JSON")).thenReturn("{\"data\":\"test\"}");
+        when(dmaComplianceService.exportDataPortable("user-123", "JSON"))
+                .thenReturn("{\"data\":\"test\"}");
 
         // When - Pass "JSON" explicitly (default value from @RequestParam)
-        ResponseEntity<String> response = controller.exportData(userDetails, "JSON");
+        final ResponseEntity<String> response = controller.exportData(userDetails, "JSON");
 
         // Then
         assertEquals(HttpStatus.OK, response.getStatusCode());
@@ -116,46 +123,52 @@ class DMAControllerTest {
     }
 
     @Test
-    void testExportData_WithNullUserDetails_ThrowsException() {
+    void testExportDataWithNullUserDetailsThrowsException() {
         // When/Then
         assertThrows(AppException.class, () -> controller.exportData(null, "JSON"));
     }
 
     @Test
-    void testGetInteroperabilityEndpoint_WithValidUser_ReturnsEndpoint() {
+    void testGetInteroperabilityEndpointWithValidUserReturnsEndpoint() {
         // Given
         when(userService.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
-        when(dmaComplianceService.getInteroperabilityEndpoint("user-123")).thenReturn("https://api.example.com/interop/user-123");
+        when(dmaComplianceService.getInteroperabilityEndpoint("user-123"))
+                .thenReturn("https://api.example.com/interop/user-123");
 
         // When
-        ResponseEntity<Map<String, Object>> response = controller.getInteroperabilityEndpoint(userDetails);
+        final ResponseEntity<Map<String, Object>> response =
+                controller.getInteroperabilityEndpoint(userDetails);
 
         // Then
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
-        assertEquals("https://api.example.com/interop/user-123", response.getBody().get("endpoint"));
+        assertEquals(
+                "https://api.example.com/interop/user-123", response.getBody().get("endpoint"));
         assertEquals("user-123", response.getBody().get("userId"));
     }
 
     @Test
-    void testGetInteroperabilityEndpoint_WithNullUserDetails_ThrowsException() {
+    void testGetInteroperabilityEndpointWithNullUserDetailsThrowsException() {
         // When/Then
         assertThrows(AppException.class, () -> controller.getInteroperabilityEndpoint(null));
     }
 
     @Test
-    void testAuthorizeThirdPartyAccess_WithValidRequest_ReturnsAuthorized() {
+    void testAuthorizeThirdPartyAccessWithValidRequestReturnsAuthorized() {
         // Given
-        DMAController.AuthorizeThirdPartyRequest request = new DMAController.AuthorizeThirdPartyRequest();
+        final DMAController.AuthorizeThirdPartyRequest request =
+                new DMAController.AuthorizeThirdPartyRequest();
         request.setThirdPartyId("third-party-123");
         request.setScope("read:transactions");
 
         when(userService.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
-        when(dmaComplianceService.authorizeThirdPartyAccess("user-123", "third-party-123", "read:transactions"))
+        when(dmaComplianceService.authorizeThirdPartyAccess(
+                        "user-123", "third-party-123", "read:transactions"))
                 .thenReturn(true);
 
         // When
-        ResponseEntity<Map<String, Object>> response = controller.authorizeThirdPartyAccess(userDetails, request);
+        final ResponseEntity<Map<String, Object>> response =
+                controller.authorizeThirdPartyAccess(userDetails, request);
 
         // Then
         assertEquals(HttpStatus.OK, response.getStatusCode());
@@ -165,35 +178,41 @@ class DMAControllerTest {
     }
 
     @Test
-    void testAuthorizeThirdPartyAccess_WithNullRequest_ThrowsException() {
+    void testAuthorizeThirdPartyAccessWithNullRequestThrowsException() {
         // When/Then
-        assertThrows(AppException.class, () -> controller.authorizeThirdPartyAccess(userDetails, null));
+        assertThrows(
+                AppException.class, () -> controller.authorizeThirdPartyAccess(userDetails, null));
     }
 
     @Test
-    void testAuthorizeThirdPartyAccess_WithMissingFields_ThrowsException() {
+    void testAuthorizeThirdPartyAccessWithMissingFieldsThrowsException() {
         // Given
-        DMAController.AuthorizeThirdPartyRequest request = new DMAController.AuthorizeThirdPartyRequest();
+        final DMAController.AuthorizeThirdPartyRequest request =
+                new DMAController.AuthorizeThirdPartyRequest();
         request.setThirdPartyId(null);
         request.setScope("read:transactions");
 
         // When/Then
-        assertThrows(AppException.class, () -> controller.authorizeThirdPartyAccess(userDetails, request));
+        assertThrows(
+                AppException.class,
+                () -> controller.authorizeThirdPartyAccess(userDetails, request));
     }
 
     @Test
-    void testShareDataWithThirdParty_WithValidRequest_ReturnsData() {
+    void testShareDataWithThirdPartyWithValidRequestReturnsData() {
         // Given
-        DMAController.ShareDataRequest request = new DMAController.ShareDataRequest();
+        final DMAController.ShareDataRequest request = new DMAController.ShareDataRequest();
         request.setThirdPartyId("third-party-123");
         request.setDataType("transactions");
 
         when(userService.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
-        when(dmaComplianceService.shareDataWithThirdParty("user-123", "third-party-123", "transactions"))
+        when(dmaComplianceService.shareDataWithThirdParty(
+                        "user-123", "third-party-123", "transactions"))
                 .thenReturn("{\"transactions\":[]}");
 
         // When
-        ResponseEntity<Map<String, Object>> response = controller.shareDataWithThirdParty(userDetails, request);
+        final ResponseEntity<Map<String, Object>> response =
+                controller.shareDataWithThirdParty(userDetails, request);
 
         // Then
         assertEquals(HttpStatus.OK, response.getStatusCode());
@@ -203,20 +222,21 @@ class DMAControllerTest {
     }
 
     @Test
-    void testShareDataWithThirdParty_WithNullRequest_ThrowsException() {
+    void testShareDataWithThirdPartyWithNullRequestThrowsException() {
         // When/Then
-        assertThrows(AppException.class, () -> controller.shareDataWithThirdParty(userDetails, null));
+        assertThrows(
+                AppException.class, () -> controller.shareDataWithThirdParty(userDetails, null));
     }
 
     @Test
-    void testShareDataWithThirdParty_WithMissingFields_ThrowsException() {
+    void testShareDataWithThirdPartyWithMissingFieldsThrowsException() {
         // Given
-        DMAController.ShareDataRequest request = new DMAController.ShareDataRequest();
+        final DMAController.ShareDataRequest request = new DMAController.ShareDataRequest();
         request.setThirdPartyId(null);
         request.setDataType("transactions");
 
         // When/Then
-        assertThrows(AppException.class, () -> controller.shareDataWithThirdParty(userDetails, request));
+        assertThrows(
+                AppException.class, () -> controller.shareDataWithThirdParty(userDetails, request));
     }
 }
-

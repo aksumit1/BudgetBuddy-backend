@@ -3,16 +3,18 @@ package com.budgetbuddy.exception;
 import java.time.Instant;
 import java.util.Map;
 
-/**
- * Application Exception with comprehensive error context
- */
+/** Application Exception with comprehensive error context */
 public class AppException extends RuntimeException {
     private static final long serialVersionUID = 1L;
-    
+
     private final ErrorCode errorCode;
     private final Instant timestamp;
-    @SuppressWarnings("serial") // Map is serializable, but Object values might not be - acceptable for error context
+
+    @SuppressWarnings(
+            "serial") // Map is serializable, but Object values might not be - acceptable for error
+    // context
     private final Map<String, Object> context;
+
     private final String userMessage;
     private final String technicalMessage;
     private final Throwable rootCause;
@@ -29,7 +31,12 @@ public class AppException extends RuntimeException {
         this(errorCode, message, null, null, cause);
     }
 
-    public AppException(final ErrorCode errorCode, final String message, final Map<String, Object> context, final String userMessage, final Throwable cause) {
+    public AppException(
+            final ErrorCode errorCode,
+            final String message,
+            final Map<String, Object> context,
+            final String userMessage,
+            final Throwable cause) {
         super(message, cause);
         this.errorCode = errorCode;
         this.timestamp = Instant.now();
@@ -65,7 +72,7 @@ public class AppException extends RuntimeException {
 
     public int getHttpStatus() {
         // Map error codes to HTTP status codes
-        int code = errorCode.getCode();
+        final int code = errorCode.getCode();
         if (code >= 1001 && code < 2000) {
             return 401; // Unauthorized
         } else if (code >= 2001 && code < 3000) {
@@ -80,11 +87,10 @@ public class AppException extends RuntimeException {
             return 503; // Service Unavailable
         } else if (code >= 8001 && code < 9000) {
             return 403; // Forbidden
-        } else if (code >= 9001 && code < 10000) {
+        } else if (code >= 9001 && code < 10_000) {
             return 400; // Bad Request
         } else {
             return 500; // Internal Server Error
         }
     }
 }
-

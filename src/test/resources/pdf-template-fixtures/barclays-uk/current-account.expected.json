@@ -1,0 +1,9 @@
+{
+  "institution": "Barclays UK",
+  "note": "synthetic Barclays UK current account — signed amounts, DD MMM YYYY dates",
+  "expected": [
+    { "date": "2024-03-15", "description": "SAINSBURYS STORE 1234", "amount": "-56.72" },
+    { "date": "2024-03-18", "description": "SALARY PAYMENT ACME LTD", "amount": "2,800.00" },
+    { "date": "2024-03-20", "description": "NPOWER ENERGY DD", "amount": "-85.50" }
+  ]
+}

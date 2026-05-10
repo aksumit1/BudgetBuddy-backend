@@ -1,5 +1,17 @@
 package com.budgetbuddy.api;
 
+
+import java.nio.charset.StandardCharsets;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.request;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.request;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
 import com.budgetbuddy.AWSTestConfiguration;
 import com.budgetbuddy.dto.AuthRequest;
 import com.budgetbuddy.dto.AuthResponse;
@@ -14,6 +26,10 @@ import com.budgetbuddy.service.AuthService;
 import com.budgetbuddy.service.TransactionService;
 import com.budgetbuddy.service.UserService;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,60 +40,43 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
-import java.math.BigDecimal;
-import java.time.Instant;
-import java.time.LocalDate;
-import java.util.UUID;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
-
-/**
- * Integration Tests for TransactionActionController
- * Tests REST API endpoints with MockMvc
- */
+/** Integration Tests for TransactionActionController Tests REST API endpoints with MockMvc */
+// PMD's LawOfDemeter is documented as imprecise on chains involving
+// standard library types (BigDecimal, String, Optional) and DTO
+// getters; this class has many such idiomatic uses. Suppress at
+// class level rather than littering every method.
+@SuppressWarnings("PMD.LawOfDemeter")
 @SpringBootTest(
-    classes = com.budgetbuddy.BudgetBuddyApplication.class,
-    webEnvironment = org.springframework.boot.test.context.SpringBootTest.WebEnvironment.MOCK
-)
+        classes = com.budgetbuddy.BudgetBuddyApplication.class,
+        webEnvironment = org.springframework.boot.test.context.SpringBootTest.WebEnvironment.MOCK)
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 @Import(AWSTestConfiguration.class)
 class TransactionActionControllerIntegrationTest {
 
-    @Autowired
-    private MockMvc mockMvc;
+    @Autowired private MockMvc mockMvc;
 
-    @Autowired
-    private UserService userService;
+    @Autowired private UserService userService;
 
-    @Autowired
-    private AuthService authService;
+    @Autowired private AuthService authService;
 
-    @Autowired
-    private TransactionService transactionService;
+    @Autowired private TransactionService transactionService;
 
-    @Autowired
-    private TransactionRepository transactionRepository;
+    @Autowired private TransactionRepository transactionRepository;
 
-    @Autowired
-    private TransactionActionRepository actionRepository;
+    @Autowired private TransactionActionRepository actionRepository;
 
-    @Autowired
-    private AccountRepository accountRepository;
+    @Autowired private AccountRepository accountRepository;
 
-    @Autowired
-    private ObjectMapper objectMapper;
+    @Autowired private ObjectMapper objectMapper;
 
-    // Note: @MockBean is deprecated in Spring Boot 3.4.0, but still functional
+    // Note: @MockitoBean is deprecated in Spring Boot 3.4.0, but still functional
     @SuppressWarnings("deprecation")
-    @org.springframework.boot.test.mock.mockito.MockBean
+    @org.springframework.test.context.bean.override.mockito.MockitoBean
     private com.budgetbuddy.security.rate.RateLimitService rateLimitService;
 
     @SuppressWarnings("deprecation")
-    @org.springframework.boot.test.mock.mockito.MockBean
+    @org.springframework.test.context.bean.override.mockito.MockitoBean
     private com.budgetbuddy.security.ddos.DDoSProtectionService ddosProtectionService;
 
     private UserTable testUser;
@@ -89,22 +88,19 @@ class TransactionActionControllerIntegrationTest {
     @BeforeEach
     void setUp() {
         // Mock rate limiting services to allow all requests in tests
-        org.mockito.Mockito.when(rateLimitService.isAllowed(anyString(), anyString())).thenReturn(true);
+        org.mockito.Mockito.when(rateLimitService.isAllowed(anyString(), anyString()))
+                .thenReturn(true);
         org.mockito.Mockito.when(ddosProtectionService.isAllowed(anyString())).thenReturn(true);
         // Clear security context to ensure clean state for each test
         org.springframework.security.core.context.SecurityContextHolder.clearContext();
-        
+
         testEmail = "test-" + UUID.randomUUID() + "@example.com";
 
         // Create test user - BREAKING CHANGE: Client salt removed
-        String base64PasswordHash = java.util.Base64.getEncoder().encodeToString("hashed-password".getBytes());
+        final String base64PasswordHash =
+                java.util.Base64.getEncoder().encodeToString("hashed-password".getBytes(StandardCharsets.UTF_8));
         // BREAKING CHANGE: Client salt removed - backend handles salt management
-        testUser = userService.createUserSecure(
-                testEmail,
-                base64PasswordHash,
-                "Test",
-                "User"
-        );
+        testUser = userService.createUserSecure(testEmail, base64PasswordHash, "Test", "User");
 
         // Create test account
         testAccount = new AccountTable();
@@ -121,36 +117,40 @@ class TransactionActionControllerIntegrationTest {
         accountRepository.save(testAccount);
 
         // Create test transaction
-        testTransaction = transactionService.createTransaction(
-                testUser,
-                testAccount.getAccountId(),
-                BigDecimal.valueOf(100.00),
-                LocalDate.now(),
-                "Test transaction",
-                "FOOD"
-        );
+        testTransaction =
+                transactionService.createTransaction(
+                        testUser,
+                        testAccount.getAccountId(),
+                        BigDecimal.valueOf(100.00),
+                        LocalDate.now(),
+                        "Test transaction",
+                        "FOOD");
 
         // Authenticate to get JWT token
-        AuthRequest authRequest = new AuthRequest();
+        final AuthRequest authRequest = new AuthRequest();
         authRequest.setEmail(testEmail);
         authRequest.setPasswordHash(base64PasswordHash);
-        AuthResponse authResponse = authService.authenticate(authRequest);
+        final AuthResponse authResponse = authService.authenticate(authRequest);
         accessToken = authResponse.getAccessToken();
     }
 
     @Test
-    void testCreateAction_WithValidRequest_ReturnsCreated() throws Exception {
+    void testCreateActionWithValidRequestReturnsCreated() throws Exception {
         // Given
-        TransactionActionController.CreateActionRequest request = new TransactionActionController.CreateActionRequest();
+        final TransactionActionController.CreateActionRequest request =
+                new TransactionActionController.CreateActionRequest();
         request.setTitle("Review transaction");
         request.setDescription("Check if correct");
         request.setPriority("HIGH");
 
         // When/Then
-        mockMvc.perform(post("/api/transactions/{transactionId}/actions", testTransaction.getTransactionId())
-                        .header("Authorization", "Bearer " + accessToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+        mockMvc.perform(
+                        post(
+                                        "/api/transactions/{transactionId}/actions",
+                                        testTransaction.getTransactionId())
+                                .header("Authorization", "Bearer " + accessToken)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.title").value("Review transaction"))
                 .andExpect(jsonPath("$.description").value("Check if correct"))
@@ -159,71 +159,92 @@ class TransactionActionControllerIntegrationTest {
     }
 
     @Test
-    void testCreateAction_WithEmptyTitle_ReturnsBadRequest() throws Exception {
+    void testCreateActionWithEmptyTitleReturnsBadRequest() throws Exception {
         // Given
-        TransactionActionController.CreateActionRequest request = new TransactionActionController.CreateActionRequest();
+        final TransactionActionController.CreateActionRequest request =
+                new TransactionActionController.CreateActionRequest();
         request.setTitle("");
 
         // When/Then
-        mockMvc.perform(post("/api/transactions/{transactionId}/actions", testTransaction.getTransactionId())
-                        .header("Authorization", "Bearer " + accessToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+        mockMvc.perform(
+                        post(
+                                        "/api/transactions/{transactionId}/actions",
+                                        testTransaction.getTransactionId())
+                                .header("Authorization", "Bearer " + accessToken)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
     }
 
     @Test
-    void testGetActions_WithValidTransaction_ReturnsActions() throws Exception {
+    void testGetActionsWithValidTransactionReturnsActions() throws Exception {
         // Given - Create an action first
-        TransactionActionController.CreateActionRequest createRequest = new TransactionActionController.CreateActionRequest();
+        final TransactionActionController.CreateActionRequest createRequest =
+                new TransactionActionController.CreateActionRequest();
         createRequest.setTitle("Test Action");
         createRequest.setPriority("MEDIUM");
 
-        mockMvc.perform(post("/api/transactions/{transactionId}/actions", testTransaction.getTransactionId())
-                        .header("Authorization", "Bearer " + accessToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(createRequest)))
+        mockMvc.perform(
+                        post(
+                                        "/api/transactions/{transactionId}/actions",
+                                        testTransaction.getTransactionId())
+                                .header("Authorization", "Bearer " + accessToken)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(createRequest)))
                 .andExpect(status().isCreated());
 
         // When/Then
-        mockMvc.perform(get("/api/transactions/{transactionId}/actions", testTransaction.getTransactionId())
-                        .header("Authorization", "Bearer " + accessToken)
-                        .contentType(MediaType.APPLICATION_JSON))
+        mockMvc.perform(
+                        get(
+                                        "/api/transactions/{transactionId}/actions",
+                                        testTransaction.getTransactionId())
+                                .header("Authorization", "Bearer " + accessToken)
+                                .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray())
                 .andExpect(jsonPath("$[0].title").value("Test Action"));
     }
 
     @Test
-    void testUpdateAction_WithValidRequest_ReturnsOk() throws Exception {
+    void testUpdateActionWithValidRequestReturnsOk() throws Exception {
         // Given - Create an action first
-        TransactionActionController.CreateActionRequest createRequest = new TransactionActionController.CreateActionRequest();
+        final TransactionActionController.CreateActionRequest createRequest =
+                new TransactionActionController.CreateActionRequest();
         createRequest.setTitle("Original Title");
         createRequest.setPriority("LOW");
 
-        String createResponse = mockMvc.perform(post("/api/transactions/{transactionId}/actions", testTransaction.getTransactionId())
-                        .header("Authorization", "Bearer " + accessToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(createRequest)))
-                .andExpect(status().isCreated())
-                .andReturn()
-                .getResponse()
-                .getContentAsString();
+        final String createResponse =
+                mockMvc.perform(
+                        post(
+                                "/api/transactions/{transactionId}/actions",
+                                testTransaction.getTransactionId())
+                                .header("Authorization", "Bearer " + accessToken)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(createRequest)))
+                        .andExpect(status().isCreated())
+                        .andReturn()
+                        .getResponse()
+                        .getContentAsString();
 
-        TransactionActionTable createdAction = objectMapper.readValue(createResponse, TransactionActionTable.class);
+        final TransactionActionTable createdAction =
+                objectMapper.readValue(createResponse, TransactionActionTable.class);
 
         // When - Update the action
-        TransactionActionController.UpdateActionRequest updateRequest = new TransactionActionController.UpdateActionRequest();
+        final TransactionActionController.UpdateActionRequest updateRequest =
+                new TransactionActionController.UpdateActionRequest();
         updateRequest.setTitle("Updated Title");
         updateRequest.setIsCompleted(true);
         updateRequest.setPriority("HIGH");
 
         // Then
-        mockMvc.perform(put("/api/transactions/{transactionId}/actions/{actionId}",
-                        testTransaction.getTransactionId(), createdAction.getActionId())
-                        .header("Authorization", "Bearer " + accessToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(updateRequest)))
+        mockMvc.perform(
+                        put(
+                                        "/api/transactions/{transactionId}/actions/{actionId}",
+                                        testTransaction.getTransactionId(),
+                                        createdAction.getActionId())
+                                .header("Authorization", "Bearer " + accessToken)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(updateRequest)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.title").value("Updated Title"))
                 .andExpect(jsonPath("$.isCompleted").value(true))
@@ -231,61 +252,79 @@ class TransactionActionControllerIntegrationTest {
     }
 
     @Test
-    void testDeleteAction_WithValidAction_ReturnsNoContent() throws Exception {
+    void testDeleteActionWithValidActionReturnsNoContent() throws Exception {
         // Given - Create an action first
-        TransactionActionController.CreateActionRequest createRequest = new TransactionActionController.CreateActionRequest();
+        final TransactionActionController.CreateActionRequest createRequest =
+                new TransactionActionController.CreateActionRequest();
         createRequest.setTitle("Action to Delete");
         createRequest.setPriority("MEDIUM");
 
-        String createResponse = mockMvc.perform(post("/api/transactions/{transactionId}/actions", testTransaction.getTransactionId())
-                        .header("Authorization", "Bearer " + accessToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(createRequest)))
-                .andExpect(status().isCreated())
-                .andReturn()
-                .getResponse()
-                .getContentAsString();
+        final String createResponse =
+                mockMvc.perform(
+                        post(
+                                "/api/transactions/{transactionId}/actions",
+                                testTransaction.getTransactionId())
+                                .header("Authorization", "Bearer " + accessToken)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(createRequest)))
+                        .andExpect(status().isCreated())
+                        .andReturn()
+                        .getResponse()
+                        .getContentAsString();
 
-        TransactionActionTable createdAction = objectMapper.readValue(createResponse, TransactionActionTable.class);
+        final TransactionActionTable createdAction =
+                objectMapper.readValue(createResponse, TransactionActionTable.class);
 
         // When/Then
-        mockMvc.perform(delete("/api/transactions/{transactionId}/actions/{actionId}",
-                        testTransaction.getTransactionId(), createdAction.getActionId())
-                        .header("Authorization", "Bearer " + accessToken))
+        mockMvc.perform(
+                        delete(
+                                        "/api/transactions/{transactionId}/actions/{actionId}",
+                                        testTransaction.getTransactionId(),
+                                        createdAction.getActionId())
+                                .header("Authorization", "Bearer " + accessToken))
                 .andExpect(status().isNoContent());
 
         // Verify action is deleted
-        mockMvc.perform(get("/api/transactions/{transactionId}/actions", testTransaction.getTransactionId())
-                        .header("Authorization", "Bearer " + accessToken)
-                        .contentType(MediaType.APPLICATION_JSON))
+        mockMvc.perform(
+                        get(
+                                        "/api/transactions/{transactionId}/actions",
+                                        testTransaction.getTransactionId())
+                                .header("Authorization", "Bearer " + accessToken)
+                                .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray())
                 .andExpect(jsonPath("$").isEmpty());
     }
 
     @Test
-    void testGetActions_WithoutAuthentication_ReturnsUnauthorized() throws Exception {
+    void testGetActionsWithoutAuthenticationReturnsUnauthorized() throws Exception {
         // Given - Clear security context to ensure no authentication
         org.springframework.security.core.context.SecurityContextHolder.clearContext();
-        
+
         // When/Then
-        mockMvc.perform(get("/api/transactions/{transactionId}/actions", testTransaction.getTransactionId())
-                        .contentType(MediaType.APPLICATION_JSON))
+        mockMvc.perform(
+                        get(
+                                        "/api/transactions/{transactionId}/actions",
+                                        testTransaction.getTransactionId())
+                                .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isUnauthorized());
     }
 
     @Test
-    void testCreateAction_WithNonExistentTransaction_ReturnsNotFound() throws Exception {
+    void testCreateActionWithNonExistentTransactionReturnsNotFound() throws Exception {
         // Given
-        TransactionActionController.CreateActionRequest request = new TransactionActionController.CreateActionRequest();
+        final TransactionActionController.CreateActionRequest request =
+                new TransactionActionController.CreateActionRequest();
         request.setTitle("Test Action");
 
         // When/Then
-        mockMvc.perform(post("/api/transactions/{transactionId}/actions", UUID.randomUUID().toString())
-                        .header("Authorization", "Bearer " + accessToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+        mockMvc.perform(
+                        post(
+                                        "/api/transactions/{transactionId}/actions",
+                                        UUID.randomUUID().toString())
+                                .header("Authorization", "Bearer " + accessToken)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isNotFound());
     }
 }
-

@@ -1,5 +1,8 @@
 package com.budgetbuddy.deployment;
 
+import java.time.Duration;
+import java.time.Instant;
+import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -12,25 +15,22 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
-import java.time.Duration;
-import java.time.Instant;
-import java.util.List;
-
 /**
- * Deployment Safety Service
- * Ensures safe deployments with health checks, smoke tests, and rollback capabilities
+ * Deployment Safety Service Ensures safe deployments with health checks, smoke tests, and rollback
+ * capabilities
  *
- * Features:
- * - Configurable health check timeouts
- * - Smoke test execution
- * - Deployment readiness validation
- * - Proper error handling
- * - Thread-safe operations
+ * <p>Features: - Configurable health check timeouts - Smoke test execution - Deployment readiness
+ * validation - Proper error handling - Thread-safe operations
  */
+// PMD's LawOfDemeter is documented as imprecise on chains involving
+// standard library types (BigDecimal, String, Optional) and DTO
+// getters; this class has many such idiomatic uses. Suppress at
+// class level rather than littering every method.
+@SuppressWarnings({"PMD.LawOfDemeter", "PMD.AvoidCatchingGenericException"})
 @Service
 public class DeploymentSafetyService {
 
-    private static final Logger logger = LoggerFactory.getLogger(DeploymentSafetyService.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(DeploymentSafetyService.class);
 
     @Value("${app.deployment.health-check-timeout:60}")
     private int healthCheckTimeoutSeconds;
@@ -48,71 +48,69 @@ public class DeploymentSafetyService {
     private final boolean isTestEnvironment;
 
     public DeploymentSafetyService(
-            final RestTemplateBuilder restTemplateBuilder,
-            final Environment environment) {
-        // Use request factory to set timeouts (replacement for deprecated setConnectTimeout/setReadTimeout)
+            final RestTemplateBuilder restTemplateBuilder, final Environment environment) {
+        // Use request factory to set timeouts (replacement for deprecated
+        // setConnectTimeout/setReadTimeout)
         // Configure connection pool limits to prevent connection leaks
         final SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
         requestFactory.setConnectTimeout((int) Duration.ofSeconds(5).toMillis());
         requestFactory.setReadTimeout((int) Duration.ofSeconds(10).toMillis());
         // Connection reuse is handled by the underlying HTTP client
         // Timeouts ensure connections don't hang indefinitely
-        
+
         // Timeouts are configured via requestFactory (setConnectTimeout/setReadTimeout)
         // RestTemplateBuilder.setConnectTimeout/setReadTimeout are deprecated in Spring Boot 3.4+
-        this.restTemplate = restTemplateBuilder
-                .requestFactory(() -> requestFactory)
-                .build();
-        
+        this.restTemplate = restTemplateBuilder.requestFactory(() -> requestFactory).build();
+
         // Detect test environment
         boolean isTest = false;
         if (environment != null) {
             try {
-                isTest = environment.acceptsProfiles(org.springframework.core.env.Profiles.of("test"));
+                isTest =
+                        environment.acceptsProfiles(
+                                org.springframework.core.env.Profiles.of("test"));
             } catch (Exception e) {
-                String activeProfiles = environment.getProperty("spring.profiles.active", "");
+                final String activeProfiles = environment.getProperty("spring.profiles.active", "");
                 isTest = activeProfiles.contains("test");
             }
         }
         if (!isTest) {
-            String sysProp = System.getProperty("spring.profiles.active", "");
+            final String sysProp = System.getProperty("spring.profiles.active", "");
             isTest = sysProp.contains("test");
         }
         this.isTestEnvironment = isTest;
     }
 
-    /**
-     * Validate deployment health
-     */
+    /** Validate deployment health */
     public DeploymentValidationResult validateDeployment(final String baseUrl) {
         if (baseUrl == null || baseUrl.isEmpty()) {
             // In test environments, this is expected - log at DEBUG level
             // In production, log at WARN level (not ERROR, as this is a handled condition)
             if (isTestEnvironment) {
-                logger.debug("Base URL is null or empty (expected in test environment)");
+                LOGGER.debug("Base URL is null or empty (expected in test environment)");
             } else {
-                logger.warn("Base URL is null or empty");
+                LOGGER.warn("Base URL is null or empty");
             }
-            DeploymentValidationResult result = new DeploymentValidationResult();
+            final DeploymentValidationResult result = new DeploymentValidationResult();
             result.setHealthy(false);
             result.setErrorMessage("Base URL is null or empty");
             result.setTimestamp(Instant.now());
             return result;
         }
 
-        logger.info("Starting deployment validation for: {}", baseUrl);
+        LOGGER.info("Starting deployment validation for: {}", baseUrl);
 
-        Instant startTime = Instant.now();
+        final Instant startTime = Instant.now();
         boolean isHealthy = false;
         String errorMessage = null;
 
         for (int attempt = 1; attempt <= maxHealthCheckAttempts; attempt++) {
             try {
-                logger.debug("Health check attempt {}/{}", attempt, maxHealthCheckAttempts);
+                LOGGER.debug("Health check attempt {}/{}", attempt, maxHealthCheckAttempts);
 
                 if (performHealthCheck(baseUrl)) {
                     isHealthy = true;
-                    logger.info("Deployment health check passed after {} attempts", attempt);
+                    LOGGER.info("Deployment health check passed after {} attempts", attempt);
                     break;
                 } else {
                     // Health check returned false but didn't throw exception
@@ -123,10 +121,15 @@ public class DeploymentSafetyService {
                 }
             } catch (Exception e) {
                 // In test environments, connection refused is expected - log at DEBUG
-                if (isTestEnvironment && (e.getMessage() != null && e.getMessage().contains("Connection refused"))) {
-                    logger.debug("Health check attempt {} failed (expected in test): {}", attempt, e.getMessage());
+                if (isTestEnvironment
+                        && (e.getMessage() != null
+                                && e.getMessage().contains("Connection refused"))) {
+                    LOGGER.debug(
+                            "Health check attempt {} failed (expected in test): {}",
+                            attempt,
+                            e.getMessage());
                 } else {
-                    logger.warn("Health check attempt {} failed: {}", attempt, e.getMessage());
+                    LOGGER.warn("Health check attempt {} failed: {}", attempt, e.getMessage());
                 }
                 errorMessage = e.getMessage();
             }
@@ -137,15 +140,15 @@ public class DeploymentSafetyService {
                     java.util.concurrent.TimeUnit.SECONDS.sleep(healthCheckIntervalSeconds);
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
-                    logger.warn("Health check interrupted");
+                    LOGGER.warn("Health check interrupted");
                     break;
                 }
             }
         }
 
-        Duration duration = Duration.between(startTime, Instant.now());
+        final Duration duration = Duration.between(startTime, Instant.now());
 
-        DeploymentValidationResult result = new DeploymentValidationResult();
+        final DeploymentValidationResult result = new DeploymentValidationResult();
         result.setHealthy(isHealthy);
         result.setDuration(duration);
         result.setErrorMessage(errorMessage);
@@ -154,33 +157,30 @@ public class DeploymentSafetyService {
         return result;
     }
 
-    /**
-     * Perform health check
-     */
+    /** Perform health check */
     private boolean performHealthCheck(final String baseUrl) throws RestClientException {
-        String healthUrl = baseUrl + "/actuator/health";
-        ResponseEntity<String> response = restTemplate.getForEntity(healthUrl, String.class);
+        final String healthUrl = baseUrl + "/actuator/health";
+        final ResponseEntity<String> response = restTemplate.getForEntity(healthUrl, String.class);
 
         if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
-            String body = response.getBody();
+            final String body = response.getBody();
             return body.contains("\"status\":\"UP\"") || body.contains("\"status\":\"up\"");
         }
 
         return false;
     }
 
-    /**
-     * Run smoke tests
-     */
+    /** Run smoke tests */
     public SmokeTestResult runSmokeTests(final String baseUrl) {
         if (baseUrl == null || baseUrl.isEmpty()) {
             // In test environments, this is expected - log at DEBUG level
             if (isTestEnvironment) {
-                logger.debug("Base URL is null or empty for smoke tests (expected in test environment)");
+                LOGGER.debug(
+                        "Base URL is null or empty for smoke tests (expected in test environment)");
             } else {
-                logger.warn("Base URL is null or empty for smoke tests");
+                LOGGER.warn("Base URL is null or empty for smoke tests");
             }
-            SmokeTestResult result = new SmokeTestResult();
+            final SmokeTestResult result = new SmokeTestResult();
             result.setBaseUrl(baseUrl);
             result.setPassed(false);
             result.setStartTime(Instant.now());
@@ -188,14 +188,14 @@ public class DeploymentSafetyService {
             return result;
         }
 
-        logger.info("Running smoke tests for: {}", baseUrl);
+        LOGGER.info("Running smoke tests for: {}", baseUrl);
 
-        SmokeTestResult result = new SmokeTestResult();
+        final SmokeTestResult result = new SmokeTestResult();
         result.setBaseUrl(baseUrl);
         result.setStartTime(Instant.now());
 
         if (smokeTestEndpoints == null || smokeTestEndpoints.isEmpty()) {
-            logger.warn("No smoke test endpoints configured");
+            LOGGER.warn("No smoke test endpoints configured");
             result.setPassed(true);
             result.setEndTime(Instant.now());
             return result;
@@ -204,27 +204,31 @@ public class DeploymentSafetyService {
         int passed = 0;
         int failed = 0;
 
-        for (String endpoint : smokeTestEndpoints) {
+        for (final String endpoint : smokeTestEndpoints) {
             if (endpoint == null || endpoint.isEmpty()) {
                 continue;
             }
 
             try {
-                String url = baseUrl + endpoint;
-                ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
+                final String url = baseUrl + endpoint;
+                final ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
 
                 if (response.getStatusCode().is2xxSuccessful()) {
                     passed++;
-                    logger.debug("Smoke test passed: {}", endpoint);
+                    LOGGER.debug("Smoke test passed: {}", endpoint);
                 } else {
                     failed++;
-                    logger.warn("Smoke test failed: {} - Status: {}", endpoint, response.getStatusCode());
+                    LOGGER.warn(
+                            "Smoke test failed: {} - Status: {}",
+                            endpoint,
+                            response.getStatusCode());
                 }
             } catch (RestClientException e) {
                 failed++;
-                // Log at WARN level - this is a handled failure (test continues and reports failure)
+                // Log at WARN level - this is a handled failure (test continues and reports
+                // failure)
                 // ERROR would be more appropriate for unexpected/unhandled errors
-                logger.warn("Smoke test error for {}: {}", endpoint, e.getMessage());
+                LOGGER.warn("Smoke test error for {}: {}", endpoint, e.getMessage());
             }
         }
 
@@ -233,51 +237,51 @@ public class DeploymentSafetyService {
         result.setFailedTests(failed);
         result.setEndTime(Instant.now());
 
-        logger.info("Smoke tests completed: {} passed, {} failed", passed, failed);
+        LOGGER.info("Smoke tests completed: {} passed, {} failed", passed, failed);
         return result;
     }
 
-    /**
-     * Validate deployment readiness
-     */
+    /** Validate deployment readiness */
     public boolean isDeploymentReady(final String baseUrl) {
         if (baseUrl == null || baseUrl.isEmpty()) {
             // In test environments, this is expected - log at DEBUG level
             if (isTestEnvironment) {
-                logger.debug("Base URL is null or empty (expected in test environment)");
+                LOGGER.debug("Base URL is null or empty (expected in test environment)");
             } else {
-                logger.warn("Base URL is null or empty");
+                LOGGER.warn("Base URL is null or empty");
             }
             return false;
         }
 
-        DeploymentValidationResult healthResult = validateDeployment(baseUrl);
+        final DeploymentValidationResult healthResult = validateDeployment(baseUrl);
 
         if (!healthResult.isHealthy()) {
             // In test environments, health check failures are expected - log at DEBUG
             if (isTestEnvironment) {
-                logger.debug("Deployment health check failed (expected in test): {}", healthResult.getErrorMessage());
+                LOGGER.debug(
+                        "Deployment health check failed (expected in test): {}",
+                        healthResult.getErrorMessage());
             } else {
-                logger.error("Deployment health check failed: {}", healthResult.getErrorMessage());
+                LOGGER.error("Deployment health check failed: {}", healthResult.getErrorMessage());
             }
             return false;
         }
 
-        SmokeTestResult smokeTestResult = runSmokeTests(baseUrl);
+        final SmokeTestResult smokeTestResult = runSmokeTests(baseUrl);
 
         if (!smokeTestResult.isPassed()) {
-            logger.error("Smoke tests failed: {} passed, {} failed",
-                    smokeTestResult.getPassedTests(), smokeTestResult.getFailedTests());
+            LOGGER.error(
+                    "Smoke tests failed: {} passed, {} failed",
+                    smokeTestResult.getPassedTests(),
+                    smokeTestResult.getFailedTests());
             return false;
         }
 
-        logger.info("Deployment is ready");
+        LOGGER.info("Deployment is ready");
         return true;
     }
 
-    /**
-     * Deployment Validation Result
-     */
+    /** Deployment Validation Result */
     public static class DeploymentValidationResult {
         private boolean healthy;
         private Duration duration;
@@ -285,19 +289,40 @@ public class DeploymentSafetyService {
         private Instant timestamp;
 
         // Getters and setters
-        public boolean isHealthy() { return healthy; }
-        public void setHealthy(final boolean healthy) { this.healthy = healthy; }
-        public Duration getDuration() { return duration; }
-        public void setDuration(final Duration duration) { this.duration = duration; }
-        public String getErrorMessage() { return errorMessage; }
-        public void setErrorMessage(final String errorMessage) { this.errorMessage = errorMessage; }
-        public Instant getTimestamp() { return timestamp; }
-        public void setTimestamp(final Instant timestamp) { this.timestamp = timestamp; }
+        public boolean isHealthy() {
+            return healthy;
+        }
+
+        public void setHealthy(final boolean healthy) {
+            this.healthy = healthy;
+        }
+
+        public Duration getDuration() {
+            return duration;
+        }
+
+        public void setDuration(final Duration duration) {
+            this.duration = duration;
+        }
+
+        public String getErrorMessage() {
+            return errorMessage;
+        }
+
+        public void setErrorMessage(final String errorMessage) {
+            this.errorMessage = errorMessage;
+        }
+
+        public Instant getTimestamp() {
+            return timestamp;
+        }
+
+        public void setTimestamp(final Instant timestamp) {
+            this.timestamp = timestamp;
+        }
     }
 
-    /**
-     * Smoke Test Result
-     */
+    /** Smoke Test Result */
     public static class SmokeTestResult {
         private String baseUrl;
         private boolean passed;
@@ -307,17 +332,52 @@ public class DeploymentSafetyService {
         private Instant endTime;
 
         // Getters and setters
-        public String getBaseUrl() { return baseUrl; }
-        public void setBaseUrl(final String baseUrl) { this.baseUrl = baseUrl; }
-        public boolean isPassed() { return passed; }
-        public void setPassed(final boolean passed) { this.passed = passed; }
-        public int getPassedTests() { return passedTests; }
-        public void setPassedTests(final int passedTests) { this.passedTests = passedTests; }
-        public int getFailedTests() { return failedTests; }
-        public void setFailedTests(final int failedTests) { this.failedTests = failedTests; }
-        public Instant getStartTime() { return startTime; }
-        public void setStartTime(final Instant startTime) { this.startTime = startTime; }
-        public Instant getEndTime() { return endTime; }
-        public void setEndTime(final Instant endTime) { this.endTime = endTime; }
+        public String getBaseUrl() {
+            return baseUrl;
+        }
+
+        public void setBaseUrl(final String baseUrl) {
+            this.baseUrl = baseUrl;
+        }
+
+        public boolean isPassed() {
+            return passed;
+        }
+
+        public void setPassed(final boolean passed) {
+            this.passed = passed;
+        }
+
+        public int getPassedTests() {
+            return passedTests;
+        }
+
+        public void setPassedTests(final int passedTests) {
+            this.passedTests = passedTests;
+        }
+
+        public int getFailedTests() {
+            return failedTests;
+        }
+
+        public void setFailedTests(final int failedTests) {
+            this.failedTests = failedTests;
+        }
+
+        public Instant getStartTime() {
+            return startTime;
+        }
+
+        public void setStartTime(final Instant startTime) {
+            this.startTime = startTime;
+        }
+
+        public Instant getEndTime() {
+            return endTime;
+        }
+
+        public void setEndTime(final Instant endTime) {
+            this.endTime = endTime;
+        }
     }
 }

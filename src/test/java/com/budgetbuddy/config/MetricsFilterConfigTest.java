@@ -1,5 +1,7 @@
 package com.budgetbuddy.config;
 
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+
 import com.budgetbuddy.AWSTestConfiguration;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.config.MeterFilter;
@@ -11,19 +13,16 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
 
-import static org.junit.jupiter.api.Assertions.*;
-
-/**
- * Tests for MetricsFilterConfig
- */
+/** Tests for MetricsFilterConfig */
 @SpringBootTest(classes = com.budgetbuddy.BudgetBuddyApplication.class)
 @ActiveProfiles("test")
 @Import(AWSTestConfiguration.class)
-@TestPropertySource(properties = {
-    "app.metrics.enabled=true",
-    "app.metrics.filter-unnecessary=true",
-    "app.environment=test"
-})
+@TestPropertySource(
+        properties = {
+            "app.metrics.enabled=true",
+            "app.metrics.filter-unnecessary=true",
+            "app.environment=test"
+        })
 class MetricsFilterConfigTest {
 
     @Autowired(required = false)
@@ -33,22 +32,21 @@ class MetricsFilterConfigTest {
     private MeterFilter meterFilter;
 
     @Test
-    void testMetricsCommonTags_IsCreated() {
+    void testMetricsCommonTagsIsCreated() {
         // Then
         assertNotNull(metricsCommonTags, "MetricsCommonTags should be created");
     }
 
     @Test
-    void testMeterFilter_IsCreated() {
+    void testMeterFilterIsCreated() {
         // Then
         assertNotNull(meterFilter, "MeterFilter should be created");
     }
 
     @Test
-    void testMeterFilter_IsConfigured() {
+    void testMeterFilterIsConfigured() {
         // Then - Verify filter is configured
         assertNotNull(meterFilter, "MeterFilter should be configured");
         // The actual filtering logic is tested through integration tests
     }
 }
-

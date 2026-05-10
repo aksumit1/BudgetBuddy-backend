@@ -7,10 +7,7 @@ import org.springframework.boot.actuate.autoconfigure.metrics.MeterRegistryCusto
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-/**
- * Metrics Filter Configuration
- * Filters unnecessary metrics to reduce CloudWatch costs
- */
+/** Metrics Filter Configuration Filters unnecessary metrics to reduce CloudWatch costs */
 @Configuration
 public class MetricsFilterConfig {
 
@@ -22,13 +19,13 @@ public class MetricsFilterConfig {
 
     @Bean
     public MeterRegistryCustomizer<MeterRegistry> metricsCommonTags(
-            @Value("${app.environment:production}") String environment) {
+            @Value("${app.environment:production}") final String environment) {
         return registry -> {
-            registry.config().commonTags(
-                    "environment", environment,
-                    "service", "budgetbuddy-backend",
-                    "application", "BudgetBuddy"
-            );
+            registry.config()
+                    .commonTags(
+                            "environment", environment,
+                            "service", "budgetbuddy-backend",
+                            "application", "BudgetBuddy");
         };
     }
 
@@ -39,14 +36,19 @@ public class MetricsFilterConfig {
         }
 
         // Filter out unnecessary metrics to reduce CloudWatch costs
-        return MeterFilter.deny(id -> {
-            String name = id.getName();
-            return name.startsWith("jvm.memory.pool") ||  // Detailed memory pool metrics
-                   name.startsWith("jvm.gc.pause") ||     // GC pause details (keep summary)
-                   name.startsWith("process.files") ||    // File descriptor metrics
-                   name.startsWith("system.cpu.load") ||  // System CPU load (keep process CPU)
-                   name.startsWith("http.server.requests.tag");  // Detailed HTTP tag metrics
-        });
+        return MeterFilter.deny(
+                id -> {
+                    final String name = id.getName();
+                    return name.startsWith("jvm.memory.pool")
+                            || // Detailed memory pool metrics
+                            name.startsWith("jvm.gc.pause")
+                            || // GC pause details (keep summary)
+                            name.startsWith("process.files")
+                            || // File descriptor metrics
+                            name.startsWith("system.cpu.load")
+                            || // System CPU load (keep process CPU)
+                            name.startsWith(
+                                    "http.server.requests.tag"); // Detailed HTTP tag metrics
+                });
     }
 }
-

@@ -1,5 +1,7 @@
 package com.budgetbuddy.integration;
 
+
+import java.nio.charset.StandardCharsets;
 import com.budgetbuddy.api.TransactionController;
 import com.budgetbuddy.model.dynamodb.AccountTable;
 import com.budgetbuddy.model.dynamodb.TransactionTable;
@@ -66,7 +68,7 @@ class CSVImportDateParsingE2ETest {
     void setUp() {
         // Create test user using UserService
         String email = "csv-date-test-" + UUID.randomUUID() + "@example.com";
-        String passwordHash = java.util.Base64.getEncoder().encodeToString("test-password-hash".getBytes());
+        String passwordHash = java.util.Base64.getEncoder().encodeToString("test-password-hash".getBytes(StandardCharsets.UTF_8));
         testUser = userService.createUserSecure(email, passwordHash, "Test", "User");
 
         // Create test account
@@ -102,7 +104,7 @@ class CSVImportDateParsingE2ETest {
                 "12/19/2025,WITHDRAWAL 12/19,-2000.00\n" +
                 "12/18/2025,Grocery Store,-50.00";
         MultipartFile csvFile = new MockMultipartFile(
-                "file", "test.csv", "text/csv", csvContent.getBytes()
+                "file", "test.csv", "text/csv", csvContent.getBytes(StandardCharsets.UTF_8)
         );
 
         // When: Preview CSV
@@ -133,7 +135,7 @@ class CSVImportDateParsingE2ETest {
                 "2025-12-19,Online Transfer,250.00\n" +
                 "2025-12-20,Payment Received,100.00";
         MultipartFile csvFile = new MockMultipartFile(
-                "file", "test.csv", "text/csv", csvContent.getBytes()
+                "file", "test.csv", "text/csv", csvContent.getBytes(StandardCharsets.UTF_8)
         );
 
         // When: Preview CSV
@@ -156,7 +158,7 @@ class CSVImportDateParsingE2ETest {
         String csvContent = "Posting Date,Description,Amount\n" +
                 "12/19/2025,WITHDRAWAL 12/19,-2000.00";
         MultipartFile csvFile = new MockMultipartFile(
-                "file", "test.csv", "text/csv", csvContent.getBytes()
+                "file", "test.csv", "text/csv", csvContent.getBytes(StandardCharsets.UTF_8)
         );
 
         // When: Import CSV
@@ -189,7 +191,7 @@ class CSVImportDateParsingE2ETest {
                 "2025-12-20,Transaction 2,-200.00\n" +  // yyyy-MM-dd
                 "12/21/2025,Transaction 3,-300.00";     // MM/dd/yyyy
         MultipartFile csvFile = new MockMultipartFile(
-                "file", "test.csv", "text/csv", csvContent.getBytes()
+                "file", "test.csv", "text/csv", csvContent.getBytes(StandardCharsets.UTF_8)
         );
 
         // When: Preview CSV
@@ -213,7 +215,7 @@ class CSVImportDateParsingE2ETest {
         String csvContent = "Posting Date,Description,Amount\n" +
                 "12/19/2025,Test Transaction,-100.00";
         MultipartFile csvFile = new MockMultipartFile(
-                "file", "test.csv", "text/csv", csvContent.getBytes()
+                "file", "test.csv", "text/csv", csvContent.getBytes(StandardCharsets.UTF_8)
         );
 
         // When: Preview CSV
@@ -241,7 +243,7 @@ class CSVImportDateParsingE2ETest {
         String csvContent = "Posting Date,Description,Amount\n" +
                 "12/19/2025,WITHDRAWAL 12/19,-2000.00";
         MultipartFile csvFile = new MockMultipartFile(
-                "file", "test.csv", "text/csv", csvContent.getBytes()
+                "file", "test.csv", "text/csv", csvContent.getBytes(StandardCharsets.UTF_8)
         );
 
         // Step 1: Preview CSV
@@ -256,7 +258,7 @@ class CSVImportDateParsingE2ETest {
 
         // Step 2: Import CSV (re-create file for import)
         MultipartFile importFile = new MockMultipartFile(
-                "file", "test.csv", "text/csv", csvContent.getBytes()
+                "file", "test.csv", "text/csv", csvContent.getBytes(StandardCharsets.UTF_8)
         );
         ResponseEntity<TransactionController.CSVImportResponse> importResponse = 
                 transactionController.importCSV(userDetails, importFile, testAccount.getAccountId(), null);
@@ -282,7 +284,7 @@ class CSVImportDateParsingE2ETest {
                 "12/31/2024,Year End Transaction,-100.00\n" +
                 "01/01/2025,Year Start Transaction,-200.00";
         MultipartFile csvFile = new MockMultipartFile(
-                "file", "test.csv", "text/csv", csvContent.getBytes()
+                "file", "test.csv", "text/csv", csvContent.getBytes(StandardCharsets.UTF_8)
         );
 
         // When: Preview CSV
@@ -306,7 +308,7 @@ class CSVImportDateParsingE2ETest {
                 "01/31/2025,Month End Transaction,-100.00\n" +
                 "02/01/2025,Month Start Transaction,-200.00";
         MultipartFile csvFile = new MockMultipartFile(
-                "file", "test.csv", "text/csv", csvContent.getBytes()
+                "file", "test.csv", "text/csv", csvContent.getBytes(StandardCharsets.UTF_8)
         );
 
         // When: Preview CSV

@@ -1,5 +1,12 @@
 package com.budgetbuddy.integration;
 
+
+import java.nio.charset.StandardCharsets;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import com.budgetbuddy.AWSTestConfiguration;
 import com.budgetbuddy.dto.AuthRequest;
 import com.budgetbuddy.dto.AuthResponse;
@@ -7,6 +14,8 @@ import com.budgetbuddy.exception.ErrorCode;
 import com.budgetbuddy.model.dynamodb.UserTable;
 import com.budgetbuddy.repository.dynamodb.UserRepository;
 import com.budgetbuddy.util.TableInitializer;
+import java.util.Base64;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -26,39 +35,34 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.ActiveProfiles;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 
-import java.util.Base64;
-import java.util.Optional;
-
-import static org.junit.jupiter.api.Assertions.*;
-
 /**
  * Integration Tests for User Registration Bug Fixes
- * 
- * Tests the fixes for:
- * 1. User registration always failing (cache issue)
- * 2. ClassCastException in JWT token generation
- * 3. JWT secret length validation
- * 4. Proper error responses for duplicate registrations
+ *
+ * <p>Tests the fixes for: 1. User registration always failing (cache issue) 2. ClassCastException
+ * in JWT token generation 3. JWT secret length validation 4. Proper error responses for duplicate
+ * registrations
  */
+// PMD's LawOfDemeter is documented as imprecise on chains involving
+// standard library types (BigDecimal, String, Optional) and DTO
+// getters; this class has many such idiomatic uses. Suppress at
+// class level rather than littering every method.
+@SuppressWarnings("PMD.LawOfDemeter")
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
 @Import(AWSTestConfiguration.class)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class UserRegistrationIntegrationTest {
 
-    private static final Logger logger = LoggerFactory.getLogger(UserRegistrationIntegrationTest.class);
+    private static final Logger LOGGER =
+            LoggerFactory.getLogger(UserRegistrationIntegrationTest.class);
 
-    @LocalServerPort
-    private int port;
+    @LocalServerPort private int port;
 
-    @Autowired
-    private TestRestTemplate restTemplate;
+    @Autowired private TestRestTemplate restTemplate;
 
-    @Autowired
-    private UserRepository userRepository;
+    @Autowired private UserRepository userRepository;
 
-    @Autowired
-    private DynamoDbClient dynamoDbClient;
+    @Autowired private DynamoDbClient dynamoDbClient;
 
     private String baseUrl;
     private String uniqueEmail;
@@ -77,25 +81,25 @@ class UserRegistrationIntegrationTest {
     }
 
     @Test
-    void testRegister_NewUser_Succeeds() {
+    void testRegisterNewUserSucceeds() {
         // Arrange
-        AuthRequest request = new AuthRequest();
+        final AuthRequest request = new AuthRequest();
         request.setEmail(uniqueEmail);
-        request.setPasswordHash(Base64.getEncoder().encodeToString("testpassword123".getBytes()));
+        request.setPasswordHash(Base64.getEncoder().encodeToString("testpassword123".getBytes(StandardCharsets.UTF_8)));
         // BREAKING CHANGE: Client salt removed
-        // request.setSalt(Base64.getEncoder().encodeToString("somesalt".getBytes()));
+        // request.setSalt(Base64.getEncoder().encodeToString("somesalt".getBytes(StandardCharsets.UTF_8)));
 
-        HttpHeaders headers = new HttpHeaders();
+        final HttpHeaders headers = new HttpHeaders();
         headers.setContentType(org.springframework.http.MediaType.APPLICATION_JSON);
-        HttpEntity<AuthRequest> entity = new HttpEntity<>(request, headers);
+        final HttpEntity<AuthRequest> entity = new HttpEntity<>(request, headers);
 
         // Act
-        ResponseEntity<AuthResponse> response = restTemplate.exchange(
-                baseUrl + "/api/auth/register",
-                HttpMethod.POST,
-                entity,
-                AuthResponse.class
-        );
+        final ResponseEntity<AuthResponse> response =
+                restTemplate.exchange(
+                        baseUrl + "/api/auth/register",
+                        HttpMethod.POST,
+                        entity,
+                        AuthResponse.class);
 
         // Assert
         assertTrue(response.getStatusCode().is2xxSuccessful(), "Registration should succeed");
@@ -103,160 +107,169 @@ class UserRegistrationIntegrationTest {
         assertNotNull(response.getBody().getAccessToken());
         assertNotNull(response.getBody().getRefreshToken());
         assertFalse(response.getBody().getAccessToken().isEmpty());
-        
+
         // Verify user was created in database
-        Optional<UserTable> createdUser = userRepository.findByEmail(uniqueEmail);
+        final Optional<UserTable> createdUser = userRepository.findByEmail(uniqueEmail);
         assertTrue(createdUser.isPresent(), "User should be created in database");
         assertEquals(uniqueEmail, createdUser.get().getEmail());
     }
 
     @Test
-    void testRegister_DuplicateUser_ReturnsProperError() {
+    void testRegisterDuplicateUserReturnsProperError() {
         // Arrange - Register user first
-        AuthRequest firstRequest = new AuthRequest();
+        final AuthRequest firstRequest = new AuthRequest();
         firstRequest.setEmail(uniqueEmail);
-        firstRequest.setPasswordHash(Base64.getEncoder().encodeToString("testpassword123".getBytes()));
+        firstRequest.setPasswordHash(
+                Base64.getEncoder().encodeToString("testpassword123".getBytes(StandardCharsets.UTF_8)));
         // BREAKING CHANGE: Client salt removed
 
-        HttpHeaders headers = new HttpHeaders();
+        final HttpHeaders headers = new HttpHeaders();
         headers.setContentType(org.springframework.http.MediaType.APPLICATION_JSON);
-        HttpEntity<AuthRequest> firstEntity = new HttpEntity<>(firstRequest, headers);
+        final HttpEntity<AuthRequest> firstEntity = new HttpEntity<>(firstRequest, headers);
 
         // First registration
         restTemplate.exchange(
-                baseUrl + "/api/auth/register",
-                HttpMethod.POST,
-                firstEntity,
-                AuthResponse.class
-        );
+                baseUrl + "/api/auth/register", HttpMethod.POST, firstEntity, AuthResponse.class);
 
         // Second registration attempt with same email
-        AuthRequest duplicateRequest = new AuthRequest();
+        final AuthRequest duplicateRequest = new AuthRequest();
         duplicateRequest.setEmail(uniqueEmail);
-        duplicateRequest.setPasswordHash(Base64.getEncoder().encodeToString("testpassword123".getBytes()));
+        duplicateRequest.setPasswordHash(
+                Base64.getEncoder().encodeToString("testpassword123".getBytes(StandardCharsets.UTF_8)));
         // BREAKING CHANGE: Client salt removed
-        HttpEntity<AuthRequest> duplicateEntity = new HttpEntity<>(duplicateRequest, headers);
+        final HttpEntity<AuthRequest> duplicateEntity = new HttpEntity<>(duplicateRequest, headers);
 
         // Act
-        ResponseEntity<com.budgetbuddy.exception.EnhancedGlobalExceptionHandler.ErrorResponse> response = 
-                restTemplate.exchange(
-                        baseUrl + "/api/auth/register",
-                        HttpMethod.POST,
-                        duplicateEntity,
-                        com.budgetbuddy.exception.EnhancedGlobalExceptionHandler.ErrorResponse.class
-                );
+        final ResponseEntity<com.budgetbuddy.exception.EnhancedGlobalExceptionHandler.ErrorResponse>
+                response =
+                        restTemplate.exchange(
+                                baseUrl + "/api/auth/register",
+                                HttpMethod.POST,
+                                duplicateEntity,
+                                com.budgetbuddy.exception.EnhancedGlobalExceptionHandler
+                                        .ErrorResponse.class);
 
         // Assert
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
         assertNotNull(response.getBody());
         assertEquals(ErrorCode.USER_ALREADY_EXISTS.name(), response.getBody().getErrorCode());
-        assertTrue(response.getBody().getMessage().contains("already exists") 
-                || response.getBody().getMessage().contains("User with this email"));
+        assertTrue(
+                response.getBody().getMessage().contains("already exists")
+                        || response.getBody().getMessage().contains("User with this email"));
     }
 
     @Test
-    void testRegister_NewUser_GeneratesValidJwtToken() {
+    void testRegisterNewUserGeneratesValidJwtToken() {
         // Arrange
-        AuthRequest request = new AuthRequest();
+        final AuthRequest request = new AuthRequest();
         request.setEmail(uniqueEmail);
-        request.setPasswordHash(Base64.getEncoder().encodeToString("testpassword123".getBytes()));
+        request.setPasswordHash(Base64.getEncoder().encodeToString("testpassword123".getBytes(StandardCharsets.UTF_8)));
         // BREAKING CHANGE: Client salt removed
-        // request.setSalt(Base64.getEncoder().encodeToString("somesalt".getBytes()));
+        // request.setSalt(Base64.getEncoder().encodeToString("somesalt".getBytes(StandardCharsets.UTF_8)));
 
-        HttpHeaders headers = new HttpHeaders();
+        final HttpHeaders headers = new HttpHeaders();
         headers.setContentType(org.springframework.http.MediaType.APPLICATION_JSON);
-        HttpEntity<AuthRequest> entity = new HttpEntity<>(request, headers);
+        final HttpEntity<AuthRequest> entity = new HttpEntity<>(request, headers);
 
         // Act
-        ResponseEntity<AuthResponse> response = restTemplate.exchange(
-                baseUrl + "/api/auth/register",
-                HttpMethod.POST,
-                entity,
-                AuthResponse.class
-        );
+        final ResponseEntity<AuthResponse> response =
+                restTemplate.exchange(
+                        baseUrl + "/api/auth/register",
+                        HttpMethod.POST,
+                        entity,
+                        AuthResponse.class);
 
         // Assert
         assertTrue(response.getStatusCode().is2xxSuccessful(), "Registration should succeed");
-        AuthResponse authResponse = response.getBody();
+        final AuthResponse authResponse = response.getBody();
         assertNotNull(authResponse);
-        
-        String accessToken = authResponse.getAccessToken();
+
+        final String accessToken = authResponse.getAccessToken();
         assertNotNull(accessToken);
-        
+
         // Verify JWT token format (should have 3 parts separated by dots)
-        String[] tokenParts = accessToken.split("\\.");
-        assertEquals(3, tokenParts.length, "JWT token should have 3 parts (header.payload.signature)");
-        
+        final String[] tokenParts = accessToken.split("\\.");
+        assertEquals(
+                3, tokenParts.length, "JWT token should have 3 parts (header.payload.signature)");
+
         // Verify token is not empty
         assertFalse(accessToken.isEmpty());
         assertTrue(accessToken.length() > 50); // JWT tokens are typically longer
     }
 
     @Test
-    void testRegister_MultipleNewUsers_Succeed() {
+    void testRegisterMultipleNewUsersSucceed() {
         // Arrange
-        String[] emails = {
+        final String[] emails = {
                 "user1-" + System.currentTimeMillis() + "@example.com",
                 "user2-" + System.currentTimeMillis() + "@example.com",
                 "user3-" + System.currentTimeMillis() + "@example.com"
         };
 
-        HttpHeaders headers = new HttpHeaders();
+        final HttpHeaders headers = new HttpHeaders();
         headers.setContentType(org.springframework.http.MediaType.APPLICATION_JSON);
 
         // Act & Assert - All should succeed
-        for (String email : emails) {
-            AuthRequest request = new AuthRequest();
+        for (final String email : emails) {
+            final AuthRequest request = new AuthRequest();
             request.setEmail(email);
-            request.setPasswordHash(Base64.getEncoder().encodeToString("testpassword123".getBytes()));
+            request.setPasswordHash(
+                    Base64.getEncoder().encodeToString("testpassword123".getBytes(StandardCharsets.UTF_8)));
             // BREAKING CHANGE: Client salt removed - backend handles salt management
-            HttpEntity<AuthRequest> entity = new HttpEntity<>(request, headers);
+            final HttpEntity<AuthRequest> entity = new HttpEntity<>(request, headers);
 
-            ResponseEntity<AuthResponse> response = restTemplate.exchange(
-                    baseUrl + "/api/auth/register",
-                    HttpMethod.POST,
-                    entity,
-                    AuthResponse.class
-            );
+            final ResponseEntity<AuthResponse> response =
+                    restTemplate.exchange(
+                            baseUrl + "/api/auth/register",
+                            HttpMethod.POST,
+                            entity,
+                            AuthResponse.class);
 
-            assertTrue(response.getStatusCode().is2xxSuccessful(), 
+            assertTrue(
+                    response.getStatusCode().is2xxSuccessful(),
                     "Registration should succeed for email: " + email);
             assertNotNull(response.getBody().getAccessToken());
         }
     }
 
     @Test
-    void testRegister_InvalidInput_ReturnsBadRequest() {
+    void testRegisterInvalidInputReturnsBadRequest() {
         // Arrange - Missing password hash
-        AuthRequest request = new AuthRequest();
+        final AuthRequest request = new AuthRequest();
         request.setEmail(uniqueEmail);
         // BREAKING CHANGE: Client salt removed - backend handles salt management
         // password_hash is missing
 
-        HttpHeaders headers = new HttpHeaders();
+        final HttpHeaders headers = new HttpHeaders();
         headers.setContentType(org.springframework.http.MediaType.APPLICATION_JSON);
-        HttpEntity<AuthRequest> entity = new HttpEntity<>(request, headers);
+        final HttpEntity<AuthRequest> entity = new HttpEntity<>(request, headers);
 
         // Act
-        ResponseEntity<com.budgetbuddy.exception.EnhancedGlobalExceptionHandler.ErrorResponse> response = 
-                restTemplate.exchange(
-                        baseUrl + "/api/auth/register",
-                        HttpMethod.POST,
-                        entity,
-                        com.budgetbuddy.exception.EnhancedGlobalExceptionHandler.ErrorResponse.class
-                );
+        final ResponseEntity<com.budgetbuddy.exception.EnhancedGlobalExceptionHandler.ErrorResponse>
+                response =
+                        restTemplate.exchange(
+                                baseUrl + "/api/auth/register",
+                                HttpMethod.POST,
+                                entity,
+                                com.budgetbuddy.exception.EnhancedGlobalExceptionHandler
+                                        .ErrorResponse.class);
 
-        // Assert - Should return 400 for invalid input, but accept 500 if there's a processing error
+        // Assert - Should return 400 for invalid input, but accept 500 if there's a processing
+        // error
         // The important thing is that registration fails, not the exact status code
-        assertTrue(response.getStatusCode().is4xxClientError() || response.getStatusCode().is5xxServerError(),
-                "Registration with missing password_hash should fail. Status: " + response.getStatusCode() + 
-                ", Error: " + (response.getBody() != null ? response.getBody().getMessage() : "null"));
-        
+        assertTrue(
+                response.getStatusCode().is4xxClientError()
+                        || response.getStatusCode().is5xxServerError(),
+                "Registration with missing password_hash should fail. Status: "
+                        + response.getStatusCode()
+                        + ", Error: "
+                        + (response.getBody() != null ? response.getBody().getMessage() : "null"));
+
         // Prefer 400, but log if we get 500 (indicates a backend bug)
         if (response.getStatusCode() == HttpStatus.INTERNAL_SERVER_ERROR) {
-            System.out.println("WARNING: testRegister_InvalidInput_ReturnsBadRequest got 500 instead of 400. " +
-                    "This indicates the exception handler may not be properly mapping INVALID_INPUT to BAD_REQUEST.");
+            System.out.println(
+                    "WARNING: testRegisterInvalidInputReturnsBadRequest got 500 instead of 400. "
+                            + "This indicates the exception handler may not be properly mapping INVALID_INPUT to BAD_REQUEST.");
         }
     }
 }
-

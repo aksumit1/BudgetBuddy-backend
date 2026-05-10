@@ -6,89 +6,102 @@ import com.budgetbuddy.repository.dynamodb.TransactionRepository;
 import com.budgetbuddy.service.TransactionService;
 import com.budgetbuddy.service.aws.CloudWatchService;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.cache.annotation.Cacheable;
-import org.springframework.stereotype.Service;
-
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.stereotype.Service;
 
-/**
- * Analytics Service
- * Computes aggregated metrics to minimize database queries and data transfer
- */
+/** Analytics Service Computes aggregated metrics to minimize database queries and data transfer */
 @Service
 public class AnalyticsService {
 
     @SuppressWarnings("unused") // Reserved for future logging
-    private static final Logger logger = LoggerFactory.getLogger(AnalyticsService.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(AnalyticsService.class);
+
     @SuppressWarnings("unused") // Reserved for future date formatting
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ISO_LOCAL_DATE;
 
     @SuppressWarnings("unused") // Reserved for future direct repository access
     private final TransactionRepository transactionRepository;
+
     private final TransactionService transactionService;
     private final CloudWatchService cloudWatchService;
 
-    @SuppressFBWarnings(value = "EI_EXPOSE_REP2", justification = "Spring dependency injection - services are singleton beans safe to share")
-    public AnalyticsService(final TransactionRepository transactionRepository, final TransactionService transactionService, final CloudWatchService cloudWatchService) {
+    @SuppressFBWarnings(
+            value = "EI_EXPOSE_REP2",
+            justification =
+                    "Spring dependency injection - services are singleton beans safe to share")
+    public AnalyticsService(
+            final TransactionRepository transactionRepository,
+            final TransactionService transactionService,
+            final CloudWatchService cloudWatchService) {
         this.transactionRepository = transactionRepository;
         this.transactionService = transactionService;
         this.cloudWatchService = cloudWatchService;
     }
 
-    /**
-     * Get spending summary for a user (cached to reduce database load)
-     */
-    @Cacheable(value = "analytics", key = "#user.userId + '_spending_' + #startDate + '_' + #endDate")
-    public SpendingSummary getSpendingSummary(final UserTable user, final LocalDate startDate, final LocalDate endDate) {
+    /** Get spending summary for a user (cached to reduce database load) */
+    @Cacheable(
+            value = "analytics",
+            cacheManager = "analyticsCacheManager",
+            key = "#user.userId + '_spending_' + #startDate + '_' + #endDate")
+    public SpendingSummary getSpendingSummary(
+            final UserTable user, final LocalDate startDate, final LocalDate endDate) {
         // Use TransactionService which handles DynamoDB queries
-        final BigDecimal totalSpending = transactionService.getTotalSpending(user, startDate, endDate);
-        final List<TransactionTable> transactions = transactionService.getTransactionsInRange(user, startDate, endDate);
+        final BigDecimal totalSpending =
+                transactionService.getTotalSpending(user, startDate, endDate);
+        final List<TransactionTable> transactions =
+                transactionService.getTransactionsInRange(user, startDate, endDate);
         final long transactionCount = transactions.size();
 
         // Handle null totalSpending
-        final BigDecimal safeTotalSpending = totalSpending != null ? totalSpending : BigDecimal.ZERO;
+        final BigDecimal safeTotalSpending =
+                totalSpending != null ? totalSpending : BigDecimal.ZERO;
 
         // Send metrics to CloudWatch
-        cloudWatchService.putMetric("user.spending.total", safeTotalSpending.doubleValue(), "Count");
+        cloudWatchService.putMetric(
+                "user.spending.total", safeTotalSpending.doubleValue(), "Count");
         cloudWatchService.putMetric("user.transactions.count", transactionCount, "Count");
 
         return new SpendingSummary(
-                totalSpending != null ? totalSpending : BigDecimal.ZERO,
-                transactionCount
-        );
+                totalSpending != null ? totalSpending : BigDecimal.ZERO, transactionCount);
     }
 
-    /**
-     * Get spending by category (cached)
-     */
-    @Cacheable(value = "analytics", key = "#user.userId + '_category_' + #startDate + '_' + #endDate")
-    public Map<String, BigDecimal> getSpendingByCategory(final UserTable user, final LocalDate startDate, final LocalDate endDate) {
-        final List<TransactionTable> transactions = transactionService.getTransactionsInRange(user, startDate, endDate);
+    /** Get spending by category (cached) */
+    @Cacheable(
+            value = "analytics",
+            cacheManager = "analyticsCacheManager",
+            key = "#user.userId + '_category_' + #startDate + '_' + #endDate")
+    public Map<String, BigDecimal> getSpendingByCategory(
+            final UserTable user, final LocalDate startDate, final LocalDate endDate) {
+        final List<TransactionTable> transactions =
+                transactionService.getTransactionsInRange(user, startDate, endDate);
 
         final Map<String, BigDecimal> categorySpending = new HashMap<>();
-        transactions.forEach((transaction) -> {
-            final String category = transaction.getCategoryPrimary() != null ? transaction.getCategoryPrimary() : transaction.getCategoryDetailed();
-            if (category != null) {
-                final BigDecimal amount = transaction.getAmount();
-                if (amount != null) {
-                    categorySpending.merge(category, amount, BigDecimal::add);
-                }
-            }
-        });
+        transactions.forEach(
+                transaction -> {
+                    final String category =
+                            transaction.getCategoryPrimary() != null
+                                    ? transaction.getCategoryPrimary()
+                                    : transaction.getCategoryDetailed();
+                    if (category != null) {
+                        final BigDecimal amount = transaction.getAmount();
+                        if (amount != null) {
+                            categorySpending.merge(category, amount, BigDecimal::add);
+                        }
+                    }
+                });
 
         return categorySpending;
     }
 
-    /**
-     * Spending Summary DTO
-     */
+    /** Spending Summary DTO */
     public static class SpendingSummary {
         private final BigDecimal totalSpending;
         private final long transactionCount;

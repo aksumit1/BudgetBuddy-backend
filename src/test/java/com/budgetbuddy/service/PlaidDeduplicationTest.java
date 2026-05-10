@@ -1,5 +1,22 @@
 package com.budgetbuddy.service;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.nullable;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.anyString;
+import static org.mockito.Mockito.atLeast;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.nullable;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import com.budgetbuddy.model.dynamodb.AccountTable;
 import com.budgetbuddy.model.dynamodb.TransactionTable;
 import com.budgetbuddy.model.dynamodb.UserTable;
@@ -7,46 +24,42 @@ import com.budgetbuddy.plaid.PlaidService;
 import com.budgetbuddy.repository.dynamodb.AccountRepository;
 import com.budgetbuddy.repository.dynamodb.TransactionRepository;
 import com.budgetbuddy.repository.dynamodb.UserRepository;
+import java.math.BigDecimal;
+import java.util.Collections;
+import java.util.Optional;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.math.BigDecimal;
-import java.util.*;
-
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
-
 /**
- * Tests for Plaid deduplication logic
- * Verifies that accounts and transactions are properly deduplicated using plaidAccountId and plaidTransactionId
+ * Tests for Plaid deduplication logic Verifies that accounts and transactions are properly
+ * deduplicated using plaidAccountId and plaidTransactionId
  */
+// PMD's LawOfDemeter is documented as imprecise on chains involving
+// standard library types (BigDecimal, String, Optional) and DTO
+// getters; this class has many such idiomatic uses. Suppress at
+// class level rather than littering every method.
+@SuppressWarnings("PMD.LawOfDemeter")
 @ExtendWith(MockitoExtension.class)
 @org.mockito.junit.jupiter.MockitoSettings(strictness = org.mockito.quality.Strictness.LENIENT)
 class PlaidDeduplicationTest {
 
-    @Mock
-    private PlaidService plaidService;
+    @Mock private PlaidService plaidService;
 
-    @Mock
-    private AccountRepository accountRepository;
+    @Mock private AccountRepository accountRepository;
 
-    @Mock
-    private TransactionRepository transactionRepository;
+    @Mock private TransactionRepository transactionRepository;
 
-    @Mock
-    private UserRepository userRepository;
+    @Mock private UserRepository userRepository;
 
-    @Mock
-    private com.budgetbuddy.service.PlaidCategoryMapper categoryMapper;
+    @Mock private com.budgetbuddy.service.PlaidCategoryMapper categoryMapper;
 
-    @Mock
-    private com.budgetbuddy.service.plaid.PlaidDataExtractor dataExtractor;
+    @Mock private com.budgetbuddy.service.plaid.PlaidDataExtractor dataExtractor;
 
-    @Mock
-    private com.budgetbuddy.service.plaid.PlaidSyncOrchestrator syncOrchestrator;
+    @Mock private com.budgetbuddy.service.plaid.PlaidSyncOrchestrator syncOrchestrator;
 
     private PlaidSyncService plaidSyncService;
 
@@ -66,56 +79,77 @@ class PlaidDeduplicationTest {
         testUser.setEmail("test@example.com");
 
         // Create real services with mocked dependencies so the actual sync logic runs
-        com.budgetbuddy.service.plaid.PlaidAccountSyncService accountSyncService = 
-            new com.budgetbuddy.service.plaid.PlaidAccountSyncService(
-                plaidService, accountRepository, categoryMapper, dataExtractor);
-        com.budgetbuddy.service.plaid.PlaidTransactionSyncService transactionSyncService = 
-            new com.budgetbuddy.service.plaid.PlaidTransactionSyncService(
-                plaidService, accountRepository, transactionRepository, dataExtractor);
-        com.budgetbuddy.service.plaid.PlaidSyncOrchestrator realOrchestrator = 
-            new com.budgetbuddy.service.plaid.PlaidSyncOrchestrator(accountSyncService, transactionSyncService);
-        
+        final com.budgetbuddy.service.plaid.PlaidAccountSyncService accountSyncService =
+                new com.budgetbuddy.service.plaid.PlaidAccountSyncService(
+                        plaidService,
+                        accountRepository,
+                        categoryMapper,
+                        dataExtractor,
+                        org.mockito.Mockito.mock(
+                                com.budgetbuddy.service.correctness.BalanceReconciliationService
+                                        .class));
+        final com.budgetbuddy.service.plaid.PlaidTransactionSyncService transactionSyncService =
+                new com.budgetbuddy.service.plaid.PlaidTransactionSyncService(
+                        plaidService, accountRepository, transactionRepository, dataExtractor);
+        final com.budgetbuddy.service.plaid.PlaidSyncOrchestrator realOrchestrator =
+                new com.budgetbuddy.service.plaid.PlaidSyncOrchestrator(
+                        accountSyncService, transactionSyncService);
+
         // Use doAnswer to call the real orchestrator methods so repository calls are made
         // Use nullable() for itemId since it can be null
         // Use lenient stubbing to avoid issues with tests that throw exceptions early
-        lenient().doAnswer(invocation -> {
-            realOrchestrator.syncAccountsOnly(invocation.getArgument(0), invocation.getArgument(1), invocation.getArgument(2));
-            return null;
-        }).when(syncOrchestrator).syncAccountsOnly(any(UserTable.class), anyString(), nullable(String.class));
-        
-        lenient().doAnswer(invocation -> {
-            realOrchestrator.syncTransactionsOnly(invocation.getArgument(0), invocation.getArgument(1));
-            return null;
-        }).when(syncOrchestrator).syncTransactionsOnly(any(UserTable.class), anyString());
-        
+        lenient()
+                .doAnswer(
+                        invocation -> {
+                            realOrchestrator.syncAccountsOnly(
+                                    invocation.getArgument(0),
+                                    invocation.getArgument(1),
+                                    invocation.getArgument(2));
+                            return null;
+                        })
+                .when(syncOrchestrator)
+                .syncAccountsOnly(any(UserTable.class), anyString(), nullable(String.class));
+
+        lenient()
+                .doAnswer(
+                        invocation -> {
+                            realOrchestrator.syncTransactionsOnly(
+                                    invocation.getArgument(0), invocation.getArgument(1));
+                            return null;
+                        })
+                .when(syncOrchestrator)
+                .syncTransactionsOnly(any(UserTable.class), anyString());
+
         // Manually inject the orchestrator to ensure it's set before tests run
         plaidSyncService = new PlaidSyncService(syncOrchestrator);
     }
 
     @Test
-    void testSyncAccounts_WithDuplicatePlaidAccountId_UpdatesExistingAccount() {
+    void testSyncAccountsWithDuplicatePlaidAccountIdUpdatesExistingAccount() {
         // Given - Account already exists with same plaidAccountId
-        AccountTable existingAccount = new AccountTable();
+        final AccountTable existingAccount = new AccountTable();
         existingAccount.setAccountId(UUID.randomUUID().toString());
         existingAccount.setUserId(testUserId);
         existingAccount.setPlaidAccountId(testPlaidAccountId);
         existingAccount.setAccountName("Existing Account");
         existingAccount.setBalance(new BigDecimal("1000.00"));
 
-        // OPTIMIZATION: Service now loads all accounts once via findByUserId instead of per-account queries
+        // OPTIMIZATION: Service now loads all accounts once via findByUserId instead of per-account
+        // queries
         when(accountRepository.findByUserId(testUserId))
                 .thenReturn(Collections.singletonList(existingAccount));
 
         // Mock Plaid response with same account
-        com.plaid.client.model.AccountsGetResponse accountsResponse = new com.plaid.client.model.AccountsGetResponse();
-        var plaidAccount = mock(com.plaid.client.model.AccountBase.class);
+        final com.plaid.client.model.AccountsGetResponse accountsResponse =
+                new com.plaid.client.model.AccountsGetResponse();
+        final var plaidAccount = mock(com.plaid.client.model.AccountBase.class);
         when(plaidAccount.getAccountId()).thenReturn(testPlaidAccountId);
         when(plaidAccount.getName()).thenReturn("Updated Account Name");
         when(plaidAccount.getType()).thenReturn(com.plaid.client.model.AccountType.DEPOSITORY);
         when(plaidAccount.getSubtype()).thenReturn(com.plaid.client.model.AccountSubtype.CHECKING);
         when(plaidAccount.getBalances()).thenReturn(new com.plaid.client.model.AccountBalance());
-        
-        var balances = new com.plaid.client.model.AccountBalance();
+
+        final var balances = new com.plaid.client.model.AccountBalance();
         balances.setAvailable(2000.0);
         balances.setCurrent(2000.0);
         when(plaidAccount.getBalances()).thenReturn(balances);
@@ -125,19 +159,25 @@ class PlaidDeduplicationTest {
 
         when(plaidService.getAccounts(anyString())).thenReturn(accountsResponse);
         // Mock dataExtractor to extract account IDs and update accounts
-        when(dataExtractor.extractAccountId(any())).thenAnswer(invocation -> {
-            Object account = invocation.getArgument(0);
-            if (account instanceof com.plaid.client.model.AccountBase) {
-                return ((com.plaid.client.model.AccountBase) account).getAccountId();
-            }
-            return null;
-        });
+        when(dataExtractor.extractAccountId(any()))
+                .thenAnswer(
+                        invocation -> {
+                            final Object account = invocation.getArgument(0);
+                            if (account instanceof com.plaid.client.model.AccountBase) {
+                                return ((com.plaid.client.model.AccountBase) account)
+                                        .getAccountId();
+                            }
+                            return null;
+                        });
         // Mock updateAccountFromPlaid to actually set updatedAt
-        doAnswer(invocation -> {
-            AccountTable account = invocation.getArgument(0);
-            account.setUpdatedAt(java.time.Instant.now());
-            return null;
-        }).when(dataExtractor).updateAccountFromPlaid(any(AccountTable.class), any());
+        doAnswer(
+                        invocation -> {
+                            final AccountTable account = invocation.getArgument(0);
+                            account.setUpdatedAt(java.time.Instant.now());
+                            return null;
+                        })
+                .when(dataExtractor)
+                .updateAccountFromPlaid(any(AccountTable.class), any());
         doNothing().when(accountRepository).save(any(AccountTable.class));
 
         // When - Sync accounts
@@ -147,25 +187,26 @@ class PlaidDeduplicationTest {
         // OPTIMIZATION: Verify findByUserId is called once (not per account)
         verify(accountRepository, times(1)).findByUserId(testUserId);
         verify(accountRepository, never()).saveIfNotExists(any(AccountTable.class));
-        verify(accountRepository, atLeastOnce()).save(any(AccountTable.class));
+        verify(accountRepository, atLeastOnce()).saveWithLock(any(AccountTable.class));
     }
 
     @Test
-    void testSyncAccounts_WithNewPlaidAccountId_CreatesNewAccount() {
+    void testSyncAccountsWithNewPlaidAccountIdCreatesNewAccount() {
         // Given - No existing account with this plaidAccountId
-        // OPTIMIZATION: Service now loads all accounts once via findByUserId instead of per-account queries
-        when(accountRepository.findByUserId(testUserId))
-                .thenReturn(Collections.emptyList());
+        // OPTIMIZATION: Service now loads all accounts once via findByUserId instead of per-account
+        // queries
+        when(accountRepository.findByUserId(testUserId)).thenReturn(Collections.emptyList());
 
         // Mock Plaid response
-        com.plaid.client.model.AccountsGetResponse accountsResponse = new com.plaid.client.model.AccountsGetResponse();
-        var plaidAccount = mock(com.plaid.client.model.AccountBase.class);
+        final com.plaid.client.model.AccountsGetResponse accountsResponse =
+                new com.plaid.client.model.AccountsGetResponse();
+        final var plaidAccount = mock(com.plaid.client.model.AccountBase.class);
         when(plaidAccount.getAccountId()).thenReturn(testPlaidAccountId);
         when(plaidAccount.getName()).thenReturn("New Account");
         when(plaidAccount.getType()).thenReturn(com.plaid.client.model.AccountType.DEPOSITORY);
         when(plaidAccount.getSubtype()).thenReturn(com.plaid.client.model.AccountSubtype.CHECKING);
-        
-        var balances = new com.plaid.client.model.AccountBalance();
+
+        final var balances = new com.plaid.client.model.AccountBalance();
         balances.setAvailable(1000.0);
         balances.setCurrent(1000.0);
         when(plaidAccount.getBalances()).thenReturn(balances);
@@ -175,19 +216,25 @@ class PlaidDeduplicationTest {
 
         when(plaidService.getAccounts(anyString())).thenReturn(accountsResponse);
         // Mock dataExtractor to extract account IDs and update accounts
-        when(dataExtractor.extractAccountId(any())).thenAnswer(invocation -> {
-            Object account = invocation.getArgument(0);
-            if (account instanceof com.plaid.client.model.AccountBase) {
-                return ((com.plaid.client.model.AccountBase) account).getAccountId();
-            }
-            return null;
-        });
+        when(dataExtractor.extractAccountId(any()))
+                .thenAnswer(
+                        invocation -> {
+                            final Object account = invocation.getArgument(0);
+                            if (account instanceof com.plaid.client.model.AccountBase) {
+                                return ((com.plaid.client.model.AccountBase) account)
+                                        .getAccountId();
+                            }
+                            return null;
+                        });
         // Mock updateAccountFromPlaid to actually set updatedAt
-        doAnswer(invocation -> {
-            AccountTable account = invocation.getArgument(0);
-            account.setUpdatedAt(java.time.Instant.now());
-            return null;
-        }).when(dataExtractor).updateAccountFromPlaid(any(AccountTable.class), any());
+        doAnswer(
+                        invocation -> {
+                            final AccountTable account = invocation.getArgument(0);
+                            account.setUpdatedAt(java.time.Instant.now());
+                            return null;
+                        })
+                .when(dataExtractor)
+                .updateAccountFromPlaid(any(AccountTable.class), any());
         when(accountRepository.saveIfNotExists(any(AccountTable.class))).thenReturn(true);
 
         // When - Sync accounts
@@ -200,9 +247,9 @@ class PlaidDeduplicationTest {
     }
 
     @Test
-    void testSyncTransactions_WithDuplicatePlaidTransactionId_UpdatesExistingTransaction() {
+    void testSyncTransactionsWithDuplicatePlaidTransactionIdUpdatesExistingTransaction() {
         // Given - Transaction already exists with same plaidTransactionId
-        TransactionTable existingTransaction = new TransactionTable();
+        final TransactionTable existingTransaction = new TransactionTable();
         existingTransaction.setTransactionId(UUID.randomUUID().toString());
         existingTransaction.setUserId(testUserId);
         existingTransaction.setPlaidTransactionId(testPlaidTransactionId);
@@ -213,9 +260,9 @@ class PlaidDeduplicationTest {
                 .thenReturn(Optional.of(existingTransaction));
 
         // Mock Plaid response with same transaction
-        com.plaid.client.model.TransactionsGetResponse transactionsResponse = 
+        final com.plaid.client.model.TransactionsGetResponse transactionsResponse =
                 new com.plaid.client.model.TransactionsGetResponse();
-        com.plaid.client.model.Transaction transaction = new com.plaid.client.model.Transaction();
+        final com.plaid.client.model.Transaction transaction = new com.plaid.client.model.Transaction();
         transaction.setTransactionId(testPlaidTransactionId);
         transaction.setAccountId(testPlaidAccountId);
         transaction.setAmount(200.0);
@@ -225,79 +272,96 @@ class PlaidDeduplicationTest {
         transactionsResponse.setTransactions(Collections.singletonList(transaction));
         transactionsResponse.setTotalTransactions(1);
 
-        when(plaidService.getTransactions(anyString(), any(), any())).thenReturn(transactionsResponse);
+        when(plaidService.getTransactions(anyString(), any(), any()))
+                .thenReturn(transactionsResponse);
         // Mock dataExtractor to return account ID for transaction grouping and transaction ID
-        when(dataExtractor.extractAccountIdFromTransaction(any()))
-                .thenReturn(testPlaidAccountId);
+        when(dataExtractor.extractAccountIdFromTransaction(any())).thenReturn(testPlaidAccountId);
         when(dataExtractor.extractTransactionId(any()))
-                .thenAnswer(invocation -> {
-                    Object plaidTxObj = invocation.getArgument(0);
-                    if (plaidTxObj instanceof com.plaid.client.model.Transaction) {
-                        return ((com.plaid.client.model.Transaction) plaidTxObj).getTransactionId();
-                    }
-                    return null;
-                });
+                .thenAnswer(
+                        invocation -> {
+                            final Object plaidTxObj = invocation.getArgument(0);
+                            if (plaidTxObj instanceof com.plaid.client.model.Transaction) {
+                                return ((com.plaid.client.model.Transaction) plaidTxObj)
+                                        .getTransactionId();
+                            }
+                            return null;
+                        });
         // Mock updateTransactionFromPlaid to actually populate transaction fields
-        doAnswer(invocation -> {
-            TransactionTable txTable = invocation.getArgument(0);
-            Object plaidTxObj = invocation.getArgument(1);
-            if (plaidTxObj instanceof com.plaid.client.model.Transaction) {
-                com.plaid.client.model.Transaction plaidTx = (com.plaid.client.model.Transaction) plaidTxObj;
-                txTable.setMerchantName(plaidTx.getMerchantName());
-                txTable.setDescription(plaidTx.getName());
-                if (plaidTx.getDate() != null) {
-                    txTable.setTransactionDate(plaidTx.getDate().format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE));
-                }
-                if (plaidTx.getCategory() != null && !plaidTx.getCategory().isEmpty()) {
-                    txTable.setCategoryPrimary(plaidTx.getCategory().get(0));
-                } else {
-                    txTable.setCategoryPrimary("other");
-                }
-                if (plaidTx.getAmount() != null) {
-                    txTable.setAmount(java.math.BigDecimal.valueOf(plaidTx.getAmount()));
-                }
-            }
-            return null;
-        }).when(dataExtractor).updateTransactionFromPlaid(any(TransactionTable.class), any());
-        
+        doAnswer(
+                        invocation -> {
+                            final TransactionTable txTable = invocation.getArgument(0);
+                            final Object plaidTxObj = invocation.getArgument(1);
+                            if (plaidTxObj instanceof com.plaid.client.model.Transaction) {
+                                final com.plaid.client.model.Transaction plaidTx =
+                                        (com.plaid.client.model.Transaction) plaidTxObj;
+                                txTable.setMerchantName(plaidTx.getMerchantName());
+                                txTable.setDescription(plaidTx.getName());
+                                if (plaidTx.getDate() != null) {
+                                    txTable.setTransactionDate(
+                                            plaidTx.getDate()
+                                                    .format(
+                                                            java.time.format.DateTimeFormatter
+                                                                    .ISO_LOCAL_DATE));
+                                }
+                                if (plaidTx.getCategory() != null
+                                        && !plaidTx.getCategory().isEmpty()) {
+                                    txTable.setCategoryPrimary(plaidTx.getCategory().get(0));
+                                } else {
+                                    txTable.setCategoryPrimary("other");
+                                }
+                                if (plaidTx.getAmount() != null) {
+                                    txTable.setAmount(
+                                            java.math.BigDecimal.valueOf(plaidTx.getAmount()));
+                                }
+                            }
+                            return null;
+                        })
+                .when(dataExtractor)
+                .updateTransactionFromPlaid(any(TransactionTable.class), any());
+
         // Mock account lookup
-        AccountTable account = new AccountTable();
+        final AccountTable account = new AccountTable();
         account.setAccountId(UUID.randomUUID().toString());
         account.setPlaidAccountId(testPlaidAccountId);
         account.setLastSyncedAt(null); // Ensure sync isn't skipped
         when(accountRepository.findByPlaidAccountId(testPlaidAccountId))
                 .thenReturn(Optional.of(account));
-        when(accountRepository.findByUserId(testUserId)).thenReturn(Collections.singletonList(account));
-        when(transactionRepository.saveIfPlaidTransactionNotExists(any(TransactionTable.class))).thenReturn(true);
+        when(accountRepository.findByUserId(testUserId))
+                .thenReturn(Collections.singletonList(account));
+        when(transactionRepository.saveIfPlaidTransactionNotExists(any(TransactionTable.class)))
+                .thenReturn(true);
 
         // When - Sync transactions
         plaidSyncService.syncTransactions(testUser, "test-access-token");
 
         // Then - Transaction should be updated, not duplicated
-        verify(transactionRepository, atLeastOnce()).findByPlaidTransactionId(testPlaidTransactionId);
-        verify(transactionRepository, never()).saveIfPlaidTransactionNotExists(any(TransactionTable.class));
+        verify(transactionRepository, atLeastOnce())
+                .findByPlaidTransactionId(testPlaidTransactionId);
+        verify(transactionRepository, never())
+                .saveIfPlaidTransactionNotExists(any(TransactionTable.class));
         verify(transactionRepository, atLeastOnce()).save(any(TransactionTable.class));
     }
 
     @Test
-    void testSyncTransactions_WithNewPlaidTransactionId_CreatesNewTransaction() {
+    void testSyncTransactionsWithNewPlaidTransactionIdCreatesNewTransaction() {
         // Given - No existing transaction with this plaidTransactionId
         when(transactionRepository.findByPlaidTransactionId(testPlaidTransactionId))
                 .thenReturn(Optional.empty());
 
         // Mock Plaid response
-        com.plaid.client.model.TransactionsGetResponse transactionsResponse = 
+        final com.plaid.client.model.TransactionsGetResponse transactionsResponse =
                 new com.plaid.client.model.TransactionsGetResponse();
-        var plaidTransaction = mock(com.plaid.client.model.TransactionBase.class);
+        final var plaidTransaction = mock(com.plaid.client.model.TransactionBase.class);
         when(plaidTransaction.getTransactionId()).thenReturn(testPlaidTransactionId);
         when(plaidTransaction.getAccountId()).thenReturn(testPlaidAccountId);
         when(plaidTransaction.getAmount()).thenReturn(100.0);
         when(plaidTransaction.getName()).thenReturn("New Transaction");
         when(plaidTransaction.getDate()).thenReturn(java.time.LocalDate.now());
-        when(plaidTransaction.getCategory()).thenReturn(Collections.singletonList("Food and Drink"));
+        when(plaidTransaction.getCategory())
+                .thenReturn(Collections.singletonList("Food and Drink"));
 
         // Convert TransactionBase to Transaction for response
-        com.plaid.client.model.Transaction transaction = new com.plaid.client.model.Transaction();
+        final com.plaid.client.model.Transaction transaction = new com.plaid.client.model.Transaction();
         transaction.setTransactionId(testPlaidTransactionId);
         transaction.setAccountId(testPlaidAccountId);
         transaction.setAmount(200.0);
@@ -307,82 +371,101 @@ class PlaidDeduplicationTest {
         transactionsResponse.setTransactions(Collections.singletonList(transaction));
         transactionsResponse.setTotalTransactions(1);
 
-        when(plaidService.getTransactions(anyString(), any(), any())).thenReturn(transactionsResponse);
+        when(plaidService.getTransactions(anyString(), any(), any()))
+                .thenReturn(transactionsResponse);
         // Mock dataExtractor to return account ID for transaction grouping and transaction ID
-        when(dataExtractor.extractAccountIdFromTransaction(any()))
-                .thenReturn(testPlaidAccountId);
+        when(dataExtractor.extractAccountIdFromTransaction(any())).thenReturn(testPlaidAccountId);
         when(dataExtractor.extractTransactionId(any()))
-                .thenAnswer(invocation -> {
-                    Object plaidTxObj = invocation.getArgument(0);
-                    if (plaidTxObj instanceof com.plaid.client.model.Transaction) {
-                        return ((com.plaid.client.model.Transaction) plaidTxObj).getTransactionId();
-                    }
-                    return null;
-                });
+                .thenAnswer(
+                        invocation -> {
+                            final Object plaidTxObj = invocation.getArgument(0);
+                            if (plaidTxObj instanceof com.plaid.client.model.Transaction) {
+                                return ((com.plaid.client.model.Transaction) plaidTxObj)
+                                        .getTransactionId();
+                            }
+                            return null;
+                        });
         // Mock updateTransactionFromPlaid to actually populate transaction fields
-        doAnswer(invocation -> {
-            TransactionTable txTable = invocation.getArgument(0);
-            Object plaidTxObj = invocation.getArgument(1);
-            if (plaidTxObj instanceof com.plaid.client.model.Transaction) {
-                com.plaid.client.model.Transaction plaidTx = (com.plaid.client.model.Transaction) plaidTxObj;
-                txTable.setMerchantName(plaidTx.getMerchantName());
-                txTable.setDescription(plaidTx.getName());
-                if (plaidTx.getDate() != null) {
-                    txTable.setTransactionDate(plaidTx.getDate().format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE));
-                }
-                if (plaidTx.getCategory() != null && !plaidTx.getCategory().isEmpty()) {
-                    txTable.setCategoryPrimary(plaidTx.getCategory().get(0));
-                } else {
-                    txTable.setCategoryPrimary("other");
-                }
-                if (plaidTx.getAmount() != null) {
-                    txTable.setAmount(java.math.BigDecimal.valueOf(plaidTx.getAmount()));
-                }
-            }
-            return null;
-        }).when(dataExtractor).updateTransactionFromPlaid(any(TransactionTable.class), any());
-        
+        doAnswer(
+                        invocation -> {
+                            final TransactionTable txTable = invocation.getArgument(0);
+                            final Object plaidTxObj = invocation.getArgument(1);
+                            if (plaidTxObj instanceof com.plaid.client.model.Transaction) {
+                                final com.plaid.client.model.Transaction plaidTx =
+                                        (com.plaid.client.model.Transaction) plaidTxObj;
+                                txTable.setMerchantName(plaidTx.getMerchantName());
+                                txTable.setDescription(plaidTx.getName());
+                                if (plaidTx.getDate() != null) {
+                                    txTable.setTransactionDate(
+                                            plaidTx.getDate()
+                                                    .format(
+                                                            java.time.format.DateTimeFormatter
+                                                                    .ISO_LOCAL_DATE));
+                                }
+                                if (plaidTx.getCategory() != null
+                                        && !plaidTx.getCategory().isEmpty()) {
+                                    txTable.setCategoryPrimary(plaidTx.getCategory().get(0));
+                                } else {
+                                    txTable.setCategoryPrimary("other");
+                                }
+                                if (plaidTx.getAmount() != null) {
+                                    txTable.setAmount(
+                                            java.math.BigDecimal.valueOf(plaidTx.getAmount()));
+                                }
+                            }
+                            return null;
+                        })
+                .when(dataExtractor)
+                .updateTransactionFromPlaid(any(TransactionTable.class), any());
+
         // Mock account lookup
-        AccountTable account = new AccountTable();
+        final AccountTable account = new AccountTable();
         account.setAccountId(UUID.randomUUID().toString());
         account.setPlaidAccountId(testPlaidAccountId);
         account.setLastSyncedAt(null); // Ensure sync isn't skipped
         when(accountRepository.findByPlaidAccountId(testPlaidAccountId))
                 .thenReturn(Optional.of(account));
-        when(accountRepository.findByUserId(testUserId)).thenReturn(Collections.singletonList(account));
-        when(transactionRepository.saveIfPlaidTransactionNotExists(any(TransactionTable.class))).thenReturn(true);
-        when(transactionRepository.saveIfPlaidTransactionNotExists(any(TransactionTable.class))).thenReturn(true);
+        when(accountRepository.findByUserId(testUserId))
+                .thenReturn(Collections.singletonList(account));
+        when(transactionRepository.saveIfPlaidTransactionNotExists(any(TransactionTable.class)))
+                .thenReturn(true);
+        when(transactionRepository.saveIfPlaidTransactionNotExists(any(TransactionTable.class)))
+                .thenReturn(true);
 
         // When - Sync transactions
         plaidSyncService.syncTransactions(testUser, "test-access-token");
 
         // Then - New transaction should be created
-        verify(transactionRepository, atLeastOnce()).findByPlaidTransactionId(testPlaidTransactionId);
-        verify(transactionRepository, times(1)).saveIfPlaidTransactionNotExists(any(TransactionTable.class));
+        verify(transactionRepository, atLeastOnce())
+                .findByPlaidTransactionId(testPlaidTransactionId);
+        verify(transactionRepository, times(1))
+                .saveIfPlaidTransactionNotExists(any(TransactionTable.class));
     }
 
     @Test
-    void testSyncAccounts_WithMultiplePlaidCalls_DoesNotCreateDuplicates() {
+    void testSyncAccountsWithMultiplePlaidCallsDoesNotCreateDuplicates() {
         // Given - Account already exists
-        AccountTable existingAccount = new AccountTable();
+        final AccountTable existingAccount = new AccountTable();
         existingAccount.setAccountId(UUID.randomUUID().toString());
         existingAccount.setUserId(testUserId);
         existingAccount.setPlaidAccountId(testPlaidAccountId);
         existingAccount.setAccountName("Existing Account");
 
-        // OPTIMIZATION: Service now loads all accounts once via findByUserId instead of per-account queries
+        // OPTIMIZATION: Service now loads all accounts once via findByUserId instead of per-account
+        // queries
         when(accountRepository.findByUserId(testUserId))
                 .thenReturn(Collections.singletonList(existingAccount));
 
         // Mock Plaid response
-        com.plaid.client.model.AccountsGetResponse accountsResponse = new com.plaid.client.model.AccountsGetResponse();
-        var plaidAccount = mock(com.plaid.client.model.AccountBase.class);
+        final com.plaid.client.model.AccountsGetResponse accountsResponse =
+                new com.plaid.client.model.AccountsGetResponse();
+        final var plaidAccount = mock(com.plaid.client.model.AccountBase.class);
         when(plaidAccount.getAccountId()).thenReturn(testPlaidAccountId);
         when(plaidAccount.getName()).thenReturn("Account Name");
         when(plaidAccount.getType()).thenReturn(com.plaid.client.model.AccountType.DEPOSITORY);
         when(plaidAccount.getSubtype()).thenReturn(com.plaid.client.model.AccountSubtype.CHECKING);
-        
-        var balances = new com.plaid.client.model.AccountBalance();
+
+        final var balances = new com.plaid.client.model.AccountBalance();
         balances.setAvailable(1000.0);
         balances.setCurrent(1000.0);
         when(plaidAccount.getBalances()).thenReturn(balances);
@@ -392,19 +475,25 @@ class PlaidDeduplicationTest {
 
         when(plaidService.getAccounts(anyString())).thenReturn(accountsResponse);
         // Mock dataExtractor to extract account IDs and update accounts
-        when(dataExtractor.extractAccountId(any())).thenAnswer(invocation -> {
-            Object account = invocation.getArgument(0);
-            if (account instanceof com.plaid.client.model.AccountBase) {
-                return ((com.plaid.client.model.AccountBase) account).getAccountId();
-            }
-            return null;
-        });
+        when(dataExtractor.extractAccountId(any()))
+                .thenAnswer(
+                        invocation -> {
+                            final Object account = invocation.getArgument(0);
+                            if (account instanceof com.plaid.client.model.AccountBase) {
+                                return ((com.plaid.client.model.AccountBase) account)
+                                        .getAccountId();
+                            }
+                            return null;
+                        });
         // Mock updateAccountFromPlaid to actually set updatedAt
-        doAnswer(invocation -> {
-            AccountTable account = invocation.getArgument(0);
-            account.setUpdatedAt(java.time.Instant.now());
-            return null;
-        }).when(dataExtractor).updateAccountFromPlaid(any(AccountTable.class), any());
+        doAnswer(
+                        invocation -> {
+                            final AccountTable account = invocation.getArgument(0);
+                            account.setUpdatedAt(java.time.Instant.now());
+                            return null;
+                        })
+                .when(dataExtractor)
+                .updateAccountFromPlaid(any(AccountTable.class), any());
         doNothing().when(accountRepository).save(any(AccountTable.class));
 
         // When - Sync accounts multiple times
@@ -413,41 +502,45 @@ class PlaidDeduplicationTest {
         plaidSyncService.syncAccounts(testUser, "test-access-token", null);
 
         // Then - Account should only be updated, never duplicated
-        // OPTIMIZATION: Verify findByUserId is called once per sync (3 times total), not per account
+        // OPTIMIZATION: Verify findByUserId is called once per sync (3 times total), not per
+        // account
         verify(accountRepository, times(3)).findByUserId(testUserId);
         verify(accountRepository, never()).saveIfNotExists(any(AccountTable.class));
-        verify(accountRepository, atLeastOnce()).save(any(AccountTable.class));
+        verify(accountRepository, atLeastOnce()).saveWithLock(any(AccountTable.class));
     }
 
     @Test
-    void testSyncTransactions_WithMultiplePlaidCalls_DoesNotCreateDuplicates() {
+    void testSyncTransactionsWithMultiplePlaidCallsDoesNotCreateDuplicates() {
         // Given - Transaction already exists
-        TransactionTable existingTransaction = new TransactionTable();
+        final TransactionTable existingTransaction = new TransactionTable();
         existingTransaction.setTransactionId(UUID.randomUUID().toString());
         existingTransaction.setUserId(testUserId);
         existingTransaction.setPlaidTransactionId(testPlaidTransactionId);
         existingTransaction.setDescription("Existing Transaction");
 
-        // Mock to return existing transaction for all calls (each sync processes transactions per account)
-        // The sync is called 3 times, and each time it processes transactions, so findByPlaidTransactionId is called once per sync
+        // Mock to return existing transaction for all calls (each sync processes transactions per
+        // account)
+        // The sync is called 3 times, and each time it processes transactions, so
+        // findByPlaidTransactionId is called once per sync
         when(transactionRepository.findByPlaidTransactionId(testPlaidTransactionId))
                 .thenReturn(Optional.of(existingTransaction))
                 .thenReturn(Optional.of(existingTransaction))
                 .thenReturn(Optional.of(existingTransaction));
 
         // Mock Plaid response
-        com.plaid.client.model.TransactionsGetResponse transactionsResponse = 
+        final com.plaid.client.model.TransactionsGetResponse transactionsResponse =
                 new com.plaid.client.model.TransactionsGetResponse();
-        var plaidTransaction = mock(com.plaid.client.model.TransactionBase.class);
+        final var plaidTransaction = mock(com.plaid.client.model.TransactionBase.class);
         when(plaidTransaction.getTransactionId()).thenReturn(testPlaidTransactionId);
         when(plaidTransaction.getAccountId()).thenReturn(testPlaidAccountId);
         when(plaidTransaction.getAmount()).thenReturn(100.0);
         when(plaidTransaction.getName()).thenReturn("Transaction");
         when(plaidTransaction.getDate()).thenReturn(java.time.LocalDate.now());
-        when(plaidTransaction.getCategory()).thenReturn(Collections.singletonList("Food and Drink"));
+        when(plaidTransaction.getCategory())
+                .thenReturn(Collections.singletonList("Food and Drink"));
 
         // Convert TransactionBase to Transaction for response
-        com.plaid.client.model.Transaction transaction = new com.plaid.client.model.Transaction();
+        final com.plaid.client.model.Transaction transaction = new com.plaid.client.model.Transaction();
         transaction.setTransactionId(testPlaidTransactionId);
         transaction.setAccountId(testPlaidAccountId);
         transaction.setAmount(200.0);
@@ -457,85 +550,104 @@ class PlaidDeduplicationTest {
         transactionsResponse.setTransactions(Collections.singletonList(transaction));
         transactionsResponse.setTotalTransactions(1);
 
-        when(plaidService.getTransactions(anyString(), any(), any())).thenReturn(transactionsResponse);
-        
+        when(plaidService.getTransactions(anyString(), any(), any()))
+                .thenReturn(transactionsResponse);
+
         // Mock dataExtractor to return account ID for transaction grouping and transaction ID
-        when(dataExtractor.extractAccountIdFromTransaction(any()))
-                .thenReturn(testPlaidAccountId);
+        when(dataExtractor.extractAccountIdFromTransaction(any())).thenReturn(testPlaidAccountId);
         when(dataExtractor.extractTransactionId(any()))
-                .thenAnswer(invocation -> {
-                    Object plaidTxObj = invocation.getArgument(0);
-                    if (plaidTxObj instanceof com.plaid.client.model.Transaction) {
-                        return ((com.plaid.client.model.Transaction) plaidTxObj).getTransactionId();
-                    }
-                    return null;
-                });
+                .thenAnswer(
+                        invocation -> {
+                            final Object plaidTxObj = invocation.getArgument(0);
+                            if (plaidTxObj instanceof com.plaid.client.model.Transaction) {
+                                return ((com.plaid.client.model.Transaction) plaidTxObj)
+                                        .getTransactionId();
+                            }
+                            return null;
+                        });
         // Mock updateTransactionFromPlaid to actually populate transaction fields
-        doAnswer(invocation -> {
-            TransactionTable txTable = invocation.getArgument(0);
-            Object plaidTxObj = invocation.getArgument(1);
-            if (plaidTxObj instanceof com.plaid.client.model.Transaction) {
-                com.plaid.client.model.Transaction plaidTx = (com.plaid.client.model.Transaction) plaidTxObj;
-                txTable.setMerchantName(plaidTx.getMerchantName());
-                txTable.setDescription(plaidTx.getName());
-                if (plaidTx.getDate() != null) {
-                    txTable.setTransactionDate(plaidTx.getDate().format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE));
-                }
-                if (plaidTx.getAmount() != null) {
-                    txTable.setAmount(java.math.BigDecimal.valueOf(plaidTx.getAmount()));
-                }
-                
-                // Extract PersonalFinanceCategory
-                String plaidCategoryPrimary = null;
-                String plaidCategoryDetailed = null;
-                try {
-                    var personalFinanceCategory = plaidTx.getPersonalFinanceCategory();
-                    if (personalFinanceCategory != null) {
-                        plaidCategoryPrimary = personalFinanceCategory.getPrimary();
-                        plaidCategoryDetailed = personalFinanceCategory.getDetailed();
-                    }
-                } catch (Exception e) {
-                    // Ignore
-                }
-                
-                // Use categoryMapper to map categories
-                PlaidCategoryMapper.CategoryMapping categoryMapping;
-                if (plaidCategoryPrimary != null || plaidCategoryDetailed != null) {
-                    categoryMapping = categoryMapper.mapPlaidCategory(
-                        plaidCategoryPrimary,
-                        plaidCategoryDetailed,
-                        txTable.getMerchantName(),
-                        txTable.getDescription()
-                    );
-                } else {
-                    categoryMapping = new PlaidCategoryMapper.CategoryMapping("other", "other", false);
-                }
-                
-                txTable.setImporterCategoryPrimary(plaidCategoryPrimary);
-                txTable.setImporterCategoryDetailed(plaidCategoryDetailed);
-                txTable.setCategoryPrimary(categoryMapping.getPrimary());
-                txTable.setCategoryDetailed(categoryMapping.getDetailed());
-                txTable.setCategoryOverridden(categoryMapping.isOverridden());
-            }
-            return null;
-        }).when(dataExtractor).updateTransactionFromPlaid(any(TransactionTable.class), any());
-        
+        doAnswer(
+                        invocation -> {
+                            final TransactionTable txTable = invocation.getArgument(0);
+                            final Object plaidTxObj = invocation.getArgument(1);
+                            if (plaidTxObj instanceof com.plaid.client.model.Transaction) {
+                                final com.plaid.client.model.Transaction plaidTx =
+                                        (com.plaid.client.model.Transaction) plaidTxObj;
+                                txTable.setMerchantName(plaidTx.getMerchantName());
+                                txTable.setDescription(plaidTx.getName());
+                                if (plaidTx.getDate() != null) {
+                                    txTable.setTransactionDate(
+                                            plaidTx.getDate()
+                                                    .format(
+                                                            java.time.format.DateTimeFormatter
+                                                                    .ISO_LOCAL_DATE));
+                                }
+                                if (plaidTx.getAmount() != null) {
+                                    txTable.setAmount(
+                                            java.math.BigDecimal.valueOf(plaidTx.getAmount()));
+                                }
+
+                                // Extract PersonalFinanceCategory
+                                String plaidCategoryPrimary = null;
+                                String plaidCategoryDetailed = null;
+                                try {
+                                    final var personalFinanceCategory =
+                                            plaidTx.getPersonalFinanceCategory();
+                                    if (personalFinanceCategory != null) {
+                                        plaidCategoryPrimary = personalFinanceCategory.getPrimary();
+                                        plaidCategoryDetailed =
+                                                personalFinanceCategory.getDetailed();
+                                    }
+                                } catch (Exception e) {
+                                    // Ignore
+                                }
+
+                                // Use categoryMapper to map categories
+                                final PlaidCategoryMapper.CategoryMapping categoryMapping;
+                                if (plaidCategoryPrimary != null || plaidCategoryDetailed != null) {
+                                    categoryMapping =
+                                            categoryMapper.mapPlaidCategory(
+                                                    plaidCategoryPrimary,
+                                                    plaidCategoryDetailed,
+                                                    txTable.getMerchantName(),
+                                                    txTable.getDescription());
+                                } else {
+                                    categoryMapping =
+                                            new PlaidCategoryMapper.CategoryMapping(
+                                                    "other", "other", false);
+                                }
+
+                                txTable.setImporterCategoryPrimary(plaidCategoryPrimary);
+                                txTable.setImporterCategoryDetailed(plaidCategoryDetailed);
+                                txTable.setCategoryPrimary(categoryMapping.getPrimary());
+                                txTable.setCategoryDetailed(categoryMapping.getDetailed());
+                                txTable.setCategoryOverridden(categoryMapping.isOverridden());
+                            }
+                            return null;
+                        })
+                .when(dataExtractor)
+                .updateTransactionFromPlaid(any(TransactionTable.class), any());
+
         // Mock account lookup - ensure lastSyncedAt is null initially so sync isn't skipped
-        AccountTable account = new AccountTable();
+        final AccountTable account = new AccountTable();
         account.setAccountId(UUID.randomUUID().toString());
         account.setPlaidAccountId(testPlaidAccountId);
         account.setLastSyncedAt(null); // Ensure first sync isn't skipped
         when(accountRepository.findByPlaidAccountId(testPlaidAccountId))
                 .thenReturn(Optional.of(account));
         // Reset lastSyncedAt between syncs to avoid skipping due to 5-minute threshold
-        when(accountRepository.findByUserId(testUserId)).thenReturn(Collections.singletonList(account));
+        when(accountRepository.findByUserId(testUserId))
+                .thenReturn(Collections.singletonList(account));
         // Mock account save to prevent lastSyncedAt from being updated
-        doAnswer(invocation -> {
-            AccountTable savedAccount = invocation.getArgument(0);
-            // Don't update lastSyncedAt in the mock to allow multiple syncs
-            savedAccount.setLastSyncedAt(null);
-            return null;
-        }).when(accountRepository).save(any(AccountTable.class));
+        doAnswer(
+                        invocation -> {
+                            final AccountTable savedAccount = invocation.getArgument(0);
+                            // Don't update lastSyncedAt in the mock to allow multiple syncs
+                            savedAccount.setLastSyncedAt(null);
+                            return null;
+                        })
+                .when(accountRepository)
+                .save(any(AccountTable.class));
 
         // When - Sync transactions multiple times
         plaidSyncService.syncTransactions(testUser, "test-access-token");
@@ -543,15 +655,18 @@ class PlaidDeduplicationTest {
         plaidSyncService.syncTransactions(testUser, "test-access-token");
 
         // Then - Transaction should only be updated, never duplicated
-        // Since findByPlaidTransactionId returns existing transaction, saveIfPlaidTransactionNotExists should never be called
+        // Since findByPlaidTransactionId returns existing transaction,
+        // saveIfPlaidTransactionNotExists should never be called
         // Instead, save() should be called to update the existing transaction
-        // Note: Each sync processes transactions per account, so findByPlaidTransactionId is called once per transaction per sync
+        // Note: Each sync processes transactions per account, so findByPlaidTransactionId is called
+        // once per transaction per sync
         // Since we have 1 transaction and 1 account, it's called once per sync = 3 times total
         verify(transactionRepository, times(3)).findByPlaidTransactionId(testPlaidTransactionId);
-        // When transaction exists, we update it directly with save(), not saveIfPlaidTransactionNotExists
-        verify(transactionRepository, never()).saveIfPlaidTransactionNotExists(any(TransactionTable.class));
+        // When transaction exists, we update it directly with save(), not
+        // saveIfPlaidTransactionNotExists
+        verify(transactionRepository, never())
+                .saveIfPlaidTransactionNotExists(any(TransactionTable.class));
         // save() should be called to update the existing transaction on each sync
         verify(transactionRepository, atLeast(1)).save(any(TransactionTable.class));
     }
 }
-

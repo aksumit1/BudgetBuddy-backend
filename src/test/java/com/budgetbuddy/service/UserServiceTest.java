@@ -1,10 +1,29 @@
 package com.budgetbuddy.service;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.anyString;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.isNull;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.timeout;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import com.budgetbuddy.exception.AppException;
 import com.budgetbuddy.exception.ErrorCode;
 import com.budgetbuddy.model.dynamodb.UserTable;
 import com.budgetbuddy.repository.dynamodb.UserRepository;
 import com.budgetbuddy.security.PasswordHashingService;
+import java.util.Optional;
+import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -12,31 +31,17 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
-
-/**
- * Unit Tests for UserService
- */
+/** Unit Tests for UserService */
 @ExtendWith(MockitoExtension.class)
 class UserServiceTest {
 
-    @Mock
-    private UserRepository userRepository;
+    @Mock private UserRepository userRepository;
 
-    @Mock
-    private PasswordHashingService passwordHashingService;
+    @Mock private PasswordHashingService passwordHashingService;
 
-    @Mock
-    private com.budgetbuddy.repository.dynamodb.AccountRepository accountRepository;
+    @Mock private com.budgetbuddy.repository.dynamodb.AccountRepository accountRepository;
 
-    @InjectMocks
-    private UserService userService;
+    @InjectMocks private UserService userService;
 
     private String testEmail;
     private String testPasswordHash;
@@ -50,23 +55,20 @@ class UserServiceTest {
     }
 
     @Test
-    void testCreateUserSecure_WithValidData_CreatesUser() {
+    void testCreateUserSecureWithValidDataCreatesUser() {
         // Given
-        PasswordHashingService.PasswordHashResult serverHash =
+        final PasswordHashingService.PasswordHashResult serverHash =
                 new PasswordHashingService.PasswordHashResult("server-hash", "server-salt");
         when(passwordHashingService.hashClientPassword(anyString(), isNull()))
                 .thenReturn(serverHash);
         when(userRepository.saveIfNotExists(any(UserTable.class))).thenReturn(true);
-        // CRITICAL FIX: findAllByEmail is now called asynchronously, so we don't need to stub it here
+        // CRITICAL FIX: findAllByEmail is now called asynchronously, so we don't need to stub it
+        // here
         // when(userRepository.findAllByEmail(testEmail)).thenReturn(java.util.Collections.emptyList());
 
         // When - BREAKING CHANGE: Client salt removed
-        UserTable result = userService.createUserSecure(
-                testEmail,
-                testPasswordHash,
-                "Test",
-                "User"
-        );
+        final UserTable result =
+                userService.createUserSecure(testEmail, testPasswordHash, "Test", "User");
 
         // Then
         assertNotNull(result);
@@ -76,11 +78,11 @@ class UserServiceTest {
     }
 
     @Test
-    void testCreateUserSecure_WithExistingEmail_ThrowsException() {
+    void testCreateUserSecureWithExistingEmailThrowsException() {
         // Given - Simulate userId collision (saveIfNotExists returns false)
         // CRITICAL FIX: The implementation changed - duplicate email detection is now async
         // When saveIfNotExists returns false, it means userId collision (INTERNAL_SERVER_ERROR)
-        PasswordHashingService.PasswordHashResult serverHash =
+        final PasswordHashingService.PasswordHashResult serverHash =
                 new PasswordHashingService.PasswordHashResult("server-hash", "server-salt");
         when(passwordHashingService.hashClientPassword(anyString(), isNull()))
                 .thenReturn(serverHash);
@@ -89,41 +91,40 @@ class UserServiceTest {
 
         // When/Then
         // BREAKING CHANGE: Client salt removed
-        AppException exception = assertThrows(AppException.class,
-                () -> userService.createUserSecure(
-                        testEmail,
-                        testPasswordHash,
-                        "Test",
-                        "User"
-                ));
+        final AppException exception =
+                assertThrows(
+                        AppException.class,
+                        () ->
+                                userService.createUserSecure(
+                                        testEmail, testPasswordHash, "Test", "User"));
         // CRITICAL FIX: The implementation now throws INTERNAL_SERVER_ERROR for userId collision
         assertEquals(ErrorCode.INTERNAL_SERVER_ERROR, exception.getErrorCode());
-        assertTrue(exception.getMessage().contains("Failed to create user") || exception.getMessage().contains("try again"));
+        assertTrue(
+                exception.getMessage().contains("Failed to create user")
+                        || exception.getMessage().contains("try again"));
     }
 
     @Test
-    void testCreateUserSecure_CreatesPseudoAccount() {
+    void testCreateUserSecureCreatesPseudoAccount() {
         // Given
-        PasswordHashingService.PasswordHashResult serverHash =
+        final PasswordHashingService.PasswordHashResult serverHash =
                 new PasswordHashingService.PasswordHashResult("server-hash", "server-salt");
         when(passwordHashingService.hashClientPassword(anyString(), isNull()))
                 .thenReturn(serverHash);
         when(userRepository.saveIfNotExists(any(UserTable.class))).thenReturn(true);
-        when(userRepository.findAllByEmail(testEmail)).thenReturn(java.util.Collections.emptyList());
-        
+        when(userRepository.findAllByEmail(testEmail))
+                .thenReturn(java.util.Collections.emptyList());
+
         // Mock pseudo account creation
-        com.budgetbuddy.model.dynamodb.AccountTable pseudoAccount = new com.budgetbuddy.model.dynamodb.AccountTable();
+        final com.budgetbuddy.model.dynamodb.AccountTable pseudoAccount =
+                new com.budgetbuddy.model.dynamodb.AccountTable();
         pseudoAccount.setAccountId("pseudo-account-id");
         pseudoAccount.setAccountName("Manual Transactions");
         when(accountRepository.getOrCreatePseudoAccount(anyString())).thenReturn(pseudoAccount);
 
         // When
-        UserTable result = userService.createUserSecure(
-                testEmail,
-                testPasswordHash,
-                "Test",
-                "User"
-        );
+        final UserTable result =
+                userService.createUserSecure(testEmail, testPasswordHash, "Test", "User");
 
         // Then
         assertNotNull(result);
@@ -141,29 +142,30 @@ class UserServiceTest {
     }
 
     @Test
-    void testCreateUserSecure_WithPseudoAccountCreationFailure_StillCreatesUser() {
+    void testCreateUserSecureWithPseudoAccountCreationFailureStillCreatesUser() {
         // Given - Pseudo account creation fails, but user creation should still succeed
-        PasswordHashingService.PasswordHashResult serverHash =
+        final PasswordHashingService.PasswordHashResult serverHash =
                 new PasswordHashingService.PasswordHashResult("server-hash", "server-salt");
         when(passwordHashingService.hashClientPassword(anyString(), isNull()))
                 .thenReturn(serverHash);
         when(userRepository.saveIfNotExists(any(UserTable.class))).thenReturn(true);
-        // CRITICAL FIX: findAllByEmail is called asynchronously in CompletableFuture.runAsync(), so it's not called synchronously
+        // CRITICAL FIX: findAllByEmail is called asynchronously in CompletableFuture.runAsync(), so
+        // it's not called synchronously
         // Remove this stubbing or make it lenient since it's not used in the synchronous path
-        lenient().when(userRepository.findAllByEmail(testEmail)).thenReturn(java.util.Collections.emptyList());
-        
-        // CRITICAL FIX: Use lenient() since pseudo account creation is async and might not be called synchronously
+        lenient()
+                .when(userRepository.findAllByEmail(testEmail))
+                .thenReturn(java.util.Collections.emptyList());
+
+        // CRITICAL FIX: Use lenient() since pseudo account creation is async and might not be
+        // called synchronously
         // Mock pseudo account creation failure
-        lenient().when(accountRepository.getOrCreatePseudoAccount(anyString()))
+        lenient()
+                .when(accountRepository.getOrCreatePseudoAccount(anyString()))
                 .thenThrow(new RuntimeException("Failed to create pseudo account"));
 
         // When - Should still create user (pseudo account creation is best-effort)
-        UserTable result = userService.createUserSecure(
-                testEmail,
-                testPasswordHash,
-                "Test",
-                "User"
-        );
+        final UserTable result =
+                userService.createUserSecure(testEmail, testPasswordHash, "Test", "User");
 
         // Then - User should still be created
         assertNotNull(result);
@@ -172,27 +174,24 @@ class UserServiceTest {
     }
 
     @Test
-    void testCreateUserSecure_WithNullEmail_ThrowsException() {
+    void testCreateUserSecureWithNullEmailThrowsException() {
         // When/Then
         // BREAKING CHANGE: Client salt removed
-        AppException exception = assertThrows(AppException.class,
-                () -> userService.createUserSecure(
-                        null,
-                        testPasswordHash,
-                        "Test",
-                        "User"
-                ));
+        final AppException exception =
+                assertThrows(
+                        AppException.class,
+                        () -> userService.createUserSecure(null, testPasswordHash, "Test", "User"));
         assertEquals(ErrorCode.INVALID_INPUT, exception.getErrorCode());
     }
 
     @Test
-    void testFindByEmail_WithValidEmail_ReturnsUser() {
+    void testFindByEmailWithValidEmailReturnsUser() {
         // Given
-        UserTable user = createTestUser();
+        final UserTable user = createTestUser();
         when(userRepository.findByEmail(testEmail)).thenReturn(Optional.of(user));
 
         // When
-        Optional<UserTable> result = userService.findByEmail(testEmail);
+        final Optional<UserTable> result = userService.findByEmail(testEmail);
 
         // Then
         assertTrue(result.isPresent());
@@ -200,22 +199,22 @@ class UserServiceTest {
     }
 
     @Test
-    void testFindByEmail_WithNullEmail_ReturnsEmpty() {
+    void testFindByEmailWithNullEmailReturnsEmpty() {
         // When
-        Optional<UserTable> result = userService.findByEmail(null);
+        final Optional<UserTable> result = userService.findByEmail(null);
 
         // Then
         assertFalse(result.isPresent());
     }
 
     @Test
-    void testUpdateUser_WithValidUser_UpdatesUser() {
+    void testUpdateUserWithValidUserUpdatesUser() {
         // Given
-        UserTable user = createTestUser();
+        final UserTable user = createTestUser();
         doNothing().when(userRepository).save(any(UserTable.class));
 
         // When
-        UserTable result = userService.updateUser(user);
+        final UserTable result = userService.updateUser(user);
 
         // Then
         assertNotNull(result);
@@ -223,22 +222,21 @@ class UserServiceTest {
     }
 
     @Test
-    void testUpdateUser_WithNullUser_ThrowsException() {
+    void testUpdateUserWithNullUserThrowsException() {
         // When/Then
-        AppException exception = assertThrows(AppException.class,
-                () -> userService.updateUser(null));
+        final AppException exception =
+                assertThrows(AppException.class, () -> userService.updateUser(null));
         assertEquals(ErrorCode.INVALID_INPUT, exception.getErrorCode());
     }
 
     @Test
-    void testChangePasswordSecure_WithValidData_UpdatesPassword() {
+    void testChangePasswordSecureWithValidDataUpdatesPassword() {
         // Given
-        UserTable user = createTestUser();
-        PasswordHashingService.PasswordHashResult newHash =
+        final UserTable user = createTestUser();
+        final PasswordHashingService.PasswordHashResult newHash =
                 new PasswordHashingService.PasswordHashResult("new-hash", "new-salt");
         when(userRepository.findById("user-123")).thenReturn(Optional.of(user));
-        when(passwordHashingService.hashClientPassword(anyString(), isNull()))
-                .thenReturn(newHash);
+        when(passwordHashingService.hashClientPassword(anyString(), isNull())).thenReturn(newHash);
         doNothing().when(userRepository).save(any(UserTable.class));
 
         // When - BREAKING CHANGE: Client salt removed
@@ -249,20 +247,22 @@ class UserServiceTest {
     }
 
     @Test
-    void testChangePasswordSecure_WithInvalidUserId_ThrowsException() {
+    void testChangePasswordSecureWithInvalidUserIdThrowsException() {
         // Given
         when(userRepository.findById("invalid-user")).thenReturn(Optional.empty());
 
         // When/Then
         // BREAKING CHANGE: Client salt removed
-        AppException exception = assertThrows(AppException.class,
-                () -> userService.changePasswordSecure("invalid-user", "hash"));
+        final AppException exception =
+                assertThrows(
+                        AppException.class,
+                        () -> userService.changePasswordSecure("invalid-user", "hash"));
         assertEquals(ErrorCode.USER_NOT_FOUND, exception.getErrorCode());
     }
 
     // Helper methods
     private UserTable createTestUser() {
-        UserTable user = new UserTable();
+        final UserTable user = new UserTable();
         user.setUserId("user-123");
         user.setEmail(testEmail);
         user.setFirstName("Test");
@@ -272,4 +272,3 @@ class UserServiceTest {
         return user;
     }
 }
-

@@ -1,5 +1,9 @@
 package com.budgetbuddy.config;
 
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+
 import org.apache.catalina.connector.Connector;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -10,22 +14,11 @@ import org.springframework.boot.web.embedded.tomcat.TomcatServletWebServerFactor
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.event.ContextClosedEvent;
 
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.Executors;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
-
-/**
- * Unit Tests for GracefulShutdownConfig
- * Tests graceful shutdown configuration and behavior
- */
+/** Unit Tests for GracefulShutdownConfig Tests graceful shutdown configuration and behavior */
 @ExtendWith(MockitoExtension.class)
 class GracefulShutdownConfigTest {
 
-    @Mock
-    private ApplicationContext applicationContext;
+    @Mock private ApplicationContext applicationContext;
 
     private GracefulShutdownConfig.GracefulShutdown gracefulShutdown;
 
@@ -35,10 +28,10 @@ class GracefulShutdownConfigTest {
     }
 
     @Test
-    void testCustomize_SetsConnector() {
+    void testCustomizeSetsConnector() {
         // Given
-        Connector connector = mock(Connector.class);
-        
+        final Connector connector = mock(Connector.class);
+
         // When
         gracefulShutdown.customize(connector);
 
@@ -47,11 +40,11 @@ class GracefulShutdownConfigTest {
     }
 
     @Test
-    void testOnApplicationEvent_WithNullConnector_DoesNotFail() {
+    void testOnApplicationEventWithNullConnectorDoesNotFail() {
         // Given - connector is null (not customized)
-        
+
         // When
-        ContextClosedEvent event = new ContextClosedEvent(applicationContext);
+        final ContextClosedEvent event = new ContextClosedEvent(applicationContext);
         gracefulShutdown.onApplicationEvent(event);
 
         // Then - Should not throw exception
@@ -59,28 +52,29 @@ class GracefulShutdownConfigTest {
     }
 
     @Test
-    void testServletContainer_CreatesFactory() {
+    void testServletContainerCreatesFactory() {
         // Given
-        GracefulShutdownConfig config = new GracefulShutdownConfig();
-        GracefulShutdownConfig.GracefulShutdown shutdown = new GracefulShutdownConfig.GracefulShutdown();
+        final GracefulShutdownConfig config = new GracefulShutdownConfig();
+        final GracefulShutdownConfig.GracefulShutdown shutdown =
+                new GracefulShutdownConfig.GracefulShutdown();
 
         // When
-        TomcatServletWebServerFactory factory = (TomcatServletWebServerFactory) config.servletContainer(shutdown);
+        final TomcatServletWebServerFactory factory =
+                (TomcatServletWebServerFactory) config.servletContainer(shutdown);
 
         // Then
         assertNotNull(factory, "Factory should be created");
     }
 
     @Test
-    void testGracefulShutdown_BeanCreation() {
+    void testGracefulShutdownBeanCreation() {
         // Given
-        GracefulShutdownConfig config = new GracefulShutdownConfig();
+        final GracefulShutdownConfig config = new GracefulShutdownConfig();
 
         // When
-        GracefulShutdownConfig.GracefulShutdown shutdown = config.gracefulShutdown();
+        final GracefulShutdownConfig.GracefulShutdown shutdown = config.gracefulShutdown();
 
         // Then
         assertNotNull(shutdown, "GracefulShutdown bean should be created");
     }
 }
-

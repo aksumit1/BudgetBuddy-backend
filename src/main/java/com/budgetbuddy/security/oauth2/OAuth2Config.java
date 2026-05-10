@@ -9,10 +9,7 @@ import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 
-/**
- * OAuth2 Configuration
- * Supports OAuth2 authentication with JWT tokens
- */
+/** OAuth2 Configuration Supports OAuth2 authentication with JWT tokens */
 @Configuration
 @EnableWebSecurity
 public class OAuth2Config {
@@ -23,9 +20,7 @@ public class OAuth2Config {
     @Value("${app.oauth2.jwt.jwk-set-uri:}")
     private String jwkSetUri;
 
-    /**
-     * JWT Decoder for OAuth2
-     */
+    /** JWT Decoder for OAuth2 */
     @Bean
     public JwtDecoder jwtDecoder() {
         if (jwkSetUri != null && !jwkSetUri.isEmpty()) {
@@ -37,21 +32,17 @@ public class OAuth2Config {
         return null;
     }
 
-    /**
-     * JWT Authentication Converter
-     * Extracts authorities from JWT claims
-     */
+    /** JWT Authentication Converter Extracts authorities from JWT claims */
     @Bean
     public JwtAuthenticationConverter jwtAuthenticationConverter() {
-        JwtGrantedAuthoritiesConverter authoritiesConverter = new JwtGrantedAuthoritiesConverter();
+        final JwtGrantedAuthoritiesConverter authoritiesConverter = new JwtGrantedAuthoritiesConverter();
         authoritiesConverter.setAuthorityPrefix("ROLE_");
         authoritiesConverter.setAuthoritiesClaimName("authorities");
 
-        JwtAuthenticationConverter authenticationConverter = new JwtAuthenticationConverter();
+        final JwtAuthenticationConverter authenticationConverter = new JwtAuthenticationConverter();
         authenticationConverter.setJwtGrantedAuthoritiesConverter(authoritiesConverter);
         authenticationConverter.setPrincipalClaimName("sub");
 
         return authenticationConverter;
     }
 }
-

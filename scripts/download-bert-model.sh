@@ -1,152 +1,91 @@
 #!/bin/bash
-# Download DistilBERT ONNX model from HuggingFace
-# This script downloads the model automatically during build/deployment
+# Download a sentence-transformers ONNX model and tokenizer for BudgetBuddy's
+# BERT-based category matcher.
+#
+# Default target: sentence-transformers/all-MiniLM-L6-v2 (384-dim, ~23 MB, CPU-fast).
+# Produces:
+#   ${MODEL_DIR}/all-MiniLM-L6-v2/model.onnx
+#   ${MODEL_DIR}/all-MiniLM-L6-v2/tokenizer.json
+#
+# Wire these into the app by setting (application.yml or env):
+#   bert.model.path=/abs/path/to/model.onnx
+#   bert.tokenizer.path=/abs/path/to/tokenizer.json
+#
+# Usage: ./scripts/download-bert-model.sh [target-dir]
 
-set -e
+set -euo pipefail
 
-MODEL_NAME="distilbert-base-uncased"
+MODEL_ID="${MODEL_ID:-sentence-transformers/all-MiniLM-L6-v2}"
+MODEL_NAME="$(basename "${MODEL_ID}")"
 MODEL_DIR="${1:-models}"
-MODEL_FILE="${MODEL_DIR}/${MODEL_NAME}.onnx"
-HUGGINGFACE_REPO="optimum/${MODEL_NAME}"
+TARGET_DIR="${MODEL_DIR}/${MODEL_NAME}"
+MODEL_FILE="${TARGET_DIR}/model.onnx"
+TOKENIZER_FILE="${TARGET_DIR}/tokenizer.json"
 
 echo "=========================================="
-echo "Downloading DistilBERT ONNX Model"
+echo "Downloading sentence-transformers ONNX + tokenizer"
+echo "  model id:    ${MODEL_ID}"
+echo "  target dir:  ${TARGET_DIR}"
 echo "=========================================="
-echo "Model: ${MODEL_NAME}"
-echo "Target: ${MODEL_FILE}"
-echo ""
 
-# Create models directory if it doesn't exist
-mkdir -p "${MODEL_DIR}"
+mkdir -p "${TARGET_DIR}"
 
-# Check if model already exists
-if [ -f "${MODEL_FILE}" ]; then
-    echo "✅ Model already exists at ${MODEL_FILE}"
-    echo "   Size: $(du -h "${MODEL_FILE}" | cut -f1)"
-    echo "   Skipping download..."
+if [[ -f "${MODEL_FILE}" && -f "${TOKENIZER_FILE}" ]]; then
+    echo "Already present:"
+    echo "  ${MODEL_FILE}   ($(du -h "${MODEL_FILE}" | cut -f1))"
+    echo "  ${TOKENIZER_FILE} ($(du -h "${TOKENIZER_FILE}" | cut -f1))"
+    echo "Skipping download."
     exit 0
 fi
 
-echo "Downloading model from HuggingFace..."
-echo "Repository: ${HUGGINGFACE_REPO}"
-echo ""
+# Preferred path: use the 🤗 optimum CLI to export the model to ONNX. This is
+# the supported way to get a sentence-transformers ONNX build that works with
+# ai.djl.huggingface:tokenizers + Microsoft ONNX Runtime.
+if command -v python3 >/dev/null 2>&1 && python3 -c "import optimum.onnxruntime" >/dev/null 2>&1; then
+    echo "Exporting via optimum-cli …"
+    python3 -m optimum.exporters.onnx \
+        --model "${MODEL_ID}" \
+        --task feature-extraction \
+        "${TARGET_DIR}"
 
-# Method 1: Try using huggingface-cli (if available)
-if command -v huggingface-cli &> /dev/null; then
-    echo "Using huggingface-cli..."
-    huggingface-cli download "${HUGGINGFACE_REPO}" \
-        "model.onnx" \
-        --local-dir "${MODEL_DIR}/${MODEL_NAME}" \
-        --local-dir-use-symlinks False || {
-        echo "⚠️  huggingface-cli download failed, trying alternative method..."
-        rm -rf "${MODEL_DIR}/${MODEL_NAME}"
-    }
-    
-    # Move model file to expected location
-    if [ -f "${MODEL_DIR}/${MODEL_NAME}/model.onnx" ]; then
-        mv "${MODEL_DIR}/${MODEL_NAME}/model.onnx" "${MODEL_FILE}"
-        rm -rf "${MODEL_DIR}/${MODEL_NAME}"
-        echo "✅ Model downloaded successfully!"
+    # optimum writes model.onnx + tokenizer.json + config into the target dir.
+    if [[ -f "${MODEL_FILE}" && -f "${TOKENIZER_FILE}" ]]; then
+        echo "Done: exported sentence-transformers ONNX to ${TARGET_DIR}"
         exit 0
     fi
 fi
 
-# Method 2: Try using Python with transformers/optimum
-if command -v python3 &> /dev/null; then
-    echo "Using Python to download model..."
-    python3 << EOF
-import os
-import sys
-from pathlib import Path
+# Fallback: use the huggingface CLI to download a pre-built ONNX revision (if
+# the model repo has one) plus the tokenizer.
+if command -v huggingface-cli >/dev/null 2>&1; then
+    echo "Trying huggingface-cli download …"
+    huggingface-cli download "${MODEL_ID}" \
+        onnx/model.onnx tokenizer.json \
+        --local-dir "${TARGET_DIR}" \
+        --local-dir-use-symlinks False || true
 
-try:
-    from optimum.onnxruntime import ORTModelForFeatureExtraction
-    from transformers import AutoTokenizer
-    
-    model_dir = Path("${MODEL_DIR}/${MODEL_NAME}")
-    model_dir.mkdir(parents=True, exist_ok=True)
-    
-    print("Downloading model from HuggingFace...")
-    model = ORTModelForFeatureExtraction.from_pretrained(
-        "${MODEL_NAME}",
-        export=False,  # Use pre-exported ONNX model
-        cache_dir=str(model_dir)
-    )
-    
-    # Find the ONNX model file
-    onnx_files = list(model_dir.rglob("*.onnx"))
-    if onnx_files:
-        import shutil
-        shutil.move(str(onnx_files[0]), "${MODEL_FILE}")
-        print("✅ Model downloaded successfully!")
-        sys.exit(0)
-    else:
-        print("⚠️  ONNX model file not found, trying to export...")
-        # Try exporting
-        from optimum.onnxruntime import ORTModelForFeatureExtraction
-        model = ORTModelForFeatureExtraction.from_pretrained(
-            "${MODEL_NAME}",
-            export=True
-        )
-        model.save_pretrained(str(model_dir))
-        onnx_files = list(model_dir.rglob("*.onnx"))
-        if onnx_files:
-            import shutil
-            shutil.move(str(onnx_files[0]), "${MODEL_FILE}")
-            print("✅ Model exported and saved successfully!")
-            sys.exit(0)
-        else:
-            print("❌ Failed to find or export ONNX model")
-            sys.exit(1)
-except ImportError:
-    print("⚠️  Required Python packages not installed")
-    print("   Install with: pip install optimum[onnxruntime] transformers")
-    sys.exit(1)
-except Exception as e:
-    print(f"❌ Error: {e}")
-    sys.exit(1)
+    # The CLI puts model.onnx under onnx/ — flatten it.
+    if [[ -f "${TARGET_DIR}/onnx/model.onnx" ]]; then
+        mv "${TARGET_DIR}/onnx/model.onnx" "${MODEL_FILE}"
+        rmdir "${TARGET_DIR}/onnx" 2>/dev/null || true
+    fi
+
+    if [[ -f "${MODEL_FILE}" && -f "${TOKENIZER_FILE}" ]]; then
+        echo "Done: downloaded ONNX + tokenizer to ${TARGET_DIR}"
+        exit 0
+    fi
+fi
+
+cat <<EOF
+
+Automatic download failed. Install one of:
+  - Python 3 with: pip install 'optimum[onnxruntime]' transformers sentence-transformers
+  - huggingface_hub: pip install huggingface_hub
+
+Then rerun:  $0 ${MODEL_DIR}
+
+Or download manually from: https://huggingface.co/${MODEL_ID}
+Required files: model.onnx, tokenizer.json
+Drop them into ${TARGET_DIR}/ and restart the backend.
 EOF
-    
-    if [ $? -eq 0 ] && [ -f "${MODEL_FILE}" ]; then
-        echo "✅ Model downloaded successfully using Python!"
-        exit 0
-    fi
-fi
-
-# Method 3: Direct download from HuggingFace (if model is publicly available)
-echo "Trying direct download from HuggingFace..."
-if command -v curl &> /dev/null; then
-    # Try to download directly (this may not work for all models)
-    curl -L "https://huggingface.co/${HUGGINGFACE_REPO}/resolve/main/model.onnx" \
-        -o "${MODEL_FILE}" \
-        --fail --silent --show-error || {
-        echo "⚠️  Direct download failed"
-        rm -f "${MODEL_FILE}"
-    }
-    
-    if [ -f "${MODEL_FILE}" ] && [ -s "${MODEL_FILE}" ]; then
-        echo "✅ Model downloaded successfully using curl!"
-        exit 0
-    fi
-fi
-
-# If all methods fail, provide instructions
-echo ""
-echo "❌ Automatic download failed. Please download manually:"
-echo ""
-echo "Option 1: Using Python (Recommended)"
-echo "  pip install optimum[onnxruntime] transformers"
-echo "  python3 -c \"from optimum.onnxruntime import ORTModelForFeatureExtraction; \\"
-echo "    model = ORTModelForFeatureExtraction.from_pretrained('${MODEL_NAME}', export=True); \\"
-echo "    model.save_pretrained('${MODEL_DIR}/${MODEL_NAME}')\""
-echo ""
-echo "Option 2: Using huggingface-cli"
-echo "  pip install huggingface_hub"
-echo "  huggingface-cli download ${HUGGINGFACE_REPO} model.onnx --local-dir ${MODEL_DIR}"
-echo ""
-echo "Option 3: Manual download"
-echo "  Visit: https://huggingface.co/${HUGGINGFACE_REPO}"
-echo "  Download model.onnx and place it at: ${MODEL_FILE}"
-echo ""
-echo "After downloading, the model will be automatically detected."
 exit 1

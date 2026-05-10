@@ -1,7 +1,18 @@
 package com.budgetbuddy.service;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.stats.CacheStats;
+import java.util.Arrays;
+import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -10,28 +21,16 @@ import org.mockito.MockitoAnnotations;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.caffeine.CaffeineCache;
 
-import java.util.Arrays;
-import java.util.Map;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
-
-/**
- * Comprehensive tests for CacheMonitoringService
- */
+/** Comprehensive tests for CacheMonitoringService */
 class CacheMonitoringServiceTest {
 
-    @Mock
-    private CacheManager cacheManager;
+    @Mock private CacheManager cacheManager;
 
-    @Mock
-    private CaffeineCache caffeineCache;
+    @Mock private CaffeineCache caffeineCache;
 
-    @Mock
-    private Cache<Object, Object> nativeCache;
+    @Mock private Cache<Object, Object> nativeCache;
 
-    @Mock
-    private CacheStats cacheStats;
+    @Mock private CacheStats cacheStats;
 
     private CacheMonitoringService cacheMonitoringService;
 
@@ -43,9 +42,10 @@ class CacheMonitoringServiceTest {
 
     @Test
     @DisplayName("Should get statistics for all caches")
-    void testGetAllCacheStatistics_Success() {
+    void testGetAllCacheStatisticsSuccess() {
         // Given
-        when(cacheManager.getCacheNames()).thenReturn(Arrays.asList("userCache", "transactionCache"));
+        when(cacheManager.getCacheNames())
+                .thenReturn(Arrays.asList("userCache", "transactionCache"));
         when(cacheManager.getCache("userCache")).thenReturn(caffeineCache);
         when(cacheManager.getCache("transactionCache")).thenReturn(caffeineCache);
         when(caffeineCache.getNativeCache()).thenReturn(nativeCache);
@@ -57,15 +57,16 @@ class CacheMonitoringServiceTest {
         when(nativeCache.estimatedSize()).thenReturn(200L);
 
         // When
-        Map<String, CacheMonitoringService.CacheStatistics> stats = cacheMonitoringService.getAllCacheStatistics();
+        final Map<String, CacheMonitoringService.CacheStatistics> stats =
+                cacheMonitoringService.getAllCacheStatistics();
 
         // Then
         assertNotNull(stats);
         assertEquals(2, stats.size());
         assertTrue(stats.containsKey("userCache"));
         assertTrue(stats.containsKey("transactionCache"));
-        
-        CacheMonitoringService.CacheStatistics userStats = stats.get("userCache");
+
+        final CacheMonitoringService.CacheStatistics userStats = stats.get("userCache");
         assertEquals(100L, userStats.getHitCount());
         assertEquals(50L, userStats.getMissCount());
         assertEquals(10L, userStats.getEvictionCount());
@@ -75,21 +76,25 @@ class CacheMonitoringServiceTest {
 
     @Test
     @DisplayName("Should throw exception when cache manager is null")
-    void testGetAllCacheStatistics_NullCacheManager() {
+    void testGetAllCacheStatisticsNullCacheManager() {
         // Given/When/Then - Constructor should throw NullPointerException
-        assertThrows(NullPointerException.class, () -> {
-            new CacheMonitoringService(null);
-        }, "Should throw NullPointerException when CacheManager is null");
+        assertThrows(
+                NullPointerException.class,
+                () -> {
+                    new CacheMonitoringService(null);
+                },
+                "Should throw NullPointerException when CacheManager is null");
     }
 
     @Test
     @DisplayName("Should handle exceptions gracefully")
-    void testGetAllCacheStatistics_ExceptionHandling() {
+    void testGetAllCacheStatisticsExceptionHandling() {
         // Given
         when(cacheManager.getCacheNames()).thenThrow(new RuntimeException("Cache error"));
 
         // When
-        Map<String, CacheMonitoringService.CacheStatistics> stats = cacheMonitoringService.getAllCacheStatistics();
+        final Map<String, CacheMonitoringService.CacheStatistics> stats =
+                cacheMonitoringService.getAllCacheStatistics();
 
         // Then - Should return empty map on error
         assertNotNull(stats);
@@ -98,7 +103,7 @@ class CacheMonitoringServiceTest {
 
     @Test
     @DisplayName("Should get statistics for specific cache")
-    void testGetCacheStatistics_Success() {
+    void testGetCacheStatisticsSuccess() {
         // Given
         when(cacheManager.getCache("userCache")).thenReturn(caffeineCache);
         when(caffeineCache.getNativeCache()).thenReturn(nativeCache);
@@ -110,7 +115,8 @@ class CacheMonitoringServiceTest {
         when(nativeCache.estimatedSize()).thenReturn(200L);
 
         // When
-        CacheMonitoringService.CacheStatistics stats = cacheMonitoringService.getCacheStatistics("userCache");
+        final CacheMonitoringService.CacheStatistics stats =
+                cacheMonitoringService.getCacheStatistics("userCache");
 
         // Then
         assertNotNull(stats);
@@ -123,12 +129,13 @@ class CacheMonitoringServiceTest {
 
     @Test
     @DisplayName("Should return null for non-existent cache")
-    void testGetCacheStatistics_NonExistentCache() {
+    void testGetCacheStatisticsNonExistentCache() {
         // Given
         when(cacheManager.getCache("nonExistent")).thenReturn(null);
 
         // When
-        CacheMonitoringService.CacheStatistics stats = cacheMonitoringService.getCacheStatistics("nonExistent");
+        final CacheMonitoringService.CacheStatistics stats =
+                cacheMonitoringService.getCacheStatistics("nonExistent");
 
         // Then
         assertNull(stats);
@@ -136,9 +143,10 @@ class CacheMonitoringServiceTest {
 
     @Test
     @DisplayName("Should return null for null cache name")
-    void testGetCacheStatistics_NullCacheName() {
+    void testGetCacheStatisticsNullCacheName() {
         // When
-        CacheMonitoringService.CacheStatistics stats = cacheMonitoringService.getCacheStatistics(null);
+        final CacheMonitoringService.CacheStatistics stats =
+                cacheMonitoringService.getCacheStatistics(null);
 
         // Then
         assertNull(stats);
@@ -146,22 +154,27 @@ class CacheMonitoringServiceTest {
 
     @Test
     @DisplayName("Should throw exception when cache manager is null")
-    void testGetCacheStatistics_NullCacheManager() {
+    void testGetCacheStatisticsNullCacheManager() {
         // Given/When/Then - Constructor should throw NullPointerException
-        assertThrows(NullPointerException.class, () -> {
-            new CacheMonitoringService(null);
-        }, "Should throw NullPointerException when CacheManager is null");
+        assertThrows(
+                NullPointerException.class,
+                () -> {
+                    new CacheMonitoringService(null);
+                },
+                "Should throw NullPointerException when CacheManager is null");
     }
 
     @Test
     @DisplayName("Should handle non-CaffeineCache gracefully")
-    void testGetCacheStatistics_NonCaffeineCache() {
+    void testGetCacheStatisticsNonCaffeineCache() {
         // Given
-        org.springframework.cache.Cache nonCaffeineCache = mock(org.springframework.cache.Cache.class);
+        final org.springframework.cache.Cache nonCaffeineCache =
+                mock(org.springframework.cache.Cache.class);
         when(cacheManager.getCache("otherCache")).thenReturn(nonCaffeineCache);
 
         // When
-        CacheMonitoringService.CacheStatistics stats = cacheMonitoringService.getCacheStatistics("otherCache");
+        final CacheMonitoringService.CacheStatistics stats =
+                cacheMonitoringService.getCacheStatistics("otherCache");
 
         // Then
         assertNull(stats);
@@ -181,7 +194,8 @@ class CacheMonitoringServiceTest {
         when(nativeCache.estimatedSize()).thenReturn(200L);
 
         // When
-        CacheMonitoringService.CacheStatistics stats = cacheMonitoringService.getCacheStatistics("userCache");
+        final CacheMonitoringService.CacheStatistics stats =
+                cacheMonitoringService.getCacheStatistics("userCache");
 
         // Then
         assertNotNull(stats);
@@ -191,7 +205,7 @@ class CacheMonitoringServiceTest {
 
     @Test
     @DisplayName("Should return zero hit rate when no requests")
-    void testCalculateHitRate_NoRequests() {
+    void testCalculateHitRateNoRequests() {
         // Given
         when(cacheManager.getCache("userCache")).thenReturn(caffeineCache);
         when(caffeineCache.getNativeCache()).thenReturn(nativeCache);
@@ -203,7 +217,8 @@ class CacheMonitoringServiceTest {
         when(nativeCache.estimatedSize()).thenReturn(0L);
 
         // When
-        CacheMonitoringService.CacheStatistics stats = cacheMonitoringService.getCacheStatistics("userCache");
+        final CacheMonitoringService.CacheStatistics stats =
+                cacheMonitoringService.getCacheStatistics("userCache");
 
         // Then
         assertNotNull(stats);
@@ -226,23 +241,24 @@ class CacheMonitoringServiceTest {
         when(nativeCache.estimatedSize()).thenReturn(200L);
 
         // When - Should not throw exception
-        assertDoesNotThrow(() -> {
-            cacheMonitoringService.logCacheStatistics();
-        });
+        assertDoesNotThrow(
+                () -> {
+                    cacheMonitoringService.logCacheStatistics();
+                });
     }
 
     @Test
     @DisplayName("Should handle exception during statistics retrieval")
-    void testGetCacheStatistics_Exception() {
+    void testGetCacheStatisticsException() {
         // Given
         when(cacheManager.getCache("userCache")).thenReturn(caffeineCache);
         when(caffeineCache.getNativeCache()).thenThrow(new RuntimeException("Cache error"));
 
         // When
-        CacheMonitoringService.CacheStatistics stats = cacheMonitoringService.getCacheStatistics("userCache");
+        final CacheMonitoringService.CacheStatistics stats =
+                cacheMonitoringService.getCacheStatistics("userCache");
 
         // Then - Should return null on error
         assertNull(stats);
     }
 }
-

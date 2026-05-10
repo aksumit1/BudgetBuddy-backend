@@ -1,47 +1,51 @@
 package com.budgetbuddy.config;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import com.budgetbuddy.AWSTestConfiguration;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 
-import java.math.BigDecimal;
-import java.time.Instant;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-
-import static org.junit.jupiter.api.Assertions.*;
-
-/**
- * Tests for JacksonConfig
- */
+/** Tests for JacksonConfig */
+// PMD's LawOfDemeter is documented as imprecise on chains involving
+// standard library types (BigDecimal, String, Optional) and DTO
+// getters; this class has many such idiomatic uses. Suppress at
+// class level rather than littering every method.
+@SuppressWarnings("PMD.LawOfDemeter")
 @SpringBootTest(classes = com.budgetbuddy.BudgetBuddyApplication.class)
 @ActiveProfiles("test")
 @Import(AWSTestConfiguration.class)
 class JacksonConfigTest {
 
-    @Autowired
-    private ObjectMapper objectMapper;
+    @Autowired private ObjectMapper objectMapper;
 
     @Test
-    void testObjectMapper_IsCreated() {
+    void testObjectMapperIsCreated() {
         // Then
         assertNotNull(objectMapper, "ObjectMapper should be created");
     }
 
     @Test
-    void testObjectMapper_SerializesInstant() throws Exception {
+    void testObjectMapperSerializesInstant() throws Exception {
         // Given
-        Instant instant = Instant.now();
-        TestObject obj = new TestObject();
+        final Instant instant = Instant.now();
+        final TestObject obj = new TestObject();
         obj.instant = instant;
 
         // When
-        String json = objectMapper.writeValueAsString(obj);
-        TestObject deserialized = objectMapper.readValue(json, TestObject.class);
+        final String json = objectMapper.writeValueAsString(obj);
+        final TestObject deserialized = objectMapper.readValue(json, TestObject.class);
 
         // Then
         assertNotNull(json, "JSON should not be null");
@@ -49,15 +53,15 @@ class JacksonConfigTest {
     }
 
     @Test
-    void testObjectMapper_SerializesBigDecimal() throws Exception {
+    void testObjectMapperSerializesBigDecimal() throws Exception {
         // Given
-        BigDecimal amount = new BigDecimal("123.45");
-        TestObject obj = new TestObject();
+        final BigDecimal amount = new BigDecimal("123.45");
+        final TestObject obj = new TestObject();
         obj.amount = amount;
 
         // When
-        String json = objectMapper.writeValueAsString(obj);
-        TestObject deserialized = objectMapper.readValue(json, TestObject.class);
+        final String json = objectMapper.writeValueAsString(obj);
+        final TestObject deserialized = objectMapper.readValue(json, TestObject.class);
 
         // Then
         assertNotNull(json, "JSON should not be null");
@@ -65,15 +69,15 @@ class JacksonConfigTest {
     }
 
     @Test
-    void testObjectMapper_SerializesLocalDate() throws Exception {
+    void testObjectMapperSerializesLocalDate() throws Exception {
         // Given
-        LocalDate date = LocalDate.now();
-        TestObject obj = new TestObject();
+        final LocalDate date = LocalDate.now();
+        final TestObject obj = new TestObject();
         obj.date = date;
 
         // When
-        String json = objectMapper.writeValueAsString(obj);
-        TestObject deserialized = objectMapper.readValue(json, TestObject.class);
+        final String json = objectMapper.writeValueAsString(obj);
+        final TestObject deserialized = objectMapper.readValue(json, TestObject.class);
 
         // Then
         assertNotNull(json, "JSON should not be null");
@@ -81,15 +85,15 @@ class JacksonConfigTest {
     }
 
     @Test
-    void testObjectMapper_SerializesLocalDateTime() throws Exception {
+    void testObjectMapperSerializesLocalDateTime() throws Exception {
         // Given
-        LocalDateTime dateTime = LocalDateTime.now();
-        TestObject obj = new TestObject();
+        final LocalDateTime dateTime = LocalDateTime.now();
+        final TestObject obj = new TestObject();
         obj.dateTime = dateTime;
 
         // When
-        String json = objectMapper.writeValueAsString(obj);
-        TestObject deserialized = objectMapper.readValue(json, TestObject.class);
+        final String json = objectMapper.writeValueAsString(obj);
+        final TestObject deserialized = objectMapper.readValue(json, TestObject.class);
 
         // Then
         assertNotNull(json, "JSON should not be null");
@@ -97,14 +101,14 @@ class JacksonConfigTest {
     }
 
     @Test
-    void testObjectMapper_DoesNotWriteDatesAsTimestamps() throws Exception {
+    void testObjectMapperDoesNotWriteDatesAsTimestamps() throws Exception {
         // Given
-        Instant instant = Instant.parse("2023-01-01T00:00:00Z");
-        TestObject obj = new TestObject();
+        final Instant instant = Instant.parse("2023-01-01T00:00:00Z");
+        final TestObject obj = new TestObject();
         obj.instant = instant;
 
         // When
-        String json = objectMapper.writeValueAsString(obj);
+        final String json = objectMapper.writeValueAsString(obj);
 
         // Then - Should not contain timestamp format
         assertFalse(json.contains("1672531200"), "Should not write dates as timestamps");
@@ -118,4 +122,3 @@ class JacksonConfigTest {
         public LocalDateTime dateTime;
     }
 }
-

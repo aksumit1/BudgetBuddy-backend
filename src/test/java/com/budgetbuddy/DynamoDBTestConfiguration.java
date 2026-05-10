@@ -1,22 +1,16 @@
 package com.budgetbuddy;
 
+import java.net.URI;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
-import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
+import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 
-import java.net.URI;
-
-/**
- * Test Configuration for DynamoDB
- * Uses LocalStack for local testing (or configured endpoint)
- */
+/** Test Configuration for DynamoDB Uses LocalStack for local testing (or configured endpoint) */
 @org.springframework.boot.test.context.TestConfiguration
 public class DynamoDBTestConfiguration {
 
-    /**
-     * Get DynamoDB endpoint from environment variable, system property, or default
-     */
+    /** Get DynamoDB endpoint from environment variable, system property, or default */
     private static String getDynamoDbEndpoint() {
         // Check system property first (can be set via -Daws.dynamodb.endpoint=...)
         String endpoint = System.getProperty("aws.dynamodb.endpoint");
@@ -36,7 +30,7 @@ public class DynamoDBTestConfiguration {
     @Primary
     public DynamoDbClient dynamoDbClient() {
         // Use configured endpoint or LocalStack endpoint for testing
-        String endpoint = getDynamoDbEndpoint();
+        final String endpoint = getDynamoDbEndpoint();
         return DynamoDbClient.builder()
                 .endpointOverride(URI.create(endpoint))
                 .region(software.amazon.awssdk.regions.Region.US_EAST_1)
@@ -46,9 +40,6 @@ public class DynamoDBTestConfiguration {
     @Bean
     @Primary
     public DynamoDbEnhancedClient dynamoDbEnhancedClient(final DynamoDbClient dynamoDbClient) {
-        return DynamoDbEnhancedClient.builder()
-                .dynamoDbClient(dynamoDbClient)
-                .build();
+        return DynamoDbEnhancedClient.builder().dynamoDbClient(dynamoDbClient).build();
     }
 }
-

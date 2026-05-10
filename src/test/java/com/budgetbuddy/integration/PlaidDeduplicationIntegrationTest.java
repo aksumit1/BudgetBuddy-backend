@@ -1,5 +1,11 @@
 package com.budgetbuddy.integration;
 
+
+import java.nio.charset.StandardCharsets;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import com.budgetbuddy.AWSTestConfiguration;
 import com.budgetbuddy.model.dynamodb.AccountTable;
 import com.budgetbuddy.model.dynamodb.TransactionTable;
@@ -7,6 +13,11 @@ import com.budgetbuddy.model.dynamodb.UserTable;
 import com.budgetbuddy.repository.dynamodb.AccountRepository;
 import com.budgetbuddy.repository.dynamodb.TransactionRepository;
 import com.budgetbuddy.service.UserService;
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,32 +25,21 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 
-import java.math.BigDecimal;
-import java.time.Instant;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
-
-import static org.junit.jupiter.api.Assertions.*;
-
 /**
- * Integration Tests for Plaid Deduplication
- * Tests that accounts and transactions are properly deduplicated using plaidAccountId and plaidTransactionId
- * even when backend bugs or Plaid bugs cause duplicates
+ * Integration Tests for Plaid Deduplication Tests that accounts and transactions are properly
+ * deduplicated using plaidAccountId and plaidTransactionId even when backend bugs or Plaid bugs
+ * cause duplicates
  */
 @SpringBootTest(classes = com.budgetbuddy.BudgetBuddyApplication.class)
 @ActiveProfiles("test")
 @Import(AWSTestConfiguration.class)
 class PlaidDeduplicationIntegrationTest {
 
-    @Autowired
-    private AccountRepository accountRepository;
+    @Autowired private AccountRepository accountRepository;
 
-    @Autowired
-    private TransactionRepository transactionRepository;
+    @Autowired private TransactionRepository transactionRepository;
 
-    @Autowired
-    private UserService userService;
+    @Autowired private UserService userService;
 
     private UserTable testUser;
     private String testEmail;
@@ -48,19 +48,18 @@ class PlaidDeduplicationIntegrationTest {
     void setUp() {
         testEmail = "dedup-test-" + UUID.randomUUID() + "@example.com";
         // Use proper base64-encoded strings
-        String base64PasswordHash = java.util.Base64.getEncoder().encodeToString("hashed-password".getBytes());
-        String base64ClientSalt = java.util.Base64.getEncoder().encodeToString("client-salt".getBytes());
-        testUser = userService.createUserSecure(
-                testEmail, base64PasswordHash, "Test",
-                "User"
-        );
+        final String base64PasswordHash =
+                java.util.Base64.getEncoder().encodeToString("hashed-password".getBytes(StandardCharsets.UTF_8));
+        final String base64ClientSalt =
+                java.util.Base64.getEncoder().encodeToString("client-salt".getBytes(StandardCharsets.UTF_8));
+        testUser = userService.createUserSecure(testEmail, base64PasswordHash, "Test", "User");
     }
 
     @Test
-    void testAccountDeduplication_WithSamePlaidAccountId_DoesNotCreateDuplicate() {
+    void testAccountDeduplicationWithSamePlaidAccountIdDoesNotCreateDuplicate() {
         // Given - Existing account with plaidAccountId
-        String plaidAccountId = "plaid-account-" + UUID.randomUUID();
-        AccountTable existingAccount = new AccountTable();
+        final String plaidAccountId = "plaid-account-" + UUID.randomUUID();
+        final AccountTable existingAccount = new AccountTable();
         existingAccount.setAccountId(UUID.randomUUID().toString());
         existingAccount.setUserId(testUser.getUserId());
         existingAccount.setPlaidAccountId(plaidAccountId);
@@ -75,7 +74,7 @@ class PlaidDeduplicationIntegrationTest {
         accountRepository.save(existingAccount);
 
         // When - Try to create another account with same plaidAccountId (simulating backend bug)
-        AccountTable duplicateAccount = new AccountTable();
+        final AccountTable duplicateAccount = new AccountTable();
         duplicateAccount.setAccountId(UUID.randomUUID().toString()); // Different UUID (backend bug)
         duplicateAccount.setUserId(testUser.getUserId());
         duplicateAccount.setPlaidAccountId(plaidAccountId); // Same Plaid ID
@@ -89,36 +88,39 @@ class PlaidDeduplicationIntegrationTest {
         duplicateAccount.setUpdatedAt(Instant.now());
 
         // Use saveIfNotExists to prevent duplicates
-        boolean saved = accountRepository.saveIfNotExists(duplicateAccount);
-        
+        final boolean saved = accountRepository.saveIfNotExists(duplicateAccount);
+
         // Then - Should not create duplicate
         // If saveIfNotExists returns false, it means a duplicate was detected
         // If it returns true, we need to check by plaidAccountId
         if (saved) {
             // Check if we can find by plaidAccountId - should only find one
-            Optional<AccountTable> foundByPlaidId = accountRepository.findByPlaidAccountId(plaidAccountId);
+            final Optional<AccountTable> foundByPlaidId =
+                    accountRepository.findByPlaidAccountId(plaidAccountId);
             assertTrue(foundByPlaidId.isPresent(), "Account should be found by Plaid ID");
-            
+
             // Verify only one account exists with this plaidAccountId
-            List<AccountTable> allAccounts = accountRepository.findByUserId(testUser.getUserId());
-            long countWithPlaidId = allAccounts.stream()
-                    .filter(a -> plaidAccountId.equals(a.getPlaidAccountId()))
-                    .count();
+            final List<AccountTable> allAccounts = accountRepository.findByUserId(testUser.getUserId());
+            final long countWithPlaidId =
+                    allAccounts.stream()
+                            .filter(a -> plaidAccountId.equals(a.getPlaidAccountId()))
+                            .count();
             assertEquals(1, countWithPlaidId, "Should only have one account with this Plaid ID");
         } else {
             // saveIfNotExists detected duplicate by accountId
             // Verify existing account is still there
-            Optional<AccountTable> foundByPlaidId = accountRepository.findByPlaidAccountId(plaidAccountId);
+            final Optional<AccountTable> foundByPlaidId =
+                    accountRepository.findByPlaidAccountId(plaidAccountId);
             assertTrue(foundByPlaidId.isPresent(), "Original account should still exist");
             assertEquals("Existing Account", foundByPlaidId.get().getAccountName());
         }
     }
 
     @Test
-    void testAccountDeduplication_WithFindByPlaidAccountId_FindsExistingAccount() {
+    void testAccountDeduplicationWithFindByPlaidAccountIdFindsExistingAccount() {
         // Given - Existing account with plaidAccountId
-        String plaidAccountId = "plaid-account-" + UUID.randomUUID();
-        AccountTable existingAccount = new AccountTable();
+        final String plaidAccountId = "plaid-account-" + UUID.randomUUID();
+        final AccountTable existingAccount = new AccountTable();
         existingAccount.setAccountId(UUID.randomUUID().toString());
         existingAccount.setUserId(testUser.getUserId());
         existingAccount.setPlaidAccountId(plaidAccountId);
@@ -133,7 +135,7 @@ class PlaidDeduplicationIntegrationTest {
         accountRepository.save(existingAccount);
 
         // When - Try to find by plaidAccountId
-        Optional<AccountTable> found = accountRepository.findByPlaidAccountId(plaidAccountId);
+        final Optional<AccountTable> found = accountRepository.findByPlaidAccountId(plaidAccountId);
 
         // Then - Should find the existing account
         assertTrue(found.isPresent(), "Account should be found by Plaid ID");
@@ -142,12 +144,12 @@ class PlaidDeduplicationIntegrationTest {
     }
 
     @Test
-    void testAccountDeduplication_WithAccountNumber_FindsExistingAccount() {
+    void testAccountDeduplicationWithAccountNumberFindsExistingAccount() {
         // Given - Existing account with account number (but no plaidAccountId)
-        String accountNumber = "1234";
-        String institutionName = "Test Bank";
-        
-        AccountTable existingAccount = new AccountTable();
+        final String accountNumber = "1234";
+        final String institutionName = "Test Bank";
+
+        final AccountTable existingAccount = new AccountTable();
         existingAccount.setAccountId(UUID.randomUUID().toString());
         existingAccount.setUserId(testUser.getUserId());
         existingAccount.setPlaidAccountId(null); // Missing Plaid ID
@@ -163,8 +165,9 @@ class PlaidDeduplicationIntegrationTest {
         accountRepository.save(existingAccount);
 
         // When - Try to find by account number and institution
-        Optional<AccountTable> found = accountRepository.findByAccountNumberAndInstitution(
-                accountNumber, institutionName, testUser.getUserId());
+        final Optional<AccountTable> found =
+                accountRepository.findByAccountNumberAndInstitution(
+                        accountNumber, institutionName, testUser.getUserId());
 
         // Then - Should find the existing account
         assertTrue(found.isPresent(), "Account should be found by account number and institution");
@@ -174,12 +177,12 @@ class PlaidDeduplicationIntegrationTest {
     }
 
     @Test
-    void testAccountDeduplication_WithAccountNumber_PreventsDuplicate() {
+    void testAccountDeduplicationWithAccountNumberPreventsDuplicate() {
         // Given - Existing account with account number
-        String accountNumber = "5678";
-        String institutionName = "Test Bank";
-        
-        AccountTable existingAccount = new AccountTable();
+        final String accountNumber = "5678";
+        final String institutionName = "Test Bank";
+
+        final AccountTable existingAccount = new AccountTable();
         existingAccount.setAccountId(UUID.randomUUID().toString());
         existingAccount.setUserId(testUser.getUserId());
         existingAccount.setAccountNumber(accountNumber);
@@ -194,7 +197,7 @@ class PlaidDeduplicationIntegrationTest {
         accountRepository.save(existingAccount);
 
         // When - Try to create duplicate with same account number and institution
-        AccountTable duplicateAccount = new AccountTable();
+        final AccountTable duplicateAccount = new AccountTable();
         duplicateAccount.setAccountId(UUID.randomUUID().toString()); // Different UUID
         duplicateAccount.setUserId(testUser.getUserId());
         duplicateAccount.setAccountNumber(accountNumber); // Same account number
@@ -208,29 +211,37 @@ class PlaidDeduplicationIntegrationTest {
         duplicateAccount.setUpdatedAt(Instant.now());
 
         // Find by account number should return existing account
-        Optional<AccountTable> found = accountRepository.findByAccountNumberAndInstitution(
-                accountNumber, institutionName, testUser.getUserId());
+        final Optional<AccountTable> found =
+                accountRepository.findByAccountNumberAndInstitution(
+                        accountNumber, institutionName, testUser.getUserId());
 
         // Then - Should find existing account, preventing duplicate
         assertTrue(found.isPresent(), "Should find existing account by account number");
-        assertEquals(existingAccount.getAccountId(), found.get().getAccountId(),
+        assertEquals(
+                existingAccount.getAccountId(),
+                found.get().getAccountId(),
                 "Should return existing account, not create duplicate");
-        
+
         // Verify only one account exists with this account number
-        List<AccountTable> allAccounts = accountRepository.findByUserId(testUser.getUserId());
-        long countWithAccountNumber = allAccounts.stream()
-                .filter(a -> accountNumber.equals(a.getAccountNumber()) 
-                        && institutionName.equals(a.getInstitutionName()))
-                .count();
-        assertEquals(1, countWithAccountNumber, 
+        final List<AccountTable> allAccounts = accountRepository.findByUserId(testUser.getUserId());
+        final long countWithAccountNumber =
+                allAccounts.stream()
+                        .filter(
+                                a ->
+                                        accountNumber.equals(a.getAccountNumber())
+                                                && institutionName.equals(a.getInstitutionName()))
+                        .count();
+        assertEquals(
+                1,
+                countWithAccountNumber,
                 "Should only have one account with this account number and institution");
     }
 
     @Test
-    void testAccountDeduplication_WithNullInstitutionName_MatchesByAccountNumber() {
+    void testAccountDeduplicationWithNullInstitutionNameMatchesByAccountNumber() {
         // Given - Existing account with accountNumber but null institutionName
-        String accountNumber = "0000";
-        AccountTable existingAccount = new AccountTable();
+        final String accountNumber = "0000";
+        final AccountTable existingAccount = new AccountTable();
         existingAccount.setAccountId(UUID.randomUUID().toString());
         existingAccount.setUserId(testUser.getUserId());
         existingAccount.setPlaidAccountId("plaid-old-" + UUID.randomUUID());
@@ -246,21 +257,27 @@ class PlaidDeduplicationIntegrationTest {
         accountRepository.save(existingAccount);
 
         // When - Try to find account by accountNumber only (institutionName is null)
-        Optional<AccountTable> found = accountRepository.findByAccountNumber(accountNumber, testUser.getUserId());
+        final Optional<AccountTable> found =
+                accountRepository.findByAccountNumber(accountNumber, testUser.getUserId());
 
         // Then - Should find existing account even though institutionName is null
-        assertTrue(found.isPresent(), "Should find account by accountNumber even when institutionName is null");
-        assertEquals(existingAccount.getAccountId(), found.get().getAccountId(),
+        assertTrue(
+                found.isPresent(),
+                "Should find account by accountNumber even when institutionName is null");
+        assertEquals(
+                existingAccount.getAccountId(),
+                found.get().getAccountId(),
                 "Should return existing account");
     }
 
     @Test
-    void testAccountDeduplication_AccessTokenRegenerated_WithNullInstitutionName_PreventsDuplicate() {
+    void
+            testAccountDeduplicationAccessTokenRegeneratedWithNullInstitutionNamePreventsDuplicate() {
         // Given - Existing account from first sync with null institutionName
-        String accountNumber = "1111";
-        String oldPlaidId = "plaid-old-" + UUID.randomUUID();
-        
-        AccountTable existingAccount = new AccountTable();
+        final String accountNumber = "1111";
+        final String oldPlaidId = "plaid-old-" + UUID.randomUUID();
+
+        final AccountTable existingAccount = new AccountTable();
         existingAccount.setAccountId(UUID.randomUUID().toString());
         existingAccount.setUserId(testUser.getUserId());
         existingAccount.setPlaidAccountId(oldPlaidId);
@@ -279,36 +296,39 @@ class PlaidDeduplicationIntegrationTest {
         // - New Plaid ID (different from existing)
         // - Same accountNumber
         // - Still null institutionName
-        String newPlaidId = "plaid-new-" + UUID.randomUUID();
-        
+        final String newPlaidId = "plaid-new-" + UUID.randomUUID();
+
         // Simulate PlaidSyncService deduplication logic:
         // 1. Check by plaidAccountId (will fail - new ID)
-        Optional<AccountTable> byPlaidId = accountRepository.findByPlaidAccountId(newPlaidId);
+        final Optional<AccountTable> byPlaidId = accountRepository.findByPlaidAccountId(newPlaidId);
         assertFalse(byPlaidId.isPresent(), "Should not find by new Plaid ID");
 
         // 2. Check by accountNumber only (should succeed)
-        Optional<AccountTable> byAccountNumber = accountRepository.findByAccountNumber(accountNumber, testUser.getUserId());
-        assertTrue(byAccountNumber.isPresent(), "Should find by accountNumber even when institutionName is null");
+        final Optional<AccountTable> byAccountNumber =
+                accountRepository.findByAccountNumber(accountNumber, testUser.getUserId());
+        assertTrue(
+                byAccountNumber.isPresent(),
+                "Should find by accountNumber even when institutionName is null");
         assertEquals(existingAccount.getAccountId(), byAccountNumber.get().getAccountId());
 
         // Update existing account with new Plaid ID
-        AccountTable account = byAccountNumber.get();
+        final AccountTable account = byAccountNumber.get();
         account.setPlaidAccountId(newPlaidId);
         accountRepository.save(account);
 
         // Then - Should only have one account
-        List<AccountTable> allAccounts = accountRepository.findByUserId(testUser.getUserId());
+        final List<AccountTable> allAccounts = accountRepository.findByUserId(testUser.getUserId());
         assertEquals(1, allAccounts.size(), "Should only have one account after deduplication");
     }
 
     @Test
-    void testTransactionDeduplication_WithSamePlaidTransactionId_DoesNotCreateDuplicate() {
+    void testTransactionDeduplicationWithSamePlaidTransactionIdDoesNotCreateDuplicate() {
         // Given - Existing transaction with plaidTransactionId
-        String plaidTransactionId = "plaid-transaction-" + UUID.randomUUID();
-        String accountId = UUID.randomUUID().toString();
-        
+        final String plaidTransactionId = "plaid-transaction-" + UUID.randomUUID();
+        final String accountId = UUID.randomUUID().toString();
+
         // Create account first
-        AccountTable account = new AccountTable();
+        final AccountTable account = new AccountTable();
         account.setAccountId(accountId);
         account.setUserId(testUser.getUserId());
         account.setAccountName("Test Account");
@@ -321,7 +341,7 @@ class PlaidDeduplicationIntegrationTest {
         account.setUpdatedAt(Instant.now());
         accountRepository.save(account);
 
-        TransactionTable existingTransaction = new TransactionTable();
+        final TransactionTable existingTransaction = new TransactionTable();
         existingTransaction.setTransactionId(UUID.randomUUID().toString());
         existingTransaction.setUserId(testUser.getUserId());
         existingTransaction.setAccountId(accountId);
@@ -336,9 +356,11 @@ class PlaidDeduplicationIntegrationTest {
         existingTransaction.setUpdatedAt(Instant.now());
         transactionRepository.save(existingTransaction);
 
-        // When - Try to create another transaction with same plaidTransactionId (simulating backend bug)
-        TransactionTable duplicateTransaction = new TransactionTable();
-        duplicateTransaction.setTransactionId(UUID.randomUUID().toString()); // Different UUID (backend bug)
+        // When - Try to create another transaction with same plaidTransactionId (simulating backend
+        // bug)
+        final TransactionTable duplicateTransaction = new TransactionTable();
+        duplicateTransaction.setTransactionId(
+                UUID.randomUUID().toString()); // Different UUID (backend bug)
         duplicateTransaction.setUserId(testUser.getUserId());
         duplicateTransaction.setAccountId(accountId);
         duplicateTransaction.setPlaidTransactionId(plaidTransactionId); // Same Plaid ID
@@ -352,37 +374,42 @@ class PlaidDeduplicationIntegrationTest {
         duplicateTransaction.setUpdatedAt(Instant.now());
 
         // Use saveIfPlaidTransactionNotExists to prevent duplicates
-        boolean saved = transactionRepository.saveIfPlaidTransactionNotExists(duplicateTransaction);
+        final boolean saved = transactionRepository.saveIfPlaidTransactionNotExists(duplicateTransaction);
 
         // Then - Should not create duplicate
         if (saved) {
             // Check if we can find by plaidTransactionId - should only find one
-            Optional<TransactionTable> foundByPlaidId = transactionRepository.findByPlaidTransactionId(plaidTransactionId);
+            final Optional<TransactionTable> foundByPlaidId =
+                    transactionRepository.findByPlaidTransactionId(plaidTransactionId);
             assertTrue(foundByPlaidId.isPresent(), "Transaction should be found by Plaid ID");
-            
+
             // Verify only one transaction exists with this plaidTransactionId
-            List<TransactionTable> allTransactions = transactionRepository.findByUserId(testUser.getUserId(), 0, 1000);
-            long countWithPlaidId = allTransactions.stream()
-                    .filter(t -> plaidTransactionId.equals(t.getPlaidTransactionId()))
-                    .count();
-            assertEquals(1, countWithPlaidId, "Should only have one transaction with this Plaid ID");
+            final List<TransactionTable> allTransactions =
+                    transactionRepository.findByUserId(testUser.getUserId(), 0, 1000);
+            final long countWithPlaidId =
+                    allTransactions.stream()
+                            .filter(t -> plaidTransactionId.equals(t.getPlaidTransactionId()))
+                            .count();
+            assertEquals(
+                    1, countWithPlaidId, "Should only have one transaction with this Plaid ID");
         } else {
             // saveIfPlaidTransactionNotExists detected duplicate
             // Verify existing transaction is still there
-            Optional<TransactionTable> foundByPlaidId = transactionRepository.findByPlaidTransactionId(plaidTransactionId);
+            final Optional<TransactionTable> foundByPlaidId =
+                    transactionRepository.findByPlaidTransactionId(plaidTransactionId);
             assertTrue(foundByPlaidId.isPresent(), "Original transaction should still exist");
             assertEquals("Existing Transaction", foundByPlaidId.get().getDescription());
         }
     }
 
     @Test
-    void testTransactionDeduplication_WithFindByPlaidTransactionId_FindsExistingTransaction() {
+    void testTransactionDeduplicationWithFindByPlaidTransactionIdFindsExistingTransaction() {
         // Given - Existing transaction with plaidTransactionId
-        String plaidTransactionId = "plaid-transaction-" + UUID.randomUUID();
-        String accountId = UUID.randomUUID().toString();
-        
+        final String plaidTransactionId = "plaid-transaction-" + UUID.randomUUID();
+        final String accountId = UUID.randomUUID().toString();
+
         // Create account first
-        AccountTable account = new AccountTable();
+        final AccountTable account = new AccountTable();
         account.setAccountId(accountId);
         account.setUserId(testUser.getUserId());
         account.setAccountName("Test Account");
@@ -395,7 +422,7 @@ class PlaidDeduplicationIntegrationTest {
         account.setUpdatedAt(Instant.now());
         accountRepository.save(account);
 
-        TransactionTable existingTransaction = new TransactionTable();
+        final TransactionTable existingTransaction = new TransactionTable();
         existingTransaction.setTransactionId(UUID.randomUUID().toString());
         existingTransaction.setUserId(testUser.getUserId());
         existingTransaction.setAccountId(accountId);
@@ -411,7 +438,8 @@ class PlaidDeduplicationIntegrationTest {
         transactionRepository.save(existingTransaction);
 
         // When - Try to find by plaidTransactionId
-        Optional<TransactionTable> found = transactionRepository.findByPlaidTransactionId(plaidTransactionId);
+        final Optional<TransactionTable> found =
+                transactionRepository.findByPlaidTransactionId(plaidTransactionId);
 
         // Then - Should find the existing transaction
         assertTrue(found.isPresent(), "Transaction should be found by Plaid ID");
@@ -420,10 +448,10 @@ class PlaidDeduplicationIntegrationTest {
     }
 
     @Test
-    void testAccountDeduplication_WithMultipleSyncs_OnlyOneAccountExists() {
+    void testAccountDeduplicationWithMultipleSyncsOnlyOneAccountExists() {
         // Given - Existing account
-        String plaidAccountId = "plaid-account-" + UUID.randomUUID();
-        AccountTable existingAccount = new AccountTable();
+        final String plaidAccountId = "plaid-account-" + UUID.randomUUID();
+        final AccountTable existingAccount = new AccountTable();
         existingAccount.setAccountId(UUID.randomUUID().toString());
         existingAccount.setUserId(testUser.getUserId());
         existingAccount.setPlaidAccountId(plaidAccountId);
@@ -440,16 +468,16 @@ class PlaidDeduplicationIntegrationTest {
         // When - Try to sync multiple times (simulating multiple Plaid syncs)
         for (int i = 0; i < 3; i++) {
             // Check if account exists by plaidAccountId
-            Optional<AccountTable> found = accountRepository.findByPlaidAccountId(plaidAccountId);
+            final Optional<AccountTable> found = accountRepository.findByPlaidAccountId(plaidAccountId);
             if (found.isPresent()) {
                 // Update existing account
-                AccountTable account = found.get();
+                final AccountTable account = found.get();
                 account.setBalance(new BigDecimal("1000.00").add(BigDecimal.valueOf(i * 100)));
                 account.setUpdatedAt(Instant.now());
                 accountRepository.save(account);
             } else {
                 // Create new account (should not happen)
-                AccountTable newAccount = new AccountTable();
+                final AccountTable newAccount = new AccountTable();
                 newAccount.setAccountId(UUID.randomUUID().toString());
                 newAccount.setUserId(testUser.getUserId());
                 newAccount.setPlaidAccountId(plaidAccountId);
@@ -466,25 +494,30 @@ class PlaidDeduplicationIntegrationTest {
         }
 
         // Then - Should only have one account with this plaidAccountId
-        List<AccountTable> allAccounts = accountRepository.findByUserId(testUser.getUserId());
-        long countWithPlaidId = allAccounts.stream()
-                .filter(a -> plaidAccountId.equals(a.getPlaidAccountId()))
-                .count();
+        final List<AccountTable> allAccounts = accountRepository.findByUserId(testUser.getUserId());
+        final long countWithPlaidId =
+                allAccounts.stream()
+                        .filter(a -> plaidAccountId.equals(a.getPlaidAccountId()))
+                        .count();
         assertEquals(1, countWithPlaidId, "Should only have one account after multiple syncs");
-        
-        Optional<AccountTable> finalAccount = accountRepository.findByPlaidAccountId(plaidAccountId);
+
+        final Optional<AccountTable> finalAccount =
+                accountRepository.findByPlaidAccountId(plaidAccountId);
         assertTrue(finalAccount.isPresent(), "Account should still exist");
-        assertEquals(existingAccount.getAccountId(), finalAccount.get().getAccountId(), "Should be the same account");
+        assertEquals(
+                existingAccount.getAccountId(),
+                finalAccount.get().getAccountId(),
+                "Should be the same account");
     }
 
     @Test
-    void testTransactionDeduplication_WithMultipleSyncs_OnlyOneTransactionExists() {
+    void testTransactionDeduplicationWithMultipleSyncsOnlyOneTransactionExists() {
         // Given - Existing transaction
-        String plaidTransactionId = "plaid-transaction-" + UUID.randomUUID();
-        String accountId = UUID.randomUUID().toString();
-        
+        final String plaidTransactionId = "plaid-transaction-" + UUID.randomUUID();
+        final String accountId = UUID.randomUUID().toString();
+
         // Create account first
-        AccountTable account = new AccountTable();
+        final AccountTable account = new AccountTable();
         account.setAccountId(accountId);
         account.setUserId(testUser.getUserId());
         account.setAccountName("Test Account");
@@ -497,7 +530,7 @@ class PlaidDeduplicationIntegrationTest {
         account.setUpdatedAt(Instant.now());
         accountRepository.save(account);
 
-        TransactionTable existingTransaction = new TransactionTable();
+        final TransactionTable existingTransaction = new TransactionTable();
         existingTransaction.setTransactionId(UUID.randomUUID().toString());
         existingTransaction.setUserId(testUser.getUserId());
         existingTransaction.setAccountId(accountId);
@@ -515,16 +548,17 @@ class PlaidDeduplicationIntegrationTest {
         // When - Try to sync multiple times (simulating multiple Plaid syncs)
         for (int i = 0; i < 3; i++) {
             // Check if transaction exists by plaidTransactionId
-            Optional<TransactionTable> found = transactionRepository.findByPlaidTransactionId(plaidTransactionId);
+            final Optional<TransactionTable> found =
+                    transactionRepository.findByPlaidTransactionId(plaidTransactionId);
             if (found.isPresent()) {
                 // Update existing transaction
-                TransactionTable transaction = found.get();
+                final TransactionTable transaction = found.get();
                 transaction.setAmount(new BigDecimal("100.00").add(BigDecimal.valueOf(i * 10)));
                 transaction.setUpdatedAt(Instant.now());
                 transactionRepository.save(transaction);
             } else {
                 // Create new transaction (should not happen)
-                TransactionTable newTransaction = new TransactionTable();
+                final TransactionTable newTransaction = new TransactionTable();
                 newTransaction.setTransactionId(UUID.randomUUID().toString());
                 newTransaction.setUserId(testUser.getUserId());
                 newTransaction.setAccountId(accountId);
@@ -542,15 +576,20 @@ class PlaidDeduplicationIntegrationTest {
         }
 
         // Then - Should only have one transaction with this plaidTransactionId
-        List<TransactionTable> allTransactions = transactionRepository.findByUserId(testUser.getUserId(), 0, 1000);
-        long countWithPlaidId = allTransactions.stream()
-                .filter(t -> plaidTransactionId.equals(t.getPlaidTransactionId()))
-                .count();
+        final List<TransactionTable> allTransactions =
+                transactionRepository.findByUserId(testUser.getUserId(), 0, 1000);
+        final long countWithPlaidId =
+                allTransactions.stream()
+                        .filter(t -> plaidTransactionId.equals(t.getPlaidTransactionId()))
+                        .count();
         assertEquals(1, countWithPlaidId, "Should only have one transaction after multiple syncs");
-        
-        Optional<TransactionTable> finalTransaction = transactionRepository.findByPlaidTransactionId(plaidTransactionId);
+
+        final Optional<TransactionTable> finalTransaction =
+                transactionRepository.findByPlaidTransactionId(plaidTransactionId);
         assertTrue(finalTransaction.isPresent(), "Transaction should still exist");
-        assertEquals(existingTransaction.getTransactionId(), finalTransaction.get().getTransactionId(), "Should be the same transaction");
+        assertEquals(
+                existingTransaction.getTransactionId(),
+                finalTransaction.get().getTransactionId(),
+                "Should be the same transaction");
     }
 }
-

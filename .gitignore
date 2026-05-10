@@ -4,3 +4,17 @@ models/*.bin
 models/*.json
 models/*.txt
 !models/.gitkeep
+
+# Maven build output
+target/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# Claude Code session state
+.claude/
+
+# OS
+.DS_Store

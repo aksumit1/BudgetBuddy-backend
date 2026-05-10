@@ -1,8 +1,16 @@
 package com.budgetbuddy.repository.dynamodb;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import com.budgetbuddy.AWSTestConfiguration;
 import com.budgetbuddy.model.dynamodb.AccountTable;
 import com.budgetbuddy.util.TableInitializer;
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.util.Optional;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -15,31 +23,29 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 
-import java.math.BigDecimal;
-import java.time.Instant;
-import java.util.Optional;
-import java.util.UUID;
-
-import static org.junit.jupiter.api.Assertions.*;
-
 /**
- * Tests for account number-based deduplication
- * Verifies that accounts are deduplicated using account number + institution name
+ * Tests for account number-based deduplication Verifies that accounts are deduplicated using
+ * account number + institution name
  */
+// SDK / Spring integration — the underlying APIs (AWS SDK, Plaid SDK,
+// Spring services, reflection) throw arbitrary RuntimeException subtypes
+// that can't reasonably be enumerated. Broad catches log + recover (or
+// translate to AppException). Suppress at class level since narrowing
+// here would mean catch (RuntimeException) which PMD flags identically.
+@SuppressWarnings("PMD.AvoidCatchingGenericException")
 @SpringBootTest(classes = com.budgetbuddy.BudgetBuddyApplication.class)
 @ActiveProfiles("test")
 @Import(AWSTestConfiguration.class)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class AccountNumberDeduplicationTest {
 
-    private static final Logger logger = LoggerFactory.getLogger(AccountNumberDeduplicationTest.class);
+    private static final Logger LOGGER =
+            LoggerFactory.getLogger(AccountNumberDeduplicationTest.class);
     private static volatile boolean tablesInitialized = false;
 
-    @Autowired
-    private AccountRepository accountRepository;
+    @Autowired private AccountRepository accountRepository;
 
-    @Autowired
-    private DynamoDbClient dynamoDbClient;
+    @Autowired private DynamoDbClient dynamoDbClient;
 
     private String testUserId;
 
@@ -56,13 +62,13 @@ class AccountNumberDeduplicationTest {
     }
 
     @Test
-    void testFindByAccountNumberAndInstitution_WithExistingAccount_ReturnsAccount() {
+    void testFindByAccountNumberAndInstitutionWithExistingAccountReturnsAccount() {
         try {
             // Given - Account with account number
-            String accountNumber = "1234";
-            String institutionName = "Test Bank";
-            
-            AccountTable account = new AccountTable();
+            final String accountNumber = "1234";
+            final String institutionName = "Test Bank";
+
+            final AccountTable account = new AccountTable();
             account.setAccountId(UUID.randomUUID().toString());
             account.setUserId(testUserId);
             account.setAccountName("Checking Account");
@@ -77,42 +83,49 @@ class AccountNumberDeduplicationTest {
             accountRepository.save(account);
 
             // When - Find by account number and institution
-            Optional<AccountTable> found = accountRepository.findByAccountNumberAndInstitution(
-                    accountNumber, institutionName, testUserId);
+            final Optional<AccountTable> found =
+                    accountRepository.findByAccountNumberAndInstitution(
+                            accountNumber, institutionName, testUserId);
 
             // Then - Should find the account
-            assertTrue(found.isPresent(), "Account should be found by account number and institution");
+            assertTrue(
+                    found.isPresent(), "Account should be found by account number and institution");
             assertEquals(accountNumber, found.get().getAccountNumber());
             assertEquals(institutionName, found.get().getInstitutionName());
             assertEquals(account.getAccountId(), found.get().getAccountId());
         } catch (Exception e) {
             // If test fails due to infrastructure (DynamoDB not available), skip it
-            String errorMsg = e.getMessage() != null ? e.getMessage() : "";
-            Throwable cause = e.getCause();
-            String causeMsg = (cause != null && cause.getMessage() != null) ? cause.getMessage() : "";
-            
-            if (errorMsg.contains("DynamoDB") || errorMsg.contains("LocalStack") || 
-                errorMsg.contains("Connection") || errorMsg.contains("endpoint") ||
-                errorMsg.contains("ResourceNotFoundException") ||
-                causeMsg.contains("DynamoDB") || causeMsg.contains("Connection") ||
-                causeMsg.contains("endpoint") || causeMsg.contains("ResourceNotFoundException")) {
+            final String errorMsg = e.getMessage() != null ? e.getMessage() : "";
+            final Throwable cause = e.getCause();
+            final String causeMsg =
+                    cause != null && cause.getMessage() != null ? cause.getMessage() : "";
+
+            if (errorMsg.contains("DynamoDB")
+                    || errorMsg.contains("LocalStack")
+                    || errorMsg.contains("Connection")
+                    || errorMsg.contains("endpoint")
+                    || errorMsg.contains("ResourceNotFoundException")
+                    || causeMsg.contains("DynamoDB")
+                    || causeMsg.contains("Connection")
+                    || causeMsg.contains("endpoint")
+                    || causeMsg.contains("ResourceNotFoundException")) {
                 org.junit.jupiter.api.Assumptions.assumeTrue(
                         false,
-                        "Test requires DynamoDB/LocalStack to be running. Skipping test: " + errorMsg
-                );
+                        "Test requires DynamoDB/LocalStack to be running. Skipping test: "
+                                + errorMsg);
             }
             throw e; // Re-throw if it's not an infrastructure issue
         }
     }
 
     @Test
-    void testFindByAccountNumberAndInstitution_WithDifferentInstitution_ReturnsEmpty() {
+    void testFindByAccountNumberAndInstitutionWithDifferentInstitutionReturnsEmpty() {
         try {
             // Given - Account with account number and institution
-            String accountNumber = "1234";
-            String institutionName = "Test Bank";
-            
-            AccountTable account = new AccountTable();
+            final String accountNumber = "1234";
+            final String institutionName = "Test Bank";
+
+            final AccountTable account = new AccountTable();
             account.setAccountId(UUID.randomUUID().toString());
             account.setUserId(testUserId);
             account.setAccountName("Checking Account");
@@ -127,96 +140,115 @@ class AccountNumberDeduplicationTest {
             accountRepository.save(account);
 
             // When - Find by same account number but different institution
-            Optional<AccountTable> found = accountRepository.findByAccountNumberAndInstitution(
-                    accountNumber, "Different Bank", testUserId);
+            final Optional<AccountTable> found =
+                    accountRepository.findByAccountNumberAndInstitution(
+                            accountNumber, "Different Bank", testUserId);
 
             // Then - Should not find the account
-            assertFalse(found.isPresent(), "Account should not be found with different institution");
+            assertFalse(
+                    found.isPresent(), "Account should not be found with different institution");
         } catch (Exception e) {
             // If test fails due to infrastructure (DynamoDB not available), skip it
-            String errorMsg = e.getMessage() != null ? e.getMessage() : "";
-            Throwable cause = e.getCause();
-            String causeMsg = (cause != null && cause.getMessage() != null) ? cause.getMessage() : "";
-            
-            if (errorMsg.contains("DynamoDB") || errorMsg.contains("LocalStack") || 
-                errorMsg.contains("Connection") || errorMsg.contains("endpoint") ||
-                errorMsg.contains("ResourceNotFoundException") ||
-                causeMsg.contains("DynamoDB") || causeMsg.contains("Connection") ||
-                causeMsg.contains("endpoint") || causeMsg.contains("ResourceNotFoundException")) {
+            final String errorMsg = e.getMessage() != null ? e.getMessage() : "";
+            final Throwable cause = e.getCause();
+            final String causeMsg =
+                    cause != null && cause.getMessage() != null ? cause.getMessage() : "";
+
+            if (errorMsg.contains("DynamoDB")
+                    || errorMsg.contains("LocalStack")
+                    || errorMsg.contains("Connection")
+                    || errorMsg.contains("endpoint")
+                    || errorMsg.contains("ResourceNotFoundException")
+                    || causeMsg.contains("DynamoDB")
+                    || causeMsg.contains("Connection")
+                    || causeMsg.contains("endpoint")
+                    || causeMsg.contains("ResourceNotFoundException")) {
                 org.junit.jupiter.api.Assumptions.assumeTrue(
                         false,
-                        "Test requires DynamoDB/LocalStack to be running. Skipping test: " + errorMsg
-                );
+                        "Test requires DynamoDB/LocalStack to be running. Skipping test: "
+                                + errorMsg);
             }
             throw e; // Re-throw if it's not an infrastructure issue
         }
     }
 
     @Test
-    void testFindByAccountNumberAndInstitution_WithNullAccountNumber_ReturnsEmpty() {
+    void testFindByAccountNumberAndInstitutionWithNullAccountNumberReturnsEmpty() {
         try {
             // When - Find with null account number
-            Optional<AccountTable> found = accountRepository.findByAccountNumberAndInstitution(
-                    null, "Test Bank", testUserId);
+            final Optional<AccountTable> found =
+                    accountRepository.findByAccountNumberAndInstitution(
+                            null, "Test Bank", testUserId);
 
             // Then - Should return empty
             assertFalse(found.isPresent(), "Should return empty for null account number");
         } catch (Exception e) {
             // If test fails due to infrastructure (DynamoDB not available), skip it
-            String errorMsg = e.getMessage() != null ? e.getMessage() : "";
-            Throwable cause = e.getCause();
-            String causeMsg = (cause != null && cause.getMessage() != null) ? cause.getMessage() : "";
-            
-            if (errorMsg.contains("DynamoDB") || errorMsg.contains("LocalStack") || 
-                errorMsg.contains("Connection") || errorMsg.contains("endpoint") ||
-                errorMsg.contains("ResourceNotFoundException") ||
-                causeMsg.contains("DynamoDB") || causeMsg.contains("Connection") ||
-                causeMsg.contains("endpoint") || causeMsg.contains("ResourceNotFoundException")) {
+            final String errorMsg = e.getMessage() != null ? e.getMessage() : "";
+            final Throwable cause = e.getCause();
+            final String causeMsg =
+                    cause != null && cause.getMessage() != null ? cause.getMessage() : "";
+
+            if (errorMsg.contains("DynamoDB")
+                    || errorMsg.contains("LocalStack")
+                    || errorMsg.contains("Connection")
+                    || errorMsg.contains("endpoint")
+                    || errorMsg.contains("ResourceNotFoundException")
+                    || causeMsg.contains("DynamoDB")
+                    || causeMsg.contains("Connection")
+                    || causeMsg.contains("endpoint")
+                    || causeMsg.contains("ResourceNotFoundException")) {
                 org.junit.jupiter.api.Assumptions.assumeTrue(
                         false,
-                        "Test requires DynamoDB/LocalStack to be running. Skipping test: " + errorMsg
-                );
+                        "Test requires DynamoDB/LocalStack to be running. Skipping test: "
+                                + errorMsg);
             }
             throw e; // Re-throw if it's not an infrastructure issue
         }
     }
 
     @Test
-    void testFindByAccountNumberAndInstitution_WithEmptyAccountNumber_ReturnsEmpty() {
+    void testFindByAccountNumberAndInstitutionWithEmptyAccountNumberReturnsEmpty() {
         try {
             // When - Find with empty account number
-            Optional<AccountTable> found = accountRepository.findByAccountNumberAndInstitution(
-                    "", "Test Bank", testUserId);
+            final Optional<AccountTable> found =
+                    accountRepository.findByAccountNumberAndInstitution(
+                            "", "Test Bank", testUserId);
 
             // Then - Should return empty
             assertFalse(found.isPresent(), "Should return empty for empty account number");
         } catch (Exception e) {
             // If test fails due to infrastructure (DynamoDB not available), skip it
-            String errorMsg = e.getMessage() != null ? e.getMessage() : "";
-            Throwable cause = e.getCause();
-            String causeMsg = (cause != null && cause.getMessage() != null) ? cause.getMessage() : "";
-            
-            if (errorMsg.contains("DynamoDB") || errorMsg.contains("LocalStack") || 
-                errorMsg.contains("Connection") || errorMsg.contains("endpoint") ||
-                errorMsg.contains("ResourceNotFoundException") ||
-                causeMsg.contains("DynamoDB") || causeMsg.contains("Connection") ||
-                causeMsg.contains("endpoint") || causeMsg.contains("ResourceNotFoundException")) {
+            final String errorMsg = e.getMessage() != null ? e.getMessage() : "";
+            final Throwable cause = e.getCause();
+            final String causeMsg =
+                    cause != null && cause.getMessage() != null ? cause.getMessage() : "";
+
+            if (errorMsg.contains("DynamoDB")
+                    || errorMsg.contains("LocalStack")
+                    || errorMsg.contains("Connection")
+                    || errorMsg.contains("endpoint")
+                    || errorMsg.contains("ResourceNotFoundException")
+                    || causeMsg.contains("DynamoDB")
+                    || causeMsg.contains("Connection")
+                    || causeMsg.contains("endpoint")
+                    || causeMsg.contains("ResourceNotFoundException")) {
                 org.junit.jupiter.api.Assumptions.assumeTrue(
                         false,
-                        "Test requires DynamoDB/LocalStack to be running. Skipping test: " + errorMsg
-                );
+                        "Test requires DynamoDB/LocalStack to be running. Skipping test: "
+                                + errorMsg);
             }
             throw e; // Re-throw if it's not an infrastructure issue
         }
     }
 
     @Test
-    void testAccountNumber_IsStoredAndRetrieved() {
+    void testAccountNumberIsStoredAndRetrieved() {
         try {
             // Given - Account with account number
-            String accountNumber = "5678";
-            
-            AccountTable account = new AccountTable();
+            final String accountNumber = "5678";
+
+            final AccountTable account = new AccountTable();
             account.setAccountId(UUID.randomUUID().toString());
             account.setUserId(testUserId);
             account.setAccountName("Savings Account");
@@ -231,30 +263,36 @@ class AccountNumberDeduplicationTest {
             accountRepository.save(account);
 
             // When - Retrieve the account
-            Optional<AccountTable> retrieved = accountRepository.findById(account.getAccountId());
+            final Optional<AccountTable> retrieved = accountRepository.findById(account.getAccountId());
 
             // Then - Account number should be stored and retrieved
             assertTrue(retrieved.isPresent(), "Account should be found");
-            assertEquals(accountNumber, retrieved.get().getAccountNumber(), 
+            assertEquals(
+                    accountNumber,
+                    retrieved.get().getAccountNumber(),
                     "Account number should be stored and retrieved correctly");
         } catch (Exception e) {
             // If test fails due to infrastructure (DynamoDB not available), skip it
-            String errorMsg = e.getMessage() != null ? e.getMessage() : "";
-            Throwable cause = e.getCause();
-            String causeMsg = (cause != null && cause.getMessage() != null) ? cause.getMessage() : "";
-            
-            if (errorMsg.contains("DynamoDB") || errorMsg.contains("LocalStack") || 
-                errorMsg.contains("Connection") || errorMsg.contains("endpoint") ||
-                errorMsg.contains("ResourceNotFoundException") ||
-                causeMsg.contains("DynamoDB") || causeMsg.contains("Connection") ||
-                causeMsg.contains("endpoint") || causeMsg.contains("ResourceNotFoundException")) {
+            final String errorMsg = e.getMessage() != null ? e.getMessage() : "";
+            final Throwable cause = e.getCause();
+            final String causeMsg =
+                    cause != null && cause.getMessage() != null ? cause.getMessage() : "";
+
+            if (errorMsg.contains("DynamoDB")
+                    || errorMsg.contains("LocalStack")
+                    || errorMsg.contains("Connection")
+                    || errorMsg.contains("endpoint")
+                    || errorMsg.contains("ResourceNotFoundException")
+                    || causeMsg.contains("DynamoDB")
+                    || causeMsg.contains("Connection")
+                    || causeMsg.contains("endpoint")
+                    || causeMsg.contains("ResourceNotFoundException")) {
                 org.junit.jupiter.api.Assumptions.assumeTrue(
                         false,
-                        "Test requires DynamoDB/LocalStack to be running. Skipping test: " + errorMsg
-                );
+                        "Test requires DynamoDB/LocalStack to be running. Skipping test: "
+                                + errorMsg);
             }
             throw e; // Re-throw if it's not an infrastructure issue
         }
     }
 }
-

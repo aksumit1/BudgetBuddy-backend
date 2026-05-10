@@ -1,69 +1,80 @@
 package com.budgetbuddy.compliance.dma;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.anyString;
+import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.isNull;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import com.budgetbuddy.compliance.AuditLogService;
 import com.budgetbuddy.compliance.gdpr.GDPRComplianceService;
-import com.budgetbuddy.model.dynamodb.*;
-import com.budgetbuddy.repository.dynamodb.*;
+import com.budgetbuddy.model.dynamodb.TransactionTable;
+import com.budgetbuddy.model.dynamodb.UserTable;
+import com.budgetbuddy.repository.dynamodb.AccountRepository;
+import com.budgetbuddy.repository.dynamodb.BudgetRepository;
+import com.budgetbuddy.repository.dynamodb.GoalRepository;
+import com.budgetbuddy.repository.dynamodb.TransactionRepository;
+import com.budgetbuddy.repository.dynamodb.UserRepository;
+import java.math.BigDecimal;
+import java.util.Arrays;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
-import java.math.BigDecimal;
-import java.util.Arrays;
-import java.util.List;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
-
-/**
- * Comprehensive tests for DMAComplianceService
- */
+/** Comprehensive tests for DMAComplianceService */
 class DMAComplianceServiceTest {
 
-    @Mock
-    private GDPRComplianceService gdprComplianceService;
+    @Mock private GDPRComplianceService gdprComplianceService;
 
-    @Mock
-    private AuditLogService auditLogService;
+    @Mock private AuditLogService auditLogService;
 
-    @Mock
-    private UserRepository userRepository;
+    @Mock private UserRepository userRepository;
 
-    @Mock
-    private TransactionRepository transactionRepository;
+    @Mock private TransactionRepository transactionRepository;
 
-    @Mock
-    private AccountRepository accountRepository;
+    @Mock private AccountRepository accountRepository;
 
-    @Mock
-    private BudgetRepository budgetRepository;
+    @Mock private BudgetRepository budgetRepository;
 
-    @Mock
-    private GoalRepository goalRepository;
+    @Mock private GoalRepository goalRepository;
 
     private DMAComplianceService dmaComplianceService;
 
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        dmaComplianceService = new DMAComplianceService(
-                gdprComplianceService, auditLogService, userRepository,
-                transactionRepository, accountRepository, budgetRepository, goalRepository);
+        dmaComplianceService =
+                new DMAComplianceService(
+                        gdprComplianceService,
+                        auditLogService,
+                        userRepository,
+                        transactionRepository,
+                        accountRepository,
+                        budgetRepository,
+                        goalRepository);
     }
 
     @Test
     @DisplayName("Should export data in JSON format")
-    void testExportDataPortable_JSON() {
+    void testExportDataPortableJSON() {
         // Given
-        String userId = "user-123";
-        String jsonData = "{\"userId\":\"user-123\"}";
+        final String userId = "user-123";
+        final String jsonData = "{\"userId\":\"user-123\"}";
         when(gdprComplianceService.exportDataPortable(userId)).thenReturn(jsonData);
 
         // When
-        String result = dmaComplianceService.exportDataPortable(userId, "JSON");
+        final String result = dmaComplianceService.exportDataPortable(userId, "JSON");
 
         // Then
         assertEquals(jsonData, result);
@@ -73,21 +84,21 @@ class DMAComplianceServiceTest {
 
     @Test
     @DisplayName("Should export data in CSV format")
-    void testExportDataPortable_CSV() {
+    void testExportDataPortableCSV() {
         // Given
-        String userId = "user-123";
-        UserTable user = new UserTable();
+        final String userId = "user-123";
+        final UserTable user = new UserTable();
         user.setUserId(userId);
         user.setEmail("test@example.com");
 
         when(userRepository.findById(userId)).thenReturn(java.util.Optional.of(user));
-        when(transactionRepository.findByUserId(userId, 0, 10000)).thenReturn(Arrays.asList());
+        when(transactionRepository.findByUserId(userId, 0, 10_000)).thenReturn(Arrays.asList());
         when(accountRepository.findByUserId(userId)).thenReturn(Arrays.asList());
         when(budgetRepository.findByUserId(userId)).thenReturn(Arrays.asList());
         when(goalRepository.findByUserId(userId)).thenReturn(Arrays.asList());
 
         // When
-        String result = dmaComplianceService.exportDataPortable(userId, "CSV");
+        final String result = dmaComplianceService.exportDataPortable(userId, "CSV");
 
         // Then
         assertNotNull(result);
@@ -97,21 +108,21 @@ class DMAComplianceServiceTest {
 
     @Test
     @DisplayName("Should export data in XML format")
-    void testExportDataPortable_XML() {
+    void testExportDataPortableXML() {
         // Given
-        String userId = "user-123";
-        UserTable user = new UserTable();
+        final String userId = "user-123";
+        final UserTable user = new UserTable();
         user.setUserId(userId);
         user.setEmail("test@example.com");
 
         when(userRepository.findById(userId)).thenReturn(java.util.Optional.of(user));
-        when(transactionRepository.findByUserId(userId, 0, 10000)).thenReturn(Arrays.asList());
+        when(transactionRepository.findByUserId(userId, 0, 10_000)).thenReturn(Arrays.asList());
         when(accountRepository.findByUserId(userId)).thenReturn(Arrays.asList());
         when(budgetRepository.findByUserId(userId)).thenReturn(Arrays.asList());
         when(goalRepository.findByUserId(userId)).thenReturn(Arrays.asList());
 
         // When
-        String result = dmaComplianceService.exportDataPortable(userId, "XML");
+        final String result = dmaComplianceService.exportDataPortable(userId, "XML");
 
         // Then
         assertNotNull(result);
@@ -122,24 +133,26 @@ class DMAComplianceServiceTest {
 
     @Test
     @DisplayName("Should throw exception for unsupported format")
-    void testExportDataPortable_UnsupportedFormat() {
+    void testExportDataPortableUnsupportedFormat() {
         // Given
-        String userId = "user-123";
+        final String userId = "user-123";
 
         // When/Then
-        assertThrows(IllegalArgumentException.class, () -> {
-            dmaComplianceService.exportDataPortable(userId, "YAML");
-        });
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> {
+                    dmaComplianceService.exportDataPortable(userId, "YAML");
+                });
     }
 
     @Test
     @DisplayName("Should get interoperability endpoint")
     void testGetInteroperabilityEndpoint() {
         // Given
-        String userId = "user-123";
+        final String userId = "user-123";
 
         // When
-        String endpoint = dmaComplianceService.getInteroperabilityEndpoint(userId);
+        final String endpoint = dmaComplianceService.getInteroperabilityEndpoint(userId);
 
         // Then
         assertNotNull(endpoint);
@@ -151,62 +164,79 @@ class DMAComplianceServiceTest {
     @DisplayName("Should authorize third-party access")
     void testAuthorizeThirdPartyAccess() {
         // Given
-        String userId = "user-123";
-        String thirdPartyId = "third-party-456";
-        String scope = "transactions";
+        final String userId = "user-123";
+        final String thirdPartyId = "third-party-456";
+        final String scope = "transactions";
 
         // When
-        boolean result = dmaComplianceService.authorizeThirdPartyAccess(userId, thirdPartyId, scope);
+        final boolean result =
+                dmaComplianceService.authorizeThirdPartyAccess(userId, thirdPartyId, scope);
 
         // Then
         assertTrue(result);
-        verify(auditLogService).logAction(eq(userId), eq("THIRD_PARTY_AUTHORIZATION"), eq("DMA"),
-                eq(thirdPartyId), any(), isNull(), isNull());
+        verify(auditLogService)
+                .logAction(
+                        eq(userId),
+                        eq("THIRD_PARTY_AUTHORIZATION"),
+                        eq("DMA"),
+                        eq(thirdPartyId),
+                        any(),
+                        isNull(),
+                        isNull());
     }
 
     @Test
     @DisplayName("Should share data with authorized third party")
     void testShareDataWithThirdParty() {
         // Given
-        String userId = "user-123";
-        String thirdPartyId = "third-party-456";
-        String dataType = "transactions";
-        String jsonData = "{\"data\":\"test\"}";
+        final String userId = "user-123";
+        final String thirdPartyId = "third-party-456";
+        final String dataType = "transactions";
+        final String jsonData = "{\"data\":\"test\"}";
 
         when(gdprComplianceService.exportDataPortable(userId)).thenReturn(jsonData);
 
         // When
-        String result = dmaComplianceService.shareDataWithThirdParty(userId, thirdPartyId, dataType);
+        final String result =
+                dmaComplianceService.shareDataWithThirdParty(userId, thirdPartyId, dataType);
 
         // Then
         assertEquals(jsonData, result);
-        verify(auditLogService).logAction(eq(userId), eq("DATA_SHARING"), eq("DMA"),
-                eq(thirdPartyId), any(), isNull(), isNull());
+        verify(auditLogService)
+                .logAction(
+                        eq(userId),
+                        eq("DATA_SHARING"),
+                        eq("DMA"),
+                        eq(thirdPartyId),
+                        any(),
+                        isNull(),
+                        isNull());
     }
 
     @Test
     @DisplayName("Should export CSV with transactions")
-    void testExportAsCSV_WithTransactions() {
+    void testExportAsCSVWithTransactions() {
         // Given
-        String userId = "user-123";
-        UserTable user = new UserTable();
+        final String userId = "user-123";
+        final UserTable user = new UserTable();
         user.setUserId(userId);
         user.setEmail("test@example.com");
 
-        TransactionTable transaction = new TransactionTable();
+        final TransactionTable transaction = new TransactionTable();
         transaction.setTransactionId("txn-123");
         transaction.setUserId(userId);
         transaction.setAmount(new BigDecimal("100.00"));
         transaction.setTransactionDate("2024-01-01");
 
         when(userRepository.findById(userId)).thenReturn(java.util.Optional.of(user));
-        when(transactionRepository.findByUserId(userId, 0, 10000)).thenReturn(Arrays.asList(transaction));
+        when(transactionRepository.findByUserId(userId, 0, 10_000))
+                .thenReturn(Arrays.asList(transaction));
         when(accountRepository.findByUserId(userId)).thenReturn(Arrays.asList());
         when(budgetRepository.findByUserId(userId)).thenReturn(Arrays.asList());
         when(goalRepository.findByUserId(userId)).thenReturn(Arrays.asList());
 
         // When
-        String result = dmaComplianceService.exportDataPortable(userId, "CSV");
+        final String result = dmaComplianceService.exportDataPortable(userId, "CSV");
 
         // Then
         assertNotNull(result);

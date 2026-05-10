@@ -1,49 +1,45 @@
 package com.budgetbuddy.repository.dynamodb;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.anyString;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+
 import com.budgetbuddy.model.dynamodb.FIDO2CredentialTable;
+import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import software.amazon.awssdk.core.pagination.sync.SdkIterable;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbIndex;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable;
 import software.amazon.awssdk.enhanced.dynamodb.Key;
-import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
-import software.amazon.awssdk.enhanced.dynamodb.model.QueryConditional;
-import software.amazon.awssdk.core.pagination.sync.SdkIterable;
 import software.amazon.awssdk.enhanced.dynamodb.model.Page;
+import software.amazon.awssdk.enhanced.dynamodb.model.QueryConditional;
 
-import java.time.Instant;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
-
-/**
- * Unit Tests for FIDO2CredentialRepository
- */
+/** Unit Tests for FIDO2CredentialRepository */
 @ExtendWith(MockitoExtension.class)
 class FIDO2CredentialRepositoryTest {
 
-    @Mock
-    private DynamoDbEnhancedClient enhancedClient;
+    @Mock private DynamoDbEnhancedClient enhancedClient;
 
-    @Mock
-    private DynamoDbTable<FIDO2CredentialTable> credentialTable;
+    @Mock private DynamoDbTable<FIDO2CredentialTable> credentialTable;
 
-    @Mock
-    private DynamoDbIndex<FIDO2CredentialTable> userIdIndex;
+    @Mock private DynamoDbIndex<FIDO2CredentialTable> userIdIndex;
 
-    @Mock
-    private SdkIterable<Page<FIDO2CredentialTable>> pages;
+    @Mock private SdkIterable<Page<FIDO2CredentialTable>> pages;
 
-    @Mock
-    private Page<FIDO2CredentialTable> page;
+    @Mock private Page<FIDO2CredentialTable> page;
 
     private FIDO2CredentialRepository repository;
     private String testCredentialId;
@@ -59,15 +55,21 @@ class FIDO2CredentialRepositoryTest {
         testCredential.setUserId(testUserId);
         testCredential.setPublicKeyCose("test-public-key-cose");
         testCredential.setSignatureCount(0L);
-        
-        org.mockito.Mockito.lenient().when(enhancedClient.table(anyString(), any(software.amazon.awssdk.enhanced.dynamodb.TableSchema.class)))
+
+        org.mockito.Mockito.lenient()
+                .when(
+                        enhancedClient.table(
+                                anyString(),
+                                any(software.amazon.awssdk.enhanced.dynamodb.TableSchema.class)))
                 .thenReturn(credentialTable);
-        org.mockito.Mockito.lenient().when(credentialTable.index("UserIdIndex")).thenReturn(userIdIndex);
+        org.mockito.Mockito.lenient()
+                .when(credentialTable.index("UserIdIndex"))
+                .thenReturn(userIdIndex);
         repository = new FIDO2CredentialRepository(enhancedClient, "Test");
     }
 
     @Test
-    void testSave_WithValidCredential_SavesSuccessfully() {
+    void testSaveWithValidCredentialSavesSuccessfully() {
         // When
         repository.save(testCredential);
 
@@ -76,18 +78,20 @@ class FIDO2CredentialRepositoryTest {
     }
 
     @Test
-    void testSave_WithNullCredential_ThrowsException() {
+    void testSaveWithNullCredentialThrowsException() {
         // When/Then
         assertThrows(IllegalArgumentException.class, () -> repository.save(null));
     }
 
     @Test
-    void testFindByCredentialId_WithValidId_ReturnsCredential() {
+    void testFindByCredentialIdWithValidIdReturnsCredential() {
         // Given
-        org.mockito.Mockito.lenient().when(credentialTable.getItem(org.mockito.ArgumentMatchers.<Key>any())).thenReturn(testCredential);
+        org.mockito.Mockito.lenient()
+                .when(credentialTable.getItem(org.mockito.ArgumentMatchers.<Key>any()))
+                .thenReturn(testCredential);
 
         // When
-        Optional<FIDO2CredentialTable> result = repository.findByCredentialId(testCredentialId);
+        final Optional<FIDO2CredentialTable> result = repository.findByCredentialId(testCredentialId);
 
         // Then
         assertTrue(result.isPresent());
@@ -95,9 +99,9 @@ class FIDO2CredentialRepositoryTest {
     }
 
     @Test
-    void testFindByCredentialId_WithNullId_ReturnsEmpty() {
+    void testFindByCredentialIdWithNullIdReturnsEmpty() {
         // When
-        Optional<FIDO2CredentialTable> result = repository.findByCredentialId(null);
+        final Optional<FIDO2CredentialTable> result = repository.findByCredentialId(null);
 
         // Then
         assertFalse(result.isPresent());
@@ -105,9 +109,9 @@ class FIDO2CredentialRepositoryTest {
     }
 
     @Test
-    void testFindByCredentialId_WithEmptyId_ReturnsEmpty() {
+    void testFindByCredentialIdWithEmptyIdReturnsEmpty() {
         // When
-        Optional<FIDO2CredentialTable> result = repository.findByCredentialId("");
+        final Optional<FIDO2CredentialTable> result = repository.findByCredentialId("");
 
         // Then
         assertFalse(result.isPresent());
@@ -115,27 +119,31 @@ class FIDO2CredentialRepositoryTest {
     }
 
     @Test
-    void testFindByCredentialId_WithNonExistentId_ReturnsEmpty() {
+    void testFindByCredentialIdWithNonExistentIdReturnsEmpty() {
         // Given
-        org.mockito.Mockito.lenient().when(credentialTable.getItem(any(Key.class))).thenReturn(null);
+        org.mockito.Mockito.lenient()
+                .when(credentialTable.getItem(any(Key.class)))
+                .thenReturn(null);
 
         // When
-        Optional<FIDO2CredentialTable> result = repository.findByCredentialId(testCredentialId);
+        final Optional<FIDO2CredentialTable> result = repository.findByCredentialId(testCredentialId);
 
         // Then
         assertFalse(result.isPresent());
     }
 
     @Test
-    void testFindByUserId_WithValidUserId_ReturnsCredentials() {
+    void testFindByUserIdWithValidUserIdReturnsCredentials() {
         // Given
-        List<FIDO2CredentialTable> credentials = List.of(testCredential);
-        org.mockito.Mockito.lenient().when(userIdIndex.query(org.mockito.ArgumentMatchers.<QueryConditional>any())).thenReturn(pages);
+        final List<FIDO2CredentialTable> credentials = List.of(testCredential);
+        org.mockito.Mockito.lenient()
+                .when(userIdIndex.query(org.mockito.ArgumentMatchers.<QueryConditional>any()))
+                .thenReturn(pages);
         org.mockito.Mockito.lenient().when(pages.iterator()).thenReturn(List.of(page).iterator());
         org.mockito.Mockito.lenient().when(page.items()).thenReturn(credentials);
 
         // When
-        List<FIDO2CredentialTable> result = repository.findByUserId(testUserId);
+        final List<FIDO2CredentialTable> result = repository.findByUserId(testUserId);
 
         // Then
         assertEquals(1, result.size());
@@ -143,9 +151,9 @@ class FIDO2CredentialRepositoryTest {
     }
 
     @Test
-    void testFindByUserId_WithNullUserId_ReturnsEmptyList() {
+    void testFindByUserIdWithNullUserIdReturnsEmptyList() {
         // When
-        List<FIDO2CredentialTable> result = repository.findByUserId(null);
+        final List<FIDO2CredentialTable> result = repository.findByUserId(null);
 
         // Then
         assertTrue(result.isEmpty());
@@ -153,9 +161,9 @@ class FIDO2CredentialRepositoryTest {
     }
 
     @Test
-    void testFindByUserId_WithEmptyUserId_ReturnsEmptyList() {
+    void testFindByUserIdWithEmptyUserIdReturnsEmptyList() {
         // When
-        List<FIDO2CredentialTable> result = repository.findByUserId("");
+        final List<FIDO2CredentialTable> result = repository.findByUserId("");
 
         // Then
         assertTrue(result.isEmpty());
@@ -163,19 +171,21 @@ class FIDO2CredentialRepositoryTest {
     }
 
     @Test
-    void testFindByUserId_WithException_ReturnsEmptyList() {
+    void testFindByUserIdWithExceptionReturnsEmptyList() {
         // Given
-        org.mockito.Mockito.lenient().when(userIdIndex.query(any(QueryConditional.class))).thenThrow(new RuntimeException("DynamoDB error"));
+        org.mockito.Mockito.lenient()
+                .when(userIdIndex.query(any(QueryConditional.class)))
+                .thenThrow(new RuntimeException("DynamoDB error"));
 
         // When
-        List<FIDO2CredentialTable> result = repository.findByUserId(testUserId);
+        final List<FIDO2CredentialTable> result = repository.findByUserId(testUserId);
 
         // Then
         assertTrue(result.isEmpty());
     }
 
     @Test
-    void testDelete_WithValidId_DeletesCredential() {
+    void testDeleteWithValidIdDeletesCredential() {
         // When
         repository.delete(testCredentialId);
 
@@ -184,40 +194,44 @@ class FIDO2CredentialRepositoryTest {
     }
 
     @Test
-    void testDelete_WithNullId_ThrowsException() {
+    void testDeleteWithNullIdThrowsException() {
         // When/Then
         assertThrows(IllegalArgumentException.class, () -> repository.delete(null));
     }
 
     @Test
-    void testDelete_WithEmptyId_ThrowsException() {
+    void testDeleteWithEmptyIdThrowsException() {
         // When/Then
         assertThrows(IllegalArgumentException.class, () -> repository.delete(""));
     }
 
     @Test
-    void testUpdateSignatureCount_WithValidInput_UpdatesCredential() {
+    void testUpdateSignatureCountWithValidInputUpdatesCredential() {
         // Given
-        Long newSignatureCount = 5L;
+        final Long newSignatureCount = 5L;
         // updateItem returns void, so we don't need to stub it
 
         // When
         repository.updateSignatureCount(testCredentialId, newSignatureCount);
 
         // Then
-        verify(credentialTable).updateItem(org.mockito.ArgumentMatchers.isA(software.amazon.awssdk.enhanced.dynamodb.model.UpdateItemEnhancedRequest.class));
+        verify(credentialTable)
+                .updateItem(
+                        org.mockito.ArgumentMatchers.isA(
+                                software.amazon.awssdk.enhanced.dynamodb.model
+                                        .UpdateItemEnhancedRequest.class));
     }
 
     @Test
-    void testUpdateSignatureCount_WithNullId_ThrowsException() {
+    void testUpdateSignatureCountWithNullIdThrowsException() {
         // When/Then
-        assertThrows(IllegalArgumentException.class, () -> repository.updateSignatureCount(null, 5L));
+        assertThrows(
+                IllegalArgumentException.class, () -> repository.updateSignatureCount(null, 5L));
     }
 
     @Test
-    void testUpdateSignatureCount_WithEmptyId_ThrowsException() {
+    void testUpdateSignatureCountWithEmptyIdThrowsException() {
         // When/Then
         assertThrows(IllegalArgumentException.class, () -> repository.updateSignatureCount("", 5L));
     }
 }
-

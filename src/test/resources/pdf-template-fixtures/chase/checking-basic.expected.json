@@ -1,0 +1,10 @@
+{
+  "institution": "Chase",
+  "note": "synthetic — pending real anonymised Chase checking statement",
+  "expected": [
+    { "date": "2024-03-15", "description": "AMZN Mktp US *A1B2C3D4",       "amount": "-34.99" },
+    { "date": "2024-03-16", "description": "STARBUCKS #01234 SEATTLE WA",  "amount": "-5.75" },
+    { "date": "2024-03-18", "description": "ACH DEPOSIT ACME CORP PAYROLL","amount": "2,500.00" },
+    { "date": "2024-03-20", "description": "TRADER JOE'S #124",            "amount": "-87.42" }
+  ]
+}

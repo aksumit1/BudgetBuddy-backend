@@ -1,5 +1,10 @@
 package com.budgetbuddy.config;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import com.budgetbuddy.AWSTestConfiguration;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -8,115 +13,132 @@ import org.springframework.context.annotation.Import;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 
-import static org.junit.jupiter.api.Assertions.*;
-
-/**
- * Integration Tests for SecurityConfig
- * 
- */
+/** Integration Tests for SecurityConfig */
+// SDK / Spring integration — the underlying APIs (AWS SDK, Plaid SDK,
+// Spring services, reflection) throw arbitrary RuntimeException subtypes
+// that can't reasonably be enumerated. Broad catches log + recover (or
+// translate to AppException). Suppress at class level since narrowing
+// here would mean catch (RuntimeException) which PMD flags identically.
+@SuppressWarnings("PMD.AvoidCatchingGenericException")
 @SpringBootTest(classes = com.budgetbuddy.BudgetBuddyApplication.class)
 @ActiveProfiles("test")
 @Import(AWSTestConfiguration.class)
 class SecurityConfigTest {
 
-    @Autowired
-    private PasswordEncoder passwordEncoder;
+    @Autowired private PasswordEncoder passwordEncoder;
 
     @Test
-    void testPasswordEncoder_EncodesPassword() {
+    void testPasswordEncoderEncodesPassword() {
         try {
             // Given
-            String rawPassword = "TestPassword123!";
+            final String rawPassword = "TestPassword123!";
 
             // When
-            String encoded = passwordEncoder.encode(rawPassword);
+            final String encoded = passwordEncoder.encode(rawPassword);
 
             // Then
             assertNotNull(encoded);
             assertNotEquals(rawPassword, encoded);
         } catch (Exception e) {
-            // If test fails due to infrastructure (DynamoDB not available during context initialization), skip it
-            String errorMsg = e.getMessage() != null ? e.getMessage() : "";
-            Throwable cause = e.getCause();
-            String causeMsg = (cause != null && cause.getMessage() != null) ? cause.getMessage() : "";
-            
-            if (errorMsg.contains("DynamoDB") || errorMsg.contains("LocalStack") || 
-                errorMsg.contains("Connection") || errorMsg.contains("endpoint") ||
-                errorMsg.contains("ResourceNotFoundException") ||
-                causeMsg.contains("DynamoDB") || causeMsg.contains("Connection") ||
-                causeMsg.contains("endpoint") || causeMsg.contains("ResourceNotFoundException")) {
+            // If test fails due to infrastructure (DynamoDB not available during context
+            // initialization), skip it
+            final String errorMsg = e.getMessage() != null ? e.getMessage() : "";
+            final Throwable cause = e.getCause();
+            final String causeMsg =
+                    cause != null && cause.getMessage() != null ? cause.getMessage() : "";
+
+            if (errorMsg.contains("DynamoDB")
+                    || errorMsg.contains("LocalStack")
+                    || errorMsg.contains("Connection")
+                    || errorMsg.contains("endpoint")
+                    || errorMsg.contains("ResourceNotFoundException")
+                    || causeMsg.contains("DynamoDB")
+                    || causeMsg.contains("Connection")
+                    || causeMsg.contains("endpoint")
+                    || causeMsg.contains("ResourceNotFoundException")) {
                 org.junit.jupiter.api.Assumptions.assumeTrue(
                         false,
-                        "Test requires DynamoDB/LocalStack to be running. Skipping test: " + errorMsg
-                );
+                        "Test requires DynamoDB/LocalStack to be running. Skipping test: "
+                                + errorMsg);
             }
             throw e; // Re-throw if it's not an infrastructure issue
         }
     }
 
     @Test
-    void testPasswordEncoder_MatchesPassword() {
+    void testPasswordEncoderMatchesPassword() {
         try {
             // Given
-            String rawPassword = "TestPassword123!";
-            String encoded = passwordEncoder.encode(rawPassword);
+            final String rawPassword = "TestPassword123!";
+            final String encoded = passwordEncoder.encode(rawPassword);
 
             // When
-            boolean matches = passwordEncoder.matches(rawPassword, encoded);
+            final boolean matches = passwordEncoder.matches(rawPassword, encoded);
 
             // Then
             assertTrue(matches);
         } catch (Exception e) {
-            // If test fails due to infrastructure (DynamoDB not available during context initialization), skip it
-            String errorMsg = e.getMessage() != null ? e.getMessage() : "";
-            Throwable cause = e.getCause();
-            String causeMsg = (cause != null && cause.getMessage() != null) ? cause.getMessage() : "";
-            
-            if (errorMsg.contains("DynamoDB") || errorMsg.contains("LocalStack") || 
-                errorMsg.contains("Connection") || errorMsg.contains("endpoint") ||
-                errorMsg.contains("ResourceNotFoundException") ||
-                causeMsg.contains("DynamoDB") || causeMsg.contains("Connection") ||
-                causeMsg.contains("endpoint") || causeMsg.contains("ResourceNotFoundException")) {
+            // If test fails due to infrastructure (DynamoDB not available during context
+            // initialization), skip it
+            final String errorMsg = e.getMessage() != null ? e.getMessage() : "";
+            final Throwable cause = e.getCause();
+            final String causeMsg =
+                    cause != null && cause.getMessage() != null ? cause.getMessage() : "";
+
+            if (errorMsg.contains("DynamoDB")
+                    || errorMsg.contains("LocalStack")
+                    || errorMsg.contains("Connection")
+                    || errorMsg.contains("endpoint")
+                    || errorMsg.contains("ResourceNotFoundException")
+                    || causeMsg.contains("DynamoDB")
+                    || causeMsg.contains("Connection")
+                    || causeMsg.contains("endpoint")
+                    || causeMsg.contains("ResourceNotFoundException")) {
                 org.junit.jupiter.api.Assumptions.assumeTrue(
                         false,
-                        "Test requires DynamoDB/LocalStack to be running. Skipping test: " + errorMsg
-                );
+                        "Test requires DynamoDB/LocalStack to be running. Skipping test: "
+                                + errorMsg);
             }
             throw e; // Re-throw if it's not an infrastructure issue
         }
     }
 
     @Test
-    void testPasswordEncoder_DoesNotMatchWrongPassword() {
+    void testPasswordEncoderDoesNotMatchWrongPassword() {
         try {
             // Given
-            String rawPassword = "TestPassword123!";
-            String wrongPassword = "WrongPassword123!";
-            String encoded = passwordEncoder.encode(rawPassword);
+            final String rawPassword = "TestPassword123!";
+            final String wrongPassword = "WrongPassword123!";
+            final String encoded = passwordEncoder.encode(rawPassword);
 
             // When
-            boolean matches = passwordEncoder.matches(wrongPassword, encoded);
+            final boolean matches = passwordEncoder.matches(wrongPassword, encoded);
 
             // Then
             assertFalse(matches);
         } catch (Exception e) {
-            // If test fails due to infrastructure (DynamoDB not available during context initialization), skip it
-            String errorMsg = e.getMessage() != null ? e.getMessage() : "";
-            Throwable cause = e.getCause();
-            String causeMsg = (cause != null && cause.getMessage() != null) ? cause.getMessage() : "";
-            
-            if (errorMsg.contains("DynamoDB") || errorMsg.contains("LocalStack") || 
-                errorMsg.contains("Connection") || errorMsg.contains("endpoint") ||
-                errorMsg.contains("ResourceNotFoundException") ||
-                causeMsg.contains("DynamoDB") || causeMsg.contains("Connection") ||
-                causeMsg.contains("endpoint") || causeMsg.contains("ResourceNotFoundException")) {
+            // If test fails due to infrastructure (DynamoDB not available during context
+            // initialization), skip it
+            final String errorMsg = e.getMessage() != null ? e.getMessage() : "";
+            final Throwable cause = e.getCause();
+            final String causeMsg =
+                    cause != null && cause.getMessage() != null ? cause.getMessage() : "";
+
+            if (errorMsg.contains("DynamoDB")
+                    || errorMsg.contains("LocalStack")
+                    || errorMsg.contains("Connection")
+                    || errorMsg.contains("endpoint")
+                    || errorMsg.contains("ResourceNotFoundException")
+                    || causeMsg.contains("DynamoDB")
+                    || causeMsg.contains("Connection")
+                    || causeMsg.contains("endpoint")
+                    || causeMsg.contains("ResourceNotFoundException")) {
                 org.junit.jupiter.api.Assumptions.assumeTrue(
                         false,
-                        "Test requires DynamoDB/LocalStack to be running. Skipping test: " + errorMsg
-                );
+                        "Test requires DynamoDB/LocalStack to be running. Skipping test: "
+                                + errorMsg);
             }
             throw e; // Re-throw if it's not an infrastructure issue
         }
     }
 }
-

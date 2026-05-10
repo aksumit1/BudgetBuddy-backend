@@ -5,12 +5,11 @@ import com.budgetbuddy.model.dynamodb.BudgetTable;
 import com.budgetbuddy.model.dynamodb.GoalTable;
 import com.budgetbuddy.model.dynamodb.TransactionActionTable;
 import com.budgetbuddy.model.dynamodb.TransactionTable;
-
 import java.util.List;
 
 /**
- * Response DTO for /api/sync/all endpoint
- * Returns all user data in a single response for first sync or force refresh
+ * Response DTO for /api/sync/all endpoint Returns all user data in a single response for first sync
+ * or force refresh
  */
 public class SyncAllResponse {
     private List<AccountTable> accounts;
@@ -20,8 +19,7 @@ public class SyncAllResponse {
     private List<TransactionActionTable> actions;
     private Long syncTimestamp; // Epoch seconds when sync was performed
 
-    public SyncAllResponse() {
-    }
+    public SyncAllResponse() {}
 
     public SyncAllResponse(
             final List<AccountTable> accounts,
@@ -86,4 +84,3 @@ public class SyncAllResponse {
         this.syncTimestamp = syncTimestamp;
     }
 }
-

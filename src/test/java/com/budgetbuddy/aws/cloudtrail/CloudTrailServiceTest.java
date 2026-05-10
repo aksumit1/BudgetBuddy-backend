@@ -1,28 +1,33 @@
 package com.budgetbuddy.aws.cloudtrail;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.when;
+
+import java.time.Instant;
+import java.util.Arrays;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import software.amazon.awssdk.services.cloudtrail.CloudTrailClient;
-import software.amazon.awssdk.services.cloudtrail.model.*;
+import software.amazon.awssdk.services.cloudtrail.model.Event;
+import software.amazon.awssdk.services.cloudtrail.model.GetTrailStatusRequest;
+import software.amazon.awssdk.services.cloudtrail.model.GetTrailStatusResponse;
+import software.amazon.awssdk.services.cloudtrail.model.LookupEventsRequest;
+import software.amazon.awssdk.services.cloudtrail.model.LookupEventsResponse;
 
-import java.time.Instant;
-import java.util.Arrays;
-import java.util.List;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
-
-/**
- * Comprehensive tests for CloudTrailService
- */
+/** Comprehensive tests for CloudTrailService */
 class CloudTrailServiceTest {
 
-    @Mock
-    private CloudTrailClient cloudTrailClient;
+    @Mock private CloudTrailClient cloudTrailClient;
 
     private CloudTrailService cloudTrailService;
 
@@ -36,39 +41,36 @@ class CloudTrailServiceTest {
     @DisplayName("Should log application activity")
     void testLogApplicationActivity() {
         // Given
-        String userId = "user-123";
-        String action = "CREATE_TRANSACTION";
-        String resource = "/api/transactions";
-        String result = "SUCCESS";
+        final String userId = "user-123";
+        final String action = "CREATE_TRANSACTION";
+        final String resource = "/api/transactions";
+        final String result = "SUCCESS";
 
         // When - Should not throw
-        assertDoesNotThrow(() -> {
-            cloudTrailService.logApplicationActivity(userId, action, resource, result);
-        });
+        assertDoesNotThrow(
+                () -> {
+                    cloudTrailService.logApplicationActivity(userId, action, resource, result);
+                });
     }
 
     @Test
     @DisplayName("Should lookup events successfully")
-    void testLookupEvents_Success() {
+    void testLookupEventsSuccess() {
         // Given
-        String userId = "user-123";
-        Instant startTime = Instant.now().minusSeconds(3600);
-        Instant endTime = Instant.now();
+        final String userId = "user-123";
+        final Instant startTime = Instant.now().minusSeconds(3600);
+        final Instant endTime = Instant.now();
 
-        Event event = Event.builder()
-                .eventName("CreateTransaction")
-                .eventTime(Instant.now())
-                .build();
+        final Event event =
+                Event.builder().eventName("CreateTransaction").eventTime(Instant.now()).build();
 
-        LookupEventsResponse response = LookupEventsResponse.builder()
-                .events(Arrays.asList(event))
-                .build();
+        final LookupEventsResponse response =
+                LookupEventsResponse.builder().events(Arrays.asList(event)).build();
 
-        when(cloudTrailClient.lookupEvents(any(LookupEventsRequest.class)))
-                .thenReturn(response);
+        when(cloudTrailClient.lookupEvents(any(LookupEventsRequest.class))).thenReturn(response);
 
         // When
-        List<Event> events = cloudTrailService.lookupEvents(userId, startTime, endTime);
+        final List<Event> events = cloudTrailService.lookupEvents(userId, startTime, endTime);
 
         // Then
         assertNotNull(events);
@@ -78,17 +80,17 @@ class CloudTrailServiceTest {
 
     @Test
     @DisplayName("Should return empty list on exception")
-    void testLookupEvents_Exception() {
+    void testLookupEventsException() {
         // Given
-        String userId = "user-123";
-        Instant startTime = Instant.now().minusSeconds(3600);
-        Instant endTime = Instant.now();
+        final String userId = "user-123";
+        final Instant startTime = Instant.now().minusSeconds(3600);
+        final Instant endTime = Instant.now();
 
         when(cloudTrailClient.lookupEvents(any(LookupEventsRequest.class)))
                 .thenThrow(new RuntimeException("AWS error"));
 
         // When
-        List<Event> events = cloudTrailService.lookupEvents(userId, startTime, endTime);
+        final List<Event> events = cloudTrailService.lookupEvents(userId, startTime, endTime);
 
         // Then
         assertNotNull(events);
@@ -97,18 +99,16 @@ class CloudTrailServiceTest {
 
     @Test
     @DisplayName("Should get trail status successfully")
-    void testGetTrailStatus_Success() {
+    void testGetTrailStatusSuccess() {
         // Given
-        String trailName = "test-trail";
-        GetTrailStatusResponse response = GetTrailStatusResponse.builder()
-                .isLogging(true)
-                .build();
+        final String trailName = "test-trail";
+        final GetTrailStatusResponse response = GetTrailStatusResponse.builder().isLogging(true).build();
 
         when(cloudTrailClient.getTrailStatus(any(GetTrailStatusRequest.class)))
                 .thenReturn(response);
 
         // When
-        GetTrailStatusResponse result = cloudTrailService.getTrailStatus(trailName);
+        final GetTrailStatusResponse result = cloudTrailService.getTrailStatus(trailName);
 
         // Then
         assertNotNull(result);
@@ -117,14 +117,14 @@ class CloudTrailServiceTest {
 
     @Test
     @DisplayName("Should return null on exception")
-    void testGetTrailStatus_Exception() {
+    void testGetTrailStatusException() {
         // Given
-        String trailName = "test-trail";
+        final String trailName = "test-trail";
         when(cloudTrailClient.getTrailStatus(any(GetTrailStatusRequest.class)))
                 .thenThrow(new RuntimeException("AWS error"));
 
         // When
-        GetTrailStatusResponse result = cloudTrailService.getTrailStatus(trailName);
+        final GetTrailStatusResponse result = cloudTrailService.getTrailStatus(trailName);
 
         // Then
         assertNull(result);

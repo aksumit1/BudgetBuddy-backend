@@ -1,0 +1,50 @@
+# American Express — personal, business, corporate cards.
+#
+# IMPORTANT: Amex's primary statement layout is multi-line (3-5 physical
+# lines per transaction) and is handled by parsePattern7 in Java, which
+# has 75 dedicated unit tests covering 6 documented variants. Do NOT try
+# to replicate Pattern 7 here — declarative regex can't express the
+# stateful line-accumulation it needs.
+#
+# What this YAML DOES cover:
+#   * Amex Cashback / Reward Bonus lines (Pattern 2 in Java parser). These
+#     are single-line items embedded in the transaction section like:
+#        "5% Cashback Bonus +$2.10 10/14 AMZN MKTP US"
+#     They don't fit Pattern 7's multi-line shape — single-line regex is
+#     both simpler and more reliable.
+#
+#   * Single-line purchases on some international / platinum statements
+#     that drop the 5-line layout in favour of a compact one-row format.
+#
+#   * Foreign transaction fee lines:
+#        "FOREIGN TRANSACTION FEE 0.75"
+#     These appear as normal single-line rows in the "Charges" section.
+#
+# Not attempting:
+#   * The 5-line "date / merchant / city / country / amount" block — Pattern 7 owns it.
+#   * The ⧫ diamond annotation (indicates foreign-currency transactions)
+#     is stripped upstream; templates don't need to match it explicitly.
+#
+# Status: UNVERIFIED.
+id: american-express-v1
+institution: American Express
+description: "Amex single-line reward + compact transaction rows (multi-line handled by Java parsePattern7)"
+status: UNVERIFIED
+layouts:
+  # Reward/Cashback prefix-tolerant layout — the date is mid-line, after a
+  # "+$X.XX" bonus amount. Matches the Pattern 2 shape in Java.
+  - name: reward-prefix
+    accountType: credit
+    lineRegex: '^\s*(?<description>.+?\+\$(?<amount>\d{1,3}(?:,\d{3})*(?:\.\d{2}))).*?(?<date>\d{1,2}/\d{1,2}/\d{2,4})\b'
+    dateFormat: "M/d/yy"
+    signConvention: credit-positive
+    minAmount: 0.01
+
+  # Compact single-line (MM/DD/YY date + merchant + amount) seen on some
+  # platinum and international variants.
+  - name: compact-single-line
+    accountType: credit
+    lineRegex: '^\s*(?<date>\d{1,2}/\d{1,2}/\d{2,4})\*?\s+(?<description>.+?)\s+\$?(?<amount>-?\d{1,3}(?:,\d{3})*(?:\.\d{2}))\s*$'
+    dateFormat: "M/d/yy"
+    signConvention: credit-positive
+    minAmount: 0.01

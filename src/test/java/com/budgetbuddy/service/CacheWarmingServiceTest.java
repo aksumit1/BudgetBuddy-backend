@@ -1,6 +1,20 @@
 package com.budgetbuddy.service;
 
-import com.budgetbuddy.repository.dynamodb.*;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
+
+import com.budgetbuddy.repository.dynamodb.AccountRepository;
+import com.budgetbuddy.repository.dynamodb.BudgetRepository;
+import com.budgetbuddy.repository.dynamodb.GoalRepository;
+import com.budgetbuddy.repository.dynamodb.TransactionActionRepository;
+import com.budgetbuddy.repository.dynamodb.TransactionRepository;
+import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -8,36 +22,21 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.List;
-import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
-
-/**
- * Unit tests for CacheWarmingService
- */
+/** Unit tests for CacheWarmingService */
 @ExtendWith(MockitoExtension.class)
 class CacheWarmingServiceTest {
 
-    @Mock
-    private AccountRepository accountRepository;
+    @Mock private AccountRepository accountRepository;
 
-    @Mock
-    private TransactionRepository transactionRepository;
+    @Mock private TransactionRepository transactionRepository;
 
-    @Mock
-    private BudgetRepository budgetRepository;
+    @Mock private BudgetRepository budgetRepository;
 
-    @Mock
-    private GoalRepository goalRepository;
+    @Mock private GoalRepository goalRepository;
 
-    @Mock
-    private TransactionActionRepository transactionActionRepository;
+    @Mock private TransactionActionRepository transactionActionRepository;
 
-    @InjectMocks
-    private CacheWarmingService cacheWarmingService;
+    @InjectMocks private CacheWarmingService cacheWarmingService;
 
     private String testUserId;
 
@@ -47,7 +46,7 @@ class CacheWarmingServiceTest {
     }
 
     @Test
-    void testWarmCacheForUser_Success() {
+    void testWarmCacheForUserSuccess() {
         // Mock repository responses
         when(accountRepository.findByUserId(testUserId)).thenReturn(List.of());
         when(transactionRepository.findByUserId(testUserId, 0, 50)).thenReturn(List.of());
@@ -56,7 +55,7 @@ class CacheWarmingServiceTest {
         when(transactionActionRepository.findByUserId(testUserId)).thenReturn(List.of());
 
         // Warm cache
-        CompletableFuture<Void> future = cacheWarmingService.warmCacheForUser(testUserId);
+        final CompletableFuture<Void> future = cacheWarmingService.warmCacheForUser(testUserId);
 
         // Wait for completion
         assertDoesNotThrow(() -> future.join());
@@ -70,8 +69,8 @@ class CacheWarmingServiceTest {
     }
 
     @Test
-    void testWarmCacheForUser_NullUserId() {
-        CompletableFuture<Void> future = cacheWarmingService.warmCacheForUser(null);
+    void testWarmCacheForUserNullUserId() {
+        final CompletableFuture<Void> future = cacheWarmingService.warmCacheForUser(null);
 
         assertDoesNotThrow(() -> future.join());
 
@@ -84,8 +83,8 @@ class CacheWarmingServiceTest {
     }
 
     @Test
-    void testWarmCacheForUser_EmptyUserId() {
-        CompletableFuture<Void> future = cacheWarmingService.warmCacheForUser("");
+    void testWarmCacheForUserEmptyUserId() {
+        final CompletableFuture<Void> future = cacheWarmingService.warmCacheForUser("");
 
         assertDoesNotThrow(() -> future.join());
 
@@ -94,45 +93,48 @@ class CacheWarmingServiceTest {
     }
 
     @Test
-    void testWarmCacheForUser_RepositoryError() {
+    void testWarmCacheForUserRepositoryError() {
         // Mock repository to throw exception
-        when(accountRepository.findByUserId(testUserId)).thenThrow(new RuntimeException("Database error"));
+        when(accountRepository.findByUserId(testUserId))
+                .thenThrow(new RuntimeException("Database error"));
 
         // Should not throw - errors are caught and logged
-        CompletableFuture<Void> future = cacheWarmingService.warmCacheForUser(testUserId);
+        final CompletableFuture<Void> future = cacheWarmingService.warmCacheForUser(testUserId);
         assertDoesNotThrow(() -> future.join());
     }
 
     @Test
-    void testWarmCacheForUsers_MultipleUsers() {
-        List<String> userIds = List.of(UUID.randomUUID().toString(), UUID.randomUUID().toString());
+    void testWarmCacheForUsersMultipleUsers() {
+        final List<String> userIds = List.of(UUID.randomUUID().toString(), UUID.randomUUID().toString());
 
         // Mock repository responses
-        userIds.forEach(userId -> {
-            when(accountRepository.findByUserId(userId)).thenReturn(List.of());
-            when(transactionRepository.findByUserId(userId, 0, 50)).thenReturn(List.of());
-            when(budgetRepository.findByUserId(userId)).thenReturn(List.of());
-            when(goalRepository.findByUserId(userId)).thenReturn(List.of());
-            when(transactionActionRepository.findByUserId(userId)).thenReturn(List.of());
-        });
+        userIds.forEach(
+                userId -> {
+                    when(accountRepository.findByUserId(userId)).thenReturn(List.of());
+                    when(transactionRepository.findByUserId(userId, 0, 50)).thenReturn(List.of());
+                    when(budgetRepository.findByUserId(userId)).thenReturn(List.of());
+                    when(goalRepository.findByUserId(userId)).thenReturn(List.of());
+                    when(transactionActionRepository.findByUserId(userId)).thenReturn(List.of());
+                });
 
         // Warm cache for multiple users
         cacheWarmingService.warmCacheForUsers(userIds);
 
         // Verify all users were processed
-        userIds.forEach(userId -> {
-            verify(accountRepository, atLeastOnce()).findByUserId(userId);
-        });
+        userIds.forEach(
+                userId -> {
+                    verify(accountRepository, atLeastOnce()).findByUserId(userId);
+                });
     }
 
     @Test
-    void testWarmCacheForUsers_NullList() {
+    void testWarmCacheForUsersNullList() {
         assertDoesNotThrow(() -> cacheWarmingService.warmCacheForUsers(null));
         verifyNoInteractions(accountRepository);
     }
 
     @Test
-    void testWarmCacheForUsers_EmptyList() {
+    void testWarmCacheForUsersEmptyList() {
         assertDoesNotThrow(() -> cacheWarmingService.warmCacheForUsers(List.of()));
         verifyNoInteractions(accountRepository);
     }

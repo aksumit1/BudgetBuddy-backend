@@ -6,9 +6,7 @@ import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbParti
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbSecondaryPartitionKey;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbSecondarySortKey;
 
-/**
- * DynamoDB table for Audit Logs
- */
+/** DynamoDB table for Audit Logs */
 @DynamoDbBean
 public class AuditLogTable {
 
@@ -106,4 +104,3 @@ public class AuditLogTable {
         this.userAgent = userAgent;
     }
 }
-

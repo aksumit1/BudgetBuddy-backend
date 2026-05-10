@@ -1,14 +1,14 @@
 package com.budgetbuddy.monitoring;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.actuate.health.Health;
 
-import static org.junit.jupiter.api.Assertions.*;
-
-/**
- * Unit Tests for Custom Health Indicator
- */
+/** Unit Tests for Custom Health Indicator */
 class CustomHealthIndicatorTest {
 
     private CustomHealthIndicator healthIndicator;
@@ -19,10 +19,10 @@ class CustomHealthIndicatorTest {
     }
 
     @Test
-    void testHealth_ReturnsUp() {
+    void testHealthReturnsUp() {
         // When
-        Health health = healthIndicator.health();
-        
+        final Health health = healthIndicator.health();
+
         // Then
         assertNotNull(health);
         assertEquals(Health.status("UP").build().getStatus(), health.getStatus());
@@ -31,18 +31,17 @@ class CustomHealthIndicatorTest {
     }
 
     @Test
-    void testHealth_WithException_ReturnsDown() {
+    void testHealthWithExceptionReturnsDown() {
         // Given - Create a health indicator that will throw exception
         // Since the current implementation always returns UP, we test the happy path
         // In a real scenario with database connectivity check, we'd mock DataSource
-        
+
         // When
-        Health health = healthIndicator.health();
-        
+        final Health health = healthIndicator.health();
+
         // Then
         assertNotNull(health);
         // Current implementation always returns UP
         assertEquals(Health.status("UP").build().getStatus(), health.getStatus());
     }
 }
-

@@ -1,61 +1,63 @@
 package com.budgetbuddy.api;
 
+
+import java.nio.charset.StandardCharsets;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
 import com.budgetbuddy.AWSTestConfiguration;
 import com.budgetbuddy.dto.AuthRequest;
 import com.budgetbuddy.dto.AuthResponse;
 import com.budgetbuddy.service.AuthService;
 import com.budgetbuddy.service.UserService;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
-import java.util.UUID;
-
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
-
 /**
- * Comprehensive Integration Tests for Token Refresh Endpoint
- * Tests the full flow from registration -> login -> token refresh
+ * Comprehensive Integration Tests for Token Refresh Endpoint Tests the full flow from registration
+ * -> login -> token refresh
  */
+// PMD's LawOfDemeter is documented as imprecise on chains involving
+// standard library types (BigDecimal, String, Optional) and DTO
+// getters; this class has many such idiomatic uses. Suppress at
+// class level rather than littering every method.
+@SuppressWarnings({"PMD.LawOfDemeter", "PMD.AvoidCatchingGenericException"})
 @SpringBootTest(
-    classes = com.budgetbuddy.BudgetBuddyApplication.class,
-    webEnvironment = org.springframework.boot.test.context.SpringBootTest.WebEnvironment.MOCK
-)
+        classes = com.budgetbuddy.BudgetBuddyApplication.class,
+        webEnvironment = org.springframework.boot.test.context.SpringBootTest.WebEnvironment.MOCK)
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 @Import(AWSTestConfiguration.class)
 class TokenRefreshIntegrationTest {
 
-    @Autowired
-    private MockMvc mockMvc;
+    @Autowired private MockMvc mockMvc;
 
-    @Autowired
-    private ObjectMapper objectMapper;
+    @Autowired private ObjectMapper objectMapper;
 
-    @Autowired
-    private AuthService authService;
+    @Autowired private AuthService authService;
 
-    @Autowired
-    private UserService userService;
+    @Autowired private UserService userService;
 
-    // Note: @MockBean is deprecated in Spring Boot 3.4.0, but still functional
+    // Note: @MockitoBean is deprecated in Spring Boot 3.4.0, but still functional
     @SuppressWarnings("deprecation")
-    @MockBean
+    @MockitoBean
     private com.budgetbuddy.security.rate.RateLimitService rateLimitService;
 
     @SuppressWarnings("deprecation")
-    @MockBean
+    @MockitoBean
     private com.budgetbuddy.security.ddos.DDoSProtectionService ddosProtectionService;
 
     private String testEmail;
@@ -65,8 +67,12 @@ class TokenRefreshIntegrationTest {
     @BeforeEach
     void setUp() {
         testEmail = "refresh-test-" + UUID.randomUUID() + "@example.com";
-        testClientSalt = java.util.Base64.getEncoder().encodeToString((UUID.randomUUID().toString()).getBytes());
-        testPasswordHash = java.util.Base64.getEncoder().encodeToString(("hashed-password-" + UUID.randomUUID()).getBytes());
+        testClientSalt =
+                java.util.Base64.getEncoder()
+                        .encodeToString(UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8));
+        testPasswordHash =
+                java.util.Base64.getEncoder()
+                        .encodeToString(("hashed-password-" + UUID.randomUUID()).getBytes(StandardCharsets.UTF_8));
 
         // Mock rate limiting services to allow all requests in tests
         when(rateLimitService.isAllowed(anyString(), anyString())).thenReturn(true);
@@ -74,26 +80,28 @@ class TokenRefreshIntegrationTest {
     }
 
     @Test
-    void testRefreshToken_WithValidToken_ReturnsNewTokens() throws Exception {
+    void testRefreshTokenWithValidTokenReturnsNewTokens() throws Exception {
         // Given - Register and login to get refresh token
         try {
             userService.createUserSecure(testEmail, testPasswordHash, "Test", "User");
 
-            AuthRequest loginRequest = new AuthRequest();
+            final AuthRequest loginRequest = new AuthRequest();
             loginRequest.setEmail(testEmail);
             loginRequest.setPasswordHash(testPasswordHash);
 
-            AuthResponse loginResponse = authService.authenticate(loginRequest);
-            String refreshToken = loginResponse.getRefreshToken();
+            final AuthResponse loginResponse = authService.authenticate(loginRequest);
+            final String refreshToken = loginResponse.getRefreshToken();
 
-            assert refreshToken != null && !refreshToken.isEmpty() : "Refresh token should be present";
+            assert refreshToken != null && !refreshToken.isEmpty()
+                    : "Refresh token should be present";
 
             // When - Refresh the token
-            String refreshRequestBody = String.format("{\"refreshToken\":\"%s\"}", refreshToken);
+            final String refreshRequestBody = String.format("{\"refreshToken\":\"%s\"}", refreshToken);
 
-            mockMvc.perform(post("/api/auth/refresh")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(refreshRequestBody))
+            mockMvc.perform(
+                            post("/api/auth/refresh")
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .content(refreshRequestBody))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.accessToken").exists())
                     .andExpect(jsonPath("$.accessToken").isNotEmpty())
@@ -107,101 +115,114 @@ class TokenRefreshIntegrationTest {
             // If DynamoDB is not available, skip the test
             org.junit.jupiter.api.Assumptions.assumeTrue(
                     false,
-                    "Test requires DynamoDB/LocalStack to be running. Skipping integration test: " + e.getMessage()
-            );
+                    "Test requires DynamoDB/LocalStack to be running. Skipping integration test: "
+                            + e.getMessage());
         }
     }
 
     @Test
-    void testRefreshToken_WithInvalidToken_ReturnsError() throws Exception {
+    void testRefreshTokenWithInvalidTokenReturnsError() throws Exception {
         // Given - Invalid refresh token
-        String invalidToken = "invalid-refresh-token.abc.123";
-        String refreshRequestBody = String.format("{\"refreshToken\":\"%s\"}", invalidToken);
+        final String invalidToken = "invalid-refresh-token.abc.123";
+        final String refreshRequestBody = String.format("{\"refreshToken\":\"%s\"}", invalidToken);
 
-        // When/Then - Invalid token should return an error (may be 401 or 500 depending on validation)
-        mockMvc.perform(post("/api/auth/refresh")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(refreshRequestBody))
-                .andExpect(result -> {
-                    int status = result.getResponse().getStatus();
-                    assert status >= 400 && status < 600 : "Should return an error status (4xx or 5xx), got: " + status;
-                });
+        // When/Then - Invalid token should return an error (may be 401 or 500 depending on
+        // validation)
+        mockMvc.perform(
+                        post("/api/auth/refresh")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(refreshRequestBody))
+                .andExpect(
+                        result -> {
+                            final int status = result.getResponse().getStatus();
+                            assert status >= 400 && status < 600
+                                    : "Should return an error status (4xx or 5xx), got: " + status;
+                        });
     }
 
     @Test
-    void testRefreshToken_WithEmptyToken_ReturnsBadRequest() throws Exception {
+    void testRefreshTokenWithEmptyTokenReturnsBadRequest() throws Exception {
         // Given - Empty refresh token
-        String refreshRequestBody = "{\"refreshToken\":\"\"}";
+        final String refreshRequestBody = "{\"refreshToken\":\"\"}";
 
         // When/Then
-        mockMvc.perform(post("/api/auth/refresh")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(refreshRequestBody))
+        mockMvc.perform(
+                        post("/api/auth/refresh")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(refreshRequestBody))
                 .andExpect(status().isBadRequest());
     }
 
     @Test
-    void testRefreshToken_WithNullToken_ReturnsBadRequest() throws Exception {
+    void testRefreshTokenWithNullTokenReturnsBadRequest() throws Exception {
         // Given - Null refresh token
-        String refreshRequestBody = "{\"refreshToken\":null}";
+        final String refreshRequestBody = "{\"refreshToken\":null}";
 
         // When/Then
-        mockMvc.perform(post("/api/auth/refresh")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(refreshRequestBody))
+        mockMvc.perform(
+                        post("/api/auth/refresh")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(refreshRequestBody))
                 .andExpect(status().isBadRequest());
     }
 
     @Test
-    void testRefreshToken_WithMissingToken_ReturnsBadRequest() throws Exception {
+    void testRefreshTokenWithMissingTokenReturnsBadRequest() throws Exception {
         // Given - Missing refresh token field
-        String refreshRequestBody = "{}";
+        final String refreshRequestBody = "{}";
 
         // When/Then
-        mockMvc.perform(post("/api/auth/refresh")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(refreshRequestBody))
+        mockMvc.perform(
+                        post("/api/auth/refresh")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(refreshRequestBody))
                 .andExpect(status().isBadRequest());
     }
 
     @Test
-    void testRefreshToken_MultipleRefreshes_AllSucceed() throws Exception {
+    void testRefreshTokenMultipleRefreshesAllSucceed() throws Exception {
         // Given - Register and login
         try {
             userService.createUserSecure(testEmail, testPasswordHash, "Test", "User");
 
-            AuthRequest loginRequest = new AuthRequest();
+            final AuthRequest loginRequest = new AuthRequest();
             loginRequest.setEmail(testEmail);
             loginRequest.setPasswordHash(testPasswordHash);
 
-            AuthResponse loginResponse = authService.authenticate(loginRequest);
-            String refreshToken = loginResponse.getRefreshToken();
+            final AuthResponse loginResponse = authService.authenticate(loginRequest);
+            final String refreshToken = loginResponse.getRefreshToken();
 
-            assert refreshToken != null && !refreshToken.isEmpty() : "Refresh token should be present";
+            assert refreshToken != null && !refreshToken.isEmpty()
+                    : "Refresh token should be present";
 
             // When - Refresh multiple times
-            String refreshRequestBody = String.format("{\"refreshToken\":\"%s\"}", refreshToken);
+            final String refreshRequestBody = String.format("{\"refreshToken\":\"%s\"}", refreshToken);
 
             // First refresh
-            String firstRefreshResult = mockMvc.perform(post("/api/auth/refresh")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(refreshRequestBody))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.accessToken").exists())
-                    .andExpect(jsonPath("$.refreshToken").exists())
-                    .andReturn()
-                    .getResponse()
-                    .getContentAsString();
+            final String firstRefreshResult =
+                    mockMvc.perform(
+                            post("/api/auth/refresh")
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .content(refreshRequestBody))
+                            .andExpect(status().isOk())
+                            .andExpect(jsonPath("$.accessToken").exists())
+                            .andExpect(jsonPath("$.refreshToken").exists())
+                            .andReturn()
+                            .getResponse()
+                            .getContentAsString();
 
             // Parse first refresh response to get new refresh token
-            AuthResponse firstRefreshResponse = objectMapper.readValue(firstRefreshResult, AuthResponse.class);
-            String newRefreshToken = firstRefreshResponse.getRefreshToken();
+            final AuthResponse firstRefreshResponse =
+                    objectMapper.readValue(firstRefreshResult, AuthResponse.class);
+            final String newRefreshToken = firstRefreshResponse.getRefreshToken();
 
             // Second refresh with new refresh token
-            String secondRefreshRequestBody = String.format("{\"refreshToken\":\"%s\"}", newRefreshToken);
-            mockMvc.perform(post("/api/auth/refresh")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(secondRefreshRequestBody))
+            final String secondRefreshRequestBody =
+                    String.format("{\"refreshToken\":\"%s\"}", newRefreshToken);
+            mockMvc.perform(
+                            post("/api/auth/refresh")
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .content(secondRefreshRequestBody))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.accessToken").exists())
                     .andExpect(jsonPath("$.refreshToken").exists());
@@ -209,83 +230,93 @@ class TokenRefreshIntegrationTest {
         } catch (Exception e) {
             org.junit.jupiter.api.Assumptions.assumeTrue(
                     false,
-                    "Test requires DynamoDB/LocalStack to be running. Skipping integration test: " + e.getMessage()
-            );
+                    "Test requires DynamoDB/LocalStack to be running. Skipping integration test: "
+                            + e.getMessage());
         }
     }
 
     @Test
-    void testRefreshToken_ReturnsValidJWT() throws Exception {
+    void testRefreshTokenReturnsValidJWT() throws Exception {
         // Given - Register and login
         try {
             userService.createUserSecure(testEmail, testPasswordHash, "Test", "User");
 
-            AuthRequest loginRequest = new AuthRequest();
+            final AuthRequest loginRequest = new AuthRequest();
             loginRequest.setEmail(testEmail);
             loginRequest.setPasswordHash(testPasswordHash);
 
-            AuthResponse loginResponse = authService.authenticate(loginRequest);
-            String refreshToken = loginResponse.getRefreshToken();
+            final AuthResponse loginResponse = authService.authenticate(loginRequest);
+            final String refreshToken = loginResponse.getRefreshToken();
 
             // When - Refresh the token
-            String refreshRequestBody = String.format("{\"refreshToken\":\"%s\"}", refreshToken);
+            final String refreshRequestBody = String.format("{\"refreshToken\":\"%s\"}", refreshToken);
 
-            String responseContent = mockMvc.perform(post("/api/auth/refresh")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(refreshRequestBody))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.accessToken").exists())
-                    .andReturn()
-                    .getResponse()
-                    .getContentAsString();
+            final String responseContent =
+                    mockMvc.perform(
+                            post("/api/auth/refresh")
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .content(refreshRequestBody))
+                            .andExpect(status().isOk())
+                            .andExpect(jsonPath("$.accessToken").exists())
+                            .andReturn()
+                            .getResponse()
+                            .getContentAsString();
 
             // Then - Verify access token is a valid JWT (has 3 parts separated by dots)
-            AuthResponse refreshResponse = objectMapper.readValue(responseContent, AuthResponse.class);
-            String accessToken = refreshResponse.getAccessToken();
+            final AuthResponse refreshResponse =
+                    objectMapper.readValue(responseContent, AuthResponse.class);
+            final String accessToken = refreshResponse.getAccessToken();
             assert accessToken != null : "Access token should not be null";
-            String[] tokenParts = accessToken.split("\\.");
+            final String[] tokenParts = accessToken.split("\\.");
             assert tokenParts.length == 3 : "Access token should be a valid JWT with 3 parts";
 
         } catch (Exception e) {
             org.junit.jupiter.api.Assumptions.assumeTrue(
                     false,
-                    "Test requires DynamoDB/LocalStack to be running. Skipping integration test: " + e.getMessage()
-            );
+                    "Test requires DynamoDB/LocalStack to be running. Skipping integration test: "
+                            + e.getMessage());
         }
     }
 
     @Test
-    void testRefreshToken_WithExpiredRefreshToken_ReturnsError() throws Exception {
-        // Given - An expired refresh token (this would need to be created with an expired timestamp)
+    void testRefreshTokenWithExpiredRefreshTokenReturnsError() throws Exception {
+        // Given - An expired refresh token (this would need to be created with an expired
+        // timestamp)
         // For this test, we'll use an invalid token format that would be rejected
         // In a real scenario, you'd need to create a token with an expiration in the past
-        String expiredToken = "expired.token.format";
-        String refreshRequestBody = String.format("{\"refreshToken\":\"%s\"}", expiredToken);
+        final String expiredToken = "expired.token.format";
+        final String refreshRequestBody = String.format("{\"refreshToken\":\"%s\"}", expiredToken);
 
         // When/Then - Invalid/expired token should return an error
-        mockMvc.perform(post("/api/auth/refresh")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(refreshRequestBody))
-                .andExpect(result -> {
-                    int status = result.getResponse().getStatus();
-                    assert status >= 400 && status < 600 : "Should return an error status (4xx or 5xx), got: " + status;
-                });
+        mockMvc.perform(
+                        post("/api/auth/refresh")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(refreshRequestBody))
+                .andExpect(
+                        result -> {
+                            final int status = result.getResponse().getStatus();
+                            assert status >= 400 && status < 600
+                                    : "Should return an error status (4xx or 5xx), got: " + status;
+                        });
     }
 
     @Test
-    void testRefreshToken_EndpointExists() throws Exception {
+    void testRefreshTokenEndpointExists() throws Exception {
         // Given - Any request body
-        String refreshRequestBody = "{\"refreshToken\":\"test\"}";
+        final String refreshRequestBody = "{\"refreshToken\":\"test\"}";
 
         // When/Then - Should not return 404 (endpoint exists)
-        // Should return 400 (Bad Request), 401 (Unauthorized), or 500 (Server Error), not 404 (Not Found)
-        mockMvc.perform(post("/api/auth/refresh")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(refreshRequestBody))
-                .andExpect(result -> {
-                    int status = result.getResponse().getStatus();
-                    assert status != 404 : "Endpoint should exist (not 404), got status: " + status;
-                });
+        // Should return 400 (Bad Request), 401 (Unauthorized), or 500 (Server Error), not 404 (Not
+        // Found)
+        mockMvc.perform(
+                        post("/api/auth/refresh")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(refreshRequestBody))
+                .andExpect(
+                        result -> {
+                            final int status = result.getResponse().getStatus();
+                            assert status != 404
+                                    : "Endpoint should exist (not 404), got status: " + status;
+                        });
     }
 }
-

@@ -1,5 +1,12 @@
 package com.budgetbuddy.config;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -9,24 +16,19 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 import software.amazon.awssdk.services.appconfigdata.AppConfigDataClient;
 
-import java.util.Optional;
-import java.util.concurrent.atomic.AtomicReference;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
-
-/**
- * Unit Tests for AppConfigIntegration
- * 
- */
+/** Unit Tests for AppConfigIntegration */
+// SDK / Spring integration — the underlying APIs (AWS SDK, Plaid SDK,
+// Spring services, reflection) throw arbitrary RuntimeException subtypes
+// that can't reasonably be enumerated. Broad catches log + recover (or
+// translate to AppException). Suppress at class level since narrowing
+// here would mean catch (RuntimeException) which PMD flags identically.
+@SuppressWarnings("PMD.AvoidCatchingGenericException")
 @ExtendWith(MockitoExtension.class)
 class AppConfigIntegrationTest {
 
-    @Mock
-    private AppConfigDataClient appConfigDataClient;
+    @Mock private AppConfigDataClient appConfigDataClient;
 
-    @InjectMocks
-    private AppConfigIntegration appConfigIntegration;
+    @InjectMocks private AppConfigIntegration appConfigIntegration;
 
     @BeforeEach
     void setUp() {
@@ -37,28 +39,33 @@ class AppConfigIntegrationTest {
     }
 
     @Test
-    void testGetConfigValue_WithValidKey_ReturnsValue() {
+    void testGetConfigValueWithValidKeyReturnsValue() {
         // Given
-        String testConfig = "{\"testKey\":\"testValue\"}";
-        java.util.concurrent.atomic.AtomicReference<String> latestConfig = 
-            (java.util.concurrent.atomic.AtomicReference<String>) ReflectionTestUtils.getField(appConfigIntegration, "latestConfiguration");
+        final String testConfig = "{\"testKey\":\"testValue\"}";
+        final java.util.concurrent.atomic.AtomicReference<String> latestConfig =
+                (java.util.concurrent.atomic.AtomicReference<String>)
+                        ReflectionTestUtils.getField(appConfigIntegration, "latestConfiguration");
         latestConfig.set(testConfig);
-        
+
         // Also need to parse and set parsedConfiguration
         try {
-            com.fasterxml.jackson.databind.ObjectMapper mapper = 
-                (com.fasterxml.jackson.databind.ObjectMapper) ReflectionTestUtils.getField(appConfigIntegration, "objectMapper");
-            com.fasterxml.jackson.databind.JsonNode jsonNode = mapper.readTree(testConfig);
-            java.util.concurrent.atomic.AtomicReference<com.fasterxml.jackson.databind.JsonNode> parsedConfig = 
-                (java.util.concurrent.atomic.AtomicReference<com.fasterxml.jackson.databind.JsonNode>) 
-                ReflectionTestUtils.getField(appConfigIntegration, "parsedConfiguration");
+            final com.fasterxml.jackson.databind.ObjectMapper mapper =
+                    (com.fasterxml.jackson.databind.ObjectMapper)
+                            ReflectionTestUtils.getField(appConfigIntegration, "objectMapper");
+            final com.fasterxml.jackson.databind.JsonNode jsonNode = mapper.readTree(testConfig);
+            final java.util.concurrent.atomic.AtomicReference<com.fasterxml.jackson.databind.JsonNode>
+                    parsedConfig =
+                            (java.util.concurrent.atomic.AtomicReference<
+                                    com.fasterxml.jackson.databind.JsonNode>)
+                                    ReflectionTestUtils.getField(
+                                            appConfigIntegration, "parsedConfiguration");
             parsedConfig.set(jsonNode);
         } catch (Exception e) {
             fail("Failed to parse test config: " + e.getMessage());
         }
 
         // When
-        Optional<String> value = appConfigIntegration.getConfigValue("testKey");
+        final Optional<String> value = appConfigIntegration.getConfigValue("testKey");
 
         // Then
         assertTrue(value.isPresent());
@@ -66,91 +73,106 @@ class AppConfigIntegrationTest {
     }
 
     @Test
-    void testGetConfigValue_WithInvalidKey_ReturnsEmpty() {
+    void testGetConfigValueWithInvalidKeyReturnsEmpty() {
         // Given
-        String testConfig = "{\"testKey\":\"testValue\"}";
-        java.util.concurrent.atomic.AtomicReference<String> latestConfig = 
-            (java.util.concurrent.atomic.AtomicReference<String>) ReflectionTestUtils.getField(appConfigIntegration, "latestConfiguration");
+        final String testConfig = "{\"testKey\":\"testValue\"}";
+        final java.util.concurrent.atomic.AtomicReference<String> latestConfig =
+                (java.util.concurrent.atomic.AtomicReference<String>)
+                        ReflectionTestUtils.getField(appConfigIntegration, "latestConfiguration");
         latestConfig.set(testConfig);
-        
+
         // Also need to parse and set parsedConfiguration
         try {
-            com.fasterxml.jackson.databind.ObjectMapper mapper = 
-                (com.fasterxml.jackson.databind.ObjectMapper) ReflectionTestUtils.getField(appConfigIntegration, "objectMapper");
-            com.fasterxml.jackson.databind.JsonNode jsonNode = mapper.readTree(testConfig);
-            java.util.concurrent.atomic.AtomicReference<com.fasterxml.jackson.databind.JsonNode> parsedConfig = 
-                (java.util.concurrent.atomic.AtomicReference<com.fasterxml.jackson.databind.JsonNode>) 
-                ReflectionTestUtils.getField(appConfigIntegration, "parsedConfiguration");
+            final com.fasterxml.jackson.databind.ObjectMapper mapper =
+                    (com.fasterxml.jackson.databind.ObjectMapper)
+                            ReflectionTestUtils.getField(appConfigIntegration, "objectMapper");
+            final com.fasterxml.jackson.databind.JsonNode jsonNode = mapper.readTree(testConfig);
+            final java.util.concurrent.atomic.AtomicReference<com.fasterxml.jackson.databind.JsonNode>
+                    parsedConfig =
+                            (java.util.concurrent.atomic.AtomicReference<
+                                    com.fasterxml.jackson.databind.JsonNode>)
+                                    ReflectionTestUtils.getField(
+                                            appConfigIntegration, "parsedConfiguration");
             parsedConfig.set(jsonNode);
         } catch (Exception e) {
             fail("Failed to parse test config: " + e.getMessage());
         }
 
         // When
-        Optional<String> value = appConfigIntegration.getConfigValue("nonExistentKey");
+        final Optional<String> value = appConfigIntegration.getConfigValue("nonExistentKey");
 
         // Then
         assertFalse(value.isPresent());
     }
 
     @Test
-    void testGetConfigValueAsBoolean_WithBooleanValue_ReturnsBoolean() {
+    void testGetConfigValueAsBooleanWithBooleanValueReturnsBoolean() {
         // Given
-        String testConfig = "{\"featureEnabled\":true}";
-        java.util.concurrent.atomic.AtomicReference<String> latestConfig = 
-            (java.util.concurrent.atomic.AtomicReference<String>) ReflectionTestUtils.getField(appConfigIntegration, "latestConfiguration");
+        final String testConfig = "{\"featureEnabled\":true}";
+        final java.util.concurrent.atomic.AtomicReference<String> latestConfig =
+                (java.util.concurrent.atomic.AtomicReference<String>)
+                        ReflectionTestUtils.getField(appConfigIntegration, "latestConfiguration");
         latestConfig.set(testConfig);
-        
+
         // Also need to parse and set parsedConfiguration
         try {
-            com.fasterxml.jackson.databind.ObjectMapper mapper = 
-                (com.fasterxml.jackson.databind.ObjectMapper) ReflectionTestUtils.getField(appConfigIntegration, "objectMapper");
-            com.fasterxml.jackson.databind.JsonNode jsonNode = mapper.readTree(testConfig);
-            java.util.concurrent.atomic.AtomicReference<com.fasterxml.jackson.databind.JsonNode> parsedConfig = 
-                (java.util.concurrent.atomic.AtomicReference<com.fasterxml.jackson.databind.JsonNode>) 
-                ReflectionTestUtils.getField(appConfigIntegration, "parsedConfiguration");
+            final com.fasterxml.jackson.databind.ObjectMapper mapper =
+                    (com.fasterxml.jackson.databind.ObjectMapper)
+                            ReflectionTestUtils.getField(appConfigIntegration, "objectMapper");
+            final com.fasterxml.jackson.databind.JsonNode jsonNode = mapper.readTree(testConfig);
+            final java.util.concurrent.atomic.AtomicReference<com.fasterxml.jackson.databind.JsonNode>
+                    parsedConfig =
+                            (java.util.concurrent.atomic.AtomicReference<
+                                    com.fasterxml.jackson.databind.JsonNode>)
+                                    ReflectionTestUtils.getField(
+                                            appConfigIntegration, "parsedConfiguration");
             parsedConfig.set(jsonNode);
         } catch (Exception e) {
             fail("Failed to parse test config: " + e.getMessage());
         }
 
         // When
-        boolean value = appConfigIntegration.getBooleanConfigValue("featureEnabled", false);
+        final boolean value = appConfigIntegration.getBooleanConfigValue("featureEnabled", false);
 
         // Then
         assertTrue(value);
     }
 
     @Test
-    void testGetConfigValueAsInt_WithIntValue_ReturnsInt() {
+    void testGetConfigValueAsIntWithIntValueReturnsInt() {
         // Given
-        String testConfig = "{\"maxRetries\":5}";
-        java.util.concurrent.atomic.AtomicReference<String> latestConfig = 
-            (java.util.concurrent.atomic.AtomicReference<String>) ReflectionTestUtils.getField(appConfigIntegration, "latestConfiguration");
+        final String testConfig = "{\"maxRetries\":5}";
+        final java.util.concurrent.atomic.AtomicReference<String> latestConfig =
+                (java.util.concurrent.atomic.AtomicReference<String>)
+                        ReflectionTestUtils.getField(appConfigIntegration, "latestConfiguration");
         latestConfig.set(testConfig);
-        
+
         // Also need to parse and set parsedConfiguration
         try {
-            com.fasterxml.jackson.databind.ObjectMapper mapper = 
-                (com.fasterxml.jackson.databind.ObjectMapper) ReflectionTestUtils.getField(appConfigIntegration, "objectMapper");
-            com.fasterxml.jackson.databind.JsonNode jsonNode = mapper.readTree(testConfig);
-            java.util.concurrent.atomic.AtomicReference<com.fasterxml.jackson.databind.JsonNode> parsedConfig = 
-                (java.util.concurrent.atomic.AtomicReference<com.fasterxml.jackson.databind.JsonNode>) 
-                ReflectionTestUtils.getField(appConfigIntegration, "parsedConfiguration");
+            final com.fasterxml.jackson.databind.ObjectMapper mapper =
+                    (com.fasterxml.jackson.databind.ObjectMapper)
+                            ReflectionTestUtils.getField(appConfigIntegration, "objectMapper");
+            final com.fasterxml.jackson.databind.JsonNode jsonNode = mapper.readTree(testConfig);
+            final java.util.concurrent.atomic.AtomicReference<com.fasterxml.jackson.databind.JsonNode>
+                    parsedConfig =
+                            (java.util.concurrent.atomic.AtomicReference<
+                                    com.fasterxml.jackson.databind.JsonNode>)
+                                    ReflectionTestUtils.getField(
+                                            appConfigIntegration, "parsedConfiguration");
             parsedConfig.set(jsonNode);
         } catch (Exception e) {
             fail("Failed to parse test config: " + e.getMessage());
         }
 
         // When
-        int value = appConfigIntegration.getIntConfigValue("maxRetries", 3);
+        final int value = appConfigIntegration.getIntConfigValue("maxRetries", 3);
 
         // Then
         assertEquals(5, value);
     }
 
     @Test
-    void testCleanup_ShutsDownScheduler() {
+    void testCleanupShutsDownScheduler() {
         // When
         appConfigIntegration.cleanup();
 
@@ -158,4 +180,3 @@ class AppConfigIntegrationTest {
         assertDoesNotThrow(() -> appConfigIntegration.cleanup());
     }
 }
-

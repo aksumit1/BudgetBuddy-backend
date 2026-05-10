@@ -1,5 +1,8 @@
 package com.budgetbuddy.security.circuitbreaker;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import com.budgetbuddy.AWSTestConfiguration;
 import com.budgetbuddy.util.TableInitializer;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
@@ -14,13 +17,17 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 
-import static org.junit.jupiter.api.Assertions.*;
-
 /**
- * Tests for Circuit Breaker Configuration
- * Verifies that Plaid circuit breaker has appropriate settings for handling transient failures
+ * Tests for Circuit Breaker Configuration Verifies that Plaid circuit breaker has appropriate
+ * settings for handling transient failures
  */
-@SpringBootTest(classes = com.budgetbuddy.BudgetBuddyApplication.class, 
+// PMD's LawOfDemeter is documented as imprecise on chains involving
+// standard library types (BigDecimal, String, Optional) and DTO
+// getters; this class has many such idiomatic uses. Suppress at
+// class level rather than littering every method.
+@SuppressWarnings("PMD.LawOfDemeter")
+@SpringBootTest(
+        classes = com.budgetbuddy.BudgetBuddyApplication.class,
         properties = {
             "spring.autoconfigure.exclude=org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration"
         })
@@ -29,11 +36,9 @@ import static org.junit.jupiter.api.Assertions.*;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class CircuitBreakerConfigurationTest {
 
-    @Autowired
-    private CircuitBreakerRegistry circuitBreakerRegistry;
+    @Autowired private CircuitBreakerRegistry circuitBreakerRegistry;
 
-    @Autowired
-    private DynamoDbClient dynamoDbClient;
+    @Autowired private DynamoDbClient dynamoDbClient;
 
     @BeforeAll
     void ensureTablesInitialized() {
@@ -41,58 +46,71 @@ class CircuitBreakerConfigurationTest {
     }
 
     @Test
-    void testPlaidCircuitBreaker_HasCorrectConfiguration() {
+    void testPlaidCircuitBreakerHasCorrectConfiguration() {
         // When - Get Plaid circuit breaker
-        CircuitBreaker plaidCircuitBreaker = circuitBreakerRegistry.circuitBreaker("plaid");
-        CircuitBreakerConfig config = plaidCircuitBreaker.getCircuitBreakerConfig();
+        final CircuitBreaker plaidCircuitBreaker = circuitBreakerRegistry.circuitBreaker("plaid");
+        final CircuitBreakerConfig config = plaidCircuitBreaker.getCircuitBreakerConfig();
 
         // Then - Verify configuration values
-        assertEquals(70, config.getFailureRateThreshold(), 
+        assertEquals(
+                70,
+                config.getFailureRateThreshold(),
                 "Failure rate threshold should be 70% (more tolerant of transient errors)");
-        
+
         // Note: getWaitDurationInOpenState() may not be available in all Resilience4j versions
         // Verify through YAML config or by checking actual behavior
-        assertEquals(30, config.getSlidingWindowSize(),
+        assertEquals(
+                30,
+                config.getSlidingWindowSize(),
                 "Sliding window size should be 30 (more buffer for genuine failures)");
-        
-        assertEquals(15, config.getMinimumNumberOfCalls(),
+
+        assertEquals(
+                15,
+                config.getMinimumNumberOfCalls(),
                 "Minimum number of calls should be 15 (prevents premature opening)");
-        
-        assertEquals(5, config.getPermittedNumberOfCallsInHalfOpenState(),
+
+        assertEquals(
+                5,
+                config.getPermittedNumberOfCallsInHalfOpenState(),
                 "Permitted calls in half-open should be 5 (more test calls to verify recovery)");
-        
-        assertTrue(config.isAutomaticTransitionFromOpenToHalfOpenEnabled(),
+
+        assertTrue(
+                config.isAutomaticTransitionFromOpenToHalfOpenEnabled(),
                 "Automatic transition from open to half-open should be enabled");
     }
 
     @Test
-    void testPlaidCircuitBreaker_InitialStateIsClosed() {
+    void testPlaidCircuitBreakerInitialStateIsClosed() {
         // When - Get Plaid circuit breaker
-        CircuitBreaker plaidCircuitBreaker = circuitBreakerRegistry.circuitBreaker("plaid");
+        final CircuitBreaker plaidCircuitBreaker = circuitBreakerRegistry.circuitBreaker("plaid");
 
         // Then - Initial state should be CLOSED
-        assertEquals(CircuitBreaker.State.CLOSED, plaidCircuitBreaker.getState(),
+        assertEquals(
+                CircuitBreaker.State.CLOSED,
+                plaidCircuitBreaker.getState(),
                 "Circuit breaker should start in CLOSED state");
     }
 
     @Test
-    void testPlaidCircuitBreaker_ConfigurationIsMoreLenientThanDefault() {
+    void testPlaidCircuitBreakerConfigurationIsMoreLenientThanDefault() {
         // When - Get Plaid circuit breaker and default config
-        CircuitBreaker plaidCircuitBreaker = circuitBreakerRegistry.circuitBreaker("plaid");
-        CircuitBreakerConfig plaidConfig = plaidCircuitBreaker.getCircuitBreakerConfig();
-        
+        final CircuitBreaker plaidCircuitBreaker = circuitBreakerRegistry.circuitBreaker("plaid");
+        final CircuitBreakerConfig plaidConfig = plaidCircuitBreaker.getCircuitBreakerConfig();
+
         // Default config from registry
-        CircuitBreakerConfig defaultConfig = circuitBreakerRegistry.getDefaultConfig();
+        final CircuitBreakerConfig defaultConfig = circuitBreakerRegistry.getDefaultConfig();
 
         // Then - Plaid config should be more lenient
-        assertTrue(plaidConfig.getFailureRateThreshold() > defaultConfig.getFailureRateThreshold(),
+        assertTrue(
+                plaidConfig.getFailureRateThreshold() > defaultConfig.getFailureRateThreshold(),
                 "Plaid failure rate threshold should be higher than default");
-        
-        assertTrue(plaidConfig.getSlidingWindowSize() > defaultConfig.getSlidingWindowSize(),
+
+        assertTrue(
+                plaidConfig.getSlidingWindowSize() > defaultConfig.getSlidingWindowSize(),
                 "Plaid sliding window size should be larger than default");
-        
-        assertTrue(plaidConfig.getMinimumNumberOfCalls() > defaultConfig.getMinimumNumberOfCalls(),
+
+        assertTrue(
+                plaidConfig.getMinimumNumberOfCalls() > defaultConfig.getMinimumNumberOfCalls(),
                 "Plaid minimum number of calls should be higher than default");
     }
 }
-

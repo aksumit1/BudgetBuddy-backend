@@ -1,5 +1,13 @@
 package com.budgetbuddy.integration;
 
+
+import java.nio.charset.StandardCharsets;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import com.budgetbuddy.AWSTestConfiguration;
 import com.budgetbuddy.model.dynamodb.AccountTable;
 import com.budgetbuddy.model.dynamodb.TransactionTable;
@@ -10,6 +18,13 @@ import com.budgetbuddy.repository.dynamodb.UserRepository;
 import com.budgetbuddy.service.TransactionService;
 import com.budgetbuddy.service.UserService;
 import com.budgetbuddy.util.TableInitializer;
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.util.Base64;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -22,19 +37,9 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 
-import java.math.BigDecimal;
-import java.time.Instant;
-import java.time.LocalDate;
-import java.util.Base64;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
-
-import static org.junit.jupiter.api.Assertions.*;
-
 /**
- * Integration Tests for Pseudo Account Functionality
- * Tests end-to-end flow: registration → pseudo account creation → transaction creation
+ * Integration Tests for Pseudo Account Functionality Tests end-to-end flow: registration → pseudo
+ * account creation → transaction creation
  */
 @SpringBootTest(classes = com.budgetbuddy.BudgetBuddyApplication.class)
 @ActiveProfiles("test")
@@ -42,25 +47,20 @@ import static org.junit.jupiter.api.Assertions.*;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class PseudoAccountIntegrationTest {
 
-    private static final Logger logger = LoggerFactory.getLogger(PseudoAccountIntegrationTest.class);
+    private static final Logger LOGGER =
+            LoggerFactory.getLogger(PseudoAccountIntegrationTest.class);
 
-    @Autowired
-    private UserService userService;
+    @Autowired private UserService userService;
 
-    @Autowired
-    private AccountRepository accountRepository;
+    @Autowired private AccountRepository accountRepository;
 
-    @Autowired
-    private TransactionService transactionService;
+    @Autowired private TransactionService transactionService;
 
-    @Autowired
-    private TransactionRepository transactionRepository;
+    @Autowired private TransactionRepository transactionRepository;
 
-    @Autowired
-    private UserRepository userRepository;
+    @Autowired private UserRepository userRepository;
 
-    @Autowired
-    private DynamoDbClient dynamoDbClient;
+    @Autowired private DynamoDbClient dynamoDbClient;
 
     private UserTable testUser;
 
@@ -72,22 +72,23 @@ class PseudoAccountIntegrationTest {
     @BeforeEach
     void setUp() {
         // Create test user (this should create pseudo account)
-        String email = "test-pseudo-" + UUID.randomUUID() + "@example.com";
+        final String email = "test-pseudo-" + UUID.randomUUID() + "@example.com";
         // Password hash must be base64 encoded
-        String password = "testpassword123";
-        String passwordHash = Base64.getEncoder().encodeToString(password.getBytes());
-        
+        final String password = "testpassword123";
+        final String passwordHash = Base64.getEncoder().encodeToString(password.getBytes(StandardCharsets.UTF_8));
+
         testUser = userService.createUserSecure(email, passwordHash, "Test", "User");
         assertNotNull(testUser);
     }
 
     @Test
-    void testUserRegistration_CreatesPseudoAccount() {
+    void testUserRegistrationCreatesPseudoAccount() {
         // Given - User was created in setUp()
-        
+
         // When - Find pseudo account
-        AccountTable pseudoAccount = accountRepository.getOrCreatePseudoAccount(testUser.getUserId());
-        
+        final AccountTable pseudoAccount =
+                accountRepository.getOrCreatePseudoAccount(testUser.getUserId());
+
         // Then
         assertNotNull(pseudoAccount);
         assertEquals("Manual Transactions", pseudoAccount.getAccountName());
@@ -100,30 +101,32 @@ class PseudoAccountIntegrationTest {
     }
 
     @Test
-    void testCreateTransaction_WithoutAccount_UsesPseudoAccount() {
+    void testCreateTransactionWithoutAccountUsesPseudoAccount() {
         // Given
-        AccountTable pseudoAccount = accountRepository.getOrCreatePseudoAccount(testUser.getUserId());
-        
+        final AccountTable pseudoAccount =
+                accountRepository.getOrCreatePseudoAccount(testUser.getUserId());
+
         // When - Create transaction without accountId
-        TransactionTable transaction = transactionService.createTransaction(
-                testUser,
-                null, // No accountId
-                BigDecimal.valueOf(100.00),
-                LocalDate.now(),
-                "Manual transaction without account",
-                "FOOD",
-                "RESTAURANTS",
-                null, // transactionId
-                null, // notes
-                null, // plaidAccountId
-                null, // plaidTransactionId
-                null, // transactionType
-                null, // currencyCode
-                null, // importSource
-                null, // importBatchId
-                null  // importFileName
-        );
-        
+        final TransactionTable transaction =
+                transactionService.createTransaction(
+                        testUser,
+                        null, // No accountId
+                        BigDecimal.valueOf(100.00),
+                        LocalDate.now(),
+                        "Manual transaction without account",
+                        "FOOD",
+                        "RESTAURANTS",
+                        null, // transactionId
+                        null, // notes
+                        null, // plaidAccountId
+                        null, // plaidTransactionId
+                        null, // transactionType
+                        null, // currencyCode
+                        null, // importSource
+                        null, // importBatchId
+                        null // importFileName
+                );
+
         // Then - Should use pseudo account
         assertNotNull(transaction);
         assertEquals(pseudoAccount.getAccountId(), transaction.getAccountId());
@@ -131,9 +134,9 @@ class PseudoAccountIntegrationTest {
     }
 
     @Test
-    void testCreateTransaction_WithAccount_UsesProvidedAccount() {
+    void testCreateTransactionWithAccountUsesProvidedAccount() {
         // Given - Create a real account
-        AccountTable realAccount = new AccountTable();
+        final AccountTable realAccount = new AccountTable();
         realAccount.setAccountId(UUID.randomUUID().toString());
         realAccount.setUserId(testUser.getUserId());
         realAccount.setAccountName("Test Checking Account");
@@ -141,38 +144,40 @@ class PseudoAccountIntegrationTest {
         realAccount.setAccountType("checking");
         realAccount.setActive(true);
         accountRepository.save(realAccount);
-        
+
         // When - Create transaction with accountId
-        TransactionTable transaction = transactionService.createTransaction(
-                testUser,
-                realAccount.getAccountId(), // Use real account
-                BigDecimal.valueOf(50.00),
-                LocalDate.now(),
-                "Transaction with account",
-                "FOOD",
-                "RESTAURANTS",
-                null, // transactionId
-                null, // notes
-                null, // plaidAccountId
-                null, // plaidTransactionId
-                null, // transactionType
-                null, // currencyCode
-                null, // importSource
-                null, // importBatchId
-                null  // importFileName
-        );
-        
+        final TransactionTable transaction =
+                transactionService.createTransaction(
+                        testUser,
+                        realAccount.getAccountId(), // Use real account
+                        BigDecimal.valueOf(50.00),
+                        LocalDate.now(),
+                        "Transaction with account",
+                        "FOOD",
+                        "RESTAURANTS",
+                        null, // transactionId
+                        null, // notes
+                        null, // plaidAccountId
+                        null, // plaidTransactionId
+                        null, // transactionType
+                        null, // currencyCode
+                        null, // importSource
+                        null, // importBatchId
+                        null // importFileName
+                );
+
         // Then - Should use provided account, NOT pseudo account
         assertNotNull(transaction);
         assertEquals(realAccount.getAccountId(), transaction.getAccountId());
-        assertNotEquals(accountRepository.getOrCreatePseudoAccount(testUser.getUserId()).getAccountId(), 
-                       transaction.getAccountId());
+        assertNotEquals(
+                accountRepository.getOrCreatePseudoAccount(testUser.getUserId()).getAccountId(),
+                transaction.getAccountId());
     }
 
     @Test
-    void testCreateTransaction_WithPlaidAccountId_NeverUsesPseudoAccount() {
+    void testCreateTransactionWithPlaidAccountIdNeverUsesPseudoAccount() {
         // Given - Create account with Plaid ID
-        AccountTable plaidAccount = new AccountTable();
+        final AccountTable plaidAccount = new AccountTable();
         plaidAccount.setAccountId(UUID.randomUUID().toString());
         plaidAccount.setUserId(testUser.getUserId());
         plaidAccount.setAccountName("Plaid Account");
@@ -181,78 +186,86 @@ class PseudoAccountIntegrationTest {
         plaidAccount.setAccountSubtype("checking");
         plaidAccount.setPlaidAccountId("plaid-acc-123");
         plaidAccount.setActive(true);
-        Instant now = Instant.now();
+        final Instant now = Instant.now();
         plaidAccount.setCreatedAt(now);
         plaidAccount.setUpdatedAt(now);
         plaidAccount.setUpdatedAtTimestamp(now.getEpochSecond());
         accountRepository.save(plaidAccount);
-        
+
         // Verify account was saved and can be found
-        Optional<AccountTable> savedAccount = accountRepository.findById(plaidAccount.getAccountId());
+        final Optional<AccountTable> savedAccount =
+                accountRepository.findById(plaidAccount.getAccountId());
         assertTrue(savedAccount.isPresent(), "Account should be saved");
-        assertEquals("plaid-acc-123", savedAccount.get().getPlaidAccountId(), "Account should have Plaid ID");
-        
+        assertEquals(
+                "plaid-acc-123",
+                savedAccount.get().getPlaidAccountId(),
+                "Account should have Plaid ID");
+
         // When - Create Plaid transaction (with plaidAccountId but no accountId)
-        TransactionTable transaction = transactionService.createTransaction(
-                testUser,
-                null, // No accountId
-                BigDecimal.valueOf(75.00),
-                LocalDate.now(),
-                "Plaid transaction",
-                "FOOD",
-                "RESTAURANTS",
-                null, // transactionId
-                null, // notes
-                "plaid-acc-123", // Plaid account ID
-                "plaid-tx-123",   // Plaid transaction ID
-                null, // transactionType
-                null, // currencyCode
-                null, // importSource
-                null, // importBatchId
-                null  // importFileName
-        );
-        
+        final TransactionTable transaction =
+                transactionService.createTransaction(
+                        testUser,
+                        null, // No accountId
+                        BigDecimal.valueOf(75.00),
+                        LocalDate.now(),
+                        "Plaid transaction",
+                        "FOOD",
+                        "RESTAURANTS",
+                        null, // transactionId
+                        null, // notes
+                        "plaid-acc-123", // Plaid account ID
+                        "plaid-tx-123", // Plaid transaction ID
+                        null, // transactionType
+                        null, // currencyCode
+                        null, // importSource
+                        null, // importBatchId
+                        null // importFileName
+                );
+
         // Then - Should use Plaid account, NOT pseudo account
         assertNotNull(transaction);
         assertEquals(plaidAccount.getAccountId(), transaction.getAccountId());
-        assertNotEquals(accountRepository.getOrCreatePseudoAccount(testUser.getUserId()).getAccountId(), 
-                       transaction.getAccountId());
+        assertNotEquals(
+                accountRepository.getOrCreatePseudoAccount(testUser.getUserId()).getAccountId(),
+                transaction.getAccountId());
     }
 
     @Test
-    void testGetOrCreatePseudoAccount_IsIdempotent() {
+    void testGetOrCreatePseudoAccountIsIdempotent() {
         // Given
-        AccountTable firstCall = accountRepository.getOrCreatePseudoAccount(testUser.getUserId());
-        
+        final AccountTable firstCall = accountRepository.getOrCreatePseudoAccount(testUser.getUserId());
+
         // When - Call again
-        AccountTable secondCall = accountRepository.getOrCreatePseudoAccount(testUser.getUserId());
-        
+        final AccountTable secondCall = accountRepository.getOrCreatePseudoAccount(testUser.getUserId());
+
         // Then - Should return same account
         assertEquals(firstCall.getAccountId(), secondCall.getAccountId());
         assertEquals(firstCall.getAccountName(), secondCall.getAccountName());
     }
 
     @Test
-    void testPseudoAccount_IsNotIncludedInUserAccounts() {
+    void testPseudoAccountIsNotIncludedInUserAccounts() {
         // Given
-        AccountTable pseudoAccount = accountRepository.getOrCreatePseudoAccount(testUser.getUserId());
-        
+        final AccountTable pseudoAccount =
+                accountRepository.getOrCreatePseudoAccount(testUser.getUserId());
+
         // Create a real account
-        AccountTable realAccount = new AccountTable();
+        final AccountTable realAccount = new AccountTable();
         realAccount.setAccountId(UUID.randomUUID().toString());
         realAccount.setUserId(testUser.getUserId());
         realAccount.setAccountName("Real Account");
         realAccount.setActive(true);
         accountRepository.save(realAccount);
-        
+
         // When - Get all accounts for user
-        List<AccountTable> userAccounts = accountRepository.findByUserId(testUser.getUserId());
-        
+        final List<AccountTable> userAccounts = accountRepository.findByUserId(testUser.getUserId());
+
         // Then - Should include real account, but pseudo account should be filtered out by client
         // (Note: Repository returns all accounts, filtering happens in client)
-        assertTrue(userAccounts.stream().anyMatch(a -> a.getAccountId().equals(realAccount.getAccountId())));
+        assertTrue(
+                userAccounts.stream()
+                        .anyMatch(a -> a.getAccountId().equals(realAccount.getAccountId())));
         // Pseudo account might be in the list, but client should filter it out
         // This test verifies the repository behavior (it returns all accounts)
     }
 }
-

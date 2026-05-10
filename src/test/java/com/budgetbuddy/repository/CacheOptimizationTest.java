@@ -1,29 +1,25 @@
 package com.budgetbuddy.repository;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import com.budgetbuddy.config.CacheConfig;
 import com.budgetbuddy.service.CacheMonitoringService;
+import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.EnableCaching;
-import org.springframework.cache.caffeine.CaffeineCache;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
 
-import java.util.Map;
-
-import static org.junit.jupiter.api.Assertions.*;
-
-/**
- * Unit tests for cache monitoring service
- * Tests cache statistics and monitoring functionality
- */
+/** Unit tests for cache monitoring service Tests cache statistics and monitoring functionality */
 @SpringJUnitConfig(classes = {CacheOptimizationTest.TestConfig.class})
 public class CacheOptimizationTest {
 
-    @org.springframework.beans.factory.annotation.Autowired
-    private CacheManager cacheManager;
+    @org.springframework.beans.factory.annotation.Autowired private CacheManager cacheManager;
 
     @org.springframework.beans.factory.annotation.Autowired
     private CacheMonitoringService cacheMonitoringService;
@@ -38,17 +34,19 @@ public class CacheOptimizationTest {
     }
 
     @Test
-    void testCacheMonitoringService_GetAllStatistics() {
+    void testCacheMonitoringServiceGetAllStatistics() {
         // Get all statistics
-        Map<String, CacheMonitoringService.CacheStatistics> allStats = cacheMonitoringService.getAllCacheStatistics();
+        final Map<String, CacheMonitoringService.CacheStatistics> allStats =
+                cacheMonitoringService.getAllCacheStatistics();
         assertNotNull(allStats);
         // May be empty if no cache activity yet, which is fine
     }
 
     @Test
-    void testCacheMonitoringService_GetSpecificCacheStatistics() {
+    void testCacheMonitoringServiceGetSpecificCacheStatistics() {
         // Test getting statistics for a specific cache
-        CacheMonitoringService.CacheStatistics stats = cacheMonitoringService.getCacheStatistics("accounts");
+        final CacheMonitoringService.CacheStatistics stats =
+                cacheMonitoringService.getCacheStatistics("accounts");
         // May be null if cache hasn't been used yet, which is fine
         if (stats != null) {
             assertTrue(stats.getHitCount() >= 0);
@@ -59,13 +57,13 @@ public class CacheOptimizationTest {
     }
 
     @Test
-    void testCacheMonitoringService_LogStatistics() {
+    void testCacheMonitoringServiceLogStatistics() {
         // Test that logging doesn't throw exceptions
         assertDoesNotThrow(() -> cacheMonitoringService.logCacheStatistics());
     }
 
     @Test
-    void testCacheManager_Exists() {
+    void testCacheManagerExists() {
         assertNotNull(cacheManager);
         assertNotNull(cacheManager.getCacheNames());
     }
@@ -79,9 +77,8 @@ public class CacheOptimizationTest {
         }
 
         @Bean
-        public CacheMonitoringService cacheMonitoringService(CacheManager cacheManager) {
+        public CacheMonitoringService cacheMonitoringService(final CacheManager cacheManager) {
             return new CacheMonitoringService(cacheManager);
         }
     }
 }
-

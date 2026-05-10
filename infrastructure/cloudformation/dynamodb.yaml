@@ -210,9 +210,10 @@ Resources:
               KeyType: HASH
           Projection:
             ProjectionType: ALL
-      # StreamSpecification: Disabled for cost optimization (saves ~$1-2/month)
-      # PointInTimeRecoverySpecification: Disabled for cost optimization (use scheduled backups instead)
-      # Security: Server-side encryption (KMS - uses AWS managed key if KMSKeyId not provided)
+      # Point-in-time recovery on Budgets — restoration within 35 days for
+      # currency-bearing rows. Cost: <$0.20/month per GB at current scale.
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
       SSESpecification:
         SSEEnabled: true
         SSEType: KMS
@@ -220,7 +221,6 @@ Resources:
           - HasKMSKey
           - !Ref KMSKeyId
           - !Ref AWS::NoValue
-          # Uses AWS managed key (alias/aws/dynamodb) if KMSKeyId is empty
       Tags:
         - Key: Environment
           Value: !Ref Environment
@@ -253,9 +253,21 @@ Resources:
               KeyType: HASH
           Projection:
             ProjectionType: ALL
-      # StreamSpecification: Disabled for cost optimization (saves ~$1-2/month)
-      # PointInTimeRecoverySpecification: Disabled for cost optimization (use scheduled backups instead)
-      # Security: Server-side encryption (KMS - uses AWS managed key if KMSKeyId not provided)
+        # Goals-by-target-date GSI so the nudge service can query upcoming
+        # deadlines without scanning. Sort by targetDate per user.
+        - IndexName: UserIdTargetDateIndex
+          KeySchema:
+            - AttributeName: userId
+              KeyType: HASH
+            - AttributeName: targetDate
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+      # Point-in-time recovery enabled for data-bearing tables. Accidental
+      # writes/deletes on goal/budget rows are user-visible; 35-day restore
+      # window is the guardrail.
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
       SSESpecification:
         SSEEnabled: true
         SSEType: KMS
@@ -263,7 +275,6 @@ Resources:
           - HasKMSKey
           - !Ref KMSKeyId
           - !Ref AWS::NoValue
-          # Uses AWS managed key (alias/aws/dynamodb) if KMSKeyId is empty
       Tags:
         - Key: Environment
           Value: !Ref Environment
@@ -302,9 +313,11 @@ Resources:
               KeyType: HASH
           Projection:
             ProjectionType: ALL
-      # StreamSpecification: Disabled for cost optimization (saves ~$1-2/month)
-      # PointInTimeRecoverySpecification: Disabled for cost optimization (use scheduled backups instead)
-      # Security: Server-side encryption (KMS - uses AWS managed key if KMSKeyId not provided)
+      # Point-in-time recovery enabled for data-bearing tables. Accidental
+      # writes/deletes on goal/budget rows are user-visible; 35-day restore
+      # window is the guardrail.
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
       SSESpecification:
         SSEEnabled: true
         SSEType: KMS
@@ -312,7 +325,6 @@ Resources:
           - HasKMSKey
           - !Ref KMSKeyId
           - !Ref AWS::NoValue
-          # Uses AWS managed key (alias/aws/dynamodb) if KMSKeyId is empty
       Tags:
         - Key: Environment
           Value: !Ref Environment
@@ -828,21 +840,11 @@ Resources:
           AttributeType: S
         - AttributeName: merchantName
           AttributeType: S
-        - AttributeName: isActive
-          AttributeType: S
       KeySchema:
         - AttributeName: mappingId
           KeyType: HASH
       GlobalSecondaryIndexes:
         - IndexName: UserIdMerchantIndex
-          KeySchema:
-            - AttributeName: userId
-              KeyType: HASH
-            - AttributeName: merchantName
-              KeyType: RANGE
-          Projection:
-            ProjectionType: ALL
-        - IndexName: UserIdActiveIndex
           KeySchema:
             - AttributeName: userId
               KeyType: HASH
@@ -869,37 +871,29 @@ Resources:
         - Key: ManagedBy
           Value: CloudFormation
 
-  # User Corrections Table (for category learning)
-  UserCorrectionsTable:
+  # Household Table (for partner / household sharing)
+  # One row per inviter user. GSI on invitee email so the accept-invitation
+  # endpoint can look up by email.
+  HouseholdTable:
     Type: AWS::DynamoDB::Table
     Properties:
-      TableName: !Sub '${TablePrefix}-UserCorrections'
+      TableName: !Sub '${TablePrefix}-Household'
       BillingMode: PAY_PER_REQUEST
       AttributeDefinitions:
-        - AttributeName: correctionId
-          AttributeType: S
         - AttributeName: userId
           AttributeType: S
-        - AttributeName: merchantName
-          AttributeType: S
-        - AttributeName: correctedCategoryPrimary
+        - AttributeName: inviteeEmail
           AttributeType: S
       KeySchema:
-        - AttributeName: correctionId
+        - AttributeName: userId
           KeyType: HASH
       GlobalSecondaryIndexes:
-        - IndexName: UserIdMerchantCategoryIndex
+        - IndexName: InviteeEmailIndex
           KeySchema:
-            - AttributeName: userId
+            - AttributeName: inviteeEmail
               KeyType: HASH
-            - AttributeName: merchantName
-              KeyType: RANGE
           Projection:
             ProjectionType: ALL
-      StreamSpecification:
-        StreamViewType: NEW_AND_OLD_IMAGES
-      PointInTimeRecoverySpecification:
-        PointInTimeRecoveryEnabled: true
       SSESpecification:
         SSEEnabled: true
         SSEType: KMS
@@ -915,35 +909,75 @@ Resources:
         - Key: ManagedBy
           Value: CloudFormation
 
-  # Custom Merchant Mappings Table (for user-defined category rules)
-  CustomMerchantMappingsTable:
+  # Benchmarks Table (aggregated percentile bands by bucket)
+  # One row per (bucket, category). bucketId = e.g. "inc-75-150k-hh-1-2".
+  BenchmarksTable:
     Type: AWS::DynamoDB::Table
     Properties:
-      TableName: !Sub '${TablePrefix}-CustomMerchantMappings'
+      TableName: !Sub '${TablePrefix}-Benchmarks'
       BillingMode: PAY_PER_REQUEST
       AttributeDefinitions:
-        - AttributeName: mappingId
+        - AttributeName: bucketId
           AttributeType: S
-        - AttributeName: userId
-          AttributeType: S
-        - AttributeName: merchantName
+        - AttributeName: category
           AttributeType: S
       KeySchema:
-        - AttributeName: mappingId
+        - AttributeName: bucketId
+          KeyType: HASH
+        - AttributeName: category
+          KeyType: RANGE
+      SSESpecification:
+        SSEEnabled: true
+        SSEType: KMS
+        KMSMasterKeyId: !If
+          - HasKMSKey
+          - !Ref KMSKeyId
+          - !Ref AWS::NoValue
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Application
+          Value: BudgetBuddy
+        - Key: ManagedBy
+          Value: CloudFormation
+
+  # User Preferences Table (notification opt-ins, daily-read hour, etc.)
+  # Partitioned by userId; one row per user.
+  #
+  # Two sparse GSIs replace the full-table scans the daily jobs used:
+  #   - DailyReadEmailOptInIndex: `dailyReadEmailEnabledFlag` is populated only
+  #     when the user opts in. Query over this GSI returns only opt-in rows.
+  #   - AnonymisedStatsOptInIndex: same pattern for the benchmark aggregation.
+  # The repository writes the flag string on opt-in, null on opt-out, keeping
+  # the indexes sparse.
+  UserPreferencesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub '${TablePrefix}-UserPreferences'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: userId
+          AttributeType: S
+        - AttributeName: dailyReadEmailEnabledFlag
+          AttributeType: S
+        - AttributeName: anonymisedStatsOptInFlag
+          AttributeType: S
+      KeySchema:
+        - AttributeName: userId
           KeyType: HASH
       GlobalSecondaryIndexes:
-        - IndexName: UserIdMerchantNameIndex
+        - IndexName: DailyReadEmailOptInIndex
           KeySchema:
-            - AttributeName: userId
+            - AttributeName: dailyReadEmailEnabledFlag
               KeyType: HASH
-            - AttributeName: merchantName
-              KeyType: RANGE
           Projection:
             ProjectionType: ALL
-      StreamSpecification:
-        StreamViewType: NEW_AND_OLD_IMAGES
-      PointInTimeRecoverySpecification:
-        PointInTimeRecoveryEnabled: true
+        - IndexName: AnonymisedStatsOptInIndex
+          KeySchema:
+            - AttributeName: anonymisedStatsOptInFlag
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
       SSESpecification:
         SSEEnabled: true
         SSEType: KMS
@@ -1049,3 +1083,21 @@ Outputs:
     Value: !Ref CustomMerchantMappingsTable
     Export:
       Name: !Sub '${AWS::StackName}-CustomMerchantMappingsTable'
+
+  HouseholdTableName:
+    Description: Name of the Household sharing table
+    Value: !Ref HouseholdTable
+    Export:
+      Name: !Sub '${AWS::StackName}-HouseholdTable'
+
+  BenchmarksTableName:
+    Description: Name of the Benchmarks table (aggregated percentile bands)
+    Value: !Ref BenchmarksTable
+    Export:
+      Name: !Sub '${AWS::StackName}-BenchmarksTable'
+
+  UserPreferencesTableName:
+    Description: Name of the User Preferences table (opt-ins, daily-read hour)
+    Value: !Ref UserPreferencesTable
+    Export:
+      Name: !Sub '${AWS::StackName}-UserPreferencesTable'

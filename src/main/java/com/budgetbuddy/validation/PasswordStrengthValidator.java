@@ -2,25 +2,20 @@ package com.budgetbuddy.validation;
 
 import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
+import java.util.regex.Pattern;
 import org.springframework.stereotype.Component;
 
-import java.util.regex.Pattern;
-
 /**
- * Password strength validator implementation
- * Validates password meets security requirements:
- * - At least 8 characters
- * - Contains uppercase letter
- * - Contains lowercase letter
- * - Contains digit
- * - Contains special character
+ * Password strength validator implementation Validates password meets security requirements: - At
+ * least 8 characters - Contains uppercase letter - Contains lowercase letter - Contains digit -
+ * Contains special character
  */
 @Component
 public class PasswordStrengthValidator implements ConstraintValidator<StrongPassword, String> {
 
-    private static final Pattern PASSWORD_PATTERN = Pattern.compile(
-            "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]{8,}$"
-    );
+    private static final Pattern PASSWORD_PATTERN =
+            Pattern.compile(
+                    "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]{8,}$");
 
     private static final int MIN_PASSWORD_LENGTH = 8;
     private static final int MAX_PASSWORD_LENGTH = 128;
@@ -43,4 +38,3 @@ public class PasswordStrengthValidator implements ConstraintValidator<StrongPass
         return PASSWORD_PATTERN.matcher(password).matches();
     }
 }
-

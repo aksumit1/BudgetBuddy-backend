@@ -1,24 +1,21 @@
 package com.budgetbuddy.config;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+
+import java.net.URI;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 
-import java.net.URI;
-
-import static org.junit.jupiter.api.Assertions.*;
-
-/**
- * Unit Tests for AwsConfig
- * Tests AWS client configuration including LocalStack support
- */
+/** Unit Tests for AwsConfig Tests AWS client configuration including LocalStack support */
 class AwsConfigTest {
 
     private AwsConfig awsConfig = new AwsConfig();
 
     @Test
-    void testS3Client_WithDefaultRegion() {
+    void testS3ClientWithDefaultRegion() {
         // Given
         ReflectionTestUtils.setField(awsConfig, "awsRegion", "us-east-1");
         ReflectionTestUtils.setField(awsConfig, "s3Endpoint", "");
@@ -26,7 +23,7 @@ class AwsConfigTest {
         ReflectionTestUtils.setField(awsConfig, "secretAccessKey", "");
 
         // When
-        S3Client client = awsConfig.s3Client();
+        final S3Client client = awsConfig.s3Client();
 
         // Then
         assertNotNull(client);
@@ -34,7 +31,7 @@ class AwsConfigTest {
     }
 
     @Test
-    void testS3Client_WithLocalStackEndpoint() {
+    void testS3ClientWithLocalStackEndpoint() {
         // Given
         ReflectionTestUtils.setField(awsConfig, "awsRegion", "us-east-1");
         ReflectionTestUtils.setField(awsConfig, "s3Endpoint", "http://localhost:4566");
@@ -42,17 +39,17 @@ class AwsConfigTest {
         ReflectionTestUtils.setField(awsConfig, "secretAccessKey", "");
 
         // When
-        S3Client client = awsConfig.s3Client();
+        final S3Client client = awsConfig.s3Client();
 
         // Then
         assertNotNull(client);
-        URI endpoint = client.serviceClientConfiguration().endpointOverride().orElse(null);
+        final URI endpoint = client.serviceClientConfiguration().endpointOverride().orElse(null);
         assertNotNull(endpoint);
         assertEquals("http://localhost:4566", endpoint.toString());
     }
 
     @Test
-    void testS3Client_WithStaticCredentials() {
+    void testS3ClientWithStaticCredentials() {
         // Given
         ReflectionTestUtils.setField(awsConfig, "awsRegion", "us-east-1");
         ReflectionTestUtils.setField(awsConfig, "s3Endpoint", "");
@@ -60,7 +57,7 @@ class AwsConfigTest {
         ReflectionTestUtils.setField(awsConfig, "secretAccessKey", "test-secret");
 
         // When
-        S3Client client = awsConfig.s3Client();
+        final S3Client client = awsConfig.s3Client();
 
         // Then
         assertNotNull(client);
@@ -68,7 +65,7 @@ class AwsConfigTest {
     }
 
     @Test
-    void testS3Presigner_WithDefaultRegion() {
+    void testS3PresignerWithDefaultRegion() {
         // Given
         ReflectionTestUtils.setField(awsConfig, "awsRegion", "us-west-2");
         ReflectionTestUtils.setField(awsConfig, "s3Endpoint", "");
@@ -76,7 +73,7 @@ class AwsConfigTest {
         ReflectionTestUtils.setField(awsConfig, "secretAccessKey", "");
 
         // When
-        S3Presigner presigner = awsConfig.s3Presigner();
+        final S3Presigner presigner = awsConfig.s3Presigner();
 
         // Then
         assertNotNull(presigner);
@@ -84,7 +81,7 @@ class AwsConfigTest {
     }
 
     @Test
-    void testS3Presigner_WithLocalStackEndpoint() {
+    void testS3PresignerWithLocalStackEndpoint() {
         // Given
         ReflectionTestUtils.setField(awsConfig, "awsRegion", "us-east-1");
         ReflectionTestUtils.setField(awsConfig, "s3Endpoint", "http://localhost:4566");
@@ -92,15 +89,16 @@ class AwsConfigTest {
         ReflectionTestUtils.setField(awsConfig, "secretAccessKey", "");
 
         // When
-        S3Presigner presigner = awsConfig.s3Presigner();
+        final S3Presigner presigner = awsConfig.s3Presigner();
 
         // Then
         assertNotNull(presigner);
-        // S3Presigner doesn't expose endpoint configuration directly, but we can verify it's created
+        // S3Presigner doesn't expose endpoint configuration directly, but we can verify it's
+        // created
     }
 
     @Test
-    void testS3Presigner_WithStaticCredentials() {
+    void testS3PresignerWithStaticCredentials() {
         // Given
         ReflectionTestUtils.setField(awsConfig, "awsRegion", "us-east-1");
         ReflectionTestUtils.setField(awsConfig, "s3Endpoint", "");
@@ -108,10 +106,9 @@ class AwsConfigTest {
         ReflectionTestUtils.setField(awsConfig, "secretAccessKey", "test-secret");
 
         // When
-        S3Presigner presigner = awsConfig.s3Presigner();
+        final S3Presigner presigner = awsConfig.s3Presigner();
 
         // Then
         assertNotNull(presigner);
     }
 }
-

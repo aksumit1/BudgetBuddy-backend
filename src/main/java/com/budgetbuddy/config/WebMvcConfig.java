@@ -1,17 +1,15 @@
 package com.budgetbuddy.config;
 
 import com.budgetbuddy.api.resolver.AuthenticatedUserArgumentResolver;
+import java.util.List;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
-import java.util.List;
-
 /**
- * Web MVC Configuration
- * Registers interceptors for API versioning, logging, etc.
- * Registers argument resolvers for custom parameter injection.
+ * Web MVC Configuration Registers interceptors for API versioning, logging, etc. Registers argument
+ * resolvers for custom parameter injection.
  */
 @Configuration
 public class WebMvcConfig implements WebMvcConfigurer {
@@ -38,4 +36,3 @@ public class WebMvcConfig implements WebMvcConfigurer {
         resolvers.add(authenticatedUserArgumentResolver);
     }
 }
-

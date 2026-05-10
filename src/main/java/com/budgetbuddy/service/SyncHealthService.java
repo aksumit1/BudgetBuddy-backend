@@ -1,36 +1,33 @@
 package com.budgetbuddy.service;
 
+
+import java.util.Locale;
 import com.budgetbuddy.api.SyncHealthController;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
-
 /**
- * Sync Health Service
- * Manages sync health status tracking and provides health information
- * 
- * Features:
- * - Thread-safe status tracking
- * - Health calculation
- * - Error aggregation
- * - Connection health assessment
+ * Sync Health Service Manages sync health status tracking and provides health information
+ *
+ * <p>Features: - Thread-safe status tracking - Health calculation - Error aggregation - Connection
+ * health assessment
  */
 @Service
 public class SyncHealthService {
 
-    private static final Logger logger = LoggerFactory.getLogger(SyncHealthService.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(SyncHealthService.class);
 
     /**
      * Get comprehensive sync health information
-     * 
+     *
      * @param userId User ID
      * @param status Current sync status
      * @return Sync health response
      */
-    public SyncHealthResponse getSyncHealth(String userId, SyncHealthController.SyncStatus status) {
+    public SyncHealthResponse getSyncHealth(final String userId, SyncHealthController.SyncStatus status) {
         if (userId == null || userId.isEmpty()) {
             throw new IllegalArgumentException("User ID cannot be null or empty");
         }
@@ -40,11 +37,11 @@ public class SyncHealthService {
         }
 
         // Calculate health metrics
-        String healthStatus = calculateHealthStatus(status);
-        boolean isStale = isConnectionStale(status);
-        String timeAgo = formatTimeAgo(status.getLastSyncDate());
+        final String healthStatus = calculateHealthStatus(status);
+        final boolean isStale = isConnectionStale(status);
+        final String timeAgo = formatTimeAgo(status.getLastSyncDate());
 
-        SyncHealthResponse response = new SyncHealthResponse();
+        final SyncHealthResponse response = new SyncHealthResponse();
         response.setStatus(status.getStatus());
         response.setLastSyncDate(status.getLastSyncDate());
         response.setConsecutiveFailures(status.getConsecutiveFailures());
@@ -54,22 +51,24 @@ public class SyncHealthService {
         response.setLastError(status.getLastError());
         response.setMessage(getStatusMessage(status));
 
-        logger.debug("Sync health for user {}: status={}, health={}, stale={}", 
-                userId, status.getStatus(), healthStatus, isStale);
+        LOGGER.debug(
+                "Sync health for user {}: status={}, health={}, stale={}",
+                userId,
+                status.getStatus(),
+                healthStatus,
+                isStale);
 
         return response;
     }
 
-    /**
-     * Calculate overall health status based on sync status
-     */
-    private String calculateHealthStatus(SyncHealthController.SyncStatus status) {
+    /** Calculate overall health status based on sync status */
+    private String calculateHealthStatus(final SyncHealthController.SyncStatus status) {
         if (status == null) {
             return "unknown";
         }
 
         // If connectionHealth is explicitly set to "unknown", return it
-        if (status.getConnectionHealth() != null && "unknown".equalsIgnoreCase(status.getConnectionHealth())) {
+        if ("unknown".equalsIgnoreCase(status.getConnectionHealth())) {
             return "unknown";
         }
 
@@ -87,7 +86,7 @@ public class SyncHealthService {
 
         // Check last sync age
         if (status.getLastSyncDate() != null) {
-            long hoursSinceSync = ChronoUnit.HOURS.between(status.getLastSyncDate(), Instant.now());
+            final long hoursSinceSync = ChronoUnit.HOURS.between(status.getLastSyncDate(), Instant.now());
             if (hoursSinceSync > 24) {
                 return "degraded";
             }
@@ -97,10 +96,8 @@ public class SyncHealthService {
         return "healthy";
     }
 
-    /**
-     * Check if connection is stale (needs re-authentication)
-     */
-    private boolean isConnectionStale(SyncHealthController.SyncStatus status) {
+    /** Check if connection is stale (needs re-authentication) */
+    private boolean isConnectionStale(final SyncHealthController.SyncStatus status) {
         if (status == null) {
             return false;
         }
@@ -117,50 +114,46 @@ public class SyncHealthService {
 
         // Check error message for stale indicators
         if (status.getLastError() != null) {
-            String error = status.getLastError().toLowerCase();
-            return error.contains("login required") ||
-                   error.contains("reconnect") ||
-                   error.contains("re-authenticate") ||
-                   error.contains("invalid access token") ||
-                   error.contains("token expired");
+            final String error = status.getLastError().toLowerCase(Locale.ROOT);
+            return error.contains("login required")
+                    || error.contains("reconnect")
+                    || error.contains("re-authenticate")
+                    || error.contains("invalid access token")
+                    || error.contains("token expired");
         }
 
         return false;
     }
 
-    /**
-     * Format time ago string
-     */
-    private String formatTimeAgo(Instant date) {
+    /** Format time ago string */
+    private String formatTimeAgo(final Instant date) {
         if (date == null) {
             return "never";
         }
 
-        long secondsAgo = ChronoUnit.SECONDS.between(date, Instant.now());
-        
+        final long secondsAgo = ChronoUnit.SECONDS.between(date, Instant.now());
+
         if (secondsAgo < 60) {
             return "just now";
         } else if (secondsAgo < 3600) {
-            long minutes = secondsAgo / 60;
+            final long minutes = secondsAgo / 60;
             return minutes + "m ago";
-        } else if (secondsAgo < 86400) {
-            long hours = secondsAgo / 3600;
+        } else if (secondsAgo < 86_400) {
+            final long hours = secondsAgo / 3600;
             return hours + "h ago";
         } else {
-            long days = secondsAgo / 86400;
+            final long days = secondsAgo / 86_400;
             return days + "d ago";
         }
     }
 
-    /**
-     * Get user-friendly status message
-     */
-    private String getStatusMessage(SyncHealthController.SyncStatus status) {
+    /** Get user-friendly status message */
+    private String getStatusMessage(final SyncHealthController.SyncStatus status) {
         if (status == null) {
             return "Not synced yet";
         }
 
-        switch (status.getStatus().toLowerCase()) {
+        switch (status.getStatus().toLowerCase(Locale.ROOT)) {
             case "idle":
                 if (status.getLastSyncDate() != null) {
                     return "Last synced " + formatTimeAgo(status.getLastSyncDate());
@@ -182,16 +175,14 @@ public class SyncHealthService {
         }
     }
 
-    /**
-     * Get user-friendly error message
-     */
-    private String getUserFriendlyErrorMessage(String error) {
+    /** Get user-friendly error message */
+    private String getUserFriendlyErrorMessage(final String error) {
         if (error == null || error.isEmpty()) {
             return "Sync failed - please try again";
         }
 
-        String errorLower = error.toLowerCase();
-        
+        final String errorLower = error.toLowerCase(Locale.ROOT);
+
         if (errorLower.contains("offline") || errorLower.contains("no internet")) {
             return "No internet connection";
         } else if (errorLower.contains("timeout")) {
@@ -207,9 +198,7 @@ public class SyncHealthService {
         }
     }
 
-    /**
-     * Sync Health Response DTO
-     */
+    /** Sync Health Response DTO */
     public static class SyncHealthResponse {
         private String status;
         private Instant lastSyncDate;
@@ -220,29 +209,68 @@ public class SyncHealthService {
         private String lastError;
         private String message;
 
-        public String getStatus() { return status; }
-        public void setStatus(String status) { this.status = status; }
+        public String getStatus() {
+            return status;
+        }
 
-        public Instant getLastSyncDate() { return lastSyncDate; }
-        public void setLastSyncDate(Instant lastSyncDate) { this.lastSyncDate = lastSyncDate; }
+        public void setStatus(final String status) {
+            this.status = status;
+        }
 
-        public int getConsecutiveFailures() { return consecutiveFailures; }
-        public void setConsecutiveFailures(int consecutiveFailures) { this.consecutiveFailures = consecutiveFailures; }
+        public Instant getLastSyncDate() {
+            return lastSyncDate;
+        }
 
-        public String getConnectionHealth() { return connectionHealth; }
-        public void setConnectionHealth(String connectionHealth) { this.connectionHealth = connectionHealth; }
+        public void setLastSyncDate(final Instant lastSyncDate) {
+            this.lastSyncDate = lastSyncDate;
+        }
 
-        public boolean getIsStale() { return isStale; }
-        public void setIsStale(boolean isStale) { this.isStale = isStale; }
+        public int getConsecutiveFailures() {
+            return consecutiveFailures;
+        }
 
-        public String getTimeAgo() { return timeAgo; }
-        public void setTimeAgo(String timeAgo) { this.timeAgo = timeAgo; }
+        public void setConsecutiveFailures(final int consecutiveFailures) {
+            this.consecutiveFailures = consecutiveFailures;
+        }
 
-        public String getLastError() { return lastError; }
-        public void setLastError(String lastError) { this.lastError = lastError; }
+        public String getConnectionHealth() {
+            return connectionHealth;
+        }
 
-        public String getMessage() { return message; }
-        public void setMessage(String message) { this.message = message; }
+        public void setConnectionHealth(final String connectionHealth) {
+            this.connectionHealth = connectionHealth;
+        }
+
+        public boolean getIsStale() {
+            return isStale;
+        }
+
+        public void setIsStale(final boolean isStale) {
+            this.isStale = isStale;
+        }
+
+        public String getTimeAgo() {
+            return timeAgo;
+        }
+
+        public void setTimeAgo(final String timeAgo) {
+            this.timeAgo = timeAgo;
+        }
+
+        public String getLastError() {
+            return lastError;
+        }
+
+        public void setLastError(final String lastError) {
+            this.lastError = lastError;
+        }
+
+        public String getMessage() {
+            return message;
+        }
+
+        public void setMessage(final String message) {
+            this.message = message;
+        }
     }
 }
-

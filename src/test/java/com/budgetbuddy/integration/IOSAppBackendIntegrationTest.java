@@ -1,5 +1,11 @@
 package com.budgetbuddy.integration;
 
+
+import java.nio.charset.StandardCharsets;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
 import com.budgetbuddy.AWSTestConfiguration;
 import com.budgetbuddy.dto.AuthRequest;
 import com.budgetbuddy.dto.AuthResponse;
@@ -10,6 +16,10 @@ import com.budgetbuddy.repository.dynamodb.AccountRepository;
 import com.budgetbuddy.repository.dynamodb.TransactionRepository;
 import com.budgetbuddy.service.AuthService;
 import com.budgetbuddy.service.UserService;
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,25 +30,14 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
-import java.math.BigDecimal;
-import java.time.Instant;
-import java.time.LocalDate;
-import java.util.UUID;
-
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
-
 /**
  * Integration Tests for iOS App Backend API Invocations
- * 
- * Tests how the iOS app invokes backend APIs and verifies:
- * 1. Response formats match iOS expectations
- * 2. Date formats are compatible (Int64 epoch seconds or ISO8601)
- * 3. Null values are handled correctly
- * 4. Error responses are properly formatted
- * 
- * These tests simulate actual iOS app API calls.
- * 
+ *
+ * <p>Tests how the iOS app invokes backend APIs and verifies: 1. Response formats match iOS
+ * expectations 2. Date formats are compatible (Int64 epoch seconds or ISO8601) 3. Null values are
+ * handled correctly 4. Error responses are properly formatted
+ *
+ * <p>These tests simulate actual iOS app API calls.
  */
 @SpringBootTest(classes = com.budgetbuddy.BudgetBuddyApplication.class)
 @AutoConfigureMockMvc
@@ -46,20 +45,15 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Import(AWSTestConfiguration.class)
 class IOSAppBackendIntegrationTest {
 
-    @Autowired
-    private MockMvc mockMvc;
+    @Autowired private MockMvc mockMvc;
 
-    @Autowired
-    private UserService userService;
+    @Autowired private UserService userService;
 
-    @Autowired
-    private AuthService authService;
+    @Autowired private AuthService authService;
 
-    @Autowired
-    private AccountRepository accountRepository;
+    @Autowired private AccountRepository accountRepository;
 
-    @Autowired
-    private TransactionRepository transactionRepository;
+    @Autowired private TransactionRepository transactionRepository;
 
     private UserTable testUser;
     private String testEmail;
@@ -70,16 +64,13 @@ class IOSAppBackendIntegrationTest {
     @BeforeEach
     void setUp() {
         testEmail = "ios-test-" + UUID.randomUUID() + "@example.com";
-        
+
         // Create test user (simulating iOS app registration)
         // Use proper base64-encoded strings
-        String base64PasswordHash = java.util.Base64.getEncoder().encodeToString("hashed-password".getBytes());
+        final String base64PasswordHash =
+                java.util.Base64.getEncoder().encodeToString("hashed-password".getBytes(StandardCharsets.UTF_8));
 
-        testUser = userService.createUserSecure(
-                testEmail,
-                base64PasswordHash, "iOS",
-                "User"
-        );
+        testUser = userService.createUserSecure(testEmail, base64PasswordHash, "iOS", "User");
 
         // Create test account (simulating Plaid sync)
         testAccount = new AccountTable();
@@ -108,7 +99,8 @@ class IOSAppBackendIntegrationTest {
         testTransaction.setMerchantName("Test Merchant");
         testTransaction.setCategoryPrimary("other"); // BUG FIX: category should not be null
         testTransaction.setCategoryDetailed("other");
-        testTransaction.setTransactionDate(LocalDate.now().format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE));
+        testTransaction.setTransactionDate(
+                LocalDate.now().format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE));
         testTransaction.setCurrencyCode("USD");
         testTransaction.setPlaidTransactionId("plaid-tx-ios-test");
         testTransaction.setPending(false);
@@ -117,23 +109,23 @@ class IOSAppBackendIntegrationTest {
         transactionRepository.save(testTransaction);
 
         // Authenticate and get JWT token
-        AuthRequest authRequest = new AuthRequest(testEmail, base64PasswordHash);
-        AuthResponse authResponse = authService.authenticate(authRequest);
+        final AuthRequest authRequest = new AuthRequest(testEmail, base64PasswordHash);
+        final AuthResponse authResponse = authService.authenticate(authRequest);
         accessToken = authResponse.getAccessToken();
     }
 
-    /**
-     * Helper method to add JWT token to request
-     */
-    private org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder withAuth(org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder builder) {
+    /** Helper method to add JWT token to request */
+    private org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder withAuth(
+            final org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder builder) {
         return builder.header("Authorization", "Bearer " + accessToken);
     }
 
     @Test
-    void testGetAccounts_ReturnsCompatibleFormat_ForIOSApp() throws Exception {
+    void testGetAccountsReturnsCompatibleFormatForIOSApp() throws Exception {
         // When - iOS app calls GET /api/plaid/accounts
-        mockMvc.perform(withAuth(get("/api/plaid/accounts"))
-                        .contentType(MediaType.APPLICATION_JSON))
+        mockMvc.perform(
+                        withAuth(get("/api/plaid/accounts"))
+                                .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.accounts").isArray())
                 .andExpect(jsonPath("$.accounts[0].accountId").exists())
@@ -150,9 +142,9 @@ class IOSAppBackendIntegrationTest {
     }
 
     @Test
-    void testGetAccounts_WithNullActiveAccount_IncludesAccount() throws Exception {
+    void testGetAccountsWithNullActiveAccountIncludesAccount() throws Exception {
         // Given - Account with null active (simulating old data)
-        AccountTable nullActiveAccount = new AccountTable();
+        final AccountTable nullActiveAccount = new AccountTable();
         nullActiveAccount.setAccountId(UUID.randomUUID().toString());
         nullActiveAccount.setUserId(testUser.getUserId());
         nullActiveAccount.setAccountName("Null Active Account");
@@ -168,44 +160,52 @@ class IOSAppBackendIntegrationTest {
         accountRepository.save(nullActiveAccount);
 
         // Verify account was saved correctly by retrieving it directly
-        var savedAccount = accountRepository.findById(nullActiveAccount.getAccountId());
-        org.junit.jupiter.api.Assertions.assertTrue(savedAccount.isPresent(), 
-                "Null active account should be saved to database");
-        org.junit.jupiter.api.Assertions.assertNull(savedAccount.get().getActive(), 
-                "Saved account should have null active field");
+        final var savedAccount = accountRepository.findById(nullActiveAccount.getAccountId());
+        org.junit.jupiter.api.Assertions.assertTrue(
+                savedAccount.isPresent(), "Null active account should be saved to database");
+        org.junit.jupiter.api.Assertions.assertNull(
+                savedAccount.get().getActive(), "Saved account should have null active field");
 
         // Verify account can be found by userId (this tests the GSI query)
-        var accountsByUserId = accountRepository.findByUserId(testUser.getUserId());
+        final var accountsByUserId = accountRepository.findByUserId(testUser.getUserId());
         org.junit.jupiter.api.Assertions.assertTrue(
-                accountsByUserId.stream().anyMatch(a -> "Null Active Account".equals(a.getAccountName())),
-                "Null active account should be found by findByUserId. Found accounts: " + 
-                accountsByUserId.stream().map(AccountTable::getAccountName).toList());
+                accountsByUserId.stream()
+                        .anyMatch(a -> "Null Active Account".equals(a.getAccountName())),
+                "Null active account should be found by findByUserId. Found accounts: "
+                        + accountsByUserId.stream().map(AccountTable::getAccountName).toList());
 
         // When - iOS app calls GET /api/plaid/accounts
-        // Use a more reliable JSONPath assertion that checks if any account in the array has the expected name
-        mockMvc.perform(withAuth(get("/api/plaid/accounts"))
-                        .contentType(MediaType.APPLICATION_JSON))
+        // Use a more reliable JSONPath assertion that checks if any account in the array has the
+        // expected name
+        mockMvc.perform(
+                        withAuth(get("/api/plaid/accounts"))
+                                .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.accounts").isArray())
                 // BUG FIX: Should include account with null active
                 // Use hasItem matcher which is more reliable than filter expression
-                .andExpect(jsonPath("$.accounts[*].accountName", org.hamcrest.Matchers.hasItem("Null Active Account")));
+                .andExpect(
+                        jsonPath(
+                                "$.accounts[*].accountName",
+                                org.hamcrest.Matchers.hasItem("Null Active Account")));
     }
 
     @Test
-    void testGetTransactions_ReturnsCompatibleFormat_ForIOSApp() throws Exception {
+    void testGetTransactionsReturnsCompatibleFormatForIOSApp() throws Exception {
         // When - iOS app calls GET /api/plaid/transactions
-        mockMvc.perform(withAuth(get("/api/plaid/transactions"))
-                        .param("start", LocalDate.now().minusDays(30).toString())
-                        .param("end", LocalDate.now().toString())
-                        .contentType(MediaType.APPLICATION_JSON))
+        mockMvc.perform(
+                        withAuth(get("/api/plaid/transactions"))
+                                .param("start", LocalDate.now().minusDays(30).toString())
+                                .param("end", LocalDate.now().toString())
+                                .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray())
                 .andExpect(jsonPath("$[0].transactionId").exists())
                 .andExpect(jsonPath("$[0].accountId").exists())
                 .andExpect(jsonPath("$[0].amount").exists())
                 .andExpect(jsonPath("$[0].description").exists())
-                .andExpect(jsonPath("$[0].category").exists()) // BUG FIX: category should not be null
+                .andExpect(
+                        jsonPath("$[0].category").exists()) // BUG FIX: category should not be null
                 .andExpect(jsonPath("$[0].transactionDate").exists())
                 // BUG FIX: Verify dates are present (can be Int64 or ISO8601 string)
                 .andExpect(jsonPath("$[0].createdAt").exists())
@@ -213,9 +213,9 @@ class IOSAppBackendIntegrationTest {
     }
 
     @Test
-    void testGetTransactions_WithNullCategory_ReturnsDefaultCategory() throws Exception {
+    void testGetTransactionsWithNullCategoryReturnsDefaultCategory() throws Exception {
         // Given - Transaction with null category (simulating bug scenario)
-        TransactionTable nullCategoryTransaction = new TransactionTable();
+        final TransactionTable nullCategoryTransaction = new TransactionTable();
         nullCategoryTransaction.setTransactionId(UUID.randomUUID().toString());
         nullCategoryTransaction.setUserId(testUser.getUserId());
         nullCategoryTransaction.setAccountId(testAccount.getAccountId());
@@ -223,7 +223,8 @@ class IOSAppBackendIntegrationTest {
         nullCategoryTransaction.setDescription("Null Category Transaction");
         nullCategoryTransaction.setCategoryPrimary(null); // BUG: null category
         nullCategoryTransaction.setCategoryDetailed(null);
-        nullCategoryTransaction.setTransactionDate(LocalDate.now().format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE));
+        nullCategoryTransaction.setTransactionDate(
+                LocalDate.now().format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE));
         nullCategoryTransaction.setCreatedAt(Instant.now());
         nullCategoryTransaction.setUpdatedAt(Instant.now());
         transactionRepository.save(nullCategoryTransaction);
@@ -231,20 +232,21 @@ class IOSAppBackendIntegrationTest {
         // When - iOS app calls GET /api/plaid/transactions
         // Note: Backend should handle null category gracefully
         // iOS app expects category to be present (defaults to "other" if null)
-        mockMvc.perform(get("/api/plaid/transactions")
-                        .param("start", LocalDate.now().minusDays(30).toString())
-                        .param("end", LocalDate.now().toString())
-                        .contentType(MediaType.APPLICATION_JSON))
+        mockMvc.perform(
+                        get("/api/plaid/transactions")
+                                .param("start", LocalDate.now().minusDays(30).toString())
+                                .param("end", LocalDate.now().toString())
+                                .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray());
         // Note: Backend may return null category, but iOS app handles it
     }
 
     @Test
-    void testGetTransactions_DateRange_ReturnsCorrectTransactions() throws Exception {
+    void testGetTransactionsDateRangeReturnsCorrectTransactions() throws Exception {
         // Given - Transaction with specific date
-        LocalDate specificDate = LocalDate.now().minusDays(5);
-        TransactionTable datedTransaction = new TransactionTable();
+        final LocalDate specificDate = LocalDate.now().minusDays(5);
+        final TransactionTable datedTransaction = new TransactionTable();
         datedTransaction.setTransactionId(UUID.randomUUID().toString());
         datedTransaction.setUserId(testUser.getUserId());
         datedTransaction.setAccountId(testAccount.getAccountId());
@@ -252,28 +254,28 @@ class IOSAppBackendIntegrationTest {
         datedTransaction.setDescription("Dated Transaction");
         datedTransaction.setCategoryPrimary("other");
         datedTransaction.setCategoryDetailed("other");
-        datedTransaction.setTransactionDate(specificDate.format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE));
+        datedTransaction.setTransactionDate(
+                specificDate.format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE));
         datedTransaction.setCreatedAt(Instant.now());
         datedTransaction.setUpdatedAt(Instant.now());
         transactionRepository.save(datedTransaction);
 
         // When - iOS app calls GET /api/plaid/transactions with date range
-        mockMvc.perform(get("/api/plaid/transactions")
-                        .param("start", specificDate.minusDays(1).toString())
-                        .param("end", specificDate.plusDays(1).toString())
-                        .contentType(MediaType.APPLICATION_JSON))
+        mockMvc.perform(
+                        get("/api/plaid/transactions")
+                                .param("start", specificDate.minusDays(1).toString())
+                                .param("end", specificDate.plusDays(1).toString())
+                                .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray())
                 .andExpect(jsonPath("$[?(@.description == 'Dated Transaction')]").exists());
     }
 
     @Test
-    void testGetAccounts_ErrorResponse_ProperlyFormatted() throws Exception {
+    void testGetAccountsErrorResponseProperlyFormatted() throws Exception {
         // When - Request with authentication (simulating iOS app call)
         // Note: This tests successful response format compatibility
-        mockMvc.perform(get("/api/plaid/accounts")
-                        .contentType(MediaType.APPLICATION_JSON))
+        mockMvc.perform(get("/api/plaid/accounts").contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk()); // Should be OK if authenticated
     }
 }
-

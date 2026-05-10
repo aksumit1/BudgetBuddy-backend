@@ -1,31 +1,35 @@
 package com.budgetbuddy.service;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.anyString;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import com.budgetbuddy.model.dynamodb.AccountTable;
 import com.budgetbuddy.repository.dynamodb.AccountRepository;
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.stream.Collectors;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.math.BigDecimal;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
-import java.util.stream.Collectors;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
-
-/**
- * Unit Tests for AccountRepository (used by AccountController)
- */
+/** Unit Tests for AccountRepository (used by AccountController) */
 @ExtendWith(MockitoExtension.class)
 class AccountServiceTest {
 
-    @Mock
-    private AccountRepository accountRepository;
+    @Mock private AccountRepository accountRepository;
 
     private AccountTable testAccount;
 
@@ -40,13 +44,13 @@ class AccountServiceTest {
     }
 
     @Test
-    void testFindById_WithValidId_ReturnsAccount() {
+    void testFindByIdWithValidIdReturnsAccount() {
         // Given
         when(accountRepository.findById(testAccount.getAccountId()))
                 .thenReturn(Optional.of(testAccount));
 
         // When
-        Optional<AccountTable> result = accountRepository.findById(testAccount.getAccountId());
+        final Optional<AccountTable> result = accountRepository.findById(testAccount.getAccountId());
 
         // Then
         assertTrue(result.isPresent());
@@ -54,13 +58,13 @@ class AccountServiceTest {
     }
 
     @Test
-    void testFindByUserId_WithValidUserId_ReturnsAccounts() {
+    void testFindByUserIdWithValidUserIdReturnsAccounts() {
         // Given
-        List<AccountTable> accounts = List.of(testAccount);
+        final List<AccountTable> accounts = List.of(testAccount);
         when(accountRepository.findByUserId("user-123")).thenReturn(accounts);
 
         // When
-        List<AccountTable> result = accountRepository.findByUserId("user-123");
+        final List<AccountTable> result = accountRepository.findByUserId("user-123");
 
         // Then
         assertNotNull(result);
@@ -68,21 +72,20 @@ class AccountServiceTest {
     }
 
     @Test
-    void testFindActiveAccountsByUserId_FiltersActiveAccounts() {
+    void testFindActiveAccountsByUserIdFiltersActiveAccounts() {
         // Given
-        AccountTable inactiveAccount = new AccountTable();
+        final AccountTable inactiveAccount = new AccountTable();
         inactiveAccount.setAccountId(UUID.randomUUID().toString());
         inactiveAccount.setUserId("user-123");
         inactiveAccount.setActive(false);
 
-        List<AccountTable> accounts = List.of(testAccount, inactiveAccount);
+        final List<AccountTable> accounts = List.of(testAccount, inactiveAccount);
         when(accountRepository.findByUserId("user-123")).thenReturn(accounts);
 
         // When
-        List<AccountTable> allAccounts = accountRepository.findByUserId("user-123");
-        List<AccountTable> activeAccounts = allAccounts.stream()
-                .filter(AccountTable::getActive)
-                .collect(Collectors.toList());
+        final List<AccountTable> allAccounts = accountRepository.findByUserId("user-123");
+        final List<AccountTable> activeAccounts =
+                allAccounts.stream().filter(AccountTable::getActive).collect(Collectors.toList());
 
         // Then
         assertEquals(1, activeAccounts.size());
@@ -90,7 +93,7 @@ class AccountServiceTest {
     }
 
     @Test
-    void testSave_WithValidAccount_SavesAccount() {
+    void testSaveWithValidAccountSavesAccount() {
         // Given
         doNothing().when(accountRepository).save(any(AccountTable.class));
 
@@ -102,7 +105,7 @@ class AccountServiceTest {
     }
 
     @Test
-    void testDelete_WithValidId_DeletesAccount() {
+    void testDeleteWithValidIdDeletesAccount() {
         // Given
         doNothing().when(accountRepository).delete(anyString());
 
@@ -113,4 +116,3 @@ class AccountServiceTest {
         verify(accountRepository, times(1)).delete(testAccount.getAccountId());
     }
 }
-

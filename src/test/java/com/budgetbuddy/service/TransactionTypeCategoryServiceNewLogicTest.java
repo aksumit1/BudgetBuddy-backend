@@ -1,191 +1,154 @@
 package com.budgetbuddy.service;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+
 import com.budgetbuddy.config.GlobalFinancialConfig;
 import com.budgetbuddy.config.ImportCategoryConfig;
 import com.budgetbuddy.model.TransactionType;
 import com.budgetbuddy.model.dynamodb.AccountTable;
 import com.budgetbuddy.service.circuitbreaker.CircuitBreakerService;
-import com.budgetbuddy.service.category.InMemoryMerchantService;
 import com.budgetbuddy.service.ml.EnhancedCategoryDetectionService;
+import com.budgetbuddy.service.ml.MerchantCategoryDataService;
+import java.math.BigDecimal;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.math.BigDecimal;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-
 /**
- * Tests for the new transaction type logic changes:
- * 1. Credit card category-based logic for negative amounts
- * 2. Investment account transfer/deposit detection
- * 3. Checking account credit card payment detection
+ * Tests for the new transaction type logic changes: 1. Credit card category-based logic for
+ * negative amounts 2. Investment account transfer/deposit detection 3. Checking account credit card
+ * payment detection
  */
 @ExtendWith(MockitoExtension.class)
 public class TransactionTypeCategoryServiceNewLogicTest {
 
-    @Mock
-    private TransactionTypeDeterminer transactionTypeDeterminer;
-    
-    @Mock
-    private PlaidCategoryMapper plaidCategoryMapper;
-    
-    @Mock
-    private ImportCategoryParser importCategoryParser;
-    
-    @Mock
-    private EnhancedCategoryDetectionService enhancedCategoryDetection;
-    
-    @Mock
-    private ImportCategoryConfig importCategoryConfig;
-    
-    @Mock
-    private GlobalFinancialConfig globalFinancialConfig;
-    
-    @Mock
-    private CircuitBreakerService circuitBreakerService;
-    
-    @Mock
-    private InMemoryMerchantService merchantService;
-    
-    @Mock
-    private CategoryLearningService learningService;
+    @Mock private PlaidCategoryMapper plaidCategoryMapper;
+
+    @Mock private ImportCategoryParser importCategoryParser;
+
+    @Mock private EnhancedCategoryDetectionService enhancedCategoryDetection;
+
+    @Mock private ImportCategoryConfig importCategoryConfig;
+
+    @Mock private GlobalFinancialConfig globalFinancialConfig;
+
+    @Mock private CircuitBreakerService circuitBreakerService;
+
+    @Mock private MerchantCategoryDataService merchantCategoryDataService;
+
+    @Mock private CategoryLearningService learningService;
 
     private TransactionTypeCategoryService service;
 
     @BeforeEach
     void setUp() {
-        service = new TransactionTypeCategoryService(
-            transactionTypeDeterminer,
-            plaidCategoryMapper,
-            importCategoryParser,
-            enhancedCategoryDetection,
-            importCategoryConfig,
-            globalFinancialConfig,
-            circuitBreakerService,
-            merchantService,
-            learningService
-        );
+        service =
+                new TransactionTypeCategoryService(
+                        plaidCategoryMapper,
+                        importCategoryParser,
+                        enhancedCategoryDetection,
+                        importCategoryConfig,
+                        globalFinancialConfig,
+                        circuitBreakerService,
+                        merchantCategoryDataService,
+                        learningService);
     }
 
     /**
-     * Test: Credit card shopping purchase (negative amount, shopping category) → EXPENSE
-     * This fixes the issue where Lululemon purchases were incorrectly classified as PAYMENT
+     * Test: Credit card shopping purchase (negative amount, shopping category) → EXPENSE This fixes
+     * the issue where Lululemon purchases were incorrectly classified as PAYMENT
      */
     @Test
-    void testCreditCardShoppingPurchase_ShouldBeExpense() {
+    void testCreditCardShoppingPurchaseShouldBeExpense() {
         // Given: Credit card account, negative amount, shopping category
-        AccountTable account = new AccountTable();
+        final AccountTable account = new AccountTable();
         account.setAccountType("credit");
         account.setAccountSubtype("credit_card");
-        
-        BigDecimal amount = BigDecimal.valueOf(-100.00);
-        String categoryPrimary = "shopping";
-        String description = "LULULEMON ATHLETICA";
+
+        final BigDecimal amount = BigDecimal.valueOf(-100.00);
+        final String categoryPrimary = "shopping";
+        final String description = "LULULEMON ATHLETICA";
 
         // When: Determine transaction type
-        TransactionTypeCategoryService.TypeResult result = service.determineTransactionType(
-            account,
-            categoryPrimary,
-            null, // categoryDetailed
-            amount,
-            null, // transactionTypeIndicator
-            description,
-            null // paymentChannel
-        );
+        final TransactionTypeCategoryService.TypeResult result =
+                service.determineTransactionType(
+                        account,
+                        categoryPrimary,
+                        null, // categoryDetailed
+                        amount,
+                        null, // transactionTypeIndicator
+                        description,
+                        null // paymentChannel
+                );
 
         // Then: Should be EXPENSE (not PAYMENT)
         assertNotNull(result);
         assertEquals(TransactionType.EXPENSE, result.getTransactionType());
     }
 
-    /**
-     * Test: Credit card payment (negative amount, payment category) → PAYMENT
-     */
+    /** Test: Credit card payment (negative amount, payment category) → PAYMENT */
     @Test
-    void testCreditCardPayment_ShouldBePayment() {
+    void testCreditCardPaymentShouldBePayment() {
         // Given: Credit card account, negative amount, payment category
-        AccountTable account = new AccountTable();
+        final AccountTable account = new AccountTable();
         account.setAccountType("credit");
         account.setAccountSubtype("credit_card");
-        
-        BigDecimal amount = BigDecimal.valueOf(-500.00);
-        String categoryPrimary = "payment";
-        String description = "CHASE CREDIT CARD PAYMENT";
+
+        final BigDecimal amount = BigDecimal.valueOf(-500.00);
+        final String categoryPrimary = "payment";
+        final String description = "CHASE CREDIT CARD PAYMENT";
 
         // When: Determine transaction type
-        TransactionTypeCategoryService.TypeResult result = service.determineTransactionType(
-            account,
-            categoryPrimary,
-            null,
-            amount,
-            null,
-            description,
-            null
-        );
+        final TransactionTypeCategoryService.TypeResult result =
+                service.determineTransactionType(
+                        account, categoryPrimary, null, amount, null, description, null);
 
         // Then: Should be PAYMENT
         assertNotNull(result);
         assertEquals(TransactionType.PAYMENT, result.getTransactionType());
     }
 
-    /**
-     * Test: Credit card dining purchase (negative amount, dining category) → EXPENSE
-     */
+    /** Test: Credit card dining purchase (negative amount, dining category) → EXPENSE */
     @Test
-    void testCreditCardDiningPurchase_ShouldBeExpense() {
+    void testCreditCardDiningPurchaseShouldBeExpense() {
         // Given: Credit card account, negative amount, dining category
-        AccountTable account = new AccountTable();
+        final AccountTable account = new AccountTable();
         account.setAccountType("credit");
         account.setAccountSubtype("credit_card");
-        
-        BigDecimal amount = BigDecimal.valueOf(-50.00);
-        String categoryPrimary = "dining";
-        String description = "TST* RESTAURANT";
+
+        final BigDecimal amount = BigDecimal.valueOf(-50.00);
+        final String categoryPrimary = "dining";
+        final String description = "TST* RESTAURANT";
 
         // When: Determine transaction type
-        TransactionTypeCategoryService.TypeResult result = service.determineTransactionType(
-            account,
-            categoryPrimary,
-            null,
-            amount,
-            null,
-            description,
-            null
-        );
+        final TransactionTypeCategoryService.TypeResult result =
+                service.determineTransactionType(
+                        account, categoryPrimary, null, amount, null, description, null);
 
         // Then: Should be EXPENSE
         assertNotNull(result);
         assertEquals(TransactionType.EXPENSE, result.getTransactionType());
     }
 
-    /**
-     * Test: Credit card payment with payment keywords (negative amount, no category) → PAYMENT
-     */
+    /** Test: Credit card payment with payment keywords (negative amount, no category) → PAYMENT */
     @Test
-    void testCreditCardPaymentWithKeywords_ShouldBePayment() {
+    void testCreditCardPaymentWithKeywordsShouldBePayment() {
         // Given: Credit card account, negative amount, payment keywords in description
-        AccountTable account = new AccountTable();
+        final AccountTable account = new AccountTable();
         account.setAccountType("credit");
         account.setAccountSubtype("credit_card");
-        
-        BigDecimal amount = BigDecimal.valueOf(-500.00);
-        String categoryPrimary = null;
-        String description = "AUTOPAY CHASE CREDIT CARD";
+
+        final BigDecimal amount = BigDecimal.valueOf(-500.00);
+        final String categoryPrimary = null;
+        final String description = "AUTOPAY CHASE CREDIT CARD";
 
         // When: Determine transaction type
-        TransactionTypeCategoryService.TypeResult result = service.determineTransactionType(
-            account,
-            categoryPrimary,
-            null,
-            amount,
-            null,
-            description,
-            null
-        );
+        final TransactionTypeCategoryService.TypeResult result =
+                service.determineTransactionType(
+                        account, categoryPrimary, null, amount, null, description, null);
 
         // Then: Should be PAYMENT
         assertNotNull(result);
@@ -193,120 +156,90 @@ public class TransactionTypeCategoryServiceNewLogicTest {
     }
 
     /**
-     * Test: Investment account transfer (positive amount, transfer description) → INVESTMENT
-     * This fixes the issue where transfers were incorrectly classified as INCOME
+     * Test: Investment account transfer (positive amount, transfer description) → INVESTMENT This
+     * fixes the issue where transfers were incorrectly classified as INCOME
      */
     @Test
-    void testInvestmentAccountTransfer_ShouldBeInvestment() {
+    void testInvestmentAccountTransferShouldBeInvestment() {
         // Given: Investment account, positive amount, transfer description
-        AccountTable account = new AccountTable();
+        final AccountTable account = new AccountTable();
         account.setAccountType("investment");
         account.setAccountSubtype("401k");
-        
-        BigDecimal amount = BigDecimal.valueOf(1000.00);
-        String categoryPrimary = null;
-        String description = "TRANSFER FROM CHECKING ACCOUNT";
+
+        final BigDecimal amount = BigDecimal.valueOf(1000.00);
+        final String categoryPrimary = null;
+        final String description = "TRANSFER FROM CHECKING ACCOUNT";
 
         // When: Determine transaction type
-        TransactionTypeCategoryService.TypeResult result = service.determineTransactionType(
-            account,
-            categoryPrimary,
-            null,
-            amount,
-            null,
-            description,
-            null
-        );
+        final TransactionTypeCategoryService.TypeResult result =
+                service.determineTransactionType(
+                        account, categoryPrimary, null, amount, null, description, null);
 
         // Then: Should be INVESTMENT (not INCOME)
         assertNotNull(result);
         assertEquals(TransactionType.INVESTMENT, result.getTransactionType());
     }
 
-    /**
-     * Test: Investment account deposit (positive amount, deposit description) → INVESTMENT
-     */
+    /** Test: Investment account deposit (positive amount, deposit description) → INVESTMENT */
     @Test
-    void testInvestmentAccountDeposit_ShouldBeInvestment() {
+    void testInvestmentAccountDepositShouldBeInvestment() {
         // Given: Investment account, positive amount, deposit description
-        AccountTable account = new AccountTable();
+        final AccountTable account = new AccountTable();
         account.setAccountType("investment");
         account.setAccountSubtype("ira");
-        
-        BigDecimal amount = BigDecimal.valueOf(500.00);
-        String categoryPrimary = null;
-        String description = "DEPOSIT CONTRIBUTION";
+
+        final BigDecimal amount = BigDecimal.valueOf(500.00);
+        final String categoryPrimary = null;
+        final String description = "DEPOSIT CONTRIBUTION";
 
         // When: Determine transaction type
-        TransactionTypeCategoryService.TypeResult result = service.determineTransactionType(
-            account,
-            categoryPrimary,
-            null,
-            amount,
-            null,
-            description,
-            null
-        );
+        final TransactionTypeCategoryService.TypeResult result =
+                service.determineTransactionType(
+                        account, categoryPrimary, null, amount, null, description, null);
 
         // Then: Should be INVESTMENT
         assertNotNull(result);
         assertEquals(TransactionType.INVESTMENT, result.getTransactionType());
     }
 
-    /**
-     * Test: Investment account dividend (positive amount, no transfer keywords) → INCOME
-     */
+    /** Test: Investment account dividend (positive amount, no transfer keywords) → INCOME */
     @Test
-    void testInvestmentAccountDividend_ShouldBeIncome() {
+    void testInvestmentAccountDividendShouldBeIncome() {
         // Given: Investment account, positive amount, dividend description (no transfer keywords)
-        AccountTable account = new AccountTable();
+        final AccountTable account = new AccountTable();
         account.setAccountType("investment");
         account.setAccountSubtype("brokerage");
-        
-        BigDecimal amount = BigDecimal.valueOf(100.00);
-        String categoryPrimary = null;
-        String description = "DIVIDEND PAYMENT";
+
+        final BigDecimal amount = BigDecimal.valueOf(100.00);
+        final String categoryPrimary = null;
+        final String description = "DIVIDEND PAYMENT";
 
         // When: Determine transaction type
-        TransactionTypeCategoryService.TypeResult result = service.determineTransactionType(
-            account,
-            categoryPrimary,
-            null,
-            amount,
-            null,
-            description,
-            null
-        );
+        final TransactionTypeCategoryService.TypeResult result =
+                service.determineTransactionType(
+                        account, categoryPrimary, null, amount, null, description, null);
 
         // Then: Should be INCOME (dividends, interest, distributions)
         assertNotNull(result);
         assertEquals(TransactionType.INCOME, result.getTransactionType());
     }
 
-    /**
-     * Test: Investment account fee (negative amount, fee description) → EXPENSE
-     */
+    /** Test: Investment account fee (negative amount, fee description) → EXPENSE */
     @Test
-    void testInvestmentAccountFee_ShouldBeExpense() {
+    void testInvestmentAccountFeeShouldBeExpense() {
         // Given: Investment account, negative amount, fee description
-        AccountTable account = new AccountTable();
+        final AccountTable account = new AccountTable();
         account.setAccountType("investment");
         account.setAccountSubtype("ira");
-        
-        BigDecimal amount = BigDecimal.valueOf(-25.00);
-        String categoryPrimary = null;
-        String description = "CUSTODIAL FEE";
+
+        final BigDecimal amount = BigDecimal.valueOf(-25.00);
+        final String categoryPrimary = null;
+        final String description = "CUSTODIAL FEE";
 
         // When: Determine transaction type
-        TransactionTypeCategoryService.TypeResult result = service.determineTransactionType(
-            account,
-            categoryPrimary,
-            null,
-            amount,
-            null,
-            description,
-            null
-        );
+        final TransactionTypeCategoryService.TypeResult result =
+                service.determineTransactionType(
+                        account, categoryPrimary, null, amount, null, description, null);
 
         // Then: Should be EXPENSE
         assertNotNull(result);
@@ -314,60 +247,46 @@ public class TransactionTypeCategoryServiceNewLogicTest {
     }
 
     /**
-     * Test: Checking account credit card payment (negative amount, payment keywords) → PAYMENT
-     * This fixes the issue where credit card payments were incorrectly classified as EXPENSE
+     * Test: Checking account credit card payment (negative amount, payment keywords) → PAYMENT This
+     * fixes the issue where credit card payments were incorrectly classified as EXPENSE
      */
     @Test
-    void testCheckingAccountCreditCardPayment_ShouldBePayment() {
+    void testCheckingAccountCreditCardPaymentShouldBePayment() {
         // Given: Checking account, negative amount, credit card payment description
-        AccountTable account = new AccountTable();
+        final AccountTable account = new AccountTable();
         account.setAccountType("depository");
         account.setAccountSubtype("checking");
-        
-        BigDecimal amount = BigDecimal.valueOf(-500.00);
-        String categoryPrimary = null;
-        String description = "CHASE CREDIT CARD PAYMENT";
+
+        final BigDecimal amount = BigDecimal.valueOf(-500.00);
+        final String categoryPrimary = null;
+        final String description = "CHASE CREDIT CARD PAYMENT";
 
         // When: Determine transaction type
-        TransactionTypeCategoryService.TypeResult result = service.determineTransactionType(
-            account,
-            categoryPrimary,
-            null,
-            amount,
-            null,
-            description,
-            null
-        );
+        final TransactionTypeCategoryService.TypeResult result =
+                service.determineTransactionType(
+                        account, categoryPrimary, null, amount, null, description, null);
 
         // Then: Should be PAYMENT (not EXPENSE)
         assertNotNull(result);
         assertEquals(TransactionType.PAYMENT, result.getTransactionType());
     }
 
-    /**
-     * Test: Checking account regular expense (negative amount, no payment keywords) → EXPENSE
-     */
+    /** Test: Checking account regular expense (negative amount, no payment keywords) → EXPENSE */
     @Test
-    void testCheckingAccountRegularExpense_ShouldBeExpense() {
+    void testCheckingAccountRegularExpenseShouldBeExpense() {
         // Given: Checking account, negative amount, regular expense description
-        AccountTable account = new AccountTable();
+        final AccountTable account = new AccountTable();
         account.setAccountType("depository");
         account.setAccountSubtype("checking");
-        
-        BigDecimal amount = BigDecimal.valueOf(-50.00);
-        String categoryPrimary = "dining";
-        String description = "RESTAURANT PURCHASE";
+
+        final BigDecimal amount = BigDecimal.valueOf(-50.00);
+        final String categoryPrimary = "dining";
+        final String description = "RESTAURANT PURCHASE";
 
         // When: Determine transaction type
-        TransactionTypeCategoryService.TypeResult result = service.determineTransactionType(
-            account,
-            categoryPrimary,
-            null,
-            amount,
-            null,
-            description,
-            null
-        );
+        final TransactionTypeCategoryService.TypeResult result =
+                service.determineTransactionType(
+                        account, categoryPrimary, null, amount, null, description, null);
 
         // Then: Should be EXPENSE
         assertNotNull(result);
@@ -379,26 +298,20 @@ public class TransactionTypeCategoryServiceNewLogicTest {
      * This tests the new default behavior (changed from PAYMENT to EXPENSE)
      */
     @Test
-    void testCreditCardNegativeAmountDefault_ShouldBeExpense() {
+    void testCreditCardNegativeAmountDefaultShouldBeExpense() {
         // Given: Credit card account, negative amount, no category, no payment keywords
-        AccountTable account = new AccountTable();
+        final AccountTable account = new AccountTable();
         account.setAccountType("credit");
         account.setAccountSubtype("credit_card");
-        
-        BigDecimal amount = BigDecimal.valueOf(-100.00);
-        String categoryPrimary = null;
-        String description = "SOME CHARGE"; // No payment keywords
+
+        final BigDecimal amount = BigDecimal.valueOf(-100.00);
+        final String categoryPrimary = null;
+        final String description = "SOME CHARGE"; // No payment keywords
 
         // When: Determine transaction type
-        TransactionTypeCategoryService.TypeResult result = service.determineTransactionType(
-            account,
-            categoryPrimary,
-            null,
-            amount,
-            null,
-            description,
-            null
-        );
+        final TransactionTypeCategoryService.TypeResult result =
+                service.determineTransactionType(
+                        account, categoryPrimary, null, amount, null, description, null);
 
         // Then: Should be EXPENSE (default for negative amounts without payment keywords)
         assertNotNull(result);

@@ -1,31 +1,37 @@
 package com.budgetbuddy.util;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
-import software.amazon.awssdk.services.dynamodb.model.*;
+import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
+import software.amazon.awssdk.services.dynamodb.model.ConditionalCheckFailedException;
+import software.amazon.awssdk.services.dynamodb.model.Put;
+import software.amazon.awssdk.services.dynamodb.model.TransactWriteItem;
+import software.amazon.awssdk.services.dynamodb.model.TransactWriteItemsRequest;
+import software.amazon.awssdk.services.dynamodb.model.TransactWriteItemsResponse;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
-
-/**
- * Unit Tests for DynamoDbTransactionHelper
- */
+/** Unit Tests for DynamoDbTransactionHelper */
 @ExtendWith(MockitoExtension.class)
 class DynamoDbTransactionHelperTest {
 
-    @Mock
-    private DynamoDbClient dynamoDbClient;
+    @Mock private DynamoDbClient dynamoDbClient;
 
     private String tableName;
 
@@ -35,23 +41,30 @@ class DynamoDbTransactionHelperTest {
     }
 
     @Test
-    void testExecuteTransaction_WithValidItems_ExecutesSuccessfully() {
+    void testExecuteTransactionWithValidItemsExecutesSuccessfully() {
         // Given
-        List<TransactWriteItem> items = new ArrayList<>();
-        items.add(TransactWriteItem.builder()
-                .put(Put.builder()
-                        .tableName(tableName)
-                        .item(Collections.singletonMap("id", AttributeValue.builder().s("test-id").build()))
-                        .build())
-                .build());
+        final List<TransactWriteItem> items = new ArrayList<>();
+        items.add(
+                TransactWriteItem.builder()
+                        .put(
+                                Put.builder()
+                                        .tableName(tableName)
+                                        .item(
+                                                Collections.singletonMap(
+                                                        "id",
+                                                        AttributeValue.builder()
+                                                                .s("test-id")
+                                                                .build()))
+                                        .build())
+                        .build());
 
-        TransactWriteItemsResponse response = TransactWriteItemsResponse.builder().build();
+        final TransactWriteItemsResponse response = TransactWriteItemsResponse.builder().build();
         when(dynamoDbClient.transactWriteItems(any(TransactWriteItemsRequest.class)))
                 .thenReturn(response);
 
         // When
-        TransactWriteItemsResponse result = DynamoDbTransactionHelper.executeTransaction(
-                dynamoDbClient, tableName, items);
+        final TransactWriteItemsResponse result =
+                DynamoDbTransactionHelper.executeTransaction(dynamoDbClient, tableName, items);
 
         // Then
         assertNotNull(result);
@@ -59,68 +72,97 @@ class DynamoDbTransactionHelperTest {
     }
 
     @Test
-    void testExecuteTransaction_WithEmptyItems_ThrowsException() {
+    void testExecuteTransactionWithEmptyItemsThrowsException() {
         // When/Then
-        assertThrows(IllegalArgumentException.class, () ->
-                DynamoDbTransactionHelper.executeTransaction(dynamoDbClient, tableName, Collections.emptyList()));
+        assertThrows(
+                IllegalArgumentException.class,
+                () ->
+                        DynamoDbTransactionHelper.executeTransaction(
+                                dynamoDbClient, tableName, Collections.emptyList()));
     }
 
     @Test
-    void testExecuteTransaction_WithNullItems_ThrowsException() {
+    void testExecuteTransactionWithNullItemsThrowsException() {
         // When/Then
-        assertThrows(IllegalArgumentException.class, () ->
-                DynamoDbTransactionHelper.executeTransaction(dynamoDbClient, tableName, null));
+        assertThrows(
+                IllegalArgumentException.class,
+                () ->
+                        DynamoDbTransactionHelper.executeTransaction(
+                                dynamoDbClient, tableName, null));
     }
 
     @Test
-    void testExecuteTransaction_WithMoreThan25Items_ThrowsException() {
+    void testExecuteTransactionWithMoreThan25ItemsThrowsException() {
         // Given
-        List<TransactWriteItem> items = new ArrayList<>();
+        final List<TransactWriteItem> items = new ArrayList<>();
         for (int i = 0; i < 26; i++) {
-            items.add(TransactWriteItem.builder()
-                    .put(Put.builder()
-                            .tableName(tableName)
-                            .item(Collections.singletonMap("id", AttributeValue.builder().s("id-" + i).build()))
-                            .build())
-                    .build());
+            items.add(
+                    TransactWriteItem.builder()
+                            .put(
+                                    Put.builder()
+                                            .tableName(tableName)
+                                            .item(
+                                                    Collections.singletonMap(
+                                                            "id",
+                                                            AttributeValue.builder()
+                                                                    .s("id-" + i)
+                                                                    .build()))
+                                            .build())
+                            .build());
         }
 
         // When/Then
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () ->
-                DynamoDbTransactionHelper.executeTransaction(dynamoDbClient, tableName, items));
+        final IllegalArgumentException exception =
+                assertThrows(
+                        IllegalArgumentException.class,
+                        () ->
+                                DynamoDbTransactionHelper.executeTransaction(
+                                        dynamoDbClient, tableName, items));
         assertTrue(exception.getMessage().contains("25"));
     }
 
     @Test
-    void testExecuteTransaction_WithConditionalCheckFailed_ThrowsException() {
+    void testExecuteTransactionWithConditionalCheckFailedThrowsException() {
         // Given
-        List<TransactWriteItem> items = new ArrayList<>();
-        items.add(TransactWriteItem.builder()
-                .put(Put.builder()
-                        .tableName(tableName)
-                        .item(Collections.singletonMap("id", AttributeValue.builder().s("test-id").build()))
-                        .build())
-                .build());
+        final List<TransactWriteItem> items = new ArrayList<>();
+        items.add(
+                TransactWriteItem.builder()
+                        .put(
+                                Put.builder()
+                                        .tableName(tableName)
+                                        .item(
+                                                Collections.singletonMap(
+                                                        "id",
+                                                        AttributeValue.builder()
+                                                                .s("test-id")
+                                                                .build()))
+                                        .build())
+                        .build());
 
-        ConditionalCheckFailedException conditionalException = ConditionalCheckFailedException.builder()
-                .message("Conditional check failed")
-                .build();
+        final ConditionalCheckFailedException conditionalException =
+                ConditionalCheckFailedException.builder()
+                        .message("Conditional check failed")
+                        .build();
         when(dynamoDbClient.transactWriteItems(any(TransactWriteItemsRequest.class)))
                 .thenThrow(conditionalException);
 
         // When/Then
-        assertThrows(ConditionalCheckFailedException.class, () ->
-                DynamoDbTransactionHelper.executeTransaction(dynamoDbClient, tableName, items));
+        assertThrows(
+                ConditionalCheckFailedException.class,
+                () ->
+                        DynamoDbTransactionHelper.executeTransaction(
+                                dynamoDbClient, tableName, items));
     }
 
     @Test
-    void testCreatePutItem_WithValidInputs_CreatesPutItem() {
+    void testCreatePutItemWithValidInputsCreatesPutItem() {
         // Given
-        Map<String, AttributeValue> item = Collections.singletonMap(
-                "id", AttributeValue.builder().s("test-id").build());
+        final Map<String, AttributeValue> item =
+                Collections.singletonMap("id", AttributeValue.builder().s("test-id").build());
 
         // When
-        TransactWriteItem transactItem = DynamoDbTransactionHelper.createPutItem(tableName, item, null);
+        final TransactWriteItem transactItem =
+                DynamoDbTransactionHelper.createPutItem(tableName, item, null);
 
         // Then
         assertNotNull(transactItem);
@@ -129,15 +171,15 @@ class DynamoDbTransactionHelperTest {
     }
 
     @Test
-    void testCreatePutItem_WithConditionExpression_IncludesCondition() {
+    void testCreatePutItemWithConditionExpressionIncludesCondition() {
         // Given
-        Map<String, AttributeValue> item = Collections.singletonMap(
-                "id", AttributeValue.builder().s("test-id").build());
-        String conditionExpression = "attribute_not_exists(id)";
+        final Map<String, AttributeValue> item =
+                Collections.singletonMap("id", AttributeValue.builder().s("test-id").build());
+        final String conditionExpression = "attribute_not_exists(id)";
 
         // When
-        TransactWriteItem transactItem = DynamoDbTransactionHelper.createPutItem(
-                tableName, item, conditionExpression);
+        final TransactWriteItem transactItem =
+                DynamoDbTransactionHelper.createPutItem(tableName, item, conditionExpression);
 
         // Then
         assertNotNull(transactItem);
@@ -146,19 +188,24 @@ class DynamoDbTransactionHelperTest {
     }
 
     @Test
-    void testCreateUpdateItem_WithValidInputs_CreatesUpdateItem() {
+    void testCreateUpdateItemWithValidInputsCreatesUpdateItem() {
         // Given
-        Map<String, AttributeValue> key = Collections.singletonMap(
-                "id", AttributeValue.builder().s("test-id").build());
-        String updateExpression = "SET #attr = :val";
-        Map<String, String> expressionAttributeNames = Collections.singletonMap("#attr", "name");
-        Map<String, AttributeValue> expressionAttributeValues = Collections.singletonMap(
-                ":val", AttributeValue.builder().s("test-value").build());
+        final Map<String, AttributeValue> key =
+                Collections.singletonMap("id", AttributeValue.builder().s("test-id").build());
+        final String updateExpression = "SET #attr = :val";
+        final Map<String, String> expressionAttributeNames = Collections.singletonMap("#attr", "name");
+        final Map<String, AttributeValue> expressionAttributeValues =
+                Collections.singletonMap(":val", AttributeValue.builder().s("test-value").build());
 
         // When
-        TransactWriteItem transactItem = DynamoDbTransactionHelper.createUpdateItem(
-                tableName, key, updateExpression,
-                expressionAttributeNames, expressionAttributeValues, null);
+        final TransactWriteItem transactItem =
+                DynamoDbTransactionHelper.createUpdateItem(
+                        tableName,
+                        key,
+                        updateExpression,
+                        expressionAttributeNames,
+                        expressionAttributeValues,
+                        null);
 
         // Then
         assertNotNull(transactItem);
@@ -167,20 +214,25 @@ class DynamoDbTransactionHelperTest {
     }
 
     @Test
-    void testCreateUpdateItem_WithConditionExpression_IncludesCondition() {
+    void testCreateUpdateItemWithConditionExpressionIncludesCondition() {
         // Given
-        Map<String, AttributeValue> key = Collections.singletonMap(
-                "id", AttributeValue.builder().s("test-id").build());
-        String updateExpression = "SET #attr = :val";
-        Map<String, String> expressionAttributeNames = Collections.singletonMap("#attr", "name");
-        Map<String, AttributeValue> expressionAttributeValues = Collections.singletonMap(
-                ":val", AttributeValue.builder().s("test-value").build());
-        String conditionExpression = "attribute_exists(id)";
+        final Map<String, AttributeValue> key =
+                Collections.singletonMap("id", AttributeValue.builder().s("test-id").build());
+        final String updateExpression = "SET #attr = :val";
+        final Map<String, String> expressionAttributeNames = Collections.singletonMap("#attr", "name");
+        final Map<String, AttributeValue> expressionAttributeValues =
+                Collections.singletonMap(":val", AttributeValue.builder().s("test-value").build());
+        final String conditionExpression = "attribute_exists(id)";
 
         // When
-        TransactWriteItem transactItem = DynamoDbTransactionHelper.createUpdateItem(
-                tableName, key, updateExpression,
-                expressionAttributeNames, expressionAttributeValues, conditionExpression);
+        final TransactWriteItem transactItem =
+                DynamoDbTransactionHelper.createUpdateItem(
+                        tableName,
+                        key,
+                        updateExpression,
+                        expressionAttributeNames,
+                        expressionAttributeValues,
+                        conditionExpression);
 
         // Then
         assertNotNull(transactItem);

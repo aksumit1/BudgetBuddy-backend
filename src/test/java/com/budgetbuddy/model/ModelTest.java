@@ -1,23 +1,23 @@
 package com.budgetbuddy.model;
 
-import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.*;
-
-/**
- * Comprehensive tests for model classes
- * Tests getters, setters, constructors, and validation
- */
+/** Comprehensive tests for model classes Tests getters, setters, constructors, and validation */
 class ModelTest {
 
     @Test
-    void testUser_DefaultConstructor_CreatesEmptyUser() {
+    void testUserDefaultConstructorCreatesEmptyUser() {
         // When
-        User user = new User();
+        final User user = new User();
 
         // Then
         assertNotNull(user);
@@ -27,13 +27,13 @@ class ModelTest {
     }
 
     @Test
-    void testUser_ConstructorWithEmailAndPassword_SetsFields() {
+    void testUserConstructorWithEmailAndPasswordSetsFields() {
         // Given
-        String email = "test@example.com";
-        String password = "hashedPassword123";
+        final String email = "test@example.com";
+        final String password = "hashedPassword123";
 
         // When
-        User user = new User(email, password);
+        final User user = new User(email, password);
 
         // Then
         assertEquals(email, user.getEmail());
@@ -42,24 +42,24 @@ class ModelTest {
     }
 
     @Test
-    void testUser_GettersAndSetters_WorkCorrectly() {
+    void testUserGettersAndSettersWorkCorrectly() {
         // Given
-        User user = new User();
-        Long id = 1L;
-        String email = "test@example.com";
-        String password = "hashedPassword";
-        String firstName = "John";
-        String lastName = "Doe";
-        String phoneNumber = "123-456-7890";
-        Boolean enabled = true;
-        Boolean emailVerified = true;
-        Boolean twoFactorEnabled = true;
-        String preferredCurrency = "EUR";
-        String timezone = "America/New_York";
-        LocalDateTime createdAt = LocalDateTime.now();
-        LocalDateTime updatedAt = LocalDateTime.now();
-        LocalDateTime lastLoginAt = LocalDateTime.now();
-        LocalDateTime passwordChangedAt = LocalDateTime.now();
+        final User user = new User();
+        final Long id = 1L;
+        final String email = "test@example.com";
+        final String password = "hashedPassword";
+        final String firstName = "John";
+        final String lastName = "Doe";
+        final String phoneNumber = "123-456-7890";
+        final Boolean enabled = true;
+        final Boolean emailVerified = true;
+        final Boolean twoFactorEnabled = true;
+        final String preferredCurrency = "EUR";
+        final String timezone = "America/New_York";
+        final LocalDateTime createdAt = LocalDateTime.now();
+        final LocalDateTime updatedAt = LocalDateTime.now();
+        final LocalDateTime lastLoginAt = LocalDateTime.now();
+        final LocalDateTime passwordChangedAt = LocalDateTime.now();
 
         // When
         user.setId(id);
@@ -97,9 +97,9 @@ class ModelTest {
     }
 
     @Test
-    void testUser_Roles_CanBeAddedAndRetrieved() {
+    void testUserRolesCanBeAddedAndRetrieved() {
         // Given
-        User user = new User();
+        final User user = new User();
 
         // When
         user.getRoles().add(User.Role.USER);
@@ -112,9 +112,9 @@ class ModelTest {
     }
 
     @Test
-    void testAccount_DefaultConstructor_CreatesEmptyAccount() {
+    void testAccountDefaultConstructorCreatesEmptyAccount() {
         // When
-        Account account = new Account();
+        final Account account = new Account();
 
         // Then
         assertNotNull(account);
@@ -127,14 +127,14 @@ class ModelTest {
     }
 
     @Test
-    void testAccount_ConstructorWithUserAndName_SetsFields() {
+    void testAccountConstructorWithUserAndNameSetsFields() {
         // Given
-        User user = new User("test@example.com", "password");
-        String accountName = "Checking Account";
-        Account.AccountType accountType = Account.AccountType.CHECKING;
+        final User user = new User("test@example.com", "password");
+        final String accountName = "Checking Account";
+        final Account.AccountType accountType = Account.AccountType.CHECKING;
 
         // When
-        Account account = new Account(user, accountName, accountType);
+        final Account account = new Account(user, accountName, accountType);
 
         // Then
         assertEquals(user, account.getUser());
@@ -144,23 +144,23 @@ class ModelTest {
     }
 
     @Test
-    void testAccount_GettersAndSetters_WorkCorrectly() {
+    void testAccountGettersAndSettersWorkCorrectly() {
         // Given
-        Account account = new Account();
-        Long id = 1L;
-        User user = new User("test@example.com", "password");
-        String accountName = "Savings Account";
-        String institutionName = "Chase Bank";
-        Account.AccountType accountType = Account.AccountType.SAVINGS;
-        String accountSubtype = "savings";
-        BigDecimal balance = new BigDecimal("1000.50");
-        String currencyCode = "EUR";
-        String plaidAccountId = "acc_123";
-        String plaidItemId = "item_456";
-        Boolean active = false;
-        LocalDateTime lastSyncedAt = LocalDateTime.now();
-        LocalDateTime createdAt = LocalDateTime.now();
-        LocalDateTime updatedAt = LocalDateTime.now();
+        final Account account = new Account();
+        final Long id = 1L;
+        final User user = new User("test@example.com", "password");
+        final String accountName = "Savings Account";
+        final String institutionName = "Chase Bank";
+        final Account.AccountType accountType = Account.AccountType.SAVINGS;
+        final String accountSubtype = "savings";
+        final BigDecimal balance = new BigDecimal("1000.50");
+        final String currencyCode = "EUR";
+        final String plaidAccountId = "acc_123";
+        final String plaidItemId = "item_456";
+        final Boolean active = false;
+        final LocalDateTime lastSyncedAt = LocalDateTime.now();
+        final LocalDateTime createdAt = LocalDateTime.now();
+        final LocalDateTime updatedAt = LocalDateTime.now();
 
         // When
         account.setId(id);
@@ -196,9 +196,9 @@ class ModelTest {
     }
 
     @Test
-    void testTransaction_DefaultConstructor_CreatesEmptyTransaction() {
+    void testTransactionDefaultConstructorCreatesEmptyTransaction() {
         // When
-        Transaction transaction = new Transaction();
+        final Transaction transaction = new Transaction();
 
         // Then
         assertNotNull(transaction);
@@ -211,15 +211,15 @@ class ModelTest {
     }
 
     @Test
-    void testTransaction_ConstructorWithRequiredFields_SetsFields() {
+    void testTransactionConstructorWithRequiredFieldsSetsFields() {
         // Given
-        User user = new User("test@example.com", "password");
-        Account account = new Account(user, "Checking", Account.AccountType.CHECKING);
-        BigDecimal amount = new BigDecimal("-50.00");
-        LocalDate transactionDate = LocalDate.now();
+        final User user = new User("test@example.com", "password");
+        final Account account = new Account(user, "Checking", Account.AccountType.CHECKING);
+        final BigDecimal amount = new BigDecimal("-50.00");
+        final LocalDate transactionDate = LocalDate.now();
 
         // When
-        Transaction transaction = new Transaction(user, account, amount, transactionDate);
+        final Transaction transaction = new Transaction(user, account, amount, transactionDate);
 
         // Then
         assertEquals(user, transaction.getUser());
@@ -229,25 +229,25 @@ class ModelTest {
     }
 
     @Test
-    void testTransaction_GettersAndSetters_WorkCorrectly() {
+    void testTransactionGettersAndSettersWorkCorrectly() {
         // Given
-        Transaction transaction = new Transaction();
-        Long id = 1L;
-        User user = new User("test@example.com", "password");
-        Account account = new Account(user, "Checking", Account.AccountType.CHECKING);
-        BigDecimal amount = new BigDecimal("-50.00");
-        String description = "Grocery Store";
-        String merchantName = "Whole Foods";
-        Transaction.TransactionCategory category = Transaction.TransactionCategory.FOOD_DINING;
-        LocalDate transactionDate = LocalDate.now();
-        String currencyCode = "EUR";
-        String plaidTransactionId = "txn_123";
-        Boolean pending = true;
-        String location = "{\"lat\": 40.7128, \"lon\": -74.0060}";
-        String paymentChannel = "in_store";
-        String authorizedDate = "2024-01-15";
-        LocalDateTime createdAt = LocalDateTime.now();
-        LocalDateTime updatedAt = LocalDateTime.now();
+        final Transaction transaction = new Transaction();
+        final Long id = 1L;
+        final User user = new User("test@example.com", "password");
+        final Account account = new Account(user, "Checking", Account.AccountType.CHECKING);
+        final BigDecimal amount = new BigDecimal("-50.00");
+        final String description = "Grocery Store";
+        final String merchantName = "Whole Foods";
+        final Transaction.TransactionCategory category = Transaction.TransactionCategory.FOOD_DINING;
+        final LocalDate transactionDate = LocalDate.now();
+        final String currencyCode = "EUR";
+        final String plaidTransactionId = "txn_123";
+        final Boolean pending = true;
+        final String location = "{\"lat\": 40.7128, \"lon\": -74.0060}";
+        final String paymentChannel = "in_store";
+        final String authorizedDate = "2024-01-15";
+        final LocalDateTime createdAt = LocalDateTime.now();
+        final LocalDateTime updatedAt = LocalDateTime.now();
 
         // When
         transaction.setId(id);
@@ -287,9 +287,9 @@ class ModelTest {
     }
 
     @Test
-    void testBudget_DefaultConstructor_CreatesEmptyBudget() {
+    void testBudgetDefaultConstructorCreatesEmptyBudget() {
         // When
-        Budget budget = new Budget();
+        final Budget budget = new Budget();
 
         // Then
         assertNotNull(budget);
@@ -300,14 +300,14 @@ class ModelTest {
     }
 
     @Test
-    void testBudget_ConstructorWithRequiredFields_SetsFields() {
+    void testBudgetConstructorWithRequiredFieldsSetsFields() {
         // Given
-        User user = new User("test@example.com", "password");
-        Transaction.TransactionCategory category = Transaction.TransactionCategory.FOOD_DINING;
-        BigDecimal monthlyLimit = new BigDecimal("500.00");
+        final User user = new User("test@example.com", "password");
+        final Transaction.TransactionCategory category = Transaction.TransactionCategory.FOOD_DINING;
+        final BigDecimal monthlyLimit = new BigDecimal("500.00");
 
         // When
-        Budget budget = new Budget(user, category, monthlyLimit);
+        final Budget budget = new Budget(user, category, monthlyLimit);
 
         // Then
         assertEquals(user, budget.getUser());
@@ -316,17 +316,17 @@ class ModelTest {
     }
 
     @Test
-    void testBudget_GettersAndSetters_WorkCorrectly() {
+    void testBudgetGettersAndSettersWorkCorrectly() {
         // Given
-        Budget budget = new Budget();
-        Long id = 1L;
-        User user = new User("test@example.com", "password");
-        Transaction.TransactionCategory category = Transaction.TransactionCategory.FOOD_DINING;
-        BigDecimal monthlyLimit = new BigDecimal("500.00");
-        BigDecimal currentSpent = new BigDecimal("250.00");
-        String currencyCode = "EUR";
-        LocalDateTime createdAt = LocalDateTime.now();
-        LocalDateTime updatedAt = LocalDateTime.now();
+        final Budget budget = new Budget();
+        final Long id = 1L;
+        final User user = new User("test@example.com", "password");
+        final Transaction.TransactionCategory category = Transaction.TransactionCategory.FOOD_DINING;
+        final BigDecimal monthlyLimit = new BigDecimal("500.00");
+        final BigDecimal currentSpent = new BigDecimal("250.00");
+        final String currencyCode = "EUR";
+        final LocalDateTime createdAt = LocalDateTime.now();
+        final LocalDateTime updatedAt = LocalDateTime.now();
 
         // When
         budget.setId(id);
@@ -350,9 +350,9 @@ class ModelTest {
     }
 
     @Test
-    void testGoal_DefaultConstructor_CreatesEmptyGoal() {
+    void testGoalDefaultConstructorCreatesEmptyGoal() {
         // When
-        Goal goal = new Goal();
+        final Goal goal = new Goal();
 
         // Then
         assertNotNull(goal);
@@ -364,15 +364,15 @@ class ModelTest {
     }
 
     @Test
-    void testGoal_ConstructorWithRequiredFields_SetsFields() {
+    void testGoalConstructorWithRequiredFieldsSetsFields() {
         // Given
-        User user = new User("test@example.com", "password");
-        String name = "Vacation Fund";
-        BigDecimal targetAmount = new BigDecimal("5000.00");
-        LocalDate targetDate = LocalDate.now().plusMonths(6);
+        final User user = new User("test@example.com", "password");
+        final String name = "Vacation Fund";
+        final BigDecimal targetAmount = new BigDecimal("5000.00");
+        final LocalDate targetDate = LocalDate.now().plusMonths(6);
 
         // When
-        Goal goal = new Goal(user, name, targetAmount, targetDate);
+        final Goal goal = new Goal(user, name, targetAmount, targetDate);
 
         // Then
         assertEquals(user, goal.getUser());
@@ -382,22 +382,22 @@ class ModelTest {
     }
 
     @Test
-    void testGoal_GettersAndSetters_WorkCorrectly() {
+    void testGoalGettersAndSettersWorkCorrectly() {
         // Given
-        Goal goal = new Goal();
-        Long id = 1L;
-        User user = new User("test@example.com", "password");
-        String name = "Emergency Fund";
-        String description = "Save for emergencies";
-        BigDecimal targetAmount = new BigDecimal("10000.00");
-        BigDecimal currentAmount = new BigDecimal("2500.00");
-        LocalDate targetDate = LocalDate.now().plusMonths(12);
-        BigDecimal monthlyContribution = new BigDecimal("500.00");
-        Goal.GoalType goalType = Goal.GoalType.EMERGENCY_FUND;
-        String currencyCode = "EUR";
-        Boolean active = false;
-        LocalDateTime createdAt = LocalDateTime.now();
-        LocalDateTime updatedAt = LocalDateTime.now();
+        final Goal goal = new Goal();
+        final Long id = 1L;
+        final User user = new User("test@example.com", "password");
+        final String name = "Emergency Fund";
+        final String description = "Save for emergencies";
+        final BigDecimal targetAmount = new BigDecimal("10000.00");
+        final BigDecimal currentAmount = new BigDecimal("2500.00");
+        final LocalDate targetDate = LocalDate.now().plusMonths(12);
+        final BigDecimal monthlyContribution = new BigDecimal("500.00");
+        final Goal.GoalType goalType = Goal.GoalType.EMERGENCY_FUND;
+        final String currencyCode = "EUR";
+        final Boolean active = false;
+        final LocalDateTime createdAt = LocalDateTime.now();
+        final LocalDateTime updatedAt = LocalDateTime.now();
 
         // When
         goal.setId(id);
@@ -430,4 +430,3 @@ class ModelTest {
         assertEquals(updatedAt, goal.getUpdatedAt());
     }
 }
-

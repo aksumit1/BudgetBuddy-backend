@@ -2,20 +2,19 @@ package com.budgetbuddy.service;
 
 import com.budgetbuddy.model.dynamodb.TransactionTable;
 import com.budgetbuddy.repository.dynamodb.TransactionRepository;
+import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
-import java.util.Optional;
-
 /**
- * Helper service for transaction synchronization
- * Extracts common logic for syncing Plaid transactions to reduce duplication
+ * Helper service for transaction synchronization Extracts common logic for syncing Plaid
+ * transactions to reduce duplication
  */
 @Component
 public class TransactionSyncHelper {
 
-    private static final Logger logger = LoggerFactory.getLogger(TransactionSyncHelper.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(TransactionSyncHelper.class);
 
     private final TransactionRepository transactionRepository;
 
@@ -24,48 +23,51 @@ public class TransactionSyncHelper {
     }
 
     /**
-     * Sync a single Plaid transaction to the database
-     * Handles duplicate detection, conditional writes, and updates
+     * Sync a single Plaid transaction to the database Handles duplicate detection, conditional
+     * writes, and updates
      *
      * @param transaction Transaction to sync
      * @param plaidTransactionId Plaid transaction ID
      * @return SyncResult with counts of new/updated/error transactions
      */
     public SyncResult syncSingleTransaction(
-            final TransactionTable transaction,
-            final String plaidTransactionId) {
-        SyncResult result = new SyncResult();
+            final TransactionTable transaction, final String plaidTransactionId) {
+        final SyncResult result = new SyncResult();
 
         if (transaction == null) {
-            logger.warn("Transaction is null, skipping sync");
+            LOGGER.warn("Transaction is null, skipping sync");
             result.setErrorCount(1);
             return result;
         }
 
         if (plaidTransactionId == null || plaidTransactionId.isEmpty()) {
-            logger.warn("Plaid transaction ID is null or empty, skipping");
+            LOGGER.warn("Plaid transaction ID is null or empty, skipping");
             result.setErrorCount(1);
             return result;
         }
 
         try {
             // Use conditional write to prevent duplicates and race conditions
-            if (transaction.getPlaidTransactionId() != null && !transaction.getPlaidTransactionId().isEmpty()) {
+            if (transaction.getPlaidTransactionId() != null
+                    && !transaction.getPlaidTransactionId().isEmpty()) {
                 // Use conditional write to prevent duplicate Plaid transactions
-                boolean saved = transactionRepository.saveIfPlaidTransactionNotExists(transaction);
+                final boolean saved = transactionRepository.saveIfPlaidTransactionNotExists(transaction);
                 if (saved) {
                     result.setNewCount(1);
                 } else {
                     // Transaction already exists, update it
-                    Optional<TransactionTable> existing = transactionRepository.findByPlaidTransactionId(plaidTransactionId);
+                    final Optional<TransactionTable> existing =
+                            transactionRepository.findByPlaidTransactionId(plaidTransactionId);
                     if (existing.isPresent()) {
-                        TransactionTable existingTransaction = existing.get();
+                        final TransactionTable existingTransaction = existing.get();
                         // Note: updateTransactionFromPlaid should be called by the caller
                         // as it depends on the Plaid transaction object structure
                         transactionRepository.save(existingTransaction);
                         result.setUpdatedCount(1);
                     } else {
-                        logger.warn("Transaction with Plaid ID {} already exists but could not be retrieved", plaidTransactionId);
+                        LOGGER.warn(
+                                "Transaction with Plaid ID {} already exists but could not be retrieved",
+                                plaidTransactionId);
                         result.setErrorCount(1);
                     }
                 }
@@ -80,11 +82,18 @@ public class TransactionSyncHelper {
             }
         } catch (IllegalArgumentException e) {
             // Invalid input - log as WARN since this is a data validation issue
-            logger.warn("Invalid transaction data for Plaid ID {}: {}", plaidTransactionId, e.getMessage());
+            LOGGER.warn(
+                    "Invalid transaction data for Plaid ID {}: {}",
+                    plaidTransactionId,
+                    e.getMessage());
             result.setErrorCount(1);
         } catch (Exception e) {
             // Real database errors, network issues, etc. - log as ERROR
-            logger.error("Failed to sync transaction with Plaid ID {}: {}", plaidTransactionId, e.getMessage(), e);
+            LOGGER.error(
+                    "Failed to sync transaction with Plaid ID {}: {}",
+                    plaidTransactionId,
+                    e.getMessage(),
+                    e);
             result.setErrorCount(1);
         }
 
@@ -92,9 +101,7 @@ public class TransactionSyncHelper {
         return result;
     }
 
-    /**
-     * Sync result for a single transaction
-     */
+    /** Sync result for a single transaction */
     public static class SyncResult {
         private int newCount = 0;
         private int updatedCount = 0;
@@ -134,4 +141,3 @@ public class TransactionSyncHelper {
         }
     }
 }
-

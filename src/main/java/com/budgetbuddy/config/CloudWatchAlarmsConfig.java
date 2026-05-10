@@ -6,24 +6,18 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * CloudWatch Alarms Configuration
- * Defines alarm thresholds and configurations for monitoring
+ * CloudWatch Alarms Configuration Defines alarm thresholds and configurations for monitoring
  *
- * Note: This class documents the alarm configurations that should be set up in AWS CloudWatch.
+ * <p>Note: This class documents the alarm configurations that should be set up in AWS CloudWatch.
  * Actual alarms should be created via CloudFormation, Terraform, or AWS Console.
  *
- * Critical Alarms:
- * - Error rate spikes
- * - High latency (p95, p99)
- * - Database connection pool exhaustion
- * - Memory/CPU thresholds
- * - Failed health checks
- * - Rate limit violations
+ * <p>Critical Alarms: - Error rate spikes - High latency (p95, p99) - Database connection pool
+ * exhaustion - Memory/CPU thresholds - Failed health checks - Rate limit violations
  */
 @Configuration
 public class CloudWatchAlarmsConfig {
 
-    private static final Logger logger = LoggerFactory.getLogger(CloudWatchAlarmsConfig.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(CloudWatchAlarmsConfig.class);
 
     // Error Rate Alarms
     @Value("${app.alarms.error-rate.threshold:10}")
@@ -67,88 +61,63 @@ public class CloudWatchAlarmsConfig {
     @Value("${app.alarms.rate-limit.violations.threshold:100}")
     private int rateLimitViolationsThreshold;
 
-    /**
-     * Get error rate alarm configuration
-     */
+    /** Get error rate alarm configuration */
     public AlarmConfig getErrorRateAlarmConfig() {
         return new AlarmConfig(
                 "ErrorRate",
                 errorRateThreshold,
                 errorRateEvaluationPeriods,
-                "GreaterThanThreshold"
-        );
+                "GreaterThanThreshold");
     }
 
-    /**
-     * Get latency alarm configuration
-     */
+    /** Get latency alarm configuration */
     public AlarmConfig getLatencyP95AlarmConfig() {
         return new AlarmConfig(
                 "LatencyP95",
                 latencyP95ThresholdMs,
                 latencyEvaluationPeriods,
-                "GreaterThanThreshold"
-        );
+                "GreaterThanThreshold");
     }
 
-    /**
-     * Get latency alarm configuration
-     */
+    /** Get latency alarm configuration */
     public AlarmConfig getLatencyP99AlarmConfig() {
         return new AlarmConfig(
                 "LatencyP99",
                 latencyP99ThresholdMs,
                 latencyEvaluationPeriods,
-                "GreaterThanThreshold"
-        );
+                "GreaterThanThreshold");
     }
 
-    /**
-     * Get database connection pool alarm configuration
-     */
+    /** Get database connection pool alarm configuration */
     public AlarmConfig getDatabaseConnectionPoolAlarmConfig() {
         return new AlarmConfig(
                 "DatabaseConnectionPool",
                 databaseConnectionPoolThreshold,
                 resourceEvaluationPeriods,
-                "GreaterThanThreshold"
-        );
+                "GreaterThanThreshold");
     }
 
-    /**
-     * Get memory alarm configuration
-     */
+    /** Get memory alarm configuration */
     public AlarmConfig getMemoryAlarmConfig() {
         return new AlarmConfig(
-                "MemoryUsage",
-                memoryThreshold,
-                resourceEvaluationPeriods,
-                "GreaterThanThreshold"
-        );
+                "MemoryUsage", memoryThreshold, resourceEvaluationPeriods, "GreaterThanThreshold");
     }
 
-    /**
-     * Get CPU alarm configuration
-     */
+    /** Get CPU alarm configuration */
     public AlarmConfig getCpuAlarmConfig() {
         return new AlarmConfig(
-                "CpuUsage",
-                cpuThreshold,
-                resourceEvaluationPeriods,
-                "GreaterThanThreshold"
-        );
+                "CpuUsage", cpuThreshold, resourceEvaluationPeriods, "GreaterThanThreshold");
     }
 
-    /**
-     * Alarm configuration data class
-     */
+    /** Alarm configuration data class */
     public static class AlarmConfig {
         private final String name;
         private final int threshold;
         private final int evaluationPeriods;
         private final String comparisonOperator;
 
-        public AlarmConfig(String name, int threshold, int evaluationPeriods, String comparisonOperator) {
+        public AlarmConfig(
+                final String name, final int threshold, final int evaluationPeriods, final String comparisonOperator) {
             this.name = name;
             this.threshold = threshold;
             this.evaluationPeriods = evaluationPeriods;
@@ -172,21 +141,33 @@ public class CloudWatchAlarmsConfig {
         }
     }
 
-    /**
-     * Log alarm configurations on startup
-     */
+    /** Log alarm configurations on startup */
     @jakarta.annotation.PostConstruct
     public void logAlarmConfigurations() {
-        logger.info("CloudWatch Alarm Configurations:");
-        logger.info("  Error Rate: {} errors/min ({} evaluation periods)", errorRateThreshold, errorRateEvaluationPeriods);
-        logger.info("  Latency P95: {}ms ({} evaluation periods)", latencyP95ThresholdMs, latencyEvaluationPeriods);
-        logger.info("  Latency P99: {}ms ({} evaluation periods)", latencyP99ThresholdMs, latencyEvaluationPeriods);
-        logger.info("  Database Connection Pool: {}% ({} evaluation periods)", databaseConnectionPoolThreshold, resourceEvaluationPeriods);
-        logger.info("  Memory: {}% ({} evaluation periods)", memoryThreshold, resourceEvaluationPeriods);
-        logger.info("  CPU: {}% ({} evaluation periods)", cpuThreshold, resourceEvaluationPeriods);
-        logger.info("  Health Check Failures: {} consecutive failures", healthCheckFailureThreshold);
-        logger.info("  Rate Limit Violations: {} violations/hour", rateLimitViolationsThreshold);
-        logger.info("Note: These alarms should be configured in AWS CloudWatch Console or via Infrastructure as Code");
+        LOGGER.info("CloudWatch Alarm Configurations:");
+        LOGGER.info(
+                "  Error Rate: {} errors/min ({} evaluation periods)",
+                errorRateThreshold,
+                errorRateEvaluationPeriods);
+        LOGGER.info(
+                "  Latency P95: {}ms ({} evaluation periods)",
+                latencyP95ThresholdMs,
+                latencyEvaluationPeriods);
+        LOGGER.info(
+                "  Latency P99: {}ms ({} evaluation periods)",
+                latencyP99ThresholdMs,
+                latencyEvaluationPeriods);
+        LOGGER.info(
+                "  Database Connection Pool: {}% ({} evaluation periods)",
+                databaseConnectionPoolThreshold, resourceEvaluationPeriods);
+        LOGGER.info(
+                "  Memory: {}% ({} evaluation periods)",
+                memoryThreshold, resourceEvaluationPeriods);
+        LOGGER.info("  CPU: {}% ({} evaluation periods)", cpuThreshold, resourceEvaluationPeriods);
+        LOGGER.info(
+                "  Health Check Failures: {} consecutive failures", healthCheckFailureThreshold);
+        LOGGER.info("  Rate Limit Violations: {} violations/hour", rateLimitViolationsThreshold);
+        LOGGER.info(
+                "Note: These alarms should be configured in AWS CloudWatch Console or via Infrastructure as Code");
     }
 }
-

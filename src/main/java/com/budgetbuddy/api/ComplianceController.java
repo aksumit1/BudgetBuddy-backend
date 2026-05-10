@@ -8,14 +8,19 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 /**
- * Compliance REST Controller
- * Provides endpoints for GDPR and DMA compliance
- * 
- * Note: DMA-specific endpoints are now in DMAController
- * This controller maintains GDPR endpoints for backward compatibility
+ * Compliance REST Controller Provides endpoints for GDPR and DMA compliance
+ *
+ * <p>Note: DMA-specific endpoints are now in DMAController This controller maintains GDPR endpoints
+ * for backward compatibility
  */
 @RestController
 @RequestMapping("/api/compliance")
@@ -31,67 +36,69 @@ public class ComplianceController {
         this.userService = userService;
     }
 
-    /**
-     * GDPR Article 15: Right to access
-     * Export all user data
-     */
+    /** GDPR Article 15: Right to access Export all user data */
     @GetMapping("/gdpr/export")
     public ResponseEntity<GDPRComplianceService.GDPRDataExport> exportData(
-            @AuthenticationPrincipal UserDetails userDetails) {
-        com.budgetbuddy.model.dynamodb.UserTable user = userService.findByEmail(userDetails.getUsername())
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+            @AuthenticationPrincipal final UserDetails userDetails) {
+        final com.budgetbuddy.model.dynamodb.UserTable user =
+                userService
+                        .findByEmail(userDetails.getUsername())
+                        .orElseThrow(
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
 
-        GDPRComplianceService.GDPRDataExport export = gdprComplianceService.exportUserData(user.getUserId());
+        final GDPRComplianceService.GDPRDataExport export =
+                gdprComplianceService.exportUserData(user.getUserId());
         return ResponseEntity.ok(export);
     }
 
-    /**
-     * GDPR Article 20: Right to data portability
-     * Export data in machine-readable format
-     */
+    /** GDPR Article 20: Right to data portability Export data in machine-readable format */
     @GetMapping(value = "/gdpr/export/portable", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<String> exportDataPortable(
-            @AuthenticationPrincipal UserDetails userDetails) {
-        com.budgetbuddy.model.dynamodb.UserTable user = userService.findByEmail(userDetails.getUsername())
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+            @AuthenticationPrincipal final UserDetails userDetails) {
+        final com.budgetbuddy.model.dynamodb.UserTable user =
+                userService
+                        .findByEmail(userDetails.getUsername())
+                        .orElseThrow(
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
 
-        String json = gdprComplianceService.exportDataPortable(user.getUserId());
+        final String json = gdprComplianceService.exportDataPortable(user.getUserId());
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=user-data.json")
                 .body(json);
     }
 
-    /**
-     * GDPR Article 17: Right to erasure / Right to be forgotten
-     * Delete all user data
-     */
+    /** GDPR Article 17: Right to erasure / Right to be forgotten Delete all user data */
     @DeleteMapping("/gdpr/delete")
     public ResponseEntity<Void> deleteData(
-            @AuthenticationPrincipal UserDetails userDetails,
-            @RequestParam(required = false, defaultValue = "false") boolean confirm) {
+            @AuthenticationPrincipal final UserDetails userDetails,
+            @RequestParam(required = false, defaultValue = "false") final boolean confirm) {
         if (!confirm) {
             return ResponseEntity.badRequest().build();
         }
 
-        com.budgetbuddy.model.dynamodb.UserTable user = userService.findByEmail(userDetails.getUsername())
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+        final com.budgetbuddy.model.dynamodb.UserTable user =
+                userService
+                        .findByEmail(userDetails.getUsername())
+                        .orElseThrow(
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
 
         gdprComplianceService.deleteUserData(user.getUserId());
         return ResponseEntity.noContent().build();
     }
 
-    /**
-     * GDPR Article 16: Right to rectification
-     * Update user data
-     */
+    /** GDPR Article 16: Right to rectification Update user data */
     @PutMapping("/gdpr/update")
     public ResponseEntity<Void> updateData(
-            @AuthenticationPrincipal UserDetails userDetails,
-            @RequestBody UpdateDataRequest request) {
-        com.budgetbuddy.model.dynamodb.UserTable user = userService.findByEmail(userDetails.getUsername())
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+            @AuthenticationPrincipal final UserDetails userDetails,
+            @RequestBody final UpdateDataRequest request) {
+        final com.budgetbuddy.model.dynamodb.UserTable user =
+                userService
+                        .findByEmail(userDetails.getUsername())
+                        .orElseThrow(
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
 
-        com.budgetbuddy.model.dynamodb.UserTable updatedData = new com.budgetbuddy.model.dynamodb.UserTable();
+        final com.budgetbuddy.model.dynamodb.UserTable updatedData =
+                new com.budgetbuddy.model.dynamodb.UserTable();
         updatedData.setFirstName(request.getFirstName());
         updatedData.setLastName(request.getLastName());
         updatedData.setEmail(request.getEmail());
@@ -101,7 +108,6 @@ public class ComplianceController {
         return ResponseEntity.ok().build();
     }
 
-
     public static class UpdateDataRequest {
         private String firstName;
         private String lastName;
@@ -109,13 +115,36 @@ public class ComplianceController {
         private String phoneNumber;
 
         // Getters and setters
-        public String getFirstName() { return firstName; }
-        public void setFirstName(final String firstName) { this.firstName = firstName; }
-        public String getLastName() { return lastName; }
-        public void setLastName(final String lastName) { this.lastName = lastName; }
-        public String getEmail() { return email; }
-        public void setEmail(final String email) { this.email = email; }
-        public String getPhoneNumber() { return phoneNumber; }
-        public void setPhoneNumber(final String phoneNumber) { this.phoneNumber = phoneNumber; }
+        public String getFirstName() {
+            return firstName;
+        }
+
+        public void setFirstName(final String firstName) {
+            this.firstName = firstName;
+        }
+
+        public String getLastName() {
+            return lastName;
+        }
+
+        public void setLastName(final String lastName) {
+            this.lastName = lastName;
+        }
+
+        public String getEmail() {
+            return email;
+        }
+
+        public void setEmail(final String email) {
+            this.email = email;
+        }
+
+        public String getPhoneNumber() {
+            return phoneNumber;
+        }
+
+        public void setPhoneNumber(final String phoneNumber) {
+            this.phoneNumber = phoneNumber;
+        }
     }
 }

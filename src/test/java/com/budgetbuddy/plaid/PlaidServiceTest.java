@@ -1,5 +1,12 @@
 package com.budgetbuddy.plaid;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import com.budgetbuddy.compliance.pcidss.PCIDSSComplianceService;
 import com.budgetbuddy.exception.AppException;
 import com.budgetbuddy.exception.ErrorCode;
@@ -8,403 +15,739 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import static org.junit.jupiter.api.Assertions.*;
-
-/**
- * Unit Tests for PlaidService
- * 
- */
+/** Unit Tests for PlaidService */
 @ExtendWith(MockitoExtension.class)
 @org.mockito.junit.jupiter.MockitoSettings(strictness = org.mockito.quality.Strictness.LENIENT)
 class PlaidServiceTest {
 
-    @Mock
-    private PCIDSSComplianceService pciDSSComplianceService;
+    @Mock private PCIDSSComplianceService pciDSSComplianceService;
 
     private PlaidService plaidService;
 
     // Helper method to parse error response using reflection
-    private Object parseErrorResponse(String errorBody) throws Exception {
-        java.lang.reflect.Method method = PlaidService.class.getDeclaredMethod("parsePlaidErrorResponse", String.class);
+    private Object parseErrorResponse(final String errorBody) throws Exception {
+        final java.lang.reflect.Method method =
+                PlaidService.class.getDeclaredMethod("parsePlaidErrorResponse", String.class);
         method.setAccessible(true);
         return method.invoke(plaidService, errorBody);
     }
 
     // Helper method to get field value from error response object
-    private String getErrorField(Object errorObj, String fieldName) throws NoSuchFieldException, IllegalAccessException {
-        if (errorObj == null) return null;
-        java.lang.reflect.Field field = errorObj.getClass().getDeclaredField(fieldName);
+    private String getErrorField(final Object errorObj, final String fieldName)
+            throws NoSuchFieldException, IllegalAccessException {
+        if (errorObj == null) {
+            return null;
+        }
+        final java.lang.reflect.Field field = errorObj.getClass().getDeclaredField(fieldName);
         field.setAccessible(true);
         return (String) field.get(errorObj);
     }
 
     @Test
-    void testPlaidService_Constructor_WithNullClientId_UsesPlaceholder() {
-        // When/Then - Constructor now allows null/empty and uses placeholders (will fail on actual API calls)
+    void testPlaidServiceConstructorWithNullClientIdUsesPlaceholder() {
+        // When/Then - Constructor now allows null/empty and uses placeholders (will fail on actual
+        // API calls)
         // This allows service creation for scripts/analysis without credentials
-        assertDoesNotThrow(() -> {
-            new PlaidService(null, "secret", "sandbox", "https://app.budgetbuddy.com/plaid/callback", "https://api.budgetbuddy.com/api/plaid/webhooks", true, pciDSSComplianceService);
-        }, "Should create PlaidService with null clientId (uses placeholder)");
+        assertDoesNotThrow(
+                () -> {
+                    new PlaidService(
+                            null,
+                            "secret",
+                            "sandbox",
+                            "https://app.budgetbuddy.com/plaid/callback",
+                            "https://api.budgetbuddy.com/api/plaid/webhooks",
+                            true,
+                            pciDSSComplianceService);
+                },
+                "Should create PlaidService with null clientId (uses placeholder)");
     }
 
     @Test
-    void testPlaidService_Constructor_WithEmptyClientId_UsesPlaceholder() {
-        // When/Then - Constructor now allows null/empty and uses placeholders (will fail on actual API calls)
-        assertDoesNotThrow(() -> {
-            new PlaidService("", "secret", "sandbox", "https://app.budgetbuddy.com/plaid/callback", "https://api.budgetbuddy.com/api/plaid/webhooks", true, pciDSSComplianceService);
-        }, "Should create PlaidService with empty clientId (uses placeholder)");
+    void testPlaidServiceConstructorWithEmptyClientIdUsesPlaceholder() {
+        // When/Then - Constructor now allows null/empty and uses placeholders (will fail on actual
+        // API calls)
+        assertDoesNotThrow(
+                () -> {
+                    new PlaidService(
+                            "",
+                            "secret",
+                            "sandbox",
+                            "https://app.budgetbuddy.com/plaid/callback",
+                            "https://api.budgetbuddy.com/api/plaid/webhooks",
+                            true,
+                            pciDSSComplianceService);
+                },
+                "Should create PlaidService with empty clientId (uses placeholder)");
     }
 
     @Test
-    void testPlaidService_Constructor_WithNullSecret_UsesPlaceholder() {
-        // When/Then - Constructor now allows null/empty and uses placeholders (will fail on actual API calls)
-        assertDoesNotThrow(() -> {
-            new PlaidService("clientId", null, "sandbox", "https://app.budgetbuddy.com/plaid/callback", "https://api.budgetbuddy.com/api/plaid/webhooks", true, pciDSSComplianceService);
-        }, "Should create PlaidService with null secret (uses placeholder)");
+    void testPlaidServiceConstructorWithNullSecretUsesPlaceholder() {
+        // When/Then - Constructor now allows null/empty and uses placeholders (will fail on actual
+        // API calls)
+        assertDoesNotThrow(
+                () -> {
+                    new PlaidService(
+                            "clientId",
+                            null,
+                            "sandbox",
+                            "https://app.budgetbuddy.com/plaid/callback",
+                            "https://api.budgetbuddy.com/api/plaid/webhooks",
+                            true,
+                            pciDSSComplianceService);
+                },
+                "Should create PlaidService with null secret (uses placeholder)");
     }
 
     @Test
-    void testPlaidService_Constructor_WithEmptySecret_UsesPlaceholder() {
-        // When/Then - Constructor now allows null/empty and uses placeholders (will fail on actual API calls)
-        assertDoesNotThrow(() -> {
-            new PlaidService("clientId", "", "sandbox", "https://app.budgetbuddy.com/plaid/callback", "https://api.budgetbuddy.com/api/plaid/webhooks", true, pciDSSComplianceService);
-        }, "Should create PlaidService with empty secret (uses placeholder)");
+    void testPlaidServiceConstructorWithEmptySecretUsesPlaceholder() {
+        // When/Then - Constructor now allows null/empty and uses placeholders (will fail on actual
+        // API calls)
+        assertDoesNotThrow(
+                () -> {
+                    new PlaidService(
+                            "clientId",
+                            "",
+                            "sandbox",
+                            "https://app.budgetbuddy.com/plaid/callback",
+                            "https://api.budgetbuddy.com/api/plaid/webhooks",
+                            true,
+                            pciDSSComplianceService);
+                },
+                "Should create PlaidService with empty secret (uses placeholder)");
     }
 
     @Test
-    void testPlaidService_Constructor_WithNullPCIDSSService_ThrowsException() {
+    void testPlaidServiceConstructorWithNullPCIDSSServiceThrowsException() {
         // When/Then
-        assertThrows(IllegalArgumentException.class, () -> {
-            new PlaidService("clientId", "secret", "sandbox", "https://app.budgetbuddy.com/plaid/callback", "https://api.budgetbuddy.com/api/plaid/webhooks", true, null);
-        });
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> {
+                    new PlaidService(
+                            "clientId",
+                            "secret",
+                            "sandbox",
+                            "https://app.budgetbuddy.com/plaid/callback",
+                            "https://api.budgetbuddy.com/api/plaid/webhooks",
+                            true,
+                            null);
+                });
     }
 
     @Test
-    void testPlaidService_Constructor_WithValidInput_CreatesService() {
+    void testPlaidServiceConstructorWithValidInputCreatesService() {
         // When/Then - Should not throw exception with valid input
-        assertDoesNotThrow(() -> {
-            new PlaidService("test-client-id", "test-secret", "sandbox", "https://app.budgetbuddy.com/plaid/callback", "https://api.budgetbuddy.com/api/plaid/webhooks", true, pciDSSComplianceService);
-        }, "Should create PlaidService with valid input");
+        assertDoesNotThrow(
+                () -> {
+                    new PlaidService(
+                            "test-client-id",
+                            "test-secret",
+                            "sandbox",
+                            "https://app.budgetbuddy.com/plaid/callback",
+                            "https://api.budgetbuddy.com/api/plaid/webhooks",
+                            true,
+                            pciDSSComplianceService);
+                },
+                "Should create PlaidService with valid input");
     }
 
     @Test
-    void testPlaidService_Constructor_WithPlaidDisabled_AllowsPlaceholder() {
+    void testPlaidServiceConstructorWithPlaidDisabledAllowsPlaceholder() {
         // When/Then - Should not throw exception when Plaid is disabled
-        assertDoesNotThrow(() -> {
-            new PlaidService("placeholder-client-id", "placeholder-secret", "sandbox", "", "", false, pciDSSComplianceService);
-        }, "Should create PlaidService with placeholders when Plaid is disabled");
+        assertDoesNotThrow(
+                () -> {
+                    new PlaidService(
+                            "placeholder-client-id",
+                            "placeholder-secret",
+                            "sandbox",
+                            "",
+                            "",
+                            false,
+                            pciDSSComplianceService);
+                },
+                "Should create PlaidService with placeholders when Plaid is disabled");
     }
 
     @Test
-    void testCreateLinkToken_WithNullUserId_ThrowsException() {
+    void testCreateLinkTokenWithNullUserIdThrowsException() {
         // Given
-        plaidService = new PlaidService("test-client-id", "test-secret", "sandbox", "https://app.budgetbuddy.com/plaid/callback", "", true, pciDSSComplianceService);
+        plaidService =
+                new PlaidService(
+                        "test-client-id",
+                        "test-secret",
+                        "sandbox",
+                        "https://app.budgetbuddy.com/plaid/callback",
+                        "",
+                        true,
+                        pciDSSComplianceService);
 
         // When/Then
-        AppException exception = assertThrows(AppException.class, 
-                () -> plaidService.createLinkToken(null, "Test Client"));
+        final AppException exception =
+                assertThrows(
+                        AppException.class,
+                        () -> plaidService.createLinkToken(null, "Test Client"));
         assertEquals(ErrorCode.INVALID_INPUT, exception.getErrorCode());
     }
 
     @Test
-    void testCreateLinkToken_WithEmptyUserId_ThrowsException() {
+    void testCreateLinkTokenWithEmptyUserIdThrowsException() {
         // Given
-        plaidService = new PlaidService("test-client-id", "test-secret", "sandbox", "https://app.budgetbuddy.com/plaid/callback", "", true, pciDSSComplianceService);
+        plaidService =
+                new PlaidService(
+                        "test-client-id",
+                        "test-secret",
+                        "sandbox",
+                        "https://app.budgetbuddy.com/plaid/callback",
+                        "",
+                        true,
+                        pciDSSComplianceService);
 
         // When/Then
-        AppException exception = assertThrows(AppException.class, 
-                () -> plaidService.createLinkToken("", "Test Client"));
+        final AppException exception =
+                assertThrows(
+                        AppException.class, () -> plaidService.createLinkToken("", "Test Client"));
         assertEquals(ErrorCode.INVALID_INPUT, exception.getErrorCode());
     }
 
     @Test
-    void testCreateLinkToken_WithNullClientName_ThrowsException() {
+    void testCreateLinkTokenWithNullClientNameThrowsException() {
         // Given
-        plaidService = new PlaidService("test-client-id", "test-secret", "sandbox", "https://app.budgetbuddy.com/plaid/callback", "", true, pciDSSComplianceService);
+        plaidService =
+                new PlaidService(
+                        "test-client-id",
+                        "test-secret",
+                        "sandbox",
+                        "https://app.budgetbuddy.com/plaid/callback",
+                        "",
+                        true,
+                        pciDSSComplianceService);
 
         // When/Then
-        AppException exception = assertThrows(AppException.class, 
-                () -> plaidService.createLinkToken("user-123", null));
+        final AppException exception =
+                assertThrows(
+                        AppException.class, () -> plaidService.createLinkToken("user-123", null));
         assertEquals(ErrorCode.INVALID_INPUT, exception.getErrorCode());
     }
 
     @Test
-    void testCreateLinkToken_WithEmptyClientName_ThrowsException() {
+    void testCreateLinkTokenWithEmptyClientNameThrowsException() {
         // Given
-        plaidService = new PlaidService("test-client-id", "test-secret", "sandbox", "https://app.budgetbuddy.com/plaid/callback", "", true, pciDSSComplianceService);
+        plaidService =
+                new PlaidService(
+                        "test-client-id",
+                        "test-secret",
+                        "sandbox",
+                        "https://app.budgetbuddy.com/plaid/callback",
+                        "",
+                        true,
+                        pciDSSComplianceService);
 
         // When/Then
-        AppException exception = assertThrows(AppException.class, 
-                () -> plaidService.createLinkToken("user-123", ""));
+        final AppException exception =
+                assertThrows(
+                        AppException.class, () -> plaidService.createLinkToken("user-123", ""));
         assertEquals(ErrorCode.INVALID_INPUT, exception.getErrorCode());
     }
 
     @Test
-    void testCreateLinkToken_WithPlaceholderCredentials_ThrowsException() {
+    void testCreateLinkTokenWithPlaceholderCredentialsThrowsException() {
         // Given - Service created with placeholder credentials (simulating missing configuration)
-        plaidService = new PlaidService("placeholder-client-id", "placeholder-secret", "sandbox", 
-                "https://app.budgetbuddy.com/plaid/callback", "", true, pciDSSComplianceService);
+        plaidService =
+                new PlaidService(
+                        "placeholder-client-id",
+                        "placeholder-secret",
+                        "sandbox",
+                        "https://app.budgetbuddy.com/plaid/callback",
+                        "",
+                        true,
+                        pciDSSComplianceService);
 
         // When/Then - Should throw exception before making API call
-        AppException exception = assertThrows(AppException.class,
-                () -> plaidService.createLinkToken("user-123", "Test Client"));
+        final AppException exception =
+                assertThrows(
+                        AppException.class,
+                        () -> plaidService.createLinkToken("user-123", "Test Client"));
         assertEquals(ErrorCode.PLAID_CONNECTION_FAILED, exception.getErrorCode());
-        assertTrue(exception.getMessage().contains("Plaid client ID is not configured") ||
-                  exception.getMessage().contains("Plaid secret is not configured"),
+        assertTrue(
+                exception.getMessage().contains("Plaid client ID is not configured")
+                        || exception.getMessage().contains("Plaid secret is not configured"),
                 "Error message should indicate missing credentials");
     }
 
     @Test
-    void testExchangePublicToken_WithNullToken_ThrowsException() {
+    void testExchangePublicTokenWithNullTokenThrowsException() {
         // Given
-        plaidService = new PlaidService("test-client-id", "test-secret", "sandbox", "https://app.budgetbuddy.com/plaid/callback", "", true, pciDSSComplianceService);
+        plaidService =
+                new PlaidService(
+                        "test-client-id",
+                        "test-secret",
+                        "sandbox",
+                        "https://app.budgetbuddy.com/plaid/callback",
+                        "",
+                        true,
+                        pciDSSComplianceService);
 
         // When/Then
-        AppException exception = assertThrows(AppException.class, 
-                () -> plaidService.exchangePublicToken(null));
+        final AppException exception =
+                assertThrows(AppException.class, () -> plaidService.exchangePublicToken(null));
         assertEquals(ErrorCode.INVALID_INPUT, exception.getErrorCode());
     }
 
     @Test
-    void testExchangePublicToken_WithEmptyToken_ThrowsException() {
+    void testExchangePublicTokenWithEmptyTokenThrowsException() {
         // Given
-        plaidService = new PlaidService("test-client-id", "test-secret", "sandbox", "https://app.budgetbuddy.com/plaid/callback", "", true, pciDSSComplianceService);
+        plaidService =
+                new PlaidService(
+                        "test-client-id",
+                        "test-secret",
+                        "sandbox",
+                        "https://app.budgetbuddy.com/plaid/callback",
+                        "",
+                        true,
+                        pciDSSComplianceService);
 
         // When/Then
-        AppException exception = assertThrows(AppException.class, 
-                () -> plaidService.exchangePublicToken(""));
+        final AppException exception =
+                assertThrows(AppException.class, () -> plaidService.exchangePublicToken(""));
         assertEquals(ErrorCode.INVALID_INPUT, exception.getErrorCode());
     }
 
     @Test
-    void testGetAccounts_WithNullAccessToken_ThrowsException() {
+    void testGetAccountsWithNullAccessTokenThrowsException() {
         // Given
-        plaidService = new PlaidService("test-client-id", "test-secret", "sandbox", "https://app.budgetbuddy.com/plaid/callback", "", true, pciDSSComplianceService);
+        plaidService =
+                new PlaidService(
+                        "test-client-id",
+                        "test-secret",
+                        "sandbox",
+                        "https://app.budgetbuddy.com/plaid/callback",
+                        "",
+                        true,
+                        pciDSSComplianceService);
 
         // When/Then
-        AppException exception = assertThrows(AppException.class, 
-                () -> plaidService.getAccounts(null));
+        final AppException exception =
+                assertThrows(AppException.class, () -> plaidService.getAccounts(null));
         assertEquals(ErrorCode.INVALID_INPUT, exception.getErrorCode());
     }
 
     @Test
-    void testGetAccounts_WithEmptyAccessToken_ThrowsException() {
+    void testGetAccountsWithEmptyAccessTokenThrowsException() {
         // Given
-        plaidService = new PlaidService("test-client-id", "test-secret", "sandbox", "https://app.budgetbuddy.com/plaid/callback", "", true, pciDSSComplianceService);
+        plaidService =
+                new PlaidService(
+                        "test-client-id",
+                        "test-secret",
+                        "sandbox",
+                        "https://app.budgetbuddy.com/plaid/callback",
+                        "",
+                        true,
+                        pciDSSComplianceService);
 
         // When/Then
-        AppException exception = assertThrows(AppException.class, 
-                () -> plaidService.getAccounts(""));
+        final AppException exception =
+                assertThrows(AppException.class, () -> plaidService.getAccounts(""));
         assertEquals(ErrorCode.INVALID_INPUT, exception.getErrorCode());
     }
 
     @Test
-    void testGetTransactions_WithNullAccessToken_ThrowsException() {
+    void testGetTransactionsWithNullAccessTokenThrowsException() {
         // Given
-        plaidService = new PlaidService("test-client-id", "test-secret", "sandbox", "https://app.budgetbuddy.com/plaid/callback", "", true, pciDSSComplianceService);
+        plaidService =
+                new PlaidService(
+                        "test-client-id",
+                        "test-secret",
+                        "sandbox",
+                        "https://app.budgetbuddy.com/plaid/callback",
+                        "",
+                        true,
+                        pciDSSComplianceService);
 
         // When/Then
-        AppException exception = assertThrows(AppException.class, 
-                () -> plaidService.getTransactions(null, "2024-01-01", "2024-01-31"));
+        final AppException exception =
+                assertThrows(
+                        AppException.class,
+                        () -> plaidService.getTransactions(null, "2024-01-01", "2024-01-31"));
         assertEquals(ErrorCode.INVALID_INPUT, exception.getErrorCode());
     }
 
     @Test
-    void testGetTransactions_WithEmptyAccessToken_ThrowsException() {
+    void testGetTransactionsWithEmptyAccessTokenThrowsException() {
         // Given
-        plaidService = new PlaidService("test-client-id", "test-secret", "sandbox", "https://app.budgetbuddy.com/plaid/callback", "", true, pciDSSComplianceService);
+        plaidService =
+                new PlaidService(
+                        "test-client-id",
+                        "test-secret",
+                        "sandbox",
+                        "https://app.budgetbuddy.com/plaid/callback",
+                        "",
+                        true,
+                        pciDSSComplianceService);
 
         // When/Then
-        AppException exception = assertThrows(AppException.class, 
-                () -> plaidService.getTransactions("", "2024-01-01", "2024-01-31"));
+        final AppException exception =
+                assertThrows(
+                        AppException.class,
+                        () -> plaidService.getTransactions("", "2024-01-01", "2024-01-31"));
         assertEquals(ErrorCode.INVALID_INPUT, exception.getErrorCode());
     }
 
     @Test
-    void testGetTransactions_WithNullStartDate_ThrowsException() {
+    void testGetTransactionsWithNullStartDateThrowsException() {
         // Given
-        plaidService = new PlaidService("test-client-id", "test-secret", "sandbox", "https://app.budgetbuddy.com/plaid/callback", "", true, pciDSSComplianceService);
+        plaidService =
+                new PlaidService(
+                        "test-client-id",
+                        "test-secret",
+                        "sandbox",
+                        "https://app.budgetbuddy.com/plaid/callback",
+                        "",
+                        true,
+                        pciDSSComplianceService);
 
         // When/Then
-        AppException exception = assertThrows(AppException.class, 
-                () -> plaidService.getTransactions("access-token", null, "2024-01-31"));
+        final AppException exception =
+                assertThrows(
+                        AppException.class,
+                        () -> plaidService.getTransactions("access-token", null, "2024-01-31"));
         assertEquals(ErrorCode.INVALID_INPUT, exception.getErrorCode());
     }
 
     @Test
-    void testGetTransactions_WithNullEndDate_ThrowsException() {
+    void testGetTransactionsWithNullEndDateThrowsException() {
         // Given
-        plaidService = new PlaidService("test-client-id", "test-secret", "sandbox", "https://app.budgetbuddy.com/plaid/callback", "", true, pciDSSComplianceService);
+        plaidService =
+                new PlaidService(
+                        "test-client-id",
+                        "test-secret",
+                        "sandbox",
+                        "https://app.budgetbuddy.com/plaid/callback",
+                        "",
+                        true,
+                        pciDSSComplianceService);
 
         // When/Then
-        AppException exception = assertThrows(AppException.class, 
-                () -> plaidService.getTransactions("access-token", "2024-01-01", null));
+        final AppException exception =
+                assertThrows(
+                        AppException.class,
+                        () -> plaidService.getTransactions("access-token", "2024-01-01", null));
         assertEquals(ErrorCode.INVALID_INPUT, exception.getErrorCode());
     }
 
     @Test
-    void testGetInstitutions_WithNullQuery_ThrowsException() {
+    void testGetInstitutionsWithNullQueryThrowsException() {
         // Given
-        plaidService = new PlaidService("test-client-id", "test-secret", "sandbox", "https://app.budgetbuddy.com/plaid/callback", "", true, pciDSSComplianceService);
+        plaidService =
+                new PlaidService(
+                        "test-client-id",
+                        "test-secret",
+                        "sandbox",
+                        "https://app.budgetbuddy.com/plaid/callback",
+                        "",
+                        true,
+                        pciDSSComplianceService);
 
         // When/Then
-        AppException exception = assertThrows(AppException.class, 
-                () -> plaidService.getInstitutions(null, 10));
+        final AppException exception =
+                assertThrows(AppException.class, () -> plaidService.getInstitutions(null, 10));
         assertEquals(ErrorCode.INVALID_INPUT, exception.getErrorCode());
     }
 
     @Test
-    void testGetInstitutions_WithEmptyQuery_ThrowsException() {
+    void testGetInstitutionsWithEmptyQueryThrowsException() {
         // Given
-        plaidService = new PlaidService("test-client-id", "test-secret", "sandbox", "https://app.budgetbuddy.com/plaid/callback", "", true, pciDSSComplianceService);
+        plaidService =
+                new PlaidService(
+                        "test-client-id",
+                        "test-secret",
+                        "sandbox",
+                        "https://app.budgetbuddy.com/plaid/callback",
+                        "",
+                        true,
+                        pciDSSComplianceService);
 
         // When/Then
-        AppException exception = assertThrows(AppException.class, 
-                () -> plaidService.getInstitutions("", 10));
+        final AppException exception =
+                assertThrows(AppException.class, () -> plaidService.getInstitutions("", 10));
         assertEquals(ErrorCode.INVALID_INPUT, exception.getErrorCode());
     }
 
     @Test
-    void testRemoveItem_WithNullAccessToken_ThrowsException() {
+    void testRemoveItemWithNullAccessTokenThrowsException() {
         // Given
-        plaidService = new PlaidService("test-client-id", "test-secret", "sandbox", "https://app.budgetbuddy.com/plaid/callback", "", true, pciDSSComplianceService);
+        plaidService =
+                new PlaidService(
+                        "test-client-id",
+                        "test-secret",
+                        "sandbox",
+                        "https://app.budgetbuddy.com/plaid/callback",
+                        "",
+                        true,
+                        pciDSSComplianceService);
 
         // When/Then
-        AppException exception = assertThrows(AppException.class, 
-                () -> plaidService.removeItem(null));
+        final AppException exception =
+                assertThrows(AppException.class, () -> plaidService.removeItem(null));
         assertEquals(ErrorCode.INVALID_INPUT, exception.getErrorCode());
     }
 
     @Test
-    void testRemoveItem_WithEmptyAccessToken_ThrowsException() {
+    void testRemoveItemWithEmptyAccessTokenThrowsException() {
         // Given
-        plaidService = new PlaidService("test-client-id", "test-secret", "sandbox", "https://app.budgetbuddy.com/plaid/callback", "", true, pciDSSComplianceService);
+        plaidService =
+                new PlaidService(
+                        "test-client-id",
+                        "test-secret",
+                        "sandbox",
+                        "https://app.budgetbuddy.com/plaid/callback",
+                        "",
+                        true,
+                        pciDSSComplianceService);
 
         // When/Then
-        AppException exception = assertThrows(AppException.class, 
-                () -> plaidService.removeItem(""));
+        final AppException exception =
+                assertThrows(AppException.class, () -> plaidService.removeItem(""));
         assertEquals(ErrorCode.INVALID_INPUT, exception.getErrorCode());
     }
 
     @Test
-    void testGetTransactions_WithEmptyStartDate_ThrowsException() {
+    void testGetTransactionsWithEmptyStartDateThrowsException() {
         // Given
-        plaidService = new PlaidService("test-client-id", "test-secret", "sandbox", "https://app.budgetbuddy.com/plaid/callback", "", true, pciDSSComplianceService);
+        plaidService =
+                new PlaidService(
+                        "test-client-id",
+                        "test-secret",
+                        "sandbox",
+                        "https://app.budgetbuddy.com/plaid/callback",
+                        "",
+                        true,
+                        pciDSSComplianceService);
 
         // When/Then
-        AppException exception = assertThrows(AppException.class, 
-                () -> plaidService.getTransactions("access-token", "", "2024-01-31"));
+        final AppException exception =
+                assertThrows(
+                        AppException.class,
+                        () -> plaidService.getTransactions("access-token", "", "2024-01-31"));
         assertEquals(ErrorCode.INVALID_INPUT, exception.getErrorCode());
     }
 
     @Test
-    void testGetTransactions_WithEmptyEndDate_ThrowsException() {
+    void testGetTransactionsWithEmptyEndDateThrowsException() {
         // Given
-        plaidService = new PlaidService("test-client-id", "test-secret", "sandbox", "https://app.budgetbuddy.com/plaid/callback", "", true, pciDSSComplianceService);
+        plaidService =
+                new PlaidService(
+                        "test-client-id",
+                        "test-secret",
+                        "sandbox",
+                        "https://app.budgetbuddy.com/plaid/callback",
+                        "",
+                        true,
+                        pciDSSComplianceService);
 
         // When/Then
-        AppException exception = assertThrows(AppException.class, 
-                () -> plaidService.getTransactions("access-token", "2024-01-01", ""));
+        final AppException exception =
+                assertThrows(
+                        AppException.class,
+                        () -> plaidService.getTransactions("access-token", "2024-01-01", ""));
         assertEquals(ErrorCode.INVALID_INPUT, exception.getErrorCode());
     }
 
     @Test
-    void testGetTransactions_WithStartDateAfterEndDate_ThrowsException() {
+    void testGetTransactionsWithStartDateAfterEndDateThrowsException() {
         // Given
-        plaidService = new PlaidService("test-client-id", "test-secret", "sandbox", "https://app.budgetbuddy.com/plaid/callback", "", true, pciDSSComplianceService);
+        plaidService =
+                new PlaidService(
+                        "test-client-id",
+                        "test-secret",
+                        "sandbox",
+                        "https://app.budgetbuddy.com/plaid/callback",
+                        "",
+                        true,
+                        pciDSSComplianceService);
 
         // When/Then
-        AppException exception = assertThrows(AppException.class, 
-                () -> plaidService.getTransactions("access-token", "2024-01-31", "2024-01-01"));
+        final AppException exception =
+                assertThrows(
+                        AppException.class,
+                        () ->
+                                plaidService.getTransactions(
+                                        "access-token", "2024-01-31", "2024-01-01"));
         assertEquals(ErrorCode.INVALID_INPUT, exception.getErrorCode());
         assertTrue(exception.getMessage().contains("Start date"));
     }
 
     @Test
-    void testGetInstitutions_WithInvalidCount_ThrowsException() {
+    void testGetInstitutionsWithInvalidCountThrowsException() {
         // Given
-        plaidService = new PlaidService("test-client-id", "test-secret", "sandbox", "https://app.budgetbuddy.com/plaid/callback", "", true, pciDSSComplianceService);
+        plaidService =
+                new PlaidService(
+                        "test-client-id",
+                        "test-secret",
+                        "sandbox",
+                        "https://app.budgetbuddy.com/plaid/callback",
+                        "",
+                        true,
+                        pciDSSComplianceService);
 
         // When/Then - count <= 0
-        AppException exception1 = assertThrows(AppException.class, 
-                () -> plaidService.getInstitutions("chase", 0));
+        final AppException exception1 =
+                assertThrows(AppException.class, () -> plaidService.getInstitutions("chase", 0));
         assertEquals(ErrorCode.INVALID_INPUT, exception1.getErrorCode());
 
         // When/Then - count > 500
-        AppException exception2 = assertThrows(AppException.class, 
-                () -> plaidService.getInstitutions("chase", 501));
+        final AppException exception2 =
+                assertThrows(AppException.class, () -> plaidService.getInstitutions("chase", 501));
         assertEquals(ErrorCode.INVALID_INPUT, exception2.getErrorCode());
     }
 
     @Test
-    void testPlaidService_Constructor_WithProductionEnvironment_CreatesService() {
+    void testPlaidServiceConstructorWithProductionEnvironmentCreatesService() {
         // When/Then
-        assertDoesNotThrow(() -> {
-            new PlaidService("test-client-id", "test-secret", "production", "https://app.budgetbuddy.com/plaid/callback", "https://api.budgetbuddy.com/api/plaid/webhooks", true, pciDSSComplianceService);
-        }, "Should create PlaidService with production environment");
+        assertDoesNotThrow(
+                () -> {
+                    new PlaidService(
+                            "test-client-id",
+                            "test-secret",
+                            "production",
+                            "https://app.budgetbuddy.com/plaid/callback",
+                            "https://api.budgetbuddy.com/api/plaid/webhooks",
+                            true,
+                            pciDSSComplianceService);
+                },
+                "Should create PlaidService with production environment");
     }
 
     @Test
-    void testPlaidService_Constructor_WithDevelopmentEnvironment_CreatesService() {
+    void testPlaidServiceConstructorWithDevelopmentEnvironmentCreatesService() {
         // When/Then
-        assertDoesNotThrow(() -> {
-            new PlaidService("test-client-id", "test-secret", "development", "https://app.budgetbuddy.com/plaid/callback", "https://api.budgetbuddy.com/api/plaid/webhooks", true, pciDSSComplianceService);
-        }, "Should create PlaidService with development environment");
+        assertDoesNotThrow(
+                () -> {
+                    new PlaidService(
+                            "test-client-id",
+                            "test-secret",
+                            "development",
+                            "https://app.budgetbuddy.com/plaid/callback",
+                            "https://api.budgetbuddy.com/api/plaid/webhooks",
+                            true,
+                            pciDSSComplianceService);
+                },
+                "Should create PlaidService with development environment");
     }
 
     @Test
-    void testPlaidService_Constructor_WithPlaceholderClientId_WhenPlaidDisabled_NoWarning() {
+    void testPlaidServiceConstructorWithPlaceholderClientIdWhenPlaidDisabledNoWarning() {
         // When/Then - Should not throw and should use placeholder silently when Plaid is disabled
-        assertDoesNotThrow(() -> {
-            new PlaidService("placeholder-client-id", "placeholder-secret", "sandbox", "", "", false, pciDSSComplianceService);
-        }, "Should create PlaidService with placeholders when Plaid is disabled");
+        assertDoesNotThrow(
+                () -> {
+                    new PlaidService(
+                            "placeholder-client-id",
+                            "placeholder-secret",
+                            "sandbox",
+                            "",
+                            "",
+                            false,
+                            pciDSSComplianceService);
+                },
+                "Should create PlaidService with placeholders when Plaid is disabled");
     }
 
     @Test
-    void testPlaidService_Constructor_WithPlaceholderSecret_WhenPlaidDisabled_NoWarning() {
+    void testPlaidServiceConstructorWithPlaceholderSecretWhenPlaidDisabledNoWarning() {
         // When/Then - Should not throw and should use placeholder silently when Plaid is disabled
-        assertDoesNotThrow(() -> {
-            new PlaidService("test-client-id", "placeholder-secret", "sandbox", "", "", false, pciDSSComplianceService);
-        }, "Should create PlaidService with placeholder secret when Plaid is disabled");
+        assertDoesNotThrow(
+                () -> {
+                    new PlaidService(
+                            "test-client-id",
+                            "placeholder-secret",
+                            "sandbox",
+                            "",
+                            "",
+                            false,
+                            pciDSSComplianceService);
+                },
+                "Should create PlaidService with placeholder secret when Plaid is disabled");
     }
 
     @Test
-    void testPlaidService_Constructor_WithDefaultEnvironment_UsesSandbox() {
+    void testPlaidServiceConstructorWithDefaultEnvironmentUsesSandbox() {
         // When/Then - Default environment should be sandbox
-        assertDoesNotThrow(() -> {
-            new PlaidService("test-client-id", "test-secret", "sandbox", "", "", true, pciDSSComplianceService);
-        }, "Should create PlaidService with sandbox environment");
+        assertDoesNotThrow(
+                () -> {
+                    new PlaidService(
+                            "test-client-id",
+                            "test-secret",
+                            "sandbox",
+                            "",
+                            "",
+                            true,
+                            pciDSSComplianceService);
+                },
+                "Should create PlaidService with sandbox environment");
     }
 
     @Test
-    void testPlaidService_Constructor_WithUnknownEnvironment_UsesSandbox() {
+    void testPlaidServiceConstructorWithUnknownEnvironmentUsesSandbox() {
         // When/Then - Unknown environment should default to sandbox
-        assertDoesNotThrow(() -> {
-            new PlaidService("test-client-id", "test-secret", "unknown", "", "", true, pciDSSComplianceService);
-        }, "Should create PlaidService with unknown environment (defaults to sandbox)");
+        assertDoesNotThrow(
+                () -> {
+                    new PlaidService(
+                            "test-client-id",
+                            "test-secret",
+                            "unknown",
+                            "",
+                            "",
+                            true,
+                            pciDSSComplianceService);
+                },
+                "Should create PlaidService with unknown environment (defaults to sandbox)");
     }
 
     @Test
-    void testPlaidService_Constructor_WithEmptyRedirectUri_UsesDefault() {
+    void testPlaidServiceConstructorWithEmptyRedirectUriUsesDefault() {
         // When/Then - Empty redirect URI should be handled
-        assertDoesNotThrow(() -> {
-            new PlaidService("test-client-id", "test-secret", "sandbox", "", "", true, pciDSSComplianceService);
-        }, "Should create PlaidService with empty redirect URI");
+        assertDoesNotThrow(
+                () -> {
+                    new PlaidService(
+                            "test-client-id",
+                            "test-secret",
+                            "sandbox",
+                            "",
+                            "",
+                            true,
+                            pciDSSComplianceService);
+                },
+                "Should create PlaidService with empty redirect URI");
     }
 
     @Test
-    void testPlaidService_Constructor_WithEmptyWebhookUrl_HandlesGracefully() {
+    void testPlaidServiceConstructorWithEmptyWebhookUrlHandlesGracefully() {
         // When/Then - Empty webhook URL should be handled
-        assertDoesNotThrow(() -> {
-            new PlaidService("test-client-id", "test-secret", "sandbox", "https://app.budgetbuddy.com/plaid/callback", "", true, pciDSSComplianceService);
-        }, "Should create PlaidService with empty webhook URL");
+        assertDoesNotThrow(
+                () -> {
+                    new PlaidService(
+                            "test-client-id",
+                            "test-secret",
+                            "sandbox",
+                            "https://app.budgetbuddy.com/plaid/callback",
+                            "",
+                            true,
+                            pciDSSComplianceService);
+                },
+                "Should create PlaidService with empty webhook URL");
     }
 
     @Test
-    void testGetTransactions_WithLargeDateRange_LogsWarning() {
+    void testGetTransactionsWithLargeDateRangeLogsWarning() {
         // Given - Date range > 2 years
-        plaidService = new PlaidService("test-client-id", "test-secret", "sandbox", "https://app.budgetbuddy.com/plaid/callback", "", true, pciDSSComplianceService);
-        
+        plaidService =
+                new PlaidService(
+                        "test-client-id",
+                        "test-secret",
+                        "sandbox",
+                        "https://app.budgetbuddy.com/plaid/callback",
+                        "",
+                        true,
+                        pciDSSComplianceService);
+
         // When/Then - Should throw validation error before making API call
         // The date range validation happens before API call, so this will throw INVALID_INPUT
         // Actually, the validation for date range > 2 years is just a warning, not an error
@@ -414,511 +757,1017 @@ class PlaidServiceTest {
     }
 
     @Test
-    void testGetInstitutions_WithValidCount_DoesNotThrow() {
+    void testGetInstitutionsWithValidCountDoesNotThrow() {
         // Given
-        plaidService = new PlaidService("test-client-id", "test-secret", "sandbox", "https://app.budgetbuddy.com/plaid/callback", "", true, pciDSSComplianceService);
-        
+        plaidService =
+                new PlaidService(
+                        "test-client-id",
+                        "test-secret",
+                        "sandbox",
+                        "https://app.budgetbuddy.com/plaid/callback",
+                        "",
+                        true,
+                        pciDSSComplianceService);
+
         // When/Then - Should validate count parameter
         // This test ensures validation works (we can't test actual API call without mocking)
         assertNotNull(plaidService);
     }
 
     @Test
-    void testPlaidService_Constructor_WithNullRedirectUri_HandlesGracefully() {
+    void testPlaidServiceConstructorWithNullRedirectUriHandlesGracefully() {
         // When/Then - Null redirect URI should be handled
-        assertDoesNotThrow(() -> {
-            new PlaidService("test-client-id", "test-secret", "sandbox", null, "", true, pciDSSComplianceService);
-        }, "Should create PlaidService with null redirect URI");
+        assertDoesNotThrow(
+                () -> {
+                    new PlaidService(
+                            "test-client-id",
+                            "test-secret",
+                            "sandbox",
+                            null,
+                            "",
+                            true,
+                            pciDSSComplianceService);
+                },
+                "Should create PlaidService with null redirect URI");
     }
 
     @Test
-    void testPlaidService_Constructor_WithNullWebhookUrl_HandlesGracefully() {
+    void testPlaidServiceConstructorWithNullWebhookUrlHandlesGracefully() {
         // When/Then - Null webhook URL should be handled
-        assertDoesNotThrow(() -> {
-            new PlaidService("test-client-id", "test-secret", "sandbox", "https://app.budgetbuddy.com/plaid/callback", null, true, pciDSSComplianceService);
-        }, "Should create PlaidService with null webhook URL");
+        assertDoesNotThrow(
+                () -> {
+                    new PlaidService(
+                            "test-client-id",
+                            "test-secret",
+                            "sandbox",
+                            "https://app.budgetbuddy.com/plaid/callback",
+                            null,
+                            true,
+                            pciDSSComplianceService);
+                },
+                "Should create PlaidService with null webhook URL");
     }
 
     @Test
-    void testGetTransactions_WithInvalidDateFormat_ThrowsException() {
+    void testGetTransactionsWithInvalidDateFormatThrowsException() {
         // Given
-        plaidService = new PlaidService("test-client-id", "test-secret", "sandbox", "https://app.budgetbuddy.com/plaid/callback", "", true, pciDSSComplianceService);
-        
+        plaidService =
+                new PlaidService(
+                        "test-client-id",
+                        "test-secret",
+                        "sandbox",
+                        "https://app.budgetbuddy.com/plaid/callback",
+                        "",
+                        true,
+                        pciDSSComplianceService);
+
         // When/Then - Invalid date format should throw exception
-        AppException exception = assertThrows(AppException.class, 
-                () -> plaidService.getTransactions("access-token", "invalid-date", "2024-01-31"));
+        final AppException exception =
+                assertThrows(
+                        AppException.class,
+                        () ->
+                                plaidService.getTransactions(
+                                        "access-token", "invalid-date", "2024-01-31"));
         assertEquals(ErrorCode.INVALID_INPUT, exception.getErrorCode());
         assertTrue(exception.getMessage().contains("Invalid date format"));
     }
 
     @Test
-    void testGetTransactions_WithInvalidEndDateFormat_ThrowsException() {
+    void testGetTransactionsWithInvalidEndDateFormatThrowsException() {
         // Given
-        plaidService = new PlaidService("test-client-id", "test-secret", "sandbox", "https://app.budgetbuddy.com/plaid/callback", "", true, pciDSSComplianceService);
-        
+        plaidService =
+                new PlaidService(
+                        "test-client-id",
+                        "test-secret",
+                        "sandbox",
+                        "https://app.budgetbuddy.com/plaid/callback",
+                        "",
+                        true,
+                        pciDSSComplianceService);
+
         // When/Then - Invalid end date format should throw exception
-        AppException exception = assertThrows(AppException.class, 
-                () -> plaidService.getTransactions("access-token", "2024-01-01", "invalid-date"));
+        final AppException exception =
+                assertThrows(
+                        AppException.class,
+                        () ->
+                                plaidService.getTransactions(
+                                        "access-token", "2024-01-01", "invalid-date"));
         assertEquals(ErrorCode.INVALID_INPUT, exception.getErrorCode());
         assertTrue(exception.getMessage().contains("Invalid date format"));
     }
 
     @Test
-    void testGetTransactions_WithSameStartAndEndDate_DoesNotThrow() {
+    void testGetTransactionsWithSameStartAndEndDateDoesNotThrow() {
         // Given
-        plaidService = new PlaidService("test-client-id", "test-secret", "sandbox", "https://app.budgetbuddy.com/plaid/callback", "", true, pciDSSComplianceService);
-        
+        plaidService =
+                new PlaidService(
+                        "test-client-id",
+                        "test-secret",
+                        "sandbox",
+                        "https://app.budgetbuddy.com/plaid/callback",
+                        "",
+                        true,
+                        pciDSSComplianceService);
+
         // When/Then - Same start and end date should be valid (0 days range)
         // This will fail on actual API call, but validation should pass
         assertNotNull(plaidService);
     }
 
     @Test
-    void testPlaidService_Constructor_WithCaseInsensitiveEnvironment() {
+    void testPlaidServiceConstructorWithCaseInsensitiveEnvironment() {
         // When/Then - Environment should be case-insensitive
-        assertDoesNotThrow(() -> {
-            new PlaidService("test-client-id", "test-secret", "SANDBOX", "https://app.budgetbuddy.com/plaid/callback", "", true, pciDSSComplianceService);
-        }, "Should create PlaidService with uppercase environment");
-        
-        assertDoesNotThrow(() -> {
-            new PlaidService("test-client-id", "test-secret", "Production", "https://app.budgetbuddy.com/plaid/callback", "", true, pciDSSComplianceService);
-        }, "Should create PlaidService with mixed case environment");
+        assertDoesNotThrow(
+                () -> {
+                    new PlaidService(
+                            "test-client-id",
+                            "test-secret",
+                            "SANDBOX",
+                            "https://app.budgetbuddy.com/plaid/callback",
+                            "",
+                            true,
+                            pciDSSComplianceService);
+                },
+                "Should create PlaidService with uppercase environment");
+
+        assertDoesNotThrow(
+                () -> {
+                    new PlaidService(
+                            "test-client-id",
+                            "test-secret",
+                            "Production",
+                            "https://app.budgetbuddy.com/plaid/callback",
+                            "",
+                            true,
+                            pciDSSComplianceService);
+                },
+                "Should create PlaidService with mixed case environment");
     }
 
     @Test
-    void testGetTransactions_WithLargeDateRange_ValidatesRange() {
+    void testGetTransactionsWithLargeDateRangeValidatesRange() {
         // Given - Date range > 2 years (731 days)
-        plaidService = new PlaidService("test-client-id", "test-secret", "sandbox", "https://app.budgetbuddy.com/plaid/callback", "", true, pciDSSComplianceService);
-        
+        plaidService =
+                new PlaidService(
+                        "test-client-id",
+                        "test-secret",
+                        "sandbox",
+                        "https://app.budgetbuddy.com/plaid/callback",
+                        "",
+                        true,
+                        pciDSSComplianceService);
+
         // When/Then - Should validate but allow (just logs warning)
         // This will fail on actual API call, but validation should pass
         assertNotNull(plaidService);
     }
 
     @Test
-    void testGetTransactions_WithExactlyTwoYears_DoesNotWarn() {
+    void testGetTransactionsWithExactlyTwoYearsDoesNotWarn() {
         // Given - Date range exactly 2 years (730 days)
-        plaidService = new PlaidService("test-client-id", "test-secret", "sandbox", "https://app.budgetbuddy.com/plaid/callback", "", true, pciDSSComplianceService);
-        
+        plaidService =
+                new PlaidService(
+                        "test-client-id",
+                        "test-secret",
+                        "sandbox",
+                        "https://app.budgetbuddy.com/plaid/callback",
+                        "",
+                        true,
+                        pciDSSComplianceService);
+
         // When/Then - Should not warn for exactly 2 years
         assertNotNull(plaidService);
     }
 
     @Test
-    void testPlaidService_Constructor_WithReflectionFallback_HandlesGracefully() {
+    void testPlaidServiceConstructorWithReflectionFallbackHandlesGracefully() {
         // When/Then - Constructor should handle reflection failures gracefully
         // The constructor tries setPlaidAdapter, then reflection, then continues anyway
-        assertDoesNotThrow(() -> {
-            new PlaidService("test-client-id", "test-secret", "sandbox", "https://app.budgetbuddy.com/plaid/callback", "https://api.budgetbuddy.com/api/plaid/webhooks", true, pciDSSComplianceService);
-        }, "Should create PlaidService even if adapter setting fails");
+        assertDoesNotThrow(
+                () -> {
+                    new PlaidService(
+                            "test-client-id",
+                            "test-secret",
+                            "sandbox",
+                            "https://app.budgetbuddy.com/plaid/callback",
+                            "https://api.budgetbuddy.com/api/plaid/webhooks",
+                            true,
+                            pciDSSComplianceService);
+                },
+                "Should create PlaidService even if adapter setting fails");
     }
 
     @Test
-    void testPlaidService_Constructor_WithAllEnvironments_CreatesService() {
+    void testPlaidServiceConstructorWithAllEnvironmentsCreatesService() {
         // Test all environment types
-        assertDoesNotThrow(() -> {
-            new PlaidService("test-client-id", "test-secret", "sandbox", "", "", true, pciDSSComplianceService);
-        }, "Should create PlaidService with sandbox environment");
-        
-        assertDoesNotThrow(() -> {
-            new PlaidService("test-client-id", "test-secret", "development", "", "", true, pciDSSComplianceService);
-        }, "Should create PlaidService with development environment");
-        
-        assertDoesNotThrow(() -> {
-            new PlaidService("test-client-id", "test-secret", "production", "", "", true, pciDSSComplianceService);
-        }, "Should create PlaidService with production environment");
+        assertDoesNotThrow(
+                () -> {
+                    new PlaidService(
+                            "test-client-id",
+                            "test-secret",
+                            "sandbox",
+                            "",
+                            "",
+                            true,
+                            pciDSSComplianceService);
+                },
+                "Should create PlaidService with sandbox environment");
+
+        assertDoesNotThrow(
+                () -> {
+                    new PlaidService(
+                            "test-client-id",
+                            "test-secret",
+                            "development",
+                            "",
+                            "",
+                            true,
+                            pciDSSComplianceService);
+                },
+                "Should create PlaidService with development environment");
+
+        assertDoesNotThrow(
+                () -> {
+                    new PlaidService(
+                            "test-client-id",
+                            "test-secret",
+                            "production",
+                            "",
+                            "",
+                            true,
+                            pciDSSComplianceService);
+                },
+                "Should create PlaidService with production environment");
     }
 
     @Test
-    void testGetTransactions_WithValidDateRange_ValidatesCorrectly() {
+    void testGetTransactionsWithValidDateRangeValidatesCorrectly() {
         // Given
-        plaidService = new PlaidService("test-client-id", "test-secret", "sandbox", "https://app.budgetbuddy.com/plaid/callback", "", true, pciDSSComplianceService);
-        
+        plaidService =
+                new PlaidService(
+                        "test-client-id",
+                        "test-secret",
+                        "sandbox",
+                        "https://app.budgetbuddy.com/plaid/callback",
+                        "",
+                        true,
+                        pciDSSComplianceService);
+
         // When/Then - Valid date range should pass validation
         // This will fail on actual API call, but validation should pass
         assertNotNull(plaidService);
     }
 
     @Test
-    void testPlaidService_Constructor_WithWebhookUrlForSandbox_HandlesGracefully() {
+    void testPlaidServiceConstructorWithWebhookUrlForSandboxHandlesGracefully() {
         // When/Then - Webhook URL in sandbox should be handled (optional)
-        assertDoesNotThrow(() -> {
-            new PlaidService("test-client-id", "test-secret", "sandbox", "https://app.budgetbuddy.com/plaid/callback", "https://api.budgetbuddy.com/api/plaid/webhooks", true, pciDSSComplianceService);
-        }, "Should create PlaidService with webhook URL in sandbox");
+        assertDoesNotThrow(
+                () -> {
+                    new PlaidService(
+                            "test-client-id",
+                            "test-secret",
+                            "sandbox",
+                            "https://app.budgetbuddy.com/plaid/callback",
+                            "https://api.budgetbuddy.com/api/plaid/webhooks",
+                            true,
+                            pciDSSComplianceService);
+                },
+                "Should create PlaidService with webhook URL in sandbox");
     }
 
     @Test
-    void testPlaidService_Constructor_WithWebhookUrlForProduction_SetsWebhook() {
+    void testPlaidServiceConstructorWithWebhookUrlForProductionSetsWebhook() {
         // When/Then - Webhook URL in production should be set
-        assertDoesNotThrow(() -> {
-            new PlaidService("test-client-id", "test-secret", "production", "https://app.budgetbuddy.com/plaid/callback", "https://api.budgetbuddy.com/api/plaid/webhooks", true, pciDSSComplianceService);
-        }, "Should create PlaidService with webhook URL in production");
+        assertDoesNotThrow(
+                () -> {
+                    new PlaidService(
+                            "test-client-id",
+                            "test-secret",
+                            "production",
+                            "https://app.budgetbuddy.com/plaid/callback",
+                            "https://api.budgetbuddy.com/api/plaid/webhooks",
+                            true,
+                            pciDSSComplianceService);
+                },
+                "Should create PlaidService with webhook URL in production");
     }
 
     @Test
-    void testPlaidService_Constructor_WithRedirectUriForProduction_UsesProductionDefault() {
+    void testPlaidServiceConstructorWithRedirectUriForProductionUsesProductionDefault() {
         // When/Then - Empty redirect URI in production should use default
-        assertDoesNotThrow(() -> {
-            new PlaidService("test-client-id", "test-secret", "production", "", "", true, pciDSSComplianceService);
-        }, "Should create PlaidService with empty redirect URI in production (uses default)");
+        assertDoesNotThrow(
+                () -> {
+                    new PlaidService(
+                            "test-client-id",
+                            "test-secret",
+                            "production",
+                            "",
+                            "",
+                            true,
+                            pciDSSComplianceService);
+                },
+                "Should create PlaidService with empty redirect URI in production (uses default)");
     }
 
     @Test
-    void testPlaidService_Constructor_WithRedirectUriForDevelopment_UsesDevelopmentDefault() {
+    void testPlaidServiceConstructorWithRedirectUriForDevelopmentUsesDevelopmentDefault() {
         // When/Then - Empty redirect URI in development should use default
-        assertDoesNotThrow(() -> {
-            new PlaidService("test-client-id", "test-secret", "development", "", "", true, pciDSSComplianceService);
-        }, "Should create PlaidService with empty redirect URI in development (uses default)");
+        assertDoesNotThrow(
+                () -> {
+                    new PlaidService(
+                            "test-client-id",
+                            "test-secret",
+                            "development",
+                            "",
+                            "",
+                            true,
+                            pciDSSComplianceService);
+                },
+                "Should create PlaidService with empty redirect URI in development (uses default)");
     }
 
     @Test
-    void testPlaidService_Constructor_WithRedirectUriForSandbox_UsesSandboxDefault() {
+    void testPlaidServiceConstructorWithRedirectUriForSandboxUsesSandboxDefault() {
         // When/Then - Empty redirect URI in sandbox should use default
-        assertDoesNotThrow(() -> {
-            new PlaidService("test-client-id", "test-secret", "sandbox", "", "", true, pciDSSComplianceService);
-        }, "Should create PlaidService with empty redirect URI in sandbox (uses default)");
+        assertDoesNotThrow(
+                () -> {
+                    new PlaidService(
+                            "test-client-id",
+                            "test-secret",
+                            "sandbox",
+                            "",
+                            "",
+                            true,
+                            pciDSSComplianceService);
+                },
+                "Should create PlaidService with empty redirect URI in sandbox (uses default)");
     }
 
     @Test
-    void testPlaidService_Constructor_WithExceptionInAdapterSetting_Continues() {
+    void testPlaidServiceConstructorWithExceptionInAdapterSettingContinues() {
         // When/Then - Constructor should continue even if adapter setting throws exception
         // This tests the catch blocks in the constructor
-        assertDoesNotThrow(() -> {
-            new PlaidService("test-client-id", "test-secret", "sandbox", "https://app.budgetbuddy.com/plaid/callback", "https://api.budgetbuddy.com/api/plaid/webhooks", true, pciDSSComplianceService);
-        }, "Should create PlaidService even if adapter setting fails");
+        assertDoesNotThrow(
+                () -> {
+                    new PlaidService(
+                            "test-client-id",
+                            "test-secret",
+                            "sandbox",
+                            "https://app.budgetbuddy.com/plaid/callback",
+                            "https://api.budgetbuddy.com/api/plaid/webhooks",
+                            true,
+                            pciDSSComplianceService);
+                },
+                "Should create PlaidService even if adapter setting fails");
     }
 
     @Test
-    void testPlaidService_Constructor_WithAllNullValues_HandlesGracefully() {
+    void testPlaidServiceConstructorWithAllNullValuesHandlesGracefully() {
         // When/Then - All null values should be handled
-        assertDoesNotThrow(() -> {
-            new PlaidService(null, null, null, null, null, false, pciDSSComplianceService);
-        }, "Should create PlaidService with all null values when Plaid is disabled");
+        assertDoesNotThrow(
+                () -> {
+                    new PlaidService(null, null, null, null, null, false, pciDSSComplianceService);
+                },
+                "Should create PlaidService with all null values when Plaid is disabled");
     }
 
     @Test
-    void testGetTransactions_WithOneDayRange_ValidatesCorrectly() {
+    void testGetTransactionsWithOneDayRangeValidatesCorrectly() {
         // Given - One day range
-        plaidService = new PlaidService("test-client-id", "test-secret", "sandbox", "https://app.budgetbuddy.com/plaid/callback", "", true, pciDSSComplianceService);
-        
+        plaidService =
+                new PlaidService(
+                        "test-client-id",
+                        "test-secret",
+                        "sandbox",
+                        "https://app.budgetbuddy.com/plaid/callback",
+                        "",
+                        true,
+                        pciDSSComplianceService);
+
         // When/Then - Should validate correctly
         assertNotNull(plaidService);
     }
 
     @Test
-    void testGetTransactions_WithZeroDayRange_ValidatesCorrectly() {
+    void testGetTransactionsWithZeroDayRangeValidatesCorrectly() {
         // Given - Zero day range (same start and end date)
-        plaidService = new PlaidService("test-client-id", "test-secret", "sandbox", "https://app.budgetbuddy.com/plaid/callback", "", true, pciDSSComplianceService);
-        
+        plaidService =
+                new PlaidService(
+                        "test-client-id",
+                        "test-secret",
+                        "sandbox",
+                        "https://app.budgetbuddy.com/plaid/callback",
+                        "",
+                        true,
+                        pciDSSComplianceService);
+
         // When/Then - Should validate correctly (0 days is valid)
         assertNotNull(plaidService);
     }
 
     @Test
-    void testPlaidService_Constructor_WithMixedCaseEnvironmentNames() {
+    void testPlaidServiceConstructorWithMixedCaseEnvironmentNames() {
         // Test various case combinations
-        assertDoesNotThrow(() -> {
-            new PlaidService("test-client-id", "test-secret", "SANDBOX", "", "", true, pciDSSComplianceService);
-        });
-        
-        assertDoesNotThrow(() -> {
-            new PlaidService("test-client-id", "test-secret", "SandBox", "", "", true, pciDSSComplianceService);
-        });
-        
-        assertDoesNotThrow(() -> {
-            new PlaidService("test-client-id", "test-secret", "DEVELOPMENT", "", "", true, pciDSSComplianceService);
-        });
-        
-        assertDoesNotThrow(() -> {
-            new PlaidService("test-client-id", "test-secret", "PRODUCTION", "", "", true, pciDSSComplianceService);
-        });
+        assertDoesNotThrow(
+                () -> {
+                    new PlaidService(
+                            "test-client-id",
+                            "test-secret",
+                            "SANDBOX",
+                            "",
+                            "",
+                            true,
+                            pciDSSComplianceService);
+                });
+
+        assertDoesNotThrow(
+                () -> {
+                    new PlaidService(
+                            "test-client-id",
+                            "test-secret",
+                            "SandBox",
+                            "",
+                            "",
+                            true,
+                            pciDSSComplianceService);
+                });
+
+        assertDoesNotThrow(
+                () -> {
+                    new PlaidService(
+                            "test-client-id",
+                            "test-secret",
+                            "DEVELOPMENT",
+                            "",
+                            "",
+                            true,
+                            pciDSSComplianceService);
+                });
+
+        assertDoesNotThrow(
+                () -> {
+                    new PlaidService(
+                            "test-client-id",
+                            "test-secret",
+                            "PRODUCTION",
+                            "",
+                            "",
+                            true,
+                            pciDSSComplianceService);
+                });
     }
 
     @Test
-    void testPlaidService_Constructor_WithSpecialCharactersInCredentials() {
+    void testPlaidServiceConstructorWithSpecialCharactersInCredentials() {
         // When/Then - Special characters should be handled
-        assertDoesNotThrow(() -> {
-            new PlaidService("test-client-id-123", "test-secret-456", "sandbox", "", "", true, pciDSSComplianceService);
-        }, "Should create PlaidService with special characters in credentials");
+        assertDoesNotThrow(
+                () -> {
+                    new PlaidService(
+                            "test-client-id-123",
+                            "test-secret-456",
+                            "sandbox",
+                            "",
+                            "",
+                            true,
+                            pciDSSComplianceService);
+                },
+                "Should create PlaidService with special characters in credentials");
     }
 
     @Test
-    void testGetTransactions_WithDateRangeExactly730Days_DoesNotWarn() {
+    void testGetTransactionsWithDateRangeExactly730DaysDoesNotWarn() {
         // Given - Date range exactly 730 days (2 years)
-        plaidService = new PlaidService("test-client-id", "test-secret", "sandbox", "https://app.budgetbuddy.com/plaid/callback", "", true, pciDSSComplianceService);
-        
+        plaidService =
+                new PlaidService(
+                        "test-client-id",
+                        "test-secret",
+                        "sandbox",
+                        "https://app.budgetbuddy.com/plaid/callback",
+                        "",
+                        true,
+                        pciDSSComplianceService);
+
         // When/Then - Should not warn for exactly 730 days
         // This will fail on actual API call, but validation should pass
         assertNotNull(plaidService);
     }
 
     @Test
-    void testGetTransactions_WithDateRange731Days_ShouldWarn() {
+    void testGetTransactionsWithDateRange731DaysShouldWarn() {
         // Given - Date range 731 days (> 2 years)
-        plaidService = new PlaidService("test-client-id", "test-secret", "sandbox", "https://app.budgetbuddy.com/plaid/callback", "", true, pciDSSComplianceService);
-        
+        plaidService =
+                new PlaidService(
+                        "test-client-id",
+                        "test-secret",
+                        "sandbox",
+                        "https://app.budgetbuddy.com/plaid/callback",
+                        "",
+                        true,
+                        pciDSSComplianceService);
+
         // When/Then - Should warn for > 730 days
         // This will fail on actual API call, but validation should pass
         assertNotNull(plaidService);
     }
 
     @Test
-    void testPlaidService_Constructor_WithEmptyEnvironment_UsesSandboxDefault() {
+    void testPlaidServiceConstructorWithEmptyEnvironmentUsesSandboxDefault() {
         // When/Then - Empty environment should default to sandbox
-        assertDoesNotThrow(() -> {
-            new PlaidService("test-client-id", "test-secret", "", "https://app.budgetbuddy.com/plaid/callback", "", true, pciDSSComplianceService);
-        }, "Should create PlaidService with empty environment (defaults to sandbox)");
+        assertDoesNotThrow(
+                () -> {
+                    new PlaidService(
+                            "test-client-id",
+                            "test-secret",
+                            "",
+                            "https://app.budgetbuddy.com/plaid/callback",
+                            "",
+                            true,
+                            pciDSSComplianceService);
+                },
+                "Should create PlaidService with empty environment (defaults to sandbox)");
     }
 
     @Test
-    void testPlaidService_Constructor_WithWhitespaceEnvironment_UsesSandboxDefault() {
+    void testPlaidServiceConstructorWithWhitespaceEnvironmentUsesSandboxDefault() {
         // When/Then - Whitespace environment should default to sandbox
-        assertDoesNotThrow(() -> {
-            new PlaidService("test-client-id", "test-secret", "   ", "https://app.budgetbuddy.com/plaid/callback", "", true, pciDSSComplianceService);
-        }, "Should create PlaidService with whitespace environment (defaults to sandbox)");
+        assertDoesNotThrow(
+                () -> {
+                    new PlaidService(
+                            "test-client-id",
+                            "test-secret",
+                            "   ",
+                            "https://app.budgetbuddy.com/plaid/callback",
+                            "",
+                            true,
+                            pciDSSComplianceService);
+                },
+                "Should create PlaidService with whitespace environment (defaults to sandbox)");
     }
 
     @Test
-    void testPlaidService_Constructor_WithVeryLongCredentials_HandlesGracefully() {
+    void testPlaidServiceConstructorWithVeryLongCredentialsHandlesGracefully() {
         // When/Then - Very long credentials should be handled
-        String longClientId = "a".repeat(1000);
-        String longSecret = "b".repeat(1000);
-        assertDoesNotThrow(() -> {
-            new PlaidService(longClientId, longSecret, "sandbox", "", "", true, pciDSSComplianceService);
-        }, "Should create PlaidService with very long credentials");
+        final String longClientId = "a".repeat(1000);
+        final String longSecret = "b".repeat(1000);
+        assertDoesNotThrow(
+                () -> {
+                    new PlaidService(
+                            longClientId,
+                            longSecret,
+                            "sandbox",
+                            "",
+                            "",
+                            true,
+                            pciDSSComplianceService);
+                },
+                "Should create PlaidService with very long credentials");
     }
 
     @Test
-    void testPlaidService_Constructor_WithUnicodeCharacters_HandlesGracefully() {
+    void testPlaidServiceConstructorWithUnicodeCharactersHandlesGracefully() {
         // When/Then - Unicode characters should be handled
-        assertDoesNotThrow(() -> {
-            new PlaidService("test-客户端-id", "test-秘密", "sandbox", "", "", true, pciDSSComplianceService);
-        }, "Should create PlaidService with Unicode characters");
+        assertDoesNotThrow(
+                () -> {
+                    new PlaidService(
+                            "test-客户端-id",
+                            "test-秘密",
+                            "sandbox",
+                            "",
+                            "",
+                            true,
+                            pciDSSComplianceService);
+                },
+                "Should create PlaidService with Unicode characters");
     }
 
     @Test
-    void testPlaidService_Constructor_WithExceptionInOuterTryBlock_HandlesGracefully() {
+    void testPlaidServiceConstructorWithExceptionInOuterTryBlockHandlesGracefully() {
         // When/Then - Constructor should handle exceptions in outer try block
         // This tests the catch block that logs error and continues
-        assertDoesNotThrow(() -> {
-            new PlaidService("test-client-id", "test-secret", "sandbox", "https://app.budgetbuddy.com/plaid/callback", "https://api.budgetbuddy.com/api/plaid/webhooks", true, pciDSSComplianceService);
-        }, "Should create PlaidService even if outer try block has issues");
+        assertDoesNotThrow(
+                () -> {
+                    new PlaidService(
+                            "test-client-id",
+                            "test-secret",
+                            "sandbox",
+                            "https://app.budgetbuddy.com/plaid/callback",
+                            "https://api.budgetbuddy.com/api/plaid/webhooks",
+                            true,
+                            pciDSSComplianceService);
+                },
+                "Should create PlaidService even if outer try block has issues");
     }
 
     @Test
-    void testPlaidService_Constructor_WithAdapterNotSet_Continues() {
+    void testPlaidServiceConstructorWithAdapterNotSetContinues() {
         // When/Then - Constructor should continue even if adapter is not set
         // This tests the !adapterSet path
-        assertDoesNotThrow(() -> {
-            new PlaidService("test-client-id", "test-secret", "sandbox", "", "", true, pciDSSComplianceService);
-        }, "Should create PlaidService even if adapter is not set");
+        assertDoesNotThrow(
+                () -> {
+                    new PlaidService(
+                            "test-client-id",
+                            "test-secret",
+                            "sandbox",
+                            "",
+                            "",
+                            true,
+                            pciDSSComplianceService);
+                },
+                "Should create PlaidService even if adapter is not set");
     }
 
     @Test
-    void testPlaidService_Constructor_WithExceptionInAlternativeConfiguration_HandlesGracefully() {
+    void testPlaidServiceConstructorWithExceptionInAlternativeConfigurationHandlesGracefully() {
         // When/Then - Constructor should handle exceptions in alternative configuration path
         // This tests the catch block in the alternative configuration section
-        assertDoesNotThrow(() -> {
-            new PlaidService("test-client-id", "test-secret", "sandbox", "https://app.budgetbuddy.com/plaid/callback", "https://api.budgetbuddy.com/api/plaid/webhooks", true, pciDSSComplianceService);
-        }, "Should create PlaidService even if alternative configuration fails");
+        assertDoesNotThrow(
+                () -> {
+                    new PlaidService(
+                            "test-client-id",
+                            "test-secret",
+                            "sandbox",
+                            "https://app.budgetbuddy.com/plaid/callback",
+                            "https://api.budgetbuddy.com/api/plaid/webhooks",
+                            true,
+                            pciDSSComplianceService);
+                },
+                "Should create PlaidService even if alternative configuration fails");
     }
 
     @Test
-    void testPlaidService_Constructor_WithNoSuchMethodError_HandlesGracefully() {
+    void testPlaidServiceConstructorWithNoSuchMethodErrorHandlesGracefully() {
         // When/Then - Constructor should handle NoSuchMethodError gracefully
         // This tests the NoSuchMethodError catch block
-        assertDoesNotThrow(() -> {
-            new PlaidService("test-client-id", "test-secret", "sandbox", "", "", true, pciDSSComplianceService);
-        }, "Should create PlaidService even if setPlaidAdapter method doesn't exist");
+        assertDoesNotThrow(
+                () -> {
+                    new PlaidService(
+                            "test-client-id",
+                            "test-secret",
+                            "sandbox",
+                            "",
+                            "",
+                            true,
+                            pciDSSComplianceService);
+                },
+                "Should create PlaidService even if setPlaidAdapter method doesn't exist");
     }
 
     @Test
-    void testPlaidService_Constructor_WithReflectionException_HandlesGracefully() {
+    void testPlaidServiceConstructorWithReflectionExceptionHandlesGracefully() {
         // When/Then - Constructor should handle reflection exceptions gracefully
         // This tests the reflection exception catch blocks
-        assertDoesNotThrow(() -> {
-            new PlaidService("test-client-id", "test-secret", "sandbox", "", "", true, pciDSSComplianceService);
-        }, "Should create PlaidService even if reflection fails");
+        assertDoesNotThrow(
+                () -> {
+                    new PlaidService(
+                            "test-client-id",
+                            "test-secret",
+                            "sandbox",
+                            "",
+                            "",
+                            true,
+                            pciDSSComplianceService);
+                },
+                "Should create PlaidService even if reflection fails");
     }
 
     @Test
-    void testPlaidService_Constructor_WithAllPaths_CreatesService() {
+    void testPlaidServiceConstructorWithAllPathsCreatesService() {
         // Test constructor with various combinations to cover all code paths
         // This ensures all branches in the constructor are exercised
-        
+
         // Test with all environments
-        for (String env : new String[]{"sandbox", "development", "production", "SANDBOX", "DEVELOPMENT", "PRODUCTION"}) {
-            assertDoesNotThrow(() -> {
-                new PlaidService("test-client-id", "test-secret", env, "", "", true, pciDSSComplianceService);
-            }, "Should create PlaidService with environment: " + env);
+        for (final String env :
+                new String[] {
+                    "sandbox", "development", "production", "SANDBOX", "DEVELOPMENT", "PRODUCTION"
+                }) {
+            assertDoesNotThrow(
+                    () -> {
+                        new PlaidService(
+                                "test-client-id",
+                                "test-secret",
+                                env,
+                                "",
+                                "",
+                                true,
+                                pciDSSComplianceService);
+                    },
+                    "Should create PlaidService with environment: " + env);
         }
-        
+
         // Test with various redirect URI combinations
-        for (String redirectUri : new String[]{"", null, "https://app.budgetbuddy.com/plaid/callback"}) {
-            assertDoesNotThrow(() -> {
-                new PlaidService("test-client-id", "test-secret", "sandbox", redirectUri, "", true, pciDSSComplianceService);
-            }, "Should create PlaidService with redirectUri: " + redirectUri);
+        for (final String redirectUri :
+                new String[] {"", null, "https://app.budgetbuddy.com/plaid/callback"}) {
+            assertDoesNotThrow(
+                    () -> {
+                        new PlaidService(
+                                "test-client-id",
+                                "test-secret",
+                                "sandbox",
+                                redirectUri,
+                                "",
+                                true,
+                                pciDSSComplianceService);
+                    },
+                    "Should create PlaidService with redirectUri: " + redirectUri);
         }
-        
+
         // Test with various webhook URL combinations
-        for (String webhookUrl : new String[]{"", null, "https://api.budgetbuddy.com/api/plaid/webhooks"}) {
-            assertDoesNotThrow(() -> {
-                new PlaidService("test-client-id", "test-secret", "sandbox", "", webhookUrl, true, pciDSSComplianceService);
-            }, "Should create PlaidService with webhookUrl: " + webhookUrl);
+        for (final String webhookUrl :
+                new String[] {"", null, "https://api.budgetbuddy.com/api/plaid/webhooks"}) {
+            assertDoesNotThrow(
+                    () -> {
+                        new PlaidService(
+                                "test-client-id",
+                                "test-secret",
+                                "sandbox",
+                                "",
+                                webhookUrl,
+                                true,
+                                pciDSSComplianceService);
+                    },
+                    "Should create PlaidService with webhookUrl: " + webhookUrl);
         }
     }
 
     @Test
-    void testPlaidService_Constructor_WithNullEnvironment_UsesSandboxDefault() {
+    void testPlaidServiceConstructorWithNullEnvironmentUsesSandboxDefault() {
         // When/Then - Null environment should default to sandbox
-        assertDoesNotThrow(() -> {
-            new PlaidService("test-client-id", "test-secret", null, "https://app.budgetbuddy.com/plaid/callback", "", true, pciDSSComplianceService);
-        }, "Should create PlaidService with null environment (defaults to sandbox)");
+        assertDoesNotThrow(
+                () -> {
+                    new PlaidService(
+                            "test-client-id",
+                            "test-secret",
+                            null,
+                            "https://app.budgetbuddy.com/plaid/callback",
+                            "",
+                            true,
+                            pciDSSComplianceService);
+                },
+                "Should create PlaidService with null environment (defaults to sandbox)");
     }
 
     @Test
-    void testPlaidService_Constructor_WithInvalidEnvironment_UsesSandboxDefault() {
+    void testPlaidServiceConstructorWithInvalidEnvironmentUsesSandboxDefault() {
         // When/Then - Invalid environment should default to sandbox
-        assertDoesNotThrow(() -> {
-            new PlaidService("test-client-id", "test-secret", "invalid-env", "https://app.budgetbuddy.com/plaid/callback", "", true, pciDSSComplianceService);
-        }, "Should create PlaidService with invalid environment (defaults to sandbox)");
+        assertDoesNotThrow(
+                () -> {
+                    new PlaidService(
+                            "test-client-id",
+                            "test-secret",
+                            "invalid-env",
+                            "https://app.budgetbuddy.com/plaid/callback",
+                            "",
+                            true,
+                            pciDSSComplianceService);
+                },
+                "Should create PlaidService with invalid environment (defaults to sandbox)");
     }
 
     @Test
-    void testPlaidService_Constructor_WithMixedCaseEnvironment_HandlesCorrectly() {
+    void testPlaidServiceConstructorWithMixedCaseEnvironmentHandlesCorrectly() {
         // When/Then - Mixed case environment should be handled
-        assertDoesNotThrow(() -> {
-            new PlaidService("test-client-id", "test-secret", "SaNdBoX", "https://app.budgetbuddy.com/plaid/callback", "", true, pciDSSComplianceService);
-        }, "Should create PlaidService with mixed case environment");
+        assertDoesNotThrow(
+                () -> {
+                    new PlaidService(
+                            "test-client-id",
+                            "test-secret",
+                            "SaNdBoX",
+                            "https://app.budgetbuddy.com/plaid/callback",
+                            "",
+                            true,
+                            pciDSSComplianceService);
+                },
+                "Should create PlaidService with mixed case environment");
     }
 
     @Test
-    void testPlaidService_Constructor_WithVeryLongRedirectUri_HandlesGracefully() {
+    void testPlaidServiceConstructorWithVeryLongRedirectUriHandlesGracefully() {
         // When/Then - Very long redirect URI should be handled
-        String longRedirectUri = "https://app.budgetbuddy.com/plaid/callback?" + "a".repeat(1000);
-        assertDoesNotThrow(() -> {
-            new PlaidService("test-client-id", "test-secret", "sandbox", longRedirectUri, "", true, pciDSSComplianceService);
-        }, "Should create PlaidService with very long redirect URI");
+        final String longRedirectUri = "https://app.budgetbuddy.com/plaid/callback?" + "a".repeat(1000);
+        assertDoesNotThrow(
+                () -> {
+                    new PlaidService(
+                            "test-client-id",
+                            "test-secret",
+                            "sandbox",
+                            longRedirectUri,
+                            "",
+                            true,
+                            pciDSSComplianceService);
+                },
+                "Should create PlaidService with very long redirect URI");
     }
 
     @Test
-    void testPlaidService_Constructor_WithVeryLongWebhookUrl_HandlesGracefully() {
+    void testPlaidServiceConstructorWithVeryLongWebhookUrlHandlesGracefully() {
         // When/Then - Very long webhook URL should be handled
-        String longWebhookUrl = "https://api.budgetbuddy.com/api/plaid/webhooks?" + "a".repeat(1000);
-        assertDoesNotThrow(() -> {
-            new PlaidService("test-client-id", "test-secret", "sandbox", "", longWebhookUrl, true, pciDSSComplianceService);
-        }, "Should create PlaidService with very long webhook URL");
+        final String longWebhookUrl =
+                "https://api.budgetbuddy.com/api/plaid/webhooks?" + "a".repeat(1000);
+        assertDoesNotThrow(
+                () -> {
+                    new PlaidService(
+                            "test-client-id",
+                            "test-secret",
+                            "sandbox",
+                            "",
+                            longWebhookUrl,
+                            true,
+                            pciDSSComplianceService);
+                },
+                "Should create PlaidService with very long webhook URL");
     }
 
     @Test
-    void testPlaidService_Constructor_WithAllNulls_HandlesGracefully() {
-        // When/Then - All nulls except PCI-DSS service should be handled (will use defaults/placeholders)
+    void testPlaidServiceConstructorWithAllNullsHandlesGracefully() {
+        // When/Then - All nulls except PCI-DSS service should be handled (will use
+        // defaults/placeholders)
         // Note: PCI-DSS service cannot be null, so we use pciDSSComplianceService
-        assertDoesNotThrow(() -> {
-            new PlaidService(null, null, null, null, null, true, pciDSSComplianceService);
-        }, "Should create PlaidService with all nulls except PCI-DSS service");
+        assertDoesNotThrow(
+                () -> {
+                    new PlaidService(null, null, null, null, null, true, pciDSSComplianceService);
+                },
+                "Should create PlaidService with all nulls except PCI-DSS service");
     }
 
     @Test
-    void testPlaidService_Constructor_WithPlaidDisabled_StillCreatesService() {
+    void testPlaidServiceConstructorWithPlaidDisabledStillCreatesService() {
         // When/Then - Service should be created even if Plaid is disabled
-        assertDoesNotThrow(() -> {
-            new PlaidService("test-client-id", "test-secret", "sandbox", "", "", false, pciDSSComplianceService);
-        }, "Should create PlaidService even if Plaid is disabled");
+        assertDoesNotThrow(
+                () -> {
+                    new PlaidService(
+                            "test-client-id",
+                            "test-secret",
+                            "sandbox",
+                            "",
+                            "",
+                            false,
+                            pciDSSComplianceService);
+                },
+                "Should create PlaidService even if Plaid is disabled");
     }
 
     @Test
-    void testPlaidService_Constructor_WithNullPciDSSComplianceService_ThrowsException() {
+    void testPlaidServiceConstructorWithNullPciDSSComplianceServiceThrowsException() {
         // When/Then - Null PCI-DSS service should throw IllegalArgumentException
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
-            new PlaidService("test-client-id", "test-secret", "sandbox", "", "", true, null);
-        }, "Should throw IllegalArgumentException when PCI-DSS service is null");
+        final IllegalArgumentException exception =
+                assertThrows(
+                        IllegalArgumentException.class,
+                        () -> {
+                            new PlaidService(
+                                    "test-client-id", "test-secret", "sandbox", "", "", true, null);
+                        },
+                        "Should throw IllegalArgumentException when PCI-DSS service is null");
         assertEquals("PCIDSSComplianceService cannot be null", exception.getMessage());
     }
 
     @Test
-    void testPlaidService_Constructor_WithExceptionInOuterCatch_LogsAndContinues() {
+    void testPlaidServiceConstructorWithExceptionInOuterCatchLogsAndContinues() {
         // When/Then - Outer catch block should handle exceptions gracefully
         // This tests the catch block at line 134-140
-        assertDoesNotThrow(() -> {
-            new PlaidService("test-client-id", "test-secret", "sandbox", "", "", true, pciDSSComplianceService);
-        }, "Should create PlaidService even if outer catch block is triggered");
+        assertDoesNotThrow(
+                () -> {
+                    new PlaidService(
+                            "test-client-id",
+                            "test-secret",
+                            "sandbox",
+                            "",
+                            "",
+                            true,
+                            pciDSSComplianceService);
+                },
+                "Should create PlaidService even if outer catch block is triggered");
     }
 
     @Test
-    void testPlaidService_Constructor_WithExceptionInAlternativeConfig_LogsWarning() {
+    void testPlaidServiceConstructorWithExceptionInAlternativeConfigLogsWarning() {
         // When/Then - Alternative configuration exception should be handled
         // This tests the catch block at line 129-132
-        assertDoesNotThrow(() -> {
-            new PlaidService("test-client-id", "test-secret", "sandbox", "", "", true, pciDSSComplianceService);
-        }, "Should create PlaidService even if alternative configuration fails");
+        assertDoesNotThrow(
+                () -> {
+                    new PlaidService(
+                            "test-client-id",
+                            "test-secret",
+                            "sandbox",
+                            "",
+                            "",
+                            true,
+                            pciDSSComplianceService);
+                },
+                "Should create PlaidService even if alternative configuration fails");
     }
 
     @Test
-    void testPlaidService_Constructor_WithReflectionInvocationException_HandlesGracefully() {
+    void testPlaidServiceConstructorWithReflectionInvocationExceptionHandlesGracefully() {
         // When/Then - Reflection invocation exception should be handled
         // This tests the InvocationTargetException catch block at line 111
-        assertDoesNotThrow(() -> {
-            new PlaidService("test-client-id", "test-secret", "sandbox", "", "", true, pciDSSComplianceService);
-        }, "Should create PlaidService even if reflection invocation fails");
+        assertDoesNotThrow(
+                () -> {
+                    new PlaidService(
+                            "test-client-id",
+                            "test-secret",
+                            "sandbox",
+                            "",
+                            "",
+                            true,
+                            pciDSSComplianceService);
+                },
+                "Should create PlaidService even if reflection invocation fails");
     }
 
     @Test
-    void testPlaidService_Constructor_WithReflectionNoSuchMethodException_HandlesGracefully() {
+    void testPlaidServiceConstructorWithReflectionNoSuchMethodExceptionHandlesGracefully() {
         // When/Then - Reflection NoSuchMethodException should be handled
         // This tests the NoSuchMethodException catch block at line 111
-        assertDoesNotThrow(() -> {
-            new PlaidService("test-client-id", "test-secret", "sandbox", "", "", true, pciDSSComplianceService);
-        }, "Should create PlaidService even if reflection method not found");
+        assertDoesNotThrow(
+                () -> {
+                    new PlaidService(
+                            "test-client-id",
+                            "test-secret",
+                            "sandbox",
+                            "",
+                            "",
+                            true,
+                            pciDSSComplianceService);
+                },
+                "Should create PlaidService even if reflection method not found");
     }
 
     @Test
-    void testPlaidService_Constructor_WithReflectionIllegalAccessException_HandlesGracefully() {
+    void testPlaidServiceConstructorWithReflectionIllegalAccessExceptionHandlesGracefully() {
         // When/Then - Reflection IllegalAccessException should be handled
         // This tests the IllegalAccessException catch block at line 111
-        assertDoesNotThrow(() -> {
-            new PlaidService("test-client-id", "test-secret", "sandbox", "", "", true, pciDSSComplianceService);
-        }, "Should create PlaidService even if reflection access is illegal");
+        assertDoesNotThrow(
+                () -> {
+                    new PlaidService(
+                            "test-client-id",
+                            "test-secret",
+                            "sandbox",
+                            "",
+                            "",
+                            true,
+                            pciDSSComplianceService);
+                },
+                "Should create PlaidService even if reflection access is illegal");
     }
 
     @Test
-    void testPlaidService_Constructor_WithExceptionInAdapterSet_LogsAndContinues() {
+    void testPlaidServiceConstructorWithExceptionInAdapterSetLogsAndContinues() {
         // When/Then - Exception in adapter set should be handled
         // This tests the catch block at line 114-117
-        assertDoesNotThrow(() -> {
-            new PlaidService("test-client-id", "test-secret", "sandbox", "", "", true, pciDSSComplianceService);
-        }, "Should create PlaidService even if adapter set fails");
+        assertDoesNotThrow(
+                () -> {
+                    new PlaidService(
+                            "test-client-id",
+                            "test-secret",
+                            "sandbox",
+                            "",
+                            "",
+                            true,
+                            pciDSSComplianceService);
+                },
+                "Should create PlaidService even if adapter set fails");
     }
 
     @Test
-    void testParsePlaidErrorResponse_WithErrorTypeInErrorBody_ExtractsErrorType() throws Exception {
+    void testParsePlaidErrorResponseWithErrorTypeInErrorBodyExtractsErrorType() throws Exception {
         // Given
-        plaidService = new PlaidService("test-client-id", "test-secret", "sandbox", "", "", true, pciDSSComplianceService);
-        String errorBody = "{\"error_code\":\"RATE_LIMIT_EXCEEDED\",\"error_type\":\"RATE_LIMIT_EXCEEDED\",\"error_message\":\"Rate limit exceeded\",\"request_id\":\"req-123\"}";
-        
+        plaidService =
+                new PlaidService(
+                        "test-client-id",
+                        "test-secret",
+                        "sandbox",
+                        "",
+                        "",
+                        true,
+                        pciDSSComplianceService);
+        final String errorBody =
+                "{\"error_code\":\"RATE_LIMIT_EXCEEDED\",\"error_type\":\"RATE_LIMIT_EXCEEDED\",\"error_message\":\"Rate limit exceeded\",\"request_id\":\"req-123\"}";
+
         // When - Use reflection to access private method
-        java.lang.reflect.Method method = PlaidService.class.getDeclaredMethod("parsePlaidErrorResponse", String.class);
+        final java.lang.reflect.Method method =
+                PlaidService.class.getDeclaredMethod("parsePlaidErrorResponse", String.class);
         method.setAccessible(true);
-        Object errorObj = method.invoke(plaidService, errorBody);
+        final Object errorObj = method.invoke(plaidService, errorBody);
         // Use reflection to access private inner class fields
         if (errorObj == null) {
             assertNull(errorObj);
             return;
         }
-        java.lang.reflect.Field errorCodeField = errorObj.getClass().getDeclaredField("errorCode");
+        final java.lang.reflect.Field errorCodeField = errorObj.getClass().getDeclaredField("errorCode");
         errorCodeField.setAccessible(true);
-        java.lang.reflect.Field errorTypeField = errorObj.getClass().getDeclaredField("errorType");
+        final java.lang.reflect.Field errorTypeField = errorObj.getClass().getDeclaredField("errorType");
         errorTypeField.setAccessible(true);
-        java.lang.reflect.Field errorMessageField = errorObj.getClass().getDeclaredField("errorMessage");
+        final java.lang.reflect.Field errorMessageField =
+                errorObj.getClass().getDeclaredField("errorMessage");
         errorMessageField.setAccessible(true);
-        java.lang.reflect.Field requestIdField = errorObj.getClass().getDeclaredField("requestId");
+        final java.lang.reflect.Field requestIdField = errorObj.getClass().getDeclaredField("requestId");
         requestIdField.setAccessible(true);
-        
-        String errorCode = (String) errorCodeField.get(errorObj);
-        String errorType = (String) errorTypeField.get(errorObj);
-        String errorMessage = (String) errorMessageField.get(errorObj);
-        String requestId = (String) requestIdField.get(errorObj);
-        
+
+        final String errorCode = (String) errorCodeField.get(errorObj);
+        final String errorType = (String) errorTypeField.get(errorObj);
+        final String errorMessage = (String) errorMessageField.get(errorObj);
+        final String requestId = (String) requestIdField.get(errorObj);
+
         // Then
         assertNotNull(errorObj);
         assertEquals("RATE_LIMIT_EXCEEDED", errorCode);
@@ -928,116 +1777,155 @@ class PlaidServiceTest {
     }
 
     @Test
-    void testParsePlaidErrorResponse_WithWhitespaceOnly_ReturnsNull() throws Exception {
+    void testParsePlaidErrorResponseWithWhitespaceOnlyReturnsNull() throws Exception {
         // Given
-        plaidService = new PlaidService("test-client-id", "test-secret", "sandbox", "", "", true, pciDSSComplianceService);
-        String errorBody = "   ";
-        
+        plaidService =
+                new PlaidService(
+                        "test-client-id",
+                        "test-secret",
+                        "sandbox",
+                        "",
+                        "",
+                        true,
+                        pciDSSComplianceService);
+        final String errorBody = "   ";
+
         // When - Use reflection to access private method
-        java.lang.reflect.Method method = PlaidService.class.getDeclaredMethod("parsePlaidErrorResponse", String.class);
+        final java.lang.reflect.Method method =
+                PlaidService.class.getDeclaredMethod("parsePlaidErrorResponse", String.class);
         method.setAccessible(true);
-        Object errorObj = method.invoke(plaidService, errorBody);
+        final Object errorObj = method.invoke(plaidService, errorBody);
         // Use reflection to access private inner class fields
         if (errorObj == null) {
             assertNull(errorObj);
             return;
         }
-        java.lang.reflect.Field errorCodeField = errorObj.getClass().getDeclaredField("errorCode");
+        final java.lang.reflect.Field errorCodeField = errorObj.getClass().getDeclaredField("errorCode");
         errorCodeField.setAccessible(true);
-        java.lang.reflect.Field errorTypeField = errorObj.getClass().getDeclaredField("errorType");
+        final java.lang.reflect.Field errorTypeField = errorObj.getClass().getDeclaredField("errorType");
         errorTypeField.setAccessible(true);
-        java.lang.reflect.Field errorMessageField = errorObj.getClass().getDeclaredField("errorMessage");
+        final java.lang.reflect.Field errorMessageField =
+                errorObj.getClass().getDeclaredField("errorMessage");
         errorMessageField.setAccessible(true);
-        java.lang.reflect.Field requestIdField = errorObj.getClass().getDeclaredField("requestId");
+        final java.lang.reflect.Field requestIdField = errorObj.getClass().getDeclaredField("requestId");
         requestIdField.setAccessible(true);
-        
-        String errorCode = (String) errorCodeField.get(errorObj);
-        String errorType = (String) errorTypeField.get(errorObj);
-        String errorMessage = (String) errorMessageField.get(errorObj);
-        String requestId = (String) requestIdField.get(errorObj);
-        
+
+        final String errorCode = (String) errorCodeField.get(errorObj);
+        final String errorType = (String) errorTypeField.get(errorObj);
+        final String errorMessage = (String) errorMessageField.get(errorObj);
+        final String requestId = (String) requestIdField.get(errorObj);
+
         // Then
         assertNull(errorObj);
     }
 
     @Test
-    void testParsePlaidErrorResponse_WithNonJsonString_ReturnsNull() throws Exception {
+    void testParsePlaidErrorResponseWithNonJsonStringReturnsNull() throws Exception {
         // Given
-        plaidService = new PlaidService("test-client-id", "test-secret", "sandbox", "", "", true, pciDSSComplianceService);
-        String errorBody = "This is not JSON";
-        
+        plaidService =
+                new PlaidService(
+                        "test-client-id",
+                        "test-secret",
+                        "sandbox",
+                        "",
+                        "",
+                        true,
+                        pciDSSComplianceService);
+        final String errorBody = "This is not JSON";
+
         // When - Use reflection to access private method
-        java.lang.reflect.Method method = PlaidService.class.getDeclaredMethod("parsePlaidErrorResponse", String.class);
+        final java.lang.reflect.Method method =
+                PlaidService.class.getDeclaredMethod("parsePlaidErrorResponse", String.class);
         method.setAccessible(true);
-        Object errorObj = method.invoke(plaidService, errorBody);
+        final Object errorObj = method.invoke(plaidService, errorBody);
         // Use reflection to access private inner class fields
         if (errorObj == null) {
             assertNull(errorObj);
             return;
         }
-        java.lang.reflect.Field errorCodeField = errorObj.getClass().getDeclaredField("errorCode");
+        final java.lang.reflect.Field errorCodeField = errorObj.getClass().getDeclaredField("errorCode");
         errorCodeField.setAccessible(true);
-        java.lang.reflect.Field errorTypeField = errorObj.getClass().getDeclaredField("errorType");
+        final java.lang.reflect.Field errorTypeField = errorObj.getClass().getDeclaredField("errorType");
         errorTypeField.setAccessible(true);
-        java.lang.reflect.Field errorMessageField = errorObj.getClass().getDeclaredField("errorMessage");
+        final java.lang.reflect.Field errorMessageField =
+                errorObj.getClass().getDeclaredField("errorMessage");
         errorMessageField.setAccessible(true);
-        java.lang.reflect.Field requestIdField = errorObj.getClass().getDeclaredField("requestId");
+        final java.lang.reflect.Field requestIdField = errorObj.getClass().getDeclaredField("requestId");
         requestIdField.setAccessible(true);
-        
-        String errorCode = (String) errorCodeField.get(errorObj);
-        String errorType = (String) errorTypeField.get(errorObj);
-        String errorMessage = (String) errorMessageField.get(errorObj);
-        String requestId = (String) requestIdField.get(errorObj);
-        
+
+        final String errorCode = (String) errorCodeField.get(errorObj);
+        final String errorType = (String) errorTypeField.get(errorObj);
+        final String errorMessage = (String) errorMessageField.get(errorObj);
+        final String requestId = (String) requestIdField.get(errorObj);
+
         // Then
         assertNull(errorObj);
     }
 
     @Test
-    void testParsePlaidErrorResponse_WithJsonNotStartingWithBrace_ReturnsNull() throws Exception {
+    void testParsePlaidErrorResponseWithJsonNotStartingWithBraceReturnsNull() throws Exception {
         // Given
-        plaidService = new PlaidService("test-client-id", "test-secret", "sandbox", "", "", true, pciDSSComplianceService);
-        String errorBody = "  not json"; // Has leading whitespace and doesn't start with {
-        
+        plaidService =
+                new PlaidService(
+                        "test-client-id",
+                        "test-secret",
+                        "sandbox",
+                        "",
+                        "",
+                        true,
+                        pciDSSComplianceService);
+        final String errorBody = "  not json"; // Has leading whitespace and doesn't start with {
+
         // When - Use reflection to access private method
-        java.lang.reflect.Method method = PlaidService.class.getDeclaredMethod("parsePlaidErrorResponse", String.class);
+        final java.lang.reflect.Method method =
+                PlaidService.class.getDeclaredMethod("parsePlaidErrorResponse", String.class);
         method.setAccessible(true);
-        Object errorObj = method.invoke(plaidService, errorBody);
-        
+        final Object errorObj = method.invoke(plaidService, errorBody);
+
         // Then
         // Should return null because trimmed string doesn't start with {
         assertNull(errorObj);
     }
 
     @Test
-    void testParsePlaidErrorResponse_WithMalformedJson_HandlesGracefully() throws Exception {
+    void testParsePlaidErrorResponseWithMalformedJsonHandlesGracefully() throws Exception {
         // Given
-        plaidService = new PlaidService("test-client-id", "test-secret", "sandbox", "", "", true, pciDSSComplianceService);
-        String errorBody = "{\"error_code\":\"TEST\""; // Missing closing brace
-        
+        plaidService =
+                new PlaidService(
+                        "test-client-id",
+                        "test-secret",
+                        "sandbox",
+                        "",
+                        "",
+                        true,
+                        pciDSSComplianceService);
+        final String errorBody = "{\"error_code\":\"TEST\""; // Missing closing brace
+
         // When - Use reflection to access private method
-        java.lang.reflect.Method method = PlaidService.class.getDeclaredMethod("parsePlaidErrorResponse", String.class);
+        final java.lang.reflect.Method method =
+                PlaidService.class.getDeclaredMethod("parsePlaidErrorResponse", String.class);
         method.setAccessible(true);
-        Object errorObj = method.invoke(plaidService, errorBody);
+        final Object errorObj = method.invoke(plaidService, errorBody);
         // Use reflection to access private inner class fields
         if (errorObj == null) {
             assertNull(errorObj);
             return;
         }
-        java.lang.reflect.Field errorCodeField = errorObj.getClass().getDeclaredField("errorCode");
+        final java.lang.reflect.Field errorCodeField = errorObj.getClass().getDeclaredField("errorCode");
         errorCodeField.setAccessible(true);
-        java.lang.reflect.Field errorTypeField = errorObj.getClass().getDeclaredField("errorType");
+        final java.lang.reflect.Field errorTypeField = errorObj.getClass().getDeclaredField("errorType");
         errorTypeField.setAccessible(true);
-        java.lang.reflect.Field errorMessageField = errorObj.getClass().getDeclaredField("errorMessage");
+        final java.lang.reflect.Field errorMessageField =
+                errorObj.getClass().getDeclaredField("errorMessage");
         errorMessageField.setAccessible(true);
-        java.lang.reflect.Field requestIdField = errorObj.getClass().getDeclaredField("requestId");
+        final java.lang.reflect.Field requestIdField = errorObj.getClass().getDeclaredField("requestId");
         requestIdField.setAccessible(true);
-        
-        String errorCode = (String) errorCodeField.get(errorObj);
-        String errorType = (String) errorTypeField.get(errorObj);
-        String errorMessage = (String) errorMessageField.get(errorObj);
-        String requestId = (String) requestIdField.get(errorObj);
-        
+
+        final String errorCode = (String) errorCodeField.get(errorObj);
+        final String errorType = (String) errorTypeField.get(errorObj);
+        final String errorMessage = (String) errorMessageField.get(errorObj);
+        final String requestId = (String) requestIdField.get(errorObj);
+
         // Then
         // Should handle gracefully - might return partial data or null
         // The method uses string manipulation, so it might extract what it can
@@ -1045,34 +1933,45 @@ class PlaidServiceTest {
     }
 
     @Test
-    void testParsePlaidErrorResponse_WithNestedJson_ExtractsTopLevelFields() throws Exception {
+    void testParsePlaidErrorResponseWithNestedJsonExtractsTopLevelFields() throws Exception {
         // Given
-        plaidService = new PlaidService("test-client-id", "test-secret", "sandbox", "", "", true, pciDSSComplianceService);
-        String errorBody = "{\"error_code\":\"TEST\",\"nested\":{\"field\":\"value\"},\"error_message\":\"Test message\"}";
-        
+        plaidService =
+                new PlaidService(
+                        "test-client-id",
+                        "test-secret",
+                        "sandbox",
+                        "",
+                        "",
+                        true,
+                        pciDSSComplianceService);
+        final String errorBody =
+                "{\"error_code\":\"TEST\",\"nested\":{\"field\":\"value\"},\"error_message\":\"Test message\"}";
+
         // When - Use reflection to access private method
-        java.lang.reflect.Method method = PlaidService.class.getDeclaredMethod("parsePlaidErrorResponse", String.class);
+        final java.lang.reflect.Method method =
+                PlaidService.class.getDeclaredMethod("parsePlaidErrorResponse", String.class);
         method.setAccessible(true);
-        Object errorObj = method.invoke(plaidService, errorBody);
+        final Object errorObj = method.invoke(plaidService, errorBody);
         // Use reflection to access private inner class fields
         if (errorObj == null) {
             assertNull(errorObj);
             return;
         }
-        java.lang.reflect.Field errorCodeField = errorObj.getClass().getDeclaredField("errorCode");
+        final java.lang.reflect.Field errorCodeField = errorObj.getClass().getDeclaredField("errorCode");
         errorCodeField.setAccessible(true);
-        java.lang.reflect.Field errorTypeField = errorObj.getClass().getDeclaredField("errorType");
+        final java.lang.reflect.Field errorTypeField = errorObj.getClass().getDeclaredField("errorType");
         errorTypeField.setAccessible(true);
-        java.lang.reflect.Field errorMessageField = errorObj.getClass().getDeclaredField("errorMessage");
+        final java.lang.reflect.Field errorMessageField =
+                errorObj.getClass().getDeclaredField("errorMessage");
         errorMessageField.setAccessible(true);
-        java.lang.reflect.Field requestIdField = errorObj.getClass().getDeclaredField("requestId");
+        final java.lang.reflect.Field requestIdField = errorObj.getClass().getDeclaredField("requestId");
         requestIdField.setAccessible(true);
-        
-        String errorCode = (String) errorCodeField.get(errorObj);
-        String errorType = (String) errorTypeField.get(errorObj);
-        String errorMessage = (String) errorMessageField.get(errorObj);
-        String requestId = (String) requestIdField.get(errorObj);
-        
+
+        final String errorCode = (String) errorCodeField.get(errorObj);
+        final String errorType = (String) errorTypeField.get(errorObj);
+        final String errorMessage = (String) errorMessageField.get(errorObj);
+        final String requestId = (String) requestIdField.get(errorObj);
+
         // Then
         assertNotNull(errorObj);
         assertEquals("TEST", getErrorField(errorObj, "errorCode"));
@@ -1080,69 +1979,93 @@ class PlaidServiceTest {
     }
 
     @Test
-    void testParsePlaidErrorResponse_WithEscapedQuotes_HandlesCorrectly() throws Exception {
+    void testParsePlaidErrorResponseWithEscapedQuotesHandlesCorrectly() throws Exception {
         // Given
-        plaidService = new PlaidService("test-client-id", "test-secret", "sandbox", "", "", true, pciDSSComplianceService);
-        String errorBody = "{\"error_code\":\"TEST\",\"error_message\":\"Message with \\\"quotes\\\"\"}";
-        
+        plaidService =
+                new PlaidService(
+                        "test-client-id",
+                        "test-secret",
+                        "sandbox",
+                        "",
+                        "",
+                        true,
+                        pciDSSComplianceService);
+        final String errorBody =
+                "{\"error_code\":\"TEST\",\"error_message\":\"Message with \\\"quotes\\\"\"}";
+
         // When - Use reflection to access private method
-        java.lang.reflect.Method method = PlaidService.class.getDeclaredMethod("parsePlaidErrorResponse", String.class);
+        final java.lang.reflect.Method method =
+                PlaidService.class.getDeclaredMethod("parsePlaidErrorResponse", String.class);
         method.setAccessible(true);
-        Object errorObj = method.invoke(plaidService, errorBody);
+        final Object errorObj = method.invoke(plaidService, errorBody);
         // Use reflection to access private inner class fields
         if (errorObj == null) {
             assertNull(errorObj);
             return;
         }
-        java.lang.reflect.Field errorCodeField = errorObj.getClass().getDeclaredField("errorCode");
+        final java.lang.reflect.Field errorCodeField = errorObj.getClass().getDeclaredField("errorCode");
         errorCodeField.setAccessible(true);
-        java.lang.reflect.Field errorTypeField = errorObj.getClass().getDeclaredField("errorType");
+        final java.lang.reflect.Field errorTypeField = errorObj.getClass().getDeclaredField("errorType");
         errorTypeField.setAccessible(true);
-        java.lang.reflect.Field errorMessageField = errorObj.getClass().getDeclaredField("errorMessage");
+        final java.lang.reflect.Field errorMessageField =
+                errorObj.getClass().getDeclaredField("errorMessage");
         errorMessageField.setAccessible(true);
-        java.lang.reflect.Field requestIdField = errorObj.getClass().getDeclaredField("requestId");
+        final java.lang.reflect.Field requestIdField = errorObj.getClass().getDeclaredField("requestId");
         requestIdField.setAccessible(true);
-        
-        String errorCode = (String) errorCodeField.get(errorObj);
-        String errorType = (String) errorTypeField.get(errorObj);
-        String errorMessage = (String) errorMessageField.get(errorObj);
-        String requestId = (String) requestIdField.get(errorObj);
-        
+
+        final String errorCode = (String) errorCodeField.get(errorObj);
+        final String errorType = (String) errorTypeField.get(errorObj);
+        final String errorMessage = (String) errorMessageField.get(errorObj);
+        final String requestId = (String) requestIdField.get(errorObj);
+
         // Then
         assertNotNull(errorObj);
         assertEquals("TEST", getErrorField(errorObj, "errorCode"));
-        // The string manipulation might not handle escaped quotes perfectly, but should extract something
+        // The string manipulation might not handle escaped quotes perfectly, but should extract
+        // something
     }
 
     @Test
-    void testParsePlaidErrorResponse_WithMultipleErrorCodes_ExtractsFirst() throws Exception {
+    void testParsePlaidErrorResponseWithMultipleErrorCodesExtractsFirst() throws Exception {
         // Given
-        plaidService = new PlaidService("test-client-id", "test-secret", "sandbox", "", "", true, pciDSSComplianceService);
-        String errorBody = "{\"error_code\":\"FIRST\",\"error_code\":\"SECOND\"}"; // Duplicate keys (invalid JSON but might happen)
-        
+        plaidService =
+                new PlaidService(
+                        "test-client-id",
+                        "test-secret",
+                        "sandbox",
+                        "",
+                        "",
+                        true,
+                        pciDSSComplianceService);
+        final String errorBody =
+                "{\"error_code\":\"FIRST\",\"error_code\":\"SECOND\"}"; // Duplicate keys (invalid
+        // JSON but might happen)
+
         // When - Use reflection to access private method
-        java.lang.reflect.Method method = PlaidService.class.getDeclaredMethod("parsePlaidErrorResponse", String.class);
+        final java.lang.reflect.Method method =
+                PlaidService.class.getDeclaredMethod("parsePlaidErrorResponse", String.class);
         method.setAccessible(true);
-        Object errorObj = method.invoke(plaidService, errorBody);
+        final Object errorObj = method.invoke(plaidService, errorBody);
         // Use reflection to access private inner class fields
         if (errorObj == null) {
             assertNull(errorObj);
             return;
         }
-        java.lang.reflect.Field errorCodeField = errorObj.getClass().getDeclaredField("errorCode");
+        final java.lang.reflect.Field errorCodeField = errorObj.getClass().getDeclaredField("errorCode");
         errorCodeField.setAccessible(true);
-        java.lang.reflect.Field errorTypeField = errorObj.getClass().getDeclaredField("errorType");
+        final java.lang.reflect.Field errorTypeField = errorObj.getClass().getDeclaredField("errorType");
         errorTypeField.setAccessible(true);
-        java.lang.reflect.Field errorMessageField = errorObj.getClass().getDeclaredField("errorMessage");
+        final java.lang.reflect.Field errorMessageField =
+                errorObj.getClass().getDeclaredField("errorMessage");
         errorMessageField.setAccessible(true);
-        java.lang.reflect.Field requestIdField = errorObj.getClass().getDeclaredField("requestId");
+        final java.lang.reflect.Field requestIdField = errorObj.getClass().getDeclaredField("requestId");
         requestIdField.setAccessible(true);
-        
-        String errorCode = (String) errorCodeField.get(errorObj);
-        String errorType = (String) errorTypeField.get(errorObj);
-        String errorMessage = (String) errorMessageField.get(errorObj);
-        String requestId = (String) requestIdField.get(errorObj);
-        
+
+        final String errorCode = (String) errorCodeField.get(errorObj);
+        final String errorType = (String) errorTypeField.get(errorObj);
+        final String errorMessage = (String) errorMessageField.get(errorObj);
+        final String requestId = (String) requestIdField.get(errorObj);
+
         // Then
         assertNotNull(errorObj);
         // Should extract the first occurrence
@@ -1150,39 +2073,50 @@ class PlaidServiceTest {
     }
 
     @Test
-    void testParsePlaidErrorResponse_WithEmptyStringValues_HandlesCorrectly() throws Exception {
+    void testParsePlaidErrorResponseWithEmptyStringValuesHandlesCorrectly() throws Exception {
         // Given
-        plaidService = new PlaidService("test-client-id", "test-secret", "sandbox", "", "", true, pciDSSComplianceService);
-        String errorBody = "{\"error_code\":\"\",\"error_message\":\"\",\"request_id\":\"\"}";
-        
+        plaidService =
+                new PlaidService(
+                        "test-client-id",
+                        "test-secret",
+                        "sandbox",
+                        "",
+                        "",
+                        true,
+                        pciDSSComplianceService);
+        final String errorBody = "{\"error_code\":\"\",\"error_message\":\"\",\"request_id\":\"\"}";
+
         // When - Use reflection to access private method
-        java.lang.reflect.Method method = PlaidService.class.getDeclaredMethod("parsePlaidErrorResponse", String.class);
+        final java.lang.reflect.Method method =
+                PlaidService.class.getDeclaredMethod("parsePlaidErrorResponse", String.class);
         method.setAccessible(true);
-        Object errorObj = method.invoke(plaidService, errorBody);
+        final Object errorObj = method.invoke(plaidService, errorBody);
         // Use reflection to access private inner class fields
         if (errorObj == null) {
             assertNull(errorObj);
             return;
         }
-        java.lang.reflect.Field errorCodeField = errorObj.getClass().getDeclaredField("errorCode");
+        final java.lang.reflect.Field errorCodeField = errorObj.getClass().getDeclaredField("errorCode");
         errorCodeField.setAccessible(true);
-        java.lang.reflect.Field errorTypeField = errorObj.getClass().getDeclaredField("errorType");
+        final java.lang.reflect.Field errorTypeField = errorObj.getClass().getDeclaredField("errorType");
         errorTypeField.setAccessible(true);
-        java.lang.reflect.Field errorMessageField = errorObj.getClass().getDeclaredField("errorMessage");
+        final java.lang.reflect.Field errorMessageField =
+                errorObj.getClass().getDeclaredField("errorMessage");
         errorMessageField.setAccessible(true);
-        java.lang.reflect.Field requestIdField = errorObj.getClass().getDeclaredField("requestId");
+        final java.lang.reflect.Field requestIdField = errorObj.getClass().getDeclaredField("requestId");
         requestIdField.setAccessible(true);
-        
-        String errorCode = (String) errorCodeField.get(errorObj);
-        String errorType = (String) errorTypeField.get(errorObj);
-        String errorMessage = (String) errorMessageField.get(errorObj);
-        String requestId = (String) requestIdField.get(errorObj);
-        
+
+        final String errorCode = (String) errorCodeField.get(errorObj);
+        final String errorType = (String) errorTypeField.get(errorObj);
+        final String errorMessage = (String) errorMessageField.get(errorObj);
+        final String requestId = (String) requestIdField.get(errorObj);
+
         // Then
         // The parsing logic extracts empty strings, but they might be null if extraction fails
         // or if the string manipulation doesn't handle empty strings correctly
         assertNotNull(errorObj);
-        // Empty strings in JSON might be extracted as empty strings or null depending on parsing logic
+        // Empty strings in JSON might be extracted as empty strings or null depending on parsing
+        // logic
         // Accept either empty string or null as valid (the method handles both)
         if (errorCode != null) {
             assertEquals("", errorCode);
@@ -1196,34 +2130,44 @@ class PlaidServiceTest {
     }
 
     @Test
-    void testParsePlaidErrorResponse_WithOnlyErrorCode_ExtractsOnlyErrorCode() throws Exception {
+    void testParsePlaidErrorResponseWithOnlyErrorCodeExtractsOnlyErrorCode() throws Exception {
         // Given
-        plaidService = new PlaidService("test-client-id", "test-secret", "sandbox", "", "", true, pciDSSComplianceService);
-        String errorBody = "{\"error_code\":\"TEST_ERROR\"}";
-        
+        plaidService =
+                new PlaidService(
+                        "test-client-id",
+                        "test-secret",
+                        "sandbox",
+                        "",
+                        "",
+                        true,
+                        pciDSSComplianceService);
+        final String errorBody = "{\"error_code\":\"TEST_ERROR\"}";
+
         // When - Use reflection to access private method
-        java.lang.reflect.Method method = PlaidService.class.getDeclaredMethod("parsePlaidErrorResponse", String.class);
+        final java.lang.reflect.Method method =
+                PlaidService.class.getDeclaredMethod("parsePlaidErrorResponse", String.class);
         method.setAccessible(true);
-        Object errorObj = method.invoke(plaidService, errorBody);
+        final Object errorObj = method.invoke(plaidService, errorBody);
         // Use reflection to access private inner class fields
         if (errorObj == null) {
             assertNull(errorObj);
             return;
         }
-        java.lang.reflect.Field errorCodeField = errorObj.getClass().getDeclaredField("errorCode");
+        final java.lang.reflect.Field errorCodeField = errorObj.getClass().getDeclaredField("errorCode");
         errorCodeField.setAccessible(true);
-        java.lang.reflect.Field errorTypeField = errorObj.getClass().getDeclaredField("errorType");
+        final java.lang.reflect.Field errorTypeField = errorObj.getClass().getDeclaredField("errorType");
         errorTypeField.setAccessible(true);
-        java.lang.reflect.Field errorMessageField = errorObj.getClass().getDeclaredField("errorMessage");
+        final java.lang.reflect.Field errorMessageField =
+                errorObj.getClass().getDeclaredField("errorMessage");
         errorMessageField.setAccessible(true);
-        java.lang.reflect.Field requestIdField = errorObj.getClass().getDeclaredField("requestId");
+        final java.lang.reflect.Field requestIdField = errorObj.getClass().getDeclaredField("requestId");
         requestIdField.setAccessible(true);
-        
-        String errorCode = (String) errorCodeField.get(errorObj);
-        String errorType = (String) errorTypeField.get(errorObj);
-        String errorMessage = (String) errorMessageField.get(errorObj);
-        String requestId = (String) requestIdField.get(errorObj);
-        
+
+        final String errorCode = (String) errorCodeField.get(errorObj);
+        final String errorType = (String) errorTypeField.get(errorObj);
+        final String errorMessage = (String) errorMessageField.get(errorObj);
+        final String requestId = (String) requestIdField.get(errorObj);
+
         // Then
         assertNotNull(errorObj);
         assertEquals("TEST_ERROR", getErrorField(errorObj, "errorCode"));
@@ -1233,34 +2177,45 @@ class PlaidServiceTest {
     }
 
     @Test
-    void testParsePlaidErrorResponse_WithOnlyErrorMessage_ExtractsOnlyErrorMessage() throws Exception {
+    void testParsePlaidErrorResponseWithOnlyErrorMessageExtractsOnlyErrorMessage()
+            throws Exception {
         // Given
-        plaidService = new PlaidService("test-client-id", "test-secret", "sandbox", "", "", true, pciDSSComplianceService);
-        String errorBody = "{\"error_message\":\"Test error message\"}";
-        
+        plaidService =
+                new PlaidService(
+                        "test-client-id",
+                        "test-secret",
+                        "sandbox",
+                        "",
+                        "",
+                        true,
+                        pciDSSComplianceService);
+        final String errorBody = "{\"error_message\":\"Test error message\"}";
+
         // When - Use reflection to access private method
-        java.lang.reflect.Method method = PlaidService.class.getDeclaredMethod("parsePlaidErrorResponse", String.class);
+        final java.lang.reflect.Method method =
+                PlaidService.class.getDeclaredMethod("parsePlaidErrorResponse", String.class);
         method.setAccessible(true);
-        Object errorObj = method.invoke(plaidService, errorBody);
+        final Object errorObj = method.invoke(plaidService, errorBody);
         // Use reflection to access private inner class fields
         if (errorObj == null) {
             assertNull(errorObj);
             return;
         }
-        java.lang.reflect.Field errorCodeField = errorObj.getClass().getDeclaredField("errorCode");
+        final java.lang.reflect.Field errorCodeField = errorObj.getClass().getDeclaredField("errorCode");
         errorCodeField.setAccessible(true);
-        java.lang.reflect.Field errorTypeField = errorObj.getClass().getDeclaredField("errorType");
+        final java.lang.reflect.Field errorTypeField = errorObj.getClass().getDeclaredField("errorType");
         errorTypeField.setAccessible(true);
-        java.lang.reflect.Field errorMessageField = errorObj.getClass().getDeclaredField("errorMessage");
+        final java.lang.reflect.Field errorMessageField =
+                errorObj.getClass().getDeclaredField("errorMessage");
         errorMessageField.setAccessible(true);
-        java.lang.reflect.Field requestIdField = errorObj.getClass().getDeclaredField("requestId");
+        final java.lang.reflect.Field requestIdField = errorObj.getClass().getDeclaredField("requestId");
         requestIdField.setAccessible(true);
-        
-        String errorCode = (String) errorCodeField.get(errorObj);
-        String errorType = (String) errorTypeField.get(errorObj);
-        String errorMessage = (String) errorMessageField.get(errorObj);
-        String requestId = (String) requestIdField.get(errorObj);
-        
+
+        final String errorCode = (String) errorCodeField.get(errorObj);
+        final String errorType = (String) errorTypeField.get(errorObj);
+        final String errorMessage = (String) errorMessageField.get(errorObj);
+        final String requestId = (String) requestIdField.get(errorObj);
+
         // Then
         assertNotNull(errorObj);
         assertEquals("Test error message", getErrorField(errorObj, "errorMessage"));
@@ -1268,34 +2223,44 @@ class PlaidServiceTest {
     }
 
     @Test
-    void testParsePlaidErrorResponse_WithOnlyRequestId_ExtractsOnlyRequestId() throws Exception {
+    void testParsePlaidErrorResponseWithOnlyRequestIdExtractsOnlyRequestId() throws Exception {
         // Given
-        plaidService = new PlaidService("test-client-id", "test-secret", "sandbox", "", "", true, pciDSSComplianceService);
-        String errorBody = "{\"request_id\":\"req-123-456\"}";
-        
+        plaidService =
+                new PlaidService(
+                        "test-client-id",
+                        "test-secret",
+                        "sandbox",
+                        "",
+                        "",
+                        true,
+                        pciDSSComplianceService);
+        final String errorBody = "{\"request_id\":\"req-123-456\"}";
+
         // When - Use reflection to access private method
-        java.lang.reflect.Method method = PlaidService.class.getDeclaredMethod("parsePlaidErrorResponse", String.class);
+        final java.lang.reflect.Method method =
+                PlaidService.class.getDeclaredMethod("parsePlaidErrorResponse", String.class);
         method.setAccessible(true);
-        Object errorObj = method.invoke(plaidService, errorBody);
+        final Object errorObj = method.invoke(plaidService, errorBody);
         // Use reflection to access private inner class fields
         if (errorObj == null) {
             assertNull(errorObj);
             return;
         }
-        java.lang.reflect.Field errorCodeField = errorObj.getClass().getDeclaredField("errorCode");
+        final java.lang.reflect.Field errorCodeField = errorObj.getClass().getDeclaredField("errorCode");
         errorCodeField.setAccessible(true);
-        java.lang.reflect.Field errorTypeField = errorObj.getClass().getDeclaredField("errorType");
+        final java.lang.reflect.Field errorTypeField = errorObj.getClass().getDeclaredField("errorType");
         errorTypeField.setAccessible(true);
-        java.lang.reflect.Field errorMessageField = errorObj.getClass().getDeclaredField("errorMessage");
+        final java.lang.reflect.Field errorMessageField =
+                errorObj.getClass().getDeclaredField("errorMessage");
         errorMessageField.setAccessible(true);
-        java.lang.reflect.Field requestIdField = errorObj.getClass().getDeclaredField("requestId");
+        final java.lang.reflect.Field requestIdField = errorObj.getClass().getDeclaredField("requestId");
         requestIdField.setAccessible(true);
-        
-        String errorCode = (String) errorCodeField.get(errorObj);
-        String errorType = (String) errorTypeField.get(errorObj);
-        String errorMessage = (String) errorMessageField.get(errorObj);
-        String requestId = (String) requestIdField.get(errorObj);
-        
+
+        final String errorCode = (String) errorCodeField.get(errorObj);
+        final String errorType = (String) errorTypeField.get(errorObj);
+        final String errorMessage = (String) errorMessageField.get(errorObj);
+        final String requestId = (String) requestIdField.get(errorObj);
+
         // Then
         assertNotNull(errorObj);
         assertEquals("req-123-456", getErrorField(errorObj, "requestId"));
@@ -1303,34 +2268,44 @@ class PlaidServiceTest {
     }
 
     @Test
-    void testParsePlaidErrorResponse_WithUnicodeCharacters_HandlesCorrectly() throws Exception {
+    void testParsePlaidErrorResponseWithUnicodeCharactersHandlesCorrectly() throws Exception {
         // Given
-        plaidService = new PlaidService("test-client-id", "test-secret", "sandbox", "", "", true, pciDSSComplianceService);
-        String errorBody = "{\"error_code\":\"TEST\",\"error_message\":\"错误消息\"}";
-        
+        plaidService =
+                new PlaidService(
+                        "test-client-id",
+                        "test-secret",
+                        "sandbox",
+                        "",
+                        "",
+                        true,
+                        pciDSSComplianceService);
+        final String errorBody = "{\"error_code\":\"TEST\",\"error_message\":\"错误消息\"}";
+
         // When - Use reflection to access private method
-        java.lang.reflect.Method method = PlaidService.class.getDeclaredMethod("parsePlaidErrorResponse", String.class);
+        final java.lang.reflect.Method method =
+                PlaidService.class.getDeclaredMethod("parsePlaidErrorResponse", String.class);
         method.setAccessible(true);
-        Object errorObj = method.invoke(plaidService, errorBody);
+        final Object errorObj = method.invoke(plaidService, errorBody);
         // Use reflection to access private inner class fields
         if (errorObj == null) {
             assertNull(errorObj);
             return;
         }
-        java.lang.reflect.Field errorCodeField = errorObj.getClass().getDeclaredField("errorCode");
+        final java.lang.reflect.Field errorCodeField = errorObj.getClass().getDeclaredField("errorCode");
         errorCodeField.setAccessible(true);
-        java.lang.reflect.Field errorTypeField = errorObj.getClass().getDeclaredField("errorType");
+        final java.lang.reflect.Field errorTypeField = errorObj.getClass().getDeclaredField("errorType");
         errorTypeField.setAccessible(true);
-        java.lang.reflect.Field errorMessageField = errorObj.getClass().getDeclaredField("errorMessage");
+        final java.lang.reflect.Field errorMessageField =
+                errorObj.getClass().getDeclaredField("errorMessage");
         errorMessageField.setAccessible(true);
-        java.lang.reflect.Field requestIdField = errorObj.getClass().getDeclaredField("requestId");
+        final java.lang.reflect.Field requestIdField = errorObj.getClass().getDeclaredField("requestId");
         requestIdField.setAccessible(true);
-        
-        String errorCode = (String) errorCodeField.get(errorObj);
-        String errorType = (String) errorTypeField.get(errorObj);
-        String errorMessage = (String) errorMessageField.get(errorObj);
-        String requestId = (String) requestIdField.get(errorObj);
-        
+
+        final String errorCode = (String) errorCodeField.get(errorObj);
+        final String errorType = (String) errorTypeField.get(errorObj);
+        final String errorMessage = (String) errorMessageField.get(errorObj);
+        final String requestId = (String) requestIdField.get(errorObj);
+
         // Then
         assertNotNull(errorObj);
         assertEquals("TEST", getErrorField(errorObj, "errorCode"));
@@ -1338,35 +2313,45 @@ class PlaidServiceTest {
     }
 
     @Test
-    void testParsePlaidErrorResponse_WithVeryLongErrorBody_HandlesCorrectly() throws Exception {
+    void testParsePlaidErrorResponseWithVeryLongErrorBodyHandlesCorrectly() throws Exception {
         // Given
-        plaidService = new PlaidService("test-client-id", "test-secret", "sandbox", "", "", true, pciDSSComplianceService);
-        String longMessage = "a".repeat(10000);
-        String errorBody = "{\"error_code\":\"TEST\",\"error_message\":\"" + longMessage + "\"}";
-        
+        plaidService =
+                new PlaidService(
+                        "test-client-id",
+                        "test-secret",
+                        "sandbox",
+                        "",
+                        "",
+                        true,
+                        pciDSSComplianceService);
+        final String longMessage = "a".repeat(10_000);
+        final String errorBody = "{\"error_code\":\"TEST\",\"error_message\":\"" + longMessage + "\"}";
+
         // When - Use reflection to access private method
-        java.lang.reflect.Method method = PlaidService.class.getDeclaredMethod("parsePlaidErrorResponse", String.class);
+        final java.lang.reflect.Method method =
+                PlaidService.class.getDeclaredMethod("parsePlaidErrorResponse", String.class);
         method.setAccessible(true);
-        Object errorObj = method.invoke(plaidService, errorBody);
+        final Object errorObj = method.invoke(plaidService, errorBody);
         // Use reflection to access private inner class fields
         if (errorObj == null) {
             assertNull(errorObj);
             return;
         }
-        java.lang.reflect.Field errorCodeField = errorObj.getClass().getDeclaredField("errorCode");
+        final java.lang.reflect.Field errorCodeField = errorObj.getClass().getDeclaredField("errorCode");
         errorCodeField.setAccessible(true);
-        java.lang.reflect.Field errorTypeField = errorObj.getClass().getDeclaredField("errorType");
+        final java.lang.reflect.Field errorTypeField = errorObj.getClass().getDeclaredField("errorType");
         errorTypeField.setAccessible(true);
-        java.lang.reflect.Field errorMessageField = errorObj.getClass().getDeclaredField("errorMessage");
+        final java.lang.reflect.Field errorMessageField =
+                errorObj.getClass().getDeclaredField("errorMessage");
         errorMessageField.setAccessible(true);
-        java.lang.reflect.Field requestIdField = errorObj.getClass().getDeclaredField("requestId");
+        final java.lang.reflect.Field requestIdField = errorObj.getClass().getDeclaredField("requestId");
         requestIdField.setAccessible(true);
-        
-        String errorCode = (String) errorCodeField.get(errorObj);
-        String errorType = (String) errorTypeField.get(errorObj);
-        String errorMessage = (String) errorMessageField.get(errorObj);
-        String requestId = (String) requestIdField.get(errorObj);
-        
+
+        final String errorCode = (String) errorCodeField.get(errorObj);
+        final String errorType = (String) errorTypeField.get(errorObj);
+        final String errorMessage = (String) errorMessageField.get(errorObj);
+        final String requestId = (String) requestIdField.get(errorObj);
+
         // Then
         assertNotNull(errorObj);
         assertEquals("TEST", getErrorField(errorObj, "errorCode"));
@@ -1374,34 +2359,46 @@ class PlaidServiceTest {
     }
 
     @Test
-    void testParsePlaidErrorResponse_WithSpecialCharactersInValues_HandlesCorrectly() throws Exception {
+    void testParsePlaidErrorResponseWithSpecialCharactersInValuesHandlesCorrectly()
+            throws Exception {
         // Given
-        plaidService = new PlaidService("test-client-id", "test-secret", "sandbox", "", "", true, pciDSSComplianceService);
-        String errorBody = "{\"error_code\":\"TEST_123\",\"error_message\":\"Error: test@example.com failed\"}";
-        
+        plaidService =
+                new PlaidService(
+                        "test-client-id",
+                        "test-secret",
+                        "sandbox",
+                        "",
+                        "",
+                        true,
+                        pciDSSComplianceService);
+        final String errorBody =
+                "{\"error_code\":\"TEST_123\",\"error_message\":\"Error: test@example.com failed\"}";
+
         // When - Use reflection to access private method
-        java.lang.reflect.Method method = PlaidService.class.getDeclaredMethod("parsePlaidErrorResponse", String.class);
+        final java.lang.reflect.Method method =
+                PlaidService.class.getDeclaredMethod("parsePlaidErrorResponse", String.class);
         method.setAccessible(true);
-        Object errorObj = method.invoke(plaidService, errorBody);
+        final Object errorObj = method.invoke(plaidService, errorBody);
         // Use reflection to access private inner class fields
         if (errorObj == null) {
             assertNull(errorObj);
             return;
         }
-        java.lang.reflect.Field errorCodeField = errorObj.getClass().getDeclaredField("errorCode");
+        final java.lang.reflect.Field errorCodeField = errorObj.getClass().getDeclaredField("errorCode");
         errorCodeField.setAccessible(true);
-        java.lang.reflect.Field errorTypeField = errorObj.getClass().getDeclaredField("errorType");
+        final java.lang.reflect.Field errorTypeField = errorObj.getClass().getDeclaredField("errorType");
         errorTypeField.setAccessible(true);
-        java.lang.reflect.Field errorMessageField = errorObj.getClass().getDeclaredField("errorMessage");
+        final java.lang.reflect.Field errorMessageField =
+                errorObj.getClass().getDeclaredField("errorMessage");
         errorMessageField.setAccessible(true);
-        java.lang.reflect.Field requestIdField = errorObj.getClass().getDeclaredField("requestId");
+        final java.lang.reflect.Field requestIdField = errorObj.getClass().getDeclaredField("requestId");
         requestIdField.setAccessible(true);
-        
-        String errorCode = (String) errorCodeField.get(errorObj);
-        String errorType = (String) errorTypeField.get(errorObj);
-        String errorMessage = (String) errorMessageField.get(errorObj);
-        String requestId = (String) requestIdField.get(errorObj);
-        
+
+        final String errorCode = (String) errorCodeField.get(errorObj);
+        final String errorType = (String) errorTypeField.get(errorObj);
+        final String errorMessage = (String) errorMessageField.get(errorObj);
+        final String requestId = (String) requestIdField.get(errorObj);
+
         // Then
         assertNotNull(errorObj);
         assertEquals("TEST_123", getErrorField(errorObj, "errorCode"));
@@ -1409,34 +2406,44 @@ class PlaidServiceTest {
     }
 
     @Test
-    void testParsePlaidErrorResponse_WithNullValuesInJson_HandlesCorrectly() throws Exception {
+    void testParsePlaidErrorResponseWithNullValuesInJsonHandlesCorrectly() throws Exception {
         // Given
-        plaidService = new PlaidService("test-client-id", "test-secret", "sandbox", "", "", true, pciDSSComplianceService);
-        String errorBody = "{\"error_code\":null,\"error_message\":\"Test\",\"request_id\":null}";
-        
+        plaidService =
+                new PlaidService(
+                        "test-client-id",
+                        "test-secret",
+                        "sandbox",
+                        "",
+                        "",
+                        true,
+                        pciDSSComplianceService);
+        final String errorBody = "{\"error_code\":null,\"error_message\":\"Test\",\"request_id\":null}";
+
         // When - Use reflection to access private method
-        java.lang.reflect.Method method = PlaidService.class.getDeclaredMethod("parsePlaidErrorResponse", String.class);
+        final java.lang.reflect.Method method =
+                PlaidService.class.getDeclaredMethod("parsePlaidErrorResponse", String.class);
         method.setAccessible(true);
-        Object errorObj = method.invoke(plaidService, errorBody);
+        final Object errorObj = method.invoke(plaidService, errorBody);
         // Use reflection to access private inner class fields
         if (errorObj == null) {
             assertNull(errorObj);
             return;
         }
-        java.lang.reflect.Field errorCodeField = errorObj.getClass().getDeclaredField("errorCode");
+        final java.lang.reflect.Field errorCodeField = errorObj.getClass().getDeclaredField("errorCode");
         errorCodeField.setAccessible(true);
-        java.lang.reflect.Field errorTypeField = errorObj.getClass().getDeclaredField("errorType");
+        final java.lang.reflect.Field errorTypeField = errorObj.getClass().getDeclaredField("errorType");
         errorTypeField.setAccessible(true);
-        java.lang.reflect.Field errorMessageField = errorObj.getClass().getDeclaredField("errorMessage");
+        final java.lang.reflect.Field errorMessageField =
+                errorObj.getClass().getDeclaredField("errorMessage");
         errorMessageField.setAccessible(true);
-        java.lang.reflect.Field requestIdField = errorObj.getClass().getDeclaredField("requestId");
+        final java.lang.reflect.Field requestIdField = errorObj.getClass().getDeclaredField("requestId");
         requestIdField.setAccessible(true);
-        
-        String errorCode = (String) errorCodeField.get(errorObj);
-        String errorType = (String) errorTypeField.get(errorObj);
-        String errorMessage = (String) errorMessageField.get(errorObj);
-        String requestId = (String) requestIdField.get(errorObj);
-        
+
+        final String errorCode = (String) errorCodeField.get(errorObj);
+        final String errorType = (String) errorTypeField.get(errorObj);
+        final String errorMessage = (String) errorMessageField.get(errorObj);
+        final String requestId = (String) requestIdField.get(errorObj);
+
         // Then
         assertNotNull(errorObj);
         // String manipulation might extract "null" as string or handle it differently
@@ -1444,34 +2451,44 @@ class PlaidServiceTest {
     }
 
     @Test
-    void testParsePlaidErrorResponse_WithArrayInJson_HandlesCorrectly() throws Exception {
+    void testParsePlaidErrorResponseWithArrayInJsonHandlesCorrectly() throws Exception {
         // Given
-        plaidService = new PlaidService("test-client-id", "test-secret", "sandbox", "", "", true, pciDSSComplianceService);
-        String errorBody = "{\"error_code\":\"TEST\",\"errors\":[\"error1\",\"error2\"]}";
-        
+        plaidService =
+                new PlaidService(
+                        "test-client-id",
+                        "test-secret",
+                        "sandbox",
+                        "",
+                        "",
+                        true,
+                        pciDSSComplianceService);
+        final String errorBody = "{\"error_code\":\"TEST\",\"errors\":[\"error1\",\"error2\"]}";
+
         // When - Use reflection to access private method
-        java.lang.reflect.Method method = PlaidService.class.getDeclaredMethod("parsePlaidErrorResponse", String.class);
+        final java.lang.reflect.Method method =
+                PlaidService.class.getDeclaredMethod("parsePlaidErrorResponse", String.class);
         method.setAccessible(true);
-        Object errorObj = method.invoke(plaidService, errorBody);
+        final Object errorObj = method.invoke(plaidService, errorBody);
         // Use reflection to access private inner class fields
         if (errorObj == null) {
             assertNull(errorObj);
             return;
         }
-        java.lang.reflect.Field errorCodeField = errorObj.getClass().getDeclaredField("errorCode");
+        final java.lang.reflect.Field errorCodeField = errorObj.getClass().getDeclaredField("errorCode");
         errorCodeField.setAccessible(true);
-        java.lang.reflect.Field errorTypeField = errorObj.getClass().getDeclaredField("errorType");
+        final java.lang.reflect.Field errorTypeField = errorObj.getClass().getDeclaredField("errorType");
         errorTypeField.setAccessible(true);
-        java.lang.reflect.Field errorMessageField = errorObj.getClass().getDeclaredField("errorMessage");
+        final java.lang.reflect.Field errorMessageField =
+                errorObj.getClass().getDeclaredField("errorMessage");
         errorMessageField.setAccessible(true);
-        java.lang.reflect.Field requestIdField = errorObj.getClass().getDeclaredField("requestId");
+        final java.lang.reflect.Field requestIdField = errorObj.getClass().getDeclaredField("requestId");
         requestIdField.setAccessible(true);
-        
-        String errorCode = (String) errorCodeField.get(errorObj);
-        String errorType = (String) errorTypeField.get(errorObj);
-        String errorMessage = (String) errorMessageField.get(errorObj);
-        String requestId = (String) requestIdField.get(errorObj);
-        
+
+        final String errorCode = (String) errorCodeField.get(errorObj);
+        final String errorType = (String) errorTypeField.get(errorObj);
+        final String errorMessage = (String) errorMessageField.get(errorObj);
+        final String requestId = (String) requestIdField.get(errorObj);
+
         // Then
         assertNotNull(errorObj);
         assertEquals("TEST", getErrorField(errorObj, "errorCode"));
@@ -1479,34 +2496,44 @@ class PlaidServiceTest {
     }
 
     @Test
-    void testParsePlaidErrorResponse_WithBooleanValues_HandlesCorrectly() throws Exception {
+    void testParsePlaidErrorResponseWithBooleanValuesHandlesCorrectly() throws Exception {
         // Given
-        plaidService = new PlaidService("test-client-id", "test-secret", "sandbox", "", "", true, pciDSSComplianceService);
-        String errorBody = "{\"error_code\":\"TEST\",\"is_retryable\":true}";
-        
+        plaidService =
+                new PlaidService(
+                        "test-client-id",
+                        "test-secret",
+                        "sandbox",
+                        "",
+                        "",
+                        true,
+                        pciDSSComplianceService);
+        final String errorBody = "{\"error_code\":\"TEST\",\"is_retryable\":true}";
+
         // When - Use reflection to access private method
-        java.lang.reflect.Method method = PlaidService.class.getDeclaredMethod("parsePlaidErrorResponse", String.class);
+        final java.lang.reflect.Method method =
+                PlaidService.class.getDeclaredMethod("parsePlaidErrorResponse", String.class);
         method.setAccessible(true);
-        Object errorObj = method.invoke(plaidService, errorBody);
+        final Object errorObj = method.invoke(plaidService, errorBody);
         // Use reflection to access private inner class fields
         if (errorObj == null) {
             assertNull(errorObj);
             return;
         }
-        java.lang.reflect.Field errorCodeField = errorObj.getClass().getDeclaredField("errorCode");
+        final java.lang.reflect.Field errorCodeField = errorObj.getClass().getDeclaredField("errorCode");
         errorCodeField.setAccessible(true);
-        java.lang.reflect.Field errorTypeField = errorObj.getClass().getDeclaredField("errorType");
+        final java.lang.reflect.Field errorTypeField = errorObj.getClass().getDeclaredField("errorType");
         errorTypeField.setAccessible(true);
-        java.lang.reflect.Field errorMessageField = errorObj.getClass().getDeclaredField("errorMessage");
+        final java.lang.reflect.Field errorMessageField =
+                errorObj.getClass().getDeclaredField("errorMessage");
         errorMessageField.setAccessible(true);
-        java.lang.reflect.Field requestIdField = errorObj.getClass().getDeclaredField("requestId");
+        final java.lang.reflect.Field requestIdField = errorObj.getClass().getDeclaredField("requestId");
         requestIdField.setAccessible(true);
-        
-        String errorCode = (String) errorCodeField.get(errorObj);
-        String errorType = (String) errorTypeField.get(errorObj);
-        String errorMessage = (String) errorMessageField.get(errorObj);
-        String requestId = (String) requestIdField.get(errorObj);
-        
+
+        final String errorCode = (String) errorCodeField.get(errorObj);
+        final String errorType = (String) errorTypeField.get(errorObj);
+        final String errorMessage = (String) errorMessageField.get(errorObj);
+        final String requestId = (String) requestIdField.get(errorObj);
+
         // Then
         assertNotNull(errorObj);
         assertEquals("TEST", getErrorField(errorObj, "errorCode"));
@@ -1514,34 +2541,44 @@ class PlaidServiceTest {
     }
 
     @Test
-    void testParsePlaidErrorResponse_WithNumericValues_HandlesCorrectly() throws Exception {
+    void testParsePlaidErrorResponseWithNumericValuesHandlesCorrectly() throws Exception {
         // Given
-        plaidService = new PlaidService("test-client-id", "test-secret", "sandbox", "", "", true, pciDSSComplianceService);
-        String errorBody = "{\"error_code\":\"TEST\",\"status_code\":429}";
-        
+        plaidService =
+                new PlaidService(
+                        "test-client-id",
+                        "test-secret",
+                        "sandbox",
+                        "",
+                        "",
+                        true,
+                        pciDSSComplianceService);
+        final String errorBody = "{\"error_code\":\"TEST\",\"status_code\":429}";
+
         // When - Use reflection to access private method
-        java.lang.reflect.Method method = PlaidService.class.getDeclaredMethod("parsePlaidErrorResponse", String.class);
+        final java.lang.reflect.Method method =
+                PlaidService.class.getDeclaredMethod("parsePlaidErrorResponse", String.class);
         method.setAccessible(true);
-        Object errorObj = method.invoke(plaidService, errorBody);
+        final Object errorObj = method.invoke(plaidService, errorBody);
         // Use reflection to access private inner class fields
         if (errorObj == null) {
             assertNull(errorObj);
             return;
         }
-        java.lang.reflect.Field errorCodeField = errorObj.getClass().getDeclaredField("errorCode");
+        final java.lang.reflect.Field errorCodeField = errorObj.getClass().getDeclaredField("errorCode");
         errorCodeField.setAccessible(true);
-        java.lang.reflect.Field errorTypeField = errorObj.getClass().getDeclaredField("errorType");
+        final java.lang.reflect.Field errorTypeField = errorObj.getClass().getDeclaredField("errorType");
         errorTypeField.setAccessible(true);
-        java.lang.reflect.Field errorMessageField = errorObj.getClass().getDeclaredField("errorMessage");
+        final java.lang.reflect.Field errorMessageField =
+                errorObj.getClass().getDeclaredField("errorMessage");
         errorMessageField.setAccessible(true);
-        java.lang.reflect.Field requestIdField = errorObj.getClass().getDeclaredField("requestId");
+        final java.lang.reflect.Field requestIdField = errorObj.getClass().getDeclaredField("requestId");
         requestIdField.setAccessible(true);
-        
-        String errorCode = (String) errorCodeField.get(errorObj);
-        String errorType = (String) errorTypeField.get(errorObj);
-        String errorMessage = (String) errorMessageField.get(errorObj);
-        String requestId = (String) requestIdField.get(errorObj);
-        
+
+        final String errorCode = (String) errorCodeField.get(errorObj);
+        final String errorType = (String) errorTypeField.get(errorObj);
+        final String errorMessage = (String) errorMessageField.get(errorObj);
+        final String requestId = (String) requestIdField.get(errorObj);
+
         // Then
         assertNotNull(errorObj);
         assertEquals("TEST", getErrorField(errorObj, "errorCode"));

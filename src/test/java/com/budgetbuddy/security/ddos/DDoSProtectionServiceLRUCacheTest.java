@@ -1,7 +1,12 @@
 package com.budgetbuddy.security.ddos;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import com.budgetbuddy.AWSTestConfiguration;
 import com.budgetbuddy.util.TableInitializer;
+import java.util.Map;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -13,30 +18,25 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 
-import java.util.Map;
-
-import static org.junit.jupiter.api.Assertions.*;
-
 /**
- * Unit tests for DDoS Protection Service LRU Cache and Metrics
- * Tests the new LRU cache implementation and cache metrics functionality
+ * Unit tests for DDoS Protection Service LRU Cache and Metrics Tests the new LRU cache
+ * implementation and cache metrics functionality
  */
 @SpringBootTest(classes = com.budgetbuddy.BudgetBuddyApplication.class)
 @ActiveProfiles("test")
 @Import(AWSTestConfiguration.class)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-@TestPropertySource(properties = {
-    "app.rate-limit.enabled=true",
-    "app.rate-limit.ddos.max-requests-per-minute=100",
-    "app.rate-limit.ddos.max-cache-size=5" // Small cache size for testing
-})
+@TestPropertySource(
+        properties = {
+            "app.rate-limit.enabled=true",
+            "app.rate-limit.ddos.max-requests-per-minute=100",
+            "app.rate-limit.ddos.max-cache-size=5" // Small cache size for testing
+        })
 class DDoSProtectionServiceLRUCacheTest {
 
-    @Autowired
-    private DDoSProtectionService ddosProtectionService;
+    @Autowired private DDoSProtectionService ddosProtectionService;
 
-    @Autowired
-    private DynamoDbClient dynamoDbClient;
+    @Autowired private DynamoDbClient dynamoDbClient;
 
     @BeforeAll
     void ensureTablesInitialized() {
@@ -47,21 +47,23 @@ class DDoSProtectionServiceLRUCacheTest {
     void setUp() throws Exception {
         // Reset cache metrics before each test
         ddosProtectionService.resetCacheMetrics();
-        
+
         // Clear the cache itself (not just metrics) using reflection
-        java.lang.reflect.Field cacheField = DDoSProtectionService.class.getDeclaredField("inMemoryCache");
+        final java.lang.reflect.Field cacheField =
+                DDoSProtectionService.class.getDeclaredField("inMemoryCache");
         cacheField.setAccessible(true);
-        @SuppressWarnings("unchecked")
-        java.util.Map<String, ?> cache = (java.util.Map<String, ?>) cacheField.get(ddosProtectionService);
+        @SuppressWarnings("unchecked") final
+                java.util.Map<String, ?> cache =
+                (java.util.Map<String, ?>) cacheField.get(ddosProtectionService);
         if (cache != null) {
             cache.clear();
         }
     }
 
     @Test
-    void testLRUCache_EvictsOldestEntry_WhenMaxSizeExceeded() {
+    void testLRUCacheEvictsOldestEntryWhenMaxSizeExceeded() {
         // Given - Cache size limit of 5
-        String[] ips = new String[7]; // More than cache size
+        final String[] ips = new String[7]; // More than cache size
         for (int i = 0; i < 7; i++) {
             ips[i] = "192.168.1." + (100 + i);
         }
@@ -83,27 +85,29 @@ class DDoSProtectionServiceLRUCacheTest {
 
         // Then - First IP should still be in cache (was accessed recently)
         // We verify by checking that it's still tracked
-        boolean firstIpAllowed = ddosProtectionService.isAllowed(ips[0]);
-        assertTrue(firstIpAllowed || !firstIpAllowed, 
+        final boolean firstIpAllowed = ddosProtectionService.isAllowed(ips[0]);
+        assertTrue(
+                firstIpAllowed || !firstIpAllowed,
                 "First IP should still be accessible (was recently used)");
 
         // Verify cache size doesn't exceed limit
-        Map<String, Object> metrics = ddosProtectionService.getCacheMetrics();
-        int cacheSize = (Integer) metrics.get("size");
-        int maxSize = (Integer) metrics.get("maxSize");
-        assertTrue(cacheSize <= maxSize, 
+        final Map<String, Object> metrics = ddosProtectionService.getCacheMetrics();
+        final int cacheSize = (Integer) metrics.get("size");
+        final int maxSize = (Integer) metrics.get("maxSize");
+        assertTrue(
+                cacheSize <= maxSize,
                 "Cache size should not exceed max size. Size: " + cacheSize + ", Max: " + maxSize);
     }
 
     @Test
-    void testLRUCache_KeepsRecentlyUsedEntries() {
+    void testLRUCacheKeepsRecentlyUsedEntries() {
         // Given - Multiple IPs
-        String ip1 = "192.168.1.101";
-        String ip2 = "192.168.1.102";
-        String ip3 = "192.168.1.103";
-        String ip4 = "192.168.1.104";
-        String ip5 = "192.168.1.105";
-        String ip6 = "192.168.1.106";
+        final String ip1 = "192.168.1.101";
+        final String ip2 = "192.168.1.102";
+        final String ip3 = "192.168.1.103";
+        final String ip4 = "192.168.1.104";
+        final String ip5 = "192.168.1.105";
+        final String ip6 = "192.168.1.106";
 
         // When - Add entries and access some repeatedly
         ddosProtectionService.isAllowed(ip1);
@@ -124,18 +128,18 @@ class DDoSProtectionServiceLRUCacheTest {
         ddosProtectionService.isAllowed(ip1);
         ddosProtectionService.isAllowed(ip2);
 
-        Map<String, Object> metrics = ddosProtectionService.getCacheMetrics();
-        int cacheSize = (Integer) metrics.get("size");
+        final Map<String, Object> metrics = ddosProtectionService.getCacheMetrics();
+        final int cacheSize = (Integer) metrics.get("size");
         assertTrue(cacheSize <= 5, "Cache should maintain size limit");
     }
 
     @Test
-    void testCacheMetrics_InitialState_ZeroHitsAndMisses() {
+    void testCacheMetricsInitialStateZeroHitsAndMisses() {
         // Given - Fresh service with reset metrics
         ddosProtectionService.resetCacheMetrics();
 
         // When - Get metrics
-        Map<String, Object> metrics = ddosProtectionService.getCacheMetrics();
+        final Map<String, Object> metrics = ddosProtectionService.getCacheMetrics();
 
         // Then
         assertEquals(0L, metrics.get("hits"), "Initial hits should be 0");
@@ -145,9 +149,9 @@ class DDoSProtectionServiceLRUCacheTest {
     }
 
     @Test
-    void testCacheMetrics_TracksHits_WhenEntryInCache() {
+    void testCacheMetricsTracksHitsWhenEntryInCache() {
         // Given - IP address
-        String testIp = "192.168.1.200";
+        final String testIp = "192.168.1.200";
 
         // When - Make multiple requests (first is miss, subsequent are hits)
         ddosProtectionService.isAllowed(testIp); // Miss
@@ -155,38 +159,38 @@ class DDoSProtectionServiceLRUCacheTest {
         ddosProtectionService.isAllowed(testIp); // Hit
 
         // Then - Metrics should show hits
-        Map<String, Object> metrics = ddosProtectionService.getCacheMetrics();
-        long hits = (Long) metrics.get("hits");
-        long misses = (Long) metrics.get("misses");
+        final Map<String, Object> metrics = ddosProtectionService.getCacheMetrics();
+        final long hits = (Long) metrics.get("hits");
+        final long misses = (Long) metrics.get("misses");
 
         assertTrue(hits >= 1, "Should have at least 1 cache hit. Hits: " + hits);
         assertTrue(misses >= 1, "Should have at least 1 cache miss. Misses: " + misses);
     }
 
     @Test
-    void testCacheMetrics_TracksMisses_WhenEntryNotInCache() {
+    void testCacheMetricsTracksMissesWhenEntryNotInCache() {
         // Given - Multiple unique IPs
-        String[] ips = new String[10];
+        final String[] ips = new String[10];
         for (int i = 0; i < 10; i++) {
             ips[i] = "192.168.2." + (200 + i);
         }
 
         // When - Make requests from different IPs (all misses)
-        for (String ip : ips) {
+        for (final String ip : ips) {
             ddosProtectionService.isAllowed(ip);
         }
 
         // Then - Metrics should show misses
-        Map<String, Object> metrics = ddosProtectionService.getCacheMetrics();
-        long misses = (Long) metrics.get("misses");
+        final Map<String, Object> metrics = ddosProtectionService.getCacheMetrics();
+        final long misses = (Long) metrics.get("misses");
 
         assertTrue(misses >= 5, "Should have multiple cache misses. Misses: " + misses);
     }
 
     @Test
-    void testCacheMetrics_CalculatesHitRate_Correctly() {
+    void testCacheMetricsCalculatesHitRateCorrectly() {
         // Given - IP address
-        String testIp = "192.168.1.250";
+        final String testIp = "192.168.1.250";
 
         // When - Make requests (mix of hits and misses)
         ddosProtectionService.isAllowed(testIp); // Miss
@@ -195,129 +199,150 @@ class DDoSProtectionServiceLRUCacheTest {
         ddosProtectionService.isAllowed(testIp); // Hit
 
         // Then - Hit rate should be calculated correctly
-        Map<String, Object> metrics = ddosProtectionService.getCacheMetrics();
-        long hits = (Long) metrics.get("hits");
-        long misses = (Long) metrics.get("misses");
-        double hitRate = (Double) metrics.get("hitRate");
+        final Map<String, Object> metrics = ddosProtectionService.getCacheMetrics();
+        final long hits = (Long) metrics.get("hits");
+        final long misses = (Long) metrics.get("misses");
+        final double hitRate = (Double) metrics.get("hitRate");
 
-        long total = hits + misses;
+        final long total = hits + misses;
         if (total > 0) {
-            double expectedHitRate = (double) hits / total;
-            assertEquals(expectedHitRate, hitRate, 0.01, 
-                    "Hit rate should match calculated value. Hits: " + hits + ", Misses: " + misses);
+            final double expectedHitRate = (double) hits / total;
+            assertEquals(
+                    expectedHitRate,
+                    hitRate,
+                    0.01,
+                    "Hit rate should match calculated value. Hits: "
+                            + hits
+                            + ", Misses: "
+                            + misses);
         }
     }
 
     @Test
-    void testCacheMetrics_ShowsCacheSize() {
+    void testCacheMetricsShowsCacheSize() {
         // Given - Multiple IPs
-        int ipCount = 3;
-        String[] ips = new String[ipCount];
+        final int ipCount = 3;
+        final String[] ips = new String[ipCount];
         for (int i = 0; i < ipCount; i++) {
             ips[i] = "192.168.3." + (100 + i);
         }
 
         // When - Add entries to cache
-        for (String ip : ips) {
+        for (final String ip : ips) {
             ddosProtectionService.isAllowed(ip);
         }
 
         // Then - Cache size should reflect entries
-        Map<String, Object> metrics = ddosProtectionService.getCacheMetrics();
-        int cacheSize = (Integer) metrics.get("size");
-        int maxSize = (Integer) metrics.get("maxSize");
+        final Map<String, Object> metrics = ddosProtectionService.getCacheMetrics();
+        final int cacheSize = (Integer) metrics.get("size");
+        final int maxSize = (Integer) metrics.get("maxSize");
 
-        assertTrue(cacheSize >= 0 && cacheSize <= maxSize, 
+        assertTrue(
+                cacheSize >= 0 && cacheSize <= maxSize,
                 "Cache size should be within bounds. Size: " + cacheSize + ", Max: " + maxSize);
-        // Cache size should be at least the number of entries added (might be more if entries from other tests)
+        // Cache size should be at least the number of entries added (might be more if entries from
+        // other tests)
         // But should not exceed maxSize
-        assertTrue(cacheSize >= ipCount && cacheSize <= maxSize, 
-                "Cache size should be at least number of entries added and not exceed max. Size: " + cacheSize + ", Added: " + ipCount + ", Max: " + maxSize);
+        assertTrue(
+                cacheSize >= ipCount && cacheSize <= maxSize,
+                "Cache size should be at least number of entries added and not exceed max. Size: "
+                        + cacheSize
+                        + ", Added: "
+                        + ipCount
+                        + ", Max: "
+                        + maxSize);
     }
 
     @Test
-    void testCacheMetrics_ResetMetrics_ClearsCounters() {
+    void testCacheMetricsResetMetricsClearsCounters() {
         // Given - Metrics with some activity
-        String testIp = "192.168.1.300";
+        final String testIp = "192.168.1.300";
         ddosProtectionService.isAllowed(testIp);
         ddosProtectionService.isAllowed(testIp);
 
         // Verify metrics exist before reset
-        Map<String, Object> beforeReset = ddosProtectionService.getCacheMetrics();
+        final Map<String, Object> beforeReset = ddosProtectionService.getCacheMetrics();
         assertNotNull(beforeReset, "Metrics should exist before reset");
 
         // When - Reset metrics
         ddosProtectionService.resetCacheMetrics();
 
         // Then - Metrics should be zero
-        Map<String, Object> afterReset = ddosProtectionService.getCacheMetrics();
+        final Map<String, Object> afterReset = ddosProtectionService.getCacheMetrics();
         assertEquals(0L, afterReset.get("hits"), "Hits should be reset to 0");
         assertEquals(0L, afterReset.get("misses"), "Misses should be reset to 0");
-        assertEquals(0.0, (Double) afterReset.get("hitRate"), 0.01, "Hit rate should be reset to 0");
+        assertEquals(
+                0.0, (Double) afterReset.get("hitRate"), 0.01, "Hit rate should be reset to 0");
 
         // Cache size should remain (not reset)
-        int sizeAfter = (Integer) afterReset.get("size");
+        final int sizeAfter = (Integer) afterReset.get("size");
         assertTrue(sizeAfter >= 0, "Cache size should remain after metrics reset");
     }
 
     @Test
-    void testLRUCache_ConcurrentAccess_ThreadSafe() throws InterruptedException {
+    void testLRUCacheConcurrentAccessThreadSafe() throws InterruptedException {
         // Given - Multiple threads accessing cache concurrently
-        int threadCount = 5;
-        int requestsPerThread = 10;
-        Thread[] threads = new Thread[threadCount];
-        java.util.concurrent.CountDownLatch latch = new java.util.concurrent.CountDownLatch(threadCount);
-        java.util.concurrent.atomic.AtomicInteger errors = new java.util.concurrent.atomic.AtomicInteger(0);
+        final int threadCount = 5;
+        final int requestsPerThread = 10;
+        final Thread[] threads = new Thread[threadCount];
+        final java.util.concurrent.CountDownLatch latch =
+                new java.util.concurrent.CountDownLatch(threadCount);
+        final java.util.concurrent.atomic.AtomicInteger errors =
+                new java.util.concurrent.atomic.AtomicInteger(0);
 
         // When - All threads make concurrent requests
         for (int i = 0; i < threadCount; i++) {
             final int threadId = i;
-            threads[i] = new Thread(() -> {
-                try {
-                    for (int j = 0; j < requestsPerThread; j++) {
-                        String ip = "192.168.4." + (threadId * 100 + j);
-                        try {
-                            ddosProtectionService.isAllowed(ip);
-                        } catch (Exception e) {
-                            errors.incrementAndGet();
-                        }
-                    }
-                } finally {
-                    latch.countDown();
-                }
-            });
+            threads[i] =
+                    new Thread(
+                            () -> {
+                                try {
+                                    for (int j = 0; j < requestsPerThread; j++) {
+                                        final String ip = "192.168.4." + (threadId * 100 + j);
+                                        try {
+                                            ddosProtectionService.isAllowed(ip);
+                                        } catch (Exception e) {
+                                            errors.incrementAndGet();
+                                        }
+                                    }
+                                } finally {
+                                    latch.countDown();
+                                }
+                            });
             threads[i].start();
         }
 
         // Wait for all threads to complete
-        assertTrue(latch.await(10, java.util.concurrent.TimeUnit.SECONDS), 
+        assertTrue(
+                latch.await(10, java.util.concurrent.TimeUnit.SECONDS),
                 "All threads should complete within timeout");
 
         // Then - No errors should occur (thread-safe)
         assertEquals(0, errors.get(), "No errors should occur with concurrent access");
 
         // Cache should maintain size limit
-        Map<String, Object> metrics = ddosProtectionService.getCacheMetrics();
-        int cacheSize = (Integer) metrics.get("size");
-        int maxSize = (Integer) metrics.get("maxSize");
-        assertTrue(cacheSize <= maxSize, 
-                "Cache size should not exceed max size under concurrent access. Size: " + cacheSize);
+        final Map<String, Object> metrics = ddosProtectionService.getCacheMetrics();
+        final int cacheSize = (Integer) metrics.get("size");
+        final int maxSize = (Integer) metrics.get("maxSize");
+        assertTrue(
+                cacheSize <= maxSize,
+                "Cache size should not exceed max size under concurrent access. Size: "
+                        + cacheSize);
     }
 
     @Test
-    void testLRUCache_ExpiredEntries_RemovedOnCleanup() {
+    void testLRUCacheExpiredEntriesRemovedOnCleanup() {
         // Given - IP with expired entry (would require time manipulation)
         // This test verifies the structure - actual expiration tested in integration tests
-        String testIp = "192.168.1.400";
+        final String testIp = "192.168.1.400";
         ddosProtectionService.isAllowed(testIp);
 
         // When - Get metrics
-        Map<String, Object> metrics = ddosProtectionService.getCacheMetrics();
-        int initialSize = (Integer) metrics.get("size");
+        final Map<String, Object> metrics = ddosProtectionService.getCacheMetrics();
+        final int initialSize = (Integer) metrics.get("size");
 
         // Then - Cache should handle expiration
         assertTrue(initialSize >= 0, "Cache should handle entries");
         // Note: Actual expiration requires time to pass, tested in integration tests
     }
 }
-

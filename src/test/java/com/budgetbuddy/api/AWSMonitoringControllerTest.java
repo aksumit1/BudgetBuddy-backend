@@ -1,11 +1,22 @@
 package com.budgetbuddy.api;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import com.budgetbuddy.aws.cloudformation.CloudFormationService;
 import com.budgetbuddy.aws.cloudtrail.CloudTrailService;
+import com.budgetbuddy.aws.codepipeline.CodePipelineService;
 import com.budgetbuddy.model.dynamodb.UserTable;
 import com.budgetbuddy.service.UserService;
 import com.budgetbuddy.service.aws.CloudWatchService;
-import com.budgetbuddy.aws.codepipeline.CodePipelineService;
+import java.time.Instant;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -16,44 +27,23 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.userdetails.UserDetails;
 
-import java.time.Instant;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.*;
-
-/**
- * Unit Tests for AWSMonitoringController
- */
+/** Unit Tests for AWSMonitoringController */
 @ExtendWith(MockitoExtension.class)
 class AWSMonitoringControllerTest {
 
-    @Mock
-    private CloudWatchService cloudWatchService;
+    @Mock private CloudWatchService cloudWatchService;
 
-    @Mock
-    private CloudTrailService cloudTrailService;
+    @Mock private CloudTrailService cloudTrailService;
 
-    @Mock
-    private CloudFormationService cloudFormationService;
+    @Mock private CloudFormationService cloudFormationService;
 
-    @Mock
-    private CodePipelineService codePipelineService;
+    @Mock private CodePipelineService codePipelineService;
 
-    @Mock
-    private UserService userService;
+    @Mock private UserService userService;
 
-    @Mock
-    private UserDetails userDetails;
+    @Mock private UserDetails userDetails;
 
-    @InjectMocks
-    private AWSMonitoringController controller;
+    @InjectMocks private AWSMonitoringController controller;
 
     private UserTable testUser;
     private UserTable adminUser;
@@ -74,12 +64,13 @@ class AWSMonitoringControllerTest {
     }
 
     @Test
-    void testGetCloudWatchMetrics_WithAdminAccess_ReturnsMetrics() {
+    void testGetCloudWatchMetricsWithAdminAccessReturnsMetrics() {
         // Given
-        Instant startTime = Instant.now().minusSeconds(3600);
-        Instant endTime = Instant.now();
-        software.amazon.awssdk.services.cloudwatch.model.GetMetricStatisticsResponse statistics = 
-                software.amazon.awssdk.services.cloudwatch.model.GetMetricStatisticsResponse.builder()
+        final Instant startTime = Instant.now().minusSeconds(3600);
+        final Instant endTime = Instant.now();
+        final software.amazon.awssdk.services.cloudwatch.model.GetMetricStatisticsResponse statistics =
+                software.amazon.awssdk.services.cloudwatch.model.GetMetricStatisticsResponse
+                        .builder()
                         .label("CPUUtilization")
                         .datapoints(java.util.Collections.emptyList())
                         .build();
@@ -90,7 +81,7 @@ class AWSMonitoringControllerTest {
                 .thenReturn(statistics);
 
         // When
-        ResponseEntity<Map<String, Object>> response = 
+        final ResponseEntity<Map<String, Object>> response =
                 controller.getCloudWatchMetrics(userDetails, "CPUUtilization", startTime, endTime);
 
         // Then
@@ -100,14 +91,14 @@ class AWSMonitoringControllerTest {
     }
 
     @Test
-    void testGetCloudWatchMetrics_WithUserAccess_ReturnsForbidden() {
+    void testGetCloudWatchMetricsWithUserAccessReturnsForbidden() {
         // Given
-        Instant startTime = Instant.now().minusSeconds(3600);
-        Instant endTime = Instant.now();
+        final Instant startTime = Instant.now().minusSeconds(3600);
+        final Instant endTime = Instant.now();
         when(userService.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
 
         // When
-        ResponseEntity<Map<String, Object>> response = 
+        final ResponseEntity<Map<String, Object>> response =
                 controller.getCloudWatchMetrics(userDetails, "CPUUtilization", startTime, endTime);
 
         // Then
@@ -115,18 +106,18 @@ class AWSMonitoringControllerTest {
     }
 
     @Test
-    void testGetCloudTrailEvents_WithAdminAccess_ReturnsEvents() {
+    void testGetCloudTrailEventsWithAdminAccessReturnsEvents() {
         // Given
-        Instant startTime = Instant.now().minusSeconds(86400);
-        Instant endTime = Instant.now();
-        List<software.amazon.awssdk.services.cloudtrail.model.Event> events = Arrays.asList();
+        final Instant startTime = Instant.now().minusSeconds(86_400);
+        final Instant endTime = Instant.now();
+        final List<software.amazon.awssdk.services.cloudtrail.model.Event> events = Arrays.asList();
 
         when(userService.findByEmail("admin@example.com")).thenReturn(Optional.of(adminUser));
         when(userDetails.getUsername()).thenReturn("admin@example.com");
         when(cloudTrailService.lookupEvents("admin-123", startTime, endTime)).thenReturn(events);
 
         // When
-        ResponseEntity<List<software.amazon.awssdk.services.cloudtrail.model.Event>> response = 
+        final ResponseEntity<List<software.amazon.awssdk.services.cloudtrail.model.Event>> response =
                 controller.getCloudTrailEvents(userDetails, null, startTime, endTime);
 
         // Then
@@ -135,18 +126,18 @@ class AWSMonitoringControllerTest {
     }
 
     @Test
-    void testGetCloudTrailEvents_WithUserId_ReturnsEventsForUser() {
+    void testGetCloudTrailEventsWithUserIdReturnsEventsForUser() {
         // Given
-        Instant startTime = Instant.now().minusSeconds(86400);
-        Instant endTime = Instant.now();
-        List<software.amazon.awssdk.services.cloudtrail.model.Event> events = Arrays.asList();
+        final Instant startTime = Instant.now().minusSeconds(86_400);
+        final Instant endTime = Instant.now();
+        final List<software.amazon.awssdk.services.cloudtrail.model.Event> events = Arrays.asList();
 
         when(userService.findByEmail("admin@example.com")).thenReturn(Optional.of(adminUser));
         when(userDetails.getUsername()).thenReturn("admin@example.com");
         when(cloudTrailService.lookupEvents("user-456", startTime, endTime)).thenReturn(events);
 
         // When
-        ResponseEntity<List<software.amazon.awssdk.services.cloudtrail.model.Event>> response = 
+        final ResponseEntity<List<software.amazon.awssdk.services.cloudtrail.model.Event>> response =
                 controller.getCloudTrailEvents(userDetails, "user-456", startTime, endTime);
 
         // Then
@@ -155,17 +146,18 @@ class AWSMonitoringControllerTest {
     }
 
     @Test
-    void testGetCloudFormationStacks_WithAdminAccess_ReturnsStacks() {
+    void testGetCloudFormationStacksWithAdminAccessReturnsStacks() {
         // Given
-        List<software.amazon.awssdk.services.cloudformation.model.StackSummary> stacks = Arrays.asList();
+        final List<software.amazon.awssdk.services.cloudformation.model.StackSummary> stacks =
+                Arrays.asList();
 
         when(userService.findByEmail("admin@example.com")).thenReturn(Optional.of(adminUser));
         when(userDetails.getUsername()).thenReturn("admin@example.com");
         when(cloudFormationService.listStacks()).thenReturn(stacks);
 
         // When
-        ResponseEntity<List<software.amazon.awssdk.services.cloudformation.model.StackSummary>> response = 
-                controller.getCloudFormationStacks(userDetails);
+        final ResponseEntity<List<software.amazon.awssdk.services.cloudformation.model.StackSummary>>
+                response = controller.getCloudFormationStacks(userDetails);
 
         // Then
         assertEquals(HttpStatus.OK, response.getStatusCode());
@@ -173,17 +165,17 @@ class AWSMonitoringControllerTest {
     }
 
     @Test
-    void testGetCodePipelineStatus_WithAdminAccess_ReturnsStatus() {
+    void testGetCodePipelineStatusWithAdminAccessReturnsStatus() {
         // Given
-        String pipelineName = "budgetbuddy-pipeline";
-        String status = "SUCCEEDED";
+        final String pipelineName = "budgetbuddy-pipeline";
+        final String status = "SUCCEEDED";
 
         when(userService.findByEmail("admin@example.com")).thenReturn(Optional.of(adminUser));
         when(userDetails.getUsername()).thenReturn("admin@example.com");
         when(codePipelineService.getPipelineStatus(pipelineName)).thenReturn(status);
 
         // When
-        ResponseEntity<Map<String, String>> response = 
+        final ResponseEntity<Map<String, String>> response =
                 controller.getCodePipelineStatus(userDetails, pipelineName);
 
         // Then
@@ -194,17 +186,16 @@ class AWSMonitoringControllerTest {
     }
 
     @Test
-    void testGetCodePipelineStatus_WithUserAccess_ReturnsForbidden() {
+    void testGetCodePipelineStatusWithUserAccessReturnsForbidden() {
         // Given
-        String pipelineName = "budgetbuddy-pipeline";
+        final String pipelineName = "budgetbuddy-pipeline";
         when(userService.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
 
         // When
-        ResponseEntity<Map<String, String>> response = 
+        final ResponseEntity<Map<String, String>> response =
                 controller.getCodePipelineStatus(userDetails, pipelineName);
 
         // Then
         assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
     }
 }
-

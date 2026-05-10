@@ -1,24 +1,21 @@
 package com.budgetbuddy.repository.dynamodb;
 
 import com.budgetbuddy.model.dynamodb.FIDO2CredentialTable;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Repository;
+import software.amazon.awssdk.core.pagination.sync.SdkIterable;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbIndex;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable;
 import software.amazon.awssdk.enhanced.dynamodb.Key;
 import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
 import software.amazon.awssdk.enhanced.dynamodb.model.QueryConditional;
-import software.amazon.awssdk.core.pagination.sync.SdkIterable;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-
-/**
- * DynamoDB Repository for FIDO2 Credentials
- */
+/** DynamoDB Repository for FIDO2 Credentials */
 @Repository
 public class FIDO2CredentialRepository {
 
@@ -28,10 +25,13 @@ public class FIDO2CredentialRepository {
 
     public FIDO2CredentialRepository(
             final DynamoDbEnhancedClient enhancedClient,
-            @org.springframework.beans.factory.annotation.Value("${app.aws.dynamodb.table-prefix:BudgetBuddy}") final String tablePrefix) {
+            @org.springframework.beans.factory.annotation.Value(
+                            "${app.aws.dynamodb.table-prefix:BudgetBuddy}")
+                    final String tablePrefix) {
         this.tableName = tablePrefix + "-FIDO2Credentials";
-        this.credentialTable = enhancedClient.table(this.tableName, 
-                TableSchema.fromBean(FIDO2CredentialTable.class));
+        this.credentialTable =
+                enhancedClient.table(
+                        this.tableName, TableSchema.fromBean(FIDO2CredentialTable.class));
         this.userIdIndex = credentialTable.index("UserIdIndex");
     }
 
@@ -47,22 +47,28 @@ public class FIDO2CredentialRepository {
         if (credentialId == null || credentialId.isEmpty()) {
             return Optional.empty();
         }
-        FIDO2CredentialTable credential = credentialTable.getItem(
-                Key.builder().partitionValue(credentialId).build());
+        final FIDO2CredentialTable credential =
+                credentialTable.getItem(Key.builder().partitionValue(credentialId).build());
         return Optional.ofNullable(credential);
     }
 
-    @Cacheable(value = "fido2Credentials", key = "#userId", unless = "#result == null || #result.isEmpty()")
+    @Cacheable(
+            value = "fido2Credentials",
+            key = "#userId",
+            unless = "#result == null || #result.isEmpty()")
     public List<FIDO2CredentialTable> findByUserId(final String userId) {
         if (userId == null || userId.isEmpty()) {
             return List.of();
         }
-        List<FIDO2CredentialTable> credentials = new ArrayList<>();
+        final List<FIDO2CredentialTable> credentials = new ArrayList<>();
         try {
-            SdkIterable<software.amazon.awssdk.enhanced.dynamodb.model.Page<FIDO2CredentialTable>> pages =
-                    userIdIndex.query(QueryConditional.keyEqualTo(
-                            Key.builder().partitionValue(userId).build()));
-            for (software.amazon.awssdk.enhanced.dynamodb.model.Page<FIDO2CredentialTable> page : pages) {
+            final SdkIterable<software.amazon.awssdk.enhanced.dynamodb.model.Page<FIDO2CredentialTable>>
+                    pages =
+                            userIdIndex.query(
+                                    QueryConditional.keyEqualTo(
+                                            Key.builder().partitionValue(userId).build()));
+            for (final software.amazon.awssdk.enhanced.dynamodb.model.Page<FIDO2CredentialTable> page :
+                    pages) {
                 credentials.addAll(page.items());
             }
         } catch (Exception e) {
@@ -84,15 +90,15 @@ public class FIDO2CredentialRepository {
         if (credentialId == null || credentialId.isEmpty()) {
             throw new IllegalArgumentException("Credential ID cannot be null or empty");
         }
-        FIDO2CredentialTable credential = new FIDO2CredentialTable();
+        final FIDO2CredentialTable credential = new FIDO2CredentialTable();
         credential.setCredentialId(credentialId);
         credential.setSignatureCount(signatureCount);
         credential.setLastUsedAt(java.time.Instant.now());
-        
+
         credentialTable.updateItem(
-                software.amazon.awssdk.enhanced.dynamodb.model.UpdateItemEnhancedRequest.builder(FIDO2CredentialTable.class)
+                software.amazon.awssdk.enhanced.dynamodb.model.UpdateItemEnhancedRequest.builder(
+                                FIDO2CredentialTable.class)
                         .item(credential)
                         .build());
     }
 }
-

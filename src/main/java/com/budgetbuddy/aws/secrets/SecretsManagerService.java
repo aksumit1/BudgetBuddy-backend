@@ -1,5 +1,12 @@
 package com.budgetbuddy.aws.secrets;
 
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -9,31 +16,24 @@ import software.amazon.awssdk.services.secretsmanager.model.GetSecretValueReques
 import software.amazon.awssdk.services.secretsmanager.model.GetSecretValueResponse;
 import software.amazon.awssdk.services.secretsmanager.model.SecretsManagerException;
 
-import jakarta.annotation.PostConstruct;
-import jakarta.annotation.PreDestroy;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-
 /**
- * AWS Secrets Manager Service
- * Fetches and caches secrets from AWS Secrets Manager
- * Supports automatic refresh and fallback to environment variables
+ * AWS Secrets Manager Service Fetches and caches secrets from AWS Secrets Manager Supports
+ * automatic refresh and fallback to environment variables
  */
 @Service
 public class SecretsManagerService {
 
-    private static final Logger logger = LoggerFactory.getLogger(SecretsManagerService.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(SecretsManagerService.class);
 
     private final SecretsManagerClient secretsManagerClient;
     private final Map<String, String> secretCache = new ConcurrentHashMap<>();
-    private final ScheduledExecutorService refreshExecutor = Executors.newSingleThreadScheduledExecutor(r -> {
-        Thread t = new Thread(r, "secrets-refresh");
-        t.setDaemon(true);
-        return t;
-    });
+    private final ScheduledExecutorService refreshExecutor =
+            Executors.newSingleThreadScheduledExecutor(
+                    r -> {
+                        final Thread t = new Thread(r, "secrets-refresh");
+                        t.setDaemon(true);
+                        return t;
+                    });
 
     @Value("${app.aws.secrets-manager.enabled:false}")
     private boolean secretsManagerEnabled;
@@ -51,16 +51,17 @@ public class SecretsManagerService {
     @PostConstruct
     public void init() {
         if (secretsManagerEnabled) {
-            logger.info("AWS Secrets Manager enabled. Refresh interval: {} seconds", refreshIntervalSeconds);
+            LOGGER.info(
+                    "AWS Secrets Manager enabled. Refresh interval: {} seconds",
+                    refreshIntervalSeconds);
             // Schedule periodic refresh
             refreshExecutor.scheduleAtFixedRate(
                     this::refreshAllSecrets,
                     refreshIntervalSeconds,
                     refreshIntervalSeconds,
-                    TimeUnit.SECONDS
-            );
+                    TimeUnit.SECONDS);
         } else {
-            logger.info("AWS Secrets Manager disabled. Using environment variables.");
+            LOGGER.info("AWS Secrets Manager disabled. Using environment variables.");
         }
     }
 
@@ -81,57 +82,64 @@ public class SecretsManagerService {
     }
 
     /**
-     * Get secret value from AWS Secrets Manager or cache
-     * Falls back to environment variable if Secrets Manager is disabled
+     * Get secret value from AWS Secrets Manager or cache Falls back to environment variable if
+     * Secrets Manager is disabled
      */
     public String getSecret(final String secretName, final String envVarFallback) {
         if (!secretsManagerEnabled) {
             // Fallback to environment variable
-            String envValue = System.getenv(envVarFallback);
+            final String envValue = System.getenv(envVarFallback);
             if (envValue != null) {
                 return envValue;
             }
-            logger.warn("Secrets Manager disabled and environment variable {} not set. Using default.", envVarFallback);
+            LOGGER.warn(
+                    "Secrets Manager disabled and environment variable {} not set. Using default.",
+                    envVarFallback);
             return null;
         }
 
         // Check cache first
-        String cachedValue = secretCache.get(secretName);
+        final String cachedValue = secretCache.get(secretName);
         if (cachedValue != null) {
             return cachedValue;
         }
 
         // Fetch from Secrets Manager
         try {
-            GetSecretValueRequest request = GetSecretValueRequest.builder()
-                    .secretId(secretName)
-                    .build();
+            final GetSecretValueRequest request =
+                    GetSecretValueRequest.builder().secretId(secretName).build();
 
-            GetSecretValueResponse response = secretsManagerClient.getSecretValue(request);
-            String secretValue = response.secretString();
+            final GetSecretValueResponse response = secretsManagerClient.getSecretValue(request);
+            final String secretValue = response.secretString();
 
             // Cache the value
             secretCache.put(secretName, secretValue);
-            logger.debug("Fetched secret {} from AWS Secrets Manager", secretName);
+            LOGGER.debug("Fetched secret {} from AWS Secrets Manager", secretName);
 
             return secretValue;
         } catch (SecretsManagerException e) {
-            logger.error("Error fetching secret {} from AWS Secrets Manager: {}", secretName, e.getMessage());
+            LOGGER.error(
+                    "Error fetching secret {} from AWS Secrets Manager: {}",
+                    secretName,
+                    e.getMessage());
             // Fallback to environment variable
-            String envValue = System.getenv(envVarFallback);
+            final String envValue = System.getenv(envVarFallback);
             if (envValue != null) {
-                logger.info("Using environment variable {} as fallback for secret {}", envVarFallback, secretName);
+                LOGGER.info(
+                        "Using environment variable {} as fallback for secret {}",
+                        envVarFallback,
+                        secretName);
                 return envValue;
             }
-            throw new RuntimeException("Failed to fetch secret " + secretName + " and no fallback available", e);
+            throw new RuntimeException(
+                    "Failed to fetch secret " + secretName + " and no fallback available", e);
         }
     }
 
-    /**
-     * Get JSON secret and parse specific key
-     */
-    public String getSecretKey(final String secretName, final String key, final String envVarFallback) {
-        String secretJson = getSecret(secretName, envVarFallback);
+    /** Get JSON secret and parse specific key */
+    public String getSecretKey(
+            final String secretName, final String key, final String envVarFallback) {
+        final String secretJson = getSecret(secretName, envVarFallback);
         if (secretJson == null) {
             return null;
         }
@@ -140,8 +148,8 @@ public class SecretsManagerService {
             // Simple JSON parsing for key-value pairs
             // For production, consider using Jackson ObjectMapper
             if (secretJson.contains("\"" + key + "\"")) {
-                int keyIndex = secretJson.indexOf("\"" + key + "\"");
-                int valueStart = secretJson.indexOf(":", keyIndex) + 1;
+                final int keyIndex = secretJson.indexOf("\"" + key + "\"");
+                final int valueStart = secretJson.indexOf(":", keyIndex) + 1;
                 int valueEnd = secretJson.indexOf(",", valueStart);
                 if (valueEnd == -1) {
                     valueEnd = secretJson.indexOf("}", valueStart);
@@ -154,26 +162,62 @@ public class SecretsManagerService {
                 return value;
             }
         } catch (Exception e) {
-            logger.error("Error parsing JSON secret {} for key {}: {}", secretName, key, e.getMessage());
+            LOGGER.error(
+                    "Error parsing JSON secret {} for key {}: {}", secretName, key, e.getMessage());
         }
 
         return secretJson; // Return full JSON if parsing fails
     }
 
     /**
-     * Refresh all cached secrets
+     * Refresh all cached secrets in place.
+     *
+     * <p>Previously this method just cleared the cache, leaving the next caller to re-fetch — which
+     * meant a burst of cold-path calls racing against each other after every scheduled refresh.
+     * Worse: if AWS rotated a secret between our fetch-on-demand and the next hit, we'd keep
+     * serving the stale value from the cache entry the first caller wrote, because subsequent
+     * lookups found a "hit" and skipped the fetch. This method now re-fetches the full set of
+     * cached keys, replacing each value atomically. Keys that 404 (secret deleted) are dropped;
+     * keys that fail transiently are left on the stale value so we don't take down the app on an
+     * AWS hiccup.
      */
     private void refreshAllSecrets() {
-        logger.debug("Refreshing all cached secrets");
-        secretCache.clear();
+        if (!secretsManagerEnabled) {
+            return;
+        }
+        final java.util.Set<String> keys = new java.util.HashSet<>(secretCache.keySet());
+        if (keys.isEmpty()) {
+            return;
+        }
+        LOGGER.debug("Refreshing {} cached secrets from AWS Secrets Manager", keys.size());
+        for (final String secretName : keys) {
+            try {
+                final GetSecretValueRequest request =
+                        GetSecretValueRequest.builder().secretId(secretName).build();
+                final GetSecretValueResponse response = secretsManagerClient.getSecretValue(request);
+                final String freshValue = response.secretString();
+                if (freshValue != null) {
+                    secretCache.put(secretName, freshValue);
+                }
+            } catch (
+                    software.amazon.awssdk.services.secretsmanager.model.ResourceNotFoundException
+                            e) {
+                LOGGER.warn("Secret {} no longer exists; dropping from cache", secretName);
+                secretCache.remove(secretName);
+            } catch (SecretsManagerException e) {
+                // Transient — keep the stale value rather than take the app
+                // down. Next scheduled run will try again.
+                LOGGER.warn(
+                        "Transient error refreshing secret {}: {} — keeping stale value",
+                        secretName,
+                        e.getMessage());
+            }
+        }
     }
 
-    /**
-     * Invalidate specific secret from cache
-     */
+    /** Invalidate specific secret from cache */
     public void invalidateSecret(final String secretName) {
         secretCache.remove(secretName);
-        logger.debug("Invalidated secret {} from cache", secretName);
+        LOGGER.debug("Invalidated secret {} from cache", secretName);
     }
 }
-

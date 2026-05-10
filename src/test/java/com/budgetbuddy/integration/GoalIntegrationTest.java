@@ -1,10 +1,20 @@
 package com.budgetbuddy.integration;
 
+
+import java.nio.charset.StandardCharsets;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import com.budgetbuddy.AWSTestConfiguration;
 import com.budgetbuddy.model.dynamodb.GoalTable;
 import com.budgetbuddy.model.dynamodb.UserTable;
 import com.budgetbuddy.repository.dynamodb.UserRepository;
 import com.budgetbuddy.service.GoalService;
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.List;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,38 +22,29 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 
-import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.util.List;
-import java.util.UUID;
-
-import static org.junit.jupiter.api.Assertions.*;
-
-/**
- * Integration Tests for Goal Service
- * 
- */
+/** Integration Tests for Goal Service */
 @SpringBootTest(classes = com.budgetbuddy.BudgetBuddyApplication.class)
 @ActiveProfiles("test")
 @Import(AWSTestConfiguration.class)
 class GoalIntegrationTest {
 
-    @Autowired
-    private GoalService goalService;
+    @Autowired private GoalService goalService;
 
-    @Autowired
-    private UserRepository userRepository;
+    @Autowired private UserRepository userRepository;
 
     private UserTable testUser;
 
     @BeforeEach
     void setUp() {
-        String email = "test-" + UUID.randomUUID() + "@example.com";
+        final String email = "test-" + UUID.randomUUID() + "@example.com";
         // Use proper base64-encoded strings
-        String base64PasswordHash = java.util.Base64.getEncoder().encodeToString("hashed-password".getBytes());
-        String base64ClientSalt = java.util.Base64.getEncoder().encodeToString("client-salt".getBytes());
-        String base64ServerSalt = java.util.Base64.getEncoder().encodeToString("server-salt".getBytes());
-        
+        final String base64PasswordHash =
+                java.util.Base64.getEncoder().encodeToString("hashed-password".getBytes(StandardCharsets.UTF_8));
+        final String base64ClientSalt =
+                java.util.Base64.getEncoder().encodeToString("client-salt".getBytes(StandardCharsets.UTF_8));
+        final String base64ServerSalt =
+                java.util.Base64.getEncoder().encodeToString("server-salt".getBytes(StandardCharsets.UTF_8));
+
         testUser = new UserTable();
         testUser.setUserId(UUID.randomUUID().toString());
         testUser.setEmail(email);
@@ -58,17 +59,17 @@ class GoalIntegrationTest {
     @Test
     void testCreateAndRetrieveGoal() {
         // Given
-        GoalTable goal = goalService.createGoal(
-                testUser,
-                "Save for vacation",
-                "Save money for summer vacation",
-                BigDecimal.valueOf(5000.00),
-                LocalDate.now().plusMonths(6),
-                "SAVINGS"
-        );
+        final GoalTable goal =
+                goalService.createGoal(
+                        testUser,
+                        "Save for vacation",
+                        "Save money for summer vacation",
+                        BigDecimal.valueOf(5000.00),
+                        LocalDate.now().plusMonths(6),
+                        "SAVINGS");
 
         // When
-        List<GoalTable> goals = goalService.getActiveGoals(testUser);
+        final List<GoalTable> goals = goalService.getActiveGoals(testUser);
 
         // Then
         assertNotNull(goals);
@@ -78,20 +79,21 @@ class GoalIntegrationTest {
     @Test
     void testUpdateGoalProgress() {
         // Given
-        GoalTable goal = goalService.createGoal(
-                testUser,
-                "Save for vacation",
-                "Save money",
-                BigDecimal.valueOf(5000.00),
-                LocalDate.now().plusMonths(6),
-                "SAVINGS"
-        );
+        final GoalTable goal =
+                goalService.createGoal(
+                        testUser,
+                        "Save for vacation",
+                        "Save money",
+                        BigDecimal.valueOf(5000.00),
+                        LocalDate.now().plusMonths(6),
+                        "SAVINGS");
 
         // When
-        GoalTable updated = goalService.updateGoalProgress(testUser, goal.getGoalId(), BigDecimal.valueOf(500.00));
+        final GoalTable updated =
+                goalService.updateGoalProgress(
+                        testUser, goal.getGoalId(), BigDecimal.valueOf(500.00));
 
         // Then
         assertEquals(BigDecimal.valueOf(500.00), updated.getCurrentAmount());
     }
 }
-

@@ -1,6 +1,10 @@
 package com.budgetbuddy.config;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+
 import com.budgetbuddy.AWSTestConfiguration;
+import java.util.concurrent.Executor;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -8,13 +12,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 
-import java.util.concurrent.Executor;
-
-import static org.junit.jupiter.api.Assertions.*;
-
-/**
- * Tests for PerformanceConfig
- */
+/** Tests for PerformanceConfig */
 @SpringBootTest(classes = com.budgetbuddy.BudgetBuddyApplication.class)
 @ActiveProfiles("test")
 @Import(AWSTestConfiguration.class)
@@ -29,45 +27,50 @@ class PerformanceConfigTest {
     private Executor highPriorityExecutor;
 
     @Test
-    void testTaskExecutor_IsCreated() {
+    void testTaskExecutorIsCreated() {
         // Then
         assertNotNull(taskExecutor, "TaskExecutor should be created");
     }
 
     @Test
-    void testTaskExecutor_CanExecuteTasks() {
+    void testTaskExecutorCanExecuteTasks() {
         // Given
         if (taskExecutor == null) {
             return;
         }
 
         // When
-        assertDoesNotThrow(() -> {
-            taskExecutor.execute(() -> {
-                // Simple task
-            });
-        }, "Should be able to execute tasks");
+        assertDoesNotThrow(
+                () -> {
+                    taskExecutor.execute(
+                            () -> {
+                                // Simple task
+                            });
+                },
+                "Should be able to execute tasks");
     }
 
     @Test
-    void testHighPriorityExecutor_IsCreated() {
+    void testHighPriorityExecutorIsCreated() {
         // Then
         assertNotNull(highPriorityExecutor, "HighPriorityExecutor should be created");
     }
 
     @Test
-    void testHighPriorityExecutor_CanExecuteTasks() {
+    void testHighPriorityExecutorCanExecuteTasks() {
         // Given
         if (highPriorityExecutor == null) {
             return;
         }
 
         // When
-        assertDoesNotThrow(() -> {
-            highPriorityExecutor.execute(() -> {
-                // Simple task
-            });
-        }, "Should be able to execute tasks");
+        assertDoesNotThrow(
+                () -> {
+                    highPriorityExecutor.execute(
+                            () -> {
+                                // Simple task
+                            });
+                },
+                "Should be able to execute tasks");
     }
 }
-

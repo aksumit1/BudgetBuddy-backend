@@ -1,7 +1,19 @@
 package com.budgetbuddy.service;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import com.budgetbuddy.model.dynamodb.TransactionTable;
 import com.budgetbuddy.repository.dynamodb.TransactionRepository;
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.Arrays;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -10,27 +22,19 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.util.Arrays;
-import java.util.List;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
-
-/**
- * Unit tests for TaxExportService
- */
+/** Unit tests for TaxExportService */
+// PMD's LawOfDemeter is documented as imprecise on chains involving
+// standard library types (BigDecimal, String, Optional) and DTO
+// getters; this class has many such idiomatic uses. Suppress at
+// class level rather than littering every method.
+@SuppressWarnings("PMD.LawOfDemeter")
 @ExtendWith(MockitoExtension.class)
 @DisplayName("Tax Export Service Tests")
 class TaxExportServiceTest {
 
-    @Mock
-    private TransactionRepository transactionRepository;
+    @Mock private TransactionRepository transactionRepository;
 
-    @InjectMocks
-    private TaxExportService taxExportService;
+    @InjectMocks private TaxExportService taxExportService;
 
     private TransactionTable salaryTransaction;
     private TransactionTable interestTransaction;
@@ -42,60 +46,95 @@ class TaxExportServiceTest {
     @BeforeEach
     void setUp() {
         // Create test transactions
-        salaryTransaction = createTransaction(
-            "tx1", "2024-01-15", "Payroll Deposit", "ADP", 
-            new BigDecimal("5000.00"), "salary", "ach"
-        );
+        salaryTransaction =
+                createTransaction(
+                        "tx1",
+                        "2024-01-15",
+                        "Payroll Deposit",
+                        "ADP",
+                        new BigDecimal("5000.00"),
+                        "salary",
+                        "ach");
 
-        interestTransaction = createTransaction(
-            "tx2", "2024-02-01", "Interest Payment", "Bank", 
-            new BigDecimal("250.00"), "interest", null
-        );
+        interestTransaction =
+                createTransaction(
+                        "tx2",
+                        "2024-02-01",
+                        "Interest Payment",
+                        "Bank",
+                        new BigDecimal("250.00"),
+                        "interest",
+                        null);
 
-        charityTransaction = createTransaction(
-            "tx3", "2024-03-10", "Donation to Red Cross", "Red Cross", 
-            new BigDecimal("-100.00"), "other", null
-        );
+        charityTransaction =
+                createTransaction(
+                        "tx3",
+                        "2024-03-10",
+                        "Donation to Red Cross",
+                        "Red Cross",
+                        new BigDecimal("-100.00"),
+                        "other",
+                        null);
 
-        rsuTransaction = createTransaction(
-            "tx4", "2024-04-15", "RSU Vest", "Company", 
-            new BigDecimal("10000.00"), "rsu", null
-        );
+        rsuTransaction =
+                createTransaction(
+                        "tx4",
+                        "2024-04-15",
+                        "RSU Vest",
+                        "Company",
+                        new BigDecimal("10000.00"),
+                        "rsu",
+                        null);
 
-        tuitionTransaction = createTransaction(
-            "tx5", "2024-05-01", "University Tuition Fee", "Stanford University", 
-            new BigDecimal("-5000.00"), "other", null
-        );
+        tuitionTransaction =
+                createTransaction(
+                        "tx5",
+                        "2024-05-01",
+                        "University Tuition Fee",
+                        "Stanford University",
+                        new BigDecimal("-5000.00"),
+                        "other",
+                        null);
 
-        propertyTaxTransaction = createTransaction(
-            "tx6", "2024-06-15", "Property Tax Payment", "County Assessor", 
-            new BigDecimal("-2500.00"), "other", null
-        );
+        propertyTaxTransaction =
+                createTransaction(
+                        "tx6",
+                        "2024-06-15",
+                        "Property Tax Payment",
+                        "County Assessor",
+                        new BigDecimal("-2500.00"),
+                        "other",
+                        null);
     }
 
     @Test
     @DisplayName("Should generate tax export with categorized transactions")
-    void testGenerateTaxExport_CategorizesTransactions() {
+    void testGenerateTaxExportCategorizesTransactions() {
         // Given
-        String userId = "user123";
-        int year = 2024;
-        List<TransactionTable> transactions = Arrays.asList(
-            salaryTransaction, interestTransaction, charityTransaction,
-            rsuTransaction, tuitionTransaction, propertyTaxTransaction
-        );
+        final String userId = "user123";
+        final int year = 2024;
+        final List<TransactionTable> transactions =
+                Arrays.asList(
+                        salaryTransaction,
+                        interestTransaction,
+                        charityTransaction,
+                        rsuTransaction,
+                        tuitionTransaction,
+                        propertyTaxTransaction);
 
         when(transactionRepository.findByUserIdAndDateRange(
-            eq(userId), eq("2024-01-01"), eq("2024-12-31")
-        )).thenReturn(transactions);
+                        eq(userId), eq("2024-01-01"), eq("2024-12-31")))
+                .thenReturn(transactions);
 
         // When
-        TaxExportService.TaxExportResult result = taxExportService.generateTaxExport(userId, year, null, null, null, null);
+        final TaxExportService.TaxExportResult result =
+                taxExportService.generateTaxExport(userId, year, null, null, null, null);
 
         // Then
         assertNotNull(result);
         assertNotNull(result.getSummary());
         assertNotNull(result.getTransactionsByCategory());
-        
+
         // Verify transactions are categorized
         assertTrue(result.getTransactionsByCategory().containsKey("SALARY"));
         assertTrue(result.getTransactionsByCategory().containsKey("INTEREST"));
@@ -107,25 +146,30 @@ class TaxExportServiceTest {
 
     @Test
     @DisplayName("Should calculate summary totals correctly")
-    void testGenerateTaxExport_CalculatesSummaryTotals() {
+    void testGenerateTaxExportCalculatesSummaryTotals() {
         // Given
-        String userId = "user123";
-        int year = 2024;
-        List<TransactionTable> transactions = Arrays.asList(
-            salaryTransaction, interestTransaction, charityTransaction,
-            rsuTransaction, tuitionTransaction, propertyTaxTransaction
-        );
+        final String userId = "user123";
+        final int year = 2024;
+        final List<TransactionTable> transactions =
+                Arrays.asList(
+                        salaryTransaction,
+                        interestTransaction,
+                        charityTransaction,
+                        rsuTransaction,
+                        tuitionTransaction,
+                        propertyTaxTransaction);
 
         when(transactionRepository.findByUserIdAndDateRange(
-            eq(userId), eq("2024-01-01"), eq("2024-12-31")
-        )).thenReturn(transactions);
+                        eq(userId), eq("2024-01-01"), eq("2024-12-31")))
+                .thenReturn(transactions);
 
         // When
-        TaxExportService.TaxExportResult result = taxExportService.generateTaxExport(userId, year, null, null, null, null);
+        final TaxExportService.TaxExportResult result =
+                taxExportService.generateTaxExport(userId, year, null, null, null, null);
 
         // Then
-        TaxExportService.TaxSummary summary = result.getSummary();
-        
+        final TaxExportService.TaxSummary summary = result.getSummary();
+
         // Verify totals
         assertEquals(new BigDecimal("5000.00"), summary.getTotalSalary());
         assertEquals(new BigDecimal("250.00"), summary.getTotalInterest());
@@ -137,22 +181,21 @@ class TaxExportServiceTest {
 
     @Test
     @DisplayName("Should export to CSV format")
-    void testExportToCSV_GeneratesValidCSV() {
+    void testExportToCSVGeneratesValidCSV() {
         // Given
-        String userId = "user123";
-        int year = 2024;
-        List<TransactionTable> transactions = Arrays.asList(
-            salaryTransaction, interestTransaction
-        );
+        final String userId = "user123";
+        final int year = 2024;
+        final List<TransactionTable> transactions = Arrays.asList(salaryTransaction, interestTransaction);
 
         when(transactionRepository.findByUserIdAndDateRange(
-            eq(userId), eq("2024-01-01"), eq("2024-12-31")
-        )).thenReturn(transactions);
+                        eq(userId), eq("2024-01-01"), eq("2024-12-31")))
+                .thenReturn(transactions);
 
-        TaxExportService.TaxExportResult result = taxExportService.generateTaxExport(userId, year, null, null, null, null);
+        final TaxExportService.TaxExportResult result =
+                taxExportService.generateTaxExport(userId, year, null, null, null, null);
 
         // When
-        String csv = taxExportService.exportToCSV(result, year);
+        final String csv = taxExportService.exportToCSV(result, year);
 
         // Then
         assertNotNull(csv);
@@ -166,22 +209,21 @@ class TaxExportServiceTest {
 
     @Test
     @DisplayName("Should export to JSON format")
-    void testExportToJSON_GeneratesValidJSON() {
+    void testExportToJSONGeneratesValidJSON() {
         // Given
-        String userId = "user123";
-        int year = 2024;
-        List<TransactionTable> transactions = Arrays.asList(
-            salaryTransaction, interestTransaction
-        );
+        final String userId = "user123";
+        final int year = 2024;
+        final List<TransactionTable> transactions = Arrays.asList(salaryTransaction, interestTransaction);
 
         when(transactionRepository.findByUserIdAndDateRange(
-            eq(userId), eq("2024-01-01"), eq("2024-12-31")
-        )).thenReturn(transactions);
+                        eq(userId), eq("2024-01-01"), eq("2024-12-31")))
+                .thenReturn(transactions);
 
-        TaxExportService.TaxExportResult result = taxExportService.generateTaxExport(userId, year, null, null, null, null);
+        final TaxExportService.TaxExportResult result =
+                taxExportService.generateTaxExport(userId, year, null, null, null, null);
 
         // When
-        String json = taxExportService.exportToJSON(result, year);
+        final String json = taxExportService.exportToJSON(result, year);
 
         // Then
         assertNotNull(json);
@@ -194,23 +236,24 @@ class TaxExportServiceTest {
 
     @Test
     @DisplayName("Should handle empty transaction list")
-    void testGenerateTaxExport_EmptyTransactions() {
+    void testGenerateTaxExportEmptyTransactions() {
         // Given
-        String userId = "user123";
-        int year = 2024;
+        final String userId = "user123";
+        final int year = 2024;
 
         when(transactionRepository.findByUserIdAndDateRange(
-            eq(userId), eq("2024-01-01"), eq("2024-12-31")
-        )).thenReturn(List.of());
+                        eq(userId), eq("2024-01-01"), eq("2024-12-31")))
+                .thenReturn(List.of());
 
         // When
-        TaxExportService.TaxExportResult result = taxExportService.generateTaxExport(userId, year, null, null, null, null);
+        final TaxExportService.TaxExportResult result =
+                taxExportService.generateTaxExport(userId, year, null, null, null, null);
 
         // Then
         assertNotNull(result);
         assertNotNull(result.getSummary());
         assertTrue(result.getTransactionsByCategory().isEmpty());
-        
+
         // Summary should have zero totals
         assertEquals(BigDecimal.ZERO, result.getSummary().getTotalSalary());
         assertEquals(BigDecimal.ZERO, result.getSummary().getTotalInterest());
@@ -218,22 +261,28 @@ class TaxExportServiceTest {
 
     @Test
     @DisplayName("Should detect DMV fees")
-    void testGenerateTaxExport_DetectsDMVFees() {
+    void testGenerateTaxExportDetectsDMVFees() {
         // Given
-        String userId = "user123";
-        int year = 2024;
-        TransactionTable dmvTransaction = createTransaction(
-            "tx7", "2024-07-01", "Vehicle Registration Renewal", "DMV", 
-            new BigDecimal("-150.00"), "other", null
-        );
-        List<TransactionTable> transactions = Arrays.asList(dmvTransaction);
+        final String userId = "user123";
+        final int year = 2024;
+        final TransactionTable dmvTransaction =
+                createTransaction(
+                        "tx7",
+                        "2024-07-01",
+                        "Vehicle Registration Renewal",
+                        "DMV",
+                        new BigDecimal("-150.00"),
+                        "other",
+                        null);
+        final List<TransactionTable> transactions = Arrays.asList(dmvTransaction);
 
         when(transactionRepository.findByUserIdAndDateRange(
-            eq(userId), eq("2024-01-01"), eq("2024-12-31")
-        )).thenReturn(transactions);
+                        eq(userId), eq("2024-01-01"), eq("2024-12-31")))
+                .thenReturn(transactions);
 
         // When
-        TaxExportService.TaxExportResult result = taxExportService.generateTaxExport(userId, year, null, null, null, null);
+        final TaxExportService.TaxExportResult result =
+                taxExportService.generateTaxExport(userId, year, null, null, null, null);
 
         // Then
         assertTrue(result.getTransactionsByCategory().containsKey("DMV"));
@@ -242,22 +291,28 @@ class TaxExportServiceTest {
 
     @Test
     @DisplayName("Should detect CPA fees")
-    void testGenerateTaxExport_DetectsCPAFees() {
+    void testGenerateTaxExportDetectsCPAFees() {
         // Given
-        String userId = "user123";
-        int year = 2024;
-        TransactionTable cpaTransaction = createTransaction(
-            "tx8", "2024-08-01", "Tax Preparation Fee", "John Smith CPA", 
-            new BigDecimal("-300.00"), "other", null
-        );
-        List<TransactionTable> transactions = Arrays.asList(cpaTransaction);
+        final String userId = "user123";
+        final int year = 2024;
+        final TransactionTable cpaTransaction =
+                createTransaction(
+                        "tx8",
+                        "2024-08-01",
+                        "Tax Preparation Fee",
+                        "John Smith CPA",
+                        new BigDecimal("-300.00"),
+                        "other",
+                        null);
+        final List<TransactionTable> transactions = Arrays.asList(cpaTransaction);
 
         when(transactionRepository.findByUserIdAndDateRange(
-            eq(userId), eq("2024-01-01"), eq("2024-12-31")
-        )).thenReturn(transactions);
+                        eq(userId), eq("2024-01-01"), eq("2024-12-31")))
+                .thenReturn(transactions);
 
         // When
-        TaxExportService.TaxExportResult result = taxExportService.generateTaxExport(userId, year, null, null, null, null);
+        final TaxExportService.TaxExportResult result =
+                taxExportService.generateTaxExport(userId, year, null, null, null, null);
 
         // Then
         assertTrue(result.getTransactionsByCategory().containsKey("CPA"));
@@ -266,26 +321,38 @@ class TaxExportServiceTest {
 
     @Test
     @DisplayName("Should detect state and local taxes")
-    void testGenerateTaxExport_DetectsStateLocalTaxes() {
+    void testGenerateTaxExportDetectsStateLocalTaxes() {
         // Given
-        String userId = "user123";
-        int year = 2024;
-        TransactionTable stateTaxTransaction = createTransaction(
-            "tx9", "2024-09-01", "State Income Tax Payment", "Franchise Tax Board", 
-            new BigDecimal("-1500.00"), "other", null
-        );
-        TransactionTable localTaxTransaction = createTransaction(
-            "tx10", "2024-10-01", "City Tax Payment", "City Tax Office", 
-            new BigDecimal("-500.00"), "other", null
-        );
-        List<TransactionTable> transactions = Arrays.asList(stateTaxTransaction, localTaxTransaction);
+        final String userId = "user123";
+        final int year = 2024;
+        final TransactionTable stateTaxTransaction =
+                createTransaction(
+                        "tx9",
+                        "2024-09-01",
+                        "State Income Tax Payment",
+                        "Franchise Tax Board",
+                        new BigDecimal("-1500.00"),
+                        "other",
+                        null);
+        final TransactionTable localTaxTransaction =
+                createTransaction(
+                        "tx10",
+                        "2024-10-01",
+                        "City Tax Payment",
+                        "City Tax Office",
+                        new BigDecimal("-500.00"),
+                        "other",
+                        null);
+        final List<TransactionTable> transactions =
+                Arrays.asList(stateTaxTransaction, localTaxTransaction);
 
         when(transactionRepository.findByUserIdAndDateRange(
-            eq(userId), eq("2024-01-01"), eq("2024-12-31")
-        )).thenReturn(transactions);
+                        eq(userId), eq("2024-01-01"), eq("2024-12-31")))
+                .thenReturn(transactions);
 
         // When
-        TaxExportService.TaxExportResult result = taxExportService.generateTaxExport(userId, year, null, null, null, null);
+        final TaxExportService.TaxExportResult result =
+                taxExportService.generateTaxExport(userId, year, null, null, null, null);
 
         // Then
         assertTrue(result.getTransactionsByCategory().containsKey("STATE_TAX"));
@@ -296,22 +363,28 @@ class TaxExportServiceTest {
 
     @Test
     @DisplayName("Should detect mortgage interest")
-    void testGenerateTaxExport_DetectsMortgageInterest() {
+    void testGenerateTaxExportDetectsMortgageInterest() {
         // Given
-        String userId = "user123";
-        int year = 2024;
-        TransactionTable mortgageTransaction = createTransaction(
-            "tx11", "2024-11-01", "Mortgage Interest Payment", "Bank", 
-            new BigDecimal("-800.00"), "other", null
-        );
-        List<TransactionTable> transactions = Arrays.asList(mortgageTransaction);
+        final String userId = "user123";
+        final int year = 2024;
+        final TransactionTable mortgageTransaction =
+                createTransaction(
+                        "tx11",
+                        "2024-11-01",
+                        "Mortgage Interest Payment",
+                        "Bank",
+                        new BigDecimal("-800.00"),
+                        "other",
+                        null);
+        final List<TransactionTable> transactions = Arrays.asList(mortgageTransaction);
 
         when(transactionRepository.findByUserIdAndDateRange(
-            eq(userId), eq("2024-01-01"), eq("2024-12-31")
-        )).thenReturn(transactions);
+                        eq(userId), eq("2024-01-01"), eq("2024-12-31")))
+                .thenReturn(transactions);
 
         // When
-        TaxExportService.TaxExportResult result = taxExportService.generateTaxExport(userId, year, null, null, null, null);
+        final TaxExportService.TaxExportResult result =
+                taxExportService.generateTaxExport(userId, year, null, null, null, null);
 
         // Then
         assertTrue(result.getTransactionsByCategory().containsKey("MORTGAGE_INTEREST"));
@@ -320,64 +393,78 @@ class TaxExportServiceTest {
 
     @Test
     @DisplayName("Should detect capital gains and losses")
-    void testGenerateTaxExport_DetectsCapitalGainsLosses() {
+    void testGenerateTaxExportDetectsCapitalGainsLosses() {
         // Given
-        String userId = "user123";
-        int year = 2024;
-        TransactionTable gainTransaction = createTransaction(
-            "tx12", "2024-12-01", "Stock Sale - Capital Gain", "Brokerage", 
-            new BigDecimal("5000.00"), "investment", null
-        );
-        TransactionTable lossTransaction = createTransaction(
-            "tx13", "2024-12-15", "Stock Sale - Capital Loss", "Brokerage", 
-            new BigDecimal("-1000.00"), "investment", null
-        );
-        List<TransactionTable> transactions = Arrays.asList(gainTransaction, lossTransaction);
+        final String userId = "user123";
+        final int year = 2024;
+        final TransactionTable gainTransaction =
+                createTransaction(
+                        "tx12",
+                        "2024-12-01",
+                        "Stock Sale - Capital Gain",
+                        "Brokerage",
+                        new BigDecimal("5000.00"),
+                        "investment",
+                        null);
+        final TransactionTable lossTransaction =
+                createTransaction(
+                        "tx13",
+                        "2024-12-15",
+                        "Stock Sale - Capital Loss",
+                        "Brokerage",
+                        new BigDecimal("-1000.00"),
+                        "investment",
+                        null);
+        final List<TransactionTable> transactions = Arrays.asList(gainTransaction, lossTransaction);
 
         when(transactionRepository.findByUserIdAndDateRange(
-            eq(userId), eq("2024-01-01"), eq("2024-12-31")
-        )).thenReturn(transactions);
+                        eq(userId), eq("2024-01-01"), eq("2024-12-31")))
+                .thenReturn(transactions);
 
         // When
-        TaxExportService.TaxExportResult result = taxExportService.generateTaxExport(userId, year, null, null, null, null);
+        final TaxExportService.TaxExportResult result =
+                taxExportService.generateTaxExport(userId, year, null, null, null, null);
 
         // Then
-        assertTrue(result.getTransactionsByCategory().containsKey("CAPITAL_GAIN") || 
-                   result.getTransactionsByCategory().containsKey("CAPITAL_LOSS"));
+        assertTrue(
+                result.getTransactionsByCategory().containsKey("CAPITAL_GAIN")
+                        || result.getTransactionsByCategory().containsKey("CAPITAL_LOSS"));
         // Note: Detection logic may categorize based on description keywords
     }
 
     @Test
     @DisplayName("Should use current year when year is 0")
-    void testGenerateTaxExport_CurrentYear() {
+    void testGenerateTaxExportCurrentYear() {
         // Given
-        String userId = "user123";
-        int currentYear = LocalDate.now().getYear();
-        List<TransactionTable> transactions = Arrays.asList(salaryTransaction);
+        final String userId = "user123";
+        final int currentYear = LocalDate.now().getYear();
+        final List<TransactionTable> transactions = Arrays.asList(salaryTransaction);
 
         when(transactionRepository.findByUserIdAndDateRange(
-            eq(userId), 
-            eq(currentYear + "-01-01"), 
-            eq(currentYear + "-12-31")
-        )).thenReturn(transactions);
+                        eq(userId), eq(currentYear + "-01-01"), eq(currentYear + "-12-31")))
+                .thenReturn(transactions);
 
         // When
-        TaxExportService.TaxExportResult result = taxExportService.generateTaxExport(userId, currentYear, null, null, null, null);
+        final TaxExportService.TaxExportResult result =
+                taxExportService.generateTaxExport(userId, currentYear, null, null, null, null);
 
         // Then
         assertNotNull(result);
-        verify(transactionRepository).findByUserIdAndDateRange(
-            eq(userId), 
-            eq(currentYear + "-01-01"), 
-            eq(currentYear + "-12-31")
-        );
+        verify(transactionRepository)
+                .findByUserIdAndDateRange(
+                        eq(userId), eq(currentYear + "-01-01"), eq(currentYear + "-12-31"));
     }
 
     // Helper method to create test transactions
     private TransactionTable createTransaction(
-            String transactionId, String date, String description, String merchantName,
-            BigDecimal amount, String category, String paymentChannel) {
-        TransactionTable transaction = new TransactionTable();
+            final String transactionId,
+            final String date,
+            final String description,
+            final String merchantName,
+            final BigDecimal amount,
+            final String category,
+            final String paymentChannel) {
+        final TransactionTable transaction = new TransactionTable();
         transaction.setTransactionId(transactionId);
         transaction.setUserId("user123");
         transaction.setTransactionDate(date);
@@ -388,8 +475,8 @@ class TaxExportServiceTest {
         transaction.setCategoryDetailed(category);
         transaction.setPaymentChannel(paymentChannel);
         transaction.setCurrencyCode("USD");
-        transaction.setTransactionType(amount.compareTo(BigDecimal.ZERO) < 0 ? "EXPENSE" : "INCOME");
+        transaction.setTransactionType(
+                amount.compareTo(BigDecimal.ZERO) < 0 ? "EXPENSE" : "INCOME");
         return transaction;
     }
 }
-

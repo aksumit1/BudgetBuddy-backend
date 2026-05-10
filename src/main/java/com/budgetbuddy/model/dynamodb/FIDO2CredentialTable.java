@@ -1,16 +1,12 @@
 package com.budgetbuddy.model.dynamodb;
 
+import java.time.Instant;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbAttribute;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbBean;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbPartitionKey;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbSecondaryPartitionKey;
 
-import java.time.Instant;
-
-/**
- * DynamoDB table for FIDO2/WebAuthn credentials
- * Stores passkey credentials for users
- */
+/** DynamoDB table for FIDO2/WebAuthn credentials Stores passkey credentials for users */
 @DynamoDbBean
 public class FIDO2CredentialTable {
 
@@ -107,4 +103,3 @@ public class FIDO2CredentialTable {
         this.enabled = enabled;
     }
 }
-

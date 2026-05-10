@@ -1,16 +1,12 @@
 package com.budgetbuddy.config;
 
+import java.util.HashMap;
+import java.util.Map;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import java.util.HashMap;
-import java.util.Map;
-
-/**
- * Feature Flag Configuration
- * Enables feature toggling for gradual rollouts and A/B testing
- */
+/** Feature Flag Configuration Enables feature toggling for gradual rollouts and A/B testing */
 @Configuration
 public class FeatureFlagConfig {
 
@@ -31,7 +27,7 @@ public class FeatureFlagConfig {
 
     @Bean
     public FeatureFlags featureFlags() {
-        Map<String, Boolean> flags = new HashMap<>();
+        final Map<String, Boolean> flags = new HashMap<>();
         flags.put("plaid", enablePlaid);
         flags.put("stripe", enableStripe);
         flags.put("oauth2", enableOAuth2);
@@ -56,4 +52,3 @@ public class FeatureFlagConfig {
         }
     }
 }
-

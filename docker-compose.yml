@@ -16,7 +16,12 @@ services:
   # CRITICAL: This is a shared infrastructure service - DO NOT stop manually
   # Use 'docker-compose stop localstack' only if you own this container
   localstack:
-    image: localstack/localstack:latest
+    # Pin to a specific COMMUNITY version. `:latest` resolved to a Pro
+    # build in 2026 that requires a license token and exits 55 at startup
+    # with "License activation failed". 3.8 is the last fully-community
+    # tag that supports the services this repo uses (dynamodb, s3,
+    # secretsmanager, cloudwatch, iam, sts, appconfig).
+    image: localstack/localstack:3.8
     container_name: budgetbuddy-localstack
     networks:
       - budgetbuddy-network
@@ -149,6 +154,10 @@ services:
       PLAID_ENVIRONMENT: ${PLAID_ENVIRONMENT:-sandbox}
       PLAID_REDIRECT_URI: ${PLAID_REDIRECT_URI:-https://app.budgetbuddy.com/plaid/callback}
       STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-sk_test_placeholder}
+      # Stripe is opt-in for local — silences the noisy startup WARN when
+      # the real key isn't set. Override by exporting APP_FEATURES_ENABLE_STRIPE=true
+      # along with a real STRIPE_SECRET_KEY.
+      APP_FEATURES_ENABLE_STRIPE: ${APP_FEATURES_ENABLE_STRIPE:-false}
       # Use service name for DNS resolution (Docker Compose handles this efficiently)
       SPRING_DATA_REDIS_HOST: redis
       SPRING_DATA_REDIS_PORT: 6379
@@ -207,7 +216,12 @@ services:
   # CRITICAL: This is a separate instance on port 4567 (main app uses 4566)
   # Tests use this instance to avoid polluting local development data
   localstack-test:
-    image: localstack/localstack:latest
+    # Pin to a specific COMMUNITY version. `:latest` resolved to a Pro
+    # build in 2026 that requires a license token and exits 55 at startup
+    # with "License activation failed". 3.8 is the last fully-community
+    # tag that supports the services this repo uses (dynamodb, s3,
+    # secretsmanager, cloudwatch, iam, sts, appconfig).
+    image: localstack/localstack:3.8
     container_name: budgetbuddy-localstack-test
     networks:
       - budgetbuddy-network

@@ -1,5 +1,16 @@
 package com.budgetbuddy.filter;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.anyString;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import com.budgetbuddy.security.rate.RateLimitService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.http.HttpServletRequest;
@@ -11,29 +22,19 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
-
-/**
- * Unit Tests for RateLimitHeaderFilter
- */
+/** Unit Tests for RateLimitHeaderFilter */
 @ExtendWith(MockitoExtension.class)
 class RateLimitHeaderFilterTest {
 
-    @Mock
-    private RateLimitService rateLimitService;
+    @Mock private RateLimitService rateLimitService;
 
-    @Mock
-    private HttpServletRequest request;
+    @Mock private HttpServletRequest request;
 
-    @Mock
-    private HttpServletResponse response;
+    @Mock private HttpServletResponse response;
 
-    @Mock
-    private FilterChain filterChain;
+    @Mock private FilterChain filterChain;
 
-    @InjectMocks
-    private RateLimitHeaderFilter filter;
+    @InjectMocks private RateLimitHeaderFilter filter;
 
     @BeforeEach
     void setUp() {
@@ -41,7 +42,7 @@ class RateLimitHeaderFilterTest {
     }
 
     @Test
-    void testDoFilterInternal_WithValidRequest_AddsHeaders() throws Exception {
+    void testDoFilterInternalWithValidRequestAddsHeaders() throws Exception {
         // Given
         when(request.getAttribute("userId")).thenReturn("user-123");
         // Note: RateLimitService methods may have different signatures
@@ -56,7 +57,7 @@ class RateLimitHeaderFilterTest {
     }
 
     @Test
-    void testDoFilterInternal_WithNullUserId_SetsDefaultHeaders() throws Exception {
+    void testDoFilterInternalWithNullUserIdSetsDefaultHeaders() throws Exception {
         // Given
         when(request.getAttribute("userId")).thenReturn(null);
 
@@ -68,4 +69,3 @@ class RateLimitHeaderFilterTest {
         verify(filterChain, times(1)).doFilter(any(), any());
     }
 }
-

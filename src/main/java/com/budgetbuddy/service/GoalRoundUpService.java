@@ -1,148 +1,193 @@
 package com.budgetbuddy.service;
 
+
+import java.nio.charset.StandardCharsets;
 import com.budgetbuddy.model.dynamodb.GoalTable;
 import com.budgetbuddy.model.dynamodb.TransactionTable;
 import com.budgetbuddy.repository.dynamodb.GoalRepository;
 import com.budgetbuddy.repository.dynamodb.TransactionRepository;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
-
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.List;
 import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
 
 /**
- * Service for round-up transactions feature
- * Automatically rounds up transactions and contributes difference to goals
+ * Service for round-up transactions feature Automatically rounds up transactions and contributes
+ * difference to goals
  */
+// PMD's LawOfDemeter is documented as imprecise on chains involving
+// standard library types (BigDecimal, String, Optional) and DTO
+// getters; this class has many such idiomatic uses. Suppress at
+// class level rather than littering every method.
+@SuppressWarnings("PMD.LawOfDemeter")
 @Service
 public class GoalRoundUpService {
 
-    private static final Logger logger = LoggerFactory.getLogger(GoalRoundUpService.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(GoalRoundUpService.class);
 
     private final GoalRepository goalRepository;
     private final TransactionRepository transactionRepository;
     private final GoalProgressService goalProgressService;
     private final TransactionService transactionService;
 
-    public GoalRoundUpService(GoalRepository goalRepository, TransactionRepository transactionRepository,
-                             GoalProgressService goalProgressService, TransactionService transactionService) {
+    public GoalRoundUpService(
+            final GoalRepository goalRepository,
+            final TransactionRepository transactionRepository,
+            final GoalProgressService goalProgressService,
+            final TransactionService transactionService) {
         this.goalRepository = goalRepository;
         this.transactionRepository = transactionRepository;
         this.goalProgressService = goalProgressService;
         this.transactionService = transactionService;
     }
 
-    /**
-     * Calculate round-up amount for a transaction
-     * Rounds up to nearest dollar
-     */
-    public BigDecimal calculateRoundUp(BigDecimal transactionAmount) {
+    /** Calculate round-up amount for a transaction Rounds up to nearest dollar */
+    public BigDecimal calculateRoundUp(final BigDecimal transactionAmount) {
         if (transactionAmount == null || transactionAmount.compareTo(BigDecimal.ZERO) >= 0) {
             return BigDecimal.ZERO; // Only round up expenses (negative amounts)
         }
 
         // Convert to positive for calculation
-        BigDecimal positiveAmount = transactionAmount.abs();
-        
+        final BigDecimal positiveAmount = transactionAmount.abs();
+
         // Round up to nearest dollar
-        BigDecimal roundedUp = positiveAmount.setScale(0, RoundingMode.UP);
-        
+        final BigDecimal roundedUp = positiveAmount.setScale(0, RoundingMode.UP);
+
         // Calculate difference
-        BigDecimal roundUpAmount = roundedUp.subtract(positiveAmount);
-        
+        final BigDecimal roundUpAmount = roundedUp.subtract(positiveAmount);
+
         return roundUpAmount.setScale(2, RoundingMode.HALF_UP);
     }
 
     /**
-     * Process round-up for a transaction and contribute to goal
+     * Flow 6 / O6 — finish the round-up loop. Given an expense transaction and the target goal,
+     * check for idempotency, then create a matching positive contribution transaction tagged to the
+     * goal.
+     *
+     * <p>Idempotent. The generated contribution has a deterministic id derived from {@code
+     * sourceTxId + goalId}, so a second call with the same inputs overwrites its previous self
+     * rather than double-funding.
      */
-    public void processRoundUp(TransactionTable transaction, String goalId) {
+    public void processRoundUp(final TransactionTable transaction, final String goalId) {
         if (transaction == null || goalId == null || goalId.isEmpty()) {
             return;
         }
-
-        // Only process expenses (negative amounts)
-        if (transaction.getAmount() == null || transaction.getAmount().compareTo(BigDecimal.ZERO) >= 0) {
+        if (transaction.getAmount() == null
+                || transaction.getAmount().compareTo(BigDecimal.ZERO) >= 0) {
+            return;
+        }
+        if (transaction.getTransactionId() == null) {
+            return;
+        }
+        // Don't round-up round-ups. Avoids recursion on a badly-looped ingest.
+        if (transaction.getRoundUpSourceTransactionId() != null) {
             return;
         }
 
-        // Check if goal has round-up enabled
-        Optional<GoalTable> goalOpt = goalRepository.findById(goalId);
+        final Optional<GoalTable> goalOpt = goalRepository.findById(goalId);
         if (goalOpt.isEmpty()) {
-            logger.warn("Goal {} not found for round-up", goalId);
+            LOGGER.warn("Goal {} not found for round-up", goalId);
             return;
         }
-
-        GoalTable goal = goalOpt.get();
-        // Check if round-up is enabled for this goal
+        final GoalTable goal = goalOpt.get();
         if (goal.getRoundUpEnabled() == null || !goal.getRoundUpEnabled()) {
             return;
         }
-
-        // Calculate round-up amount
-        BigDecimal roundUpAmount = calculateRoundUp(transaction.getAmount());
-        
-        if (roundUpAmount.compareTo(BigDecimal.ZERO) <= 0) {
-            return; // No round-up needed
+        if (goal.getDeletedAt() != null) {
+            return;
+        }
+        if ("manual".equalsIgnoreCase(goal.getProgressMode())) {
+            return;
         }
 
-        // Check if round-up already processed for this transaction
-        // We can add a field to TransactionTable to track round-up processing
-        // For now, we'll check if there's already a round-up transaction
+        final BigDecimal roundUpAmount = calculateRoundUp(transaction.getAmount());
+        if (roundUpAmount.compareTo(BigDecimal.ZERO) <= 0) {
+            return;
+        }
 
-        // Create round-up contribution transaction
-        // This would be a positive transaction assigned to the goal
-        logger.info("Processing round-up: ${} for transaction {} to goal {}", 
-            roundUpAmount, transaction.getTransactionId(), goalId);
+        // Deterministic id: if we've already generated a contribution for this source
+        // + goal pair, save() overwrites the existing row with the same fields rather
+        // than creating a duplicate.
+        final String contributionId =
+                java.util
+                        .UUID
+                        .nameUUIDFromBytes(
+                                ("roundup:" + transaction.getTransactionId() + ":" + goalId)
+                                        .getBytes(StandardCharsets.UTF_8))
+                        .toString();
 
-        // Update goal progress with round-up amount
-        // Note: This should be done through GoalProgressService to ensure proper tracking
-        // For now, we'll just log - actual implementation would create a transaction
+        // Bail if the contribution already exists with the same amount — this is the
+        // common case on re-ingest of an unchanged transaction.
+        final Optional<TransactionTable> existing = transactionRepository.findById(contributionId);
+        if (existing.isPresent()
+                && existing.get().getAmount() != null
+                && existing.get().getAmount().compareTo(roundUpAmount) == 0) {
+            return;
+        }
+
+        final TransactionTable contribution = new TransactionTable();
+        contribution.setTransactionId(contributionId);
+        contribution.setUserId(transaction.getUserId());
+        contribution.setAccountId(transaction.getAccountId());
+        contribution.setAmount(roundUpAmount);
+        contribution.setDescription(
+                "Round-up to " + (goal.getName() == null ? "goal" : goal.getName()));
+        contribution.setMerchantName("BudgetBuddy Round-up");
+        contribution.setCategoryPrimary("savings");
+        contribution.setCategoryDetailed("round_up");
+        contribution.setTransactionDate(transaction.getTransactionDate());
+        contribution.setGoalId(goalId);
+        contribution.setRoundUpSourceTransactionId(transaction.getTransactionId());
+        contribution.setCreatedAt(java.time.Instant.now());
+        contribution.setUpdatedAt(java.time.Instant.now());
+        transactionRepository.save(contribution);
+
+        LOGGER.info(
+                "Created round-up contribution {} (${}) for source {} → goal {}",
+                contributionId,
+                roundUpAmount,
+                transaction.getTransactionId(),
+                goalId);
     }
 
-    /**
-     * Get total round-up contributions for a goal in a time period
-     */
-    public BigDecimal getRoundUpTotal(GoalTable goal, String userId, int days) {
+    /** Get total round-up contributions for a goal in a time period */
+    public BigDecimal getRoundUpTotal(final GoalTable goal, final String userId, final int days) {
         // Get all transactions assigned to goal
-        List<TransactionTable> goalTransactions = transactionRepository.findByUserIdAndGoalId(userId, goal.getGoalId());
+        final List<TransactionTable> goalTransactions =
+                transactionRepository.findByUserIdAndGoalId(userId, goal.getGoalId());
 
-        // Calculate total round-ups (simplified - would need to track round-up transactions separately)
+        // Calculate total round-ups (simplified - would need to track round-up transactions
+        // separately)
         // For now, return zero - actual implementation would sum round-up contributions
         return BigDecimal.ZERO;
     }
 
-    /**
-     * Enable round-up for a goal
-     */
-    public void enableRoundUp(String goalId) {
-        Optional<GoalTable> goalOpt = goalRepository.findById(goalId);
+    /** Enable round-up for a goal */
+    public void enableRoundUp(final String goalId) {
+        final Optional<GoalTable> goalOpt = goalRepository.findById(goalId);
         if (goalOpt.isEmpty()) {
             throw new IllegalArgumentException("Goal not found: " + goalId);
         }
 
-        GoalTable goal = goalOpt.get();
+        final GoalTable goal = goalOpt.get();
         goal.setRoundUpEnabled(true);
         goalRepository.save(goal);
-        logger.info("Round-up enabled for goal: {}", goalId);
+        LOGGER.info("Round-up enabled for goal: {}", goalId);
     }
 
-    /**
-     * Disable round-up for a goal
-     */
-    public void disableRoundUp(String goalId) {
-        Optional<GoalTable> goalOpt = goalRepository.findById(goalId);
+    /** Disable round-up for a goal */
+    public void disableRoundUp(final String goalId) {
+        final Optional<GoalTable> goalOpt = goalRepository.findById(goalId);
         if (goalOpt.isEmpty()) {
             throw new IllegalArgumentException("Goal not found: " + goalId);
         }
 
-        GoalTable goal = goalOpt.get();
+        final GoalTable goal = goalOpt.get();
         goal.setRoundUpEnabled(false);
         goalRepository.save(goal);
-        logger.info("Round-up disabled for goal: {}", goalId);
+        LOGGER.info("Round-up disabled for goal: {}", goalId);
     }
 }
-

@@ -1,0 +1,10 @@
+{
+  "institution": "Fidelity",
+  "note": "synthetic Fidelity brokerage — date/description/amount collapsed schema",
+  "expected": [
+    { "date": "2024-03-15", "description": "BUY 10 SHARES VTI VANGUARD TOTAL STOCK ETF", "amount": "-2,450.00" },
+    { "date": "2024-03-18", "description": "DIVIDEND PAYMENT VTI 10 SHARES",             "amount": "12.34" },
+    { "date": "2024-03-20", "description": "SELL 5 SHARES AAPL APPLE INC",               "amount": "845.67" },
+    { "date": "2024-03-25", "description": "CONTRIBUTION IRA ACCOUNT",                    "amount": "-500.00" }
+  ]
+}

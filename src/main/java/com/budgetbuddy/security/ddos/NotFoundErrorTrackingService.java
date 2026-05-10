@@ -1,5 +1,12 @@
 package com.budgetbuddy.security.ddos;
 
+import java.time.Instant;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executor;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -7,44 +14,56 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
-import software.amazon.awssdk.services.dynamodb.model.*;
-
-import java.time.Instant;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executor;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicBoolean;
+import software.amazon.awssdk.services.dynamodb.model.AttributeDefinition;
+import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
+import software.amazon.awssdk.services.dynamodb.model.BillingMode;
+import software.amazon.awssdk.services.dynamodb.model.CreateTableRequest;
+import software.amazon.awssdk.services.dynamodb.model.DescribeTableRequest;
+import software.amazon.awssdk.services.dynamodb.model.GetItemRequest;
+import software.amazon.awssdk.services.dynamodb.model.GetItemResponse;
+import software.amazon.awssdk.services.dynamodb.model.KeySchemaElement;
+import software.amazon.awssdk.services.dynamodb.model.KeyType;
+import software.amazon.awssdk.services.dynamodb.model.PutItemRequest;
+import software.amazon.awssdk.services.dynamodb.model.ResourceInUseException;
+import software.amazon.awssdk.services.dynamodb.model.ResourceNotFoundException;
+import software.amazon.awssdk.services.dynamodb.model.ScalarAttributeType;
+import software.amazon.awssdk.services.dynamodb.model.TimeToLiveSpecification;
+import software.amazon.awssdk.services.dynamodb.model.UpdateTimeToLiveRequest;
 
 /**
- * Tracks 404 (Not Found) errors and throttles sources that generate excessive 404s
- * This is a DDoS protection mechanism - repeated 404s can indicate:
- * - Scanning/probing attacks
- * - Misconfigured clients
- * - Buggy applications causing infinite retries
- * 
- * After N 404s in a time window, the source is throttled/blocked
+ * Tracks 404 (Not Found) errors and throttles sources that generate excessive 404s This is a DDoS
+ * protection mechanism - repeated 404s can indicate: - Scanning/probing attacks - Misconfigured
+ * clients - Buggy applications causing infinite retries
+ *
+ * <p>After N 404s in a time window, the source is throttled/blocked
  */
+// SDK / Spring integration — the underlying APIs (AWS SDK, Plaid SDK,
+// Spring services, reflection) throw arbitrary RuntimeException subtypes
+// that can't reasonably be enumerated. Broad catches log + recover (or
+// translate to AppException). Suppress at class level since narrowing
+// here would mean catch (RuntimeException) which PMD flags identically.
+@SuppressWarnings("PMD.AvoidCatchingGenericException")
 @Service
 public class NotFoundErrorTrackingService {
 
-    private static final Logger logger = LoggerFactory.getLogger(NotFoundErrorTrackingService.class);
+    private static final Logger LOGGER =
+            LoggerFactory.getLogger(NotFoundErrorTrackingService.class);
 
     // Configuration - Configurable via properties for different environments
     @Value("${app.ddos.notfound.enabled:true}")
     private boolean notFoundTrackingEnabled; // Allow disabling 404 tracking in tests
-    
+
     @Value("${app.ddos.notfound.max-per-minute:500}")
-    private int max404PerMinute; // Allow up to 500 404s per minute (default, configurable for tests)
-    
+    private int
+            max404PerMinute; // Allow up to 500 404s per minute (default, configurable for tests)
+
     @Value("${app.ddos.notfound.max-per-hour:5000}")
     private int max404PerHour; // Allow up to 5000 404s per hour (default, configurable for tests)
-    
+
     private static final int BLOCK_DURATION_SECONDS = 3600; // Block for 1 hour after threshold
-    private static final long WINDOW_SIZE_MS = 60000; // 1 minute window
-    private static final long CACHE_CLEANUP_INTERVAL_MS = 300000; // 5 minutes
-    private static final int MAX_CACHE_SIZE = 10000;
+    private static final long WINDOW_SIZE_MS = 60_000; // 1 minute window
+    private static final long CACHE_CLEANUP_INTERVAL_MS = 300_000; // 5 minutes
+    private static final int MAX_CACHE_SIZE = 10_000;
 
     private final DynamoDbClient dynamoDbClient;
     private final String tableName;
@@ -57,37 +76,44 @@ public class NotFoundErrorTrackingService {
 
     public NotFoundErrorTrackingService(
             final DynamoDbClient dynamoDbClient,
-            @Value("${app.aws.dynamodb.table-prefix:BudgetBuddy}") String tablePrefix,
-            @Autowired(required = false) @Qualifier("taskExecutor") Executor asyncExecutor) {
+            @Value("${app.aws.dynamodb.table-prefix:BudgetBuddy}") final String tablePrefix,
+            @Autowired(required = false) @Qualifier("taskExecutor") final Executor asyncExecutor) {
         if (dynamoDbClient == null) {
             throw new IllegalArgumentException("DynamoDbClient cannot be null");
         }
         this.dynamoDbClient = dynamoDbClient;
         this.tableName = tablePrefix + "-NotFoundTracking";
         // Use provided executor or fallback to default (for testing)
-        this.asyncExecutor = asyncExecutor != null ? asyncExecutor : 
-            java.util.concurrent.Executors.newCachedThreadPool(r -> {
-                Thread t = new Thread(r, "404-block-async");
-                t.setDaemon(true);
-                return t;
-            });
+        this.asyncExecutor =
+                asyncExecutor != null
+                        ? asyncExecutor
+                        : java.util.concurrent.Executors.newCachedThreadPool(
+                                r -> {
+                                    final Thread t = new Thread(r, "404-block-async");
+                                    t.setDaemon(true);
+                                    return t;
+                                });
         // Initialize table lazily to avoid blocking application startup
         // Table will be created on first use if needed
         try {
-            boolean initialized = initializeTable();
+            final boolean initialized = initializeTable();
             if (!initialized) {
-                logger.debug("404 tracking table initialization deferred (DynamoDB may be unavailable). " +
-                        "Will use in-memory only mode if table creation fails.");
+                LOGGER.debug(
+                        "404 tracking table initialization deferred (DynamoDB may be unavailable). "
+                                + "Will use in-memory only mode if table creation fails.");
             }
         } catch (Exception e) {
-            logger.debug("404 tracking table initialization failed: {}. " +
-                    "Will use in-memory only mode. This is acceptable in test environments.", e.getMessage());
+            LOGGER.debug(
+                    "404 tracking table initialization failed: {}. "
+                            + "Will use in-memory only mode. This is acceptable in test environments.",
+                    e.getMessage());
             dynamoDbAvailable = false;
         }
     }
 
     /**
      * Record a 404 error from a source (IP or user)
+     *
      * @param sourceId IP address or user ID
      * @return true if source should be blocked, false otherwise
      */
@@ -96,7 +122,7 @@ public class NotFoundErrorTrackingService {
         if (!notFoundTrackingEnabled) {
             return false;
         }
-        
+
         if (sourceId == null || sourceId.isEmpty()) {
             return false;
         }
@@ -108,19 +134,23 @@ public class NotFoundErrorTrackingService {
         NotFoundCounter counter = inMemoryCache.get(sourceId);
         if (counter != null && !counter.isExpired()) {
             if (counter.isBlocked()) {
-                logger.warn("404 tracking: Source {} is already blocked", sourceId);
+                LOGGER.warn("404 tracking: Source {} is already blocked", sourceId);
                 return true;
             }
-            
+
             counter.increment();
-            
-            // Check if threshold exceeded (use > instead of >= to block only when exceeding, not at threshold)
-            if (counter.getCountPerMinute() > max404PerMinute || 
-                counter.getCountPerHour() > max404PerHour) {
+
+            // Check if threshold exceeded (use > instead of >= to block only when exceeding, not at
+            // threshold)
+            if (counter.getCountPerMinute() > max404PerMinute
+                    || counter.getCountPerHour() > max404PerHour) {
                 counter.setBlocked(true);
                 blockSourceInDynamoDBAsync(sourceId);
-                logger.warn("404 tracking: Blocked source {} after {} 404s in minute, {} in hour", 
-                        sourceId, counter.getCountPerMinute(), counter.getCountPerHour());
+                LOGGER.warn(
+                        "404 tracking: Blocked source {} after {} 404s in minute, {} in hour",
+                        sourceId,
+                        counter.getCountPerMinute(),
+                        counter.getCountPerHour());
                 return true;
             }
             return false;
@@ -128,7 +158,7 @@ public class NotFoundErrorTrackingService {
 
         // Check DynamoDB for persistent blocked state
         if (dynamoDbAvailable && isBlockedInDynamoDB(sourceId)) {
-            NotFoundCounter blockedCounter = new NotFoundCounter();
+            final NotFoundCounter blockedCounter = new NotFoundCounter();
             blockedCounter.setBlocked(true);
             inMemoryCache.put(sourceId, blockedCounter);
             return true;
@@ -140,7 +170,7 @@ public class NotFoundErrorTrackingService {
 
         // Prevent cache from growing too large
         if (inMemoryCache.size() >= MAX_CACHE_SIZE) {
-            String firstKey = inMemoryCache.keySet().iterator().next();
+            final String firstKey = inMemoryCache.keySet().iterator().next();
             inMemoryCache.remove(firstKey);
         }
 
@@ -148,9 +178,7 @@ public class NotFoundErrorTrackingService {
         return false;
     }
 
-    /**
-     * Check if a source is currently blocked due to excessive 404s
-     */
+    /** Check if a source is currently blocked due to excessive 404s */
     public boolean isBlocked(final String sourceId) {
         // If 404 tracking is disabled, never block
         if (!notFoundTrackingEnabled) {
@@ -160,7 +188,7 @@ public class NotFoundErrorTrackingService {
             return false;
         }
 
-        NotFoundCounter counter = inMemoryCache.get(sourceId);
+        final NotFoundCounter counter = inMemoryCache.get(sourceId);
         if (counter != null && !counter.isExpired()) {
             return counter.isBlocked();
         }
@@ -173,28 +201,24 @@ public class NotFoundErrorTrackingService {
         return false;
     }
 
-    /**
-     * Clear tracking for a specific source (for testing purposes)
-     */
+    /** Clear tracking for a specific source (for testing purposes) */
     public void clearTracking(final String sourceId) {
         if (sourceId != null && !sourceId.isEmpty()) {
             inMemoryCache.remove(sourceId);
         }
     }
 
-    /**
-     * Clear all tracking (for testing purposes)
-     */
+    /** Clear all tracking (for testing purposes) */
     public void clearAllTracking() {
         inMemoryCache.clear();
     }
 
     private void cleanupCacheIfNeeded() {
-        long now = System.currentTimeMillis();
+        final long now = System.currentTimeMillis();
         if (now - lastCacheCleanup > CACHE_CLEANUP_INTERVAL_MS) {
             synchronized (this) {
                 if (now - lastCacheCleanup > CACHE_CLEANUP_INTERVAL_MS) {
-                    inMemoryCache.entrySet().removeIf((entry) -> entry.getValue().isExpired());
+                    inMemoryCache.entrySet().removeIf(entry -> entry.getValue().isExpired());
                     lastCacheCleanup = now;
                 }
             }
@@ -204,7 +228,8 @@ public class NotFoundErrorTrackingService {
     private boolean initializeTable() {
         // Check if table already exists before attempting to create it
         try {
-            dynamoDbClient.describeTable(DescribeTableRequest.builder().tableName(tableName).build());
+            dynamoDbClient.describeTable(
+                    DescribeTableRequest.builder().tableName(tableName).build());
             // Table exists, no need to create it
             dynamoDbAvailable = true;
             return true;
@@ -212,61 +237,70 @@ public class NotFoundErrorTrackingService {
             // Table doesn't exist, proceed with creation
         } catch (Exception e) {
             if (isCredentialsError(e)) {
-                logger.warn("⚠️ AWS credentials not configured for LocalStack or environment. Skipping 404 tracking table check. Error: {}", e.getMessage());
+                LOGGER.warn(
+                        "⚠️ AWS credentials not configured for LocalStack or environment. Skipping 404 tracking table check. Error: {}",
+                        e.getMessage());
                 dynamoDbAvailable = false;
                 return false;
             }
-            logger.debug("Failed to check if 404 tracking table exists: {}", e.getMessage());
+            LOGGER.debug("Failed to check if 404 tracking table exists: {}", e.getMessage());
             // Continue with creation attempt
         }
 
         try {
-            dynamoDbClient.createTable(CreateTableRequest.builder()
-                    .tableName(tableName)
-                    .billingMode(BillingMode.PAY_PER_REQUEST)
-                    .attributeDefinitions(
-                            AttributeDefinition.builder()
-                                    .attributeName("sourceId")
-                                    .attributeType(ScalarAttributeType.S)
-                                    .build())
-                    .keySchema(
-                            KeySchemaElement.builder()
-                                    .attributeName("sourceId")
-                                    .keyType(KeyType.HASH)
-                                    .build())
-                    .build());
+            dynamoDbClient.createTable(
+                    CreateTableRequest.builder()
+                            .tableName(tableName)
+                            .billingMode(BillingMode.PAY_PER_REQUEST)
+                            .attributeDefinitions(
+                                    AttributeDefinition.builder()
+                                            .attributeName("sourceId")
+                                            .attributeType(ScalarAttributeType.S)
+                                            .build())
+                            .keySchema(
+                                    KeySchemaElement.builder()
+                                            .attributeName("sourceId")
+                                            .keyType(KeyType.HASH)
+                                            .build())
+                            .build());
 
             // Configure TTL
             try {
-                dynamoDbClient.updateTimeToLive(UpdateTimeToLiveRequest.builder()
-                        .tableName(tableName)
-                        .timeToLiveSpecification(TimeToLiveSpecification.builder()
-                                .enabled(true)
-                                .attributeName("ttl")
-                                .build())
-                        .build());
+                dynamoDbClient.updateTimeToLive(
+                        UpdateTimeToLiveRequest.builder()
+                                .tableName(tableName)
+                                .timeToLiveSpecification(
+                                        TimeToLiveSpecification.builder()
+                                                .enabled(true)
+                                                .attributeName("ttl")
+                                                .build())
+                                .build());
             } catch (Exception e) {
-                logger.debug("Failed to configure TTL for 404 tracking table: {}", e.getMessage());
+                LOGGER.debug("Failed to configure TTL for 404 tracking table: {}", e.getMessage());
             }
-            logger.debug("404 tracking table created successfully");
+            LOGGER.debug("404 tracking table created successfully");
             dynamoDbAvailable = true;
             return true;
         } catch (ResourceInUseException e) {
             // Table was created by another instance between check and create - this is fine
-            logger.debug("404 tracking table already exists (race condition)");
+            LOGGER.debug("404 tracking table already exists (race condition)");
             dynamoDbAvailable = true;
             return true;
         } catch (Exception e) {
             if (isCredentialsError(e)) {
-                logger.warn("⚠️ AWS credentials not configured for LocalStack or environment. 404 tracking will work in in-memory only mode. Error: {}", e.getMessage());
+                LOGGER.warn(
+                        "⚠️ AWS credentials not configured for LocalStack or environment. 404 tracking will work in in-memory only mode. Error: {}",
+                        e.getMessage());
                 dynamoDbAvailable = false;
                 return false;
             }
             // Log at WARN level - table creation failure indicates configuration issue
             // In test environments, ensure LocalStack is running and auto-create-tables is enabled
-            logger.warn("Failed to create 404 tracking table: {}. " +
-                    "404 tracking will work in in-memory only mode. " +
-                    "Ensure LocalStack is running and auto-create-tables is enabled.", e.getMessage());
+            LOGGER.warn(
+                    "Failed to create 404 tracking table: {}. "
+                            + "404 tracking will work in in-memory only mode. "
+                            + "Ensure LocalStack is running and auto-create-tables is enabled.",
+                    e.getMessage());
             dynamoDbAvailable = false;
             return false;
         }
@@ -278,15 +312,20 @@ public class NotFoundErrorTrackingService {
         }
 
         try {
-            GetItemResponse response = dynamoDbClient.getItem(GetItemRequest.builder()
-                    .tableName(tableName)
-                    .key(Map.of("sourceId", AttributeValue.builder().s(sourceId).build()))
-                    .build());
+            final GetItemResponse response =
+                    dynamoDbClient.getItem(
+                            GetItemRequest.builder()
+                                    .tableName(tableName)
+                                    .key(
+                                            Map.of(
+                                                    "sourceId",
+                                                    AttributeValue.builder().s(sourceId).build()))
+                                    .build());
 
             if (response.item() != null && response.item().containsKey("blockedUntil")) {
-                AttributeValue blockedUntilAttr = response.item().get("blockedUntil");
+                final AttributeValue blockedUntilAttr = response.item().get("blockedUntil");
                 if (blockedUntilAttr != null && blockedUntilAttr.n() != null) {
-                    long blockedUntil = Long.parseLong(blockedUntilAttr.n());
+                    final long blockedUntil = Long.parseLong(blockedUntilAttr.n());
                     if (Instant.now().getEpochSecond() < blockedUntil) {
                         return true;
                     }
@@ -294,9 +333,11 @@ public class NotFoundErrorTrackingService {
             }
         } catch (Exception e) {
             if (isCredentialsError(e)) {
-                logger.debug("AWS credentials not configured. Using in-memory cache only.");
+                LOGGER.debug("AWS credentials not configured. Using in-memory cache only.");
             } else {
-                logger.debug("Failed to check blocked source in DynamoDB: {}. Using in-memory cache only.", e.getMessage());
+                LOGGER.debug(
+                        "Failed to check blocked source in DynamoDB: {}. Using in-memory cache only.",
+                        e.getMessage());
             }
             dynamoDbAvailable = false;
         }
@@ -309,59 +350,79 @@ public class NotFoundErrorTrackingService {
         }
 
         try {
-            long blockedUntil = Instant.now().getEpochSecond() + BLOCK_DURATION_SECONDS;
-            dynamoDbClient.putItem(PutItemRequest.builder()
-                    .tableName(tableName)
-                    .item(Map.of(
-                            "sourceId", AttributeValue.builder().s(sourceId).build(),
-                            "blockedUntil", AttributeValue.builder().n(String.valueOf(blockedUntil)).build(),
-                            "blockedAt", AttributeValue.builder().n(String.valueOf(Instant.now().getEpochSecond())).build(),
-                            "ttl", AttributeValue.builder().n(String.valueOf(blockedUntil + 86400)).build()
-                    ))
-                    .build());
-            logger.warn("404 tracking: Blocked source {} until {}", sourceId, Instant.ofEpochSecond(blockedUntil));
+            final long blockedUntil = Instant.now().getEpochSecond() + BLOCK_DURATION_SECONDS;
+            dynamoDbClient.putItem(
+                    PutItemRequest.builder()
+                            .tableName(tableName)
+                            .item(
+                                    Map.of(
+                                            "sourceId",
+                                                    AttributeValue.builder().s(sourceId).build(),
+                                            "blockedUntil",
+                                                    AttributeValue.builder()
+                                                            .n(String.valueOf(blockedUntil))
+                                                            .build(),
+                                            "blockedAt",
+                                                    AttributeValue.builder()
+                                                            .n(
+                                                                    String.valueOf(
+                                                                            Instant.now()
+                                                                                    .getEpochSecond()))
+                                                            .build(),
+                                            "ttl",
+                                                    AttributeValue.builder()
+                                                            .n(String.valueOf(blockedUntil + 86_400))
+                                                            .build()))
+                            .build());
+            LOGGER.warn(
+                    "404 tracking: Blocked source {} until {}",
+                    sourceId,
+                    Instant.ofEpochSecond(blockedUntil));
         } catch (Exception e) {
-            logger.debug("Failed to block source in DynamoDB: {}. Source blocked in-memory only.", e.getMessage());
+            LOGGER.debug(
+                    "Failed to block source in DynamoDB: {}. Source blocked in-memory only.",
+                    e.getMessage());
             dynamoDbAvailable = false;
         }
     }
 
     /**
-     * Async block source to avoid blocking the request thread
-     * Uses thread pool executor to prevent resource exhaustion
+     * Async block source to avoid blocking the request thread Uses thread pool executor to prevent
+     * resource exhaustion
      */
     private void blockSourceInDynamoDBAsync(final String sourceId) {
         // Use thread pool executor to avoid creating unbounded threads
-        asyncExecutor.execute(() -> {
-            try {
-                blockSourceInDynamoDB(sourceId);
-            } catch (Exception e) {
-                logger.error("Error in async source blocking for {}: {}", sourceId, e.getMessage(), e);
-            }
-        });
+        asyncExecutor.execute(
+                () -> {
+                    try {
+                        blockSourceInDynamoDB(sourceId);
+                    } catch (Exception e) {
+                        LOGGER.error(
+                                "Error in async source blocking for {}: {}",
+                                sourceId,
+                                e.getMessage(),
+                                e);
+                    }
+                });
     }
 
-    /**
-     * Helper method to check if an exception is related to AWS credentials
-     */
-    private boolean isCredentialsError(Exception e) {
+    /** Helper method to check if an exception is related to AWS credentials */
+    private boolean isCredentialsError(final Exception e) {
         if (e instanceof software.amazon.awssdk.core.exception.SdkClientException) {
-            String message = e.getMessage();
+            final String message = e.getMessage();
             return message != null && message.contains("Unable to load credentials");
         }
         // Check for wrapped SdkClientException
-        Throwable cause = e.getCause();
+        final Throwable cause = e.getCause();
         if (cause instanceof software.amazon.awssdk.core.exception.SdkClientException) {
-            String causeMessage = cause.getMessage();
+            final String causeMessage = cause.getMessage();
             return causeMessage != null && causeMessage.contains("Unable to load credentials");
         }
         return false;
     }
 
-    /**
-     * Thread-safe counter for tracking 404 errors
-     */
-    private static class NotFoundCounter {
+    /** Thread-safe counter for tracking 404 errors */
+    private static final class NotFoundCounter {
         private final AtomicInteger countPerMinute = new AtomicInteger(0);
         private final AtomicInteger countPerHour = new AtomicInteger(0);
         private final AtomicLong windowStart = new AtomicLong(System.currentTimeMillis());
@@ -369,8 +430,8 @@ public class NotFoundErrorTrackingService {
         private final AtomicBoolean blocked = new AtomicBoolean(false);
 
         public void increment() {
-            long now = System.currentTimeMillis();
-            
+            final long now = System.currentTimeMillis();
+
             // Reset minute window if expired
             if (now - windowStart.get() > WINDOW_SIZE_MS) {
                 if (windowStart.compareAndSet(windowStart.get(), now)) {
@@ -383,7 +444,7 @@ public class NotFoundErrorTrackingService {
             }
 
             // Reset hour window if expired
-            if (now - hourWindowStart.get() > 3600000) { // 1 hour
+            if (now - hourWindowStart.get() > 3_600_000) { // 1 hour
                 if (hourWindowStart.compareAndSet(hourWindowStart.get(), now)) {
                     countPerHour.set(1);
                 } else {
@@ -411,8 +472,8 @@ public class NotFoundErrorTrackingService {
         }
 
         public boolean isExpired() {
-            return System.currentTimeMillis() - windowStart.get() > WINDOW_SIZE_MS * 2; // Expire after 2 minutes of inactivity
+            return System.currentTimeMillis() - windowStart.get()
+                    > WINDOW_SIZE_MS * 2; // Expire after 2 minutes of inactivity
         }
     }
 }
-

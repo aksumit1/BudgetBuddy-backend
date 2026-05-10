@@ -1,11 +1,29 @@
 package com.budgetbuddy.api;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.anyString;
+import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import com.budgetbuddy.exception.AppException;
 import com.budgetbuddy.exception.ErrorCode;
 import com.budgetbuddy.model.dynamodb.UserTable;
 import com.budgetbuddy.service.SyncHealthService;
 import com.budgetbuddy.service.SyncHealthService.SyncHealthResponse;
 import com.budgetbuddy.service.UserService;
+import java.time.Instant;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -16,28 +34,24 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.userdetails.UserDetails;
 
-import java.time.Instant;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
-
 /**
- * Tests for SyncHealthController
- * Tests sync health status tracking, error handling, and race condition protection
+ * Tests for SyncHealthController Tests sync health status tracking, error handling, and race
+ * condition protection
  */
+// PMD's LawOfDemeter is documented as imprecise on chains involving
+// standard library types (BigDecimal, String, Optional) and DTO
+// getters; this class has many such idiomatic uses. Suppress at
+// class level rather than littering every method.
+@SuppressWarnings("PMD.LawOfDemeter")
 @ExtendWith(MockitoExtension.class)
 @org.mockito.junit.jupiter.MockitoSettings(strictness = org.mockito.quality.Strictness.LENIENT)
 class SyncHealthControllerTest {
 
-    @Mock
-    private SyncHealthService syncHealthService;
+    @Mock private SyncHealthService syncHealthService;
 
-    @Mock
-    private UserService userService;
+    @Mock private UserService userService;
 
-    @InjectMocks
-    private SyncHealthController controller;
+    @InjectMocks private SyncHealthController controller;
 
     private UserDetails userDetails;
     private UserTable user;
@@ -53,11 +67,11 @@ class SyncHealthControllerTest {
     }
 
     @Test
-    void testGetSyncHealth_Success() {
+    void testGetSyncHealthSuccess() {
         // Given
         when(userService.findByEmail("test@example.com")).thenReturn(java.util.Optional.of(user));
-        
-        SyncHealthResponse response = new SyncHealthResponse();
+
+        final SyncHealthResponse response = new SyncHealthResponse();
         response.setStatus("success");
         response.setLastSyncDate(Instant.now());
         response.setConsecutiveFailures(0);
@@ -65,11 +79,11 @@ class SyncHealthControllerTest {
         response.setIsStale(false);
         response.setTimeAgo("just now");
         response.setMessage("Up to date");
-        
+
         when(syncHealthService.getSyncHealth(eq("user-123"), any())).thenReturn(response);
 
         // When
-        ResponseEntity<SyncHealthResponse> result = controller.getSyncHealth(userDetails);
+        final ResponseEntity<SyncHealthResponse> result = controller.getSyncHealth(userDetails);
 
         // Then
         assertNotNull(result);
@@ -81,51 +95,58 @@ class SyncHealthControllerTest {
     }
 
     @Test
-    void testGetSyncHealth_Unauthorized() {
+    void testGetSyncHealthUnauthorized() {
         // Given
-        UserDetails nullUserDetails = null;
+        final UserDetails nullUserDetails = null;
 
         // When/Then
-        AppException exception = assertThrows(AppException.class, () -> {
-            controller.getSyncHealth(nullUserDetails);
-        });
+        final AppException exception =
+                assertThrows(
+                        AppException.class,
+                        () -> {
+                            controller.getSyncHealth(nullUserDetails);
+                        });
 
         assertEquals(ErrorCode.UNAUTHORIZED_ACCESS, exception.getErrorCode());
     }
 
     @Test
-    void testGetSyncHealth_UserNotFound() {
+    void testGetSyncHealthUserNotFound() {
         // Given
         when(userService.findByEmail("test@example.com")).thenReturn(java.util.Optional.empty());
 
         // When/Then
-        AppException exception = assertThrows(AppException.class, () -> {
-            controller.getSyncHealth(userDetails);
-        });
+        final AppException exception =
+                assertThrows(
+                        AppException.class,
+                        () -> {
+                            controller.getSyncHealth(userDetails);
+                        });
 
         assertEquals(ErrorCode.USER_NOT_FOUND, exception.getErrorCode());
     }
 
     @Test
-    void testUpdateSyncStatus_Success() {
+    void testUpdateSyncStatusSuccess() {
         // Given
         when(userService.findByEmail("test@example.com")).thenReturn(java.util.Optional.of(user));
-        
-        SyncHealthController.SyncStatusUpdateRequest request = 
+
+        final SyncHealthController.SyncStatusUpdateRequest request =
                 new SyncHealthController.SyncStatusUpdateRequest();
         request.setStatus("syncing");
         request.setLastSyncDate(Instant.now());
         request.setConsecutiveFailures(0);
         request.setConnectionHealth("healthy");
-        
-        SyncHealthResponse response = new SyncHealthResponse();
+
+        final SyncHealthResponse response = new SyncHealthResponse();
         response.setStatus("syncing");
         response.setConnectionHealth("healthy");
-        
+
         when(syncHealthService.getSyncHealth(eq("user-123"), any())).thenReturn(response);
 
         // When
-        ResponseEntity<SyncHealthResponse> result = controller.updateSyncStatus(userDetails, request);
+        final ResponseEntity<SyncHealthResponse> result =
+                controller.updateSyncStatus(userDetails, request);
 
         // Then
         assertNotNull(result);
@@ -134,47 +155,53 @@ class SyncHealthControllerTest {
     }
 
     @Test
-    void testUpdateSyncStatus_InvalidRequest() {
+    void testUpdateSyncStatusInvalidRequest() {
         // Given
-        SyncHealthController.SyncStatusUpdateRequest nullRequest = null;
+        final SyncHealthController.SyncStatusUpdateRequest nullRequest = null;
 
         // When/Then
-        AppException exception = assertThrows(AppException.class, () -> {
-            controller.updateSyncStatus(userDetails, nullRequest);
-        });
+        final AppException exception =
+                assertThrows(
+                        AppException.class,
+                        () -> {
+                            controller.updateSyncStatus(userDetails, nullRequest);
+                        });
 
         assertEquals(ErrorCode.INVALID_INPUT, exception.getErrorCode());
     }
 
     @Test
-    void testUpdateSyncStatus_EmptyStatus() {
+    void testUpdateSyncStatusEmptyStatus() {
         // Given
-        SyncHealthController.SyncStatusUpdateRequest request = 
+        final SyncHealthController.SyncStatusUpdateRequest request =
                 new SyncHealthController.SyncStatusUpdateRequest();
         request.setStatus(""); // Empty status
 
         // When/Then
-        AppException exception = assertThrows(AppException.class, () -> {
-            controller.updateSyncStatus(userDetails, request);
-        });
+        final AppException exception =
+                assertThrows(
+                        AppException.class,
+                        () -> {
+                            controller.updateSyncStatus(userDetails, request);
+                        });
 
         assertEquals(ErrorCode.INVALID_INPUT, exception.getErrorCode());
     }
 
     @Test
-    void testClearSyncErrors_Success() {
+    void testClearSyncErrorsSuccess() {
         // Given
         when(userService.findByEmail("test@example.com")).thenReturn(java.util.Optional.of(user));
-        
-        SyncHealthResponse response = new SyncHealthResponse();
+
+        final SyncHealthResponse response = new SyncHealthResponse();
         response.setStatus("idle");
         response.setConsecutiveFailures(0);
         response.setConnectionHealth("healthy");
-        
+
         when(syncHealthService.getSyncHealth(eq("user-123"), any())).thenReturn(response);
 
         // When
-        ResponseEntity<SyncHealthResponse> result = controller.clearSyncErrors(userDetails);
+        final ResponseEntity<SyncHealthResponse> result = controller.clearSyncErrors(userDetails);
 
         // Then
         assertNotNull(result);
@@ -184,51 +211,52 @@ class SyncHealthControllerTest {
     }
 
     @Test
-    void testConcurrentUpdates_RaceConditionProtection() throws InterruptedException {
+    void testConcurrentUpdatesRaceConditionProtection() throws InterruptedException {
         // Given
         when(userService.findByEmail("test@example.com")).thenReturn(java.util.Optional.of(user));
-        
-        SyncHealthController.SyncStatusUpdateRequest request = 
+
+        final SyncHealthController.SyncStatusUpdateRequest request =
                 new SyncHealthController.SyncStatusUpdateRequest();
         request.setStatus("syncing");
-        
-        SyncHealthResponse response = new SyncHealthResponse();
+
+        final SyncHealthResponse response = new SyncHealthResponse();
         response.setStatus("syncing");
-        
+
         when(syncHealthService.getSyncHealth(eq("user-123"), any())).thenReturn(response);
 
         // When - Simulate concurrent updates
-        int threadCount = 10;
-        Thread[] threads = new Thread[threadCount];
+        final int threadCount = 10;
+        final Thread[] threads = new Thread[threadCount];
         final boolean[] success = new boolean[threadCount];
-        
+
         for (int i = 0; i < threadCount; i++) {
             final int index = i;
-            threads[i] = new Thread(() -> {
-                try {
-                    ResponseEntity<SyncHealthResponse> result = 
-                            controller.updateSyncStatus(userDetails, request);
-                    success[index] = (result.getStatusCode() == HttpStatus.OK);
-                } catch (Exception e) {
-                    success[index] = false;
-                }
-            });
+            threads[i] =
+                    new Thread(
+                            () -> {
+                                try {
+                                    final ResponseEntity<SyncHealthResponse> result =
+                                            controller.updateSyncStatus(userDetails, request);
+                                    success[index] = result.getStatusCode() == HttpStatus.OK;
+                                } catch (Exception e) {
+                                    success[index] = false;
+                                }
+                            });
         }
-        
+
         // Start all threads
-        for (Thread thread : threads) {
+        for (final Thread thread : threads) {
             thread.start();
         }
-        
+
         // Wait for all threads
-        for (Thread thread : threads) {
+        for (final Thread thread : threads) {
             thread.join();
         }
 
         // Then - All should succeed (race condition protection)
-        for (boolean s : success) {
+        for (final boolean s : success) {
             assertTrue(s, "All concurrent updates should succeed");
         }
     }
 }
-

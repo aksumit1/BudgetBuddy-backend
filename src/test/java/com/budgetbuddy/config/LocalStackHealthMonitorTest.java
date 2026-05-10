@@ -1,14 +1,14 @@
 package com.budgetbuddy.config;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import static org.junit.jupiter.api.Assertions.*;
-
-/**
- * Unit Tests for LocalStackHealthMonitor
- */
+/** Unit Tests for LocalStackHealthMonitor */
 class LocalStackHealthMonitorTest {
 
     private LocalStackHealthMonitor monitor;
@@ -19,74 +19,76 @@ class LocalStackHealthMonitorTest {
     }
 
     @Test
-    void testIsHealthy_InitialState_ReturnsTrue() {
+    void testIsHealthyInitialStateReturnsTrue() {
         // When
-        boolean healthy = monitor.isHealthy();
+        final boolean healthy = monitor.isHealthy();
 
         // Then
         assertTrue(healthy);
     }
 
     @Test
-    void testCheckLocalStackHealth_WithEmptyEndpoint_DoesNotProcess() {
+    void testCheckLocalStackHealthWithEmptyEndpointDoesNotProcess() {
         // Given
         ReflectionTestUtils.setField(monitor, "dynamoDbEndpoint", "");
 
         // When - should not throw and should return early
-        assertDoesNotThrow(() -> {
-            // Use reflection to call the private method for testing
-            ReflectionTestUtils.invokeMethod(monitor, "checkLocalStackHealth");
-        });
+        assertDoesNotThrow(
+                () -> {
+                    // Use reflection to call the private method for testing
+                    ReflectionTestUtils.invokeMethod(monitor, "checkLocalStackHealth");
+                });
 
         // Then - health status should remain unchanged
         assertTrue(monitor.isHealthy());
     }
 
     @Test
-    void testCheckLocalStackHealth_WithNullEndpoint_DoesNotProcess() {
+    void testCheckLocalStackHealthWithNullEndpointDoesNotProcess() {
         // Given
         ReflectionTestUtils.setField(monitor, "dynamoDbEndpoint", null);
 
         // When - should not throw and should return early
-        assertDoesNotThrow(() -> {
-            ReflectionTestUtils.invokeMethod(monitor, "checkLocalStackHealth");
-        });
+        assertDoesNotThrow(
+                () -> {
+                    ReflectionTestUtils.invokeMethod(monitor, "checkLocalStackHealth");
+                });
 
         // Then - health status should remain unchanged
         assertTrue(monitor.isHealthy());
     }
 
     @Test
-    void testIsHealthy_WithFailuresBelowThreshold_ReturnsTrue() {
+    void testIsHealthyWithFailuresBelowThresholdReturnsTrue() {
         // Given
         ReflectionTestUtils.setField(monitor, "consecutiveFailures", 2); // Below threshold of 3
 
         // When
-        boolean healthy = monitor.isHealthy();
+        final boolean healthy = monitor.isHealthy();
 
         // Then
         assertTrue(healthy);
     }
 
     @Test
-    void testIsHealthy_WithFailuresAtThreshold_ReturnsFalse() {
+    void testIsHealthyWithFailuresAtThresholdReturnsFalse() {
         // Given
         ReflectionTestUtils.setField(monitor, "consecutiveFailures", 3); // At threshold
 
         // When
-        boolean healthy = monitor.isHealthy();
+        final boolean healthy = monitor.isHealthy();
 
         // Then
         assertFalse(healthy);
     }
 
     @Test
-    void testIsHealthy_WithFailuresAboveThreshold_ReturnsFalse() {
+    void testIsHealthyWithFailuresAboveThresholdReturnsFalse() {
         // Given
         ReflectionTestUtils.setField(monitor, "consecutiveFailures", 5); // Above threshold
 
         // When
-        boolean healthy = monitor.isHealthy();
+        final boolean healthy = monitor.isHealthy();
 
         // Then
         assertFalse(healthy);

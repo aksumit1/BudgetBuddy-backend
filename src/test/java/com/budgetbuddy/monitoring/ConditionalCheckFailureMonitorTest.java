@@ -1,17 +1,16 @@
 package com.budgetbuddy.monitoring;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import software.amazon.awssdk.services.dynamodb.model.ConditionalCheckFailedException;
 
-import java.util.Map;
-
-import static org.junit.jupiter.api.Assertions.*;
-
-/**
- * Unit tests for ConditionalCheckFailureMonitor
- */
+/** Unit tests for ConditionalCheckFailureMonitor */
 class ConditionalCheckFailureMonitorTest {
 
     private ConditionalCheckFailureMonitor monitor;
@@ -23,13 +22,14 @@ class ConditionalCheckFailureMonitorTest {
 
     @Test
     @DisplayName("Should record failure and increment counter")
-    void testRecordFailure_IncrementsCounter() {
+    void testRecordFailureIncrementsCounter() {
         // Given
-        String operation = "saveIfNotExists";
-        String tableName = "Transactions";
-        ConditionalCheckFailedException exception = ConditionalCheckFailedException.builder()
-                .message("Conditional check failed")
-                .build();
+        final String operation = "saveIfNotExists";
+        final String tableName = "Transactions";
+        final ConditionalCheckFailedException exception =
+                ConditionalCheckFailedException.builder()
+                        .message("Conditional check failed")
+                        .build();
 
         // When
         monitor.recordFailure(operation, tableName, exception);
@@ -41,11 +41,12 @@ class ConditionalCheckFailureMonitorTest {
 
     @Test
     @DisplayName("Should handle null operation and table name")
-    void testRecordFailure_WithNullValues() {
+    void testRecordFailureWithNullValues() {
         // Given
-        ConditionalCheckFailedException exception = ConditionalCheckFailedException.builder()
-                .message("Conditional check failed")
-                .build();
+        final ConditionalCheckFailedException exception =
+                ConditionalCheckFailedException.builder()
+                        .message("Conditional check failed")
+                        .build();
 
         // When
         monitor.recordFailure(null, null, exception);
@@ -57,13 +58,14 @@ class ConditionalCheckFailureMonitorTest {
 
     @Test
     @DisplayName("Should track multiple failures for same operation")
-    void testRecordFailure_MultipleFailures() {
+    void testRecordFailureMultipleFailures() {
         // Given
-        String operation = "updateTransaction";
-        String tableName = "Transactions";
-        ConditionalCheckFailedException exception = ConditionalCheckFailedException.builder()
-                .message("Conditional check failed")
-                .build();
+        final String operation = "updateTransaction";
+        final String tableName = "Transactions";
+        final ConditionalCheckFailedException exception =
+                ConditionalCheckFailedException.builder()
+                        .message("Conditional check failed")
+                        .build();
 
         // When
         monitor.recordFailure(operation, tableName, exception);
@@ -77,11 +79,12 @@ class ConditionalCheckFailureMonitorTest {
 
     @Test
     @DisplayName("Should track failures for different operations")
-    void testRecordFailure_DifferentOperations() {
+    void testRecordFailureDifferentOperations() {
         // Given
-        ConditionalCheckFailedException exception = ConditionalCheckFailedException.builder()
-                .message("Conditional check failed")
-                .build();
+        final ConditionalCheckFailedException exception =
+                ConditionalCheckFailedException.builder()
+                        .message("Conditional check failed")
+                        .build();
 
         // When
         monitor.recordFailure("saveIfNotExists", "Transactions", exception);
@@ -97,9 +100,9 @@ class ConditionalCheckFailureMonitorTest {
 
     @Test
     @DisplayName("Should return zero for non-existent operation")
-    void testGetFailureCount_NonExistentOperation() {
+    void testGetFailureCountNonExistentOperation() {
         // When
-        long count = monitor.getFailureCount("nonExistent");
+        final long count = monitor.getFailureCount("nonExistent");
 
         // Then
         assertEquals(0, count);
@@ -107,9 +110,9 @@ class ConditionalCheckFailureMonitorTest {
 
     @Test
     @DisplayName("Should return zero for non-existent table")
-    void testGetFailureCountByTable_NonExistentTable() {
+    void testGetFailureCountByTableNonExistentTable() {
         // When
-        long count = monitor.getFailureCountByTable("nonExistent");
+        final long count = monitor.getFailureCountByTable("nonExistent");
 
         // Then
         assertEquals(0, count);
@@ -119,16 +122,17 @@ class ConditionalCheckFailureMonitorTest {
     @DisplayName("Should return all failure counts")
     void testGetAllFailureCounts() {
         // Given
-        ConditionalCheckFailedException exception = ConditionalCheckFailedException.builder()
-                .message("Conditional check failed")
-                .build();
+        final ConditionalCheckFailedException exception =
+                ConditionalCheckFailedException.builder()
+                        .message("Conditional check failed")
+                        .build();
 
         // When
         monitor.recordFailure("operation1", "Table1", exception);
         monitor.recordFailure("operation2", "Table2", exception);
         monitor.recordFailure("operation1", "Table1", exception);
 
-        Map<String, Long> allCounts = monitor.getAllFailureCounts();
+        final Map<String, Long> allCounts = monitor.getAllFailureCounts();
 
         // Then
         assertNotNull(allCounts);
@@ -141,9 +145,10 @@ class ConditionalCheckFailureMonitorTest {
     @DisplayName("Should reset all counters")
     void testResetCounters() {
         // Given
-        ConditionalCheckFailedException exception = ConditionalCheckFailedException.builder()
-                .message("Conditional check failed")
-                .build();
+        final ConditionalCheckFailedException exception =
+                ConditionalCheckFailedException.builder()
+                        .message("Conditional check failed")
+                        .build();
         monitor.recordFailure("operation1", "Table1", exception);
         monitor.recordFailure("operation2", "Table2", exception);
 
@@ -160,13 +165,14 @@ class ConditionalCheckFailureMonitorTest {
 
     @Test
     @DisplayName("Should alert on high frequency failures (every 10th failure)")
-    void testRecordFailure_HighFrequencyAlert() {
+    void testRecordFailureHighFrequencyAlert() {
         // Given
-        String operation = "saveIfNotExists";
-        String tableName = "Transactions";
-        ConditionalCheckFailedException exception = ConditionalCheckFailedException.builder()
-                .message("Conditional check failed")
-                .build();
+        final String operation = "saveIfNotExists";
+        final String tableName = "Transactions";
+        final ConditionalCheckFailedException exception =
+                ConditionalCheckFailedException.builder()
+                        .message("Conditional check failed")
+                        .build();
 
         // When - Record 25 failures (should alert at 10, 20)
         for (int i = 0; i < 25; i++) {
@@ -177,4 +183,3 @@ class ConditionalCheckFailureMonitorTest {
         assertEquals(25, monitor.getFailureCount(operation));
     }
 }
-

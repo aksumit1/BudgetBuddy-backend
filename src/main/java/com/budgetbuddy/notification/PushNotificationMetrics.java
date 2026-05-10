@@ -1,20 +1,16 @@
 package com.budgetbuddy.notification;
 
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicInteger;
-
-/**
- * Metrics for push notification service
- * Tracks delivery rates, failures, and performance
- */
+/** Metrics for push notification service Tracks delivery rates, failures, and performance */
 @Component
 public class PushNotificationMetrics {
 
-    private static final Logger logger = LoggerFactory.getLogger(PushNotificationMetrics.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(PushNotificationMetrics.class);
 
     // Counters
     private final AtomicLong totalNotificationsSent = new AtomicLong(0);
@@ -29,91 +25,76 @@ public class PushNotificationMetrics {
     private final AtomicLong minDeliveryTime = new AtomicLong(Long.MAX_VALUE);
     private final AtomicLong maxDeliveryTime = new AtomicLong(0);
 
-    /**
-     * Record notification sent
-     */
-    public void recordNotificationSent(int count) {
+    /** Record notification sent */
+    public void recordNotificationSent(final int count) {
         totalNotificationsSent.addAndGet(count);
-        logger.debug("Notification sent: {} (total: {})", count, totalNotificationsSent.get());
+        LOGGER.debug("Notification sent: {} (total: {})", count, totalNotificationsSent.get());
     }
 
-    /**
-     * Record notification delivered
-     */
-    public void recordNotificationDelivered(int count, long deliveryTimeMs) {
+    /** Record notification delivered */
+    public void recordNotificationDelivered(final int count, final long deliveryTimeMs) {
         totalNotificationsDelivered.addAndGet(count);
         totalDeliveryTime.addAndGet(deliveryTimeMs);
-        
+
         // Update min/max
         long currentMin = minDeliveryTime.get();
-        while (deliveryTimeMs < currentMin && !minDeliveryTime.compareAndSet(currentMin, deliveryTimeMs)) {
+        while (deliveryTimeMs < currentMin
+                && !minDeliveryTime.compareAndSet(currentMin, deliveryTimeMs)) {
             currentMin = minDeliveryTime.get();
         }
-        
+
         long currentMax = maxDeliveryTime.get();
-        while (deliveryTimeMs > currentMax && !maxDeliveryTime.compareAndSet(currentMax, deliveryTimeMs)) {
+        while (deliveryTimeMs > currentMax
+                && !maxDeliveryTime.compareAndSet(currentMax, deliveryTimeMs)) {
             currentMax = maxDeliveryTime.get();
         }
-        
-        logger.debug("Notification delivered: {} (total: {})", count, totalNotificationsDelivered.get());
+
+        LOGGER.debug(
+                "Notification delivered: {} (total: {})", count, totalNotificationsDelivered.get());
     }
 
-    /**
-     * Record notification failure
-     */
-    public void recordNotificationFailed(int count) {
+    /** Record notification failure */
+    public void recordNotificationFailed(final int count) {
         totalNotificationsFailed.addAndGet(count);
-        logger.warn("Notification failed: {} (total: {})", count, totalNotificationsFailed.get());
+        LOGGER.warn("Notification failed: {} (total: {})", count, totalNotificationsFailed.get());
     }
 
-    /**
-     * Record invalid endpoint
-     */
+    /** Record invalid endpoint */
     public void recordInvalidEndpoint() {
         totalInvalidEndpoints.incrementAndGet();
-        logger.warn("Invalid endpoint detected (total: {})", totalInvalidEndpoints.get());
+        LOGGER.warn("Invalid endpoint detected (total: {})", totalInvalidEndpoints.get());
     }
 
-    /**
-     * Update active devices count
-     */
-    public void updateActiveDevices(int count) {
+    /** Update active devices count */
+    public void updateActiveDevices(final int count) {
         activeDevices.set(count);
     }
 
-    /**
-     * Record device disabled
-     */
+    /** Record device disabled */
     public void recordDeviceDisabled() {
         disabledDevices.incrementAndGet();
-        logger.info("Device disabled (total: {})", disabledDevices.get());
+        LOGGER.info("Device disabled (total: {})", disabledDevices.get());
     }
 
-    /**
-     * Get delivery success rate
-     */
+    /** Get delivery success rate */
     public double getDeliverySuccessRate() {
-        long total = totalNotificationsSent.get();
+        final long total = totalNotificationsSent.get();
         if (total == 0) {
             return 0.0;
         }
         return (double) totalNotificationsDelivered.get() / total;
     }
 
-    /**
-     * Get average delivery time in milliseconds
-     */
+    /** Get average delivery time in milliseconds */
     public double getAverageDeliveryTime() {
-        long delivered = totalNotificationsDelivered.get();
+        final long delivered = totalNotificationsDelivered.get();
         if (delivered == 0) {
             return 0.0;
         }
         return (double) totalDeliveryTime.get() / delivered;
     }
 
-    /**
-     * Get metrics snapshot
-     */
+    /** Get metrics snapshot */
     public MetricsSnapshot getSnapshot() {
         return new MetricsSnapshot(
                 totalNotificationsSent.get(),
@@ -125,13 +106,10 @@ public class PushNotificationMetrics {
                 getDeliverySuccessRate(),
                 getAverageDeliveryTime(),
                 minDeliveryTime.get() == Long.MAX_VALUE ? 0 : minDeliveryTime.get(),
-                maxDeliveryTime.get()
-        );
+                maxDeliveryTime.get());
     }
 
-    /**
-     * Reset all metrics
-     */
+    /** Reset all metrics */
     public void reset() {
         totalNotificationsSent.set(0);
         totalNotificationsDelivered.set(0);
@@ -140,12 +118,10 @@ public class PushNotificationMetrics {
         totalDeliveryTime.set(0);
         minDeliveryTime.set(Long.MAX_VALUE);
         maxDeliveryTime.set(0);
-        logger.info("Push notification metrics reset");
+        LOGGER.info("Push notification metrics reset");
     }
 
-    /**
-     * Metrics snapshot
-     */
+    /** Metrics snapshot */
     public static class MetricsSnapshot {
         private final long totalSent;
         private final long totalDelivered;
@@ -158,9 +134,17 @@ public class PushNotificationMetrics {
         private final long minDeliveryTime;
         private final long maxDeliveryTime;
 
-        public MetricsSnapshot(long totalSent, long totalDelivered, long totalFailed,
-                              long totalInvalidEndpoints, int activeDevices, int disabledDevices,
-                              double successRate, double avgDeliveryTime, long minDeliveryTime, long maxDeliveryTime) {
+        public MetricsSnapshot(
+                final long totalSent,
+                final long totalDelivered,
+                final long totalFailed,
+                final long totalInvalidEndpoints,
+                final int activeDevices,
+                final int disabledDevices,
+                final double successRate,
+                final double avgDeliveryTime,
+                final long minDeliveryTime,
+                final long maxDeliveryTime) {
             this.totalSent = totalSent;
             this.totalDelivered = totalDelivered;
             this.totalFailed = totalFailed;
@@ -174,24 +158,58 @@ public class PushNotificationMetrics {
         }
 
         // Getters
-        public long getTotalSent() { return totalSent; }
-        public long getTotalDelivered() { return totalDelivered; }
-        public long getTotalFailed() { return totalFailed; }
-        public long getTotalInvalidEndpoints() { return totalInvalidEndpoints; }
-        public int getActiveDevices() { return activeDevices; }
-        public int getDisabledDevices() { return disabledDevices; }
-        public double getSuccessRate() { return successRate; }
-        public double getAvgDeliveryTime() { return avgDeliveryTime; }
-        public long getMinDeliveryTime() { return minDeliveryTime; }
-        public long getMaxDeliveryTime() { return maxDeliveryTime; }
+        public long getTotalSent() {
+            return totalSent;
+        }
+
+        public long getTotalDelivered() {
+            return totalDelivered;
+        }
+
+        public long getTotalFailed() {
+            return totalFailed;
+        }
+
+        public long getTotalInvalidEndpoints() {
+            return totalInvalidEndpoints;
+        }
+
+        public int getActiveDevices() {
+            return activeDevices;
+        }
+
+        public int getDisabledDevices() {
+            return disabledDevices;
+        }
+
+        public double getSuccessRate() {
+            return successRate;
+        }
+
+        public double getAvgDeliveryTime() {
+            return avgDeliveryTime;
+        }
+
+        public long getMinDeliveryTime() {
+            return minDeliveryTime;
+        }
+
+        public long getMaxDeliveryTime() {
+            return maxDeliveryTime;
+        }
 
         @Override
         public String toString() {
             return String.format(
-                    "PushNotificationMetrics{totalSent=%d, totalDelivered=%d, totalFailed=%d, " +
-                    "successRate=%.2f%%, avgDeliveryTime=%.2fms, activeDevices=%d, disabledDevices=%d}",
-                    totalSent, totalDelivered, totalFailed, successRate * 100, avgDeliveryTime,
-                    activeDevices, disabledDevices);
+                    "PushNotificationMetrics{totalSent=%d, totalDelivered=%d, totalFailed=%d, "
+                            + "successRate=%.2f%%, avgDeliveryTime=%.2fms, activeDevices=%d, disabledDevices=%d}",
+                    totalSent,
+                    totalDelivered,
+                    totalFailed,
+                    successRate * 100,
+                    avgDeliveryTime,
+                    activeDevices,
+                    disabledDevices);
         }
     }
 }

@@ -1,17 +1,13 @@
 package com.budgetbuddy.model.dynamodb;
 
+import java.time.Instant;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbAttribute;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbBean;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbPartitionKey;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbSecondaryPartitionKey;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbSecondarySortKey;
 
-import java.time.Instant;
-
-/**
- * DynamoDB table for Import History
- * Tracks all import operations for audit trail and history
- */
+/** DynamoDB table for Import History Tracks all import operations for audit trail and history */
 @DynamoDbBean
 public class ImportHistoryTable {
 

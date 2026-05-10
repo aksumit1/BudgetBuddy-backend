@@ -1,8 +1,7 @@
 # Multi-stage build for BudgetBuddy Backend
 # Optimized for AWS Graviton2 (ARM64) processors - 20% cost savings
 
-# Build stage - Use ARM64 base image with JDK 25
-# Note: For local development, if Java 25 image is not available, use JDK 21
+# Build stage - Java 25 LTS on ARM64/Graviton2.
 ARG BUILDPLATFORM=linux/arm64
 FROM --platform=${BUILDPLATFORM} maven:3.9-eclipse-temurin-25 AS build
 
@@ -28,8 +27,7 @@ RUN chmod +x ./scripts/download-bert-model.sh
 
 RUN mvn clean package -DskipTests
 
-# Runtime stage - Use ARM64/Graviton2 base image with JDK 25
-# Note: For local development, if Java 25 image is not available, use JDK 21
+# Runtime stage - Java 25 LTS on ARM64/Graviton2.
 ARG TARGETPLATFORM=linux/arm64
 FROM --platform=${TARGETPLATFORM} eclipse-temurin:25-jre-alpine
 

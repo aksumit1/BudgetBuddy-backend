@@ -1,31 +1,34 @@
 package com.budgetbuddy.util;
 
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
-import software.amazon.awssdk.services.dynamodb.model.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.atLeast;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
+import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
+import software.amazon.awssdk.services.dynamodb.model.BatchWriteItemRequest;
+import software.amazon.awssdk.services.dynamodb.model.BatchWriteItemResponse;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
-
-/**
- * Unit Tests for BatchOperationsHelper
- */
+/** Unit Tests for BatchOperationsHelper */
 @ExtendWith(MockitoExtension.class)
 class BatchOperationsHelperTest {
 
-    @Mock
-    private DynamoDbClient dynamoDbClient;
+    @Mock private DynamoDbClient dynamoDbClient;
 
     private String tableName;
 
@@ -35,21 +38,20 @@ class BatchOperationsHelperTest {
     }
 
     @Test
-    void testBatchWriteItems_WithValidItems_WritesSuccessfully() {
+    void testBatchWriteItemsWithValidItemsWritesSuccessfully() {
         // Given
-        List<Map<String, AttributeValue>> items = new ArrayList<>();
+        final List<Map<String, AttributeValue>> items = new ArrayList<>();
         for (int i = 0; i < 10; i++) {
-            Map<String, AttributeValue> item = new HashMap<>();
+            final Map<String, AttributeValue> item = new HashMap<>();
             item.put("id", AttributeValue.builder().s("id-" + i).build());
             items.add(item);
         }
 
-        BatchWriteItemResponse response = BatchWriteItemResponse.builder().build();
-        when(dynamoDbClient.batchWriteItem(any(BatchWriteItemRequest.class)))
-                .thenReturn(response);
+        final BatchWriteItemResponse response = BatchWriteItemResponse.builder().build();
+        when(dynamoDbClient.batchWriteItem(any(BatchWriteItemRequest.class))).thenReturn(response);
 
         // When
-        int written = BatchOperationsHelper.batchWriteItems(dynamoDbClient, tableName, items);
+        final int written = BatchOperationsHelper.batchWriteItems(dynamoDbClient, tableName, items);
 
         // Then
         assertEquals(10, written);
@@ -57,9 +59,11 @@ class BatchOperationsHelperTest {
     }
 
     @Test
-    void testBatchWriteItems_WithEmptyList_ReturnsZero() {
+    void testBatchWriteItemsWithEmptyListReturnsZero() {
         // When
-        int written = BatchOperationsHelper.batchWriteItems(dynamoDbClient, tableName, Collections.emptyList());
+        final int written =
+                BatchOperationsHelper.batchWriteItems(
+                        dynamoDbClient, tableName, Collections.emptyList());
 
         // Then
         assertEquals(0, written);
@@ -67,9 +71,9 @@ class BatchOperationsHelperTest {
     }
 
     @Test
-    void testBatchWriteItems_WithNullList_ReturnsZero() {
+    void testBatchWriteItemsWithNullListReturnsZero() {
         // When
-        int written = BatchOperationsHelper.batchWriteItems(dynamoDbClient, tableName, null);
+        final int written = BatchOperationsHelper.batchWriteItems(dynamoDbClient, tableName, null);
 
         // Then
         assertEquals(0, written);
@@ -77,21 +81,20 @@ class BatchOperationsHelperTest {
     }
 
     @Test
-    void testBatchWriteItems_WithMoreThan25Items_SplitsIntoBatches() {
+    void testBatchWriteItemsWithMoreThan25ItemsSplitsIntoBatches() {
         // Given
-        List<Map<String, AttributeValue>> items = new ArrayList<>();
+        final List<Map<String, AttributeValue>> items = new ArrayList<>();
         for (int i = 0; i < 50; i++) {
-            Map<String, AttributeValue> item = new HashMap<>();
+            final Map<String, AttributeValue> item = new HashMap<>();
             item.put("id", AttributeValue.builder().s("id-" + i).build());
             items.add(item);
         }
 
-        BatchWriteItemResponse response = BatchWriteItemResponse.builder().build();
-        when(dynamoDbClient.batchWriteItem(any(BatchWriteItemRequest.class)))
-                .thenReturn(response);
+        final BatchWriteItemResponse response = BatchWriteItemResponse.builder().build();
+        when(dynamoDbClient.batchWriteItem(any(BatchWriteItemRequest.class))).thenReturn(response);
 
         // When
-        int written = BatchOperationsHelper.batchWriteItems(dynamoDbClient, tableName, items);
+        final int written = BatchOperationsHelper.batchWriteItems(dynamoDbClient, tableName, items);
 
         // Then
         assertEquals(50, written);
@@ -100,21 +103,20 @@ class BatchOperationsHelperTest {
     }
 
     @Test
-    void testBatchDeleteItems_WithValidItems_DeletesSuccessfully() {
+    void testBatchDeleteItemsWithValidItemsDeletesSuccessfully() {
         // Given
-        List<Map<String, AttributeValue>> keys = new ArrayList<>();
+        final List<Map<String, AttributeValue>> keys = new ArrayList<>();
         for (int i = 0; i < 10; i++) {
-            Map<String, AttributeValue> key = new HashMap<>();
+            final Map<String, AttributeValue> key = new HashMap<>();
             key.put("id", AttributeValue.builder().s("id-" + i).build());
             keys.add(key);
         }
 
-        BatchWriteItemResponse response = BatchWriteItemResponse.builder().build();
-        when(dynamoDbClient.batchWriteItem(any(BatchWriteItemRequest.class)))
-                .thenReturn(response);
+        final BatchWriteItemResponse response = BatchWriteItemResponse.builder().build();
+        when(dynamoDbClient.batchWriteItem(any(BatchWriteItemRequest.class))).thenReturn(response);
 
         // When
-        int deleted = BatchOperationsHelper.batchDeleteItems(dynamoDbClient, tableName, keys);
+        final int deleted = BatchOperationsHelper.batchDeleteItems(dynamoDbClient, tableName, keys);
 
         // Then
         assertEquals(10, deleted);
@@ -122,9 +124,11 @@ class BatchOperationsHelperTest {
     }
 
     @Test
-    void testBatchDeleteItems_WithEmptyList_ReturnsZero() {
+    void testBatchDeleteItemsWithEmptyListReturnsZero() {
         // When
-        int deleted = BatchOperationsHelper.batchDeleteItems(dynamoDbClient, tableName, Collections.emptyList());
+        final int deleted =
+                BatchOperationsHelper.batchDeleteItems(
+                        dynamoDbClient, tableName, Collections.emptyList());
 
         // Then
         assertEquals(0, deleted);
@@ -132,9 +136,9 @@ class BatchOperationsHelperTest {
     }
 
     @Test
-    void testBatchDeleteItems_WithNullList_ReturnsZero() {
+    void testBatchDeleteItemsWithNullListReturnsZero() {
         // When
-        int deleted = BatchOperationsHelper.batchDeleteItems(dynamoDbClient, tableName, null);
+        final int deleted = BatchOperationsHelper.batchDeleteItems(dynamoDbClient, tableName, null);
 
         // Then
         assertEquals(0, deleted);
@@ -142,21 +146,20 @@ class BatchOperationsHelperTest {
     }
 
     @Test
-    void testBatchDeleteItems_WithMoreThan25Items_SplitsIntoBatches() {
+    void testBatchDeleteItemsWithMoreThan25ItemsSplitsIntoBatches() {
         // Given
-        List<Map<String, AttributeValue>> keys = new ArrayList<>();
+        final List<Map<String, AttributeValue>> keys = new ArrayList<>();
         for (int i = 0; i < 50; i++) {
-            Map<String, AttributeValue> key = new HashMap<>();
+            final Map<String, AttributeValue> key = new HashMap<>();
             key.put("id", AttributeValue.builder().s("id-" + i).build());
             keys.add(key);
         }
 
-        BatchWriteItemResponse response = BatchWriteItemResponse.builder().build();
-        when(dynamoDbClient.batchWriteItem(any(BatchWriteItemRequest.class)))
-                .thenReturn(response);
+        final BatchWriteItemResponse response = BatchWriteItemResponse.builder().build();
+        when(dynamoDbClient.batchWriteItem(any(BatchWriteItemRequest.class))).thenReturn(response);
 
         // When
-        int deleted = BatchOperationsHelper.batchDeleteItems(dynamoDbClient, tableName, keys);
+        final int deleted = BatchOperationsHelper.batchDeleteItems(dynamoDbClient, tableName, keys);
 
         // Then
         assertEquals(50, deleted);

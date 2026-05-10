@@ -6,28 +6,33 @@ import com.budgetbuddy.compliance.iso27001.ISO27001ComplianceService;
 import com.budgetbuddy.compliance.soc2.SOC2ComplianceService;
 import com.budgetbuddy.exception.AppException;
 import com.budgetbuddy.exception.ErrorCode;
+import java.time.Instant;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.web.bind.annotation.*;
-
-import java.time.Instant;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 /**
- * Compliance Reporting REST Controller
- * Provides endpoints for compliance reporting and monitoring
+ * Compliance Reporting REST Controller Provides endpoints for compliance reporting and monitoring
  */
 @RestController
 @RequestMapping("/api/compliance/reporting")
 public class ComplianceReportingController {
 
     private final SOC2ComplianceService soc2ComplianceService;
+
     @SuppressWarnings("unused") // Reserved for future HIPAA reporting
     private final HIPAAComplianceService hipaaComplianceService;
+
     @SuppressWarnings("unused") // Reserved for future ISO27001 reporting
     private final ISO27001ComplianceService iso27001ComplianceService;
+
     @SuppressWarnings("unused") // Reserved for future financial reporting
     private final FinancialComplianceService financialComplianceService;
+
     private final com.budgetbuddy.service.UserService userService;
 
     public ComplianceReportingController(
@@ -43,33 +48,35 @@ public class ComplianceReportingController {
         this.userService = userService;
     }
 
-    /**
-     * SOC2 Compliance Report
-     */
+    /** SOC2 Compliance Report */
     @GetMapping("/soc2")
     public ResponseEntity<SOC2ComplianceService.SystemHealth> getSOC2Report(
-            @AuthenticationPrincipal UserDetails userDetails) {
-        com.budgetbuddy.model.dynamodb.UserTable user = userService.findByEmail(userDetails.getUsername())
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+            @AuthenticationPrincipal final UserDetails userDetails) {
+        final com.budgetbuddy.model.dynamodb.UserTable user =
+                userService
+                        .findByEmail(userDetails.getUsername())
+                        .orElseThrow(
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
 
         // Check permissions
         if (!hasComplianceAccess(user)) {
             return ResponseEntity.status(403).build();
         }
 
-        SOC2ComplianceService.SystemHealth health = soc2ComplianceService.checkSystemHealth();
+        final SOC2ComplianceService.SystemHealth health = soc2ComplianceService.checkSystemHealth();
         return ResponseEntity.ok(health);
     }
 
-    /**
-     * HIPAA Compliance Report
-     */
+    /** HIPAA Compliance Report */
     @GetMapping("/hipaa/breaches")
     public ResponseEntity<HIPAAComplianceService.BreachReport> getHIPAABreaches(
-            @AuthenticationPrincipal UserDetails userDetails,
-            @RequestParam(required = false) String userId) {
-        com.budgetbuddy.model.dynamodb.UserTable user = userService.findByEmail(userDetails.getUsername())
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+            @AuthenticationPrincipal final UserDetails userDetails,
+            @RequestParam(required = false) final String userId) {
+        final com.budgetbuddy.model.dynamodb.UserTable user =
+                userService
+                        .findByEmail(userDetails.getUsername())
+                        .orElseThrow(
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
 
         // Check permissions
         if (!hasComplianceAccess(user)) {
@@ -80,14 +87,15 @@ public class ComplianceReportingController {
         return ResponseEntity.ok().build();
     }
 
-    /**
-     * ISO27001 Compliance Report
-     */
+    /** ISO27001 Compliance Report */
     @GetMapping("/iso27001/incidents")
     public ResponseEntity<ISO27001ComplianceService.SecurityIncident> getISO27001Incidents(
-            @AuthenticationPrincipal UserDetails userDetails) {
-        com.budgetbuddy.model.dynamodb.UserTable user = userService.findByEmail(userDetails.getUsername())
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+            @AuthenticationPrincipal final UserDetails userDetails) {
+        final com.budgetbuddy.model.dynamodb.UserTable user =
+                userService
+                        .findByEmail(userDetails.getUsername())
+                        .orElseThrow(
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
 
         // Check permissions
         if (!hasComplianceAccess(user)) {
@@ -98,23 +106,24 @@ public class ComplianceReportingController {
         return ResponseEntity.ok().build();
     }
 
-    /**
-     * Financial Compliance Report
-     */
+    /** Financial Compliance Report */
     @GetMapping("/financial/transactions")
     public ResponseEntity<FinancialComplianceReport> getFinancialComplianceReport(
-            @AuthenticationPrincipal UserDetails userDetails,
-            @RequestParam Instant startDate,
-            @RequestParam Instant endDate) {
-        com.budgetbuddy.model.dynamodb.UserTable user = userService.findByEmail(userDetails.getUsername())
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+            @AuthenticationPrincipal final UserDetails userDetails,
+            @RequestParam final Instant startDate,
+            @RequestParam final Instant endDate) {
+        final com.budgetbuddy.model.dynamodb.UserTable user =
+                userService
+                        .findByEmail(userDetails.getUsername())
+                        .orElseThrow(
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
 
         // Check permissions
         if (!hasComplianceAccess(user)) {
             return ResponseEntity.status(403).build();
         }
 
-        FinancialComplianceReport report = new FinancialComplianceReport();
+        final FinancialComplianceReport report = new FinancialComplianceReport();
         report.setStartDate(startDate);
         report.setEndDate(endDate);
         report.setCompliant(true);
@@ -125,13 +134,11 @@ public class ComplianceReportingController {
 
     private boolean hasComplianceAccess(final com.budgetbuddy.model.dynamodb.UserTable user) {
         // Check if user has compliance/admin role
-        return user.getRoles() != null &&
-               (user.getRoles().contains("ADMIN") || user.getRoles().contains("COMPLIANCE"));
+        return user.getRoles() != null
+                && (user.getRoles().contains("ADMIN") || user.getRoles().contains("COMPLIANCE"));
     }
 
-    /**
-     * Financial Compliance Report DTO
-     */
+    /** Financial Compliance Report DTO */
     public static class FinancialComplianceReport {
         private Instant startDate;
         private Instant endDate;
@@ -139,14 +146,36 @@ public class ComplianceReportingController {
         private Instant timestamp;
 
         // Getters and setters
-        public Instant getStartDate() { return startDate; }
-        public void setStartDate(final Instant startDate) { this.startDate = startDate; }
-        public Instant getEndDate() { return endDate; }
-        public void setEndDate(final Instant endDate) { this.endDate = endDate; }
-        public boolean isCompliant() { return compliant; }
-        public void setCompliant(final boolean compliant) { this.compliant = compliant; }
-        public Instant getTimestamp() { return timestamp; }
-        public void setTimestamp(final Instant timestamp) { this.timestamp = timestamp; }
+        public Instant getStartDate() {
+            return startDate;
+        }
+
+        public void setStartDate(final Instant startDate) {
+            this.startDate = startDate;
+        }
+
+        public Instant getEndDate() {
+            return endDate;
+        }
+
+        public void setEndDate(final Instant endDate) {
+            this.endDate = endDate;
+        }
+
+        public boolean isCompliant() {
+            return compliant;
+        }
+
+        public void setCompliant(final boolean compliant) {
+            this.compliant = compliant;
+        }
+
+        public Instant getTimestamp() {
+            return timestamp;
+        }
+
+        public void setTimestamp(final Instant timestamp) {
+            this.timestamp = timestamp;
+        }
     }
 }
-

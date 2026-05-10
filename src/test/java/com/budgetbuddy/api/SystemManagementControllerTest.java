@@ -1,6 +1,14 @@
 package com.budgetbuddy.api;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.verify;
+
 import com.budgetbuddy.config.DnsCacheConfig;
+import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -8,18 +16,10 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springframework.http.ResponseEntity;
 
-import java.util.Map;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
-
-/**
- * Comprehensive tests for SystemManagementController
- */
+/** Comprehensive tests for SystemManagementController */
 class SystemManagementControllerTest {
 
-    @Mock
-    private DnsCacheConfig dnsCacheConfig;
+    @Mock private DnsCacheConfig dnsCacheConfig;
 
     private SystemManagementController controller;
 
@@ -31,12 +31,12 @@ class SystemManagementControllerTest {
 
     @Test
     @DisplayName("Should clear DNS cache successfully")
-    void testClearDnsCache_Success() {
+    void testClearDnsCacheSuccess() {
         // Given
         doNothing().when(dnsCacheConfig).clearDnsCache();
 
         // When
-        ResponseEntity<Map<String, String>> response = controller.clearDnsCache();
+        final ResponseEntity<Map<String, String>> response = controller.clearDnsCache();
 
         // Then
         assertEquals(200, response.getStatusCodeValue());
@@ -48,12 +48,12 @@ class SystemManagementControllerTest {
 
     @Test
     @DisplayName("Should handle exception when clearing DNS cache fails")
-    void testClearDnsCache_Exception() {
+    void testClearDnsCacheException() {
         // Given
         doThrow(new RuntimeException("Cache clear failed")).when(dnsCacheConfig).clearDnsCache();
 
         // When
-        ResponseEntity<Map<String, String>> response = controller.clearDnsCache();
+        final ResponseEntity<Map<String, String>> response = controller.clearDnsCache();
 
         // Then
         assertEquals(500, response.getStatusCodeValue());
@@ -66,7 +66,7 @@ class SystemManagementControllerTest {
     @DisplayName("Should return health status")
     void testHealth() {
         // When
-        ResponseEntity<Map<String, String>> response = controller.health();
+        final ResponseEntity<Map<String, String>> response = controller.health();
 
         // Then
         assertEquals(200, response.getStatusCodeValue());
@@ -75,4 +75,3 @@ class SystemManagementControllerTest {
         assertEquals("system-management", response.getBody().get("service"));
     }
 }
-

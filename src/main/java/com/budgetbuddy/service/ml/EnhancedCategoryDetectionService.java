@@ -1,64 +1,188 @@
 package com.budgetbuddy.service.ml;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
 
+import java.util.Locale;
 import jakarta.annotation.PostConstruct;
 import java.math.BigDecimal;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 /**
- * Enhanced Category Detection Service
- * Combines rule-based, fuzzy matching, and ML approaches for best accuracy
- * 
- * Strategy:
- * 1. Rule-based detection (fast, deterministic)
- * 2. Fuzzy matching (handles variations)
- * 3. ML prediction (learns from data)
- * 4. Confidence-weighted combination
+ * Enhanced Category Detection Service Combines rule-based, fuzzy matching, and ML approaches for
+ * best accuracy
+ *
+ * <p>Strategy: 1. Rule-based detection (fast, deterministic) 2. Fuzzy matching (handles variations)
+ * 3. ML prediction (learns from data) 4. Confidence-weighted combination
  */
+// SDK / Spring integration — the underlying APIs (AWS SDK, Plaid SDK,
+// Spring services, reflection) throw arbitrary RuntimeException subtypes
+// that can't reasonably be enumerated. Broad catches log + recover (or
+// translate to AppException). Suppress at class level since narrowing
+// here would mean catch (RuntimeException) which PMD flags identically.
+@SuppressWarnings("PMD.AvoidCatchingGenericException")
 @Service
 public class EnhancedCategoryDetectionService {
-    
-    private static final Logger logger = LoggerFactory.getLogger(EnhancedCategoryDetectionService.class);
-    
+
+    private static final Logger LOGGER =
+            LoggerFactory.getLogger(EnhancedCategoryDetectionService.class);
+
     private final FuzzyMatchingService fuzzyMatchingService;
     private final CategoryClassificationModel mlModel;
     private final SemanticMatchingService semanticMatchingService;
-    
+    private final MerchantCategoryDataService merchantCategoryDataService;
+    private final BertCategoryMatcher bertCategoryMatcher;
+
     // Known merchant categories for fuzzy matching
+    // CRITICAL: Loaded from MerchantCategoryDataService (single source of truth)
     private final Map<String, String> knownMerchants = new HashMap<>();
-    
-    public EnhancedCategoryDetectionService(FuzzyMatchingService fuzzyMatchingService,
-                                           CategoryClassificationModel mlModel,
-                                           SemanticMatchingService semanticMatchingService) {
+
+    // Spring ambiguity guard: two constructors exist (the 5-arg production
+    // one here and the legacy 4-arg below for older unit tests). Without
+    // @Autowired, Spring Boot 4.3+ auto-detection throws "No default
+    // constructor found" because it sees two candidates and can't pick.
+    // Marking this one explicitly tells Spring which to use — the legacy
+    // ctor only exists for manual test instantiation.
+    @Autowired
+    public EnhancedCategoryDetectionService(
+            final FuzzyMatchingService fuzzyMatchingService,
+            final CategoryClassificationModel mlModel,
+            final SemanticMatchingService semanticMatchingService,
+            final MerchantCategoryDataService merchantCategoryDataService,
+            final BertCategoryMatcher bertCategoryMatcher) {
         this.fuzzyMatchingService = fuzzyMatchingService;
         this.mlModel = mlModel;
         this.semanticMatchingService = semanticMatchingService;
-        initializeKnownMerchants();
+        this.merchantCategoryDataService = merchantCategoryDataService;
+        this.bertCategoryMatcher = bertCategoryMatcher;
+        // CRITICAL: Load from shared service instead of initializing locally
+        loadMerchantsFromSharedService();
     }
-    
+
+    /**
+     * Legacy 4-arg constructor for unit tests predating the BERT matcher. Delegates with {@code
+     * null} for the BERT matcher — that branch is already null-guarded at the call site.
+     */
+    public EnhancedCategoryDetectionService(
+            final FuzzyMatchingService fuzzyMatchingService,
+            final CategoryClassificationModel mlModel,
+            final SemanticMatchingService semanticMatchingService,
+            final MerchantCategoryDataService merchantCategoryDataService) {
+        this(
+                fuzzyMatchingService,
+                mlModel,
+                semanticMatchingService,
+                merchantCategoryDataService,
+                null);
+    }
+
     @PostConstruct
     public void init() {
         mlModel.loadModel();
-        // All semantic categories and hard-coded strings are now statically merged in initializeKnownMerchants()
-        logger.info("EnhancedCategoryDetectionService initialized with {} known merchants", knownMerchants.size());
+        // All semantic categories and hard-coded strings are now statically merged in
+        // initializeKnownMerchants()
+        LOGGER.info(
+                "EnhancedCategoryDetectionService initialized with {} known merchants",
+                knownMerchants.size());
     }
-    
+
     /**
-     * NOTE: All semantic categories from SemanticMatchingService and hard-coded strings 
-     * are now statically merged directly in initializeKnownMerchants() below.
-     * This allows for manual review of all merchants and categories in one place.
-     * 
-     * The following methods were removed and their content merged statically:
-     * - addSemanticCategoriesToFuzzyDatabase() - semantic keywords now in initializeKnownMerchants()
-     * - addHardCodedCategoryStrings() - hard-coded strings now in initializeKnownMerchants()
+     * Load merchants from shared MerchantCategoryDataService CRITICAL: Thread-safe, error handling,
+     * boundary checks, race condition prevention This replaces the old initializeKnownMerchants()
+     * method
      */
-    
+    private void loadMerchantsFromSharedService() {
+        try {
+            // CRITICAL: Thread-safe initialization
+            synchronized (knownMerchants) {
+                knownMerchants.clear();
+
+                // CRITICAL: Null check for shared service
+                if (merchantCategoryDataService == null) {
+                    LOGGER.error(
+                            "MerchantCategoryDataService is null. Cannot load merchants. Service will not function correctly.");
+                    return;
+                }
+
+                // CRITICAL: Load from shared service with error handling
+                Map<String, String> sharedMerchants =
+                        merchantCategoryDataService.getMerchantToCategoryMap();
+
+                if (sharedMerchants == null || sharedMerchants.isEmpty()) {
+                    LOGGER.warn(
+                            "MerchantCategoryDataService returned empty map. Retrying after delay...");
+                    // CRITICAL: Retry logic for race conditions (service might not be initialized
+                    // yet)
+                    try {
+                        Thread.sleep(100); // Brief delay for service initialization
+                        sharedMerchants = merchantCategoryDataService.getMerchantToCategoryMap();
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                        LOGGER.warn("Interrupted while waiting for MerchantCategoryDataService");
+                    }
+                }
+
+                if (sharedMerchants == null || sharedMerchants.isEmpty()) {
+                    LOGGER.error(
+                            "MerchantCategoryDataService returned empty map after retry. Service will not function correctly.");
+                    return;
+                }
+
+                // CRITICAL: Boundary check - prevent memory issues
+                if (sharedMerchants.size() > 100_000) {
+                    LOGGER.error(
+                            "Shared merchant map size ({}) exceeds safety limit. Loading empty map.",
+                            sharedMerchants.size());
+                    return;
+                }
+
+                // CRITICAL: Load merchants with validation
+                int loadedCount = 0;
+                for (final Map.Entry<String, String> entry : sharedMerchants.entrySet()) {
+                    final String merchant = entry.getKey();
+                    final String category = entry.getValue();
+
+                    // CRITICAL: Null checks
+                    if (merchant == null || category == null) {
+                        LOGGER.warn("Skipping null merchant or category from shared service");
+                        continue;
+                    }
+
+                    knownMerchants.put(merchant, category);
+                    loadedCount++;
+                }
+
+                LOGGER.info(
+                        "Loaded {} merchants from MerchantCategoryDataService into EnhancedCategoryDetectionService",
+                        loadedCount);
+
+                // CRITICAL: Validate loaded data
+                if (loadedCount == 0) {
+                    LOGGER.error(
+                            "No merchants loaded from shared service. EnhancedCategoryDetectionService will not function correctly.");
+                } else if (loadedCount < 100) {
+                    LOGGER.warn(
+                            "Only {} merchants loaded. Expected at least 100. Service may not function correctly.",
+                            loadedCount);
+                }
+            }
+        } catch (OutOfMemoryError e) {
+            LOGGER.error("Out of memory loading merchants from shared service", e);
+            knownMerchants.clear();
+        } catch (Exception e) {
+            LOGGER.error("Error loading merchants from shared service: {}", e.getMessage(), e);
+            knownMerchants.clear();
+        }
+    }
+
     /**
      * Detect category using all available methods
-     * 
+     *
      * @param merchantName Merchant name
      * @param description Transaction description
      * @param amount Transaction amount
@@ -66,16 +190,19 @@ public class EnhancedCategoryDetectionService {
      * @param categoryString Category string from CSV (if available)
      * @return DetectionResult with category, confidence, and method used
      */
-    public DetectionResult detectCategory(String merchantName, String description, 
-                                         BigDecimal amount, String paymentChannel, 
-                                         String categoryString) {
-        return detectCategoryWithContext(merchantName, description, amount, paymentChannel, 
-                                        categoryString, null, null);
+    public DetectionResult detectCategory(
+            final String merchantName,
+            final String description,
+            final BigDecimal amount,
+            final String paymentChannel,
+            final String categoryString) {
+        return detectCategoryWithContext(
+                merchantName, description, amount, paymentChannel, categoryString, null, null);
     }
-    
+
     /**
      * Detect category using all available methods with context-aware matching
-     * 
+     *
      * @param merchantName Merchant name
      * @param description Transaction description
      * @param amount Transaction amount
@@ -85,296 +212,569 @@ public class EnhancedCategoryDetectionService {
      * @param accountSubtype Account subtype (more specific account type)
      * @return DetectionResult with category, confidence, and method used
      */
-    public DetectionResult detectCategoryWithContext(String merchantName, String description, 
-                                                     BigDecimal amount, String paymentChannel, 
-                                                     String categoryString,
-                                                     String accountType,
-                                                     String accountSubtype) {
+    public DetectionResult detectCategoryWithContext(
+            final String merchantName,
+            final String description,
+            BigDecimal amount,
+            final String paymentChannel,
+            final String categoryString,
+            final String accountType,
+            final String accountSubtype) {
         try {
-            logger.info("EnhancedCategoryDetection (context-aware): merchant='{}', description='{}', amount={}, channel='{}', accountType='{}', accountSubtype='{}'",
-                    merchantName, description, amount, paymentChannel, accountType, accountSubtype);
-            
+            LOGGER.info(
+                    "EnhancedCategoryDetection (context-aware): merchant='{}', description='{}', amount={}, channel='{}', accountType='{}', accountSubtype='{}'",
+                    merchantName,
+                    description,
+                    amount,
+                    paymentChannel,
+                    accountType,
+                    accountSubtype);
+
             // CRITICAL: Validate BigDecimal amount
-            if (amount != null && (amount.compareTo(java.math.BigDecimal.valueOf(1_000_000_000)) > 0 ||
-                    amount.compareTo(java.math.BigDecimal.valueOf(-1_000_000_000)) < 0)) {
-                logger.warn("Amount out of reasonable range: {}", amount);
+            if (amount != null
+                    && (amount.compareTo(java.math.BigDecimal.valueOf(1_000_000_000)) > 0
+                            || amount.compareTo(java.math.BigDecimal.valueOf(-1_000_000_000))
+                                    < 0)) {
+                LOGGER.warn("Amount out of reasonable range: {}", amount);
                 // Continue processing but use null for amount string
                 amount = null;
             }
-            
-            List<DetectionResult> results = new ArrayList<>();
-        
-        // Method 1: Rule-based detection (if we have a rule-based service)
-        // This would call the existing parseCategory method
-        // For now, we'll skip this as it's handled in CSVImportService
-        
-        // Method 2: Fuzzy matching on known merchants (FIRST - before semantic)
-        // CRITICAL FIX: Also check description when merchantName is null (common in PDF/CSV imports)
-        // Many imports have merchant info in description field, not merchantName field
-        String fuzzyMatchText = null;
-        if (merchantName != null && !merchantName.trim().isEmpty()) {
-            fuzzyMatchText = merchantName;
-        } else if (description != null && !description.trim().isEmpty()) {
-            // Use description for fuzzy matching when merchantName is null
-            fuzzyMatchText = description;
-            logger.info("EnhancedCategoryDetection: Using description for fuzzy matching (merchantName is null): '{}'", description);
-        }
-        
-        double fuzzyScore = 0.0;
-        boolean fuzzyMatchFound = false;
-        
-        if (fuzzyMatchText != null) {
-            FuzzyMatchingService.MatchResult fuzzyMatch = fuzzyMatchingService.findBestMatch(
-                    fuzzyMatchText, new ArrayList<>(knownMerchants.keySet()));
-            logger.info("EnhancedCategoryDetection: Fuzzy match result for '{}': {}", fuzzyMatchText, fuzzyMatch);
-            
-            if (fuzzyMatch != null) {
-                fuzzyScore = fuzzyMatch.combinedScore;
-                String matchedMerchant = fuzzyMatch.original;
-                String category = knownMerchants.get(matchedMerchant);
-                // CRITICAL: Check for null category (merchant might have been removed)
-                if (category != null) {
-                    String fuzzyTextLower = fuzzyMatchText.toLowerCase();
-                    
-                    // CRITICAL FIX: Reject income category if text contains "whse" or "warehouse" (store locations)
-                    // "COSTCO WHSE" (Costco Warehouse) is a store, not "Costco Wholesale Corporation" (payroll)
-                    boolean shouldSkip = false;
-                    if ("income".equals(category)) {
-                        if (fuzzyTextLower.contains("whse") || fuzzyTextLower.contains("warehouse")) {
-                            logger.debug("Rejecting income category for '{}' - contains 'whse' or 'warehouse' (store location, not corporation)", 
-                                    fuzzyMatchText);
-                            // Skip this match - it's a false positive
-                            shouldSkip = true;
-                        }
-                    }
-                    
-                    // CRITICAL FIX: Reject utilities category if text contains airport-related terms
-                    // "SEATTLEAP CART/CHAIR" (Seattle Airport cart) should not match "Seattle Public Utilities"
-                    if (!shouldSkip && "utilities".equals(category)) {
-                        if (fuzzyTextLower.contains("airport") ||
-                            fuzzyTextLower.contains("seattleap") ||
-                            fuzzyTextLower.contains("seattle ap") ||
-                            (fuzzyTextLower.contains("seattle") && 
-                             (fuzzyTextLower.contains("cart") || fuzzyTextLower.contains("chair")))) {
-                            logger.debug("Rejecting utilities category for '{}' - contains airport-related terms (airport expense, not utility)", 
-                                    fuzzyMatchText);
-                            // Skip this match - it's a false positive
-                            shouldSkip = true;
-                        }
-                    }
-                    
-                    // Only add to results if we shouldn't skip this match
-                    if (!shouldSkip) {
-                        results.add(new DetectionResult(
-                                category,
-                                fuzzyMatch.combinedScore,
-                                "FUZZY_MATCH",
-                                "Matched " + (merchantName != null ? "merchant" : "description") + ": " + matchedMerchant
-                        ));
-                        fuzzyMatchFound = true;
-                        logger.debug("Fuzzy match found: '{}' -> '{}' (confidence: {:.2f})", 
-                                fuzzyMatchText, category, fuzzyMatch.combinedScore);
-                    }
-                } else {
-                    logger.warn("Fuzzy match found for '{}' but category is null", matchedMerchant);
-                }
-            } else {
-                logger.debug("EnhancedCategoryDetection: No fuzzy match found for '{}'", fuzzyMatchText);
-            }
-        } else {
-            logger.debug("EnhancedCategoryDetection: Skipping fuzzy matching - both merchantName and description are null/empty");
-        }
-        
-        // Method 3: Semantic matching with context-aware matching (ONLY if fuzzy score is low)
-        // Use semantic search as fallback when fuzzy matching doesn't find a good match
-        // Threshold: if fuzzy score < 0.5, try semantic search
-        if (!fuzzyMatchFound || fuzzyScore < 0.6) {
-            if (semanticMatchingService != null && 
-                ((merchantName != null && !merchantName.trim().isEmpty()) || 
-                 (description != null && !description.trim().isEmpty()))) {
-                try {
-                    logger.info("EnhancedCategoryDetection: Fuzzy score low ({}), attempting semantic matching - merchant='{}', description='{}'", 
-                            fuzzyScore, merchantName, description);
-                    
-                    // CRITICAL: Use context-aware matching (amount, payment channel, account type, account subtype)
-                    SemanticMatchingService.SemanticMatchResult semanticMatch = 
-                            semanticMatchingService.findBestSemanticMatchWithContext(
-                            merchantName, 
-                            description,
-                            amount,  // Transaction amount for context
-                            paymentChannel,  // Payment channel for context
-                            accountType,  // Account type for context
-                            accountSubtype  // Account subtype for context
-                        );
-                    
-                    if (semanticMatch != null && semanticMatch.category != null) {
-                        logger.info("EnhancedCategoryDetection: ✅ Semantic match found - category='{}', similarity={:.2f}, method='{}'", 
-                                semanticMatch.category, semanticMatch.similarity, semanticMatch.method != null ? semanticMatch.method : "SEMANTIC_MATCH");
-                        results.add(new DetectionResult(
-                                semanticMatch.category,
-                                semanticMatch.similarity,
-                                "SEMANTIC_MATCH",
-                                "Context-aware semantic similarity match (fuzzy score was low: " + String.format("%.2f", fuzzyScore) + ")"
-                        ));
-                    } else {
-                        logger.info("EnhancedCategoryDetection: Semantic matching returned null or no category match");
-                    }
-                } catch (Exception e) {
-                    // CRITICAL: Error handling - log but continue with other methods
-                    logger.warn("EnhancedCategoryDetection: Semantic matching failed, continuing with other methods: {}", e.getMessage());
-                    logger.debug("EnhancedCategoryDetection: Semantic matching exception details", e);
-                    // Don't add to results, continue with other detection methods
-                }
-            } else {
-                if (semanticMatchingService == null) {
-                    logger.debug("EnhancedCategoryDetection: Skipping semantic matching - service is null");
-                } else {
-                    logger.debug("EnhancedCategoryDetection: Skipping semantic matching - both merchantName and description are null/empty");
-                }
-            }
-        } else {
-            logger.debug("EnhancedCategoryDetection: Skipping semantic matching - fuzzy score ({:.2f}) is high enough", fuzzyScore);
-        }
-        /* 
-        // Method 4: ML prediction
-        String amountStr = amount != null ? amount.toString() : null;
-        CategoryClassificationModel.PredictionResult mlPrediction = mlModel.predict(
-                merchantName, description, amountStr, paymentChannel);
-        
-        if (mlPrediction.category != null && mlPrediction.confidence > 0.3) {
-            results.add(new DetectionResult(
-                    mlPrediction.category,
-                    mlPrediction.confidence,
-                    "ML_PREDICTION",
-                    "ML model prediction"
-            ));
-            logger.info("ML prediction: '{}' (confidence: {:.2f})", 
-                    mlPrediction.category, mlPrediction.confidence);
-        }
-        */
 
-        // Combine results with confidence weighting
-        if (results.isEmpty()) {
-            return new DetectionResult(null, 0.0, "NONE", "No detection method found a match");
-        }
-        
-        // If we have multiple results, combine them
-        if (results.size() == 1) {
-            return results.get(0);
-        }
-        
-        // Weighted combination: fuzzy matching gets higher weight if confidence is high
-        // CRITICAL: Prioritize expense categories when amount is negative (expense transaction)
-        Map<String, Double> categoryScores = new HashMap<>();
-        for (DetectionResult result : results) {
-            double weight = "FUZZY_MATCH".equals(result.method) && result.confidence >= 0.85 ? 0.7 : 0.5;
-            
-            // CRITICAL FIX: If amount is negative (expense), heavily penalize "income" category
-            // This prevents merchants like "Home Depot", "Chipotle", "Chevron" from being classified as income
-            if (amount != null && amount.compareTo(java.math.BigDecimal.ZERO) < 0) {
-                // Negative amount = expense transaction
-                if ("income".equals(result.category)) {
-                    // Heavily penalize income category for negative amounts
-                    weight *= 0.1; // Reduce weight by 90%
-                    logger.debug("Penalizing income category for negative amount transaction: merchant='{}', amount={}", 
-                            merchantName, amount);
-                } else if (!isExpenseCategory(result.category)) {
-                    // Slightly penalize non-expense categories (investment, etc.) for negative amounts
-                    weight *= 0.8;
-                }
-            } else if (amount != null && amount.compareTo(java.math.BigDecimal.ZERO) > 0) {
-                // Positive amount = income transaction
-                // Slightly boost income category for positive amounts
-                if ("income".equals(result.category)) {
-                    weight *= 1.2;
+            final List<DetectionResult> results = new ArrayList<>();
+
+            // Method 1: Rule-based detection (if we have a rule-based service)
+            // This would call the existing parseCategory method
+            // For now, we'll skip this as it's handled in CSVImportService
+
+            // Method 1.5: MCC directory lookup. Highest-confidence deterministic
+            // signal short of a custom user mapping — if we recognise the merchant
+            // keyword (Starbucks → 5814 → dining), that's a network-authoritative
+            // category label. Runs first so fuzzy + semantic don't get to wiggle
+            // us off a known-good MCC answer. See MccDirectory / MCC_PLAN.md.
+            {
+                final String mccSource =
+                        merchantName != null && !merchantName.isBlank()
+                                ? merchantName
+                                : description;
+                if (mccSource != null && !mccSource.isBlank()) {
+                    final java.util.Optional<String> mccCategory =
+                            MccDirectory.categoryForMerchant(mccSource);
+                    if (mccCategory.isPresent()) {
+                        final java.util.Optional<String> mcc = MccDirectory.mccForMerchant(mccSource);
+                        results.add(
+                                new DetectionResult(
+                                        mccCategory.get(),
+                                        0.95, // High confidence — MCC is network-authoritative.
+                                        "MCC_DIRECTORY",
+                                        "merchantKeyword→MCC="
+                                                + mcc.orElse("?")
+                                                + "→"
+                                                + mccCategory.get()));
+                    }
                 }
             }
-            
-            categoryScores.merge(result.category, result.confidence * weight, Double::sum);
-        }
-        
-        // Find best category
-        String bestCategory = categoryScores.entrySet().stream()
-                .max(Map.Entry.comparingByValue())
-                .map(Map.Entry::getKey)
-                .orElse(null);
-        
-        double bestConfidence = bestCategory != null ? categoryScores.get(bestCategory) : 0.0;
-        
-        // CRITICAL FIX: Final validation - if amount is negative and category is "income", reject it
-        if (amount != null && amount.compareTo(java.math.BigDecimal.ZERO) < 0 && "income".equals(bestCategory)) {
-            logger.warn("Rejecting income category for negative amount transaction: merchant='{}', description='{}', amount={}. Using second best category or 'other'", 
-                    merchantName, description, amount);
-            // Find second best category that's not "income"
-            bestCategory = categoryScores.entrySet().stream()
-                    .filter(e -> !"income".equals(e.getKey()))
-                    .max(Map.Entry.comparingByValue())
-                    .map(Map.Entry::getKey)
-                    .orElse("other");
-            bestConfidence = bestCategory != null ? categoryScores.getOrDefault(bestCategory, 0.5) : 0.5;
-        }
-        logger.info("EnhancedCategoryDetection: merchantName='{}', bestCategory='{}', bestConfidence={}", merchantName, bestCategory, bestConfidence);
-        return new DetectionResult(
-                bestCategory,
-                Math.min(bestConfidence, 1.0),
-                "COMBINED",
-                "Combined " + results.size() + " methods"
-        );
+
+            // Method 2: Fuzzy matching on known merchants (FIRST - before semantic)
+            // CRITICAL FIX: Also check description when merchantName is null (common in PDF/CSV
+            // imports)
+            // Many imports have merchant info in description field, not merchantName field
+            String fuzzyMatchText = null;
+            if (merchantName != null && !merchantName.isBlank()) {
+                fuzzyMatchText = merchantName;
+            } else if (description != null && !description.isBlank()) {
+                // Use description for fuzzy matching when merchantName is null
+                fuzzyMatchText = description;
+                LOGGER.debug(
+                        "EnhancedCategoryDetection: Using description for fuzzy matching (merchantName is null): '{}'",
+                        description);
+            }
+
+            // Strip payment-processor prefixes, ACH/POS boilerplate, ZIPs, state abbrevs, etc.
+            // so the fuzzy matcher sees the actual merchant signal rather than the envelope.
+            if (fuzzyMatchText != null) {
+                final String cleaned = TextNormalizer.cleanMerchantText(fuzzyMatchText);
+                if (cleaned != null && !cleaned.isEmpty()) {
+                    fuzzyMatchText = cleaned;
+                }
+            }
+
+            double fuzzyScore = 0.0;
+            boolean fuzzyMatchFound = false;
+
+            if (fuzzyMatchText != null) {
+                final FuzzyMatchingService.MatchResult fuzzyMatch =
+                        fuzzyMatchingService.findBestMatch(
+                                fuzzyMatchText, new ArrayList<>(knownMerchants.keySet()));
+                LOGGER.info(
+                        "EnhancedCategoryDetection: Fuzzy match result for '{}': {}",
+                        fuzzyMatchText,
+                        fuzzyMatch);
+
+                if (fuzzyMatch != null) {
+                    fuzzyScore = fuzzyMatch.combinedScore;
+                    final String matchedMerchant = fuzzyMatch.original;
+                    final String category = knownMerchants.get(matchedMerchant);
+                    // CRITICAL: Check for null category (merchant might have been removed)
+                    if (category != null) {
+                        final String fuzzyTextLower = fuzzyMatchText.toLowerCase(Locale.ROOT);
+
+                        // CRITICAL FIX: Reject income category if text contains "whse" or
+                        // "warehouse" (store locations)
+                        // "COSTCO WHSE" (Costco Warehouse) is a store, not "Costco Wholesale
+                        // Corporation" (payroll)
+                        boolean shouldSkip = false;
+                        if ("income".equals(category)) {
+                            if (fuzzyTextLower.contains("whse")
+                                    || fuzzyTextLower.contains("warehouse")) {
+                                LOGGER.debug(
+                                        "Rejecting income category for '{}' - contains 'whse' or 'warehouse' (store location, not corporation)",
+                                        fuzzyMatchText);
+                                // Skip this match - it's a false positive
+                                shouldSkip = true;
+                            }
+                        }
+
+                        // CRITICAL FIX: Reject utilities category if text contains airport-related
+                        // terms
+                        // "SEATTLEAP CART/CHAIR" (Seattle Airport cart) should not match "Seattle
+                        // Public Utilities"
+                        if (!shouldSkip && "utilities".equals(category)) {
+                            if (fuzzyTextLower.contains("airport")
+                                    || fuzzyTextLower.contains("seattleap")
+                                    || fuzzyTextLower.contains("seattle ap")
+                                    || (fuzzyTextLower.contains("seattle")
+                                            && (fuzzyTextLower.contains("cart")
+                                                    || fuzzyTextLower.contains("chair")))) {
+                                LOGGER.debug(
+                                        "Rejecting utilities category for '{}' - contains airport-related terms (airport expense, not utility)",
+                                        fuzzyMatchText);
+                                // Skip this match - it's a false positive
+                                shouldSkip = true;
+                            }
+                        }
+
+                        // Only add to results if we shouldn't skip this match
+                        if (!shouldSkip) {
+                            results.add(
+                                    new DetectionResult(
+                                            category,
+                                            fuzzyMatch.combinedScore,
+                                            "FUZZY_MATCH",
+                                            "Matched "
+                                                    + (merchantName != null
+                                                            ? "merchant"
+                                                            : "description")
+                                                    + ": "
+                                                    + matchedMerchant));
+                            fuzzyMatchFound = true;
+                            LOGGER.debug(
+                                    "Fuzzy match found: '{}' -> '{}' (confidence: {:.2f})",
+                                    fuzzyMatchText,
+                                    category,
+                                    fuzzyMatch.combinedScore);
+                        }
+                    } else {
+                        LOGGER.warn(
+                                "Fuzzy match found for '{}' but category is null", matchedMerchant);
+                    }
+                } else {
+                    LOGGER.debug(
+                            "EnhancedCategoryDetection: No fuzzy match found for '{}'",
+                            fuzzyMatchText);
+                }
+            } else {
+                LOGGER.debug(
+                        "EnhancedCategoryDetection: Skipping fuzzy matching - both merchantName and description are null/empty");
+            }
+
+            // Method 3: Semantic matching with context-aware matching (ONLY if fuzzy score is low)
+            // Use semantic search as fallback when fuzzy matching doesn't find a good match
+            // Threshold: if fuzzy score < 0.5, try semantic search
+            if (!fuzzyMatchFound || fuzzyScore < 0.6) {
+                if (semanticMatchingService != null
+                        && ((merchantName != null && !merchantName.isBlank())
+                                || (description != null && !description.isBlank()))) {
+                    try {
+                        LOGGER.info(
+                                "EnhancedCategoryDetection: Fuzzy score low ({}), attempting semantic matching - merchant='{}', description='{}'",
+                                fuzzyScore,
+                                merchantName,
+                                description);
+
+                        // CRITICAL: Use context-aware matching (amount, payment channel, account
+                        // type, account subtype)
+                        final SemanticMatchingService.SemanticMatchResult semanticMatch =
+                                semanticMatchingService.findBestSemanticMatchWithContext(
+                                        merchantName,
+                                        description,
+                                        amount, // Transaction amount for context
+                                        paymentChannel, // Payment channel for context
+                                        accountType, // Account type for context
+                                        accountSubtype // Account subtype for context
+                                );
+
+                        if (semanticMatch != null && semanticMatch.category != null) {
+                            LOGGER.info(
+                                    "EnhancedCategoryDetection: ✅ Semantic match found - category='{}', similarity={:.2f}, method='{}'",
+                                    semanticMatch.category,
+                                    semanticMatch.similarity,
+                                    semanticMatch.method != null
+                                            ? semanticMatch.method
+                                            : "SEMANTIC_MATCH");
+                            results.add(
+                                    new DetectionResult(
+                                            semanticMatch.category,
+                                            semanticMatch.similarity,
+                                            "SEMANTIC_MATCH",
+                                            "Context-aware semantic similarity match (fuzzy score was low: "
+                                                    + String.format("%.2f", fuzzyScore)
+                                                    + ")"));
+                        } else {
+                            LOGGER.info(
+                                    "EnhancedCategoryDetection: Semantic matching returned null or no category match");
+                        }
+                    } catch (Exception e) {
+                        // CRITICAL: Error handling - log but continue with other methods
+                        LOGGER.warn(
+                                "EnhancedCategoryDetection: Semantic matching failed, continuing with other methods: {}",
+                                e.getMessage());
+                        LOGGER.debug(
+                                "EnhancedCategoryDetection: Semantic matching exception details",
+                                e);
+                        // Don't add to results, continue with other detection methods
+                    }
+                } else {
+                    if (semanticMatchingService == null) {
+                        LOGGER.debug(
+                                "EnhancedCategoryDetection: Skipping semantic matching - service is null");
+                    } else {
+                        LOGGER.debug(
+                                "EnhancedCategoryDetection: Skipping semantic matching - both merchantName and description are null/empty");
+                    }
+                }
+            } else {
+                LOGGER.debug(
+                        "EnhancedCategoryDetection: Skipping semantic matching - fuzzy score ({:.2f}) is high enough",
+                        fuzzyScore);
+            }
+
+            // Method 3b: BERT sentence-embedding match. Runs alongside keyword-based semantic
+            // whenever fuzzy was weak. BERT gives real semantic reach (handles unseen merchants,
+            // synonyms, paraphrases) that keyword matching can't. If the model isn't loaded
+            // (bert.model.path unset), this is a no-op.
+            if (!fuzzyMatchFound || fuzzyScore < 0.6) {
+                if (bertCategoryMatcher != null
+                        && bertCategoryMatcher.isAvailable()
+                        && fuzzyMatchText != null) {
+                    try {
+                        final BertCategoryMatcher.Match bertMatch =
+                                bertCategoryMatcher.match(fuzzyMatchText);
+                        if (bertMatch != null) {
+                            LOGGER.info(
+                                    "EnhancedCategoryDetection: BERT match - category='{}' similarity={}",
+                                    bertMatch.category,
+                                    String.format("%.3f", bertMatch.similarity));
+                            results.add(
+                                    new DetectionResult(
+                                            bertMatch.category,
+                                            bertMatch.similarity,
+                                            "BERT_EMBEDDING",
+                                            "Sentence-embedding cosine similarity"));
+                        }
+                    } catch (Exception e) {
+                        LOGGER.warn(
+                                "EnhancedCategoryDetection: BERT matching failed, continuing: {}",
+                                e.getMessage());
+                    }
+                }
+            }
+            /*
+            // Method 4: ML prediction
+            String amountStr = amount != null ? amount.toString() : null;
+            CategoryClassificationModel.PredictionResult mlPrediction = mlModel.predict(
+                    merchantName, description, amountStr, paymentChannel);
+
+            if (mlPrediction.category != null && mlPrediction.confidence > 0.3) {
+                results.add(new DetectionResult(
+                        mlPrediction.category,
+                        mlPrediction.confidence,
+                        "ML_PREDICTION",
+                        "ML model prediction"
+                ));
+                LOGGER.info("ML prediction: '{}' (confidence: {:.2f})",
+                        mlPrediction.category, mlPrediction.confidence);
+            }
+            */
+
+            // Combine results with confidence weighting
+            if (results.isEmpty()) {
+                return new DetectionResult(null, 0.0, "NONE", "No detection method found a match");
+            }
+
+            // If we have multiple results, combine them
+            if (results.size() == 1) {
+                return results.get(0);
+            }
+
+            // Weighted combination: fuzzy matching gets higher weight if confidence is high
+            // CRITICAL: Prioritize expense categories when amount is negative (expense transaction)
+            final Map<String, Double> categoryScores = new HashMap<>();
+            for (final DetectionResult result : results) {
+                double weight;
+                if ("MCC_DIRECTORY".equals(result.method)) {
+                    weight = 0.95; // network-authoritative; outranks everything except custom user
+                    // mapping
+                } else if ("FUZZY_MATCH".equals(result.method) && result.confidence >= 0.85) {
+                    weight = 0.7; // strong exact-merchant match — authoritative
+                } else if ("BERT_EMBEDDING".equals(result.method) && result.confidence >= 0.55) {
+                    weight = 0.8; // learned-embedding match with decent similarity — trust it
+                } else if ("BERT_EMBEDDING".equals(result.method)) {
+                    weight = 0.55; // weaker BERT match — still outranks Jaccard semantic
+                } else {
+                    weight = 0.5;
+                }
+
+                // Amount-based priors (sign of amount indicates expense vs. inflow).
+                if (amount != null && amount.compareTo(java.math.BigDecimal.ZERO) < 0) {
+                    if ("income".equals(result.category)) {
+                        weight *= 0.1;
+                        LOGGER.debug(
+                                "Penalizing income category for negative amount transaction: merchant='{}', amount={}",
+                                merchantName,
+                                amount);
+                    } else if (!isExpenseCategory(result.category)) {
+                        weight *= 0.8;
+                    }
+                } else if (amount != null && amount.compareTo(java.math.BigDecimal.ZERO) > 0) {
+                    if ("income".equals(result.category)) {
+                        weight *= 1.2;
+                    }
+                }
+
+                // Account-type priors: a category that is implausible for the account type
+                // is penalized. Credit/loan/investment accounts have strong category expectations.
+                weight *= accountTypeWeightMultiplier(result.category, accountType, accountSubtype);
+
+                // Payment-channel priors: ACH/online biases toward bill pay / subscriptions,
+                // in-store POS biases toward physical-world expense categories.
+                weight *= paymentChannelWeightMultiplier(result.category, paymentChannel);
+
+                categoryScores.merge(result.category, result.confidence * weight, Double::sum);
+            }
+
+            // Find best category
+            String bestCategory =
+                    categoryScores.entrySet().stream()
+                            .max(Map.Entry.comparingByValue())
+                            .map(Map.Entry::getKey)
+                            .orElse(null);
+
+            double bestConfidence = bestCategory != null ? categoryScores.get(bestCategory) : 0.0;
+
+            // CRITICAL FIX: Final validation - if amount is negative and category is "income",
+            // reject it
+            if (amount != null
+                    && amount.compareTo(java.math.BigDecimal.ZERO) < 0
+                    && "income".equals(bestCategory)) {
+                LOGGER.warn(
+                        "Rejecting income category for negative amount transaction: merchant='{}', description='{}', amount={}. Using second best category or 'other'",
+                        merchantName,
+                        description,
+                        amount);
+                // Find second best category that's not "income"
+                bestCategory =
+                        categoryScores.entrySet().stream()
+                                .filter(e -> !"income".equals(e.getKey()))
+                                .max(Map.Entry.comparingByValue())
+                                .map(Map.Entry::getKey)
+                                .orElse("other");
+                bestConfidence =
+                        bestCategory != null ? categoryScores.getOrDefault(bestCategory, 0.5) : 0.5;
+            }
+            LOGGER.info(
+                    "EnhancedCategoryDetection: merchantName='{}', bestCategory='{}', bestConfidence={}",
+                    merchantName,
+                    bestCategory,
+                    bestConfidence);
+            return new DetectionResult(
+                    bestCategory,
+                    Math.min(bestConfidence, 1.0),
+                    "COMBINED",
+                    "Combined " + results.size() + " methods");
         } catch (Exception e) {
-            logger.error("Error in detectCategory", e);
+            LOGGER.error("Error in detectCategory", e);
             // CRITICAL: For null inputs, return NONE instead of ERROR
             // This matches test expectations and provides better UX
-            if ((merchantName == null || merchantName.trim().isEmpty()) &&
-                (description == null || description.trim().isEmpty()) &&
-                amount == null && paymentChannel == null && categoryString == null) {
+            if ((merchantName == null || merchantName.isBlank())
+                    && (description == null || description.isBlank())
+                    && amount == null
+                    && paymentChannel == null
+                    && categoryString == null) {
                 return new DetectionResult(null, 0.0, "NONE", "No inputs provided");
             }
             // Return safe fallback result for other errors
-            return new DetectionResult(null, 0.0, "ERROR", "Error during detection: " + e.getMessage());
+            return new DetectionResult(
+                    null, 0.0, "ERROR", "Error during detection: " + e.getMessage());
         }
     }
-    
+
     /**
-     * Check if a category is an expense category (not income or investment)
+     * Penalize category/account-type combinations that rarely make sense. Returns a multiplier in
+     * [0.2, 1.15] applied to the result weight.
      */
-    private boolean isExpenseCategory(String category) {
-        if (category == null) return false;
-        String catLower = category.toLowerCase();
-        // Expense categories
-        return catLower.equals("groceries") || catLower.equals("dining") || 
-               catLower.equals("transportation") || catLower.equals("shopping") ||
-               catLower.equals("entertainment") || catLower.equals("healthcare") ||
-               catLower.equals("rent") || catLower.equals("utilities") ||
-               catLower.equals("subscriptions") || catLower.equals("travel") ||
-               catLower.equals("home improvement") || catLower.equals("pet") ||
-               catLower.equals("tech") || catLower.equals("other") ||
-               catLower.equals("payment") || catLower.equals("cash") ||
-               catLower.equals("transfer");
+    private double accountTypeWeightMultiplier(
+            final String category, final String accountType, final String accountSubtype) {
+        if (category == null) {
+            return 1.0;
+        }
+        final String cat = category.toLowerCase(Locale.ROOT);
+        final String type = accountType != null ? accountType.toLowerCase(Locale.ROOT) : "";
+        final String subtype = accountSubtype != null ? accountSubtype.toLowerCase(Locale.ROOT) : "";
+
+        if (type.contains("credit") || subtype.contains("credit card")) {
+            // Credit cards don't hold savings or investments.
+            if ("savings".equals(cat) || "investment".equals(cat) || "deposit".equals(cat)) {
+                return 0.3;
+            }
+            return 1.0;
+        }
+
+        if (type.contains("loan")
+                || subtype.contains("mortgage")
+                || subtype.contains("student")
+                || subtype.contains("auto loan")) {
+            // Loan accounts are almost exclusively payment / interest / fee activity.
+            if ("payment".equals(cat) || "interest".equals(cat) || "fee".equals(cat)) {
+                return 1.15;
+            }
+            return 0.4;
+        }
+
+        if (type.contains("investment")
+                || type.contains("brokerage")
+                || subtype.contains("ira")
+                || subtype.contains("401k")
+                || subtype.contains("brokerage")) {
+            // Investment/retirement accounts: investment + transfer + dividend are normal.
+            if ("investment".equals(cat)
+                    || "transfer".equals(cat)
+                    || "dividend".equals(cat)
+                    || "income".equals(cat)
+                    || "fee".equals(cat)) {
+                return 1.10;
+            }
+            // Heavy penalty for consumer-expense categories on an investment account.
+            if ("groceries".equals(cat)
+                    || "dining".equals(cat)
+                    || "shopping".equals(cat)
+                    || "entertainment".equals(cat)) {
+                return 0.2;
+            }
+            return 0.7;
+        }
+
+        return 1.0;
     }
-    
+
     /**
-     * Train ML model with a transaction
+     * Payment-channel priors. Physical channels (in-store POS) argue against online-only categories
+     * like subscriptions, and online/ACH argues against cash-back-style categories.
      */
-    public void trainModel(String merchantName, String description, String amount,
-                          String paymentChannel, String actualCategory) {
+    private double paymentChannelWeightMultiplier(final String category, final String paymentChannel) {
+        if (category == null || paymentChannel == null) {
+            return 1.0;
+        }
+        final String cat = category.toLowerCase(Locale.ROOT);
+        final String channel = paymentChannel.toLowerCase(Locale.ROOT);
+
+        if (channel.contains("in store")
+                || channel.contains("in-store")
+                || channel.contains("pos")) {
+            if ("subscriptions".equals(cat)) {
+                return 0.5;
+            }
+            if ("groceries".equals(cat)
+                    || "dining".equals(cat)
+                    || "shopping".equals(cat)
+                    || "transportation".equals(cat)) {
+                return 1.1;
+            }
+        }
+
+        if (channel.contains("online") || channel.contains("web")) {
+            if ("cash".equals(cat)) {
+                return 0.5;
+            }
+        }
+
+        if (channel.contains("ach")) {
+            // ACH is typically bill pay, payroll, transfers — not in-store retail.
+            if ("payment".equals(cat)
+                    || "utilities".equals(cat)
+                    || "transfer".equals(cat)
+                    || "income".equals(cat)
+                    || "rent".equals(cat)) {
+                return 1.15;
+            }
+            if ("dining".equals(cat) || "groceries".equals(cat) || "entertainment".equals(cat)) {
+                return 0.7;
+            }
+        }
+
+        return 1.0;
+    }
+
+    /** Check if a category is an expense category (not income or investment) */
+    private boolean isExpenseCategory(final String category) {
+        if (category == null) {
+            return false;
+        }
+        final String catLower = category.toLowerCase(Locale.ROOT);
+        // Expense categories
+        return "groceries".equals(catLower)
+                || "dining".equals(catLower)
+                || "transportation".equals(catLower)
+                || "shopping".equals(catLower)
+                || "entertainment".equals(catLower)
+                || "healthcare".equals(catLower)
+                || "rent".equals(catLower)
+                || "utilities".equals(catLower)
+                || "subscriptions".equals(catLower)
+                || "travel".equals(catLower)
+                || "home improvement".equals(catLower)
+                || "pet".equals(catLower)
+                || "tech".equals(catLower)
+                || "other".equals(catLower)
+                || "payment".equals(catLower)
+                || "cash".equals(catLower)
+                || "transfer".equals(catLower);
+    }
+
+    /** Train ML model with a transaction */
+    public void trainModel(
+            final String merchantName,
+            final String description,
+            final String amount,
+            final String paymentChannel,
+            final String actualCategory) {
         try {
             // CRITICAL: Validate inputs before training
-            if (actualCategory == null || actualCategory.trim().isEmpty()) {
-                logger.debug("Skipping training: category is null or empty");
+            if (actualCategory == null || actualCategory.isBlank()) {
+                LOGGER.debug("Skipping training: category is null or empty");
                 return;
             }
-            
+
             mlModel.train(merchantName, description, amount, paymentChannel, actualCategory);
         } catch (Exception e) {
-            logger.error("Error training ML model", e);
+            LOGGER.error("Error training ML model", e);
             // Don't throw - training failure shouldn't break transaction processing
         }
     }
-    
+
     /**
-     * Initialize known merchants database
-     * COMPREHENSIVE: Includes major retailers, food chains, grocery stores, utilities,
-     * subscriptions, insurance, tech companies, banks, investment firms, and more
+     * Initialize known merchants database COMPREHENSIVE: Includes major retailers, food chains,
+     * grocery stores, utilities, subscriptions, insurance, tech companies, banks, investment firms,
+     * and more
      */
     private void initializeKnownMerchants() {
         // ========== GROCERY STORES ==========
@@ -451,7 +851,9 @@ public class EnhancedCategoryDetectionService {
         knownMerchants.put("Acme", "groceries");
         knownMerchants.put("Tom Thumb", "groceries");
         knownMerchants.put("Randalls", "groceries");
-        knownMerchants.put("United Supermarkets (including Market Street, Amigos, and United Express formats)", "groceries");
+        knownMerchants.put(
+                "United Supermarkets (including Market Street, Amigos, and United Express formats)",
+                "groceries");
         knownMerchants.put("Pavilions", "groceries");
         knownMerchants.put("Star Market", "groceries");
         knownMerchants.put("Jagalchi", "groceries");
@@ -517,14 +919,14 @@ public class EnhancedCategoryDetectionService {
         knownMerchants.put("fresh food", "groceries");
         knownMerchants.put("food shop", "groceries");
         knownMerchants.put("superstore", "groceries");
-        
+
         // ========== FOOD CHAINS / DINING ==========
         knownMerchants.put("subway", "dining");
         knownMerchants.put("panda express", "dining");
         knownMerchants.put("starbucks", "dining");
         knownMerchants.put("chipotle", "dining");
         knownMerchants.put("hoffman", "dining");
-         knownMerchants.put("canam", "dining");
+        knownMerchants.put("canam", "dining");
         knownMerchants.put("mcdonald", "dining");
         knownMerchants.put("burger", "dining");
         knownMerchants.put("taco", "dining");
@@ -625,7 +1027,7 @@ public class EnhancedCategoryDetectionService {
         knownMerchants.put("maxmillian", "dining");
         knownMerchants.put("maximilian", "dining");
         knownMerchants.put("caffe nero", "dining");
-        
+
         // ========== RETAIL CHAINS ==========
         knownMerchants.put("macy's", "shopping");
         knownMerchants.put("macys", "shopping");
@@ -693,9 +1095,7 @@ public class EnhancedCategoryDetectionService {
         knownMerchants.put("world market", "shopping");
         knownMerchants.put("cost plus world market", "shopping");
         knownMerchants.put("charles Tyrwhitt", "shopping");
-        
-       
-        
+
         // ========== ENTERTAINMENT (Streaming Services) ==========
         // Streaming services are entertainment, not subscriptions category
         // Subscriptions are detected separately via SubscriptionService
@@ -734,7 +1134,7 @@ public class EnhancedCategoryDetectionService {
         knownMerchants.put("funimation", "entertainment");
         knownMerchants.put("sling tv", "entertainment");
         knownMerchants.put("fox sports", "entertainment");
-        
+
         // ========== SUBSCRIPTIONS (Software/Non-Entertainment) ==========
         knownMerchants.put("adobe", "tech");
         knownMerchants.put("adobe creative", "tech");
@@ -773,7 +1173,7 @@ public class EnhancedCategoryDetectionService {
         knownMerchants.put("together", "tech");
         knownMerchants.put("midjourney", "tech");
         knownMerchants.put("wikipedia", "tech");
-        
+
         // ========== INSURANCE PROVIDERS ==========
         // Car Insurance
         knownMerchants.put("geico", "insurance");
@@ -840,7 +1240,7 @@ public class EnhancedCategoryDetectionService {
         knownMerchants.put("kaiser", "healthcare");
         knownMerchants.put("anthem", "healthcare");
         knownMerchants.put("anthem blue cross", "healthcare");
-        
+
         // ========== TRAVEL (Airlines, Hotels, Airport Lounges) ==========
         // Airport Lounges
         knownMerchants.put("centurion lounge", "travel");
@@ -903,7 +1303,7 @@ public class EnhancedCategoryDetectionService {
         knownMerchants.put("residence inn", "travel");
         knownMerchants.put("courtyard", "travel");
         knownMerchants.put("residential inn", "travel");
-        
+
         // ========== ELECTRONICS & AI PROVIDERS ==========
         knownMerchants.put("samsung", "tech");
         knownMerchants.put("lg", "tech");
@@ -945,7 +1345,7 @@ public class EnhancedCategoryDetectionService {
         knownMerchants.put("cursor ai", "tech");
         knownMerchants.put("cursor, ai", "tech");
         knownMerchants.put("cursor ai powered ide", "tech");
-        
+
         // ========== INTERNET SERVICES / COMPANIES ==========
         knownMerchants.put("alphabet", "tech");
         knownMerchants.put("amazon web services", "tech");
@@ -976,7 +1376,7 @@ public class EnhancedCategoryDetectionService {
         knownMerchants.put("redis", "tech");
         knownMerchants.put("elastic", "tech");
         knownMerchants.put("elasticsearch", "tech");
-        
+
         // ========== HOME IMPROVEMENT PROVIDERS ==========
         knownMerchants.put("home depot", "home improvement");
         knownMerchants.put("homedepot", "home improvement");
@@ -999,7 +1399,7 @@ public class EnhancedCategoryDetectionService {
         knownMerchants.put("valspar", "home improvement");
         knownMerchants.put("ppg", "home improvement");
         knownMerchants.put("ppg paints", "home improvement");
-        
+
         // ========== SERVICE PROVIDERS ==========
         // ========== TRANSPORTATION SERVICES ==========
         knownMerchants.put("uber", "transportation");
@@ -1074,7 +1474,7 @@ public class EnhancedCategoryDetectionService {
         knownMerchants.put("handy", "service");
         knownMerchants.put("care.com", "service");
         knownMerchants.put("carecom", "service");
-        
+
         // ========== LOAN PROVIDERS ==========
         knownMerchants.put("sofi", "payment");
         knownMerchants.put("sofi loans", "payment");
@@ -1101,7 +1501,7 @@ public class EnhancedCategoryDetectionService {
         knownMerchants.put("aidvantage", "payment");
         knownMerchants.put("edfinancial", "payment");
         knownMerchants.put("ed financial", "payment");
-        
+
         // ========== CREDIT PROVIDERS ==========
         knownMerchants.put("american express", "payment");
         knownMerchants.put("amex", "payment");
@@ -1155,7 +1555,7 @@ public class EnhancedCategoryDetectionService {
         knownMerchants.put("first national bank", "payment");
         knownMerchants.put("bb&t", "payment");
         knownMerchants.put("bbt", "payment");
-        
+
         // ========== BANK PROVIDERS ==========
         knownMerchants.put("chase bank", "transfer");
         knownMerchants.put("ally bank", "transfer");
@@ -1178,7 +1578,7 @@ public class EnhancedCategoryDetectionService {
         knownMerchants.put("silicon valley bank", "transfer");
         knownMerchants.put("svb", "transfer");
         knownMerchants.put("signature bank", "transfer");
-        
+
         // ========== INVESTMENT PROVIDERS ==========
         knownMerchants.put("fidelity", "investment");
         knownMerchants.put("fidelity investments", "investment");
@@ -1246,7 +1646,7 @@ public class EnhancedCategoryDetectionService {
         knownMerchants.put("pro shares", "investment");
         knownMerchants.put("directional", "investment");
         knownMerchants.put("directional funds", "investment");
-        
+
         // ========== TRANSPORTATION ==========
         // CRITICAL: Airport expenses (carts, chairs, parking, etc.) must come BEFORE utilities
         // "SEATTLEAP" (Seattle Airport) should not match "Seattle Public Utilities"
@@ -1258,7 +1658,7 @@ public class EnhancedCategoryDetectionService {
         knownMerchants.put("seattle airport", "transportation");
         knownMerchants.put("airport cart", "transportation");
         knownMerchants.put("airport chair", "transportation");
-        
+
         // ========== GAS STATIONS ==========
         // COSTCO GAS must come before general COSTCO (groceries)
         knownMerchants.put("costco gas", "transportation");
@@ -1310,7 +1710,7 @@ public class EnhancedCategoryDetectionService {
         knownMerchants.put("loves travel stops", "transportation");
         knownMerchants.put("ta", "transportation");
         knownMerchants.put("travelcenters of america", "transportation");
-        
+
         // ========== ENTERTAINMENT ==========
         knownMerchants.put("amc", "entertainment");
         knownMerchants.put("amc theaters", "entertainment");
@@ -1326,7 +1726,7 @@ public class EnhancedCategoryDetectionService {
         knownMerchants.put("imax", "entertainment");
         knownMerchants.put("top golf", "entertainment");
         knownMerchants.put("topgolf", "entertainment");
-        
+
         // ========== HEALTHCARE ==========
         knownMerchants.put("cvs", "healthcare");
         knownMerchants.put("walgreens", "healthcare");
@@ -1339,7 +1739,7 @@ public class EnhancedCategoryDetectionService {
         knownMerchants.put("costco pharmacy", "healthcare");
         knownMerchants.put("cvs pharmacy", "healthcare");
         knownMerchants.put("walgreens pharmacy", "healthcare");
-        
+
         // ========== PET ==========
         knownMerchants.put("petsmart", "pet");
         knownMerchants.put("petco", "pet");
@@ -1356,95 +1756,95 @@ public class EnhancedCategoryDetectionService {
         knownMerchants.put("chewy.com", "pet");
         knownMerchants.put("petmeds", "pet");
         knownMerchants.put("1800petmeds", "pet");
-         // ========== PHONE PROVIDERS ==========
-         knownMerchants.put("verizon", "utilities");
-         knownMerchants.put("verizon wireless", "utilities");
-         knownMerchants.put("at&t", "utilities");
-         knownMerchants.put("att", "utilities");
-         knownMerchants.put("at and t", "utilities");
-         knownMerchants.put("xfinity mobile", "utilities");
-         knownMerchants.put("xfinitymobile", "utilities");
-         knownMerchants.put("t-mobile", "utilities");
-         knownMerchants.put("tmobile", "utilities");
-         knownMerchants.put("t mobile", "utilities");
-         knownMerchants.put("sprint", "utilities");
-         knownMerchants.put("us cellular", "utilities");
-         knownMerchants.put("uscellular", "utilities");
-         knownMerchants.put("cricket", "utilities");
-         knownMerchants.put("cricket wireless", "utilities");
-         knownMerchants.put("boost mobile", "utilities");
-         knownMerchants.put("metropcs", "utilities");
-         knownMerchants.put("metro pcs", "utilities");
-         knownMerchants.put("mint mobile", "utilities");
-         knownMerchants.put("google fi", "utilities");
-         knownMerchants.put("visible", "utilities");
-         knownMerchants.put("straight talk", "utilities");
-         
-         // ========== UTILITY PROVIDERS (Water, Electricity, Gas, Cable) ==========
-         // Electric Companies
-         knownMerchants.put("puget sound energy", "utilities");
-         knownMerchants.put("pse", "utilities");
-         knownMerchants.put("pacific power", "utilities");
-         knownMerchants.put("portland general electric", "utilities");
-         knownMerchants.put("pge", "utilities");
-         knownMerchants.put("southern california edison", "utilities");
-         knownMerchants.put("sce", "utilities");
-         knownMerchants.put("pg&e", "utilities");
-         knownMerchants.put("pacific gas and electric", "utilities");
-         knownMerchants.put("san diego gas & electric", "utilities");
-         knownMerchants.put("sdge", "utilities");
-         knownMerchants.put("duke energy", "utilities");
-         knownMerchants.put("dominion energy", "utilities");
-         knownMerchants.put("con edison", "utilities");
-         knownMerchants.put("coned", "utilities");
-         knownMerchants.put("consolidated edison", "utilities");
-         knownMerchants.put("national grid", "utilities");
-         knownMerchants.put("exelon", "utilities");
-         knownMerchants.put("firstenergy", "utilities");
-         knownMerchants.put("first energy", "utilities");
-         knownMerchants.put("aep", "utilities");
-         knownMerchants.put("american electric power", "utilities");
-         knownMerchants.put("southern company", "utilities");
-         knownMerchants.put("xcel energy", "utilities");
-         knownMerchants.put("centerpoint energy", "utilities");
-         knownMerchants.put("centerpoint", "utilities");
-         knownMerchants.put("entergy", "utilities");
-         knownMerchants.put("aes", "utilities");
-         knownMerchants.put("aes corporation", "utilities");
-         // Water Companies
-         knownMerchants.put("city of bellevue", "utilities");
-         knownMerchants.put("city of seattle", "utilities");
-         knownMerchants.put("seattle public utilities", "utilities");
-         knownMerchants.put("spu", "utilities");
-         knownMerchants.put("american water", "utilities");
-         knownMerchants.put("california water service", "utilities");
-         knownMerchants.put("suez water", "utilities");
-         knownMerchants.put("aqua america", "utilities");
-         // Cable/Internet Providers
-         knownMerchants.put("comcast", "utilities");
-         knownMerchants.put("xfinity", "utilities");
-         knownMerchants.put("spectrum", "utilities");
-         knownMerchants.put("charter", "utilities");
-         knownMerchants.put("charter spectrum", "utilities");
-         knownMerchants.put("cox", "utilities");
-         knownMerchants.put("cox communications", "utilities");
-         knownMerchants.put("optimum", "utilities");
-         knownMerchants.put("altice", "utilities");
-         knownMerchants.put("frontier communications", "utilities");
-         knownMerchants.put("centurylink", "utilities");
-         knownMerchants.put("century link", "utilities");
-         knownMerchants.put("windstream", "utilities");
-         knownMerchants.put("suddenlink", "utilities");
-         knownMerchants.put("mediacom", "utilities");
-         knownMerchants.put("dish", "utilities");
-         knownMerchants.put("dish network", "utilities");
-         knownMerchants.put("directv", "utilities");
-         knownMerchants.put("direct tv", "utilities");
-         knownMerchants.put("att u-verse", "utilities");
-         knownMerchants.put("att uverse", "utilities");
-         knownMerchants.put("fios", "utilities");
-         knownMerchants.put("verizon fios", "utilities");
-        
+        // ========== PHONE PROVIDERS ==========
+        knownMerchants.put("verizon", "utilities");
+        knownMerchants.put("verizon wireless", "utilities");
+        knownMerchants.put("at&t", "utilities");
+        knownMerchants.put("att", "utilities");
+        knownMerchants.put("at and t", "utilities");
+        knownMerchants.put("xfinity mobile", "utilities");
+        knownMerchants.put("xfinitymobile", "utilities");
+        knownMerchants.put("t-mobile", "utilities");
+        knownMerchants.put("tmobile", "utilities");
+        knownMerchants.put("t mobile", "utilities");
+        knownMerchants.put("sprint", "utilities");
+        knownMerchants.put("us cellular", "utilities");
+        knownMerchants.put("uscellular", "utilities");
+        knownMerchants.put("cricket", "utilities");
+        knownMerchants.put("cricket wireless", "utilities");
+        knownMerchants.put("boost mobile", "utilities");
+        knownMerchants.put("metropcs", "utilities");
+        knownMerchants.put("metro pcs", "utilities");
+        knownMerchants.put("mint mobile", "utilities");
+        knownMerchants.put("google fi", "utilities");
+        knownMerchants.put("visible", "utilities");
+        knownMerchants.put("straight talk", "utilities");
+
+        // ========== UTILITY PROVIDERS (Water, Electricity, Gas, Cable) ==========
+        // Electric Companies
+        knownMerchants.put("puget sound energy", "utilities");
+        knownMerchants.put("pse", "utilities");
+        knownMerchants.put("pacific power", "utilities");
+        knownMerchants.put("portland general electric", "utilities");
+        knownMerchants.put("pge", "utilities");
+        knownMerchants.put("southern california edison", "utilities");
+        knownMerchants.put("sce", "utilities");
+        knownMerchants.put("pg&e", "utilities");
+        knownMerchants.put("pacific gas and electric", "utilities");
+        knownMerchants.put("san diego gas & electric", "utilities");
+        knownMerchants.put("sdge", "utilities");
+        knownMerchants.put("duke energy", "utilities");
+        knownMerchants.put("dominion energy", "utilities");
+        knownMerchants.put("con edison", "utilities");
+        knownMerchants.put("coned", "utilities");
+        knownMerchants.put("consolidated edison", "utilities");
+        knownMerchants.put("national grid", "utilities");
+        knownMerchants.put("exelon", "utilities");
+        knownMerchants.put("firstenergy", "utilities");
+        knownMerchants.put("first energy", "utilities");
+        knownMerchants.put("aep", "utilities");
+        knownMerchants.put("american electric power", "utilities");
+        knownMerchants.put("southern company", "utilities");
+        knownMerchants.put("xcel energy", "utilities");
+        knownMerchants.put("centerpoint energy", "utilities");
+        knownMerchants.put("centerpoint", "utilities");
+        knownMerchants.put("entergy", "utilities");
+        knownMerchants.put("aes", "utilities");
+        knownMerchants.put("aes corporation", "utilities");
+        // Water Companies
+        knownMerchants.put("city of bellevue", "utilities");
+        knownMerchants.put("city of seattle", "utilities");
+        knownMerchants.put("seattle public utilities", "utilities");
+        knownMerchants.put("spu", "utilities");
+        knownMerchants.put("american water", "utilities");
+        knownMerchants.put("california water service", "utilities");
+        knownMerchants.put("suez water", "utilities");
+        knownMerchants.put("aqua america", "utilities");
+        // Cable/Internet Providers
+        knownMerchants.put("comcast", "utilities");
+        knownMerchants.put("xfinity", "utilities");
+        knownMerchants.put("spectrum", "utilities");
+        knownMerchants.put("charter", "utilities");
+        knownMerchants.put("charter spectrum", "utilities");
+        knownMerchants.put("cox", "utilities");
+        knownMerchants.put("cox communications", "utilities");
+        knownMerchants.put("optimum", "utilities");
+        knownMerchants.put("altice", "utilities");
+        knownMerchants.put("frontier communications", "utilities");
+        knownMerchants.put("centurylink", "utilities");
+        knownMerchants.put("century link", "utilities");
+        knownMerchants.put("windstream", "utilities");
+        knownMerchants.put("suddenlink", "utilities");
+        knownMerchants.put("mediacom", "utilities");
+        knownMerchants.put("dish", "utilities");
+        knownMerchants.put("dish network", "utilities");
+        knownMerchants.put("directv", "utilities");
+        knownMerchants.put("direct tv", "utilities");
+        knownMerchants.put("att u-verse", "utilities");
+        knownMerchants.put("att uverse", "utilities");
+        knownMerchants.put("fios", "utilities");
+        knownMerchants.put("verizon fios", "utilities");
+
         // ========== PAYROLL / PAYCHECK PROVIDERS ==========
         // Major Payroll Companies
         knownMerchants.put("adp", "income");
@@ -1534,20 +1934,23 @@ public class EnhancedCategoryDetectionService {
         knownMerchants.put("mckesson", "income");
         knownMerchants.put("verizon communications", "income");
         knownMerchants.put("walt disney", "income");
-        // CRITICAL: Remove "home depot" from income - it's a home improvement store (expense), not payroll
+        // CRITICAL: Remove "home depot" from income - it's a home improvement store (expense), not
+        // payroll
         // Only "home depot inc" or "home depot corporation" should be income (for payroll)
         knownMerchants.put("home depot inc", "income");
         knownMerchants.put("home depot corporation", "income");
         knownMerchants.put("target corporation", "income");
         // CRITICAL: "costco wholesale" is ONLY for payroll from Costco Wholesale Corporation
-        // Must be exact match or "costco wholesale corporation" to avoid matching "COSTCO WHSE" (warehouse stores)
+        // Must be exact match or "costco wholesale corporation" to avoid matching "COSTCO WHSE"
+        // (warehouse stores)
         // "COSTCO WHSE" (Costco Warehouse) is a store location, not the corporation for payroll
         knownMerchants.put("costco wholesale corporation", "income");
         knownMerchants.put("costco wholesale inc", "income");
         knownMerchants.put("costco wholesale company", "income");
         // Only match "costco wholesale" if it's clearly a corporation (not "whse" or "warehouse")
         // Note: This is a fallback - prefer more specific patterns above
-        // CRITICAL: Remove "lowes" from income - it's a home improvement store (expense), not payroll
+        // CRITICAL: Remove "lowes" from income - it's a home improvement store (expense), not
+        // payroll
         // Only "lowes companies" or "lowes inc" should be income (for payroll)
         knownMerchants.put("lowes companies", "income");
         knownMerchants.put("lowes inc", "income");
@@ -1699,7 +2102,7 @@ public class EnhancedCategoryDetectionService {
         // 6010 - Financial Institutions - Manual Cash Disbursements
         knownMerchants.put("mcc 6010", "cash");
         knownMerchants.put("mcc6010", "cash");
-        
+
         // ========== ISO 20022 FINANCIAL MESSAGING STANDARD ==========
         // ISO 20022 is the international standard for financial messaging
         // Message types and transaction categories
@@ -1717,10 +2120,11 @@ public class EnhancedCategoryDetectionService {
         knownMerchants.put("pacs.008", "transfer"); // FIToFICustomerCreditTransfer
         knownMerchants.put("pacs.009", "transfer"); // FinancialInstitutionCreditTransfer
         knownMerchants.put("pacs.002", "transfer"); // FIToFIPaymentStatusReport
-        
+
         // ========== ACH STANDARD ENTRY CLASS (SEC) CODES ==========
         // NACHA (National Automated Clearing House Association) SEC codes
-        knownMerchants.put("ppd", "income"); // Prearranged Payment and Deposit Entry (Direct Deposit)
+        knownMerchants.put(
+                "ppd", "income"); // Prearranged Payment and Deposit Entry (Direct Deposit)
         knownMerchants.put("ppd entry", "income");
         knownMerchants.put("ppd credit", "income");
         knownMerchants.put("ppd debit", "payment");
@@ -1762,7 +2166,7 @@ public class EnhancedCategoryDetectionService {
         knownMerchants.put("trc entry", "payment");
         knownMerchants.put("trx", "payment"); // Check Same Day Settlement Entry
         knownMerchants.put("trx entry", "payment");
-        
+
         // ========== ACH TRANSACTION CODES ==========
         // NACHA ACH transaction type codes
         knownMerchants.put("ach 21", "income"); // ACH Credit - Deposit
@@ -1777,7 +2181,7 @@ public class EnhancedCategoryDetectionService {
         knownMerchants.put("ach 42", "payment"); // ACH Debit - Payment
         knownMerchants.put("ach 43", "payment"); // ACH Debit - Preauthorized
         knownMerchants.put("ach 44", "payment"); // ACH Debit - Zero Dollar
-        
+
         // ========== SWIFT / BIC CODES ==========
         // SWIFT (Society for Worldwide Interbank Financial Telecommunication)
         // BIC (Bank Identifier Code) / SWIFT codes for major banks
@@ -1817,7 +2221,7 @@ public class EnhancedCategoryDetectionService {
         knownMerchants.put("mt900", "transfer");
         knownMerchants.put("mt 910", "transfer"); // Confirmation of Credit
         knownMerchants.put("mt910", "transfer");
-        
+
         // ========== IBAN (INTERNATIONAL BANK ACCOUNT NUMBER) ==========
         knownMerchants.put("iban", "transfer");
         knownMerchants.put("international bank account number", "transfer");
@@ -1828,7 +2232,7 @@ public class EnhancedCategoryDetectionService {
         knownMerchants.put("sepa direct debit", "payment");
         knownMerchants.put("sepa instant", "transfer");
         knownMerchants.put("sepa instant credit transfer", "transfer");
-        
+
         // ========== FEDWIRE / FEDERAL RESERVE WIRE TRANSFER ==========
         knownMerchants.put("fedwire", "transfer");
         knownMerchants.put("fed wire", "transfer");
@@ -1841,14 +2245,14 @@ public class EnhancedCategoryDetectionService {
         knownMerchants.put("aba number", "transfer");
         knownMerchants.put("routing transit number", "transfer");
         knownMerchants.put("rtn", "transfer");
-        
+
         // ========== CHIPS (CLEARING HOUSE INTERBANK PAYMENTS SYSTEM) ==========
         knownMerchants.put("chips", "transfer");
         knownMerchants.put("clearing house interbank payments", "transfer");
         knownMerchants.put("chips transfer", "transfer");
         knownMerchants.put("chips credit", "transfer");
         knownMerchants.put("chips debit", "transfer");
-        
+
         // ========== BAI2 BANK REPORTING FORMAT ==========
         // Bank Administration Institute format codes
         knownMerchants.put("bai2", "transfer");
@@ -1922,12 +2326,12 @@ public class EnhancedCategoryDetectionService {
         knownMerchants.put("bai 220", "transfer"); // Forex Purchase
         knownMerchants.put("bai 221", "transfer"); // Forex Sale
         knownMerchants.put("bai 222", "transfer"); // Forex Settlement
-        
+
         // ========== CFONB (FRENCH BANK FORMAT) ==========
         knownMerchants.put("cfonb", "transfer");
         knownMerchants.put("cfonb 120", "transfer"); // French bank statement format
         knownMerchants.put("cfonb 240", "transfer"); // French bank statement format
-        
+
         // ========== FINCEN (FINANCIAL CRIMES ENFORCEMENT NETWORK) ==========
         // BSA (Bank Secrecy Act) Transaction Categories
         knownMerchants.put("fincen", "transfer");
@@ -1951,7 +2355,7 @@ public class EnhancedCategoryDetectionService {
         knownMerchants.put("fincen 07", "transfer"); // Loan
         knownMerchants.put("fincen 08", "transfer"); // Payment
         knownMerchants.put("fincen 09", "transfer"); // Other
-        
+
         // ========== IRS TAX CATEGORIES ==========
         // IRS Form 1040 Categories and Business Expense Categories
         // IRS Income Categories (Form 1040)
@@ -2004,7 +2408,7 @@ public class EnhancedCategoryDetectionService {
         knownMerchants.put("irs excise tax", "payment");
         knownMerchants.put("irs gift tax", "payment");
         knownMerchants.put("irs estate tax", "payment");
-        
+
         // ========== GAAP (GENERALLY ACCEPTED ACCOUNTING PRINCIPLES) ==========
         // Chart of Accounts Categories
         knownMerchants.put("gaap", "transfer");
@@ -2038,7 +2442,7 @@ public class EnhancedCategoryDetectionService {
         knownMerchants.put("gaap tax expense", "payment");
         knownMerchants.put("gaap depreciation expense", "payment");
         knownMerchants.put("gaap amortization expense", "payment");
-        
+
         // ========== SIC (STANDARD INDUSTRIAL CLASSIFICATION) CODES ==========
         // Major SIC Code Categories (2-digit)
         knownMerchants.put("sic 01", "groceries"); // Agricultural Production - Crops
@@ -2117,11 +2521,12 @@ public class EnhancedCategoryDetectionService {
         knownMerchants.put("sic 95", "utilities"); // Environmental Quality and Housing
         knownMerchants.put("sic 96", "utilities"); // Administration of Economic Programs
         knownMerchants.put("sic 97", "utilities"); // National Security and International Affairs
-        
+
         // ========== NAICS (NORTH AMERICAN INDUSTRY CLASSIFICATION SYSTEM) CODES ==========
         // Major NAICS Code Categories (2-digit)
         knownMerchants.put("naics 11", "groceries"); // Agriculture, Forestry, Fishing and Hunting
-        knownMerchants.put("naics 21", "utilities"); // Mining, Quarrying, and Oil and Gas Extraction
+        knownMerchants.put(
+                "naics 21", "utilities"); // Mining, Quarrying, and Oil and Gas Extraction
         knownMerchants.put("naics 22", "utilities"); // Utilities
         knownMerchants.put("naics 23", "home improvement"); // Construction
         knownMerchants.put("naics 31", "shopping"); // Manufacturing - Food, Beverage, Tobacco
@@ -2129,16 +2534,20 @@ public class EnhancedCategoryDetectionService {
         knownMerchants.put("naics 33", "shopping"); // Manufacturing - Wood, Paper, Printing
         knownMerchants.put("naics 34", "shopping"); // Manufacturing - Petroleum, Chemical, Plastics
         knownMerchants.put("naics 35", "tech"); // Manufacturing - Computer, Electronic, Electrical
-        knownMerchants.put("naics 36", "transportation"); // Manufacturing - Transportation Equipment
+        knownMerchants.put(
+                "naics 36", "transportation"); // Manufacturing - Transportation Equipment
         knownMerchants.put("naics 42", "shopping"); // Wholesale Trade
-        knownMerchants.put("naics 44", "shopping"); // Retail Trade - Building Materials, Garden, Motor Vehicle
-        knownMerchants.put("naics 45", "shopping"); // Retail Trade - Furniture, Electronics, Apparel
+        knownMerchants.put(
+                "naics 44", "shopping"); // Retail Trade - Building Materials, Garden, Motor Vehicle
+        knownMerchants.put(
+                "naics 45", "shopping"); // Retail Trade - Furniture, Electronics, Apparel
         knownMerchants.put("naics 48", "transportation"); // Transportation and Warehousing
         knownMerchants.put("naics 49", "utilities"); // Couriers and Messengers
         knownMerchants.put("naics 51", "tech"); // Information
         knownMerchants.put("naics 52", "investment"); // Finance and Insurance
         knownMerchants.put("naics 53", "investment"); // Real Estate and Rental and Leasing
-        knownMerchants.put("naics 54", "service"); // Professional, Scientific, and Technical Services
+        knownMerchants.put(
+                "naics 54", "service"); // Professional, Scientific, and Technical Services
         knownMerchants.put("naics 55", "service"); // Management of Companies and Enterprises
         knownMerchants.put("naics 56", "service"); // Administrative and Support Services
         knownMerchants.put("naics 61", "service"); // Educational Services
@@ -2147,14 +2556,14 @@ public class EnhancedCategoryDetectionService {
         knownMerchants.put("naics 72", "dining"); // Accommodation and Food Services
         knownMerchants.put("naics 81", "service"); // Other Services (except Public Administration)
         knownMerchants.put("naics 92", "utilities"); // Public Administration
-        
+
         // ========== EDUCATION/SCHOOL PAYMENTS ==========
         // School District payments - should be categorized as "education"
         knownMerchants.put("school district", "education");
         knownMerchants.put("schooldistrict", "education");
         knownMerchants.put("bellevue school district", "education");
         knownMerchants.put("bellevueschooldistrict", "education");
-        
+
         // School types (middle school, high school, elementary school, etc.)
         knownMerchants.put("middle school", "education");
         knownMerchants.put("middleschool", "education");
@@ -2169,7 +2578,7 @@ public class EnhancedCategoryDetectionService {
         knownMerchants.put("seniorschool", "education");
         knownMerchants.put("tyee middle school", "education");
         knownMerchants.put("tyeemiddleschool", "education");
-        
+
         // Educational media (newspapers, magazines, journals, books)
         knownMerchants.put("newspaper", "education");
         knownMerchants.put("magazine", "education");
@@ -2178,7 +2587,7 @@ public class EnhancedCategoryDetectionService {
         knownMerchants.put("research journal", "education");
         knownMerchants.put("scientific journal", "education");
         knownMerchants.put("library", "education");
-        
+
         // Advanced degrees
         knownMerchants.put("phd", "education");
         knownMerchants.put("ph.d", "education");
@@ -2186,7 +2595,7 @@ public class EnhancedCategoryDetectionService {
         knownMerchants.put("doctorate", "education");
         knownMerchants.put("graduate school", "education");
         knownMerchants.put("graduateschool", "education");
-        
+
         // ========== HEALTH/BEAUTY SERVICES ==========
         // Stop 4 Nails - nail salon (health)
         knownMerchants.put("stop 4 nails", "health");
@@ -2203,7 +2612,7 @@ public class EnhancedCategoryDetectionService {
         knownMerchants.put("cosmetics", "health");
         knownMerchants.put("makeup store", "health");
         knownMerchants.put("makeupstore", "health");
-        
+
         // ========== EDUCATION ==========
         // Education items (school, books, reading, etc.) - categorized as "education"
         // Regional school/college names
@@ -2238,7 +2647,7 @@ public class EnhancedCategoryDetectionService {
         knownMerchants.put("class", "education");
         knownMerchants.put("lesson", "education");
         knownMerchants.put("training", "education");
-        
+
         // Exam/testing services and keywords (AAMC, SAT, TOEFL, GRE, GMAT, LSAT, MCAT, etc.)
         knownMerchants.put("pearson vue", "education");
         knownMerchants.put("pearsonvue", "education");
@@ -2266,7 +2675,7 @@ public class EnhancedCategoryDetectionService {
         knownMerchants.put("test center", "education");
         knownMerchants.put("exam fee", "education");
         knownMerchants.put("exam registration", "education");
-        
+
         // ========== ANSI X9 FINANCIAL SERVICES STANDARDS ==========
         knownMerchants.put("ansi x9", "transfer");
         knownMerchants.put("ansix9", "transfer");
@@ -2275,7 +2684,7 @@ public class EnhancedCategoryDetectionService {
         knownMerchants.put("ansi x9.100-140", "transfer"); // Check Standards
         knownMerchants.put("ansi x9.37", "transfer"); // Check Image Exchange
         knownMerchants.put("ansi x9.100-187", "transfer"); // Check Image Exchange
-        
+
         // ========== INTER-BANK TRANSFER SYSTEMS ==========
         // TARGET2 (Trans-European Automated Real-time Gross Settlement Express Transfer)
         knownMerchants.put("target2", "transfer");
@@ -2325,11 +2734,11 @@ public class EnhancedCategoryDetectionService {
         // TIPS (TARGET Instant Payment Settlement - Europe)
         knownMerchants.put("tips", "transfer");
         knownMerchants.put("target instant payment settlement", "transfer");
-        
+
         // ========== SEMANTIC KEYWORDS FROM SemanticMatchingService (STATICALLY MERGED) ==========
         // All semantic cluster keywords are now statically included here for manual review
         // These were previously merged at runtime via addSemanticCategoriesToFuzzyDatabase()
-        
+
         // ========== SEMANTIC: GROCERIES KEYWORDS ==========
         // Note: Many grocery store names are already above, adding semantic cluster keywords
         knownMerchants.put("halal", "groceries");
@@ -2343,7 +2752,7 @@ public class EnhancedCategoryDetectionService {
         knownMerchants.put("grocery center", "groceries");
         knownMerchants.put("supermarket shopping", "groceries");
         knownMerchants.put("store", "groceries"); // Generic store (context-dependent)
-        
+
         // ========== SEMANTIC: DINING KEYWORDS ==========
         // Note: Many restaurant names are already above, adding semantic cluster keywords
         knownMerchants.put("restaur", "dining");
@@ -2486,7 +2895,7 @@ public class EnhancedCategoryDetectionService {
         knownMerchants.put("italian", "dining");
         knownMerchants.put("french", "dining");
         knownMerchants.put("spanish", "dining");
-        
+
         // ========== SEMANTIC: TRANSPORTATION KEYWORDS ==========
         // Note: Many gas stations and transportation services are already above
         knownMerchants.put("gasoline", "transportation");
@@ -2652,7 +3061,7 @@ public class EnhancedCategoryDetectionService {
         knownMerchants.put("rolls-roycecarservice", "transportation");
         knownMerchants.put("arco express", "transportation");
         knownMerchants.put("arco express gas", "transportation");
-        
+
         // ========== SEMANTIC: HEALTHCARE KEYWORDS ==========
         // Note: Many pharmacies and healthcare providers are already above
         knownMerchants.put("drugstore", "healthcare");
@@ -2689,7 +3098,7 @@ public class EnhancedCategoryDetectionService {
         knownMerchants.put("virginia mason", "healthcare");
         knownMerchants.put("seattle cancer care alliance", "healthcare");
         knownMerchants.put("seattle genetics", "healthcare");
-        
+
         // ========== SEMANTIC: UTILITIES KEYWORDS ==========
         // Note: Many utility providers are already above, adding semantic cluster keywords
         knownMerchants.put("utilities", "utilities");
@@ -2739,7 +3148,7 @@ public class EnhancedCategoryDetectionService {
         knownMerchants.put("public utility", "utilities");
         knownMerchants.put("utility provider", "utilities");
         knownMerchants.put("service provider", "utilities");
-        
+
         // ========== SEMANTIC: INSURANCE KEYWORDS ==========
         // Note: Many insurance providers are already above
         knownMerchants.put("car insurance", "insurance");
@@ -2756,7 +3165,7 @@ public class EnhancedCategoryDetectionService {
         knownMerchants.put("disability insurance", "insurance");
         knownMerchants.put("travel insurance", "insurance");
         knownMerchants.put("legal insurance", "insurance");
-        
+
         // ========== SEMANTIC: INCOME KEYWORDS ==========
         // Note: Many payroll providers are already above
         knownMerchants.put("wage", "income");
@@ -2765,7 +3174,7 @@ public class EnhancedCategoryDetectionService {
         knownMerchants.put("compensation", "income");
         knownMerchants.put("remuneration", "income");
         knownMerchants.put("stipend", "income");
-        
+
         // ========== SEMANTIC: DEPOSIT KEYWORDS ==========
         knownMerchants.put("deposits", "deposit");
         knownMerchants.put("deposited", "deposit");
@@ -2790,7 +3199,7 @@ public class EnhancedCategoryDetectionService {
         // BAI2 Deposit Codes (many already above, adding semantic keywords)
         // ISO 20022 Deposit Messages
         // ACH Deposit Codes
-        
+
         // ========== SEMANTIC: SHOPPING KEYWORDS ==========
         // Note: Many retail stores are already above
         knownMerchants.put("shop", "shopping");
@@ -2848,7 +3257,7 @@ public class EnhancedCategoryDetectionService {
         knownMerchants.put("sportsequipment", "shopping");
         knownMerchants.put("outdoor gear", "shopping");
         knownMerchants.put("outdoorgear", "shopping");
-        
+
         // ========== SEMANTIC: ENTERTAINMENT KEYWORDS ==========
         // Note: Many streaming services are already above
         knownMerchants.put("movie", "entertainment");
@@ -2867,7 +3276,7 @@ public class EnhancedCategoryDetectionService {
         knownMerchants.put("media", "entertainment");
         knownMerchants.put("video", "entertainment");
         knownMerchants.put("audio", "entertainment");
-        
+
         // ========== SEMANTIC: TECH KEYWORDS ==========
         // Note: Many tech subscriptions are already above
         knownMerchants.put("subscr", "tech");
@@ -2880,7 +3289,7 @@ public class EnhancedCategoryDetectionService {
         knownMerchants.put("yearly subscription", "tech");
         knownMerchants.put("premium", "tech");
         knownMerchants.put("premium membership", "tech");
-        
+
         // ========== SEMANTIC: EDUCATION KEYWORDS ==========
         // Note: Many education-related entries are already above
         knownMerchants.put("senior secondary", "education");
@@ -2928,7 +3337,7 @@ public class EnhancedCategoryDetectionService {
         knownMerchants.put("chicago tribune", "education");
         knownMerchants.put("boston globe", "education");
         knownMerchants.put("the boston globe", "education");
-        
+
         // ========== SEMANTIC: PAYMENT KEYWORDS ==========
         // Note: Many payment-related entries are already above
         knownMerchants.put("paying", "payment");
@@ -3097,7 +3506,7 @@ public class EnhancedCategoryDetectionService {
         // IRS Tax Payment Categories
         // IRS Business Expense Categories
         // GAAP Expense Categories
-        
+
         // ========== SEMANTIC: INVESTMENT KEYWORDS ==========
         // Note: Many investment firms are already above
         knownMerchants.put("invest", "investment");
@@ -3208,7 +3617,7 @@ public class EnhancedCategoryDetectionService {
         knownMerchants.put("share dividend", "investment");
         knownMerchants.put("employer contribution", "investment");
         knownMerchants.put("employer match", "investment");
-        
+
         // ========== SEMANTIC: TRANSFER KEYWORDS ==========
         // Note: Many transfer-related entries are already above
         knownMerchants.put("transfers", "transfer");
@@ -3229,7 +3638,7 @@ public class EnhancedCategoryDetectionService {
         knownMerchants.put("transfer fee", "transfer");
         knownMerchants.put("transfer service", "transfer");
         knownMerchants.put("transfer processing", "transfer");
-        
+
         // ========== SEMANTIC: CASH KEYWORDS ==========
         knownMerchants.put("cash withdrawal", "cash");
         knownMerchants.put("cash withdraw", "cash");
@@ -3249,7 +3658,7 @@ public class EnhancedCategoryDetectionService {
         knownMerchants.put("cash in", "cash");
         knownMerchants.put("withdrawal", "cash");
         knownMerchants.put("withdraw", "cash");
-        
+
         // ========== SEMANTIC: PET KEYWORDS ==========
         knownMerchants.put("pets", "pet");
         knownMerchants.put("pet supply", "pet");
@@ -3267,7 +3676,7 @@ public class EnhancedCategoryDetectionService {
         knownMerchants.put("mud bay", "pet");
         knownMerchants.put("fido", "pet");
         knownMerchants.put("sea king aquarium", "pet");
-        
+
         // ========== SEMANTIC: HEALTH KEYWORDS ==========
         knownMerchants.put("fitness", "health");
         knownMerchants.put("gym", "health");
@@ -3372,7 +3781,7 @@ public class EnhancedCategoryDetectionService {
         knownMerchants.put("sports facility", "health");
         knownMerchants.put("athletic facility", "health");
         knownMerchants.put("fitness facility", "health");
-        
+
         // ========== SEMANTIC: CHARITY KEYWORDS ==========
         knownMerchants.put("charitable", "charity");
         knownMerchants.put("donation", "charity");
@@ -3383,19 +3792,20 @@ public class EnhancedCategoryDetectionService {
         knownMerchants.put("non profit", "charity");
         knownMerchants.put("go fund me", "charity");
         knownMerchants.put("gofundme", "charity");
-        
+
         // ========== HARD-CODED MERCHANTS FROM CSVImportService ==========
-        // Subscription Merchants (from detectCategoryFromMerchantName and detectCategoryFromDescription)
-        
+        // Subscription Merchants (from detectCategoryFromMerchantName and
+        // detectCategoryFromDescription)
+
         // Travel Lounges (from detectCategoryFromDescription)
         knownMerchants.put("axpcenturion", "travel");
         knownMerchants.put("airport loung", "travel");
         knownMerchants.put("lounge", "travel");
-        
+
         // Airlines (from detectCategoryFromDescription)
-        
+
         // Hotels (from detectCategoryFromDescription)
-        
+
         // Ride-sharing Services (from detectCategoryFromDescription)
         knownMerchants.put("rideshare", "transportation");
         knownMerchants.put("didi", "transportation");
@@ -3418,7 +3828,7 @@ public class EnhancedCategoryDetectionService {
         knownMerchants.put("uberone membership", "travel");
         // Uber Eats (dining, not transportation)
         knownMerchants.put("uber eat", "dining");
-        
+
         // Gas Stations (from detectCategoryFromDescription)
         knownMerchants.put("esso", "transportation");
         knownMerchants.put("murphy usa", "transportation");
@@ -3436,7 +3846,7 @@ public class EnhancedCategoryDetectionService {
         knownMerchants.put("76 gas", "transportation");
         knownMerchants.put("union 76", "transportation");
         knownMerchants.put("union76", "transportation");
-        
+
         // Parking Services (from detectCategoryFromDescription)
         knownMerchants.put("pay by phone", "transportation");
         knownMerchants.put("paybyphone", "transportation");
@@ -3453,12 +3863,12 @@ public class EnhancedCategoryDetectionService {
         knownMerchants.put("garage", "transportation");
         knownMerchants.put("metropolis parking", "transportation");
         knownMerchants.put("metropolisparking", "transportation");
-        
+
         // Toll Patterns (from detectCategoryFromMerchantName and detectCategoryFromDescription)
         knownMerchants.put("eratoll", "transportation");
-        
+
         // Car Service (from detectCategoryFromDescription)
-        
+
         // LUL Ticket Machine (London Underground)
         knownMerchants.put("lul ticket machine", "transportation");
         knownMerchants.put("lulticketmachine", "transportation");
@@ -3466,9 +3876,9 @@ public class EnhancedCategoryDetectionService {
         knownMerchants.put("london underground", "transportation");
         knownMerchants.put("ticket machine", "transportation");
         knownMerchants.put("ticketmachine", "transportation");
-        
+
         // Amex Airlines Fee Reimbursement
-        
+
         // Sports and Fitness (from detectCategoryFromDescription)
         knownMerchants.put("badmintonclub", "health");
         knownMerchants.put("seattlebadmintonclub", "health");
@@ -3478,18 +3888,18 @@ public class EnhancedCategoryDetectionService {
         knownMerchants.put("sportsclub", "health");
         knownMerchants.put("fitnesscenter", "health");
         knownMerchants.put("orangetheory", "health");
-        
+
         // Gym Keywords (from detectCategoryFromDescription)
         knownMerchants.put("24hr fitness", "health");
         knownMerchants.put("24-hour fitness", "health");
-        
+
         // Beauty Keywords (from detectCategoryFromDescription)
         knownMerchants.put("lucky hair salin", "health");
         knownMerchants.put("luckyhairsalin", "health");
-        
+
         // Sports Activities (from detectCategoryFromDescription)
         // Mini Mountain is shopping (ski-gear/equipment)
-        
+
         // Utility Companies (from detectCategoryFromDescription)
         knownMerchants.put("pacific gas", "utilities");
         knownMerchants.put("san diego gas", "utilities");
@@ -3498,7 +3908,7 @@ public class EnhancedCategoryDetectionService {
         knownMerchants.put("dominionenergy", "utilities");
         knownMerchants.put("american electric", "utilities");
         knownMerchants.put("southerncompany", "utilities");
-        
+
         // POS System Patterns (from detectCategoryFromDescription)
         // TST* (Toast POS) - dining
         // SQ* (Square POS) - dining
@@ -3512,7 +3922,7 @@ public class EnhancedCategoryDetectionService {
         knownMerchants.put("toppot", "dining");
         knownMerchants.put("dunkin donuts", "dining");
         knownMerchants.put("dunkindonuts", "dining");
-        
+
         // Specific Restaurants (from detectCategoryFromDescription)
         knownMerchants.put("simply indian restaur", "dining");
         knownMerchants.put("simplyindian restaur", "dining");
@@ -3523,7 +3933,7 @@ public class EnhancedCategoryDetectionService {
         knownMerchants.put("laughingmonk brewing", "dining");
         knownMerchants.put("laughingmonk", "dining");
         knownMerchants.put("banaras restaurant", "dining");
-        
+
         // Pet Services (from detectCategoryFromDescription)
         knownMerchants.put("petcareclinic", "pet");
         knownMerchants.put("pet clinic", "pet");
@@ -3540,11 +3950,11 @@ public class EnhancedCategoryDetectionService {
         knownMerchants.put("veterinary clinic", "pet");
         knownMerchants.put("pet pharmacy", "pet");
         knownMerchants.put("petpharmacy", "pet");
-        
+
         // Education - School Types (from detectCategoryFromDescription)
-        
+
         // Education - Regional School Terms (from detectCategoryFromDescription)
-        
+
         // Education - Educational Media (from detectCategoryFromDescription)
         knownMerchants.put("scholarly journal", "education");
         knownMerchants.put("peer-reviewed journal", "education");
@@ -3552,21 +3962,21 @@ public class EnhancedCategoryDetectionService {
         knownMerchants.put("universitybookstore", "education");
         knownMerchants.put("university book", "education");
         knownMerchants.put("universitybook", "education");
-        
+
         // Education - Exam/Testing Keywords (from detectCategoryFromDescription)
         knownMerchants.put("act exam", "education");
         knownMerchants.put("act test", "education");
-        
+
         // Education - Financial Education Publications (from detectCategoryFromDescription)
         knownMerchants.put("dj*barrons", "education");
         knownMerchants.put("d j*barrons", "education");
-        
+
         // Education - SP ANKI REMOTE
         knownMerchants.put("sp anki remote", "education");
         knownMerchants.put("spankiremote", "education");
         knownMerchants.put("anki remote", "education");
         knownMerchants.put("anki", "education");
-        
+
         // Entertainment - Movie Theaters (from detectCategoryFromDescription)
         knownMerchants.put("harkins", "entertainment");
         knownMerchants.put("movie theater", "entertainment");
@@ -3584,12 +3994,12 @@ public class EnhancedCategoryDetectionService {
         knownMerchants.put("camping", "entertainment");
         knownMerchants.put("cape disappointment", "entertainment");
         knownMerchants.put("recreation.gov", "entertainment");
-        
+
         // Additional Streaming Services
         knownMerchants.put("apple tv plus", "entertainment");
         knownMerchants.put("apple tv+", "entertainment");
         knownMerchants.put("discovery plus", "entertainment");
-        
+
         // Tech - Cursor AI (from detectCategoryFromDescription)
         knownMerchants.put("ai powered", "tech");
         knownMerchants.put("ide", "tech");
@@ -3598,7 +4008,7 @@ public class EnhancedCategoryDetectionService {
         knownMerchants.put("api", "tech");
         knownMerchants.put("developer", "tech");
         knownMerchants.put("integrated development", "tech");
-        
+
         // ========== POPULAR MISSING MERCHANTS ==========
         // Tech
         knownMerchants.put("linear", "tech");
@@ -3623,63 +4033,83 @@ public class EnhancedCategoryDetectionService {
         knownMerchants.put("imperfect foods", "groceries");
         knownMerchants.put("freshdirect", "groceries");
         knownMerchants.put("fresh direct", "groceries");
-        logger.info("Initialized comprehensive known merchants database with {} merchants across all categories including payroll providers, MCC codes, ISO 20022, ACH SEC codes, SWIFT, FINCEN, IRS, GAAP, SIC/NAICS, inter-bank transfer systems, all semantic keywords from SemanticMatchingService, and all hard-coded merchants from CSVImportService (statically merged)", 
-            knownMerchants.size());
+        LOGGER.info(
+                "Initialized comprehensive known merchants database with {} merchants across all categories including payroll providers, MCC codes, ISO 20022, ACH SEC codes, SWIFT, FINCEN, IRS, GAAP, SIC/NAICS, inter-bank transfer systems, all semantic keywords from SemanticMatchingService, and all hard-coded merchants from CSVImportService (statically merged)",
+                knownMerchants.size());
     }
-    
+
     /**
-     * Add known merchant (for dynamic learning)
-     * Thread-safe: Uses synchronized block
+     * Add known merchant (for dynamic learning) CRITICAL: Thread-safe, updates both local cache and
+     * shared service Race condition prevention: Updates shared service first, then local cache
      */
-    public void addKnownMerchant(String merchantName, String category) {
-        if (merchantName == null || merchantName.trim().isEmpty()) {
-            logger.warn("Cannot add known merchant: merchant name is null or empty");
+    public void addKnownMerchant(final String merchantName, final String category) {
+        // CRITICAL: Null and empty input validation
+        if (merchantName == null || merchantName.isBlank()) {
+            LOGGER.warn("Cannot add known merchant: merchant name is null or empty");
             return;
         }
-        if (category == null || category.trim().isEmpty()) {
-            logger.warn("Cannot add known merchant: category is null or empty");
+        if (category == null || category.isBlank()) {
+            LOGGER.warn("Cannot add known merchant: category is null or empty");
             return;
         }
-        
-        synchronized (knownMerchants) {
-            knownMerchants.put(merchantName.toLowerCase().trim(), category);
-            logger.debug("Added known merchant: '{}' -> '{}'", merchantName, category);
+
+        try {
+            // CRITICAL: Update shared service first (single source of truth)
+            if (merchantCategoryDataService != null) {
+                merchantCategoryDataService.addMerchantCategory(merchantName, category);
+            } else {
+                LOGGER.warn("MerchantCategoryDataService is null. Cannot update shared service.");
+            }
+
+            // CRITICAL: Update local cache (thread-safe)
+            synchronized (knownMerchants) {
+                knownMerchants.put(merchantName.toLowerCase(Locale.ROOT).trim(), category);
+                LOGGER.debug(
+                        "Added known merchant to local cache: '{}' -> '{}'",
+                        merchantName,
+                        category);
+            }
+        } catch (Exception e) {
+            LOGGER.error(
+                    "Error adding known merchant '{}' -> '{}': {}",
+                    merchantName,
+                    category,
+                    e.getMessage(),
+                    e);
         }
     }
-    
-    /**
-     * Detection result
-     */
+
+    /** Detection result */
     public static class DetectionResult {
         public final String category;
         public final double confidence;
         public final String method;
         public final String reason;
-        
-        public DetectionResult(String category, double confidence, String method, String reason) {
+
+        public DetectionResult(final String category, final double confidence, final String method, final String reason) {
             this.category = category;
             this.confidence = confidence;
             this.method = method;
             this.reason = reason;
         }
-        
+
         public boolean isHighConfidence() {
             return confidence >= 0.7;
         }
-        
+
         public boolean isMediumConfidence() {
             return confidence >= 0.5 && confidence < 0.7;
         }
-        
+
         public boolean isLowConfidence() {
             return confidence >= 0.3 && confidence < 0.5;
         }
-        
+
         @Override
         public String toString() {
-            return String.format("DetectionResult{category='%s', confidence=%.2f, method='%s', reason='%s'}",
+            return String.format(
+                    "DetectionResult{category='%s', confidence=%.2f, method='%s', reason='%s'}",
                     category, confidence, method, reason);
         }
     }
 }
-

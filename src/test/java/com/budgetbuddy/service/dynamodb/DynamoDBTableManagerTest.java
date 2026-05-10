@@ -1,5 +1,12 @@
 package com.budgetbuddy.service.dynamodb;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -7,24 +14,17 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
-import software.amazon.awssdk.services.dynamodb.model.*;
+import software.amazon.awssdk.services.dynamodb.model.CreateTableRequest;
+import software.amazon.awssdk.services.dynamodb.model.CreateTableResponse;
+import software.amazon.awssdk.services.dynamodb.model.ResourceInUseException;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
-
-/**
- * Unit Tests for DynamoDBTableManager
- * Tests DynamoDB table creation and initialization
- */
+/** Unit Tests for DynamoDBTableManager Tests DynamoDB table creation and initialization */
 @ExtendWith(MockitoExtension.class)
 class DynamoDBTableManagerTest {
 
-    @Mock
-    private DynamoDbClient dynamoDbClient;
+    @Mock private DynamoDbClient dynamoDbClient;
 
-    @InjectMocks
-    private DynamoDBTableManager dynamoDBTableManager;
+    @InjectMocks private DynamoDBTableManager dynamoDBTableManager;
 
     @BeforeEach
     void setUp() {
@@ -32,21 +32,22 @@ class DynamoDBTableManagerTest {
     }
 
     @Test
-    void testInitializeTables_WithTableAlreadyExists_HandlesGracefully() {
+    void testInitializeTablesWithTableAlreadyExistsHandlesGracefully() {
         // Given
         when(dynamoDbClient.createTable(any(CreateTableRequest.class)))
                 .thenThrow(ResourceInUseException.builder().build());
 
         // When/Then - Should not throw exception
-        assertDoesNotThrow(() -> {
-            dynamoDBTableManager.initializeTables();
-        });
+        assertDoesNotThrow(
+                () -> {
+                    dynamoDBTableManager.initializeTables();
+                });
     }
 
     @Test
-    void testInitializeTables_WithTableCreationSuccess_CreatesTables() {
+    void testInitializeTablesWithTableCreationSuccessCreatesTables() {
         // Given
-        CreateTableResponse response = CreateTableResponse.builder().build();
+        final CreateTableResponse response = CreateTableResponse.builder().build();
         when(dynamoDbClient.createTable(any(CreateTableRequest.class))).thenReturn(response);
 
         // When
@@ -57,15 +58,15 @@ class DynamoDBTableManagerTest {
     }
 
     @Test
-    void testInitializeTables_WithException_HandlesGracefully() {
+    void testInitializeTablesWithExceptionHandlesGracefully() {
         // Given
         when(dynamoDbClient.createTable(any(CreateTableRequest.class)))
                 .thenThrow(new RuntimeException("DynamoDB error"));
 
         // When/Then - Should not throw exception
-        assertDoesNotThrow(() -> {
-            dynamoDBTableManager.initializeTables();
-        });
+        assertDoesNotThrow(
+                () -> {
+                    dynamoDBTableManager.initializeTables();
+                });
     }
 }
-

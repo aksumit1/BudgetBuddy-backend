@@ -1,5 +1,12 @@
 package com.budgetbuddy.integration;
 
+
+import java.nio.charset.StandardCharsets;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
 import com.budgetbuddy.AWSTestConfiguration;
 import com.budgetbuddy.dto.AuthRequest;
 import com.budgetbuddy.dto.AuthResponse;
@@ -7,6 +14,7 @@ import com.budgetbuddy.model.dynamodb.UserTable;
 import com.budgetbuddy.security.PasswordHashingService;
 import com.budgetbuddy.service.AuthService;
 import com.budgetbuddy.service.UserService;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,28 +22,22 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 
-import java.util.UUID;
-
-import static org.junit.jupiter.api.Assertions.*;
-
-/**
- * Integration Tests for Authentication
- * Tests end-to-end authentication flow
- * 
- */
+/** Integration Tests for Authentication Tests end-to-end authentication flow */
+// PMD's LawOfDemeter is documented as imprecise on chains involving
+// standard library types (BigDecimal, String, Optional) and DTO
+// getters; this class has many such idiomatic uses. Suppress at
+// class level rather than littering every method.
+@SuppressWarnings("PMD.LawOfDemeter")
 @SpringBootTest(classes = com.budgetbuddy.BudgetBuddyApplication.class)
 @ActiveProfiles("test")
 @Import(AWSTestConfiguration.class)
 class AuthIntegrationTest {
 
-    @Autowired
-    private AuthService authService;
+    @Autowired private AuthService authService;
 
-    @Autowired
-    private UserService userService;
+    @Autowired private UserService userService;
 
-    @Autowired
-    private PasswordHashingService passwordHashingService;
+    @Autowired private PasswordHashingService passwordHashingService;
 
     private String testEmail;
     private String testPasswordHash;
@@ -45,33 +47,28 @@ class AuthIntegrationTest {
     void setUp() {
         testEmail = "test-" + UUID.randomUUID() + "@example.com";
         // Use proper base64-encoded salt
-        testClientSalt = java.util.Base64.getEncoder().encodeToString("client-salt".getBytes());
+        testClientSalt = java.util.Base64.getEncoder().encodeToString("client-salt".getBytes(StandardCharsets.UTF_8));
 
         // Create client-side hashed password
-        PasswordHashingService.PasswordHashResult clientHash =
+        final PasswordHashingService.PasswordHashResult clientHash =
                 passwordHashingService.hashClientPassword("testPassword123", null);
         testPasswordHash = clientHash.getHash();
     }
 
     @Test
-    void testRegisterAndAuthenticate_EndToEnd() {
+    void testRegisterAndAuthenticateEndToEnd() {
         // Given - Register user
         // BREAKING CHANGE: Client salt removed
-        UserTable user = userService.createUserSecure(
-                testEmail,
-                testPasswordHash,
-                "Test",
-                "User"
-        );
+        final UserTable user = userService.createUserSecure(testEmail, testPasswordHash, "Test", "User");
         assertNotNull(user);
         assertNotNull(user.getUserId());
 
         // When - Authenticate
-        AuthRequest authRequest = new AuthRequest();
+        final AuthRequest authRequest = new AuthRequest();
         authRequest.setEmail(testEmail);
         authRequest.setPasswordHash(testPasswordHash);
 
-        AuthResponse response = authService.authenticate(authRequest);
+        final AuthResponse response = authService.authenticate(authRequest);
 
         // Then
         assertNotNull(response);
@@ -82,9 +79,9 @@ class AuthIntegrationTest {
     }
 
     @Test
-    void testAuthenticate_WithInvalidCredentials_ThrowsException() {
+    void testAuthenticateWithInvalidCredentialsThrowsException() {
         // Given
-        AuthRequest authRequest = new AuthRequest();
+        final AuthRequest authRequest = new AuthRequest();
         authRequest.setEmail("nonexistent@example.com");
         authRequest.setPasswordHash("invalid-hash");
 
@@ -93,40 +90,35 @@ class AuthIntegrationTest {
     }
 
     @Test
-    void testRefreshToken_WithValidToken_ReturnsNewTokens() {
+    void testRefreshTokenWithValidTokenReturnsNewTokens() {
         // Given - Register and authenticate
         // BREAKING CHANGE: Client salt removed
-        userService.createUserSecure(
-                testEmail,
-                testPasswordHash,
-                "Test",
-                "User"
-        );
+        userService.createUserSecure(testEmail, testPasswordHash, "Test", "User");
 
-        AuthRequest authRequest = new AuthRequest();
+        final AuthRequest authRequest = new AuthRequest();
         authRequest.setEmail(testEmail);
         authRequest.setPasswordHash(testPasswordHash);
 
-        AuthResponse authResponse = authService.authenticate(authRequest);
-        String refreshToken = authResponse.getRefreshToken();
+        final AuthResponse authResponse = authService.authenticate(authRequest);
+        final String refreshToken = authResponse.getRefreshToken();
 
         // When
-        AuthResponse refreshResponse = authService.refreshToken(refreshToken);
+        final AuthResponse refreshResponse = authService.refreshToken(refreshToken);
 
         // Then
         assertNotNull(refreshResponse);
         assertNotNull(refreshResponse.getAccessToken());
         assertNotNull(refreshResponse.getRefreshToken());
-        // Note: Access token may be the same if generated within the same second (JWT includes timestamp)
+        // Note: Access token may be the same if generated within the same second (JWT includes
+        // timestamp)
         // The important thing is that refresh succeeds and returns valid tokens
         assertFalse(refreshResponse.getAccessToken().isEmpty());
         assertFalse(refreshResponse.getRefreshToken().isEmpty());
     }
 
     @Test
-    void testRefreshToken_WithInvalidToken_ThrowsException() {
+    void testRefreshTokenWithInvalidTokenThrowsException() {
         // When/Then
         assertThrows(Exception.class, () -> authService.refreshToken("invalid-token"));
     }
 }
-

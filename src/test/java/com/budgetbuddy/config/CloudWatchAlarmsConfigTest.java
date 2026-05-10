@@ -1,14 +1,18 @@
 package com.budgetbuddy.config;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import static org.junit.jupiter.api.Assertions.*;
-
-/**
- * Unit Tests for CloudWatchAlarmsConfig
- */
+/** Unit Tests for CloudWatchAlarmsConfig */
+// PMD's LawOfDemeter is documented as imprecise on chains involving
+// standard library types (BigDecimal, String, Optional) and DTO
+// getters; this class has many such idiomatic uses. Suppress at
+// class level rather than littering every method.
+@SuppressWarnings("PMD.LawOfDemeter")
 class CloudWatchAlarmsConfigTest {
 
     private CloudWatchAlarmsConfig config;
@@ -25,7 +29,7 @@ class CloudWatchAlarmsConfigTest {
         ReflectionTestUtils.setField(config, "errorRateEvaluationPeriods", 2);
 
         // When
-        CloudWatchAlarmsConfig.AlarmConfig alarmConfig = config.getErrorRateAlarmConfig();
+        final CloudWatchAlarmsConfig.AlarmConfig alarmConfig = config.getErrorRateAlarmConfig();
 
         // Then
         assertNotNull(alarmConfig);
@@ -42,7 +46,7 @@ class CloudWatchAlarmsConfigTest {
         ReflectionTestUtils.setField(config, "latencyEvaluationPeriods", 3);
 
         // When
-        CloudWatchAlarmsConfig.AlarmConfig alarmConfig = config.getLatencyP95AlarmConfig();
+        final CloudWatchAlarmsConfig.AlarmConfig alarmConfig = config.getLatencyP95AlarmConfig();
 
         // Then
         assertNotNull(alarmConfig);
@@ -59,7 +63,7 @@ class CloudWatchAlarmsConfigTest {
         ReflectionTestUtils.setField(config, "latencyEvaluationPeriods", 3);
 
         // When
-        CloudWatchAlarmsConfig.AlarmConfig alarmConfig = config.getLatencyP99AlarmConfig();
+        final CloudWatchAlarmsConfig.AlarmConfig alarmConfig = config.getLatencyP99AlarmConfig();
 
         // Then
         assertNotNull(alarmConfig);
@@ -76,7 +80,8 @@ class CloudWatchAlarmsConfigTest {
         ReflectionTestUtils.setField(config, "resourceEvaluationPeriods", 2);
 
         // When
-        CloudWatchAlarmsConfig.AlarmConfig alarmConfig = config.getDatabaseConnectionPoolAlarmConfig();
+        final CloudWatchAlarmsConfig.AlarmConfig alarmConfig =
+                config.getDatabaseConnectionPoolAlarmConfig();
 
         // Then
         assertNotNull(alarmConfig);
@@ -93,7 +98,7 @@ class CloudWatchAlarmsConfigTest {
         ReflectionTestUtils.setField(config, "resourceEvaluationPeriods", 2);
 
         // When
-        CloudWatchAlarmsConfig.AlarmConfig alarmConfig = config.getMemoryAlarmConfig();
+        final CloudWatchAlarmsConfig.AlarmConfig alarmConfig = config.getMemoryAlarmConfig();
 
         // Then
         assertNotNull(alarmConfig);
@@ -110,7 +115,7 @@ class CloudWatchAlarmsConfigTest {
         ReflectionTestUtils.setField(config, "resourceEvaluationPeriods", 2);
 
         // When
-        CloudWatchAlarmsConfig.AlarmConfig alarmConfig = config.getCpuAlarmConfig();
+        final CloudWatchAlarmsConfig.AlarmConfig alarmConfig = config.getCpuAlarmConfig();
 
         // Then
         assertNotNull(alarmConfig);
@@ -123,12 +128,8 @@ class CloudWatchAlarmsConfigTest {
     @Test
     void testAlarmConfigConstructor() {
         // When
-        CloudWatchAlarmsConfig.AlarmConfig alarmConfig = new CloudWatchAlarmsConfig.AlarmConfig(
-                "TestAlarm",
-                50,
-                3,
-                "GreaterThanThreshold"
-        );
+        final CloudWatchAlarmsConfig.AlarmConfig alarmConfig =
+                new CloudWatchAlarmsConfig.AlarmConfig("TestAlarm", 50, 3, "GreaterThanThreshold");
 
         // Then
         assertEquals("TestAlarm", alarmConfig.getName());

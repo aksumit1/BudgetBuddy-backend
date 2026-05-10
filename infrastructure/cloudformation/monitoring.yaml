@@ -261,6 +261,128 @@ Resources:
       AlarmActions:
         - !If [UseSnsTopic, !Ref SnsTopicArn, !Ref AlarmSnsTopic]
 
+  # Application error-rate alarm — counts ERROR-level log lines from the ECS
+  # log group, which covers both controller errors and scheduled-job failures
+  # (BenchmarkAggregationService, DailyReadEmailService, PlaidSyncService etc.
+  # all log via SLF4J, which writes to stdout → ECS logs).
+  AppErrorLogMetricFilter:
+    Type: AWS::Logs::MetricFilter
+    Properties:
+      LogGroupName: !Ref ECSLogGroup
+      FilterPattern: '?ERROR ?"severity=ERROR"'
+      MetricTransformations:
+        - MetricNamespace: !Sub 'BudgetBuddy/${Environment}'
+          MetricName: AppErrorCount
+          MetricValue: '1'
+          DefaultValue: 0
+
+  AppErrorRateAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub 'budgetbuddy-${Environment}-app-error-rate'
+      AlarmDescription: >-
+        Alert when application error log rate exceeds baseline. Covers
+        controller 5xx paths AND scheduled-job failures (cron jobs publish
+        errors to the same log group).
+      MetricName: AppErrorCount
+      Namespace: !Sub 'BudgetBuddy/${Environment}'
+      Statistic: Sum
+      Period: 300   # 5-min windows
+      EvaluationPeriods: 2
+      Threshold: 20 # > 20 errors in 10 min = paging-worthy
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !If [UseSnsTopic, !Ref SnsTopicArn, !Ref AlarmSnsTopic]
+
+  # Scheduled-job heartbeat — BenchmarkAggregationService logs a heartbeat line
+  # daily. If the count is zero for > 36h we've missed a run. Applies the same
+  # pattern to any cron by adjusting FilterPattern per-service.
+  BenchmarkAggregationMissedRunAlarm:
+    Type: AWS::Logs::MetricFilter
+    Properties:
+      LogGroupName: !Ref ECSLogGroup
+      FilterPattern: '"Benchmark aggregation starting"'
+      MetricTransformations:
+        - MetricNamespace: !Sub 'BudgetBuddy/${Environment}'
+          MetricName: BenchmarkAggregationRuns
+          MetricValue: '1'
+          DefaultValue: 0
+
+  BenchmarkAggregationStalledAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub 'budgetbuddy-${Environment}-benchmark-cron-stalled'
+      AlarmDescription: Benchmark aggregation hasn't logged a run in >36 h.
+      MetricName: BenchmarkAggregationRuns
+      Namespace: !Sub 'BudgetBuddy/${Environment}'
+      Statistic: Sum
+      Period: 3600  # 1 h windows
+      EvaluationPeriods: 36
+      DatapointsToAlarm: 36
+      Threshold: 1
+      ComparisonOperator: LessThanThreshold
+      TreatMissingData: breaching
+      AlarmActions:
+        - !If [UseSnsTopic, !Ref SnsTopicArn, !Ref AlarmSnsTopic]
+
+  # Plaid sync health — PlaidSyncOrchestrator emits plaid.sync.success and
+  # plaid.sync.failure metrics on every per-user sync. A silent Plaid
+  # outage previously only surfaced via customer complaints; these alarms
+  # turn both degraded and dead failure modes into paging signals.
+  PlaidSyncFailureRateAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub 'budgetbuddy-${Environment}-plaid-sync-failure-rate'
+      AlarmDescription: 'More than 10 Plaid sync failures in 15 min — likely Plaid API outage or auth regression.'
+      MetricName: plaid.sync.failure
+      Namespace: !Sub 'BudgetBuddy/${Environment}'
+      Statistic: Sum
+      Period: 900  # 15 min
+      EvaluationPeriods: 1
+      Threshold: 10
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !If [UseSnsTopic, !Ref SnsTopicArn, !Ref AlarmSnsTopic]
+
+  PlaidSyncSilentAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub 'budgetbuddy-${Environment}-plaid-sync-silent'
+      AlarmDescription: 'Zero Plaid syncs (success OR failure) for 12h — orchestrator is wedged, not just Plaid.'
+      MetricName: plaid.sync.success
+      Namespace: !Sub 'BudgetBuddy/${Environment}'
+      Statistic: Sum
+      Period: 3600  # 1h windows
+      EvaluationPeriods: 12
+      DatapointsToAlarm: 12
+      Threshold: 1
+      ComparisonOperator: LessThanThreshold
+      TreatMissingData: breaching
+      AlarmActions:
+        - !If [UseSnsTopic, !Ref SnsTopicArn, !Ref AlarmSnsTopic]
+
+  # Balance-drift surveillance — BalanceReconciliationService emits
+  # balance.drift.abs per account after each sync. Sustained drift above
+  # $50 suggests a categorization bug or a missing transaction class.
+  BalanceDriftHighAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: !Sub 'budgetbuddy-${Environment}-balance-drift-high'
+      AlarmDescription: 'Average Plaid-vs-derived balance drift exceeds $50 — investigate ingest or categorization.'
+      MetricName: balance.drift.abs
+      Namespace: !Sub 'BudgetBuddy/${Environment}'
+      Statistic: Average
+      Period: 900
+      EvaluationPeriods: 4
+      DatapointsToAlarm: 3
+      Threshold: 50
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !If [UseSnsTopic, !Ref SnsTopicArn, !Ref AlarmSnsTopic]
+
 Conditions:
   CreateSnsTopic: !Equals [!Ref SnsTopicArn, '']
   UseSnsTopic: !Not [!Equals [!Ref SnsTopicArn, '']]

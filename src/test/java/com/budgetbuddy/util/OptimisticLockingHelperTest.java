@@ -1,44 +1,46 @@
 package com.budgetbuddy.util;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.time.Instant;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 import software.amazon.awssdk.services.dynamodb.model.ConditionalCheckFailedException;
 
-import java.time.Instant;
-import java.util.Map;
-
-import static org.junit.jupiter.api.Assertions.*;
-
-/**
- * Unit Tests for OptimisticLockingHelper
- */
+/** Unit Tests for OptimisticLockingHelper */
 class OptimisticLockingHelperTest {
 
     @Test
-    void testBuildOptimisticLockCondition_WithNullTimestamp_ReturnsAttributeNotExists() {
+    void testBuildOptimisticLockConditionWithNullTimestampReturnsAttributeNotExists() {
         // When
-        String condition = OptimisticLockingHelper.buildOptimisticLockCondition(null);
+        final String condition = OptimisticLockingHelper.buildOptimisticLockCondition(null);
 
         // Then
         assertEquals("attribute_not_exists(updatedAt)", condition);
     }
 
     @Test
-    void testBuildOptimisticLockCondition_WithTimestamp_ReturnsEqualityCheck() {
+    void testBuildOptimisticLockConditionWithTimestampReturnsEqualityCheck() {
         // Given
-        Instant timestamp = Instant.now();
+        final Instant timestamp = Instant.now();
 
         // When
-        String condition = OptimisticLockingHelper.buildOptimisticLockCondition(timestamp);
+        final String condition = OptimisticLockingHelper.buildOptimisticLockCondition(timestamp);
 
         // Then
         assertEquals("updatedAt = :expectedUpdatedAt", condition);
     }
 
     @Test
-    void testBuildOptimisticLockAttributeValues_WithNullTimestamp_ReturnsEmptyMap() {
+    void testBuildOptimisticLockAttributeValuesWithNullTimestampReturnsEmptyMap() {
         // When
-        Map<String, AttributeValue> values = OptimisticLockingHelper.buildOptimisticLockAttributeValues(null);
+        final Map<String, AttributeValue> values =
+                OptimisticLockingHelper.buildOptimisticLockAttributeValues(null);
 
         // Then
         assertNotNull(values);
@@ -46,12 +48,13 @@ class OptimisticLockingHelperTest {
     }
 
     @Test
-    void testBuildOptimisticLockAttributeValues_WithTimestamp_ReturnsMapWithValue() {
+    void testBuildOptimisticLockAttributeValuesWithTimestampReturnsMapWithValue() {
         // Given
-        Instant timestamp = Instant.now();
+        final Instant timestamp = Instant.now();
 
         // When
-        Map<String, AttributeValue> values = OptimisticLockingHelper.buildOptimisticLockAttributeValues(timestamp);
+        final Map<String, AttributeValue> values =
+                OptimisticLockingHelper.buildOptimisticLockAttributeValues(timestamp);
 
         // Then
         assertNotNull(values);
@@ -60,37 +63,43 @@ class OptimisticLockingHelperTest {
     }
 
     @Test
-    void testHandleOptimisticLockFailure_ThrowsAppException() {
+    void testHandleOptimisticLockFailureThrowsAppException() {
         // Given
-        ConditionalCheckFailedException exception = ConditionalCheckFailedException.builder()
-                .message("Conditional check failed")
-                .build();
+        final ConditionalCheckFailedException exception =
+                ConditionalCheckFailedException.builder()
+                        .message("Conditional check failed")
+                        .build();
 
         // When/Then
-        com.budgetbuddy.exception.AppException appException = assertThrows(
-                com.budgetbuddy.exception.AppException.class,
-                () -> OptimisticLockingHelper.handleOptimisticLockFailure(exception, "update", "record-123"));
+        final com.budgetbuddy.exception.AppException appException =
+                assertThrows(
+                        com.budgetbuddy.exception.AppException.class,
+                        () ->
+                                OptimisticLockingHelper.handleOptimisticLockFailure(
+                                        exception, "update", "record-123"));
 
-        assertEquals(com.budgetbuddy.exception.ErrorCode.RECORD_ALREADY_EXISTS, appException.getErrorCode());
+        assertEquals(
+                com.budgetbuddy.exception.ErrorCode.RECORD_ALREADY_EXISTS,
+                appException.getErrorCode());
         assertTrue(appException.getMessage().contains("modified by another operation"));
     }
 
     @Test
-    void testShouldUseOptimisticLock_WithNullTimestamp_ReturnsFalse() {
+    void testShouldUseOptimisticLockWithNullTimestampReturnsFalse() {
         // When
-        boolean shouldUse = OptimisticLockingHelper.shouldUseOptimisticLock(null);
+        final boolean shouldUse = OptimisticLockingHelper.shouldUseOptimisticLock(null);
 
         // Then
         assertFalse(shouldUse);
     }
 
     @Test
-    void testShouldUseOptimisticLock_WithTimestamp_ReturnsTrue() {
+    void testShouldUseOptimisticLockWithTimestampReturnsTrue() {
         // Given
-        Instant timestamp = Instant.now();
+        final Instant timestamp = Instant.now();
 
         // When
-        boolean shouldUse = OptimisticLockingHelper.shouldUseOptimisticLock(timestamp);
+        final boolean shouldUse = OptimisticLockingHelper.shouldUseOptimisticLock(timestamp);
 
         // Then
         assertTrue(shouldUse);

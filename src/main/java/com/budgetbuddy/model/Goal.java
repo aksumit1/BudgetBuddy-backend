@@ -1,22 +1,20 @@
 package com.budgetbuddy.model;
 
 import jakarta.validation.constraints.NotNull;
-
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 /**
- * Goal entity representing a financial goal
- * Note: This is a domain model. For DynamoDB persistence, use GoalTable.
+ * Goal entity representing a financial goal Note: This is a domain model. For DynamoDB persistence,
+ * use GoalTable.
  */
 public class Goal implements java.io.Serializable {
     private static final long serialVersionUID = 1L;
 
     private Long id;
 
-    @NotNull
-    private User user;
+    @NotNull private User user;
 
     private String name;
 
@@ -41,10 +39,13 @@ public class Goal implements java.io.Serializable {
     private LocalDateTime updatedAt;
 
     // Constructors
-    public Goal() {
-    }
+    public Goal() {}
 
-    public Goal(final User user, final String name, final BigDecimal targetAmount, final LocalDate targetDate) {
+    public Goal(
+            final User user,
+            final String name,
+            final BigDecimal targetAmount,
+            final LocalDate targetDate) {
         this.user = user;
         this.name = name;
         this.targetAmount = targetAmount;
@@ -167,4 +168,3 @@ public class Goal implements java.io.Serializable {
         CUSTOM
     }
 }
-

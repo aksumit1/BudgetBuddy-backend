@@ -18,6 +18,14 @@ Parameters:
     Default: us-east-1a,us-east-1b,us-east-1c
     Description: Availability zones for multi-AZ deployment
 
+  DomainName:
+    Type: String
+    Default: budgetbuddy.com
+    Description: Domain name for the application
+
+Conditions:
+  IsProduction: !Equals [!Ref Environment, production]
+
 Resources:
   # VPC and Networking
   VPC:
@@ -210,11 +218,27 @@ Resources:
         - !Ref PrivateRouteTable2
       PolicyDocument:
         Statement:
-          - Effect: Allow
+          # Defense-in-depth: VPC endpoint policy also narrowed to BudgetBuddy
+          # tables. The IAM task role is still the primary gate, but this
+          # prevents a compromised workload inside the VPC from using this
+          # endpoint to reach arbitrary DynamoDB tables in the account.
+          - Sid: BudgetBuddyTables
+            Effect: Allow
             Principal: '*'
             Action:
-              - dynamodb:*
-            Resource: '*'
+              - dynamodb:GetItem
+              - dynamodb:BatchGetItem
+              - dynamodb:PutItem
+              - dynamodb:UpdateItem
+              - dynamodb:DeleteItem
+              - dynamodb:BatchWriteItem
+              - dynamodb:Query
+              - dynamodb:Scan
+              - dynamodb:ConditionCheckItem
+              - dynamodb:DescribeTable
+            Resource:
+              - !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/BudgetBuddy-*'
+              - !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/BudgetBuddy-*/index/*'
 
   S3Endpoint:
     Type: AWS::EC2::VPCEndpoint
@@ -492,11 +516,6 @@ Resources:
         - Key: Name
           Value: !Sub '${AWS::StackName}-ssl-cert'
 
-  DomainName:
-    Type: String
-    Default: budgetbuddy.com
-    Description: Domain name for the application
-
   # ECS Cluster
   ECSCluster:
     Type: AWS::ECS::Cluster
@@ -614,12 +633,36 @@ Resources:
           PolicyDocument:
             Version: '2012-10-17'
             Statement:
-              - Effect: Allow
+              # Narrowed from a single wildcard `dynamodb:*` to the specific
+              # actions the application needs. Cluster actions (CreateTable,
+              # DeleteTable, UpdateTable) are intentionally omitted — those
+              # run via CloudFormation. Scans are allowed only on the tables
+              # that the aggregation jobs need to scan.
+              - Sid: ItemLevelReadWrite
+                Effect: Allow
                 Action:
-                  - dynamodb:*
+                  - dynamodb:GetItem
+                  - dynamodb:BatchGetItem
+                  - dynamodb:PutItem
+                  - dynamodb:UpdateItem
+                  - dynamodb:DeleteItem
+                  - dynamodb:BatchWriteItem
+                  - dynamodb:Query
+                  - dynamodb:ConditionCheckItem
+                  - dynamodb:DescribeTable
                 Resource:
                   - !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/BudgetBuddy-*'
                   - !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/BudgetBuddy-*/index/*'
+              - Sid: ScanAllowedTables
+                Effect: Allow
+                Action:
+                  - dynamodb:Scan
+                Resource:
+                  - !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/BudgetBuddy-UserPreferences'
+                  - !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/BudgetBuddy-Users'
+                  - !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/BudgetBuddy-Accounts'
+                  - !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/BudgetBuddy-Transactions'
+                  - !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/BudgetBuddy-Budgets'
         - PolicyName: S3Access
           PolicyDocument:
             Version: '2012-10-17'
@@ -654,15 +697,20 @@ Resources:
           PolicyDocument:
             Version: '2012-10-17'
             Statement:
+              # Scoped to the application CMK only. `kms:ViaService` further
+              # constrains which AWS service is allowed to present this key on
+              # the task's behalf — the task never calls KMS directly.
               - Effect: Allow
                 Action:
                   - kms:Decrypt
                   - kms:Encrypt
                   - kms:GenerateDataKey
-                Resource: '*'
+                  - kms:DescribeKey
+                Resource: !GetAtt AppDataKey.Arn
                 Condition:
                   StringEquals:
                     kms:ViaService:
+                      - !Sub 'dynamodb.${AWS::Region}.amazonaws.com'
                       - !Sub 'secretsmanager.${AWS::Region}.amazonaws.com'
                       - !Sub 's3.${AWS::Region}.amazonaws.com'
 
@@ -682,24 +730,12 @@ Resources:
         - Key: CostCenter
           Value: engineering
 
-  # Auto Scaling (Disabled for free tier - can be enabled later)
-  # ECSServiceAutoScalingTarget:
-  #   Type: AWS::ApplicationAutoScaling::ScalableTarget
-  #   Properties:
-  #     MaxCapacity: !If [IsProduction, 20, 5]
-  #     MinCapacity: !If [IsProduction, 2, 1]
-      ResourceId: !Sub 'service/${ECSCluster}/${ECSService}'
-      RoleARN: !GetAtt AutoScalingRole.Arn
-      ScalableDimension: ecs:service:DesiredCount
-      ServiceNamespace: ecs
-      Tags:
-        - Key: Environment
-          Value: !Ref Environment
-        - Key: Service
-          Value: budgetbuddy-backend
-        - Key: CostCenter
-          Value: engineering
-
+  # Auto-scaling for the ECS service is declared in the same stack that
+  # creates the task definition + service (deployed by the CD pipeline). The
+  # `AutoScalingRole` below is provisioned here so the deploying stack can
+  # assume it; the `ScalableTarget` + `ScalingPolicy` live next to the
+  # service so they don't reference a resource that doesn't exist in this
+  # stack. See `canary-fleet.yaml` / pipeline templates for the wire-up.
   AutoScalingRole:
     Type: AWS::IAM::Role
     Properties:
@@ -727,78 +763,93 @@ Resources:
   #       ScaleInCooldown: 300
   #       ScaleOutCooldown: 60
 
-  # CloudWatch Alarms
-  HighCPUAlarm:
-    Type: AWS::CloudWatch::Alarm
+  # ECS CPU / memory alarms live in MonitoringStack (nested) so they can
+  # reference the ECS service that is deployed by the CD pipeline. Keeping
+  # them here would create a forward reference to a resource that doesn't
+  # exist in this stack.
+
+  # Customer-managed KMS key for DynamoDB encryption at rest. Using a CMK
+  # (vs the AWS-managed `alias/aws/dynamodb`) gives us: scoped grants per
+  # consumer, CloudTrail key-usage events, manual/automatic rotation control,
+  # and the ability to deny decryption by revoking key policy — none of which
+  # the AWS-managed key supports. Compliance (SOC2 CC6.1) requires this for
+  # financial data at rest.
+  AppDataKey:
+    Type: AWS::KMS::Key
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
     Properties:
-      AlarmName: !Sub '${AWS::StackName}-high-cpu'
-      AlarmDescription: Alert when CPU utilization exceeds 80%
-      MetricName: CPUUtilization
-      Namespace: AWS/ECS
-      Statistic: Average
-      Period: 300
-      EvaluationPeriods: 2
-      Threshold: 80
-      ComparisonOperator: GreaterThanThreshold
-      Dimensions:
-        - Name: ServiceName
-          Value: !GetAtt ECSService.Name
-        - Name: ClusterName
-          Value: !Ref ECSCluster
-      AlarmActions:
-        - !Ref HighCPUAlarmSNS
+      Description: !Sub 'BudgetBuddy ${Environment} CMK for DynamoDB + Secrets encryption'
+      EnableKeyRotation: true
+      PendingWindowInDays: 30
+      KeyPolicy:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: EnableRootPermissions
+            Effect: Allow
+            Principal:
+              AWS: !Sub 'arn:aws:iam::${AWS::AccountId}:root'
+            Action: 'kms:*'
+            Resource: '*'
+          - Sid: AllowDynamoDBServiceUsage
+            Effect: Allow
+            Principal:
+              Service: dynamodb.amazonaws.com
+            Action:
+              - kms:Encrypt
+              - kms:Decrypt
+              - kms:ReEncrypt*
+              - kms:GenerateDataKey*
+              - kms:DescribeKey
+              - kms:CreateGrant
+            Resource: '*'
+            Condition:
+              StringEquals:
+                kms:ViaService: !Sub 'dynamodb.${AWS::Region}.amazonaws.com'
+                kms:CallerAccount: !Ref AWS::AccountId
+          - Sid: AllowCloudWatchLogs
+            Effect: Allow
+            Principal:
+              Service: !Sub 'logs.${AWS::Region}.amazonaws.com'
+            Action:
+              - kms:Encrypt
+              - kms:Decrypt
+              - kms:ReEncrypt*
+              - kms:GenerateDataKey*
+              - kms:DescribeKey
+            Resource: '*'
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Application
+          Value: BudgetBuddy
+        - Key: ManagedBy
+          Value: CloudFormation
 
-  HighMemoryAlarm:
-    Type: AWS::CloudWatch::Alarm
+  AppDataKeyAlias:
+    Type: AWS::KMS::Alias
     Properties:
-      AlarmName: !Sub '${AWS::StackName}-high-memory'
-      AlarmDescription: Alert when memory utilization exceeds 80%
-      MetricName: MemoryUtilization
-      Namespace: AWS/ECS
-      Statistic: Average
-      Period: 300
-      EvaluationPeriods: 2
-      Threshold: 80
-      ComparisonOperator: GreaterThanThreshold
-      Dimensions:
-        - Name: ServiceName
-          Value: !GetAtt ECSService.Name
-        - Name: ClusterName
-          Value: !Ref ECSCluster
-      AlarmActions:
-        - !Ref HighMemoryAlarmSNS
+      AliasName: !Sub 'alias/budgetbuddy-${Environment}'
+      TargetKeyId: !Ref AppDataKey
 
-  # SNS Topic for Alarms
-  AlarmSNSTopic:
-    Type: AWS::SNS::Topic
+  # DynamoDB Stack — all application tables (Users, Accounts, Transactions,
+  # Budgets, Goals, AuditLogs, Household, Benchmarks, UserPreferences, etc.)
+  # Added as a nested stack so `aws cloudformation deploy main-stack.yaml`
+  # provisions new tables automatically; prior to this it was deployed
+  # separately which meant table additions could silently miss a deploy.
+  DynamoDBStack:
+    Type: AWS::CloudFormation::Stack
     Properties:
-      TopicName: !Sub '${AWS::StackName}-alarms'
-      DisplayName: BudgetBuddy Alarms
-
-  HighCPUAlarmSNS:
-    Type: AWS::SNS::Subscription
-    Properties:
-      TopicArn: !Ref AlarmSNSTopic
-      Protocol: email
-      Endpoint: !Ref AlarmEmail
-
-  HighMemoryAlarmSNS:
-    Type: AWS::SNS::Subscription
-    Properties:
-      TopicArn: !Ref AlarmSNSTopic
-      Protocol: email
-      Endpoint: !Ref AlarmEmail
-
-  AlarmEmail:
-    Type: String
-    Default: ops@budgetbuddy.com
-    Description: Email address for CloudWatch alarms
-
-  # Conditions
-  IsProduction:
-    Fn::Equals:
-      - !Ref Environment
-      - production
+      TemplateURL: dynamodb.yaml
+      Parameters:
+        Environment: !Ref Environment
+        TablePrefix: BudgetBuddy
+        KMSKeyId: !Ref AppDataKey
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+        - Key: Application
+          Value: BudgetBuddy
 
   # SNS/SES Stack for Notifications
   SNSSESStack:
@@ -845,8 +896,10 @@ Outputs:
       Name: !Sub '${AWS::StackName}-SNSTopicArn'
   
   SESIdentityArn:
-    Description: SES Identity ARN
-    Value: !GetAtt SNSSESStack.Outputs.SESIdentityArn
+    Description: SES Identity ARN (constructed — SES::EmailIdentity exposes only the name, ARN is derived)
+    Value: !Sub
+      - 'arn:aws:ses:${AWS::Region}:${AWS::AccountId}:identity/${IdentityName}'
+      - IdentityName: !GetAtt SNSSESStack.Outputs.SESIdentityName
     Export:
       Name: !Sub '${AWS::StackName}-SESIdentityArn'
 

@@ -1,11 +1,32 @@
 package com.budgetbuddy.service;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import com.budgetbuddy.dto.IncrementalSyncResponse;
 import com.budgetbuddy.dto.SyncAllResponse;
 import com.budgetbuddy.exception.AppException;
 import com.budgetbuddy.exception.ErrorCode;
-import com.budgetbuddy.model.dynamodb.*;
-import com.budgetbuddy.repository.dynamodb.*;
+import com.budgetbuddy.model.dynamodb.AccountTable;
+import com.budgetbuddy.model.dynamodb.BudgetTable;
+import com.budgetbuddy.model.dynamodb.GoalTable;
+import com.budgetbuddy.model.dynamodb.TransactionActionTable;
+import com.budgetbuddy.model.dynamodb.TransactionTable;
+import com.budgetbuddy.repository.dynamodb.AccountRepository;
+import com.budgetbuddy.repository.dynamodb.BudgetRepository;
+import com.budgetbuddy.repository.dynamodb.GoalRepository;
+import com.budgetbuddy.repository.dynamodb.TransactionActionRepository;
+import com.budgetbuddy.repository.dynamodb.TransactionRepository;
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -13,39 +34,22 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.math.BigDecimal;
-import java.time.Instant;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
-
-/**
- * Unit Tests for SyncService
- */
+/** Unit Tests for SyncService */
 @ExtendWith(MockitoExtension.class)
 @org.mockito.junit.jupiter.MockitoSettings(strictness = org.mockito.quality.Strictness.LENIENT)
 class SyncServiceTest {
 
-    @Mock
-    private AccountRepository accountRepository;
+    @Mock private AccountRepository accountRepository;
 
-    @Mock
-    private TransactionRepository transactionRepository;
+    @Mock private TransactionRepository transactionRepository;
 
-    @Mock
-    private BudgetRepository budgetRepository;
+    @Mock private BudgetRepository budgetRepository;
 
-    @Mock
-    private GoalRepository goalRepository;
+    @Mock private GoalRepository goalRepository;
 
-    @Mock
-    private TransactionActionRepository transactionActionRepository;
+    @Mock private TransactionActionRepository transactionActionRepository;
 
-    @InjectMocks
-    private SyncService syncService;
+    @InjectMocks private SyncService syncService;
 
     private String testUserId;
     private AccountTable testAccount;
@@ -64,7 +68,7 @@ class SyncServiceTest {
         testAccount.setUserId(testUserId);
         testAccount.setAccountName("Test Account");
         testAccount.setBalance(new BigDecimal("1000.00"));
-        testAccount.setCreatedAt(Instant.now().minusSeconds(86400)); // 1 day ago
+        testAccount.setCreatedAt(Instant.now().minusSeconds(86_400)); // 1 day ago
         testAccount.setUpdatedAt(Instant.now().minusSeconds(3600)); // 1 hour ago
 
         // Create test transaction
@@ -83,7 +87,7 @@ class SyncServiceTest {
         testBudget.setUserId(testUserId);
         testBudget.setCategory("FOOD");
         testBudget.setMonthlyLimit(new BigDecimal("500.00"));
-        testBudget.setCreatedAt(Instant.now().minusSeconds(172800)); // 2 days ago
+        testBudget.setCreatedAt(Instant.now().minusSeconds(172_800)); // 2 days ago
         testBudget.setUpdatedAt(Instant.now().minusSeconds(7200)); // 2 hours ago
 
         // Create test goal
@@ -92,8 +96,8 @@ class SyncServiceTest {
         testGoal.setUserId(testUserId);
         testGoal.setName("Test Goal");
         testGoal.setTargetAmount(new BigDecimal("10000.00"));
-        testGoal.setCreatedAt(Instant.now().minusSeconds(259200)); // 3 days ago
-        testGoal.setUpdatedAt(Instant.now().minusSeconds(10800)); // 3 hours ago
+        testGoal.setCreatedAt(Instant.now().minusSeconds(259_200)); // 3 days ago
+        testGoal.setUpdatedAt(Instant.now().minusSeconds(10_800)); // 3 hours ago
 
         // Create test action
         testAction = new TransactionActionTable();
@@ -106,24 +110,26 @@ class SyncServiceTest {
     }
 
     @Test
-    void getAllData_Success() {
+    void getAllDataSuccess() {
         // Given
-        List<AccountTable> accounts = Arrays.asList(testAccount);
-        List<TransactionTable> transactions = Arrays.asList(testTransaction);
-        List<BudgetTable> budgets = Arrays.asList(testBudget);
-        List<GoalTable> goals = Arrays.asList(testGoal);
-        List<TransactionActionTable> actions = Arrays.asList(testAction);
+        final List<AccountTable> accounts = Arrays.asList(testAccount);
+        final List<TransactionTable> transactions = Arrays.asList(testTransaction);
+        final List<BudgetTable> budgets = Arrays.asList(testBudget);
+        final List<GoalTable> goals = Arrays.asList(testGoal);
+        final List<TransactionActionTable> actions = Arrays.asList(testAction);
 
         when(accountRepository.findByUserId(testUserId)).thenReturn(accounts);
-        // Mock pagination: first call returns transactions, second call returns empty (end of pagination)
+        // Mock pagination: first call returns transactions, second call returns empty (end of
+        // pagination)
         when(transactionRepository.findByUserId(testUserId, 0, 100)).thenReturn(transactions);
-        when(transactionRepository.findByUserId(testUserId, 100, 100)).thenReturn(Collections.emptyList());
+        when(transactionRepository.findByUserId(testUserId, 100, 100))
+                .thenReturn(Collections.emptyList());
         when(budgetRepository.findByUserId(testUserId)).thenReturn(budgets);
         when(goalRepository.findByUserId(testUserId)).thenReturn(goals);
         when(transactionActionRepository.findByUserId(testUserId)).thenReturn(actions);
 
         // When
-        SyncAllResponse response = syncService.getAllData(testUserId);
+        final SyncAllResponse response = syncService.getAllData(testUserId);
 
         // Then
         assertNotNull(response);
@@ -142,16 +148,18 @@ class SyncServiceTest {
     }
 
     @Test
-    void getAllData_EmptyData() {
+    void getAllDataEmptyData() {
         // Given
         when(accountRepository.findByUserId(testUserId)).thenReturn(Collections.emptyList());
-        when(transactionRepository.findByUserId(testUserId, 0, Integer.MAX_VALUE)).thenReturn(Collections.emptyList());
+        when(transactionRepository.findByUserId(testUserId, 0, Integer.MAX_VALUE))
+                .thenReturn(Collections.emptyList());
         when(budgetRepository.findByUserId(testUserId)).thenReturn(Collections.emptyList());
         when(goalRepository.findByUserId(testUserId)).thenReturn(Collections.emptyList());
-        when(transactionActionRepository.findByUserId(testUserId)).thenReturn(Collections.emptyList());
+        when(transactionActionRepository.findByUserId(testUserId))
+                .thenReturn(Collections.emptyList());
 
         // When
-        SyncAllResponse response = syncService.getAllData(testUserId);
+        final SyncAllResponse response = syncService.getAllData(testUserId);
 
         // Then
         assertNotNull(response);
@@ -163,33 +171,36 @@ class SyncServiceTest {
     }
 
     @Test
-    void getAllData_InvalidUserId() {
+    void getAllDataInvalidUserId() {
         // When/Then
-        AppException exception = assertThrows(AppException.class, () -> {
-            syncService.getAllData(null);
-        });
+        final AppException exception =
+                assertThrows(
+                        AppException.class,
+                        () -> {
+                            syncService.getAllData(null);
+                        });
 
         assertEquals(ErrorCode.INVALID_INPUT, exception.getErrorCode());
     }
 
     @Test
-    void getIncrementalChanges_Success() {
+    void getIncrementalChangesSuccess() {
         // Given
-        Instant now = Instant.now();
-        Instant sinceInstant = now.minusSeconds(7200); // 2 hours ago
-        Long sinceTimestamp = sinceInstant.getEpochSecond();
+        final Instant now = Instant.now();
+        final Instant sinceInstant = now.minusSeconds(7200); // 2 hours ago
+        final Long sinceTimestamp = sinceInstant.getEpochSecond();
 
         // Create test data with timestamps relative to 'since'
         // Items updated AFTER sinceTimestamp should be included
-        AccountTable recentAccount = new AccountTable();
+        final AccountTable recentAccount = new AccountTable();
         recentAccount.setAccountId("account-recent");
         recentAccount.setUserId(testUserId);
         recentAccount.setAccountName("Recent Account");
         recentAccount.setBalance(new BigDecimal("2000.00"));
-        recentAccount.setCreatedAt(now.minusSeconds(86400)); // 1 day ago
+        recentAccount.setCreatedAt(now.minusSeconds(86_400)); // 1 day ago
         recentAccount.setUpdatedAt(now.minusSeconds(1800)); // 30 minutes ago (AFTER sinceTimestamp)
 
-        TransactionTable recentTransaction = new TransactionTable();
+        final TransactionTable recentTransaction = new TransactionTable();
         recentTransaction.setTransactionId("transaction-recent");
         recentTransaction.setUserId(testUserId);
         recentTransaction.setAccountId("account-recent");
@@ -198,25 +209,29 @@ class SyncServiceTest {
         recentTransaction.setCategoryPrimary("groceries");
         recentTransaction.setCategoryDetailed("groceries");
         recentTransaction.setCreatedAt(now.minusSeconds(3600)); // 1 hour ago
-        recentTransaction.setUpdatedAt(now.minusSeconds(900)); // 15 minutes ago (AFTER sinceTimestamp)
-        recentTransaction.setUpdatedAtTimestamp(now.minusSeconds(900).getEpochSecond()); // Set timestamp for GSI query
+        recentTransaction.setUpdatedAt(
+                now.minusSeconds(900)); // 15 minutes ago (AFTER sinceTimestamp)
+        recentTransaction.setUpdatedAtTimestamp(
+                now.minusSeconds(900).getEpochSecond()); // Set timestamp for GSI query
 
         // Items updated BEFORE sinceTimestamp should NOT be included
-        BudgetTable oldBudget = new BudgetTable();
+        final BudgetTable oldBudget = new BudgetTable();
         oldBudget.setBudgetId("budget-old");
         oldBudget.setUserId(testUserId);
         oldBudget.setCategory("FOOD");
         oldBudget.setMonthlyLimit(new BigDecimal("500.00"));
-        oldBudget.setCreatedAt(now.minusSeconds(172800)); // 2 days ago
-        oldBudget.setUpdatedAt(now.minusSeconds(10800)); // 3 hours ago (BEFORE sinceTimestamp)
-        oldBudget.setUpdatedAtTimestamp(now.minusSeconds(10800).getEpochSecond()); // Set timestamp for GSI query
+        oldBudget.setCreatedAt(now.minusSeconds(172_800)); // 2 days ago
+        oldBudget.setUpdatedAt(now.minusSeconds(10_800)); // 3 hours ago (BEFORE sinceTimestamp)
+        oldBudget.setUpdatedAtTimestamp(
+                now.minusSeconds(10_800).getEpochSecond()); // Set timestamp for GSI query
 
-        List<AccountTable> allAccounts = Arrays.asList(recentAccount);
-        List<TransactionTable> allTransactions = Arrays.asList(recentTransaction);
-        List<GoalTable> allGoals = Collections.emptyList(); // No goals
-        List<TransactionActionTable> allActions = Collections.emptyList(); // No actions
+        final List<AccountTable> allAccounts = Arrays.asList(recentAccount);
+        final List<TransactionTable> allTransactions = Arrays.asList(recentTransaction);
+        final List<GoalTable> allGoals = Collections.emptyList(); // No goals
+        final List<TransactionActionTable> allActions = Collections.emptyList(); // No actions
 
-        // Mock GSI-based queries for incremental sync (the service uses findByUserIdAndUpdatedAfter)
+        // Mock GSI-based queries for incremental sync (the service uses
+        // findByUserIdAndUpdatedAfter)
         when(accountRepository.findByUserIdAndUpdatedAfter(testUserId, sinceTimestamp))
                 .thenReturn(allAccounts);
         when(transactionRepository.findByUserIdAndUpdatedAfter(testUserId, sinceTimestamp, 100))
@@ -229,39 +244,48 @@ class SyncServiceTest {
                 .thenReturn(allActions);
 
         // When
-        IncrementalSyncResponse response = syncService.getIncrementalChanges(testUserId, sinceTimestamp);
+        final IncrementalSyncResponse response =
+                syncService.getIncrementalChanges(testUserId, sinceTimestamp);
 
         // Then
         assertNotNull(response);
         // Transaction was updated 15 minutes ago (after sinceTimestamp), so it should be included
-        assertFalse(response.getTransactions().isEmpty(), "Transaction updated after sinceTimestamp should be included");
+        assertFalse(
+                response.getTransactions().isEmpty(),
+                "Transaction updated after sinceTimestamp should be included");
         // Account was updated 30 minutes ago (after sinceTimestamp), so it should be included
-        assertFalse(response.getAccounts().isEmpty(), "Account updated after sinceTimestamp should be included");
+        assertFalse(
+                response.getAccounts().isEmpty(),
+                "Account updated after sinceTimestamp should be included");
         // Budget was updated 3 hours ago (before sinceTimestamp), so it should NOT be included
-        assertTrue(response.getBudgets().isEmpty(), "Budget updated before sinceTimestamp should NOT be included");
+        assertTrue(
+                response.getBudgets().isEmpty(),
+                "Budget updated before sinceTimestamp should NOT be included");
         assertNotNull(response.getSyncTimestamp());
         assertFalse(response.isHasMore());
     }
 
     @Test
-    void getIncrementalChanges_NoChanges() {
+    void getIncrementalChangesNoChanges() {
         // Given
-        Long sinceTimestamp = Instant.now().minusSeconds(300).getEpochSecond(); // 5 minutes ago
+        final Long sinceTimestamp = Instant.now().minusSeconds(300).getEpochSecond(); // 5 minutes ago
 
-        List<AccountTable> allAccounts = Arrays.asList(testAccount);
-        List<TransactionTable> allTransactions = Arrays.asList(testTransaction);
-        List<BudgetTable> allBudgets = Arrays.asList(testBudget);
-        List<GoalTable> allGoals = Arrays.asList(testGoal);
-        List<TransactionActionTable> allActions = Arrays.asList(testAction);
+        final List<AccountTable> allAccounts = Arrays.asList(testAccount);
+        final List<TransactionTable> allTransactions = Arrays.asList(testTransaction);
+        final List<BudgetTable> allBudgets = Arrays.asList(testBudget);
+        final List<GoalTable> allGoals = Arrays.asList(testGoal);
+        final List<TransactionActionTable> allActions = Arrays.asList(testAction);
 
         when(accountRepository.findByUserId(testUserId)).thenReturn(allAccounts);
-        when(transactionRepository.findByUserId(testUserId, 0, Integer.MAX_VALUE)).thenReturn(allTransactions);
+        when(transactionRepository.findByUserId(testUserId, 0, Integer.MAX_VALUE))
+                .thenReturn(allTransactions);
         when(budgetRepository.findByUserId(testUserId)).thenReturn(allBudgets);
         when(goalRepository.findByUserId(testUserId)).thenReturn(allGoals);
         when(transactionActionRepository.findByUserId(testUserId)).thenReturn(allActions);
 
         // When
-        IncrementalSyncResponse response = syncService.getIncrementalChanges(testUserId, sinceTimestamp);
+        final IncrementalSyncResponse response =
+                syncService.getIncrementalChanges(testUserId, sinceTimestamp);
 
         // Then
         assertNotNull(response);
@@ -274,26 +298,29 @@ class SyncServiceTest {
     }
 
     @Test
-    void getIncrementalChanges_InvalidTimestamp_FallbackToFullSync() {
+    void getIncrementalChangesInvalidTimestampFallbackToFullSync() {
         // Given
-        Long invalidTimestamp = null;
+        final Long invalidTimestamp = null;
 
-        List<AccountTable> accounts = Arrays.asList(testAccount);
-        List<TransactionTable> transactions = Arrays.asList(testTransaction);
-        List<BudgetTable> budgets = Arrays.asList(testBudget);
-        List<GoalTable> goals = Arrays.asList(testGoal);
-        List<TransactionActionTable> actions = Arrays.asList(testAction);
+        final List<AccountTable> accounts = Arrays.asList(testAccount);
+        final List<TransactionTable> transactions = Arrays.asList(testTransaction);
+        final List<BudgetTable> budgets = Arrays.asList(testBudget);
+        final List<GoalTable> goals = Arrays.asList(testGoal);
+        final List<TransactionActionTable> actions = Arrays.asList(testAction);
 
         when(accountRepository.findByUserId(testUserId)).thenReturn(accounts);
-        // Mock pagination: first call returns transactions, second call returns empty (end of pagination)
+        // Mock pagination: first call returns transactions, second call returns empty (end of
+        // pagination)
         when(transactionRepository.findByUserId(testUserId, 0, 100)).thenReturn(transactions);
-        when(transactionRepository.findByUserId(testUserId, 100, 100)).thenReturn(Collections.emptyList());
+        when(transactionRepository.findByUserId(testUserId, 100, 100))
+                .thenReturn(Collections.emptyList());
         when(budgetRepository.findByUserId(testUserId)).thenReturn(budgets);
         when(goalRepository.findByUserId(testUserId)).thenReturn(goals);
         when(transactionActionRepository.findByUserId(testUserId)).thenReturn(actions);
 
         // When
-        IncrementalSyncResponse response = syncService.getIncrementalChanges(testUserId, invalidTimestamp);
+        final IncrementalSyncResponse response =
+                syncService.getIncrementalChanges(testUserId, invalidTimestamp);
 
         // Then
         assertNotNull(response);
@@ -306,13 +333,15 @@ class SyncServiceTest {
     }
 
     @Test
-    void getIncrementalChanges_InvalidUserId() {
+    void getIncrementalChangesInvalidUserId() {
         // When/Then
-        AppException exception = assertThrows(AppException.class, () -> {
-            syncService.getIncrementalChanges(null, Instant.now().getEpochSecond());
-        });
+        final AppException exception =
+                assertThrows(
+                        AppException.class,
+                        () -> {
+                            syncService.getIncrementalChanges(null, Instant.now().getEpochSecond());
+                        });
 
         assertEquals(ErrorCode.INVALID_INPUT, exception.getErrorCode());
     }
 }
-

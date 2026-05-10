@@ -9,12 +9,8 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 /**
  * Main entry point for BudgetBuddy Backend Server
  *
- * Enterprise-ready backend for BudgetBuddy iOS application
- * Features:
- * - Plaid Integration
- * - Security & Authentication
- * - Monitoring & Analytics
- * - Compliance & Audit Logging
+ * <p>Enterprise-ready backend for BudgetBuddy iOS application Features: - Plaid Integration -
+ * Security & Authentication - Monitoring & Analytics - Compliance & Audit Logging
  */
 @SpringBootApplication
 @EnableCaching
@@ -22,8 +18,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @EnableScheduling
 public class BudgetBuddyApplication {
 
-    public static void main(String[] args) {
+    public static void main(final String[] args) {
         SpringApplication.run(BudgetBuddyApplication.class, args);
     }
 }
-

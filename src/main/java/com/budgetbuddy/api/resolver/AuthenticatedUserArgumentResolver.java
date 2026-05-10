@@ -16,19 +16,23 @@ import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.method.support.ModelAndViewContainer;
 
 /**
- * Argument resolver for @AuthenticatedUser annotation
- * Automatically loads and injects UserTable entity into controller methods
- * 
- * Usage:
- * <pre>
- * {@code
+ * Argument resolver for @AuthenticatedUser annotation Automatically loads and injects UserTable
+ * entity into controller methods
+ *
+ * <p>Usage:
+ *
+ * <pre>{@code
  * @GetMapping
  * public ResponseEntity<?> someEndpoint(@AuthenticatedUser UserTable user) {
  *     // user is guaranteed to be non-null and loaded
  * }
- * }
- * </pre>
+ * }</pre>
  */
+// PMD's LawOfDemeter is documented as imprecise on chains involving
+// standard library types (BigDecimal, String, Optional) and DTO
+// getters; this class has many such idiomatic uses. Suppress at
+// class level rather than littering every method.
+@SuppressWarnings("PMD.LawOfDemeter")
 @Component
 public class AuthenticatedUserArgumentResolver implements HandlerMethodArgumentResolver {
 
@@ -39,33 +43,33 @@ public class AuthenticatedUserArgumentResolver implements HandlerMethodArgumentR
     }
 
     @Override
-    public boolean supportsParameter(MethodParameter parameter) {
-        return parameter.hasParameterAnnotation(AuthenticatedUser.class) &&
-               parameter.getParameterType().equals(UserTable.class);
+    public boolean supportsParameter(final MethodParameter parameter) {
+        return parameter.hasParameterAnnotation(AuthenticatedUser.class)
+                && parameter.getParameterType().equals(UserTable.class);
     }
 
     @Override
     public Object resolveArgument(
-            MethodParameter parameter,
-            ModelAndViewContainer mavContainer,
-            NativeWebRequest webRequest,
-            WebDataBinderFactory binderFactory) {
-        
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        
+            final MethodParameter parameter,
+            final ModelAndViewContainer mavContainer,
+            final NativeWebRequest webRequest,
+            final WebDataBinderFactory binderFactory) {
+
+        final Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
         if (authentication == null || !(authentication.getPrincipal() instanceof UserDetails)) {
             throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
         }
 
-        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
-        String username = userDetails.getUsername();
+        final UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+        final String username = userDetails.getUsername();
 
         if (username == null || username.isEmpty()) {
             throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
         }
 
-        return userService.findByEmail(username)
+        return userService
+                .findByEmail(username)
                 .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
     }
 }
-

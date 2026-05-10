@@ -1,5 +1,9 @@
 package com.budgetbuddy.integration;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import com.budgetbuddy.AWSTestConfiguration;
 import com.budgetbuddy.model.dynamodb.AccountTable;
 import com.budgetbuddy.model.dynamodb.TransactionTable;
@@ -8,6 +12,10 @@ import com.budgetbuddy.repository.dynamodb.AccountRepository;
 import com.budgetbuddy.repository.dynamodb.UserRepository;
 import com.budgetbuddy.service.TransactionService;
 import com.budgetbuddy.util.TableInitializer;
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.List;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -20,37 +28,22 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 
-import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.util.List;
-import java.util.UUID;
-
-import static org.junit.jupiter.api.Assertions.*;
-
-/**
- * Integration Tests for Transaction Service
- * Tests with real DynamoDB (LocalStack)
- * 
- */
+/** Integration Tests for Transaction Service Tests with real DynamoDB (LocalStack) */
 @SpringBootTest(classes = com.budgetbuddy.BudgetBuddyApplication.class)
 @ActiveProfiles("test")
 @Import(AWSTestConfiguration.class)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class TransactionIntegrationTest {
 
-    private static final Logger logger = LoggerFactory.getLogger(TransactionIntegrationTest.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(TransactionIntegrationTest.class);
 
-    @Autowired
-    private TransactionService transactionService;
+    @Autowired private TransactionService transactionService;
 
-    @Autowired
-    private AccountRepository accountRepository;
+    @Autowired private AccountRepository accountRepository;
 
-    @Autowired
-    private UserRepository userRepository;
+    @Autowired private UserRepository userRepository;
 
-    @Autowired
-    private DynamoDbClient dynamoDbClient;
+    @Autowired private DynamoDbClient dynamoDbClient;
 
     private UserTable testUser;
     private AccountTable testAccount;
@@ -65,7 +58,7 @@ class TransactionIntegrationTest {
     @BeforeEach
     void setUp() {
         // Create test user
-        String email = "test-" + UUID.randomUUID() + "@example.com";
+        final String email = "test-" + UUID.randomUUID() + "@example.com";
         testUser = new UserTable();
         testUser.setUserId(UUID.randomUUID().toString());
         testUser.setEmail(email);
@@ -83,29 +76,32 @@ class TransactionIntegrationTest {
     @Test
     void testCreateAndRetrieveTransaction() {
         // Given
-        TransactionTable transaction = transactionService.createTransaction(
-                testUser,
-                testAccount.getAccountId(),
-                BigDecimal.valueOf(100.00),
-                LocalDate.now(),
-                "Test transaction",
-                "FOOD"
-        );
+        final TransactionTable transaction =
+                transactionService.createTransaction(
+                        testUser,
+                        testAccount.getAccountId(),
+                        BigDecimal.valueOf(100.00),
+                        LocalDate.now(),
+                        "Test transaction",
+                        "FOOD");
 
         // When
-        List<TransactionTable> transactions = transactionService.getTransactions(testUser, 0, 10);
+        final List<TransactionTable> transactions = transactionService.getTransactions(testUser, 0, 10);
 
         // Then
         assertNotNull(transactions);
         assertTrue(transactions.size() > 0);
-        assertTrue(transactions.stream().anyMatch(t -> t.getTransactionId().equals(transaction.getTransactionId())));
+        assertTrue(
+                transactions.stream()
+                        .anyMatch(
+                                t -> t.getTransactionId().equals(transaction.getTransactionId())));
     }
 
     @Test
     void testGetTransactionsInRange() {
         // Given
-        LocalDate startDate = LocalDate.now().minusDays(7);
-        LocalDate endDate = LocalDate.now();
+        final LocalDate startDate = LocalDate.now().minusDays(7);
+        final LocalDate endDate = LocalDate.now();
 
         transactionService.createTransaction(
                 testUser,
@@ -113,11 +109,11 @@ class TransactionIntegrationTest {
                 BigDecimal.valueOf(100.00),
                 LocalDate.now().minusDays(3),
                 "Recent transaction",
-                "FOOD"
-        );
+                "FOOD");
 
         // When
-        List<TransactionTable> transactions = transactionService.getTransactionsInRange(testUser, startDate, endDate);
+        final List<TransactionTable> transactions =
+                transactionService.getTransactionsInRange(testUser, startDate, endDate);
 
         // Then
         assertNotNull(transactions);
@@ -133,26 +129,21 @@ class TransactionIntegrationTest {
                 BigDecimal.valueOf(100.00),
                 LocalDate.now(),
                 "Transaction 1",
-                "FOOD"
-        );
+                "FOOD");
         transactionService.createTransaction(
                 testUser,
                 testAccount.getAccountId(),
                 BigDecimal.valueOf(50.00),
                 LocalDate.now(),
                 "Transaction 2",
-                "FOOD"
-        );
+                "FOOD");
 
         // When
-        BigDecimal total = transactionService.getTotalSpending(
-                testUser,
-                LocalDate.now().minusDays(1),
-                LocalDate.now()
-        );
+        final BigDecimal total =
+                transactionService.getTotalSpending(
+                        testUser, LocalDate.now().minusDays(1), LocalDate.now());
 
         // Then
         assertEquals(0, BigDecimal.valueOf(150.00).compareTo(total));
     }
 }
-

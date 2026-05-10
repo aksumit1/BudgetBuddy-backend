@@ -1,8 +1,17 @@
 package com.budgetbuddy.repository.dynamodb;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import com.budgetbuddy.AWSTestConfiguration;
 import com.budgetbuddy.model.dynamodb.BudgetTable;
 import com.budgetbuddy.util.TableInitializer;
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -13,29 +22,16 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 
-import java.math.BigDecimal;
-import java.time.Instant;
-import java.time.LocalDate;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
-
-import static org.junit.jupiter.api.Assertions.*;
-
-/**
- * Tests for BudgetRepository
- */
+/** Tests for BudgetRepository */
 @SpringBootTest(classes = com.budgetbuddy.BudgetBuddyApplication.class)
 @ActiveProfiles("test")
 @Import(AWSTestConfiguration.class)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class BudgetRepositoryTest {
 
-    @Autowired
-    private BudgetRepository budgetRepository;
+    @Autowired private BudgetRepository budgetRepository;
 
-    @Autowired
-    private DynamoDbClient dynamoDbClient;
+    @Autowired private DynamoDbClient dynamoDbClient;
 
     private String testUserId;
     private BudgetTable testBudget;
@@ -48,7 +44,7 @@ class BudgetRepositoryTest {
     @BeforeEach
     void setUp() {
         testUserId = UUID.randomUUID().toString();
-        
+
         testBudget = new BudgetTable();
         testBudget.setBudgetId(UUID.randomUUID().toString());
         testBudget.setUserId(testUserId);
@@ -61,23 +57,23 @@ class BudgetRepositoryTest {
     }
 
     @Test
-    void testSave_WithValidBudget_Succeeds() {
+    void testSaveWithValidBudgetSucceeds() {
         // When
         budgetRepository.save(testBudget);
 
         // Then
-        Optional<BudgetTable> found = budgetRepository.findById(testBudget.getBudgetId());
+        final Optional<BudgetTable> found = budgetRepository.findById(testBudget.getBudgetId());
         assertTrue(found.isPresent(), "Budget should be saved");
         assertEquals(testBudget.getCategory(), found.get().getCategory());
     }
 
     @Test
-    void testFindById_WithExistingBudget_ReturnsBudget() {
+    void testFindByIdWithExistingBudgetReturnsBudget() {
         // Given
         budgetRepository.save(testBudget);
 
         // When
-        Optional<BudgetTable> found = budgetRepository.findById(testBudget.getBudgetId());
+        final Optional<BudgetTable> found = budgetRepository.findById(testBudget.getBudgetId());
 
         // Then
         assertTrue(found.isPresent(), "Budget should be found");
@@ -85,20 +81,20 @@ class BudgetRepositoryTest {
     }
 
     @Test
-    void testFindById_WithNonExistentBudget_ReturnsEmpty() {
+    void testFindByIdWithNonExistentBudgetReturnsEmpty() {
         // When
-        Optional<BudgetTable> found = budgetRepository.findById(UUID.randomUUID().toString());
+        final Optional<BudgetTable> found = budgetRepository.findById(UUID.randomUUID().toString());
 
         // Then
         assertTrue(found.isEmpty(), "Should return empty for non-existent budget");
     }
 
     @Test
-    void testFindByUserId_ReturnsUserBudgets() {
+    void testFindByUserIdReturnsUserBudgets() {
         // Given
         budgetRepository.save(testBudget);
-        
-        BudgetTable budget2 = new BudgetTable();
+
+        final BudgetTable budget2 = new BudgetTable();
         budget2.setBudgetId(UUID.randomUUID().toString());
         budget2.setUserId(testUserId);
         budget2.setCategory("TRANSPORTATION");
@@ -110,7 +106,7 @@ class BudgetRepositoryTest {
         budgetRepository.save(budget2);
 
         // When
-        List<BudgetTable> budgets = budgetRepository.findByUserId(testUserId);
+        final List<BudgetTable> budgets = budgetRepository.findByUserId(testUserId);
 
         // Then
         assertNotNull(budgets, "Budgets should not be null");
@@ -118,12 +114,13 @@ class BudgetRepositoryTest {
     }
 
     @Test
-    void testFindByUserIdAndCategory_ReturnsMatchingBudget() {
+    void testFindByUserIdAndCategoryReturnsMatchingBudget() {
         // Given
         budgetRepository.save(testBudget);
 
         // When
-        Optional<BudgetTable> found = budgetRepository.findByUserIdAndCategory(testUserId, "FOOD_AND_DRINK");
+        final Optional<BudgetTable> found =
+                budgetRepository.findByUserIdAndCategory(testUserId, "FOOD_AND_DRINK");
 
         // Then
         assertTrue(found.isPresent(), "Budget should be found");
@@ -131,45 +128,47 @@ class BudgetRepositoryTest {
     }
 
     @Test
-    void testDelete_WithValidId_RemovesBudget() {
+    void testDeleteWithValidIdRemovesBudget() {
         // Given
         budgetRepository.save(testBudget);
-        String budgetId = testBudget.getBudgetId();
+        final String budgetId = testBudget.getBudgetId();
 
         // When
         budgetRepository.delete(budgetId);
 
         // Then
-        Optional<BudgetTable> found = budgetRepository.findById(budgetId);
+        final Optional<BudgetTable> found = budgetRepository.findById(budgetId);
         assertTrue(found.isEmpty(), "Budget should be deleted");
     }
-    
+
     @Test
-    void testFindByUserIdAndUpdatedAfter_WithValidParams_ReturnsUpdatedBudgets() {
+    void testFindByUserIdAndUpdatedAfterWithValidParamsReturnsUpdatedBudgets() {
         // Given
-        long updatedAfterTimestamp = Instant.now().minusSeconds(3600).getEpochSecond();
+        final long updatedAfterTimestamp = Instant.now().minusSeconds(3600).getEpochSecond();
         testBudget.setUpdatedAtTimestamp(Instant.now().getEpochSecond());
         budgetRepository.save(testBudget);
-        
+
         // When
-        List<BudgetTable> result = budgetRepository.findByUserIdAndUpdatedAfter(testUserId, updatedAfterTimestamp);
-        
+        final List<BudgetTable> result =
+                budgetRepository.findByUserIdAndUpdatedAfter(testUserId, updatedAfterTimestamp);
+
         // Then
         assertNotNull(result);
         assertTrue(result.size() >= 0);
     }
-    
+
     @Test
-    void testFindByUserIdAndUpdatedAfter_WithNullParams_ReturnsEmpty() {
+    void testFindByUserIdAndUpdatedAfterWithNullParamsReturnsEmpty() {
         // When
-        List<BudgetTable> result1 = budgetRepository.findByUserIdAndUpdatedAfter(null, Instant.now().getEpochSecond());
-        List<BudgetTable> result2 = budgetRepository.findByUserIdAndUpdatedAfter(testUserId, null);
-        List<BudgetTable> result3 = budgetRepository.findByUserIdAndUpdatedAfter("", Instant.now().getEpochSecond());
-        
+        final List<BudgetTable> result1 =
+                budgetRepository.findByUserIdAndUpdatedAfter(null, Instant.now().getEpochSecond());
+        final List<BudgetTable> result2 = budgetRepository.findByUserIdAndUpdatedAfter(testUserId, null);
+        final List<BudgetTable> result3 =
+                budgetRepository.findByUserIdAndUpdatedAfter("", Instant.now().getEpochSecond());
+
         // Then
         assertTrue(result1.isEmpty());
         assertTrue(result2.isEmpty());
         assertTrue(result3.isEmpty());
     }
 }
-

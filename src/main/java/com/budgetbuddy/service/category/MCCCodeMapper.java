@@ -1,41 +1,50 @@
 package com.budgetbuddy.service.category;
 
-import org.springframework.stereotype.Component;
 import java.util.HashMap;
 import java.util.Map;
+import org.springframework.stereotype.Component;
 
 /**
  * Maps ISO 18245 Merchant Category Codes (MCC) to transaction categories
- * 
- * MCC codes are 4-digit codes assigned by credit card networks to classify
- * merchants by the type of goods or services they provide.
- * 
- * This provides a standardized, global way to categorize transactions when
- * MCC codes are available from the bank or payment processor.
+ *
+ * <p>MCC codes are 4-digit codes assigned by credit card networks to classify merchants by the type
+ * of goods or services they provide.
+ *
+ * <p>This provides a standardized, global way to categorize transactions when MCC codes are
+ * available from the bank or payment processor.
  */
 @Component
 public class MCCCodeMapper {
-    
+
     public static class CategoryMapping {
         private final String primaryCategory;
         private final String detailedCategory;
         private final double confidence;
-        
-        public CategoryMapping(String primaryCategory, String detailedCategory, double confidence) {
+
+        public CategoryMapping(final String primaryCategory, final String detailedCategory, final double confidence) {
             this.primaryCategory = primaryCategory;
             this.detailedCategory = detailedCategory;
             this.confidence = confidence;
         }
-        
-        public String getPrimaryCategory() { return primaryCategory; }
-        public String getDetailedCategory() { return detailedCategory; }
-        public double getConfidence() { return confidence; }
+
+        public String getPrimaryCategory() {
+            return primaryCategory;
+        }
+
+        public String getDetailedCategory() {
+            return detailedCategory;
+        }
+
+        public double getConfidence() {
+            return confidence;
+        }
     }
-    
+
     // ISO 18245 Standard MCC Codes to Category Mapping
-    // Confidence scores: 0.95 = very reliable, 0.90 = reliable, 0.85 = mostly reliable, 0.80 = somewhat reliable
+    // Confidence scores: 0.95 = very reliable, 0.90 = reliable, 0.85 = mostly reliable, 0.80 =
+    // somewhat reliable
     private static final Map<String, CategoryMapping> MCC_TO_CATEGORY = new HashMap<>();
-    
+
     static {
         // ========== GROCERIES ==========
         MCC_TO_CATEGORY.put("5411", new CategoryMapping("groceries", "supermarket", 0.95));
@@ -44,14 +53,14 @@ public class MCCCodeMapper {
         MCC_TO_CATEGORY.put("5451", new CategoryMapping("groceries", "dairy", 0.95));
         MCC_TO_CATEGORY.put("5462", new CategoryMapping("groceries", "bakeries", 0.95));
         MCC_TO_CATEGORY.put("5499", new CategoryMapping("groceries", "misc_food", 0.90));
-        
+
         // ========== DINING ==========
         MCC_TO_CATEGORY.put("5811", new CategoryMapping("dining", "restaurant", 0.95));
         MCC_TO_CATEGORY.put("5812", new CategoryMapping("dining", "fast_food", 0.95));
         MCC_TO_CATEGORY.put("5813", new CategoryMapping("dining", "bar", 0.95));
         MCC_TO_CATEGORY.put("5814", new CategoryMapping("dining", "cafe", 0.95));
         MCC_TO_CATEGORY.put("5970", new CategoryMapping("dining", "catering", 0.90));
-        
+
         // ========== TRANSPORTATION ==========
         MCC_TO_CATEGORY.put("5541", new CategoryMapping("transportation", "gas", 0.95));
         MCC_TO_CATEGORY.put("5542", new CategoryMapping("transportation", "gas", 0.95));
@@ -60,9 +69,10 @@ public class MCCCodeMapper {
         MCC_TO_CATEGORY.put("4121", new CategoryMapping("transportation", "taxi", 0.90));
         MCC_TO_CATEGORY.put("7512", new CategoryMapping("transportation", "car_rental", 0.95));
         MCC_TO_CATEGORY.put("7513", new CategoryMapping("transportation", "truck_rental", 0.90));
-        MCC_TO_CATEGORY.put("7519", new CategoryMapping("transportation", "motor_home_rental", 0.85));
+        MCC_TO_CATEGORY.put(
+                "7519", new CategoryMapping("transportation", "motor_home_rental", 0.85));
         MCC_TO_CATEGORY.put("4784", new CategoryMapping("transportation", "toll", 0.95));
-        
+
         // ========== TRAVEL ==========
         MCC_TO_CATEGORY.put("3000", new CategoryMapping("travel", "airline", 0.95));
         MCC_TO_CATEGORY.put("3001", new CategoryMapping("travel", "airline", 0.95));
@@ -164,12 +174,12 @@ public class MCCCodeMapper {
         MCC_TO_CATEGORY.put("3097", new CategoryMapping("travel", "airline", 0.95));
         MCC_TO_CATEGORY.put("3098", new CategoryMapping("travel", "airline", 0.95));
         MCC_TO_CATEGORY.put("3099", new CategoryMapping("travel", "airline", 0.95));
-        
+
         // Hotels (3501-3799)
         for (int i = 3501; i <= 3799; i++) {
             MCC_TO_CATEGORY.put(String.valueOf(i), new CategoryMapping("travel", "hotel", 0.95));
         }
-        
+
         // ========== EDUCATION ==========
         MCC_TO_CATEGORY.put("5192", new CategoryMapping("education", "books", 0.90));
         MCC_TO_CATEGORY.put("5193", new CategoryMapping("education", "school_supplies", 0.90));
@@ -181,11 +191,12 @@ public class MCCCodeMapper {
         MCC_TO_CATEGORY.put("5976", new CategoryMapping("education", "printer_supplies", 0.90));
         MCC_TO_CATEGORY.put("8211", new CategoryMapping("education", "elementary_school", 0.95));
         MCC_TO_CATEGORY.put("8220", new CategoryMapping("education", "university", 0.95));
-        MCC_TO_CATEGORY.put("8241", new CategoryMapping("education", "correspondence_school", 0.90));
+        MCC_TO_CATEGORY.put(
+                "8241", new CategoryMapping("education", "correspondence_school", 0.90));
         MCC_TO_CATEGORY.put("8244", new CategoryMapping("education", "business_school", 0.90));
         MCC_TO_CATEGORY.put("8249", new CategoryMapping("education", "vocational_school", 0.90));
         MCC_TO_CATEGORY.put("8299", new CategoryMapping("education", "schools", 0.90));
-        
+
         // ========== HEALTHCARE ==========
         MCC_TO_CATEGORY.put("5912", new CategoryMapping("healthcare", "pharmacy", 0.95));
         MCC_TO_CATEGORY.put("8011", new CategoryMapping("healthcare", "doctor", 0.95));
@@ -199,7 +210,7 @@ public class MCCCodeMapper {
         MCC_TO_CATEGORY.put("8062", new CategoryMapping("healthcare", "hospital", 0.95));
         MCC_TO_CATEGORY.put("8071", new CategoryMapping("healthcare", "medical_lab", 0.95));
         MCC_TO_CATEGORY.put("8099", new CategoryMapping("healthcare", "medical_service", 0.90));
-        
+
         // ========== HEALTH/FITNESS ==========
         MCC_TO_CATEGORY.put("7911", new CategoryMapping("health", "dance_hall", 0.90));
         MCC_TO_CATEGORY.put("7932", new CategoryMapping("health", "billiards", 0.85));
@@ -208,27 +219,29 @@ public class MCCCodeMapper {
         MCC_TO_CATEGORY.put("7992", new CategoryMapping("health", "golf", 0.90));
         MCC_TO_CATEGORY.put("7997", new CategoryMapping("health", "recreation", 0.85));
         MCC_TO_CATEGORY.put("7832", new CategoryMapping("health", "gym", 0.90));
-        
+
         // ========== UTILITIES ==========
         MCC_TO_CATEGORY.put("4900", new CategoryMapping("utilities", "electric", 0.95));
         MCC_TO_CATEGORY.put("4814", new CategoryMapping("utilities", "telecom", 0.95));
         MCC_TO_CATEGORY.put("4899", new CategoryMapping("utilities", "cable", 0.95));
         MCC_TO_CATEGORY.put("5983", new CategoryMapping("utilities", "fuel", 0.95));
-        
+
         // ========== ENTERTAINMENT ==========
         MCC_TO_CATEGORY.put("7832", new CategoryMapping("entertainment", "movie", 0.95));
         MCC_TO_CATEGORY.put("7841", new CategoryMapping("entertainment", "video_rental", 0.90));
         MCC_TO_CATEGORY.put("7922", new CategoryMapping("entertainment", "theater", 0.95));
         MCC_TO_CATEGORY.put("7929", new CategoryMapping("entertainment", "band", 0.85));
-        MCC_TO_CATEGORY.put("7991", new CategoryMapping("entertainment", "tourist_attraction", 0.90));
+        MCC_TO_CATEGORY.put(
+                "7991", new CategoryMapping("entertainment", "tourist_attraction", 0.90));
         MCC_TO_CATEGORY.put("7993", new CategoryMapping("entertainment", "video_game", 0.90));
-        MCC_TO_CATEGORY.put("7994", new CategoryMapping("entertainment", "video_game_arcade", 0.90));
+        MCC_TO_CATEGORY.put(
+                "7994", new CategoryMapping("entertainment", "video_game_arcade", 0.90));
         MCC_TO_CATEGORY.put("7995", new CategoryMapping("entertainment", "betting", 0.85));
         MCC_TO_CATEGORY.put("7996", new CategoryMapping("entertainment", "amusement_park", 0.95));
         MCC_TO_CATEGORY.put("7997", new CategoryMapping("entertainment", "aquarium", 0.90));
         MCC_TO_CATEGORY.put("7998", new CategoryMapping("entertainment", "aquarium", 0.90));
         MCC_TO_CATEGORY.put("7999", new CategoryMapping("entertainment", "recreation", 0.85));
-        
+
         // ========== SHOPPING ==========
         MCC_TO_CATEGORY.put("5310", new CategoryMapping("shopping", "department_store", 0.95));
         MCC_TO_CATEGORY.put("5311", new CategoryMapping("shopping", "department_store", 0.95));
@@ -257,45 +270,45 @@ public class MCCCodeMapper {
         MCC_TO_CATEGORY.put("5947", new CategoryMapping("shopping", "gift", 0.90));
         MCC_TO_CATEGORY.put("5948", new CategoryMapping("shopping", "luggage", 0.95));
         MCC_TO_CATEGORY.put("5949", new CategoryMapping("shopping", "sewing", 0.90));
-        
+
         // ========== PET ==========
         MCC_TO_CATEGORY.put("5995", new CategoryMapping("pet", "pet_shop", 0.90));
-        
+
         // ========== SUBSCRIPTIONS ==========
         // Note: Many subscription services use generic MCC codes, so we rely more on merchant name
         MCC_TO_CATEGORY.put("4814", new CategoryMapping("subscriptions", "telecom", 0.90));
         MCC_TO_CATEGORY.put("4899", new CategoryMapping("subscriptions", "cable", 0.90));
-        
+
         // ========== CHARITY ==========
         MCC_TO_CATEGORY.put("8398", new CategoryMapping("charity", "nonprofit", 0.95));
         MCC_TO_CATEGORY.put("8661", new CategoryMapping("charity", "religious", 0.90));
     }
-    
+
     /**
      * Get category mapping from MCC code
+     *
      * @param mccCode 4-digit MCC code (e.g., "5411")
-     * @return CategoryMapping with primary, detailed category, and confidence, or default "other" if not found
+     * @return CategoryMapping with primary, detailed category, and confidence, or default "other"
+     *     if not found
      */
-    public CategoryMapping getCategoryFromMCC(String mccCode) {
-        if (mccCode == null || mccCode.trim().isEmpty()) {
+    public CategoryMapping getCategoryFromMCC(final String mccCode) {
+        if (mccCode == null || mccCode.isBlank()) {
             return new CategoryMapping("other", "other", 0.50);
         }
-        
+
         // Normalize MCC code (remove leading zeros, ensure 4 digits)
         String normalized = mccCode.trim();
         if (normalized.length() < 4) {
             normalized = String.format("%04d", Integer.parseInt(normalized));
         }
-        
-        return MCC_TO_CATEGORY.getOrDefault(normalized, 
-            new CategoryMapping("other", "other", 0.50));
+
+        return MCC_TO_CATEGORY.getOrDefault(
+                normalized, new CategoryMapping("other", "other", 0.50));
     }
-    
-    /**
-     * Check if MCC code is available and mapped
-     */
-    public boolean hasMapping(String mccCode) {
-        if (mccCode == null || mccCode.trim().isEmpty()) {
+
+    /** Check if MCC code is available and mapped */
+    public boolean hasMapping(final String mccCode) {
+        if (mccCode == null || mccCode.isBlank()) {
             return false;
         }
         String normalized = mccCode.trim();
@@ -304,15 +317,12 @@ public class MCCCodeMapper {
         }
         return MCC_TO_CATEGORY.containsKey(normalized);
     }
-    
-    /**
-     * Get all MCC codes for a given category (useful for reverse lookup)
-     */
-    public java.util.List<String> getMCCCodesForCategory(String primaryCategory) {
+
+    /** Get all MCC codes for a given category (useful for reverse lookup) */
+    public java.util.List<String> getMCCCodesForCategory(final String primaryCategory) {
         return MCC_TO_CATEGORY.entrySet().stream()
-            .filter(entry -> entry.getValue().getPrimaryCategory().equals(primaryCategory))
-            .map(Map.Entry::getKey)
-            .collect(java.util.stream.Collectors.toList());
+                .filter(entry -> entry.getValue().getPrimaryCategory().equals(primaryCategory))
+                .map(Map.Entry::getKey)
+                .collect(java.util.stream.Collectors.toList());
     }
 }
-

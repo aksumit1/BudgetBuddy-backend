@@ -1,5 +1,17 @@
 package com.budgetbuddy.service.plaid;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import com.budgetbuddy.exception.AppException;
 import com.budgetbuddy.exception.ErrorCode;
 import com.budgetbuddy.model.dynamodb.AccountTable;
@@ -7,7 +19,13 @@ import com.budgetbuddy.model.dynamodb.UserTable;
 import com.budgetbuddy.plaid.PlaidService;
 import com.budgetbuddy.repository.dynamodb.AccountRepository;
 import com.budgetbuddy.service.PlaidCategoryMapper;
-import com.plaid.client.model.*;
+import com.plaid.client.model.AccountBalance;
+import com.plaid.client.model.AccountBase;
+import com.plaid.client.model.AccountsGetResponse;
+import com.plaid.client.model.Item;
+import java.util.Collections;
+import java.util.List;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -17,28 +35,16 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 
-import java.util.*;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
-
-/**
- * Unit Tests for PlaidAccountSyncService
- * Tests account synchronization logic
- */
+/** Unit Tests for PlaidAccountSyncService Tests account synchronization logic */
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
 class PlaidAccountSyncServiceTest {
 
-    @Mock
-    private PlaidService plaidService;
+    @Mock private PlaidService plaidService;
 
-    @Mock
-    private AccountRepository accountRepository;
+    @Mock private AccountRepository accountRepository;
 
-    @Mock
-    private PlaidCategoryMapper categoryMapper;
+    @Mock private PlaidCategoryMapper categoryMapper;
 
     private PlaidDataExtractor dataExtractor;
     private PlaidAccountSyncService plaidAccountSyncService;
@@ -56,32 +62,41 @@ class PlaidAccountSyncServiceTest {
         testUser.setEmail("test@example.com");
         testAccessToken = "test-access-token";
         testItemId = "test-item-id";
-        
+
         // Create real PlaidDataExtractor instance (can't be mocked due to Spring @Component)
         // Use the same accountRepository mock for both service and extractor
-        dataExtractor = new PlaidDataExtractor(accountRepository, org.mockito.Mockito.mock(com.budgetbuddy.service.TransactionTypeCategoryService.class));
-        
+        dataExtractor =
+                new PlaidDataExtractor(
+                        accountRepository,
+                        org.mockito.Mockito.mock(
+                                com.budgetbuddy.service.TransactionTypeCategoryService.class));
+
         // Create PlaidAccountSyncService with real dataExtractor
-        plaidAccountSyncService = new PlaidAccountSyncService(
-            plaidService,
-            accountRepository,
-            categoryMapper,
-            dataExtractor
-        );
+        plaidAccountSyncService =
+                new PlaidAccountSyncService(
+                        plaidService,
+                        accountRepository,
+                        categoryMapper,
+                        dataExtractor,
+                        org.mockito.Mockito.mock(
+                                com.budgetbuddy.service.correctness.BalanceReconciliationService
+                                        .class));
     }
 
     @Test
-    void testSyncAccounts_WithValidData_CreatesNewAccounts() {
+    void testSyncAccountsWithValidDataCreatesNewAccounts() {
         // Given
-        AccountsGetResponse accountsResponse = createMockAccountsResponse();
+        final AccountsGetResponse accountsResponse = createMockAccountsResponse();
         when(plaidService.getAccounts(testAccessToken)).thenReturn(accountsResponse);
         when(accountRepository.findByPlaidItemId(testItemId)).thenReturn(Collections.emptyList());
-        // OPTIMIZATION: Service now loads all accounts once via findByUserId instead of per-account queries
+        // OPTIMIZATION: Service now loads all accounts once via findByUserId instead of per-account
+        // queries
         when(accountRepository.findByUserId(testUserId)).thenReturn(Collections.emptyList());
         when(accountRepository.saveIfNotExists(any(AccountTable.class))).thenReturn(true);
 
         // When
-        assertDoesNotThrow(() -> plaidAccountSyncService.syncAccounts(testUser, testAccessToken, testItemId));
+        assertDoesNotThrow(
+                () -> plaidAccountSyncService.syncAccounts(testUser, testAccessToken, testItemId));
 
         // Then
         verify(plaidService, times(1)).getAccounts(testAccessToken);
@@ -91,10 +106,10 @@ class PlaidAccountSyncServiceTest {
     }
 
     @Test
-    void testSyncAccounts_WithExistingAccount_UpdatesAccount() {
+    void testSyncAccountsWithExistingAccountUpdatesAccount() {
         // Given
-        AccountsGetResponse accountsResponse = createMockAccountsResponse();
-        AccountTable existingAccount = new AccountTable();
+        final AccountsGetResponse accountsResponse = createMockAccountsResponse();
+        final AccountTable existingAccount = new AccountTable();
         existingAccount.setAccountId(UUID.randomUUID().toString());
         existingAccount.setUserId(testUserId);
         existingAccount.setPlaidAccountId("plaid-account-1");
@@ -102,74 +117,89 @@ class PlaidAccountSyncServiceTest {
 
         when(plaidService.getAccounts(testAccessToken)).thenReturn(accountsResponse);
         when(accountRepository.findByPlaidItemId(testItemId)).thenReturn(Collections.emptyList());
-        // OPTIMIZATION: Service now loads all accounts once via findByUserId instead of per-account queries
+        // OPTIMIZATION: Service now loads all accounts once via findByUserId instead of per-account
+        // queries
         // The existing account should be in the list returned by findByUserId
-        when(accountRepository.findByUserId(testUserId)).thenReturn(Collections.singletonList(existingAccount));
+        when(accountRepository.findByUserId(testUserId))
+                .thenReturn(Collections.singletonList(existingAccount));
         doNothing().when(accountRepository).save(any(AccountTable.class));
 
         // When
-        assertDoesNotThrow(() -> plaidAccountSyncService.syncAccounts(testUser, testAccessToken, testItemId));
+        assertDoesNotThrow(
+                () -> plaidAccountSyncService.syncAccounts(testUser, testAccessToken, testItemId));
 
         // Then
         // OPTIMIZATION: Verify findByUserId is called once (not per account)
         verify(accountRepository, times(1)).findByUserId(testUserId);
         // Account is saved in batch at the end
         verify(accountRepository, atLeastOnce()).save(any(AccountTable.class));
-        ArgumentCaptor<AccountTable> accountCaptor = ArgumentCaptor.forClass(AccountTable.class);
+        final ArgumentCaptor<AccountTable> accountCaptor = ArgumentCaptor.forClass(AccountTable.class);
         verify(accountRepository, atLeastOnce()).save(accountCaptor.capture());
-        AccountTable savedAccount = accountCaptor.getAllValues().get(accountCaptor.getAllValues().size() - 1);
+        final AccountTable savedAccount =
+                accountCaptor.getAllValues().get(accountCaptor.getAllValues().size() - 1);
         assertTrue(savedAccount.getActive(), "Account should be marked as active");
     }
 
     @Test
-    void testSyncAccounts_WithNullUser_ThrowsException() {
+    void testSyncAccountsWithNullUserThrowsException() {
         // When/Then
-        AppException exception = assertThrows(AppException.class, () -> {
-            plaidAccountSyncService.syncAccounts(null, testAccessToken, testItemId);
-        });
+        final AppException exception =
+                assertThrows(
+                        AppException.class,
+                        () -> {
+                            plaidAccountSyncService.syncAccounts(null, testAccessToken, testItemId);
+                        });
 
         assertEquals(ErrorCode.INVALID_INPUT, exception.getErrorCode());
         assertTrue(exception.getMessage().contains("User cannot be null"));
     }
 
     @Test
-    void testSyncAccounts_WithNullAccessToken_ThrowsException() {
+    void testSyncAccountsWithNullAccessTokenThrowsException() {
         // When/Then
-        AppException exception = assertThrows(AppException.class, () -> {
-            plaidAccountSyncService.syncAccounts(testUser, null, testItemId);
-        });
+        final AppException exception =
+                assertThrows(
+                        AppException.class,
+                        () -> {
+                            plaidAccountSyncService.syncAccounts(testUser, null, testItemId);
+                        });
 
         assertEquals(ErrorCode.INVALID_INPUT, exception.getErrorCode());
         assertTrue(exception.getMessage().contains("Access token cannot be null or empty"));
     }
 
     @Test
-    void testSyncAccounts_WithEmptyAccessToken_ThrowsException() {
+    void testSyncAccountsWithEmptyAccessTokenThrowsException() {
         // When/Then
-        AppException exception = assertThrows(AppException.class, () -> {
-            plaidAccountSyncService.syncAccounts(testUser, "", testItemId);
-        });
+        final AppException exception =
+                assertThrows(
+                        AppException.class,
+                        () -> {
+                            plaidAccountSyncService.syncAccounts(testUser, "", testItemId);
+                        });
 
         assertEquals(ErrorCode.INVALID_INPUT, exception.getErrorCode());
         assertTrue(exception.getMessage().contains("Access token cannot be null or empty"));
     }
 
     @Test
-    void testSyncAccounts_WithExistingPlaidItemId_ChecksBeforeApiCall() {
+    void testSyncAccountsWithExistingPlaidItemIdChecksBeforeApiCall() {
         // Given
-        AccountTable existingAccount = new AccountTable();
+        final AccountTable existingAccount = new AccountTable();
         existingAccount.setPlaidItemId(testItemId);
         existingAccount.setPlaidAccountId("plaid-account-1");
         existingAccount.setUserId(testUserId);
         when(accountRepository.findByPlaidItemId(testItemId)).thenReturn(List.of(existingAccount));
-        AccountsGetResponse accountsResponse = createMockAccountsResponse();
+        final AccountsGetResponse accountsResponse = createMockAccountsResponse();
         when(plaidService.getAccounts(testAccessToken)).thenReturn(accountsResponse);
-        // OPTIMIZATION: Service now loads all accounts once via findByUserId instead of per-account queries
+        // OPTIMIZATION: Service now loads all accounts once via findByUserId instead of per-account
+        // queries
         when(accountRepository.findByUserId(testUserId)).thenReturn(List.of(existingAccount));
         doNothing().when(accountRepository).save(any(AccountTable.class));
 
         // When
-        assertDoesNotThrow(() -> plaidAccountSyncService.syncAccounts(testUser, testAccessToken, testItemId));
+        assertDoesNotThrow(
+                () -> plaidAccountSyncService.syncAccounts(testUser, testAccessToken, testItemId));
 
         // Then
         verify(accountRepository, times(1)).findByPlaidItemId(testItemId);
@@ -179,9 +209,9 @@ class PlaidAccountSyncServiceTest {
     }
 
     private AccountsGetResponse createMockAccountsResponse() {
-        AccountsGetResponse response = new AccountsGetResponse();
-        
-        AccountBase account = new AccountBase();
+        final AccountsGetResponse response = new AccountsGetResponse();
+
+        final AccountBase account = new AccountBase();
         account.setAccountId("plaid-account-1");
         account.setName("Test Account");
         account.setOfficialName("Test Account Official");
@@ -194,21 +224,20 @@ class PlaidAccountSyncServiceTest {
         } catch (NoSuchMethodException e) {
             // Type enum not available in this SDK version - that's OK
         }
-        
-        AccountBalance balance = new AccountBalance();
+
+        final AccountBalance balance = new AccountBalance();
         balance.setAvailable(1000.0);
         balance.setCurrent(1000.0);
         balance.setIsoCurrencyCode("USD");
         account.setBalances(balance);
-        
+
         response.setAccounts(Collections.singletonList(account));
-        
-        Item item = new Item();
+
+        final Item item = new Item();
         item.setItemId("test-item-id");
         item.setInstitutionId("test-bank");
         response.setItem(item);
-        
+
         return response;
     }
 }
-

@@ -3,9 +3,7 @@ package com.budgetbuddy.dto;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.time.LocalDateTime;
 
-/**
- * Authentication response DTO
- */
+/** Authentication response DTO */
 public final class AuthResponse {
 
     private String accessToken;
@@ -13,21 +11,20 @@ public final class AuthResponse {
     private String tokenType = "Bearer";
     private LocalDateTime expiresAt;
     private UserInfo user;
-    
-    /**
-     * Get token for backward compatibility with iOS app
-     * Returns accessToken
-     */
+
+    /** Get token for backward compatibility with iOS app Returns accessToken */
     @JsonProperty("token")
     public String getToken() {
         return accessToken;
     }
 
-    public AuthResponse() {
-    }
+    public AuthResponse() {}
 
-    public AuthResponse(final String accessToken, final String refreshToken,
-                        final LocalDateTime expiresAt, final UserInfo user) {
+    public AuthResponse(
+            final String accessToken,
+            final String refreshToken,
+            final LocalDateTime expiresAt,
+            final UserInfo user) {
         this.accessToken = accessToken;
         this.refreshToken = refreshToken;
         this.expiresAt = expiresAt;
@@ -81,11 +78,13 @@ public final class AuthResponse {
         private String firstName;
         private String lastName;
 
-        public UserInfo() {
-        }
+        public UserInfo() {}
 
-        public UserInfo(final String id, final String email,
-                        final String firstName, final String lastName) {
+        public UserInfo(
+                final String id,
+                final String email,
+                final String firstName,
+                final String lastName) {
             this.id = id;
             this.email = email;
             this.firstName = firstName;
@@ -126,4 +125,3 @@ public final class AuthResponse {
         }
     }
 }
-

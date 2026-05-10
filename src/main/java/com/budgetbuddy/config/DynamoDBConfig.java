@@ -1,5 +1,7 @@
 package com.budgetbuddy.config;
 
+import java.net.URI;
+import java.time.Duration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -14,24 +16,20 @@ import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 
-import java.net.URI;
-import java.time.Duration;
-
 /**
- * DynamoDB Configuration
- * Uses IAM roles for authentication (no credentials needed)
- * Optimized for cost: on-demand billing, minimal provisioned capacity
- * 
- * Resilience Features:
- * - DNS cache TTL configured via DnsCacheConfig (prevents stale DNS entries)
- * - Retry policy with exponential backoff (handles transient failures)
- * - Connection timeouts (prevents hanging connections)
+ * DynamoDB Configuration Uses IAM roles for authentication (no credentials needed) Optimized for
+ * cost: on-demand billing, minimal provisioned capacity
+ *
+ * <p>Resilience Features: - DNS cache TTL configured via DnsCacheConfig (prevents stale DNS
+ * entries) - Retry policy with exponential backoff (handles transient failures) - Connection
+ * timeouts (prevents hanging connections)
  */
 @Configuration
-@org.springframework.context.annotation.Profile("!test") // Don't load in tests - use AWSTestConfiguration instead
+@org.springframework.context.annotation.Profile(
+        "!test") // Don't load in tests - use AWSTestConfiguration instead
 public class DynamoDBConfig {
 
-    private static final Logger logger = LoggerFactory.getLogger(DynamoDBConfig.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(DynamoDBConfig.class);
 
     @Value("${app.aws.region:us-east-1}")
     private String awsRegion;
@@ -48,21 +46,20 @@ public class DynamoDBConfig {
     @Value("${AWS_SECRET_ACCESS_KEY:}")
     private String secretAccessKey;
 
-    /**
-     * Credentials provider that uses IAM role in ECS/EKS, or static credentials for LocalStack
-     */
+    /** Credentials provider that uses IAM role in ECS/EKS, or static credentials for LocalStack */
     private AwsCredentialsProvider getCredentialsProvider() {
         // For LocalStack, use static credentials if provided
         // Handle null values (can occur in tests or when env vars are not set)
-        if (accessKeyId != null && !accessKeyId.isEmpty() && 
-            secretAccessKey != null && !secretAccessKey.isEmpty()) {
-            logger.debug("Using static credentials for DynamoDB (LocalStack mode)");
+        if (accessKeyId != null
+                && !accessKeyId.isEmpty()
+                && secretAccessKey != null
+                && !secretAccessKey.isEmpty()) {
+            LOGGER.debug("Using static credentials for DynamoDB (LocalStack mode)");
             return StaticCredentialsProvider.create(
-                    AwsBasicCredentials.create(accessKeyId, secretAccessKey)
-            );
+                    AwsBasicCredentials.create(accessKeyId, secretAccessKey));
         }
         // For production, use IAM role or default credentials provider
-        logger.debug("Using default credentials provider for DynamoDB (AWS mode)");
+        LOGGER.debug("Using default credentials provider for DynamoDB (AWS mode)");
         return DefaultCredentialsProvider.create();
     }
 
@@ -72,33 +69,44 @@ public class DynamoDBConfig {
         // AWS SDK v2 has built-in retry logic with exponential backoff (default: 3 attempts)
         // This handles transient failures (network errors, DNS failures, etc.)
         // DNS cache TTL (configured in DnsCacheConfig) ensures quick recovery from DNS failures
-        ClientOverrideConfiguration clientConfig = ClientOverrideConfiguration.builder()
-                .apiCallTimeout(Duration.ofSeconds(timeoutSeconds))
-                .apiCallAttemptTimeout(Duration.ofSeconds(timeoutSeconds))
-                // Note: AWS SDK v2 has default retry logic (3 attempts with exponential backoff)
-                // Additional retry configuration can be done via system properties if needed
-                .build();
+        final ClientOverrideConfiguration clientConfig =
+                ClientOverrideConfiguration.builder()
+                        .apiCallTimeout(Duration.ofSeconds(timeoutSeconds))
+                        .apiCallAttemptTimeout(Duration.ofSeconds(timeoutSeconds))
+                        // Note: AWS SDK v2 has default retry logic (3 attempts with exponential
+                        // backoff)
+                        // Additional retry configuration can be done via system properties if
+                        // needed
+                        .build();
 
-        var builder = DynamoDbClient.builder()
-                .region(Region.of(awsRegion))
-                .credentialsProvider(getCredentialsProvider())
-                .overrideConfiguration(clientConfig);
+        final var builder =
+                DynamoDbClient.builder()
+                        .region(Region.of(awsRegion))
+                        .credentialsProvider(getCredentialsProvider())
+                        .overrideConfiguration(clientConfig);
 
         // For local development with LocalStack
         if (!dynamoDbEndpoint.isEmpty()) {
             try {
-                URI endpointUri = URI.create(dynamoDbEndpoint);
+                final URI endpointUri = URI.create(dynamoDbEndpoint);
                 builder.endpointOverride(endpointUri);
-                logger.info("DynamoDB client configured with endpoint: {} (LocalStack)", dynamoDbEndpoint);
+                LOGGER.info(
+                        "DynamoDB client configured with endpoint: {} (LocalStack)",
+                        dynamoDbEndpoint);
             } catch (IllegalArgumentException e) {
-                logger.error("Invalid DynamoDB endpoint URI: {}. Error: {}", dynamoDbEndpoint, e.getMessage());
-                throw new IllegalStateException("Invalid DynamoDB endpoint configuration: " + dynamoDbEndpoint, e);
+                LOGGER.error(
+                        "Invalid DynamoDB endpoint URI: {}. Error: {}",
+                        dynamoDbEndpoint,
+                        e.getMessage());
+                throw new IllegalStateException(
+                        "Invalid DynamoDB endpoint configuration: " + dynamoDbEndpoint, e);
             }
         } else {
-            logger.info("DynamoDB client configured for AWS (no endpoint override)");
+            LOGGER.info("DynamoDB client configured for AWS (no endpoint override)");
         }
 
-        logger.info("DynamoDB client configured: timeout={}s (default retry: 3 attempts with exponential backoff)", 
+        LOGGER.info(
+                "DynamoDB client configured: timeout={}s (default retry: 3 attempts with exponential backoff)",
                 timeoutSeconds);
 
         return builder.build();
@@ -106,9 +114,6 @@ public class DynamoDBConfig {
 
     @Bean
     public DynamoDbEnhancedClient dynamoDbEnhancedClient(final DynamoDbClient dynamoDbClient) {
-        return DynamoDbEnhancedClient.builder()
-                .dynamoDbClient(dynamoDbClient)
-                .build();
+        return DynamoDbEnhancedClient.builder().dynamoDbClient(dynamoDbClient).build();
     }
 }
-

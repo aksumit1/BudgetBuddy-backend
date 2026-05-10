@@ -1,22 +1,21 @@
 package com.budgetbuddy.service;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import static org.junit.jupiter.api.Assertions.*;
-
-/**
- * Unit Tests for PlaidCategoryMapper
- * Tests Plaid category mapping to internal categories
- */
+/** Unit Tests for PlaidCategoryMapper Tests Plaid category mapping to internal categories */
 @ExtendWith(MockitoExtension.class)
 class PlaidCategoryMapperTest {
 
-    @InjectMocks
-    private PlaidCategoryMapper plaidCategoryMapper;
+    @InjectMocks private PlaidCategoryMapper plaidCategoryMapper;
 
     @BeforeEach
     void setUp() {
@@ -24,16 +23,16 @@ class PlaidCategoryMapperTest {
     }
 
     @Test
-    void testMapPlaidCategory_WithGroceries_MapsCorrectly() {
+    void testMapPlaidCategoryWithGroceriesMapsCorrectly() {
         // Given
-        String primary = "FOOD_AND_DRINK";
-        String detailed = "GROCERIES";
-        String merchantName = "Walmart";
-        String description = "Grocery shopping";
+        final String primary = "FOOD_AND_DRINK";
+        final String detailed = "GROCERIES";
+        final String merchantName = "Walmart";
+        final String description = "Grocery shopping";
 
         // When
-        PlaidCategoryMapper.CategoryMapping result = plaidCategoryMapper.mapPlaidCategory(
-                primary, detailed, merchantName, description);
+        final PlaidCategoryMapper.CategoryMapping result =
+                plaidCategoryMapper.mapPlaidCategory(primary, detailed, merchantName, description);
 
         // Then
         assertNotNull(result);
@@ -43,16 +42,16 @@ class PlaidCategoryMapperTest {
     }
 
     @Test
-    void testMapPlaidCategory_WithRestaurants_MapsToDining() {
+    void testMapPlaidCategoryWithRestaurantsMapsToDining() {
         // Given
-        String primary = "FOOD_AND_DRINK";
-        String detailed = "RESTAURANTS";
-        String merchantName = "McDonald's";
-        String description = "Fast food";
+        final String primary = "FOOD_AND_DRINK";
+        final String detailed = "RESTAURANTS";
+        final String merchantName = "McDonald's";
+        final String description = "Fast food";
 
         // When
-        PlaidCategoryMapper.CategoryMapping result = plaidCategoryMapper.mapPlaidCategory(
-                primary, detailed, merchantName, description);
+        final PlaidCategoryMapper.CategoryMapping result =
+                plaidCategoryMapper.mapPlaidCategory(primary, detailed, merchantName, description);
 
         // Then
         assertNotNull(result);
@@ -61,16 +60,16 @@ class PlaidCategoryMapperTest {
     }
 
     @Test
-    void testMapPlaidCategory_WithTransportation_MapsCorrectly() {
+    void testMapPlaidCategoryWithTransportationMapsCorrectly() {
         // Given
-        String primary = "TRANSPORTATION";
-        String detailed = "GAS_STATIONS";
-        String merchantName = "Shell";
-        String description = "Gas";
+        final String primary = "TRANSPORTATION";
+        final String detailed = "GAS_STATIONS";
+        final String merchantName = "Shell";
+        final String description = "Gas";
 
         // When
-        PlaidCategoryMapper.CategoryMapping result = plaidCategoryMapper.mapPlaidCategory(
-                primary, detailed, merchantName, description);
+        final PlaidCategoryMapper.CategoryMapping result =
+                plaidCategoryMapper.mapPlaidCategory(primary, detailed, merchantName, description);
 
         // Then
         assertNotNull(result);
@@ -79,16 +78,16 @@ class PlaidCategoryMapperTest {
     }
 
     @Test
-    void testMapPlaidCategory_WithSubscriptions_MapsCorrectly() {
+    void testMapPlaidCategoryWithSubscriptionsMapsCorrectly() {
         // Given
-        String primary = "ENTERTAINMENT";
-        String detailed = "STREAMING_SERVICES";
-        String merchantName = "Netflix";
-        String description = "Monthly subscription";
+        final String primary = "ENTERTAINMENT";
+        final String detailed = "STREAMING_SERVICES";
+        final String merchantName = "Netflix";
+        final String description = "Monthly subscription";
 
         // When
-        PlaidCategoryMapper.CategoryMapping result = plaidCategoryMapper.mapPlaidCategory(
-                primary, detailed, merchantName, description);
+        final PlaidCategoryMapper.CategoryMapping result =
+                plaidCategoryMapper.mapPlaidCategory(primary, detailed, merchantName, description);
 
         // Then
         assertNotNull(result);
@@ -96,16 +95,16 @@ class PlaidCategoryMapperTest {
     }
 
     @Test
-    void testMapPlaidCategory_WithEnhancedMerchantDetection_DetectsDining() {
+    void testMapPlaidCategoryWithEnhancedMerchantDetectionDetectsDining() {
         // Given
-        String primary = "GENERAL_MERCHANDISE";
-        String detailed = null;
-        String merchantName = "Starbucks";
-        String description = "Coffee purchase";
+        final String primary = "GENERAL_MERCHANDISE";
+        final String detailed = null;
+        final String merchantName = "Starbucks";
+        final String description = "Coffee purchase";
 
         // When
-        PlaidCategoryMapper.CategoryMapping result = plaidCategoryMapper.mapPlaidCategory(
-                primary, detailed, merchantName, description);
+        final PlaidCategoryMapper.CategoryMapping result =
+                plaidCategoryMapper.mapPlaidCategory(primary, detailed, merchantName, description);
 
         // Then
         assertNotNull(result);
@@ -113,36 +112,37 @@ class PlaidCategoryMapperTest {
     }
 
     @Test
-    void testMapPlaidCategory_WithEnhancedMerchantDetection_DetectsGroceries() {
+    void testMapPlaidCategoryWithEnhancedMerchantDetectionDetectsGroceries() {
         // Given
-        String primary = "GENERAL_MERCHANDISE";
-        String detailed = null;
-        String merchantName = "Target";
-        String description = "Shopping";
+        final String primary = "GENERAL_MERCHANDISE";
+        final String detailed = null;
+        final String merchantName = "Target";
+        final String description = "Shopping";
 
         // When
-        PlaidCategoryMapper.CategoryMapping result = plaidCategoryMapper.mapPlaidCategory(
-                primary, detailed, merchantName, description);
+        final PlaidCategoryMapper.CategoryMapping result =
+                plaidCategoryMapper.mapPlaidCategory(primary, detailed, merchantName, description);
 
         // Then
         assertNotNull(result);
         // Target can be categorized as either groceries or shopping depending on context
         // Both are valid categorizations for a store that sells both
-        assertTrue("groceries".equals(result.getDetailed()) || "shopping".equals(result.getDetailed()),
+        assertTrue(
+                "groceries".equals(result.getDetailed()) || "shopping".equals(result.getDetailed()),
                 "Expected groceries or shopping but got: " + result.getDetailed());
     }
 
     @Test
-    void testMapPlaidCategory_WithEnhancedMerchantDetection_DetectsTransportation() {
+    void testMapPlaidCategoryWithEnhancedMerchantDetectionDetectsTransportation() {
         // Given
-        String primary = "GENERAL_SERVICES";
-        String detailed = null;
-        String merchantName = "Uber";
-        String description = "Ride";
+        final String primary = "GENERAL_SERVICES";
+        final String detailed = null;
+        final String merchantName = "Uber";
+        final String description = "Ride";
 
         // When
-        PlaidCategoryMapper.CategoryMapping result = plaidCategoryMapper.mapPlaidCategory(
-                primary, detailed, merchantName, description);
+        final PlaidCategoryMapper.CategoryMapping result =
+                plaidCategoryMapper.mapPlaidCategory(primary, detailed, merchantName, description);
 
         // Then
         assertNotNull(result);
@@ -150,108 +150,115 @@ class PlaidCategoryMapperTest {
     }
 
     @Test
-    void testMapPlaidCategory_WithIncome_MapsCorrectly() {
+    void testMapPlaidCategoryWithIncomeMapsCorrectly() {
         // Given
-        String primary = "INCOME";
-        String detailed = "SALARY";
-        String merchantName = "Employer";
-        String description = "Payroll";
+        final String primary = "INCOME";
+        final String detailed = "SALARY";
+        final String merchantName = "Employer";
+        final String description = "Payroll";
 
         // When
-        PlaidCategoryMapper.CategoryMapping result = plaidCategoryMapper.mapPlaidCategory(
-                primary, detailed, merchantName, description);
+        final PlaidCategoryMapper.CategoryMapping result =
+                plaidCategoryMapper.mapPlaidCategory(primary, detailed, merchantName, description);
 
         // Then
         assertNotNull(result);
         assertEquals("income", result.getPrimary());
         // CRITICAL: "income" is ONLY a primary category, not a detailed category
         // Description contains "Payroll", so should be categorized as salary, not generic income
-        assertEquals("salary", result.getDetailed(), "Income with payroll description should be salary (not generic income)");
+        assertEquals(
+                "salary",
+                result.getDetailed(),
+                "Income with payroll description should be salary (not generic income)");
     }
 
     @Test
-    void testMapPlaidCategory_WithInterestMisspelling_INTRST_DetectedAsInterest() {
+    void testMapPlaidCategoryWithInterestMisspellingINTRSTDetectedAsInterest() {
         // Given: Interest payment with misspelling "INTRST"
-        String primary = "INCOME";
-        String detailed = "INTEREST_EARNED";
-        String merchantName = null;
-        String description = "INTRST payment";
+        final String primary = "INCOME";
+        final String detailed = "INTEREST_EARNED";
+        final String merchantName = null;
+        final String description = "INTRST payment";
 
         // When
-        PlaidCategoryMapper.CategoryMapping result = plaidCategoryMapper.mapPlaidCategory(
-                primary, detailed, merchantName, description);
+        final PlaidCategoryMapper.CategoryMapping result =
+                plaidCategoryMapper.mapPlaidCategory(primary, detailed, merchantName, description);
 
         // Then
         assertNotNull(result);
         assertEquals("income", result.getPrimary());
-        assertEquals("interest", result.getDetailed(), "INTRST payment should be detected as interest");
+        assertEquals(
+                "interest", result.getDetailed(), "INTRST payment should be detected as interest");
     }
 
     @Test
-    void testMapPlaidCategory_WithInterestMisspelling_INTR_DetectedAsInterest() {
+    void testMapPlaidCategoryWithInterestMisspellingINTRDetectedAsInterest() {
         // Given: Interest payment with misspelling "INTR"
-        String primary = "INCOME";
-        String detailed = null;
-        String merchantName = null;
-        String description = "INTR payment";
+        final String primary = "INCOME";
+        final String detailed = null;
+        final String merchantName = null;
+        final String description = "INTR payment";
 
         // When
-        PlaidCategoryMapper.CategoryMapping result = plaidCategoryMapper.mapPlaidCategory(
-                primary, detailed, merchantName, description);
+        final PlaidCategoryMapper.CategoryMapping result =
+                plaidCategoryMapper.mapPlaidCategory(primary, detailed, merchantName, description);
 
         // Then
         assertNotNull(result);
         assertEquals("income", result.getPrimary());
-        assertEquals("interest", result.getDetailed(), "INTR payment should be detected as interest");
+        assertEquals(
+                "interest", result.getDetailed(), "INTR payment should be detected as interest");
     }
 
     @Test
-    void testMapPlaidCategory_WithInterestMisspelling_INTREST_DetectedAsInterest() {
+    void testMapPlaidCategoryWithInterestMisspellingINTRESTDetectedAsInterest() {
         // Given: Interest payment with misspelling "INTREST"
-        String primary = "INCOME";
-        String detailed = null;
-        String merchantName = null;
-        String description = "INTREST payment";
+        final String primary = "INCOME";
+        final String detailed = null;
+        final String merchantName = null;
+        final String description = "INTREST payment";
 
         // When
-        PlaidCategoryMapper.CategoryMapping result = plaidCategoryMapper.mapPlaidCategory(
-                primary, detailed, merchantName, description);
+        final PlaidCategoryMapper.CategoryMapping result =
+                plaidCategoryMapper.mapPlaidCategory(primary, detailed, merchantName, description);
 
         // Then
         assertNotNull(result);
         assertEquals("income", result.getPrimary());
-        assertEquals("interest", result.getDetailed(), "INTREST payment should be detected as interest");
+        assertEquals(
+                "interest", result.getDetailed(), "INTREST payment should be detected as interest");
     }
 
     @Test
-    void testMapPlaidCategory_WithInterestMisspelling_INTRSTPayment_DetectedAsInterest() {
+    void testMapPlaidCategoryWithInterestMisspellingINTRSTPaymentDetectedAsInterest() {
         // Given: Interest payment with misspelling "INTRST payment"
-        String primary = "INCOME";
-        String detailed = null;
-        String merchantName = null;
-        String description = "INTRST payment";
+        final String primary = "INCOME";
+        final String detailed = null;
+        final String merchantName = null;
+        final String description = "INTRST payment";
 
         // When
-        PlaidCategoryMapper.CategoryMapping result = plaidCategoryMapper.mapPlaidCategory(
-                primary, detailed, merchantName, description);
+        final PlaidCategoryMapper.CategoryMapping result =
+                plaidCategoryMapper.mapPlaidCategory(primary, detailed, merchantName, description);
 
         // Then
         assertNotNull(result);
         assertEquals("income", result.getPrimary());
-        assertEquals("interest", result.getDetailed(), "INTRST payment should be detected as interest");
+        assertEquals(
+                "interest", result.getDetailed(), "INTRST payment should be detected as interest");
     }
 
     @Test
-    void testMapPlaidCategory_WithUnknownCategory_DefaultsToOther() {
+    void testMapPlaidCategoryWithUnknownCategoryDefaultsToOther() {
         // Given
-        String primary = "UNKNOWN_CATEGORY";
-        String detailed = null;
-        String merchantName = null;
-        String description = null;
+        final String primary = "UNKNOWN_CATEGORY";
+        final String detailed = null;
+        final String merchantName = null;
+        final String description = null;
 
         // When
-        PlaidCategoryMapper.CategoryMapping result = plaidCategoryMapper.mapPlaidCategory(
-                primary, detailed, merchantName, description);
+        final PlaidCategoryMapper.CategoryMapping result =
+                plaidCategoryMapper.mapPlaidCategory(primary, detailed, merchantName, description);
 
         // Then
         assertNotNull(result);
@@ -260,53 +267,63 @@ class PlaidCategoryMapperTest {
     }
 
     @Test
-    void testMapPlaidCategory_WithINTRSTPYMNT_OverridesOtherToInterest() {
+    void testMapPlaidCategoryWithINTRSTPYMNTOverridesOtherToInterest() {
         // Given: Interest payment with "INTRST PYMNT" description but Plaid sent "other" category
         // This tests the critical fix that ensures interest payments are always Income/Interest
-        String primary = "GENERAL_SERVICES"; // Plaid incorrectly categorizes as "other"
-        String detailed = null;
-        String merchantName = null;
-        String description = "INTRST PYMNT";
+        final String primary = "GENERAL_SERVICES"; // Plaid incorrectly categorizes as "other"
+        final String detailed = null;
+        final String merchantName = null;
+        final String description = "INTRST PYMNT";
 
         // When
-        PlaidCategoryMapper.CategoryMapping result = plaidCategoryMapper.mapPlaidCategory(
-                primary, detailed, merchantName, description);
+        final PlaidCategoryMapper.CategoryMapping result =
+                plaidCategoryMapper.mapPlaidCategory(primary, detailed, merchantName, description);
 
         // Then
         assertNotNull(result);
-        assertEquals("income", result.getPrimary(), "INTRST PYMNT should override primary to income");
-        assertEquals("interest", result.getDetailed(), "INTRST PYMNT should override detailed to interest");
+        assertEquals(
+                "income", result.getPrimary(), "INTRST PYMNT should override primary to income");
+        assertEquals(
+                "interest",
+                result.getDetailed(),
+                "INTRST PYMNT should override detailed to interest");
     }
 
     @Test
-    void testMapPlaidCategory_WithINTRSTPYMNT_OverridesUnknownCategoryToInterest() {
+    void testMapPlaidCategoryWithINTRSTPYMNTOverridesUnknownCategoryToInterest() {
         // Given: Interest payment with "INTRST PYMNT" description but Plaid sent "UNKNOWN_CATEGORY"
-        String primary = "UNKNOWN_CATEGORY";
-        String detailed = null;
-        String merchantName = null;
-        String description = "INTRST PYMNT";
+        final String primary = "UNKNOWN_CATEGORY";
+        final String detailed = null;
+        final String merchantName = null;
+        final String description = "INTRST PYMNT";
 
         // When
-        PlaidCategoryMapper.CategoryMapping result = plaidCategoryMapper.mapPlaidCategory(
-                primary, detailed, merchantName, description);
+        final PlaidCategoryMapper.CategoryMapping result =
+                plaidCategoryMapper.mapPlaidCategory(primary, detailed, merchantName, description);
 
         // Then
         assertNotNull(result);
-        assertEquals("income", result.getPrimary(), "INTRST PYMNT should override UNKNOWN_CATEGORY to income");
-        assertEquals("interest", result.getDetailed(), "INTRST PYMNT should override UNKNOWN_CATEGORY to interest");
+        assertEquals(
+                "income",
+                result.getPrimary(),
+                "INTRST PYMNT should override UNKNOWN_CATEGORY to income");
+        assertEquals(
+                "interest",
+                result.getDetailed(),
+                "INTRST PYMNT should override UNKNOWN_CATEGORY to interest");
     }
 
     @Test
-    void testMapPlaidCategory_WithNullInputs_HandlesGracefully() {
+    void testMapPlaidCategoryWithNullInputsHandlesGracefully() {
         // Given
-        String primary = null;
-        String detailed = null;
-        String merchantName = null;
-        String description = null;
+        final String primary = null;
+        final String detailed = null;
+        final String merchantName = null;
+        final String description = null;
 
         // When
-        PlaidCategoryMapper.CategoryMapping result = plaidCategoryMapper.mapPlaidCategory(
-                primary, detailed, merchantName, description);
+        final PlaidCategoryMapper.CategoryMapping result =
+                plaidCategoryMapper.mapPlaidCategory(primary, detailed, merchantName, description);
 
         // Then
         assertNotNull(result);
@@ -315,16 +332,16 @@ class PlaidCategoryMapperTest {
     }
 
     @Test
-    void testApplyOverride_WithValidOverride_ReturnsOverriddenMapping() {
+    void testApplyOverrideWithValidOverrideReturnsOverriddenMapping() {
         // Given
-        PlaidCategoryMapper.CategoryMapping original = new PlaidCategoryMapper.CategoryMapping(
-                "dining", "restaurants", false);
-        String overridePrimary = "groceries";
-        String overrideDetailed = "supermarket";
+        final PlaidCategoryMapper.CategoryMapping original =
+                new PlaidCategoryMapper.CategoryMapping("dining", "restaurants", false);
+        final String overridePrimary = "groceries";
+        final String overrideDetailed = "supermarket";
 
         // When
-        PlaidCategoryMapper.CategoryMapping result = plaidCategoryMapper.applyOverride(
-                original, overridePrimary, overrideDetailed);
+        final PlaidCategoryMapper.CategoryMapping result =
+                plaidCategoryMapper.applyOverride(original, overridePrimary, overrideDetailed);
 
         // Then
         assertNotNull(result);
@@ -334,16 +351,16 @@ class PlaidCategoryMapperTest {
     }
 
     @Test
-    void testApplyOverride_WithPartialOverride_UsesOriginalForMissing() {
+    void testApplyOverrideWithPartialOverrideUsesOriginalForMissing() {
         // Given
-        PlaidCategoryMapper.CategoryMapping original = new PlaidCategoryMapper.CategoryMapping(
-                "dining", "restaurants", false);
-        String overridePrimary = "groceries";
-        String overrideDetailed = null; // No detailed override
+        final PlaidCategoryMapper.CategoryMapping original =
+                new PlaidCategoryMapper.CategoryMapping("dining", "restaurants", false);
+        final String overridePrimary = "groceries";
+        final String overrideDetailed = null; // No detailed override
 
         // When
-        PlaidCategoryMapper.CategoryMapping result = plaidCategoryMapper.applyOverride(
-                original, overridePrimary, overrideDetailed);
+        final PlaidCategoryMapper.CategoryMapping result =
+                plaidCategoryMapper.applyOverride(original, overridePrimary, overrideDetailed);
 
         // Then
         assertNotNull(result);
@@ -353,16 +370,16 @@ class PlaidCategoryMapperTest {
     }
 
     @Test
-    void testApplyOverride_WithEmptyOverride_UsesOriginal() {
+    void testApplyOverrideWithEmptyOverrideUsesOriginal() {
         // Given
-        PlaidCategoryMapper.CategoryMapping original = new PlaidCategoryMapper.CategoryMapping(
-                "dining", "restaurants", false);
-        String overridePrimary = "";
-        String overrideDetailed = "";
+        final PlaidCategoryMapper.CategoryMapping original =
+                new PlaidCategoryMapper.CategoryMapping("dining", "restaurants", false);
+        final String overridePrimary = "";
+        final String overrideDetailed = "";
 
         // When
-        PlaidCategoryMapper.CategoryMapping result = plaidCategoryMapper.applyOverride(
-                original, overridePrimary, overrideDetailed);
+        final PlaidCategoryMapper.CategoryMapping result =
+                plaidCategoryMapper.applyOverride(original, overridePrimary, overrideDetailed);
 
         // Then
         assertNotNull(result);
@@ -374,52 +391,60 @@ class PlaidCategoryMapperTest {
     // ========== Airline Transaction Tests ==========
 
     @Test
-    void testDeltaAirlines_Travel_NotUtilities() {
+    void testDeltaAirlinesTravelNotUtilities() {
         // Given: Delta Airlines transaction that was incorrectly categorized as utilities
-        String primary = "RENT_AND_UTILITIES"; // Plaid incorrectly categorizes as utilities
-        String detailed = "UTILITIES";
-        String merchantName = "DELTA AIR LINES ATLANTA DELTA AIR LINES From: To: Carrier: Class: NASHVILLE SEATTLE-TACOMA INT DL Q Ticket Number: 00623608559696 Date of Departure: 09/13 Passenger Name: AGARWAL/MUDIT Document Type: PASSENGER TICKET";
-        String description = "DELTA AIR LINES ATLANTA DELTA AIR LINES From: To: Carrier: Class: NASHVILLE SEATTLE-TACOMA INT DL Q Ticket Number: 00623608559696 Date of Departure: 09/13 Passenger Name: AGARWAL/MUDIT Document Type: PASSENGER TICKET";
+        final String primary = "RENT_AND_UTILITIES"; // Plaid incorrectly categorizes as utilities
+        final String detailed = "UTILITIES";
+        final String merchantName =
+                "DELTA AIR LINES ATLANTA DELTA AIR LINES From: To: Carrier: Class: NASHVILLE SEATTLE-TACOMA INT DL Q Ticket Number: 00623608559696 Date of Departure: 09/13 Passenger Name: AGARWAL/MUDIT Document Type: PASSENGER TICKET";
+        final String description =
+                "DELTA AIR LINES ATLANTA DELTA AIR LINES From: To: Carrier: Class: NASHVILLE SEATTLE-TACOMA INT DL Q Ticket Number: 00623608559696 Date of Departure: 09/13 Passenger Name: AGARWAL/MUDIT Document Type: PASSENGER TICKET";
 
         // When
-        PlaidCategoryMapper.CategoryMapping result = plaidCategoryMapper.mapPlaidCategory(
-                primary, detailed, merchantName, description);
+        final PlaidCategoryMapper.CategoryMapping result =
+                plaidCategoryMapper.mapPlaidCategory(primary, detailed, merchantName, description);
 
         // Then
         assertNotNull(result);
-        assertEquals("travel", result.getPrimary(), "Delta Airlines should be travel, not utilities");
-        assertEquals("travel", result.getDetailed(), "Delta Airlines should be travel, not utilities");
+        assertEquals(
+                "travel", result.getPrimary(), "Delta Airlines should be travel, not utilities");
+        assertEquals(
+                "travel", result.getDetailed(), "Delta Airlines should be travel, not utilities");
     }
 
     @Test
-    void testAlaskaAirlines_Travel_NotUtilities() {
+    void testAlaskaAirlinesTravelNotUtilities() {
         // Given: Alaska Airlines transaction that was incorrectly categorized as utilities
-        String primary = "RENT_AND_UTILITIES";
-        String detailed = "UTILITIES";
-        String merchantName = "ALASKA AIRLINES SEATTLE WA ALASKA AIRLINES From: To: Carrier: Class: SEATTLE-TACOMA INT NASHVILLE AS 00 Ticket Number: 0274420370977 Date of Departure: 05/25 Passenger Name: AGARWAL/MUDIT Document Type: PASSENGER TICKET";
-        String description = "ALASKA AIRLINES SEATTLE WA ALASKA AIRLINES From: To: Carrier: Class: SEATTLE-TACOMA INT NASHVILLE AS 00 Ticket Number: 0274420370977 Date of Departure: 05/25 Passenger Name: AGARWAL/MUDIT Document Type: PASSENGER TICKET";
+        final String primary = "RENT_AND_UTILITIES";
+        final String detailed = "UTILITIES";
+        final String merchantName =
+                "ALASKA AIRLINES SEATTLE WA ALASKA AIRLINES From: To: Carrier: Class: SEATTLE-TACOMA INT NASHVILLE AS 00 Ticket Number: 0274420370977 Date of Departure: 05/25 Passenger Name: AGARWAL/MUDIT Document Type: PASSENGER TICKET";
+        final String description =
+                "ALASKA AIRLINES SEATTLE WA ALASKA AIRLINES From: To: Carrier: Class: SEATTLE-TACOMA INT NASHVILLE AS 00 Ticket Number: 0274420370977 Date of Departure: 05/25 Passenger Name: AGARWAL/MUDIT Document Type: PASSENGER TICKET";
 
         // When
-        PlaidCategoryMapper.CategoryMapping result = plaidCategoryMapper.mapPlaidCategory(
-                primary, detailed, merchantName, description);
+        final PlaidCategoryMapper.CategoryMapping result =
+                plaidCategoryMapper.mapPlaidCategory(primary, detailed, merchantName, description);
 
         // Then
         assertNotNull(result);
-        assertEquals("travel", result.getPrimary(), "Alaska Airlines should be travel, not utilities");
-        assertEquals("travel", result.getDetailed(), "Alaska Airlines should be travel, not utilities");
+        assertEquals(
+                "travel", result.getPrimary(), "Alaska Airlines should be travel, not utilities");
+        assertEquals(
+                "travel", result.getDetailed(), "Alaska Airlines should be travel, not utilities");
     }
 
     @Test
-    void testUnitedAirlines_Travel_NotOther() {
+    void testUnitedAirlinesTravelNotOther() {
         // Given: United Airlines transaction
-        String primary = "GENERAL_SERVICES";
-        String detailed = null;
-        String merchantName = "UNITED AIRLINES";
-        String description = "Flight ticket";
+        final String primary = "GENERAL_SERVICES";
+        final String detailed = null;
+        final String merchantName = "UNITED AIRLINES";
+        final String description = "Flight ticket";
 
         // When
-        PlaidCategoryMapper.CategoryMapping result = plaidCategoryMapper.mapPlaidCategory(
-                primary, detailed, merchantName, description);
+        final PlaidCategoryMapper.CategoryMapping result =
+                plaidCategoryMapper.mapPlaidCategory(primary, detailed, merchantName, description);
 
         // Then
         assertNotNull(result);
@@ -430,34 +455,42 @@ class PlaidCategoryMapperTest {
     // ========== Shopping Transaction Tests ==========
 
     @Test
-    void testLululemon_Shopping_NotTransportation() {
+    void testLululemonShoppingNotTransportation() {
         // Given: Lululemon transaction that was incorrectly categorized as transportation
-        String primary = "TRANSPORTATION";
-        String detailed = "TRANSPORTATION";
-        String merchantName = "AGARWAL SUMIT KUMAR Platinum Lululemon Credit LULULEMON ATHLETICA USA B";
-        String description = "AGARWAL SUMIT KUMAR Platinum Lululemon Credit LULULEMON ATHLETICA USA B";
+        final String primary = "TRANSPORTATION";
+        final String detailed = "TRANSPORTATION";
+        final String merchantName =
+                "AGARWAL SUMIT KUMAR Platinum Lululemon Credit LULULEMON ATHLETICA USA B";
+        final String description =
+                "AGARWAL SUMIT KUMAR Platinum Lululemon Credit LULULEMON ATHLETICA USA B";
 
         // When
-        PlaidCategoryMapper.CategoryMapping result = plaidCategoryMapper.mapPlaidCategory(
-                primary, detailed, merchantName, description);
+        final PlaidCategoryMapper.CategoryMapping result =
+                plaidCategoryMapper.mapPlaidCategory(primary, detailed, merchantName, description);
 
         // Then
         assertNotNull(result);
-        assertEquals("shopping", result.getPrimary(), "Lululemon should be shopping, not transportation");
-        assertEquals("shopping", result.getDetailed(), "Lululemon should be shopping, not transportation");
+        assertEquals(
+                "shopping",
+                result.getPrimary(),
+                "Lululemon should be shopping, not transportation");
+        assertEquals(
+                "shopping",
+                result.getDetailed(),
+                "Lululemon should be shopping, not transportation");
     }
 
     @Test
-    void testNike_Shopping_NotOther() {
+    void testNikeShoppingNotOther() {
         // Given: Nike transaction
-        String primary = "GENERAL_MERCHANDISE";
-        String detailed = null;
-        String merchantName = "Nike Store";
-        String description = "Nike purchase";
+        final String primary = "GENERAL_MERCHANDISE";
+        final String detailed = null;
+        final String merchantName = "Nike Store";
+        final String description = "Nike purchase";
 
         // When
-        PlaidCategoryMapper.CategoryMapping result = plaidCategoryMapper.mapPlaidCategory(
-                primary, detailed, merchantName, description);
+        final PlaidCategoryMapper.CategoryMapping result =
+                plaidCategoryMapper.mapPlaidCategory(primary, detailed, merchantName, description);
 
         // Then
         assertNotNull(result);
@@ -466,16 +499,16 @@ class PlaidCategoryMapperTest {
     }
 
     @Test
-    void testNordstrom_Shopping_NotOther() {
+    void testNordstromShoppingNotOther() {
         // Given: Nordstrom transaction
-        String primary = "GENERAL_MERCHANDISE";
-        String detailed = null;
-        String merchantName = "Nordstrom";
-        String description = "Clothing purchase";
+        final String primary = "GENERAL_MERCHANDISE";
+        final String detailed = null;
+        final String merchantName = "Nordstrom";
+        final String description = "Clothing purchase";
 
         // When
-        PlaidCategoryMapper.CategoryMapping result = plaidCategoryMapper.mapPlaidCategory(
-                primary, detailed, merchantName, description);
+        final PlaidCategoryMapper.CategoryMapping result =
+                plaidCategoryMapper.mapPlaidCategory(primary, detailed, merchantName, description);
 
         // Then
         assertNotNull(result);
@@ -486,34 +519,38 @@ class PlaidCategoryMapperTest {
     // ========== Movie Theater/Entertainment Tests ==========
 
     @Test
-    void testAMCTheater_Entertainment_NotEducation() {
+    void testAMCTheaterEntertainmentNotEducation() {
         // Given: AMC movie theater transaction that was incorrectly categorized as education
-        String primary = "GENERAL_SERVICES";
-        String detailed = null;
-        String merchantName = "AMC 2434 FACTORIA 8 BELLEVUE WA";
-        String description = "AMC 2434 FACTORIA 8 BELLEVUE WA";
+        final String primary = "GENERAL_SERVICES";
+        final String detailed = null;
+        final String merchantName = "AMC 2434 FACTORIA 8 BELLEVUE WA";
+        final String description = "AMC 2434 FACTORIA 8 BELLEVUE WA";
 
         // When
-        PlaidCategoryMapper.CategoryMapping result = plaidCategoryMapper.mapPlaidCategory(
-                primary, detailed, merchantName, description);
+        final PlaidCategoryMapper.CategoryMapping result =
+                plaidCategoryMapper.mapPlaidCategory(primary, detailed, merchantName, description);
 
         // Then
         assertNotNull(result);
-        assertEquals("entertainment", result.getPrimary(), "AMC should be entertainment, not education");
-        assertEquals("entertainment", result.getDetailed(), "AMC should be entertainment, not education");
+        assertEquals(
+                "entertainment", result.getPrimary(), "AMC should be entertainment, not education");
+        assertEquals(
+                "entertainment",
+                result.getDetailed(),
+                "AMC should be entertainment, not education");
     }
 
     @Test
-    void testRegalCinema_Entertainment_NotOther() {
+    void testRegalCinemaEntertainmentNotOther() {
         // Given: Regal Cinema transaction
-        String primary = "ENTERTAINMENT";
-        String detailed = null;
-        String merchantName = "Regal Cinemas";
-        String description = "Movie tickets";
+        final String primary = "ENTERTAINMENT";
+        final String detailed = null;
+        final String merchantName = "Regal Cinemas";
+        final String description = "Movie tickets";
 
         // When
-        PlaidCategoryMapper.CategoryMapping result = plaidCategoryMapper.mapPlaidCategory(
-                primary, detailed, merchantName, description);
+        final PlaidCategoryMapper.CategoryMapping result =
+                plaidCategoryMapper.mapPlaidCategory(primary, detailed, merchantName, description);
 
         // Then
         assertNotNull(result);
@@ -522,16 +559,16 @@ class PlaidCategoryMapperTest {
     }
 
     @Test
-    void testCinemark_Entertainment_NotOther() {
+    void testCinemarkEntertainmentNotOther() {
         // Given: Cinemark transaction
-        String primary = "GENERAL_SERVICES";
-        String detailed = null;
-        String merchantName = "Cinemark";
-        String description = "Movie";
+        final String primary = "GENERAL_SERVICES";
+        final String detailed = null;
+        final String merchantName = "Cinemark";
+        final String description = "Movie";
 
         // When
-        PlaidCategoryMapper.CategoryMapping result = plaidCategoryMapper.mapPlaidCategory(
-                primary, detailed, merchantName, description);
+        final PlaidCategoryMapper.CategoryMapping result =
+                plaidCategoryMapper.mapPlaidCategory(primary, detailed, merchantName, description);
 
         // Then
         assertNotNull(result);
@@ -542,34 +579,40 @@ class PlaidCategoryMapperTest {
     // ========== Airport Lounge Tests ==========
 
     @Test
-    void testAXPCenturionLounge_Travel_NotUtilities() {
+    void testAXPCenturionLoungeTravelNotUtilities() {
         // Given: AXP Centurion Lounge transaction that was incorrectly categorized as utilities
-        String primary = "RENT_AND_UTILITIES";
-        String detailed = "UTILITIES";
-        String merchantName = "AXP CENTURION LOUNGE 3067 SEATTLE WA 3228 98158 OTHER";
-        String description = "AXP CENTURION LOUNGE 3067 SEATTLE WA 3228 98158 OTHER";
+        final String primary = "RENT_AND_UTILITIES";
+        final String detailed = "UTILITIES";
+        final String merchantName = "AXP CENTURION LOUNGE 3067 SEATTLE WA 3228 98158 OTHER";
+        final String description = "AXP CENTURION LOUNGE 3067 SEATTLE WA 3228 98158 OTHER";
 
         // When
-        PlaidCategoryMapper.CategoryMapping result = plaidCategoryMapper.mapPlaidCategory(
-                primary, detailed, merchantName, description);
+        final PlaidCategoryMapper.CategoryMapping result =
+                plaidCategoryMapper.mapPlaidCategory(primary, detailed, merchantName, description);
 
         // Then
         assertNotNull(result);
-        assertEquals("travel", result.getPrimary(), "AXP Centurion Lounge should be travel, not utilities");
-        assertEquals("travel", result.getDetailed(), "AXP Centurion Lounge should be travel, not utilities");
+        assertEquals(
+                "travel",
+                result.getPrimary(),
+                "AXP Centurion Lounge should be travel, not utilities");
+        assertEquals(
+                "travel",
+                result.getDetailed(),
+                "AXP Centurion Lounge should be travel, not utilities");
     }
 
     @Test
-    void testPriorityPassLounge_Travel_NotOther() {
+    void testPriorityPassLoungeTravelNotOther() {
         // Given: Priority Pass lounge transaction
-        String primary = "GENERAL_SERVICES";
-        String detailed = null;
-        String merchantName = "Priority Pass Lounge";
-        String description = "Airport lounge access";
+        final String primary = "GENERAL_SERVICES";
+        final String detailed = null;
+        final String merchantName = "Priority Pass Lounge";
+        final String description = "Airport lounge access";
 
         // When
-        PlaidCategoryMapper.CategoryMapping result = plaidCategoryMapper.mapPlaidCategory(
-                primary, detailed, merchantName, description);
+        final PlaidCategoryMapper.CategoryMapping result =
+                plaidCategoryMapper.mapPlaidCategory(primary, detailed, merchantName, description);
 
         // Then
         assertNotNull(result);
@@ -578,16 +621,16 @@ class PlaidCategoryMapperTest {
     }
 
     @Test
-    void testDeltaSkyClub_Travel_NotOther() {
+    void testDeltaSkyClubTravelNotOther() {
         // Given: Delta Sky Club transaction
-        String primary = "GENERAL_SERVICES";
-        String detailed = null;
-        String merchantName = "Delta Sky Club";
-        String description = "Airport lounge";
+        final String primary = "GENERAL_SERVICES";
+        final String detailed = null;
+        final String merchantName = "Delta Sky Club";
+        final String description = "Airport lounge";
 
         // When
-        PlaidCategoryMapper.CategoryMapping result = plaidCategoryMapper.mapPlaidCategory(
-                primary, detailed, merchantName, description);
+        final PlaidCategoryMapper.CategoryMapping result =
+                plaidCategoryMapper.mapPlaidCategory(primary, detailed, merchantName, description);
 
         // Then
         assertNotNull(result);
@@ -598,16 +641,22 @@ class PlaidCategoryMapperTest {
     // ========== Direct Payment Tests ==========
 
     @Test
-    void testDirectPay_Payment_NotOther() {
+    void testDirectPayPaymentNotOther() {
         // Given: Direct payment transaction with positive amount that should be Payment type
-        String primary = "GENERAL_SERVICES";
-        String detailed = null;
-        String merchantName = "1% Cashback Bonus +$0.06 DIRECTPAY FULL BALANCE";
-        String description = "1% Cashback Bonus +$0.06 DIRECTPAY FULL BALANCE";
+        final String primary = "GENERAL_SERVICES";
+        final String detailed = null;
+        final String merchantName = "1% Cashback Bonus +$0.06 DIRECTPAY FULL BALANCE";
+        final String description = "1% Cashback Bonus +$0.06 DIRECTPAY FULL BALANCE";
 
         // When
-        PlaidCategoryMapper.CategoryMapping result = plaidCategoryMapper.mapPlaidCategory(
-                primary, detailed, merchantName, description, null, java.math.BigDecimal.valueOf(11.74));
+        final PlaidCategoryMapper.CategoryMapping result =
+                plaidCategoryMapper.mapPlaidCategory(
+                        primary,
+                        detailed,
+                        merchantName,
+                        description,
+                        null,
+                        java.math.BigDecimal.valueOf(11.74));
 
         // Then
         assertNotNull(result);
@@ -616,16 +665,16 @@ class PlaidCategoryMapperTest {
     }
 
     @Test
-    void testDirectPayment_Payment_NotOther() {
+    void testDirectPaymentPaymentNotOther() {
         // Given: Direct payment transaction
-        String primary = "GENERAL_SERVICES";
-        String detailed = null;
-        String merchantName = "Direct Payment";
-        String description = "Direct payment to credit card";
+        final String primary = "GENERAL_SERVICES";
+        final String detailed = null;
+        final String merchantName = "Direct Payment";
+        final String description = "Direct payment to credit card";
 
         // When
-        PlaidCategoryMapper.CategoryMapping result = plaidCategoryMapper.mapPlaidCategory(
-                primary, detailed, merchantName, description);
+        final PlaidCategoryMapper.CategoryMapping result =
+                plaidCategoryMapper.mapPlaidCategory(primary, detailed, merchantName, description);
 
         // Then
         assertNotNull(result);
@@ -634,16 +683,16 @@ class PlaidCategoryMapperTest {
     }
 
     @Test
-    void testAutomatyment_Payment_NotOther() {
+    void testAutomatymentPaymentNotOther() {
         // Given: Automatyment (misspelling of automatic payment) transaction
-        String primary = "GENERAL_SERVICES";
-        String detailed = null;
-        String merchantName = "Automatyment";
-        String description = "Automatyment payment";
+        final String primary = "GENERAL_SERVICES";
+        final String detailed = null;
+        final String merchantName = "Automatyment";
+        final String description = "Automatyment payment";
 
         // When
-        PlaidCategoryMapper.CategoryMapping result = plaidCategoryMapper.mapPlaidCategory(
-                primary, detailed, merchantName, description);
+        final PlaidCategoryMapper.CategoryMapping result =
+                plaidCategoryMapper.mapPlaidCategory(primary, detailed, merchantName, description);
 
         // Then
         assertNotNull(result);
@@ -654,16 +703,16 @@ class PlaidCategoryMapperTest {
     // ========== Holdings Company Tests ==========
 
     @Test
-    void testTRGHoldings_Other_NotDining() {
+    void testTRGHoldingsOtherNotDining() {
         // Given: TRG Holdings transaction that was incorrectly categorized as dining
-        String primary = "FOOD_AND_DRINK"; // Plaid incorrectly categorizes as dining
-        String detailed = "RESTAURANTS";
-        String merchantName = "TRG HOLDINGS LIMITED LONDON";
-        String description = "TRG HOLDINGS LIMITED LONDON";
+        final String primary = "FOOD_AND_DRINK"; // Plaid incorrectly categorizes as dining
+        final String detailed = "RESTAURANTS";
+        final String merchantName = "TRG HOLDINGS LIMITED LONDON";
+        final String description = "TRG HOLDINGS LIMITED LONDON";
 
         // When
-        PlaidCategoryMapper.CategoryMapping result = plaidCategoryMapper.mapPlaidCategory(
-                primary, detailed, merchantName, description);
+        final PlaidCategoryMapper.CategoryMapping result =
+                plaidCategoryMapper.mapPlaidCategory(primary, detailed, merchantName, description);
 
         // Then
         assertNotNull(result);
@@ -672,16 +721,16 @@ class PlaidCategoryMapperTest {
     }
 
     @Test
-    void testHoldingsLimited_Other_NotDining() {
+    void testHoldingsLimitedOtherNotDining() {
         // Given: Generic holdings company transaction
-        String primary = "FOOD_AND_DRINK";
-        String detailed = "RESTAURANTS";
-        String merchantName = "ABC HOLDINGS LIMITED";
-        String description = "ABC HOLDINGS LIMITED";
+        final String primary = "FOOD_AND_DRINK";
+        final String detailed = "RESTAURANTS";
+        final String merchantName = "ABC HOLDINGS LIMITED";
+        final String description = "ABC HOLDINGS LIMITED";
 
         // When
-        PlaidCategoryMapper.CategoryMapping result = plaidCategoryMapper.mapPlaidCategory(
-                primary, detailed, merchantName, description);
+        final PlaidCategoryMapper.CategoryMapping result =
+                plaidCategoryMapper.mapPlaidCategory(primary, detailed, merchantName, description);
 
         // Then
         assertNotNull(result);
@@ -690,16 +739,16 @@ class PlaidCategoryMapperTest {
     }
 
     @Test
-    void testHoldingsCompany_Other_NotOtherCategory() {
+    void testHoldingsCompanyOtherNotOtherCategory() {
         // Given: Holdings company with no specific category
-        String primary = "GENERAL_SERVICES";
-        String detailed = null;
-        String merchantName = "XYZ HOLDINGS LIMITED";
-        String description = "Business transaction";
+        final String primary = "GENERAL_SERVICES";
+        final String detailed = null;
+        final String merchantName = "XYZ HOLDINGS LIMITED";
+        final String description = "Business transaction";
 
         // When
-        PlaidCategoryMapper.CategoryMapping result = plaidCategoryMapper.mapPlaidCategory(
-                primary, detailed, merchantName, description);
+        final PlaidCategoryMapper.CategoryMapping result =
+                plaidCategoryMapper.mapPlaidCategory(primary, detailed, merchantName, description);
 
         // Then
         assertNotNull(result);
@@ -707,4 +756,3 @@ class PlaidCategoryMapperTest {
         assertEquals("other", result.getDetailed(), "Holdings company should be other");
     }
 }
-

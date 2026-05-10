@@ -1,9 +1,29 @@
 package com.budgetbuddy.deployment;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.contains;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.anyString;
+import static org.mockito.Mockito.contains;
+import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.when;
+
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.Collections;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -17,55 +37,49 @@ import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
-import java.time.Duration;
-import java.time.Instant;
-import java.util.Collections;
-import java.util.List;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
-
-/**
- * Unit Tests for Deployment Safety Service
- */
+/** Unit Tests for Deployment Safety Service */
+// PMD's LawOfDemeter is documented as imprecise on chains involving
+// standard library types (BigDecimal, String, Optional) and DTO
+// getters; this class has many such idiomatic uses. Suppress at
+// class level rather than littering every method.
+@SuppressWarnings("PMD.LawOfDemeter")
 @ExtendWith(MockitoExtension.class)
 class DeploymentSafetyServiceTest {
 
-    @Mock
-    private RestTemplate restTemplate;
+    @Mock private RestTemplate restTemplate;
 
-    @Mock
-    private RestTemplateBuilder restTemplateBuilder;
-    
-    @Mock
-    private org.springframework.core.env.Environment environment;
+    @Mock private RestTemplateBuilder restTemplateBuilder;
+
+    @Mock private org.springframework.core.env.Environment environment;
 
     private DeploymentSafetyService service;
-    
+
     private ListAppender<ILoggingEvent> logAppender;
     private Logger logger;
 
     @BeforeEach
     void setUp() {
-        @SuppressWarnings("unchecked")
-        java.util.function.Supplier<org.springframework.http.client.ClientHttpRequestFactory> supplier = any(java.util.function.Supplier.class);
+        @SuppressWarnings("unchecked") final
+                java.util.function.Supplier<org.springframework.http.client.ClientHttpRequestFactory>
+                supplier = any(java.util.function.Supplier.class);
         when(restTemplateBuilder.requestFactory(supplier)).thenReturn(restTemplateBuilder);
         when(restTemplateBuilder.build()).thenReturn(restTemplate);
-        
+
         // Mock environment to return false for test profile (unit tests run without test profile)
         // Use lenient stubbing since not all tests use the environment
-        lenient().when(environment.acceptsProfiles(any(org.springframework.core.env.Profiles.class))).thenReturn(false);
+        lenient()
+                .when(environment.acceptsProfiles(any(org.springframework.core.env.Profiles.class)))
+                .thenReturn(false);
         lenient().when(environment.getProperty("spring.profiles.active", "")).thenReturn("");
-        
+
         service = new DeploymentSafetyService(restTemplateBuilder, environment);
-        
+
         // Set test values using reflection
         ReflectionTestUtils.setField(service, "healthCheckTimeoutSeconds", 60);
         ReflectionTestUtils.setField(service, "healthCheckIntervalSeconds", 5);
         ReflectionTestUtils.setField(service, "maxHealthCheckAttempts", 3);
         ReflectionTestUtils.setField(service, "smokeTestEndpoints", Collections.emptyList());
-        
+
         // Set up log appender to capture log events for verification
         logger = (Logger) LoggerFactory.getLogger(DeploymentSafetyService.class);
         logAppender = new ListAppender<>();
@@ -74,16 +88,16 @@ class DeploymentSafetyServiceTest {
     }
 
     @Test
-    void testValidateDeployment_WithHealthyResponse_ReturnsHealthy() {
+    void testValidateDeploymentWithHealthyResponseReturnsHealthy() {
         // Given
-        ResponseEntity<String> response = new ResponseEntity<>("{\"status\":\"UP\"}", HttpStatus.OK);
-        when(restTemplate.getForEntity(anyString(), eq(String.class)))
-                .thenReturn(response);
-        
+        final ResponseEntity<String> response =
+                new ResponseEntity<>("{\"status\":\"UP\"}", HttpStatus.OK);
+        when(restTemplate.getForEntity(anyString(), eq(String.class))).thenReturn(response);
+
         // When
-        DeploymentSafetyService.DeploymentValidationResult result = 
+        final DeploymentSafetyService.DeploymentValidationResult result =
                 service.validateDeployment("http://localhost:8080");
-        
+
         // Then
         assertNotNull(result);
         assertTrue(result.isHealthy());
@@ -92,32 +106,36 @@ class DeploymentSafetyServiceTest {
     }
 
     @Test
-    void testValidateDeployment_WithEmptyBaseUrl_ReturnsUnhealthy() {
+    void testValidateDeploymentWithEmptyBaseUrlReturnsUnhealthy() {
         // When
-        DeploymentSafetyService.DeploymentValidationResult result = 
-                service.validateDeployment("");
-        
+        final DeploymentSafetyService.DeploymentValidationResult result = service.validateDeployment("");
+
         // Then
         assertNotNull(result);
         assertFalse(result.isHealthy());
         assertEquals("Base URL is null or empty", result.getErrorMessage());
-        
-        // Verify logging behavior - should log WARN for null/empty base URL (configuration issue, not critical error)
-        List<ILoggingEvent> logEvents = logAppender.list;
-        long warnLogs = logEvents.stream()
-                .filter(event -> event.getLevel() == Level.WARN 
-                        && event.getMessage().contains("Base URL is null or empty"))
-                .count();
-        
+
+        // Verify logging behavior - should log WARN for null/empty base URL (configuration issue,
+        // not critical error)
+        final List<ILoggingEvent> logEvents = logAppender.list;
+        final long warnLogs =
+                logEvents.stream()
+                        .filter(
+                                event ->
+                                        event.getLevel() == Level.WARN
+                                                && event.getMessage()
+                                                .contains("Base URL is null or empty"))
+                        .count();
+
         assertEquals(1, warnLogs, "Should log WARN when base URL is empty");
     }
 
     @Test
-    void testValidateDeployment_WithNullBaseUrl_ReturnsUnhealthy() {
+    void testValidateDeploymentWithNullBaseUrlReturnsUnhealthy() {
         // When
-        DeploymentSafetyService.DeploymentValidationResult result = 
+        final DeploymentSafetyService.DeploymentValidationResult result =
                 service.validateDeployment(null);
-        
+
         // Then
         assertNotNull(result);
         assertFalse(result.isHealthy());
@@ -125,49 +143,49 @@ class DeploymentSafetyServiceTest {
     }
 
     @Test
-    void testValidateDeployment_WithFailedHealthCheck_ReturnsUnhealthy() {
+    void testValidateDeploymentWithFailedHealthCheckReturnsUnhealthy() {
         // Given
-        RestClientException exception = new RestClientException("Connection refused");
-        when(restTemplate.getForEntity(anyString(), eq(String.class)))
-                .thenThrow(exception);
-        
+        final RestClientException exception = new RestClientException("Connection refused");
+        when(restTemplate.getForEntity(anyString(), eq(String.class))).thenThrow(exception);
+
         // When
-        DeploymentSafetyService.DeploymentValidationResult result = 
+        final DeploymentSafetyService.DeploymentValidationResult result =
                 service.validateDeployment("http://localhost:8080");
-        
+
         // Then
         assertNotNull(result);
         assertFalse(result.isHealthy());
         // Error message should be set from the exception message
-        assertNotNull(result.getErrorMessage(), "Error message should be set when health check fails");
+        assertNotNull(
+                result.getErrorMessage(), "Error message should be set when health check fails");
         assertEquals("Connection refused", result.getErrorMessage());
     }
 
     @Test
-    void testValidateDeployment_WithNonUpStatus_ReturnsUnhealthy() {
+    void testValidateDeploymentWithNonUpStatusReturnsUnhealthy() {
         // Given
-        ResponseEntity<String> response = new ResponseEntity<>("{\"status\":\"DOWN\"}", HttpStatus.OK);
-        when(restTemplate.getForEntity(anyString(), eq(String.class)))
-                .thenReturn(response);
-        
+        final ResponseEntity<String> response =
+                new ResponseEntity<>("{\"status\":\"DOWN\"}", HttpStatus.OK);
+        when(restTemplate.getForEntity(anyString(), eq(String.class))).thenReturn(response);
+
         // When
-        DeploymentSafetyService.DeploymentValidationResult result = 
+        final DeploymentSafetyService.DeploymentValidationResult result =
                 service.validateDeployment("http://localhost:8080");
-        
+
         // Then
         assertNotNull(result);
         assertFalse(result.isHealthy());
     }
 
     @Test
-    void testRunSmokeTests_WithEmptyEndpoints_ReturnsPassed() {
+    void testRunSmokeTestsWithEmptyEndpointsReturnsPassed() {
         // Given
         ReflectionTestUtils.setField(service, "smokeTestEndpoints", Collections.emptyList());
-        
+
         // When
-        DeploymentSafetyService.SmokeTestResult result = 
+        final DeploymentSafetyService.SmokeTestResult result =
                 service.runSmokeTests("http://localhost:8080");
-        
+
         // Then
         assertNotNull(result);
         assertTrue(result.isPassed());
@@ -176,33 +194,32 @@ class DeploymentSafetyServiceTest {
     }
 
     @Test
-    void testRunSmokeTests_WithNullEndpoints_ReturnsPassed() {
+    void testRunSmokeTestsWithNullEndpointsReturnsPassed() {
         // Given
         ReflectionTestUtils.setField(service, "smokeTestEndpoints", null);
-        
+
         // When
-        DeploymentSafetyService.SmokeTestResult result = 
+        final DeploymentSafetyService.SmokeTestResult result =
                 service.runSmokeTests("http://localhost:8080");
-        
+
         // Then
         assertNotNull(result);
         assertTrue(result.isPassed());
     }
 
     @Test
-    void testRunSmokeTests_WithSuccessfulEndpoints_ReturnsPassed() {
+    void testRunSmokeTestsWithSuccessfulEndpointsReturnsPassed() {
         // Given
-        List<String> endpoints = List.of("/api/health", "/api/status");
+        final List<String> endpoints = List.of("/api/health", "/api/status");
         ReflectionTestUtils.setField(service, "smokeTestEndpoints", endpoints);
-        
-        ResponseEntity<String> response = new ResponseEntity<>("OK", HttpStatus.OK);
-        when(restTemplate.getForEntity(anyString(), eq(String.class)))
-                .thenReturn(response);
-        
+
+        final ResponseEntity<String> response = new ResponseEntity<>("OK", HttpStatus.OK);
+        when(restTemplate.getForEntity(anyString(), eq(String.class))).thenReturn(response);
+
         // When
-        DeploymentSafetyService.SmokeTestResult result = 
+        final DeploymentSafetyService.SmokeTestResult result =
                 service.runSmokeTests("http://localhost:8080");
-        
+
         // Then
         assertNotNull(result);
         assertTrue(result.isPassed());
@@ -211,100 +228,113 @@ class DeploymentSafetyServiceTest {
     }
 
     @Test
-    void testRunSmokeTests_WithFailedEndpoints_ReturnsFailed() {
+    void testRunSmokeTestsWithFailedEndpointsReturnsFailed() {
         // Given
-        List<String> endpoints = List.of("/api/health");
+        final List<String> endpoints = List.of("/api/health");
         ReflectionTestUtils.setField(service, "smokeTestEndpoints", endpoints);
-        
+
         when(restTemplate.getForEntity(anyString(), eq(String.class)))
                 .thenThrow(new RestClientException("Connection refused"));
-        
+
         // When
-        DeploymentSafetyService.SmokeTestResult result = 
+        final DeploymentSafetyService.SmokeTestResult result =
                 service.runSmokeTests("http://localhost:8080");
-        
+
         // Then
         assertNotNull(result);
         assertFalse(result.isPassed());
         assertEquals(0, result.getPassedTests());
         assertEquals(1, result.getFailedTests());
-        
+
         // Verify logging behavior - should log WARN for smoke test failures (handled gracefully)
-        List<ILoggingEvent> logEvents = logAppender.list;
-        long warnLogs = logEvents.stream()
-                .filter(event -> event.getLevel() == Level.WARN 
-                        && event.getMessage().contains("Smoke test error"))
-                .count();
-        
+        final List<ILoggingEvent> logEvents = logAppender.list;
+        final long warnLogs =
+                logEvents.stream()
+                        .filter(
+                                event ->
+                                        event.getLevel() == Level.WARN
+                                                && event.getMessage().contains("Smoke test error"))
+                        .count();
+
         assertEquals(1, warnLogs, "Should log WARN for smoke test connection errors");
-        
+
         // Verify INFO log for completion
-        boolean foundInfoLog = logEvents.stream()
-                .anyMatch(event -> event.getLevel() == Level.INFO 
-                        && event.getMessage().contains("Smoke tests completed"));
+        final boolean foundInfoLog =
+                logEvents.stream()
+                        .anyMatch(
+                                event ->
+                                        event.getLevel() == Level.INFO
+                                                && event.getMessage()
+                                                .contains("Smoke tests completed"));
         assertTrue(foundInfoLog, "Should log INFO when smoke tests complete");
     }
 
     @Test
-    void testRunSmokeTests_WithEmptyBaseUrl_ReturnsFailed() {
+    void testRunSmokeTestsWithEmptyBaseUrlReturnsFailed() {
         // When
-        DeploymentSafetyService.SmokeTestResult result = 
-                service.runSmokeTests("");
-        
+        final DeploymentSafetyService.SmokeTestResult result = service.runSmokeTests("");
+
         // Then
         assertNotNull(result);
         assertFalse(result.isPassed());
-        
-        // Verify logging behavior - should log WARN for null/empty base URL (configuration issue, not critical error)
-        List<ILoggingEvent> logEvents = logAppender.list;
-        long warnLogs = logEvents.stream()
-                .filter(event -> event.getLevel() == Level.WARN 
-                        && event.getMessage().contains("Base URL is null or empty for smoke tests"))
-                .count();
-        
+
+        // Verify logging behavior - should log WARN for null/empty base URL (configuration issue,
+        // not critical error)
+        final List<ILoggingEvent> logEvents = logAppender.list;
+        final long warnLogs =
+                logEvents.stream()
+                        .filter(
+                                event ->
+                                        event.getLevel() == Level.WARN
+                                                && event.getMessage()
+                                                .contains(
+                                                        "Base URL is null or empty for smoke tests"))
+                        .count();
+
         assertEquals(1, warnLogs, "Should log WARN when base URL is empty for smoke tests");
     }
 
     @Test
-    void testIsDeploymentReady_WithHealthyAndPassedSmokeTests_ReturnsTrue() {
+    void testIsDeploymentReadyWithHealthyAndPassedSmokeTestsReturnsTrue() {
         // Given
-        ResponseEntity<String> healthResponse = new ResponseEntity<>("{\"status\":\"UP\"}", HttpStatus.OK);
+        final ResponseEntity<String> healthResponse =
+                new ResponseEntity<>("{\"status\":\"UP\"}", HttpStatus.OK);
         when(restTemplate.getForEntity(contains("/actuator/health"), eq(String.class)))
                 .thenReturn(healthResponse);
         ReflectionTestUtils.setField(service, "smokeTestEndpoints", Collections.emptyList());
-        
+
         // When
-        boolean isReady = service.isDeploymentReady("http://localhost:8080");
-        
+        final boolean isReady = service.isDeploymentReady("http://localhost:8080");
+
         // Then
         assertTrue(isReady);
     }
 
     @Test
-    void testIsDeploymentReady_WithUnhealthy_ReturnsFalse() {
+    void testIsDeploymentReadyWithUnhealthyReturnsFalse() {
         // Given
         when(restTemplate.getForEntity(anyString(), eq(String.class)))
                 .thenThrow(new RestClientException("Connection refused"));
-        
+
         // When
-        boolean isReady = service.isDeploymentReady("http://localhost:8080");
-        
+        final boolean isReady = service.isDeploymentReady("http://localhost:8080");
+
         // Then
         assertFalse(isReady);
     }
 
     @Test
-    void testDeploymentValidationResult_SettersAndGetters() {
+    void testDeploymentValidationResultSettersAndGetters() {
         // Given
-        DeploymentSafetyService.DeploymentValidationResult result = 
+        final DeploymentSafetyService.DeploymentValidationResult result =
                 new DeploymentSafetyService.DeploymentValidationResult();
-        
+
         // When
         result.setHealthy(true);
         result.setDuration(Duration.ofSeconds(10));
         result.setErrorMessage("test error");
         result.setTimestamp(Instant.now());
-        
+
         // Then
         assertTrue(result.isHealthy());
         assertEquals(10, result.getDuration().getSeconds());
@@ -313,11 +343,11 @@ class DeploymentSafetyServiceTest {
     }
 
     @Test
-    void testSmokeTestResult_SettersAndGetters() {
+    void testSmokeTestResultSettersAndGetters() {
         // Given
-        DeploymentSafetyService.SmokeTestResult result = 
+        final DeploymentSafetyService.SmokeTestResult result =
                 new DeploymentSafetyService.SmokeTestResult();
-        
+
         // When
         result.setBaseUrl("http://localhost:8080");
         result.setPassed(true);
@@ -325,7 +355,7 @@ class DeploymentSafetyServiceTest {
         result.setFailedTests(0);
         result.setStartTime(Instant.now());
         result.setEndTime(Instant.now());
-        
+
         // Then
         assertEquals("http://localhost:8080", result.getBaseUrl());
         assertTrue(result.isPassed());
@@ -335,4 +365,3 @@ class DeploymentSafetyServiceTest {
         assertNotNull(result.getEndTime());
     }
 }
-

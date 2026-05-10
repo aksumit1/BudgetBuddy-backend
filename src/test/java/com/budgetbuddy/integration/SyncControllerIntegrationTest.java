@@ -1,13 +1,30 @@
 package com.budgetbuddy.integration;
 
+
+import java.nio.charset.StandardCharsets;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
 import com.budgetbuddy.AWSTestConfiguration;
 import com.budgetbuddy.dto.AuthRequest;
 import com.budgetbuddy.dto.AuthResponse;
-import com.budgetbuddy.model.dynamodb.*;
-import com.budgetbuddy.repository.dynamodb.*;
+import com.budgetbuddy.model.dynamodb.AccountTable;
+import com.budgetbuddy.model.dynamodb.BudgetTable;
+import com.budgetbuddy.model.dynamodb.GoalTable;
+import com.budgetbuddy.model.dynamodb.TransactionTable;
+import com.budgetbuddy.model.dynamodb.UserTable;
+import com.budgetbuddy.repository.dynamodb.AccountRepository;
+import com.budgetbuddy.repository.dynamodb.BudgetRepository;
+import com.budgetbuddy.repository.dynamodb.GoalRepository;
+import com.budgetbuddy.repository.dynamodb.TransactionActionRepository;
+import com.budgetbuddy.repository.dynamodb.TransactionRepository;
 import com.budgetbuddy.service.AuthService;
 import com.budgetbuddy.service.UserService;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,49 +35,30 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
-import java.math.BigDecimal;
-import java.time.Instant;
-import java.util.UUID;
-
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
-
-/**
- * Integration Tests for SyncController
- * Tests the sync endpoints end-to-end with real database
- */
+/** Integration Tests for SyncController Tests the sync endpoints end-to-end with real database */
 @SpringBootTest(classes = com.budgetbuddy.BudgetBuddyApplication.class)
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 @Import(AWSTestConfiguration.class)
 class SyncControllerIntegrationTest {
 
-    @Autowired
-    private MockMvc mockMvc;
+    @Autowired private MockMvc mockMvc;
 
-    @Autowired
-    private UserService userService;
+    @Autowired private UserService userService;
 
-    @Autowired
-    private AuthService authService;
+    @Autowired private AuthService authService;
 
-    @Autowired
-    private AccountRepository accountRepository;
+    @Autowired private AccountRepository accountRepository;
 
-    @Autowired
-    private TransactionRepository transactionRepository;
+    @Autowired private TransactionRepository transactionRepository;
 
-    @Autowired
-    private BudgetRepository budgetRepository;
+    @Autowired private BudgetRepository budgetRepository;
 
-    @Autowired
-    private GoalRepository goalRepository;
+    @Autowired private GoalRepository goalRepository;
 
-    @Autowired
-    private TransactionActionRepository transactionActionRepository;
+    @Autowired private TransactionActionRepository transactionActionRepository;
 
-    @Autowired
-    private ObjectMapper objectMapper;
+    @Autowired private ObjectMapper objectMapper;
 
     private UserTable testUser;
     private String testEmail;
@@ -73,19 +71,16 @@ class SyncControllerIntegrationTest {
     @BeforeEach
     void setUp() throws Exception {
         testEmail = "sync-test-" + UUID.randomUUID() + "@example.com";
-        
+
         // Create test user
-        String base64PasswordHash = java.util.Base64.getEncoder().encodeToString("hashed-password".getBytes());
-        testUser = userService.createUserSecure(
-                testEmail,
-                base64PasswordHash, "Sync",
-                "Test"
-        );
+        final String base64PasswordHash =
+                java.util.Base64.getEncoder().encodeToString("hashed-password".getBytes(StandardCharsets.UTF_8));
+        testUser = userService.createUserSecure(testEmail, base64PasswordHash, "Sync", "Test");
 
         // Authenticate to get token
         // Use the same pattern as IOSAppBackendIntegrationTest
-        AuthRequest authRequest = new AuthRequest(testEmail, base64PasswordHash);
-        AuthResponse authResponse = authService.authenticate(authRequest);
+        final AuthRequest authRequest = new AuthRequest(testEmail, base64PasswordHash);
+        final AuthResponse authResponse = authService.authenticate(authRequest);
         accessToken = authResponse.getAccessToken();
 
         // Create test data
@@ -128,10 +123,11 @@ class SyncControllerIntegrationTest {
     }
 
     @Test
-    void getAllData_Success() throws Exception {
-        mockMvc.perform(get("/api/sync/all")
-                        .header("Authorization", "Bearer " + accessToken)
-                        .contentType(MediaType.APPLICATION_JSON))
+    void getAllDataSuccess() throws Exception {
+        mockMvc.perform(
+                        get("/api/sync/all")
+                                .header("Authorization", "Bearer " + accessToken)
+                                .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.accounts").isArray())
                 .andExpect(jsonPath("$.transactions").isArray())
@@ -140,7 +136,9 @@ class SyncControllerIntegrationTest {
                 .andExpect(jsonPath("$.actions").isArray())
                 .andExpect(jsonPath("$.syncTimestamp").exists())
                 .andExpect(jsonPath("$.accounts[0].accountId").value(testAccount.getAccountId()))
-                .andExpect(jsonPath("$.transactions[0].transactionId").value(testTransaction.getTransactionId()));
+                .andExpect(
+                        jsonPath("$.transactions[0].transactionId")
+                                .value(testTransaction.getTransactionId()));
     }
 
     // Note: Authentication test is skipped because test environment may have relaxed security
@@ -153,13 +151,14 @@ class SyncControllerIntegrationTest {
     // }
 
     @Test
-    void getIncrementalChanges_Success() throws Exception {
-        Long sinceTimestamp = Instant.now().minusSeconds(3600).getEpochSecond();
+    void getIncrementalChangesSuccess() throws Exception {
+        final Long sinceTimestamp = Instant.now().minusSeconds(3600).getEpochSecond();
 
-        mockMvc.perform(get("/api/sync/incremental")
-                        .header("Authorization", "Bearer " + accessToken)
-                        .param("since", String.valueOf(sinceTimestamp))
-                        .contentType(MediaType.APPLICATION_JSON))
+        mockMvc.perform(
+                        get("/api/sync/incremental")
+                                .header("Authorization", "Bearer " + accessToken)
+                                .param("since", String.valueOf(sinceTimestamp))
+                                .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.accounts").isArray())
                 .andExpect(jsonPath("$.transactions").isArray())
@@ -171,14 +170,15 @@ class SyncControllerIntegrationTest {
     }
 
     @Test
-    void getIncrementalChanges_NoChanges() throws Exception {
+    void getIncrementalChangesNoChanges() throws Exception {
         // Use future timestamp - should return empty arrays
-        Long futureTimestamp = Instant.now().plusSeconds(3600).getEpochSecond();
+        final Long futureTimestamp = Instant.now().plusSeconds(3600).getEpochSecond();
 
-        mockMvc.perform(get("/api/sync/incremental")
-                        .header("Authorization", "Bearer " + accessToken)
-                        .param("since", String.valueOf(futureTimestamp))
-                        .contentType(MediaType.APPLICATION_JSON))
+        mockMvc.perform(
+                        get("/api/sync/incremental")
+                                .header("Authorization", "Bearer " + accessToken)
+                                .param("since", String.valueOf(futureTimestamp))
+                                .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.accounts").isEmpty())
                 .andExpect(jsonPath("$.transactions").isEmpty())
@@ -188,14 +188,14 @@ class SyncControllerIntegrationTest {
     }
 
     @Test
-    void getIncrementalChanges_NoSinceParameter() throws Exception {
+    void getIncrementalChangesNoSinceParameter() throws Exception {
         // Should fallback to full sync
-        mockMvc.perform(get("/api/sync/incremental")
-                        .header("Authorization", "Bearer " + accessToken)
-                        .contentType(MediaType.APPLICATION_JSON))
+        mockMvc.perform(
+                        get("/api/sync/incremental")
+                                .header("Authorization", "Bearer " + accessToken)
+                                .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.accounts").isArray())
                 .andExpect(jsonPath("$.transactions").isArray());
     }
 }
-

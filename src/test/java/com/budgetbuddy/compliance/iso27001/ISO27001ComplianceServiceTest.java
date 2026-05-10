@@ -1,5 +1,13 @@
 package com.budgetbuddy.compliance.iso27001;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.anyLong;
+import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.verify;
+
 import com.budgetbuddy.compliance.AuditLogService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -8,35 +16,28 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import software.amazon.awssdk.services.cloudwatch.CloudWatchClient;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
-
-/**
- * Comprehensive tests for ISO27001ComplianceService
- */
+/** Comprehensive tests for ISO27001ComplianceService */
 class ISO27001ComplianceServiceTest {
 
-    @Mock
-    private AuditLogService auditLogService;
+    @Mock private AuditLogService auditLogService;
 
-    @Mock
-    private CloudWatchClient cloudWatchClient;
+    @Mock private CloudWatchClient cloudWatchClient;
 
     private ISO27001ComplianceService iso27001ComplianceService;
 
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        iso27001ComplianceService = new ISO27001ComplianceService(auditLogService, cloudWatchClient);
+        iso27001ComplianceService =
+                new ISO27001ComplianceService(auditLogService, cloudWatchClient);
     }
 
     @Test
     @DisplayName("Should log user registration")
     void testLogUserRegistration() {
         // Given
-        String userId = "user-123";
-        String registrationType = "EMAIL";
+        final String userId = "user-123";
+        final String registrationType = "EMAIL";
 
         // When
         iso27001ComplianceService.logUserRegistration(userId, registrationType);
@@ -49,9 +50,9 @@ class ISO27001ComplianceServiceTest {
     @DisplayName("Should log access provisioning")
     void testLogAccessProvisioning() {
         // Given
-        String userId = "user-123";
-        String resource = "/api/transactions";
-        String accessLevel = "READ";
+        final String userId = "user-123";
+        final String resource = "/api/transactions";
+        final String accessLevel = "READ";
 
         // When
         iso27001ComplianceService.logAccessProvisioning(userId, resource, accessLevel);
@@ -64,9 +65,9 @@ class ISO27001ComplianceServiceTest {
     @DisplayName("Should log privileged access")
     void testLogPrivilegedAccess() {
         // Given
-        String userId = "admin-123";
-        String privilege = "ADMIN";
-        String resource = "/api/admin";
+        final String userId = "admin-123";
+        final String privilege = "ADMIN";
+        final String resource = "/api/admin";
 
         // When
         iso27001ComplianceService.logPrivilegedAccess(userId, privilege, resource);
@@ -79,8 +80,8 @@ class ISO27001ComplianceServiceTest {
     @DisplayName("Should log credential change")
     void testLogCredentialChange() {
         // Given
-        String userId = "user-123";
-        String changeType = "PASSWORD_RESET";
+        final String userId = "user-123";
+        final String changeType = "PASSWORD_RESET";
 
         // When
         iso27001ComplianceService.logCredentialChange(userId, changeType);
@@ -93,7 +94,7 @@ class ISO27001ComplianceServiceTest {
     @DisplayName("Should review user access rights")
     void testReviewUserAccessRights() {
         // Given
-        String userId = "user-123";
+        final String userId = "user-123";
 
         // When
         iso27001ComplianceService.reviewUserAccessRights(userId);
@@ -106,9 +107,9 @@ class ISO27001ComplianceServiceTest {
     @DisplayName("Should log access removal")
     void testLogAccessRemoval() {
         // Given
-        String userId = "user-123";
-        String resource = "/api/admin";
-        String reason = "Termination";
+        final String userId = "user-123";
+        final String resource = "/api/admin";
+        final String reason = "Termination";
 
         // When
         iso27001ComplianceService.logAccessRemoval(userId, resource, reason);
@@ -121,8 +122,8 @@ class ISO27001ComplianceServiceTest {
     @DisplayName("Should log secure logon")
     void testLogSecureLogon() {
         // Given
-        String userId = "user-123";
-        String method = "MFA_TOTP";
+        final String userId = "user-123";
+        final String method = "MFA_TOTP";
 
         // When
         iso27001ComplianceService.logSecureLogon(userId, method, true);
@@ -135,8 +136,8 @@ class ISO27001ComplianceServiceTest {
     @DisplayName("Should log password management")
     void testLogPasswordManagement() {
         // Given
-        String userId = "user-123";
-        String activity = "PASSWORD_CHANGE";
+        final String userId = "user-123";
+        final String activity = "PASSWORD_CHANGE";
 
         // When
         iso27001ComplianceService.logPasswordManagement(userId, activity);
@@ -149,9 +150,9 @@ class ISO27001ComplianceServiceTest {
     @DisplayName("Should log security event")
     void testLogSecurityEvent() {
         // Given
-        String eventType = "UNAUTHORIZED_ACCESS";
-        String severity = "HIGH";
-        String details = "Multiple failed login attempts";
+        final String eventType = "UNAUTHORIZED_ACCESS";
+        final String severity = "HIGH";
+        final String details = "Multiple failed login attempts";
 
         // When
         iso27001ComplianceService.logSecurityEvent(eventType, severity, details);
@@ -164,7 +165,7 @@ class ISO27001ComplianceServiceTest {
     @DisplayName("Should protect log information")
     void testProtectLogInformation() {
         // Given
-        String logId = "log-123";
+        final String logId = "log-123";
 
         // When
         iso27001ComplianceService.protectLogInformation(logId);
@@ -177,9 +178,9 @@ class ISO27001ComplianceServiceTest {
     @DisplayName("Should log administrator activity")
     void testLogAdministratorActivity() {
         // Given
-        String adminId = "admin-123";
-        String activity = "USER_DELETION";
-        String resource = "/api/users/user-456";
+        final String adminId = "admin-123";
+        final String activity = "USER_DELETION";
+        final String resource = "/api/users/user-456";
 
         // When
         iso27001ComplianceService.logAdministratorActivity(adminId, activity, resource);
@@ -202,9 +203,9 @@ class ISO27001ComplianceServiceTest {
     @DisplayName("Should report security incident")
     void testReportSecurityIncident() {
         // Given
-        String incidentType = "DATA_BREACH";
-        String severity = "CRITICAL";
-        String details = "Unauthorized access to user data";
+        final String incidentType = "DATA_BREACH";
+        final String severity = "CRITICAL";
+        final String details = "Unauthorized access to user data";
 
         // When
         iso27001ComplianceService.reportSecurityIncident(incidentType, severity, details);
@@ -217,7 +218,7 @@ class ISO27001ComplianceServiceTest {
     @DisplayName("Should log compliance check")
     void testLogComplianceCheck() {
         // Given
-        String legislation = "GDPR";
+        final String legislation = "GDPR";
 
         // When
         iso27001ComplianceService.logComplianceCheck(legislation, true);

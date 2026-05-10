@@ -1,0 +1,4 @@
+03/15 TRADER JOE'S #201                             -67.89       3,102.45
+03/18 PAYROLL DEPOSIT ACME INDUSTRIES             3,200.00       6,302.45
+03/20 COMCAST CABLE BILL                            -89.99       6,212.46
+03/22 ATM WITHDRAWAL FEE                             -3.00       6,209.46

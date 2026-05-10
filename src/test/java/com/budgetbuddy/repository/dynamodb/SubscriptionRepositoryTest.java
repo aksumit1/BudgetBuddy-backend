@@ -1,8 +1,19 @@
 package com.budgetbuddy.repository.dynamodb;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import com.budgetbuddy.AWSTestConfiguration;
 import com.budgetbuddy.model.dynamodb.SubscriptionTable;
 import com.budgetbuddy.util.TableInitializer;
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -14,30 +25,17 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 
-import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.util.List;
-import java.util.Optional;
-
-import static org.junit.jupiter.api.Assertions.*;
-
-/**
- * Integration tests for SubscriptionRepository
- */
+/** Integration tests for SubscriptionRepository */
 @SpringBootTest(classes = com.budgetbuddy.BudgetBuddyApplication.class)
 @ActiveProfiles("test")
 @Import(AWSTestConfiguration.class)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-@TestPropertySource(properties = {
-    "app.aws.dynamodb.table-prefix=TestBudgetBuddy"
-})
+@TestPropertySource(properties = {"app.aws.dynamodb.table-prefix=TestBudgetBuddy"})
 class SubscriptionRepositoryTest {
 
-    @Autowired
-    private SubscriptionRepository subscriptionRepository;
+    @Autowired private SubscriptionRepository subscriptionRepository;
 
-    @Autowired
-    private DynamoDbClient dynamoDbClient;
+    @Autowired private DynamoDbClient dynamoDbClient;
 
     private String testUserId;
 
@@ -51,8 +49,9 @@ class SubscriptionRepositoryTest {
         testUserId = "test-user-" + System.currentTimeMillis();
     }
 
-    private SubscriptionTable createSubscription(String subscriptionId, String userId, boolean active) {
-        SubscriptionTable subscription = new SubscriptionTable();
+    private SubscriptionTable createSubscription(
+            final String subscriptionId, final String userId, final boolean active) {
+        final SubscriptionTable subscription = new SubscriptionTable();
         subscription.setSubscriptionId(subscriptionId);
         subscription.setUserId(userId);
         subscription.setMerchantName("Test Subscription");
@@ -65,36 +64,36 @@ class SubscriptionRepositoryTest {
     }
 
     @Test
-    void testSave_WithValidSubscription_SavesSuccessfully() {
+    void testSaveWithValidSubscriptionSavesSuccessfully() {
         // Given
-        String subscriptionId = "sub-" + System.currentTimeMillis();
-        SubscriptionTable subscription = createSubscription(subscriptionId, testUserId, true);
+        final String subscriptionId = "sub-" + System.currentTimeMillis();
+        final SubscriptionTable subscription = createSubscription(subscriptionId, testUserId, true);
 
         // When
         assertDoesNotThrow(() -> subscriptionRepository.save(subscription));
 
         // Then
-        Optional<SubscriptionTable> found = subscriptionRepository.findById(subscriptionId);
+        final Optional<SubscriptionTable> found = subscriptionRepository.findById(subscriptionId);
         assertTrue(found.isPresent());
         assertEquals(subscriptionId, found.get().getSubscriptionId());
         assertEquals(testUserId, found.get().getUserId());
     }
 
     @Test
-    void testSave_WithNullSubscription_ThrowsException() {
+    void testSaveWithNullSubscriptionThrowsException() {
         // When/Then
         assertThrows(IllegalArgumentException.class, () -> subscriptionRepository.save(null));
     }
 
     @Test
-    void testFindById_WithValidId_ReturnsSubscription() {
+    void testFindByIdWithValidIdReturnsSubscription() {
         // Given
-        String subscriptionId = "sub-" + System.currentTimeMillis();
-        SubscriptionTable subscription = createSubscription(subscriptionId, testUserId, true);
+        final String subscriptionId = "sub-" + System.currentTimeMillis();
+        final SubscriptionTable subscription = createSubscription(subscriptionId, testUserId, true);
         subscriptionRepository.save(subscription);
 
         // When
-        Optional<SubscriptionTable> found = subscriptionRepository.findById(subscriptionId);
+        final Optional<SubscriptionTable> found = subscriptionRepository.findById(subscriptionId);
 
         // Then
         assertTrue(found.isPresent());
@@ -102,35 +101,35 @@ class SubscriptionRepositoryTest {
     }
 
     @Test
-    void testFindById_WithInvalidId_ReturnsEmpty() {
+    void testFindByIdWithInvalidIdReturnsEmpty() {
         // When
-        Optional<SubscriptionTable> found = subscriptionRepository.findById("non-existent-id");
+        final Optional<SubscriptionTable> found = subscriptionRepository.findById("non-existent-id");
 
         // Then
         assertFalse(found.isPresent());
     }
 
     @Test
-    void testFindById_WithNullId_ReturnsEmpty() {
+    void testFindByIdWithNullIdReturnsEmpty() {
         // When
-        Optional<SubscriptionTable> found = subscriptionRepository.findById(null);
+        final Optional<SubscriptionTable> found = subscriptionRepository.findById(null);
 
         // Then
         assertFalse(found.isPresent());
     }
 
     @Test
-    void testFindByUserId_WithValidUserId_ReturnsSubscriptions() {
+    void testFindByUserIdWithValidUserIdReturnsSubscriptions() {
         // Given
-        String sub1Id = "sub-1-" + System.currentTimeMillis();
-        String sub2Id = "sub-2-" + System.currentTimeMillis();
-        SubscriptionTable sub1 = createSubscription(sub1Id, testUserId, true);
-        SubscriptionTable sub2 = createSubscription(sub2Id, testUserId, false);
+        final String sub1Id = "sub-1-" + System.currentTimeMillis();
+        final String sub2Id = "sub-2-" + System.currentTimeMillis();
+        final SubscriptionTable sub1 = createSubscription(sub1Id, testUserId, true);
+        final SubscriptionTable sub2 = createSubscription(sub2Id, testUserId, false);
         subscriptionRepository.save(sub1);
         subscriptionRepository.save(sub2);
 
         // When
-        List<SubscriptionTable> subscriptions = subscriptionRepository.findByUserId(testUserId);
+        final List<SubscriptionTable> subscriptions = subscriptionRepository.findByUserId(testUserId);
 
         // Then
         assertTrue(subscriptions.size() >= 2);
@@ -139,62 +138,71 @@ class SubscriptionRepositoryTest {
     }
 
     @Test
-    void testFindByUserId_WithInvalidUserId_ReturnsEmpty() {
+    void testFindByUserIdWithInvalidUserIdReturnsEmpty() {
         // When
-        List<SubscriptionTable> subscriptions = subscriptionRepository.findByUserId("non-existent-user");
+        final List<SubscriptionTable> subscriptions =
+                subscriptionRepository.findByUserId("non-existent-user");
 
         // Then
         assertTrue(subscriptions.isEmpty());
     }
 
     @Test
-    void testFindByUserId_WithNullUserId_ReturnsEmpty() {
+    void testFindByUserIdWithNullUserIdReturnsEmpty() {
         // When
-        List<SubscriptionTable> subscriptions = subscriptionRepository.findByUserId(null);
+        final List<SubscriptionTable> subscriptions = subscriptionRepository.findByUserId(null);
 
         // Then
         assertTrue(subscriptions.isEmpty());
     }
 
     @Test
-    void testFindActiveByUserId_WithActiveSubscriptions_ReturnsOnlyActive() {
+    void testFindActiveByUserIdWithActiveSubscriptionsReturnsOnlyActive() {
         // Given
-        String activeSubId = "active-sub-" + System.currentTimeMillis();
-        String inactiveSubId = "inactive-sub-" + System.currentTimeMillis();
-        SubscriptionTable activeSub = createSubscription(activeSubId, testUserId, true);
-        SubscriptionTable inactiveSub = createSubscription(inactiveSubId, testUserId, false);
+        final String activeSubId = "active-sub-" + System.currentTimeMillis();
+        final String inactiveSubId = "inactive-sub-" + System.currentTimeMillis();
+        final SubscriptionTable activeSub = createSubscription(activeSubId, testUserId, true);
+        final SubscriptionTable inactiveSub = createSubscription(inactiveSubId, testUserId, false);
         subscriptionRepository.save(activeSub);
         subscriptionRepository.save(inactiveSub);
 
         // When
-        List<SubscriptionTable> activeSubscriptions = subscriptionRepository.findActiveByUserId(testUserId);
+        final List<SubscriptionTable> activeSubscriptions =
+                subscriptionRepository.findActiveByUserId(testUserId);
 
         // Then
-        assertTrue(activeSubscriptions.stream().anyMatch(s -> s.getSubscriptionId().equals(activeSubId)));
-        assertFalse(activeSubscriptions.stream().anyMatch(s -> s.getSubscriptionId().equals(inactiveSubId)));
+        assertTrue(
+                activeSubscriptions.stream()
+                        .anyMatch(s -> s.getSubscriptionId().equals(activeSubId)));
+        assertFalse(
+                activeSubscriptions.stream()
+                        .anyMatch(s -> s.getSubscriptionId().equals(inactiveSubId)));
         activeSubscriptions.forEach(s -> assertTrue(s.getActive()));
     }
 
     @Test
-    void testFindActiveByUserId_WithNoActiveSubscriptions_ReturnsEmpty() {
+    void testFindActiveByUserIdWithNoActiveSubscriptionsReturnsEmpty() {
         // Given
-        String inactiveSubId = "inactive-sub-" + System.currentTimeMillis();
-        SubscriptionTable inactiveSub = createSubscription(inactiveSubId, testUserId, false);
+        final String inactiveSubId = "inactive-sub-" + System.currentTimeMillis();
+        final SubscriptionTable inactiveSub = createSubscription(inactiveSubId, testUserId, false);
         subscriptionRepository.save(inactiveSub);
 
         // When
-        List<SubscriptionTable> activeSubscriptions = subscriptionRepository.findActiveByUserId(testUserId);
+        final List<SubscriptionTable> activeSubscriptions =
+                subscriptionRepository.findActiveByUserId(testUserId);
 
         // Then
-        assertTrue(activeSubscriptions.isEmpty() || 
-                activeSubscriptions.stream().noneMatch(s -> s.getSubscriptionId().equals(inactiveSubId)));
+        assertTrue(
+                activeSubscriptions.isEmpty()
+                        || activeSubscriptions.stream()
+                                .noneMatch(s -> s.getSubscriptionId().equals(inactiveSubId)));
     }
 
     @Test
-    void testDelete_WithValidId_DeletesSubscription() {
+    void testDeleteWithValidIdDeletesSubscription() {
         // Given
-        String subscriptionId = "sub-to-delete-" + System.currentTimeMillis();
-        SubscriptionTable subscription = createSubscription(subscriptionId, testUserId, true);
+        final String subscriptionId = "sub-to-delete-" + System.currentTimeMillis();
+        final SubscriptionTable subscription = createSubscription(subscriptionId, testUserId, true);
         subscriptionRepository.save(subscription);
 
         // Verify it exists
@@ -204,30 +212,29 @@ class SubscriptionRepositoryTest {
         assertDoesNotThrow(() -> subscriptionRepository.delete(subscriptionId));
 
         // Then
-        Optional<SubscriptionTable> found = subscriptionRepository.findById(subscriptionId);
+        final Optional<SubscriptionTable> found = subscriptionRepository.findById(subscriptionId);
         assertFalse(found.isPresent());
     }
 
     @Test
-    void testDelete_WithNullId_ThrowsException() {
+    void testDeleteWithNullIdThrowsException() {
         // When/Then
         assertThrows(IllegalArgumentException.class, () -> subscriptionRepository.delete(null));
     }
 
     @Test
-    void testDelete_WithEmptyId_ThrowsException() {
+    void testDeleteWithEmptyIdThrowsException() {
         // When/Then
         assertThrows(IllegalArgumentException.class, () -> subscriptionRepository.delete(""));
     }
 
     @Test
-    void testGetTableName_ReturnsCorrectTableName() {
+    void testGetTableNameReturnsCorrectTableName() {
         // When
-        String tableName = subscriptionRepository.getTableName();
+        final String tableName = subscriptionRepository.getTableName();
 
         // Then
         assertNotNull(tableName);
         assertTrue(tableName.contains("Subscriptions"));
     }
 }
-

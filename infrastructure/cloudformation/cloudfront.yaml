@@ -10,6 +10,11 @@ Parameters:
     Type: String
     Description: ACM Certificate ARN for CloudFront
 
+  DomainName:
+    Type: String
+    Default: budgetbuddy.com
+    Description: Root domain the CloudFront distribution serves under.
+
 Resources:
   CloudFrontDistribution:
     Type: AWS::CloudFront::Distribution
@@ -156,6 +161,14 @@ Resources:
         - Key: CostCenter
           Value: engineering
 
+  # Multi-layered WAF: IP rate limit + OWASP core rules + SQLi + known-bad
+  # inputs + Amazon IP reputation. All managed rule groups run in enforce
+  # mode from day one (`OverrideAction: None: {}` means AWS's tuned
+  # per-rule actions — mostly Block — apply). To temporarily demote any
+  # rule group to observe-only, flip its `OverrideAction` to `Count: {}`
+  # and watch CloudWatch → WAF metrics before re-enforcing. Managed rules
+  # are AWS-maintained so per-rule exclusions (below) are the only place
+  # we risk drifting out of sync with AWS updates.
   WAFWebACL:
     Type: AWS::WAFv2::WebACL
     Properties:
@@ -176,15 +189,76 @@ Resources:
             SampledRequestsEnabled: true
             CloudWatchMetricsEnabled: true
             MetricName: CloudFrontRateLimitRule
+
+        # OWASP Top 10 / common attack patterns. Runs in Block mode from
+        # day one because AWS ships this rule group tuned for API use.
+        - Name: AWSManagedCommonRules
+          Priority: 2
+          OverrideAction:
+            None: {}
+          Statement:
+            ManagedRuleGroupStatement:
+              VendorName: AWS
+              Name: AWSManagedRulesCommonRuleSet
+              # SizeRestrictions_BODY can false-positive on CSV uploads,
+              # so we excluded it — import-path size limits are enforced
+              # in ApplicationLoadBalancer config instead.
+              ExcludedRules:
+                - Name: SizeRestrictions_BODY
+          VisibilityConfig:
+            SampledRequestsEnabled: true
+            CloudWatchMetricsEnabled: true
+            MetricName: CommonRules
+
+        # SQL injection specifically — financial APIs are disproportionately
+        # targeted.
+        - Name: AWSManagedSQLi
+          Priority: 3
+          OverrideAction:
+            None: {}
+          Statement:
+            ManagedRuleGroupStatement:
+              VendorName: AWS
+              Name: AWSManagedRulesSQLiRuleSet
+          VisibilityConfig:
+            SampledRequestsEnabled: true
+            CloudWatchMetricsEnabled: true
+            MetricName: SQLiRules
+
+        # Known-bad inputs (log4shell, path traversal, known exploit
+        # signatures). Lightweight — small rule group.
+        - Name: AWSManagedKnownBadInputs
+          Priority: 4
+          OverrideAction:
+            None: {}
+          Statement:
+            ManagedRuleGroupStatement:
+              VendorName: AWS
+              Name: AWSManagedRulesKnownBadInputsRuleSet
+          VisibilityConfig:
+            SampledRequestsEnabled: true
+            CloudWatchMetricsEnabled: true
+            MetricName: KnownBadInputs
+
+        # IP reputation list — blocks addresses AWS observes as actively
+        # malicious across its global fleet.
+        - Name: AWSManagedAmazonIpReputation
+          Priority: 5
+          OverrideAction:
+            None: {}
+          Statement:
+            ManagedRuleGroupStatement:
+              VendorName: AWS
+              Name: AWSManagedRulesAmazonIpReputationList
+          VisibilityConfig:
+            SampledRequestsEnabled: true
+            CloudWatchMetricsEnabled: true
+            MetricName: IpReputation
+
       VisibilityConfig:
         SampledRequestsEnabled: true
         CloudWatchMetricsEnabled: true
         MetricName: BudgetBuddyCloudFrontWAF
-
-  DomainName:
-    Type: String
-    Default: budgetbuddy.com
-    Description: Domain name for the application
 
 Outputs:
   CloudFrontDistributionId:

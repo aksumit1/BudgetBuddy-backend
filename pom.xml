@@ -8,7 +8,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.4.1</version>
+        <version>3.5.14</version>
         <relativePath/>
     </parent>
 
@@ -19,9 +19,9 @@
     <description>Enterprise-ready backend server for BudgetBuddy iOS app</description>
 
     <properties>
-        <java.version>21</java.version>
-        <maven.compiler.source>21</maven.compiler.source>
-        <maven.compiler.target>21</maven.compiler.target>
+        <java.version>25</java.version>
+        <maven.compiler.source>25</maven.compiler.source>
+        <maven.compiler.target>25</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <spring-cloud.version>2024.0.0</spring-cloud.version>
         <plaid.version>17.0.0</plaid.version>
@@ -29,7 +29,7 @@
         <springdoc.version>2.6.0</springdoc.version>
         <aws.sdk.version>2.28.15</aws.sdk.version>
         <resilience4j.version>2.2.0</resilience4j.version>
-        <testcontainers.version>1.20.2</testcontainers.version>
+        <testcontainers.version>1.21.4</testcontainers.version>
         <mapstruct.version>1.6.2</mapstruct.version>
         <bucket4j.version>8.10.1</bucket4j.version>
         <xray.version>2.15.0</xray.version>
@@ -37,11 +37,13 @@
         <maven.compiler.plugin.version>3.14.0</maven.compiler.plugin.version>
         <maven.surefire.version>3.5.1</maven.surefire.version>
         <maven.failsafe.version>3.5.1</maven.failsafe.version>
-        <jacoco.version>0.8.12</jacoco.version>
+        <jacoco.version>0.8.14</jacoco.version>
         <!-- Static Analysis Tools -->
         <checkstyle.version>3.5.0</checkstyle.version>
-        <pmd.version>3.25.0</pmd.version>
-        <spotbugs.version>4.8.6.3</spotbugs.version>
+        <pmd.version>3.28.0</pmd.version>
+        <pmd.core.version>7.24.0</pmd.core.version>
+        <spotbugs.version>4.9.8.3</spotbugs.version>
+        <spotbugs.core.version>4.9.8</spotbugs.core.version>
         <archunit.version>1.4.1</archunit.version>
         <!-- Build performance optimizations -->
         <maven.compiler.fork>true</maven.compiler.fork>
@@ -52,7 +54,17 @@
         <!-- Docker volume cleanup: set to true to remove volumes on shutdown (default: false to preserve data) -->
         <docker.removeVolumes>false</docker.removeVolumes>
         <!-- JVM arguments to suppress warnings about dynamic agent loading (Mockito/ByteBuddy, JaCoCo) -->
-        <surefire.jvm.args>-XX:+EnableDynamicAgentLoading -Djdk.instrument.traceUsage=false</surefire.jvm.args>
+        <!--
+            Test JVM args. AWS SDK credentials are injected as system
+            properties so every Spring-Boot test that builds a DynamoDB
+            client against LocalStack has something to present; LocalStack
+            accepts any non-empty keypair. Without these, every repository
+            test fails with "Unable to load credentials from any of the
+            providers in the chain". aws.region is set for the same reason —
+            otherwise the SDK's region-provider chain hits IMDS and adds
+            ~60s of timeout-per-test on macOS dev machines.
+        -->
+        <surefire.jvm.args>-XX:+EnableDynamicAgentLoading -Djdk.instrument.traceUsage=false -Daws.accessKeyId=test -Daws.secretAccessKey=test -Daws.region=us-east-1</surefire.jvm.args>
     </properties>
 
     <dependencies>
@@ -227,25 +239,44 @@
             <artifactId>onnxruntime</artifactId>
             <version>1.18.0</version>
         </dependency>
-        <!-- Alternative: Deep Java Library (DJL) for BERT embeddings - CPU optimized -->
-        <!-- Uncomment if you prefer DJL over ONNX Runtime -->
-        <!--
-        <dependency>
-            <groupId>ai.djl</groupId>
-            <artifactId>api</artifactId>
-            <version>0.27.0</version>
-        </dependency>
-        <dependency>
-            <groupId>ai.djl.onnxruntime</groupId>
-            <artifactId>onnxruntime-engine</artifactId>
-            <version>0.27.0</version>
-        </dependency>
+        <!-- DJL HuggingFace tokenizer — used only to tokenize inputs for the ONNX sentence
+             encoder. We deliberately do NOT pull in djl/onnxruntime-engine: we already have
+             Microsoft's ONNX Runtime above, and ai.djl.huggingface:tokenizers ships as a
+             self-contained JNI library so it needs no DJL engine plumbing. -->
         <dependency>
             <groupId>ai.djl.huggingface</groupId>
             <artifactId>tokenizers</artifactId>
             <version>0.27.0</version>
         </dependency>
-        -->
+
+        <!-- Jackson YAML — drives the data-driven PDF template registry
+             (/pdf-templates/*.yaml). Version resolved from the Spring Boot BOM. -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.dataformat</groupId>
+            <artifactId>jackson-dataformat-yaml</artifactId>
+        </dependency>
+
+        <!-- Tesseract OCR for scanned / image-only PDF statements.
+             Pulled in statically but the runtime invocation is opt-in via
+             ocr.enabled + ocr.tessdata.path. Without a tessdata directory the
+             OCR bridge reports unavailable and the existing extractable-text
+             path continues to work unchanged. -->
+        <dependency>
+            <groupId>net.sourceforge.tess4j</groupId>
+            <artifactId>tess4j</artifactId>
+            <version>5.13.0</version>
+            <exclusions>
+                <!-- tess4j drags in slf4j/logback bindings that clash with ours. -->
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>slf4j-simple</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>ch.qos.logback</groupId>
+                    <artifactId>logback-classic</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
 
         <!-- Test Dependencies -->
         <!-- Reflections for classpath scanning in tests -->
@@ -301,6 +332,16 @@
             <groupId>org.testcontainers</groupId>
             <artifactId>junit-jupiter</artifactId>
             <version>${testcontainers.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <!-- ArchUnit: enforces architectural invariants at build time. Used
+             to guard money-math consistency (see FinancialRoundingArchTest).
+             Correctness in a finance app drifts when services each pick
+             their own rounding mode; this stops that drift from landing. -->
+        <dependency>
+            <groupId>com.tngtech.archunit</groupId>
+            <artifactId>archunit-junit5</artifactId>
+            <version>${archunit.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -434,13 +475,6 @@
             <version>3.0.3</version>
         </dependency>
         
-        <!-- OCR - Tess4J for scanned PDFs and images -->
-        <dependency>
-            <groupId>net.sourceforge.tess4j</groupId>
-            <artifactId>tess4j</artifactId>
-            <version>5.8.0</version>
-        </dependency>
-        
         <!-- Apache Commons Imaging for image processing -->
         <dependency>
             <groupId>org.apache.commons</groupId>
@@ -464,7 +498,7 @@
         <dependency>
             <groupId>com.github.spotbugs</groupId>
             <artifactId>spotbugs-annotations</artifactId>
-            <version>4.8.6</version>
+            <version>${spotbugs.core.version}</version>
         </dependency>
 
         <!-- Testing -->
@@ -504,14 +538,72 @@
 
     <build>
         <plugins>
+            <!-- Spotless: invoked manually via `mvn spotless:apply` to fix
+                 stylistic Checkstyle violations en masse (brace placement,
+                 operator wrapping, whitespace). AOSP variant of
+                 google-java-format keeps the existing 4-space indent. -->
+            <plugin>
+                <groupId>com.diffplug.spotless</groupId>
+                <artifactId>spotless-maven-plugin</artifactId>
+                <version>3.4.0</version>
+                <configuration>
+                    <java>
+                        <includes>
+                            <include>src/main/java/**/*.java</include>
+                            <include>src/test/java/**/*.java</include>
+                        </includes>
+                        <googleJavaFormat>
+                            <version>1.35.0</version>
+                            <style>AOSP</style>
+                            <reflowLongStrings>false</reflowLongStrings>
+                        </googleJavaFormat>
+                        <removeUnusedImports/>
+                        <trimTrailingWhitespace/>
+                        <endWithNewline/>
+                    </java>
+                </configuration>
+            </plugin>
+            <!-- OpenRewrite: invoked manually via `mvn rewrite:run` to apply
+                 mechanical static-analysis fixes that Spotless can't handle
+                 (brace insertion, final classes, empty blocks, utility-class
+                 constructor hiding, etc.). -->
+            <plugin>
+                <groupId>org.openrewrite.maven</groupId>
+                <artifactId>rewrite-maven-plugin</artifactId>
+                <version>6.39.0</version>
+                <configuration>
+                    <activeRecipes>
+                        <recipe>org.openrewrite.staticanalysis.NeedBraces</recipe>
+                        <recipe>org.openrewrite.staticanalysis.FinalClass</recipe>
+                        <recipe>org.openrewrite.staticanalysis.HideUtilityClassConstructor</recipe>
+                        <recipe>org.openrewrite.staticanalysis.EmptyBlock</recipe>
+                        <recipe>org.openrewrite.staticanalysis.SimplifyBooleanExpression</recipe>
+                        <recipe>org.openrewrite.staticanalysis.FinalizeMethodArguments</recipe>
+                        <recipe>org.openrewrite.staticanalysis.FinalizeLocalVariables</recipe>
+                        <recipe>org.openrewrite.staticanalysis.EqualsAvoidsNull</recipe>
+                        <recipe>org.openrewrite.staticanalysis.CaseInsensitiveComparisonsDoNotChangeCase</recipe>
+                        <recipe>org.openrewrite.staticanalysis.AtomicPrimitiveEqualsUsesGet</recipe>
+                        <recipe>org.openrewrite.staticanalysis.UnnecessaryParentheses</recipe>
+                        <recipe>org.openrewrite.staticanalysis.UseDiamondOperator</recipe>
+                        <recipe>org.openrewrite.java.format.EmptyNewlineAtEndOfFile</recipe>
+                    </activeRecipes>
+                </configuration>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.openrewrite.recipe</groupId>
+                        <artifactId>rewrite-static-analysis</artifactId>
+                        <version>2.34.1</version>
+                    </dependency>
+                </dependencies>
+            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>${maven.compiler.plugin.version}</version>
                 <configuration>
-                    <source>21</source>
-                    <target>21</target>
-                    <release>21</release>
+                    <source>25</source>
+                    <target>25</target>
+                    <release>25</release>
                     <parameters>true</parameters>
                     <fork>true</fork>  <!-- Enable parallel compilation -->
                     <compilerArgs>
@@ -615,7 +707,12 @@
                     <classpathScope>test</classpathScope>
                 </configuration>
                 <executions>
-                    <!-- Validate YAML files before build -->
+                    <!--
+                        Validate IaC (YAML syntax + CloudFormation semantics).
+                        Implementation lives in infrastructure/scripts/validate-iac.sh
+                        so it can be run standalone and easily extended (cfn-nag,
+                        checkov, cfn-guard). Keeps pom.xml human-readable.
+                    -->
                     <execution>
                         <id>validate-yaml</id>
                         <phase>validate</phase>
@@ -623,11 +720,7 @@
                             <goal>exec</goal>
                         </goals>
                         <configuration>
-                            <executable>sh</executable>
-                            <arguments>
-                                <argument>-c</argument>
-                                <argument>echo "Validating YAML files..."; YAML_ERRORS=0; if command -v yamllint &gt;/dev/null 2&gt;&amp;1; then echo "yamllint found, validating YAML files..."; if ! yamllint -c .yamllint infrastructure/cloudformation/*.yaml buildspec.yaml 2&gt;&amp;1 | grep -q "error"; then echo "✅ YAML validation passed"; else echo "❌ YAML validation failed!"; YAML_ERRORS=1; fi; elif command -v pip3 &gt;/dev/null 2&gt;&amp;1; then echo "Installing yamllint..."; pip3 install --user yamllint &gt;/dev/null 2&gt;&amp;1 || echo "Warning: Could not install yamllint, skipping YAML validation"; if command -v yamllint &gt;/dev/null 2&gt;&amp;1 || [ -f ~/.local/bin/yamllint ]; then echo "yamllint installed, validating YAML files..."; YAMLLINT_CMD="yamllint"; if ! command -v yamllint &gt;/dev/null 2&gt;&amp;1; then YAMLLINT_CMD="~/.local/bin/yamllint"; fi; if ! $YAMLLINT_CMD -c .yamllint infrastructure/cloudformation/*.yaml buildspec.yaml 2&gt;&amp;1 | grep -q "error"; then echo "✅ YAML validation passed"; else echo "❌ YAML validation failed!"; YAML_ERRORS=1; fi; fi; else echo "Warning: yamllint not available (install with: pip3 install yamllint), skipping YAML validation"; fi; if [ "$YAML_ERRORS" -eq 1 ]; then exit 1; fi</argument>
-                            </arguments>
+                            <executable>${project.basedir}/infrastructure/scripts/validate-iac.sh</executable>
                         </configuration>
                     </execution>
                     <!-- Start Docker containers before tests -->
@@ -768,7 +861,6 @@
                             </goals>
                             <configuration>
                                 <skip>false</skip>
-                                <!-- Re-enabled for JDK 21 -->
                                 <rules>
                                     <!-- Default rule: 50% coverage for all packages -->
                                     <rule>
@@ -901,7 +993,8 @@
                     </executions>
                     <configuration>
                         <configLocation>checkstyle.xml</configLocation>
-                        <encoding>UTF-8</encoding>
+                        <inputEncoding>UTF-8</inputEncoding>
+                        <outputEncoding>UTF-8</outputEncoding>
                         <consoleOutput>true</consoleOutput>
                         <failsOnError>false</failsOnError>
                         <linkXRef>false</linkXRef>
@@ -913,6 +1006,24 @@
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-pmd-plugin</artifactId>
                     <version>${pmd.version}</version>
+                    <!-- Pin pmd-core/pmd-java to a release whose ASM can read up
+                         to JDK 25 class files (major version 69). The default
+                         transitive version of PMD shipped with maven-pmd-plugin
+                         3.x crashed during type resolution against newer JDK
+                         bytecode; this pin keeps validate working when the
+                         runtime JDK is bumped past 21. -->
+                    <dependencies>
+                        <dependency>
+                            <groupId>net.sourceforge.pmd</groupId>
+                            <artifactId>pmd-core</artifactId>
+                            <version>${pmd.core.version}</version>
+                        </dependency>
+                        <dependency>
+                            <groupId>net.sourceforge.pmd</groupId>
+                            <artifactId>pmd-java</artifactId>
+                            <version>${pmd.core.version}</version>
+                        </dependency>
+                    </dependencies>
                     <executions>
                         <execution>
                             <id>pmd-check</id>
@@ -934,6 +1045,14 @@
                         <failOnViolation>false</failOnViolation>
                         <printFailingErrors>true</printFailingErrors>
                         <includeTests>true</includeTests>
+                        <!-- Match the project's compile target. PMD 7.24 +
+                             maven-pmd-plugin 3.28 accept JDK 25 here; older
+                             combinations rejected it. -->
+                        <targetJdk>25</targetJdk>
+                        <!-- Suppress "Unable to locate Source XRef" notices: we
+                             don't run the JXR plugin and the report is for
+                             humans only. -->
+                        <linkXRef>false</linkXRef>
                     </configuration>
                 </plugin>
                 <!-- SpotBugs Plugin -->
@@ -941,6 +1060,17 @@
                     <groupId>com.github.spotbugs</groupId>
                     <artifactId>spotbugs-maven-plugin</artifactId>
                     <version>${spotbugs.version}</version>
+                    <!-- Pin spotbugs core to a release whose ASM can read JDK 25
+                         class files (major version 69). The plugin's default
+                         transitive spotbugs version aborted analysis on JDK 25
+                         with "Unsupported class file major version 69". -->
+                    <dependencies>
+                        <dependency>
+                            <groupId>com.github.spotbugs</groupId>
+                            <artifactId>spotbugs</artifactId>
+                            <version>${spotbugs.core.version}</version>
+                        </dependency>
+                    </dependencies>
                     <executions>
                         <execution>
                             <id>spotbugs-check</id>

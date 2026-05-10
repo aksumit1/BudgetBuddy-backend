@@ -1,20 +1,16 @@
 package com.budgetbuddy.model.dynamodb;
 
+import java.time.Instant;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbAttribute;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbBean;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbPartitionKey;
-import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbSecondaryPartitionKey;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbSecondarySortKey;
 
-import java.time.Instant;
-
 /**
- * DynamoDB table for Device Tokens
- * Stores device tokens for push notifications
- * 
- * Partition Key: userId
- * Sort Key: deviceToken
- * GSI: userId-index (for querying all devices for a user)
+ * DynamoDB table for Device Tokens Stores device tokens for push notifications
+ *
+ * <p>Partition Key: userId Sort Key: deviceToken GSI: userId-index (for querying all devices for a
+ * user)
  */
 @DynamoDbBean
 public class DeviceTokenTable {
@@ -38,6 +34,16 @@ public class DeviceTokenTable {
         this.userId = userId;
     }
 
+    // `deviceToken` is both the table's primary sort key (composite with
+    // userId) and a secondary sort key on the userId-index GSI. The missing
+    // `@DynamoDbSortKey` meant the Enhanced Client built GetItem/PutItem
+    // requests with only a partition key, which DynamoDB rejected because
+    // the real table schema (created by initializeTable()) has composite
+    // keys. Result: every `findByUserIdAndDeviceToken` silently returned
+    // empty and every save silently failed with "schema mismatch" that
+    // the catch-block swallowed. Tests had to assumeTrue-away to stay
+    // green, masking the real bug.
+    @software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbSortKey
     @DynamoDbSecondarySortKey(indexNames = "userId-index")
     @DynamoDbAttribute("deviceToken")
     public String getDeviceToken() {

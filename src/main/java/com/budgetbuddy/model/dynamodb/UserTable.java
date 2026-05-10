@@ -1,19 +1,17 @@
 package com.budgetbuddy.model.dynamodb;
 
+import java.time.Instant;
+import java.util.Set;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbAttribute;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbBean;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbPartitionKey;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbSecondaryPartitionKey;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbSecondarySortKey;
 
-import java.time.Instant;
-import java.util.Set;
-
 /**
- * DynamoDB table for Users
- * Optimized for cost: on-demand billing, GSI for email lookup
+ * DynamoDB table for Users Optimized for cost: on-demand billing, GSI for email lookup
  *
- * Security: Stores server-side hashed passwords with server salt
+ * <p>Security: Stores server-side hashed passwords with server salt
  */
 @DynamoDbBean
 public class UserTable {
@@ -28,6 +26,7 @@ public class UserTable {
     private String phoneNumber;
     private Boolean enabled;
     private Boolean emailVerified;
+    // TODO: Add support for Phone Verification
     private Boolean twoFactorEnabled;
     private String preferredCurrency;
     private String timezone;
@@ -36,8 +35,15 @@ public class UserTable {
     private Instant updatedAt;
     private Instant lastLoginAt;
     private Long lastLoginAtTimestamp; // GSI sort key (epoch seconds) for finding active users
-    private String activeStatus; // GSI partition key: "ACTIVE" or "INACTIVE" (computed from enabled)
+    private String
+            activeStatus; // GSI partition key: "ACTIVE" or "INACTIVE" (computed from enabled)
     private Instant passwordChangedAt;
+
+    /**
+     * Flow 7 / O12 — anomaly detector sensitivity. "loose" / "normal" / "strict". Multiplies
+     * z-score + category-spike + amount-threshold knobs. Null = "normal".
+     */
+    private String anomalySensitivity;
 
     @DynamoDbPartitionKey
     @DynamoDbAttribute("userId")
@@ -115,7 +121,7 @@ public class UserTable {
     public void setEnabled(final Boolean enabled) {
         this.enabled = enabled;
         // Auto-populate activeStatus for GSI partition key
-        this.activeStatus = (enabled != null && enabled) ? "ACTIVE" : "INACTIVE";
+        this.activeStatus = enabled != null && enabled ? "ACTIVE" : "INACTIVE";
     }
 
     @DynamoDbAttribute("emailVerified")
@@ -223,5 +229,14 @@ public class UserTable {
 
     public void setPasswordChangedAt(final Instant passwordChangedAt) {
         this.passwordChangedAt = passwordChangedAt;
+    }
+
+    @DynamoDbAttribute("anomalySensitivity")
+    public String getAnomalySensitivity() {
+        return anomalySensitivity;
+    }
+
+    public void setAnomalySensitivity(final String anomalySensitivity) {
+        this.anomalySensitivity = anomalySensitivity;
     }
 }

@@ -9,11 +9,10 @@ import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.ses.SesClient;
 import software.amazon.awssdk.services.sns.SnsClient;
 
-/**
- * Notification Services Configuration
- */
+/** Notification Services Configuration */
 @Configuration
-@org.springframework.context.annotation.Profile("!test") // Don't load in tests - use AWSTestConfiguration instead
+@org.springframework.context.annotation.Profile(
+        "!test") // Don't load in tests - use AWSTestConfiguration instead
 public class NotificationConfig {
 
     private AwsCredentialsProvider getCredentialsProvider() {
@@ -25,7 +24,8 @@ public class NotificationConfig {
     }
 
     @Bean
-    public SnsClient snsClient(@org.springframework.beans.factory.annotation.Value("${app.aws.region:us-east-1}") String region) {
+    public SnsClient snsClient(
+            @org.springframework.beans.factory.annotation.Value("${app.aws.region:us-east-1}") final String region) {
         return SnsClient.builder()
                 .region(Region.of(region))
                 .credentialsProvider(getCredentialsProvider())
@@ -33,11 +33,11 @@ public class NotificationConfig {
     }
 
     @Bean
-    public SesClient sesClient(@org.springframework.beans.factory.annotation.Value("${app.aws.region:us-east-1}") String region) {
+    public SesClient sesClient(
+            @org.springframework.beans.factory.annotation.Value("${app.aws.region:us-east-1}") final String region) {
         return SesClient.builder()
                 .region(Region.of(region))
                 .credentialsProvider(getCredentialsProvider())
                 .build();
     }
 }
-

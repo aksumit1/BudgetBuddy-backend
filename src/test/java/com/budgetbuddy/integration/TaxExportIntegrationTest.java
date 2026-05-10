@@ -1,5 +1,8 @@
 package com.budgetbuddy.integration;
 
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import com.budgetbuddy.AWSTestConfiguration;
 import com.budgetbuddy.model.dynamodb.TransactionTable;
 import com.budgetbuddy.model.dynamodb.UserTable;
@@ -8,6 +11,7 @@ import com.budgetbuddy.repository.dynamodb.TransactionRepository;
 import com.budgetbuddy.repository.dynamodb.UserRepository;
 import com.budgetbuddy.service.TaxExportService;
 import com.budgetbuddy.util.TableInitializer;
+import java.math.BigDecimal;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -16,36 +20,27 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 
-import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.util.List;
-
-import static org.junit.jupiter.api.Assertions.*;
-
-/**
- * Integration tests for Tax Export Service
- * Tests with real DynamoDB (LocalStack)
- */
+/** Integration tests for Tax Export Service Tests with real DynamoDB (LocalStack) */
+// PMD's LawOfDemeter is documented as imprecise on chains involving
+// standard library types (BigDecimal, String, Optional) and DTO
+// getters; this class has many such idiomatic uses. Suppress at
+// class level rather than littering every method.
+@SuppressWarnings("PMD.LawOfDemeter")
 @SpringBootTest(classes = com.budgetbuddy.BudgetBuddyApplication.class)
 @Import(AWSTestConfiguration.class)
 @ActiveProfiles("test")
 @DisplayName("Tax Export Integration Tests")
 class TaxExportIntegrationTest {
 
-    @Autowired
-    private TaxExportService taxExportService;
+    @Autowired private TaxExportService taxExportService;
 
-    @Autowired
-    private TransactionRepository transactionRepository;
+    @Autowired private TransactionRepository transactionRepository;
 
-    @Autowired
-    private AccountRepository accountRepository;
+    @Autowired private AccountRepository accountRepository;
 
-    @Autowired
-    private UserRepository userRepository;
+    @Autowired private UserRepository userRepository;
 
-    @Autowired
-    private software.amazon.awssdk.services.dynamodb.DynamoDbClient dynamoDbClient;
+    @Autowired private software.amazon.awssdk.services.dynamodb.DynamoDbClient dynamoDbClient;
 
     private UserTable testUser;
     private TransactionTable salaryTransaction;
@@ -66,20 +61,35 @@ class TaxExportIntegrationTest {
         userRepository.save(testUser);
 
         // Create test transactions for 2024
-        salaryTransaction = createTransaction(
-            testUser.getUserId(), "2024-01-15", "Payroll Deposit", "ADP",
-            new BigDecimal("5000.00"), "salary", "ach"
-        );
+        salaryTransaction =
+                createTransaction(
+                        testUser.getUserId(),
+                        "2024-01-15",
+                        "Payroll Deposit",
+                        "ADP",
+                        new BigDecimal("5000.00"),
+                        "salary",
+                        "ach");
 
-        interestTransaction = createTransaction(
-            testUser.getUserId(), "2024-02-01", "Interest Payment", "Bank",
-            new BigDecimal("250.00"), "interest", null
-        );
+        interestTransaction =
+                createTransaction(
+                        testUser.getUserId(),
+                        "2024-02-01",
+                        "Interest Payment",
+                        "Bank",
+                        new BigDecimal("250.00"),
+                        "interest",
+                        null);
 
-        charityTransaction = createTransaction(
-            testUser.getUserId(), "2024-03-10", "Donation to Red Cross", "Red Cross",
-            new BigDecimal("-100.00"), "other", null
-        );
+        charityTransaction =
+                createTransaction(
+                        testUser.getUserId(),
+                        "2024-03-10",
+                        "Donation to Red Cross",
+                        "Red Cross",
+                        new BigDecimal("-100.00"),
+                        "other",
+                        null);
 
         // Save transactions
         transactionRepository.save(salaryTransaction);
@@ -89,11 +99,11 @@ class TaxExportIntegrationTest {
 
     @Test
     @DisplayName("Should generate tax export with real database")
-    void testGenerateTaxExport_WithRealDatabase() {
+    void testGenerateTaxExportWithRealDatabase() {
         // When
-        TaxExportService.TaxExportResult result = taxExportService.generateTaxExport(
-            testUser.getUserId(), 2024, null, null, null, null
-        );
+        final TaxExportService.TaxExportResult result =
+                taxExportService.generateTaxExport(
+                        testUser.getUserId(), 2024, null, null, null, null);
 
         // Then
         assertNotNull(result);
@@ -101,25 +111,26 @@ class TaxExportIntegrationTest {
         assertNotNull(result.getTransactionsByCategory());
 
         // Verify transactions are categorized
-        assertTrue(result.getTransactionsByCategory().containsKey("SALARY") ||
-                   result.getTransactionsByCategory().containsKey("INTEREST") ||
-                   result.getTransactionsByCategory().containsKey("CHARITY"));
+        assertTrue(
+                result.getTransactionsByCategory().containsKey("SALARY")
+                        || result.getTransactionsByCategory().containsKey("INTEREST")
+                        || result.getTransactionsByCategory().containsKey("CHARITY"));
 
         // Verify summary totals
-        TaxExportService.TaxSummary summary = result.getSummary();
+        final TaxExportService.TaxSummary summary = result.getSummary();
         assertTrue(summary.getTotalSalary().compareTo(BigDecimal.ZERO) >= 0);
     }
 
     @Test
     @DisplayName("Should export to CSV with real data")
-    void testExportToCSV_WithRealData() {
+    void testExportToCSVWithRealData() {
         // Given
-        TaxExportService.TaxExportResult result = taxExportService.generateTaxExport(
-            testUser.getUserId(), 2024, null, null, null, null
-        );
+        final TaxExportService.TaxExportResult result =
+                taxExportService.generateTaxExport(
+                        testUser.getUserId(), 2024, null, null, null, null);
 
         // When
-        String csv = taxExportService.exportToCSV(result, 2024);
+        final String csv = taxExportService.exportToCSV(result, 2024);
 
         // Then
         assertNotNull(csv);
@@ -130,14 +141,14 @@ class TaxExportIntegrationTest {
 
     @Test
     @DisplayName("Should export to JSON with real data")
-    void testExportToJSON_WithRealData() {
+    void testExportToJSONWithRealData() {
         // Given
-        TaxExportService.TaxExportResult result = taxExportService.generateTaxExport(
-            testUser.getUserId(), 2024, null, null, null, null
-        );
+        final TaxExportService.TaxExportResult result =
+                taxExportService.generateTaxExport(
+                        testUser.getUserId(), 2024, null, null, null, null);
 
         // When
-        String json = taxExportService.exportToJSON(result, 2024);
+        final String json = taxExportService.exportToJSON(result, 2024);
 
         // Then
         assertNotNull(json);
@@ -148,18 +159,23 @@ class TaxExportIntegrationTest {
 
     @Test
     @DisplayName("Should handle transactions from different years")
-    void testGenerateTaxExport_DifferentYears() {
+    void testGenerateTaxExportDifferentYears() {
         // Given - Create transaction for 2023
-        TransactionTable oldTransaction = createTransaction(
-            testUser.getUserId(), "2023-12-15", "Old Transaction", "Merchant",
-            new BigDecimal("100.00"), "other", null
-        );
+        final TransactionTable oldTransaction =
+                createTransaction(
+                        testUser.getUserId(),
+                        "2023-12-15",
+                        "Old Transaction",
+                        "Merchant",
+                        new BigDecimal("100.00"),
+                        "other",
+                        null);
         transactionRepository.save(oldTransaction);
 
         // When - Export 2024 only
-        TaxExportService.TaxExportResult result2024 = taxExportService.generateTaxExport(
-            testUser.getUserId(), 2024, null, null, null, null
-        );
+        final TaxExportService.TaxExportResult result2024 =
+                taxExportService.generateTaxExport(
+                        testUser.getUserId(), 2024, null, null, null, null);
 
         // Then - Should not include 2023 transaction
         // Verify by checking that old transaction is not in results
@@ -169,35 +185,50 @@ class TaxExportIntegrationTest {
 
     @Test
     @DisplayName("Should calculate correct totals for multiple transactions")
-    void testGenerateTaxExport_MultipleTransactions() {
+    void testGenerateTaxExportMultipleTransactions() {
         // Given - Add more salary transactions
-        TransactionTable salary2 = createTransaction(
-            testUser.getUserId(), "2024-02-15", "Payroll Deposit", "ADP",
-            new BigDecimal("5000.00"), "salary", "ach"
-        );
-        TransactionTable salary3 = createTransaction(
-            testUser.getUserId(), "2024-03-15", "Payroll Deposit", "ADP",
-            new BigDecimal("5000.00"), "salary", "ach"
-        );
+        final TransactionTable salary2 =
+                createTransaction(
+                        testUser.getUserId(),
+                        "2024-02-15",
+                        "Payroll Deposit",
+                        "ADP",
+                        new BigDecimal("5000.00"),
+                        "salary",
+                        "ach");
+        final TransactionTable salary3 =
+                createTransaction(
+                        testUser.getUserId(),
+                        "2024-03-15",
+                        "Payroll Deposit",
+                        "ADP",
+                        new BigDecimal("5000.00"),
+                        "salary",
+                        "ach");
         transactionRepository.save(salary2);
         transactionRepository.save(salary3);
 
         // When
-        TaxExportService.TaxExportResult result = taxExportService.generateTaxExport(
-            testUser.getUserId(), 2024, null, null, null, null
-        );
+        final TaxExportService.TaxExportResult result =
+                taxExportService.generateTaxExport(
+                        testUser.getUserId(), 2024, null, null, null, null);
 
         // Then
-        TaxExportService.TaxSummary summary = result.getSummary();
+        final TaxExportService.TaxSummary summary = result.getSummary();
         // Should have at least 3 salary transactions (5000 each = 15000 total)
         assertTrue(summary.getTotalSalary().compareTo(new BigDecimal("10000.00")) >= 0);
     }
 
     // Helper method
     private TransactionTable createTransaction(
-            String userId, String date, String description, String merchantName,
-            BigDecimal amount, String category, String paymentChannel) {
-        TransactionTable transaction = new TransactionTable();
+            final String userId,
+            final String date,
+            final String description,
+            final String merchantName,
+            final BigDecimal amount,
+            final String category,
+            final String paymentChannel) {
+        final TransactionTable transaction = new TransactionTable();
         transaction.setTransactionId(java.util.UUID.randomUUID().toString());
         transaction.setUserId(userId);
         transaction.setTransactionDate(date);
@@ -208,10 +239,10 @@ class TaxExportIntegrationTest {
         transaction.setCategoryDetailed(category);
         transaction.setPaymentChannel(paymentChannel);
         transaction.setCurrencyCode("USD");
-        transaction.setTransactionType(amount.compareTo(BigDecimal.ZERO) < 0 ? "EXPENSE" : "INCOME");
+        transaction.setTransactionType(
+                amount.compareTo(BigDecimal.ZERO) < 0 ? "EXPENSE" : "INCOME");
         transaction.setCreatedAt(java.time.Instant.now());
         transaction.setUpdatedAt(java.time.Instant.now());
         return transaction;
     }
 }
-

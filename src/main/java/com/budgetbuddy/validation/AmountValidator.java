@@ -2,15 +2,11 @@ package com.budgetbuddy.validation;
 
 import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
-import org.springframework.stereotype.Component;
-
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import org.springframework.stereotype.Component;
 
-/**
- * Amount validator implementation
- * Validates amount is positive and within reasonable limits
- */
+/** Amount validator implementation Validates amount is positive and within reasonable limits */
 @Component
 public class AmountValidator implements ConstraintValidator<ValidAmount, Double> {
 
@@ -30,14 +26,13 @@ public class AmountValidator implements ConstraintValidator<ValidAmount, Double>
         }
 
         try {
-            BigDecimal amountDecimal = BigDecimal.valueOf(amount)
-                    .setScale(MAX_DECIMAL_PLACES, RoundingMode.HALF_UP);
+            final BigDecimal amountDecimal =
+                    BigDecimal.valueOf(amount).setScale(MAX_DECIMAL_PLACES, RoundingMode.HALF_UP);
 
-            return amountDecimal.compareTo(MIN_AMOUNT) > 0 &&
-                   amountDecimal.compareTo(MAX_AMOUNT) <= 0;
+            return amountDecimal.compareTo(MIN_AMOUNT) > 0
+                    && amountDecimal.compareTo(MAX_AMOUNT) <= 0;
         } catch (Exception e) {
             return false;
         }
     }
 }
-

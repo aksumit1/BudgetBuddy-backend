@@ -4,9 +4,7 @@ import org.springframework.boot.actuate.health.Health;
 import org.springframework.boot.actuate.health.HealthIndicator;
 import org.springframework.stereotype.Component;
 
-/**
- * Custom health indicator for database connectivity
- */
+/** Custom health indicator for database connectivity */
 @Component
 public class CustomHealthIndicator implements HealthIndicator {
 
@@ -27,4 +25,3 @@ public class CustomHealthIndicator implements HealthIndicator {
         }
     }
 }
-

@@ -2,6 +2,13 @@ package com.budgetbuddy.chaos;
 
 import com.budgetbuddy.AWSTestConfiguration;
 import com.budgetbuddy.util.TableInitializer;
+import java.util.Random;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -11,23 +18,14 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 
-import java.util.Random;
-import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicInteger;
-
-/**
- * Chaos Engineering Tests
- * Tests system resilience under failure conditions
- * 
- */
+/** Chaos Engineering Tests Tests system resilience under failure conditions */
 @SpringBootTest(classes = com.budgetbuddy.BudgetBuddyApplication.class)
 @ActiveProfiles("test")
 @Import(AWSTestConfiguration.class)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class ChaosTest {
 
-    @Autowired
-    private DynamoDbClient dynamoDbClient;
+    @Autowired private DynamoDbClient dynamoDbClient;
 
     @BeforeAll
     void ensureTablesInitialized() {
@@ -36,24 +34,25 @@ class ChaosTest {
 
     @Test
     void testRandomFailures() throws InterruptedException {
-        ExecutorService executor = Executors.newFixedThreadPool(20);
-        AtomicInteger successCount = new AtomicInteger(0);
-        AtomicInteger failureCount = new AtomicInteger(0);
-        Random random = new Random();
+        final ExecutorService executor = Executors.newFixedThreadPool(20);
+        final AtomicInteger successCount = new AtomicInteger(0);
+        final AtomicInteger failureCount = new AtomicInteger(0);
+        final Random random = new Random();
 
         for (int i = 0; i < 100; i++) {
-            executor.submit(() -> {
-                try {
-                    // Simulate random failure (10% failure rate)
-                    if (random.nextInt(100) < 10) {
-                        throw new RuntimeException("Simulated failure");
-                    }
-                    Thread.sleep(50);
-                    successCount.incrementAndGet();
-                } catch (Exception e) {
-                    failureCount.incrementAndGet();
-                }
-            });
+            executor.submit(
+                    () -> {
+                        try {
+                            // Simulate random failure (10% failure rate)
+                            if (random.nextInt(100) < 10) {
+                                throw new RuntimeException("Simulated failure");
+                            }
+                            Thread.sleep(50);
+                            successCount.incrementAndGet();
+                        } catch (Exception e) {
+                            failureCount.incrementAndGet();
+                        }
+                    });
         }
 
         executor.shutdown();
@@ -62,28 +61,30 @@ class ChaosTest {
         System.out.println("Chaos Test - Random Failures:");
         System.out.println("Successful: " + successCount.get());
         System.out.println("Failed: " + failureCount.get());
-        System.out.println("System handled failures gracefully: " +
-                (failureCount.get() > 0 && successCount.get() > 0));
+        System.out.println(
+                "System handled failures gracefully: "
+                        + (failureCount.get() > 0 && successCount.get() > 0));
     }
 
     @Test
     void testCascadingFailures() throws InterruptedException {
-        ExecutorService executor = Executors.newFixedThreadPool(10);
-        CountDownLatch cascadeLatch = new CountDownLatch(1);
-        AtomicInteger recoveredCount = new AtomicInteger(0);
+        final ExecutorService executor = Executors.newFixedThreadPool(10);
+        final CountDownLatch cascadeLatch = new CountDownLatch(1);
+        final AtomicInteger recoveredCount = new AtomicInteger(0);
 
         // Simulate cascading failure scenario
         for (int i = 0; i < 10; i++) {
-            executor.submit(() -> {
-                try {
-                    cascadeLatch.await(); // Wait for cascade trigger
-                    // Simulate recovery
-                    Thread.sleep(100);
-                    recoveredCount.incrementAndGet();
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                }
-            });
+            executor.submit(
+                    () -> {
+                        try {
+                            cascadeLatch.await(); // Wait for cascade trigger
+                            // Simulate recovery
+                            Thread.sleep(100);
+                            recoveredCount.incrementAndGet();
+                        } catch (InterruptedException e) {
+                            Thread.currentThread().interrupt();
+                        }
+                    });
         }
 
         // Trigger cascade
@@ -100,19 +101,20 @@ class ChaosTest {
     @Test
     void testResourceExhaustion() {
         // Test system behavior under resource exhaustion
-        ExecutorService executor = Executors.newFixedThreadPool(1000);
-        AtomicInteger handledCount = new AtomicInteger(0);
+        final ExecutorService executor = Executors.newFixedThreadPool(1000);
+        final AtomicInteger handledCount = new AtomicInteger(0);
 
         try {
-            for (int i = 0; i < 10000; i++) {
-                executor.submit(() -> {
-                    try {
-                        Thread.sleep(10);
-                        handledCount.incrementAndGet();
-                    } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt();
-                    }
-                });
+            for (int i = 0; i < 10_000; i++) {
+                executor.submit(
+                        () -> {
+                            try {
+                                Thread.sleep(10);
+                                handledCount.incrementAndGet();
+                            } catch (InterruptedException e) {
+                                Thread.currentThread().interrupt();
+                            }
+                        });
             }
         } catch (RejectedExecutionException e) {
             System.out.println("Resource exhaustion detected - system rejected requests");
@@ -123,4 +125,3 @@ class ChaosTest {
         System.out.println("Handled requests: " + handledCount.get());
     }
 }
-

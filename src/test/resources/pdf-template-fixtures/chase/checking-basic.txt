@@ -1,0 +1,4 @@
+03/15 AMZN Mktp US *A1B2C3D4                     -34.99        2,345.67
+03/16 STARBUCKS #01234 SEATTLE WA                  -5.75        2,339.92
+03/18 ACH DEPOSIT ACME CORP PAYROLL             2,500.00        4,839.92
+03/20 TRADER JOE'S #124                          -87.42        4,752.50

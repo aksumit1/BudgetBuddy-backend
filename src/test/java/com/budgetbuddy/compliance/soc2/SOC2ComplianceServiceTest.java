@@ -1,5 +1,15 @@
 package com.budgetbuddy.compliance.soc2;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.verify;
+
 import com.budgetbuddy.compliance.AuditLogService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -8,20 +18,12 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import software.amazon.awssdk.services.cloudwatch.CloudWatchClient;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
-
-/**
- * Comprehensive tests for SOC2ComplianceService
- */
+/** Comprehensive tests for SOC2ComplianceService */
 class SOC2ComplianceServiceTest {
 
-    @Mock
-    private AuditLogService auditLogService;
+    @Mock private AuditLogService auditLogService;
 
-    @Mock
-    private CloudWatchClient cloudWatchClient;
+    @Mock private CloudWatchClient cloudWatchClient;
 
     private SOC2ComplianceService soc2ComplianceService;
 
@@ -35,9 +37,9 @@ class SOC2ComplianceServiceTest {
     @DisplayName("Should log control activity")
     void testLogControlActivity() {
         // Given
-        String controlId = "CC1.1";
-        String activity = "Access review";
-        String userId = "user-123";
+        final String controlId = "CC1.1";
+        final String activity = "Access review";
+        final String userId = "user-123";
 
         // When
         soc2ComplianceService.logControlActivity(controlId, activity, userId);
@@ -50,9 +52,9 @@ class SOC2ComplianceServiceTest {
     @DisplayName("Should log system change")
     void testLogSystemChange() {
         // Given
-        String changeType = "Configuration";
-        String description = "Updated security settings";
-        String userId = "user-123";
+        final String changeType = "Configuration";
+        final String description = "Updated security settings";
+        final String userId = "user-123";
 
         // When
         soc2ComplianceService.logSystemChange(changeType, description, userId);
@@ -65,12 +67,13 @@ class SOC2ComplianceServiceTest {
     @DisplayName("Should assess risk")
     void testAssessRisk() {
         // Given
-        String resource = "/api/admin/users";
-        String action = "DELETE";
-        String userId = "user-123";
+        final String resource = "/api/admin/users";
+        final String action = "DELETE";
+        final String userId = "user-123";
 
         // When
-        SOC2ComplianceService.RiskAssessment assessment = soc2ComplianceService.assessRisk(resource, action, userId);
+        final SOC2ComplianceService.RiskAssessment assessment =
+                soc2ComplianceService.assessRisk(resource, action, userId);
 
         // Then
         assertNotNull(assessment);
@@ -84,59 +87,62 @@ class SOC2ComplianceServiceTest {
 
     @Test
     @DisplayName("Should identify high risk")
-    void testAssessRisk_HighRisk() {
+    void testAssessRiskHighRisk() {
         // Given
-        String resource = "/api/admin/compliance";
-        String action = "DELETE";
-        String userId = "user-123";
+        final String resource = "/api/admin/compliance";
+        final String action = "DELETE";
+        final String userId = "user-123";
 
         // When
-        SOC2ComplianceService.RiskAssessment assessment = soc2ComplianceService.assessRisk(resource, action, userId);
+        final SOC2ComplianceService.RiskAssessment assessment =
+                soc2ComplianceService.assessRisk(resource, action, userId);
 
         // Then
         assertNotNull(assessment);
-        assertTrue(assessment.getRiskScore() > 70 || assessment.getRiskLevel().equals("HIGH"));
+        assertTrue(assessment.getRiskScore() > 70 || "HIGH".equals(assessment.getRiskLevel()));
     }
 
     @Test
     @DisplayName("Should monitor activity")
     void testMonitorActivity() {
         // Given
-        String activityType = "Login";
-        String details = "User logged in successfully";
+        final String activityType = "Login";
+        final String details = "User logged in successfully";
 
         // When
         soc2ComplianceService.monitorActivity(activityType, details);
 
         // Then - Should not throw exception
-        assertDoesNotThrow(() -> {
-            soc2ComplianceService.monitorActivity(activityType, details);
-        });
+        assertDoesNotThrow(
+                () -> {
+                    soc2ComplianceService.monitorActivity(activityType, details);
+                });
     }
 
     @Test
     @DisplayName("Should detect anomalous activity")
-    void testMonitorActivity_Anomalous() {
+    void testMonitorActivityAnomalous() {
         // Given
-        String activityType = "Login";
-        String details = "Unauthorized access attempt";
+        final String activityType = "Login";
+        final String details = "Unauthorized access attempt";
 
         // When
         soc2ComplianceService.monitorActivity(activityType, details);
 
         // Then - Should not throw exception
-        assertDoesNotThrow(() -> {
-            soc2ComplianceService.monitorActivity(activityType, details);
-        });
+        assertDoesNotThrow(
+                () -> {
+                    soc2ComplianceService.monitorActivity(activityType, details);
+                });
     }
 
     @Test
     @DisplayName("Should log control activity with status")
     void testLogControlActivityWithStatus() {
         // Given
-        String controlId = "CC5.1";
-        String status = "PASS";
-        String details = "Control passed";
+        final String controlId = "CC5.1";
+        final String status = "PASS";
+        final String details = "Control passed";
 
         // When
         soc2ComplianceService.logControlActivityWithStatus(controlId, status, details);
@@ -149,9 +155,9 @@ class SOC2ComplianceServiceTest {
     @DisplayName("Should log access control")
     void testLogAccessControl() {
         // Given
-        String resource = "/api/transactions";
-        String action = "GET";
-        String userId = "user-123";
+        final String resource = "/api/transactions";
+        final String action = "GET";
+        final String userId = "user-123";
 
         // When
         soc2ComplianceService.logAccessControl(resource, action, userId, true);
@@ -164,7 +170,7 @@ class SOC2ComplianceServiceTest {
     @DisplayName("Should check system health")
     void testCheckSystemHealth() {
         // When
-        SOC2ComplianceService.SystemHealth health = soc2ComplianceService.checkSystemHealth();
+        final SOC2ComplianceService.SystemHealth health = soc2ComplianceService.checkSystemHealth();
 
         // Then
         assertNotNull(health);
@@ -179,15 +185,16 @@ class SOC2ComplianceServiceTest {
     @DisplayName("Should log change management")
     void testLogChangeManagement() {
         // Given
-        String changeId = "CHG-001";
-        String changeType = "Configuration";
-        String description = "Updated API endpoint";
-        String userId = "user-123";
+        final String changeId = "CHG-001";
+        final String changeType = "Configuration";
+        final String description = "Updated API endpoint";
+        final String userId = "user-123";
 
         // When
         soc2ComplianceService.logChangeManagement(changeId, changeType, description, userId);
 
         // Then
-        verify(auditLogService).logChangeManagement(eq(changeId), eq(changeType), eq(description), eq(userId));
+        verify(auditLogService)
+                .logChangeManagement(eq(changeId), eq(changeType), eq(description), eq(userId));
     }
 }

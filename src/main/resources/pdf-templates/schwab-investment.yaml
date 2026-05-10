@@ -1,0 +1,15 @@
+# Charles Schwab — brokerage / retirement.
+#
+# Status: UNVERIFIED. Same caveat as Fidelity — investment statements lose
+# symbol/quantity fidelity through the date/description/amount schema.
+id: schwab-v1
+institution: Charles Schwab
+description: "Charles Schwab brokerage + retirement"
+status: UNVERIFIED
+layouts:
+  - name: brokerage-single-line
+    accountType: investment
+    lineRegex: '^\s*(?<date>\d{1,2}/\d{1,2}/\d{2,4})\s+(?<description>.+?)\s+\$?(?<amount>-?\d{1,3}(?:,\d{3})*(?:\.\d{2}))\s*$'
+    dateFormat: "M/d/yy"
+    signConvention: as-is
+    minAmount: 0.01

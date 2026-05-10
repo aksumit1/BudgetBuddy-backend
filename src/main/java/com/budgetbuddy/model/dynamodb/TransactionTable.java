@@ -2,19 +2,15 @@ package com.budgetbuddy.model.dynamodb;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import java.math.BigDecimal;
+import java.time.Instant;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbAttribute;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbBean;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbPartitionKey;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbSecondaryPartitionKey;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbSecondarySortKey;
 
-import java.math.BigDecimal;
-import java.time.Instant;
-
-/**
- * DynamoDB table for Transactions
- * Optimized with GSI for user queries and date range filtering
- */
+/** DynamoDB table for Transactions Optimized with GSI for user queries and date range filtering */
 @DynamoDbBean
 public class TransactionTable {
 
@@ -24,31 +20,63 @@ public class TransactionTable {
     private BigDecimal amount;
     private String description;
     private String merchantName;
+    private String location; // Optional location extracted from description/import
     private String userName; // Card/account user name (family member who made the transaction)
     private String categoryPrimary; // Primary category (internal, always used for display)
     private String categoryDetailed; // Detailed category (internal, always used for display)
-    private String importerCategoryPrimary; // Importer's original primary category (Plaid, CSV parser, etc.)
-    private String importerCategoryDetailed; // Importer's original detailed category (Plaid, CSV parser, etc.)
+    private String
+            importerCategoryPrimary; // Importer's original primary category (Plaid, CSV parser,
+    // etc.)
+    private String
+            importerCategoryDetailed; // Importer's original detailed category (Plaid, CSV parser,
+    // etc.)
     private Boolean categoryOverridden; // Whether user has overridden the category
-    private Boolean transactionTypeOverridden; // Whether user has explicitly overridden transactionType (prevents Plaid sync from recalculating)
+    private Boolean
+            transactionTypeOverridden; // Whether user has explicitly overridden transactionType
+    // (prevents Plaid sync from recalculating)
     private String transactionDate; // GSI sort key (YYYY-MM-DD format)
     private String currencyCode;
     private String plaidTransactionId; // GSI for deduplication
     private Boolean pending;
+
+    /** See {@link #getPendingAmount()} — audit trail for pending→posted drift. */
+    private BigDecimal pendingAmount;
+
     private String paymentChannel; // online, in_store, ach, etc.
     private String notes; // User notes for the transaction
     private String reviewStatus; // Review status: "none", "flagged", "reviewed", "error"
     private Boolean isHidden; // Whether transaction is hidden from view
-    private String transactionType; // Transaction type: INCOME, INVESTMENT, LOAN, or EXPENSE
+    private String transactionType; // Transaction type: INCOME, INVESTMENT, PAYMENT, or EXPENSE
     private String importSource; // Import source: "CSV", "EXCEL", "PDF", "PLAID", "MANUAL"
     private String importBatchId; // UUID for grouping imports
     private String importFileName; // Original file name for imports
     private Instant importedAt; // When transaction was imported
     private String goalId; // Optional: Goal this transaction contributes to
-    private String linkedTransactionId; // Optional: ID of linked transaction (e.g., credit card payment linked to checking payment)
+    private String
+            linkedTransactionId; // Optional: ID of linked transaction (e.g., credit card payment
+    // linked to checking payment)
     private Instant createdAt;
     private Instant updatedAt;
     private Long updatedAtTimestamp; // GSI sort key (epoch seconds) for incremental sync
+
+    /**
+     * Flow 4 / O9 soft-delete. When non-null the row is hidden from every normal query but kept
+     * around for the undo window / purge job. Missing attribute = active row.
+     */
+    private Instant deletedAt;
+
+    /**
+     * Flow 6 / O6 — if this transaction was generated from a round-up of an expense, stores the
+     * source transaction id. Prevents re-rounding the same row twice.
+     */
+    private String roundUpSourceTransactionId;
+
+    /**
+     * Optimistic-concurrency counter. See {@code BudgetTable.version}. Protects user category/notes
+     * edits from being silently clobbered by a racing Plaid sync that re-ingests the same
+     * transaction (and vice-versa for pending→posted reconciliation racing a user delete).
+     */
+    private Long version;
 
     @DynamoDbPartitionKey
     @DynamoDbAttribute("transactionId")
@@ -60,7 +88,8 @@ public class TransactionTable {
         this.transactionId = transactionId;
     }
 
-    @DynamoDbSecondaryPartitionKey(indexNames = {"UserIdDateIndex", "UserIdUpdatedAtIndex", "UserIdGoalIdIndex"})
+    @DynamoDbSecondaryPartitionKey(
+            indexNames = {"UserIdDateIndex", "UserIdUpdatedAtIndex", "UserIdGoalIdIndex"})
     @DynamoDbAttribute("userId")
     public String getUserId() {
         return userId;
@@ -116,6 +145,15 @@ public class TransactionTable {
         this.merchantName = merchantName;
     }
 
+    @DynamoDbAttribute("location")
+    public String getLocation() {
+        return location;
+    }
+
+    public void setLocation(final String location) {
+        this.location = location;
+    }
+
     @DynamoDbAttribute("userName")
     public String getUserName() {
         return userName;
@@ -142,10 +180,10 @@ public class TransactionTable {
     public void setCategoryDetailed(final String categoryDetailed) {
         this.categoryDetailed = categoryDetailed;
     }
-    
+
     /**
-     * Get category for backward compatibility with iOS app
-     * Returns categoryPrimary if available, otherwise categoryDetailed
+     * Get category for backward compatibility with iOS app Returns categoryPrimary if available,
+     * otherwise categoryDetailed
      */
     @JsonProperty("category")
     public String getCategory() {
@@ -208,6 +246,21 @@ public class TransactionTable {
 
     public void setPending(final Boolean pending) {
         this.pending = pending;
+    }
+
+    /**
+     * Snapshot of the {@code amount} at the time the transaction was still pending, persisted so
+     * the UI can show "Pending was $100 → Posted $99" after reconciliation. Null for transactions
+     * that never went through a pending phase (CSV imports, manual adds, and Plaid transactions
+     * that arrived already posted).
+     */
+    @DynamoDbAttribute("pendingAmount")
+    public BigDecimal getPendingAmount() {
+        return pendingAmount;
+    }
+
+    public void setPendingAmount(final BigDecimal pendingAmount) {
+        this.pendingAmount = pendingAmount;
     }
 
     @DynamoDbAttribute("paymentChannel")
@@ -292,7 +345,10 @@ public class TransactionTable {
     }
 
     @DynamoDbAttribute("importedAt")
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", timezone = "UTC")
+    @JsonFormat(
+            shape = JsonFormat.Shape.STRING,
+            pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
+            timezone = "UTC")
     public Instant getImportedAt() {
         return importedAt;
     }
@@ -321,7 +377,10 @@ public class TransactionTable {
     }
 
     @DynamoDbAttribute("createdAt")
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", timezone = "UTC")
+    @JsonFormat(
+            shape = JsonFormat.Shape.STRING,
+            pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
+            timezone = "UTC")
     public Instant getCreatedAt() {
         return createdAt;
     }
@@ -331,7 +390,10 @@ public class TransactionTable {
     }
 
     @DynamoDbAttribute("updatedAt")
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", timezone = "UTC")
+    @JsonFormat(
+            shape = JsonFormat.Shape.STRING,
+            pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
+            timezone = "UTC")
     public Instant getUpdatedAt() {
         return updatedAt;
     }
@@ -348,8 +410,34 @@ public class TransactionTable {
         return updatedAtTimestamp;
     }
 
+    @DynamoDbAttribute("deletedAt")
+    public Instant getDeletedAt() {
+        return deletedAt;
+    }
+
+    public void setDeletedAt(final Instant deletedAt) {
+        this.deletedAt = deletedAt;
+    }
+
+    @DynamoDbAttribute("roundUpSourceTransactionId")
+    public String getRoundUpSourceTransactionId() {
+        return roundUpSourceTransactionId;
+    }
+
+    public void setRoundUpSourceTransactionId(final String roundUpSourceTransactionId) {
+        this.roundUpSourceTransactionId = roundUpSourceTransactionId;
+    }
+
     public void setUpdatedAtTimestamp(final Long updatedAtTimestamp) {
         this.updatedAtTimestamp = updatedAtTimestamp;
     }
-}
 
+    @DynamoDbAttribute("version")
+    public Long getVersion() {
+        return version;
+    }
+
+    public void setVersion(final Long version) {
+        this.version = version;
+    }
+}

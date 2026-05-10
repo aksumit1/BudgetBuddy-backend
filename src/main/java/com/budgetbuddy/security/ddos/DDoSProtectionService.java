@@ -1,5 +1,13 @@
 package com.budgetbuddy.security.ddos;
 
+import java.time.Instant;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.concurrent.Executor;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -7,29 +15,33 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
-import software.amazon.awssdk.services.dynamodb.model.*;
-
-import java.time.Instant;
-import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.concurrent.Executor;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicBoolean;
+import software.amazon.awssdk.services.dynamodb.model.AttributeDefinition;
+import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
+import software.amazon.awssdk.services.dynamodb.model.BillingMode;
+import software.amazon.awssdk.services.dynamodb.model.CreateTableRequest;
+import software.amazon.awssdk.services.dynamodb.model.DescribeTableRequest;
+import software.amazon.awssdk.services.dynamodb.model.GetItemRequest;
+import software.amazon.awssdk.services.dynamodb.model.GetItemResponse;
+import software.amazon.awssdk.services.dynamodb.model.KeySchemaElement;
+import software.amazon.awssdk.services.dynamodb.model.KeyType;
+import software.amazon.awssdk.services.dynamodb.model.PutItemRequest;
+import software.amazon.awssdk.services.dynamodb.model.ResourceInUseException;
+import software.amazon.awssdk.services.dynamodb.model.ResourceNotFoundException;
+import software.amazon.awssdk.services.dynamodb.model.ScalarAttributeType;
+import software.amazon.awssdk.services.dynamodb.model.TimeToLiveSpecification;
+import software.amazon.awssdk.services.dynamodb.model.UpdateTimeToLiveRequest;
 
 /**
- * DDoS Protection Service
- * Uses DynamoDB for distributed rate limiting across multiple instances
+ * DDoS Protection Service Uses DynamoDB for distributed rate limiting across multiple instances
  * Implements sliding window algorithm for accurate rate limiting
  *
- * Thread-safe implementation with proper synchronization
+ * <p>Thread-safe implementation with proper synchronization
  */
 @Service
 public class DDoSProtectionService {
 
-    private static final Logger logger = LoggerFactory.getLogger(DDoSProtectionService.class);
-    
+    private static final Logger LOGGER = LoggerFactory.getLogger(DDoSProtectionService.class);
+
     @Value("${app.rate-limit.enabled:true}")
     private boolean rateLimitEnabled;
 
@@ -39,22 +51,22 @@ public class DDoSProtectionService {
     // TODO: Implement hourly rate limiting - currently only per-minute rate limiting is implemented
     // Reserved for future implementation of hourly rate limits
     @Value("${app.rate-limit.ddos.max-requests-per-hour:5000000}")
-    @SuppressWarnings("unused") // Field reserved for future hourly rate limiting implementation
+    @SuppressWarnings({"unused", "PMD.AvoidCatchingGenericException"}) // Field reserved for future hourly rate limiting implementation
     private long maxRequestsPerHour;
-    
+
     // LOW PRIORITY FIX: Make DDoS protection constants fully configurable
     @Value("${app.rate-limit.ddos.block-duration-seconds:3600}")
     private int blockDurationSeconds; // 1 hour block
-    
+
     @Value("${app.rate-limit.ddos.max-cache-size:10000}")
     private int maxCacheSize; // Prevent unbounded growth
-    
+
     @Value("${app.rate-limit.ddos.cache-cleanup-interval-ms:300000}")
     private long cacheCleanupIntervalMs; // 5 minutes
-    
+
     @Value("${app.rate-limit.ddos.cache-ttl-ms:60000}")
     private long cacheTtlMs; // 1 minute
-    
+
     @Value("${app.rate-limit.ddos.dynamodb-check-interval-ms:60000}")
     private long dynamoDbCheckIntervalMs; // Check every minute
 
@@ -66,19 +78,19 @@ public class DDoSProtectionService {
     // Using LinkedHashMap with access-order for LRU eviction
     private final Map<String, RequestCounter> inMemoryCache;
     private volatile long lastCacheCleanup = System.currentTimeMillis();
-    
+
     // Cache metrics
     private final AtomicLong cacheHits = new AtomicLong(0);
     private final AtomicLong cacheMisses = new AtomicLong(0);
-    
+
     // Track DynamoDB availability - if unavailable, fall back to in-memory only
     private volatile boolean dynamoDbAvailable = true;
     private volatile long lastDynamoDbCheck = 0;
 
     public DDoSProtectionService(
             final DynamoDbClient dynamoDbClient,
-            @Value("${app.aws.dynamodb.table-prefix:BudgetBuddy}") String tablePrefix,
-            @Autowired(required = false) @Qualifier("taskExecutor") Executor asyncExecutor) {
+            @Value("${app.aws.dynamodb.table-prefix:BudgetBuddy}") final String tablePrefix,
+            @Autowired(required = false) @Qualifier("taskExecutor") final Executor asyncExecutor) {
         if (dynamoDbClient == null) {
             throw new IllegalArgumentException("DynamoDbClient cannot be null");
         }
@@ -89,48 +101,53 @@ public class DDoSProtectionService {
         // - Production: BudgetBuddy-DDoSProtection
         this.tableName = tablePrefix + "-DDoSProtection";
         // Use provided executor or fallback to default (for testing)
-        this.asyncExecutor = asyncExecutor != null ? asyncExecutor : 
-            java.util.concurrent.Executors.newCachedThreadPool(r -> {
-                Thread t = new Thread(r, "ddos-block-async");
-                t.setDaemon(true);
-                return t;
-            });
-        
+        this.asyncExecutor =
+                asyncExecutor != null
+                        ? asyncExecutor
+                        : java.util.concurrent.Executors.newCachedThreadPool(
+                                r -> {
+                                    final Thread t = new Thread(r, "ddos-block-async");
+                                    t.setDaemon(true);
+                                    return t;
+                                });
+
         // Initialize LRU cache with access-order (true = LRU, false = insertion-order)
-        this.inMemoryCache = Collections.synchronizedMap(new LinkedHashMap<String, RequestCounter>(16, 0.75f, true) {
-            @Override
-            protected boolean removeEldestEntry(Map.Entry<String, RequestCounter> eldest) {
-                // Remove oldest entry when cache exceeds max size
-                return size() > maxCacheSize;
-            }
-        });
-        
-        boolean initialized = initializeTable();
+        this.inMemoryCache =
+                Collections.synchronizedMap(
+                        new LinkedHashMap<String, RequestCounter>(16, 0.75f, true) {
+                            @Override
+                            protected boolean removeEldestEntry(
+                                    final Map.Entry<String, RequestCounter> eldest) {
+                                // Remove oldest entry when cache exceeds max size
+                                return size() > maxCacheSize;
+                            }
+                        });
+
+        final boolean initialized = initializeTable();
         if (!initialized) {
-            logger.warn("DDoS protection initialized with in-memory only mode (DynamoDB unavailable). " +
-                    "Blocked IPs will not persist across restarts.");
+            LOGGER.warn(
+                    "DDoS protection initialized with in-memory only mode (DynamoDB unavailable). "
+                            + "Blocked IPs will not persist across restarts.");
         }
     }
 
-    /**
-     * Check if IP is allowed to make requests
-     * Thread-safe implementation
-     */
+    /** Check if IP is allowed to make requests Thread-safe implementation */
     public boolean isAllowed(final String ipAddress) {
         // If rate limiting is disabled, always allow
         if (!rateLimitEnabled) {
             return true;
         }
-        
+
         if (ipAddress == null || ipAddress.isEmpty()) {
-            logger.warn("IP address is null or empty - allowing request (IP extraction may have failed)");
+            LOGGER.warn(
+                    "IP address is null or empty - allowing request (IP extraction may have failed)");
             // Allow request if IP extraction failed - better than blocking legitimate users
             return true;
         }
 
         // Periodic cache cleanup to prevent unbounded growth
         cleanupCacheIfNeeded();
-        
+
         // Periodically check DynamoDB availability
         if (!dynamoDbAvailable) {
             checkDynamoDbAvailability();
@@ -152,7 +169,7 @@ public class DDoSProtectionService {
             counter.increment();
             return true;
         }
-        
+
         if (counter == null) {
             cacheMisses.incrementAndGet(); // Track cache miss
         }
@@ -160,7 +177,7 @@ public class DDoSProtectionService {
         // Check DynamoDB for persistent state (only if available)
         if (dynamoDbAvailable && isBlockedInDynamoDB(ipAddress)) {
             // Update cache with blocked state
-            RequestCounter blockedCounter = new RequestCounter();
+            final RequestCounter blockedCounter = new RequestCounter();
             blockedCounter.setBlocked(true);
             inMemoryCache.put(ipAddress, blockedCounter);
             return false;
@@ -176,46 +193,66 @@ public class DDoSProtectionService {
         return true;
     }
 
-    /**
-     * Record a request for monitoring and analysis
-     */
+    /** Record a request for monitoring and analysis */
     public void recordRequest(final String ipAddress, final String userId) {
         if (ipAddress == null || ipAddress.isEmpty()) {
             return;
         }
-        
+
         if (!dynamoDbAvailable) {
             return; // Skip recording if DynamoDB is unavailable
         }
 
         try {
-            dynamoDbClient.putItem(PutItemRequest.builder()
-                    .tableName(tableName)
-                    .item(Map.of(
-                            "ipAddress", AttributeValue.builder().s(ipAddress).build(),
-                            "timestamp", AttributeValue.builder().n(String.valueOf(Instant.now().getEpochSecond())).build(),
-                            "userId", AttributeValue.builder().s(userId != null ? userId : "anonymous").build(),
-                            "ttl", AttributeValue.builder().n(String.valueOf(Instant.now().getEpochSecond() + 86400)).build() // 24h TTL
-                    ))
-                    .build());
+            dynamoDbClient.putItem(
+                    PutItemRequest.builder()
+                            .tableName(tableName)
+                            .item(
+                                    Map.of(
+                                            "ipAddress",
+                                                    AttributeValue.builder().s(ipAddress).build(),
+                                            "timestamp",
+                                                    AttributeValue.builder()
+                                                            .n(
+                                                                    String.valueOf(
+                                                                            Instant.now()
+                                                                                    .getEpochSecond()))
+                                                            .build(),
+                                            "userId",
+                                                    AttributeValue.builder()
+                                                            .s(
+                                                                    userId != null
+                                                                            ? userId
+                                                                            : "anonymous")
+                                                            .build(),
+                                            "ttl",
+                                                    AttributeValue.builder()
+                                                            .n(
+                                                                    String.valueOf(
+                                                                            Instant.now()
+                                                                                            .getEpochSecond()
+                                                                                    + 86_400))
+                                                            .build() // 24h TTL
+                                            ))
+                            .build());
         } catch (Exception e) {
-            logger.debug("Failed to record request in DynamoDB: {}. Continuing without recording.", e.getMessage());
+            LOGGER.debug(
+                    "Failed to record request in DynamoDB: {}. Continuing without recording.",
+                    e.getMessage());
             // Mark DynamoDB as unavailable if we get persistent errors
             dynamoDbAvailable = false;
             // Don't fail the request if logging fails
         }
     }
 
-    /**
-     * Cleanup expired cache entries periodically
-     */
+    /** Cleanup expired cache entries periodically */
     private void cleanupCacheIfNeeded() {
-        long now = System.currentTimeMillis();
+        final long now = System.currentTimeMillis();
         if (now - lastCacheCleanup > cacheCleanupIntervalMs) {
             synchronized (this) {
                 // Double-check pattern
                 if (now - lastCacheCleanup > cacheCleanupIntervalMs) {
-                    inMemoryCache.entrySet().removeIf((entry) -> entry.getValue().isExpired());
+                    inMemoryCache.entrySet().removeIf(entry -> entry.getValue().isExpired());
                     lastCacheCleanup = now;
                 }
             }
@@ -224,12 +261,14 @@ public class DDoSProtectionService {
 
     /**
      * Initialize DynamoDB table for DDoS protection
+     *
      * @return true if table was created or already exists, false if DynamoDB is unavailable
      */
     private boolean initializeTable() {
         // Check if table already exists before attempting to create it
         try {
-            dynamoDbClient.describeTable(DescribeTableRequest.builder().tableName(tableName).build());
+            dynamoDbClient.describeTable(
+                    DescribeTableRequest.builder().tableName(tableName).build());
             // Table exists, no need to create it
             dynamoDbAvailable = true;
             return true;
@@ -238,91 +277,96 @@ public class DDoSProtectionService {
         } catch (Exception e) {
             // CRITICAL: Handle credentials errors gracefully (e.g., in tests without LocalStack)
             if (isCredentialsError(e)) {
-                logger.warn("DynamoDB credentials not available - skipping table initialization (likely in test environment without LocalStack)");
+                LOGGER.warn(
+                        "DynamoDB credentials not available - skipping table initialization (likely in test environment without LocalStack)");
                 dynamoDbAvailable = false;
                 return false;
             }
-            logger.warn("Failed to check if DDoS protection table exists: {}", e.getMessage());
+            LOGGER.warn("Failed to check if DDoS protection table exists: {}", e.getMessage());
             // Continue with creation attempt
         }
 
         try {
-            dynamoDbClient.createTable(CreateTableRequest.builder()
-                    .tableName(tableName)
-                    .billingMode(BillingMode.PAY_PER_REQUEST)
-                    .attributeDefinitions(
-                            AttributeDefinition.builder()
-                                    .attributeName("ipAddress")
-                                    .attributeType(ScalarAttributeType.S)
-                                    .build())
-                    .keySchema(
-                            KeySchemaElement.builder()
-                                    .attributeName("ipAddress")
-                                    .keyType(KeyType.HASH)
-                                    .build())
-                    .build());
+            dynamoDbClient.createTable(
+                    CreateTableRequest.builder()
+                            .tableName(tableName)
+                            .billingMode(BillingMode.PAY_PER_REQUEST)
+                            .attributeDefinitions(
+                                    AttributeDefinition.builder()
+                                            .attributeName("ipAddress")
+                                            .attributeType(ScalarAttributeType.S)
+                                            .build())
+                            .keySchema(
+                                    KeySchemaElement.builder()
+                                            .attributeName("ipAddress")
+                                            .keyType(KeyType.HASH)
+                                            .build())
+                            .build());
 
             // Configure TTL separately
             try {
-                dynamoDbClient.updateTimeToLive(UpdateTimeToLiveRequest.builder()
-                        .tableName(tableName)
-                        .timeToLiveSpecification(TimeToLiveSpecification.builder()
-                                .enabled(true)
-                                .attributeName("ttl")
-                                .build())
-                        .build());
+                dynamoDbClient.updateTimeToLive(
+                        UpdateTimeToLiveRequest.builder()
+                                .tableName(tableName)
+                                .timeToLiveSpecification(
+                                        TimeToLiveSpecification.builder()
+                                                .enabled(true)
+                                                .attributeName("ttl")
+                                                .build())
+                                .build());
             } catch (Exception e) {
-                logger.warn("Failed to configure TTL for DDoS protection table: {}", e.getMessage());
+                LOGGER.warn(
+                        "Failed to configure TTL for DDoS protection table: {}", e.getMessage());
             }
-            logger.info("DDoS protection table created successfully");
+            LOGGER.info("DDoS protection table created successfully");
             dynamoDbAvailable = true;
             return true;
         } catch (software.amazon.awssdk.core.exception.SdkClientException e) {
             // CRITICAL: Handle credentials errors gracefully (e.g., in tests without LocalStack)
             if (isCredentialsError(e)) {
-                logger.warn("DynamoDB credentials not available - skipping table initialization (likely in test environment without LocalStack)");
+                LOGGER.warn(
+                        "DynamoDB credentials not available - skipping table initialization (likely in test environment without LocalStack)");
                 dynamoDbAvailable = false;
                 return false;
             }
-            logger.error("Failed to create DDoS protection table: {}", e.getMessage(), e);
+            LOGGER.error("Failed to create DDoS protection table: {}", e.getMessage(), e);
             dynamoDbAvailable = false;
             return false;
         } catch (ResourceInUseException e) {
             // Table was created by another instance between check and create - this is fine
-            logger.debug("DDoS protection table already exists (race condition)");
+            LOGGER.debug("DDoS protection table already exists (race condition)");
             dynamoDbAvailable = true;
             return true;
         } catch (Exception e) {
-            logger.error("Failed to create DDoS protection table: {}. " +
-                    "DDoS protection will work in in-memory only mode. " +
-                    "Blocked IPs will not persist across restarts.", e.getMessage());
+            LOGGER.error(
+                    "Failed to create DDoS protection table: {}. "
+                            + "DDoS protection will work in in-memory only mode. "
+                            + "Blocked IPs will not persist across restarts.",
+                    e.getMessage());
             dynamoDbAvailable = false;
             return false;
         }
     }
-    
-    /**
-     * Check DynamoDB availability periodically and update status
-     */
+
+    /** Check DynamoDB availability periodically and update status */
     private void checkDynamoDbAvailability() {
-        long now = System.currentTimeMillis();
+        final long now = System.currentTimeMillis();
         if (now - lastDynamoDbCheck < dynamoDbCheckIntervalMs) {
             return;
         }
-        
+
         synchronized (this) {
             if (now - lastDynamoDbCheck < dynamoDbCheckIntervalMs) {
                 return;
             }
             lastDynamoDbCheck = now;
-            
+
             // Try a simple operation to check if DynamoDB is available
             try {
-                dynamoDbClient.describeTable(DescribeTableRequest.builder()
-                        .tableName(tableName)
-                        .build());
+                dynamoDbClient.describeTable(
+                        DescribeTableRequest.builder().tableName(tableName).build());
                 if (!dynamoDbAvailable) {
-                    logger.info("DynamoDB is now available for DDoS protection");
+                    LOGGER.info("DynamoDB is now available for DDoS protection");
                     dynamoDbAvailable = true;
                 }
             } catch (ResourceNotFoundException e) {
@@ -333,7 +377,9 @@ public class DDoSProtectionService {
                     dynamoDbAvailable = false;
                 }
             } catch (Exception e) {
-                logger.debug("DynamoDB check failed: {}. Continuing with in-memory only mode.", e.getMessage());
+                LOGGER.debug(
+                        "DynamoDB check failed: {}. Continuing with in-memory only mode.",
+                        e.getMessage());
                 dynamoDbAvailable = false;
             }
         }
@@ -343,30 +389,37 @@ public class DDoSProtectionService {
         if (ipAddress == null || ipAddress.isEmpty()) {
             return false;
         }
-        
+
         if (!dynamoDbAvailable) {
             return false; // DynamoDB unavailable, rely on in-memory cache only
         }
 
         try {
-            GetItemResponse response = dynamoDbClient.getItem(GetItemRequest.builder()
-                    .tableName(tableName)
-                    .key(Map.of("ipAddress", AttributeValue.builder().s(ipAddress).build()))
-                    .build());
+            final GetItemResponse response =
+                    dynamoDbClient.getItem(
+                            GetItemRequest.builder()
+                                    .tableName(tableName)
+                                    .key(
+                                            Map.of(
+                                                    "ipAddress",
+                                                    AttributeValue.builder().s(ipAddress).build()))
+                                    .build());
 
             if (response.item() != null && response.item().containsKey("blockedUntil")) {
-                AttributeValue blockedUntilAttr = response.item().get("blockedUntil");
+                final AttributeValue blockedUntilAttr = response.item().get("blockedUntil");
                 if (blockedUntilAttr != null && blockedUntilAttr.n() != null) {
-                    long blockedUntil = Long.parseLong(blockedUntilAttr.n());
+                    final long blockedUntil = Long.parseLong(blockedUntilAttr.n());
                     if (Instant.now().getEpochSecond() < blockedUntil) {
                         return true;
                     }
                 }
             }
         } catch (NumberFormatException e) {
-            logger.error("Invalid blockedUntil value in DynamoDB for IP: {}", ipAddress);
+            LOGGER.error("Invalid blockedUntil value in DynamoDB for IP: {}", ipAddress);
         } catch (Exception e) {
-            logger.debug("Failed to check blocked IP in DynamoDB: {}. Using in-memory cache only.", e.getMessage());
+            LOGGER.debug(
+                    "Failed to check blocked IP in DynamoDB: {}. Using in-memory cache only.",
+                    e.getMessage());
             // Mark DynamoDB as unavailable if we get persistent errors
             dynamoDbAvailable = false;
         }
@@ -377,58 +430,80 @@ public class DDoSProtectionService {
         if (ipAddress == null || ipAddress.isEmpty()) {
             return;
         }
-        
+
         if (!dynamoDbAvailable) {
-            logger.debug("DynamoDB unavailable - IP {} blocked in-memory only", ipAddress);
+            LOGGER.debug("DynamoDB unavailable - IP {} blocked in-memory only", ipAddress);
             return; // DynamoDB unavailable, block is already in in-memory cache
         }
 
         try {
-            long blockedUntil = Instant.now().getEpochSecond() + blockDurationSeconds;
-            dynamoDbClient.putItem(PutItemRequest.builder()
-                    .tableName(tableName)
-                    .item(Map.of(
-                            "ipAddress", AttributeValue.builder().s(ipAddress).build(),
-                            "blockedUntil", AttributeValue.builder().n(String.valueOf(blockedUntil)).build(),
-                            "blockedAt", AttributeValue.builder().n(String.valueOf(Instant.now().getEpochSecond())).build(),
-                            "ttl", AttributeValue.builder().n(String.valueOf(blockedUntil + 86400)).build()
-                    ))
-                    .build());
-            logger.warn("Blocked IP address: {} until {}", ipAddress, Instant.ofEpochSecond(blockedUntil));
+            final long blockedUntil = Instant.now().getEpochSecond() + blockDurationSeconds;
+            dynamoDbClient.putItem(
+                    PutItemRequest.builder()
+                            .tableName(tableName)
+                            .item(
+                                    Map.of(
+                                            "ipAddress",
+                                                    AttributeValue.builder().s(ipAddress).build(),
+                                            "blockedUntil",
+                                                    AttributeValue.builder()
+                                                            .n(String.valueOf(blockedUntil))
+                                                            .build(),
+                                            "blockedAt",
+                                                    AttributeValue.builder()
+                                                            .n(
+                                                                    String.valueOf(
+                                                                            Instant.now()
+                                                                                    .getEpochSecond()))
+                                                            .build(),
+                                            "ttl",
+                                                    AttributeValue.builder()
+                                                            .n(String.valueOf(blockedUntil + 86_400))
+                                                            .build()))
+                            .build());
+            LOGGER.warn(
+                    "Blocked IP address: {} until {}",
+                    ipAddress,
+                    Instant.ofEpochSecond(blockedUntil));
         } catch (Exception e) {
-            logger.debug("Failed to block IP in DynamoDB: {}. IP blocked in-memory only.", e.getMessage());
+            LOGGER.debug(
+                    "Failed to block IP in DynamoDB: {}. IP blocked in-memory only.",
+                    e.getMessage());
             // Mark DynamoDB as unavailable if we get persistent errors
             dynamoDbAvailable = false;
         }
     }
 
     /**
-     * Async block IP to avoid blocking the request thread
-     * Uses thread pool executor to prevent resource exhaustion
+     * Async block IP to avoid blocking the request thread Uses thread pool executor to prevent
+     * resource exhaustion
      */
     private void blockIpInDynamoDBAsync(final String ipAddress) {
         // Use thread pool executor to avoid creating unbounded threads
         // This prevents resource exhaustion under high load
-        asyncExecutor.execute(() -> {
-            try {
-                blockIpInDynamoDB(ipAddress);
-            } catch (Exception e) {
-                logger.error("Error in async IP blocking for {}: {}", ipAddress, e.getMessage(), e);
-            }
-        });
+        asyncExecutor.execute(
+                () -> {
+                    try {
+                        blockIpInDynamoDB(ipAddress);
+                    } catch (Exception e) {
+                        LOGGER.error(
+                                "Error in async IP blocking for {}: {}",
+                                ipAddress,
+                                e.getMessage(),
+                                e);
+                    }
+                });
     }
 
-    /**
-     * Thread-safe in-memory request counter for hot path optimization
-     */
-    private class RequestCounter {
+    /** Thread-safe in-memory request counter for hot path optimization */
+    private final class RequestCounter {
         private final AtomicInteger requestsPerMinute = new AtomicInteger(0);
         private final AtomicLong windowStart = new AtomicLong(System.currentTimeMillis());
         private final AtomicBoolean blocked = new AtomicBoolean(false);
 
         public void increment() {
-            long now = System.currentTimeMillis();
-            long start = windowStart.get();
+            final long now = System.currentTimeMillis();
+            final long start = windowStart.get();
 
             if (now - start > cacheTtlMs) {
                 // Reset window atomically
@@ -459,46 +534,43 @@ public class DDoSProtectionService {
             return System.currentTimeMillis() - windowStart.get() > cacheTtlMs;
         }
     }
-    
+
     /**
      * Get cache statistics for monitoring
+     *
      * @return Map with cache metrics (hits, misses, hit rate, size)
      */
     public Map<String, Object> getCacheMetrics() {
-        long hits = cacheHits.get();
-        long misses = cacheMisses.get();
-        long total = hits + misses;
-        double hitRate = total > 0 ? (double) hits / total : 0.0;
-        
+        final long hits = cacheHits.get();
+        final long misses = cacheMisses.get();
+        final long total = hits + misses;
+        final double hitRate = total > 0 ? (double) hits / total : 0.0;
+
         return Map.of(
-            "hits", hits,
-            "misses", misses,
-            "hitRate", hitRate,
-            "size", inMemoryCache.size(),
-            "maxSize", maxCacheSize
-        );
+                "hits", hits,
+                "misses", misses,
+                "hitRate", hitRate,
+                "size", inMemoryCache.size(),
+                "maxSize", maxCacheSize);
     }
-    
-    /**
-     * Reset cache metrics (useful for testing or periodic resets)
-     */
+
+    /** Reset cache metrics (useful for testing or periodic resets) */
     public void resetCacheMetrics() {
         cacheHits.set(0);
         cacheMisses.set(0);
     }
 
-    /**
-     * Check if the exception is due to missing AWS credentials
-     */
-    private boolean isCredentialsError(Exception e) {
-        String message = e.getMessage();
+    /** Check if the exception is due to missing AWS credentials */
+    private boolean isCredentialsError(final Exception e) {
+        final String message = e.getMessage();
         if (message != null && message.contains("Unable to load credentials")) {
             return true;
         }
         // Check for SdkClientException with credentials error
         if (e instanceof software.amazon.awssdk.core.exception.SdkClientException) {
-            String exceptionMessage = e.getMessage();
-            if (exceptionMessage != null && exceptionMessage.contains("Unable to load credentials")) {
+            final String exceptionMessage = e.getMessage();
+            if (exceptionMessage != null
+                    && exceptionMessage.contains("Unable to load credentials")) {
                 return true;
             }
         }
@@ -506,7 +578,7 @@ public class DDoSProtectionService {
         Throwable cause = e.getCause();
         while (cause != null) {
             if (cause instanceof software.amazon.awssdk.core.exception.SdkClientException) {
-                String causeMessage = cause.getMessage();
+                final String causeMessage = cause.getMessage();
                 if (causeMessage != null && causeMessage.contains("Unable to load credentials")) {
                     return true;
                 }

@@ -3,10 +3,7 @@ package com.budgetbuddy.config;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 
-/**
- * File Security Configuration
- * Centralizes file security limits and thresholds
- */
+/** File Security Configuration Centralizes file security limits and thresholds */
 @Configuration
 public class FileSecurityConfig {
 
@@ -31,4 +28,3 @@ public class FileSecurityConfig {
         return maxFilenameLength;
     }
 }
-

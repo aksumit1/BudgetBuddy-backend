@@ -1,0 +1,4 @@
+Mar 15 AMAZON MARKETPLACE SEATTLE WA                  34.99
+Mar 17 STARBUCKS #1234 SEATTLE WA                      6.75
+Mar 20 FOREIGN TRANSACTION FEE                         0.75
+Mar 25 AUTOMATIC PAYMENT - THANK YOU                -500.00

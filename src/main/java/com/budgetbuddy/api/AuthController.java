@@ -5,240 +5,254 @@ import com.budgetbuddy.dto.AuthResponse;
 import com.budgetbuddy.exception.AppException;
 import com.budgetbuddy.exception.ErrorCode;
 import com.budgetbuddy.service.AuthService;
-import com.budgetbuddy.service.UserService;
 import com.budgetbuddy.service.PasswordResetService;
+import com.budgetbuddy.service.UserService;
 import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-import io.swagger.v3.oas.annotations.Operation;
-import java.util.Map;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 /**
- * Authentication REST Controller
- * BREAKING CHANGE: Supports secure client-side hashed passwords (password_hash only, no salt)
- * Backend uses server salt only for password hashing
- * Supports both /api/auth and /auth paths for backward compatibility
+ * Authentication REST Controller BREAKING CHANGE: Supports secure client-side hashed passwords
+ * (password_hash only, no salt) Backend uses server salt only for password hashing Supports both
+ * /api/auth and /auth paths for backward compatibility
  */
+// PMD's LawOfDemeter is documented as imprecise on chains involving
+// standard library types (BigDecimal, String, Optional) and DTO
+// getters; this class has many such idiomatic uses. Suppress at
+// class level rather than littering every method.
+@SuppressWarnings("PMD.LawOfDemeter")
 @RestController
 @RequestMapping({"/api/auth", "/auth"})
 @CrossOrigin(origins = "*", maxAge = 3600)
 public class AuthController {
 
-    private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(AuthController.class);
 
     private final AuthService authService;
     private final UserService userService;
     private final PasswordResetService passwordResetService;
     private final com.budgetbuddy.service.ChallengeService challengeService;
 
-    public AuthController(final AuthService authService, final UserService userService, final PasswordResetService passwordResetService, final com.budgetbuddy.service.ChallengeService challengeService) {
+    public AuthController(
+            final AuthService authService,
+            final UserService userService,
+            final PasswordResetService passwordResetService,
+            final com.budgetbuddy.service.ChallengeService challengeService) {
         this.authService = authService;
         this.userService = userService;
         this.passwordResetService = passwordResetService;
         this.challengeService = challengeService;
     }
 
-    /**
-     * Generate login challenge (PAKE2)
-     * Client requests a nonce for password authentication
-     */
+    /** Generate login challenge (PAKE2) Client requests a nonce for password authentication */
     @PostMapping("/login/challenge")
-    @Operation(summary = "Request Login Challenge", description = "Generates a challenge nonce for password authentication")
-    public ResponseEntity<com.budgetbuddy.service.ChallengeService.ChallengeResponse> loginChallenge(@Valid @RequestBody ChallengeRequest request) {
-        com.budgetbuddy.service.ChallengeService.ChallengeResponse response = challengeService.generateChallenge(request.getEmail());
+    @Operation(
+            summary = "Request Login Challenge",
+            description = "Generates a challenge nonce for password authentication")
+    public ResponseEntity<com.budgetbuddy.service.ChallengeService.ChallengeResponse>
+            loginChallenge(@Valid @RequestBody final ChallengeRequest request) {
+        final com.budgetbuddy.service.ChallengeService.ChallengeResponse response =
+                challengeService.generateChallenge(request.getEmail());
         return ResponseEntity.ok(response);
     }
 
-    /**
-     * Login endpoint (PAKE2)
-     * Accepts password hash computed with challenge nonce
-     */
+    /** Login endpoint (PAKE2) Accepts password hash computed with challenge nonce */
     @PostMapping("/login")
-    public ResponseEntity<AuthResponse> login(@Valid @RequestBody AuthRequest loginRequest) {
+    public ResponseEntity<AuthResponse> login(@Valid @RequestBody final AuthRequest loginRequest) {
         // Validate request format
         if (!loginRequest.isSecureFormat()) {
-            throw new AppException(ErrorCode.INVALID_INPUT,
+            throw new AppException(
+                    ErrorCode.INVALID_INPUT,
                     "password_hash must be provided. Legacy password format not supported.");
         }
-        
+
         // Verify challenge (PAKE2)
         if (loginRequest.getChallenge() == null || loginRequest.getChallenge().isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "Challenge is required for authentication");
+            throw new AppException(
+                    ErrorCode.INVALID_INPUT, "Challenge is required for authentication");
         }
-        challengeService.verifyAndConsumeChallenge(loginRequest.getChallenge(), loginRequest.getEmail());
+        challengeService.verifyAndConsumeChallenge(
+                loginRequest.getChallenge(), loginRequest.getEmail());
 
-        AuthResponse response = authService.authenticate(loginRequest);
+        final AuthResponse response = authService.authenticate(loginRequest);
         return ResponseEntity.ok(response);
     }
 
-
-    /**
-     * Generate registration challenge (PAKE2)
-     * Client requests a nonce for password registration
-     */
+    /** Generate registration challenge (PAKE2) Client requests a nonce for password registration */
     @PostMapping("/register/challenge")
-    @Operation(summary = "Request Registration Challenge", description = "Generates a challenge nonce for password registration")
-    public ResponseEntity<com.budgetbuddy.service.ChallengeService.ChallengeResponse> registerChallenge(@Valid @RequestBody ChallengeRequest request) {
-        com.budgetbuddy.service.ChallengeService.ChallengeResponse response = challengeService.generateChallenge(request.getEmail());
+    @Operation(
+            summary = "Request Registration Challenge",
+            description = "Generates a challenge nonce for password registration")
+    public ResponseEntity<com.budgetbuddy.service.ChallengeService.ChallengeResponse>
+            registerChallenge(@Valid @RequestBody final ChallengeRequest request) {
+        final com.budgetbuddy.service.ChallengeService.ChallengeResponse response =
+                challengeService.generateChallenge(request.getEmail());
         return ResponseEntity.ok(response);
     }
 
-    /**
-     * Registration endpoint (PAKE2)
-     * Accepts password hash computed with challenge nonce
-     */
+    /** Registration endpoint (PAKE2) Accepts password hash computed with challenge nonce */
     @PostMapping("/register")
-    public ResponseEntity<AuthResponse> register(@Valid @RequestBody AuthRequest signUpRequest) {
+    public ResponseEntity<AuthResponse> register(@Valid @RequestBody final AuthRequest signUpRequest) {
         // Validate secure format
         if (!signUpRequest.isSecureFormat()) {
-            throw new AppException(ErrorCode.INVALID_INPUT,
+            throw new AppException(
+                    ErrorCode.INVALID_INPUT,
                     "Registration requires password_hash. Legacy password format not supported.");
         }
-        
+
         // Verify challenge (PAKE2)
         if (signUpRequest.getChallenge() == null || signUpRequest.getChallenge().isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "Challenge is required for registration");
+            throw new AppException(
+                    ErrorCode.INVALID_INPUT, "Challenge is required for registration");
         }
-        challengeService.verifyAndConsumeChallenge(signUpRequest.getChallenge(), signUpRequest.getEmail());
+        challengeService.verifyAndConsumeChallenge(
+                signUpRequest.getChallenge(), signUpRequest.getEmail());
 
         // CRITICAL FIX: Check for duplicate email before creating user
         // This provides synchronous duplicate detection for better UX
         if (userService.findByEmail(signUpRequest.getEmail()).isPresent()) {
-            throw new AppException(ErrorCode.USER_ALREADY_EXISTS, 
-                    "User with this email already exists");
+            throw new AppException(
+                    ErrorCode.USER_ALREADY_EXISTS, "User with this email already exists");
         }
 
         // Create user with secure format
         userService.createUserSecure(
-                signUpRequest.getEmail(),
-                signUpRequest.getPasswordHash(),
-                null,
-                null
-        );
+                signUpRequest.getEmail(), signUpRequest.getPasswordHash(), null, null);
 
         // Authenticate and return tokens
-        AuthRequest authRequest = new AuthRequest(
-                signUpRequest.getEmail(),
-                signUpRequest.getPasswordHash(),
-                null); // Challenge not needed for authenticate (already verified)
-        AuthResponse response = authService.authenticate(authRequest);
+        final AuthRequest authRequest =
+                new AuthRequest(
+                        signUpRequest.getEmail(),
+                        signUpRequest.getPasswordHash(),
+                        null); // Challenge not needed for authenticate (already verified)
+        final AuthResponse response = authService.authenticate(authRequest);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
-
     /**
-     * Refresh token endpoint
-     * Zero Trust: Validates refresh token and issues new tokens with rotation
+     * Refresh token endpoint Zero Trust: Validates refresh token and issues new tokens with
+     * rotation
      */
     @PostMapping("/refresh")
-    public ResponseEntity<AuthResponse> refreshToken(@RequestBody RefreshTokenRequest request) {
-        if (request == null || request.getRefreshToken() == null || request.getRefreshToken().isEmpty()) {
+    public ResponseEntity<AuthResponse> refreshToken(@RequestBody final RefreshTokenRequest request) {
+        if (request == null
+                || request.getRefreshToken() == null
+                || request.getRefreshToken().isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Refresh token is required");
         }
 
-        AuthResponse response = authService.refreshToken(request.getRefreshToken());
+        final AuthResponse response = authService.refreshToken(request.getRefreshToken());
         return ResponseEntity.ok(response);
     }
 
     /**
-     * Token validation endpoint (Zero Trust)
-     * Validates refresh token and issues new access token + rotated refresh token
-     * This is called during app startup after local unlock
+     * Token validation endpoint (Zero Trust) Validates refresh token and issues new access token +
+     * rotated refresh token This is called during app startup after local unlock
      */
     @PostMapping("/token/validate")
-    @Operation(summary = "Validate Refresh Token", description = "Validates refresh token and issues new tokens with rotation (Zero Trust)")
-    public ResponseEntity<AuthResponse> validateToken(@RequestBody RefreshTokenRequest request) {
-        if (request == null || request.getRefreshToken() == null || request.getRefreshToken().isEmpty()) {
+    @Operation(
+            summary = "Validate Refresh Token",
+            description =
+                    "Validates refresh token and issues new tokens with rotation (Zero Trust)")
+    public ResponseEntity<AuthResponse> validateToken(@RequestBody final RefreshTokenRequest request) {
+        if (request == null
+                || request.getRefreshToken() == null
+                || request.getRefreshToken().isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "Refresh token is required");
         }
 
         // Validate and rotate tokens (same as refresh, but explicit for Zero Trust flow)
-        AuthResponse response = authService.refreshToken(request.getRefreshToken());
-        logger.info("Token validated and rotated for user: {}", response.getUser().getEmail());
+        final AuthResponse response = authService.refreshToken(request.getRefreshToken());
+        LOGGER.info("Token validated and rotated for user: {}", response.getUser().getEmail());
         return ResponseEntity.ok(response);
     }
 
-    /**
-     * Request password reset - sends 6-digit code via email
-     */
+    /** Request password reset - sends 6-digit code via email */
     @PostMapping("/forgot-password")
-    @Operation(summary = "Request Password Reset", description = "Sends a 6-digit verification code to the user's email")
-    public ResponseEntity<Map<String, String>> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+    @Operation(
+            summary = "Request Password Reset",
+            description = "Sends a 6-digit verification code to the user's email")
+    public ResponseEntity<Map<String, String>> forgotPassword(
+            @Valid @RequestBody final ForgotPasswordRequest request) {
         passwordResetService.requestPasswordReset(request.getEmail());
-        return ResponseEntity.ok(Map.of(
-                "status", "success",
-                "message", "Verification code sent to your email"
-        ));
+        return ResponseEntity.ok(
+                Map.of(
+                        "status", "success",
+                        "message", "Verification code sent to your email if it's valid."));
     }
 
-    /**
-     * Verify reset code
-     */
+    /** Verify reset code */
     @PostMapping("/verify-reset-code")
-    @Operation(summary = "Verify Reset Code", description = "Verifies the 6-digit code sent via email")
-    public ResponseEntity<Map<String, String>> verifyResetCode(@Valid @RequestBody VerifyCodeRequest request) {
+    @Operation(
+            summary = "Verify Reset Code",
+            description = "Verifies the 6-digit code sent via email")
+    public ResponseEntity<Map<String, String>> verifyResetCode(
+            @Valid @RequestBody final VerifyCodeRequest request) {
         passwordResetService.verifyResetCode(request.getEmail(), request.getCode());
-        return ResponseEntity.ok(Map.of(
-                "status", "success",
-                "message", "Code verified successfully"
-        ));
+        // What if Code is Invalid
+        return ResponseEntity.ok(
+                Map.of(
+                        "status", "success",
+                        "message", "Code verified successfully"));
     }
 
     /**
-     * Password reset endpoint with code verification
-     * Accepts secure format (password_hash + salt) and verification code
+     * Password reset endpoint with code verification Accepts secure format (password_hash + salt)
+     * and verification code
      */
     @PostMapping("/reset-password")
     @Operation(summary = "Reset Password", description = "Resets password using verified code")
-    public ResponseEntity<PasswordResetResponse> resetPassword(@Valid @RequestBody PasswordResetRequest request) {
+    public ResponseEntity<PasswordResetResponse> resetPassword(
+            @Valid @RequestBody final PasswordResetRequest request) {
         // Validate secure format
         if (!request.isSecureFormat()) {
-            throw new AppException(ErrorCode.INVALID_INPUT,
+            throw new AppException(
+                    ErrorCode.INVALID_INPUT,
                     "Password reset requires password_hash. Legacy password format not supported.");
         }
 
         // Verify challenge for new password (PAKE2)
         if (request.getChallenge() == null || request.getChallenge().isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "Challenge is required for password reset");
+            throw new AppException(
+                    ErrorCode.INVALID_INPUT, "Challenge is required for password reset");
         }
         challengeService.verifyAndConsumeChallenge(request.getChallenge(), request.getEmail());
 
         // Verify code and reset password
         passwordResetService.resetPassword(
-                request.getEmail(),
-                request.getCode(),
-                request.getPasswordHash()
-        );
+                request.getEmail(), request.getCode(), request.getPasswordHash());
 
         // Reset password in UserService
         // BREAKING CHANGE: No longer requires salt
-        userService.resetPasswordByEmail(
-                request.getEmail(),
-                request.getPasswordHash()
-        );
+        userService.resetPasswordByEmail(request.getEmail(), request.getPasswordHash());
 
-        logger.info("Password reset successful for email: {}", request.getEmail());
+        LOGGER.info("Password reset successful for email: {}", request.getEmail());
         return ResponseEntity.ok(new PasswordResetResponse(true, "Password reset successful"));
     }
 
     /**
-     * Change password endpoint (authenticated)
-     * Requires current password verification and new password
+     * Change password endpoint (authenticated) Requires current password verification and new
+     * password
      */
     @PostMapping("/change-password")
     @Operation(summary = "Change Password", description = "Changes password for authenticated user")
     public ResponseEntity<PasswordChangeResponse> changePassword(
-            @org.springframework.security.core.annotation.AuthenticationPrincipal
-            org.springframework.security.core.userdetails.UserDetails userDetails,
-            @Valid @RequestBody ChangePasswordRequest request) {
-        
+            @org.springframework.security.core.annotation.AuthenticationPrincipal final org.springframework.security.core.userdetails.UserDetails userDetails,
+            @Valid @RequestBody final ChangePasswordRequest request) {
+
         if (userDetails == null || userDetails.getUsername() == null) {
             throw new AppException(ErrorCode.UNAUTHORIZED_ACCESS, "User not authenticated");
         }
@@ -246,48 +260,57 @@ public class AuthController {
         // Validate secure format for new password
         // BREAKING CHANGE: No longer requires salt
         if (!request.isSecureFormat()) {
-            throw new AppException(ErrorCode.INVALID_INPUT,
+            throw new AppException(
+                    ErrorCode.INVALID_INPUT,
                     "Password change requires new_password_hash. Legacy password format not supported.");
         }
 
         // Find user
-        com.budgetbuddy.model.dynamodb.UserTable user = userService.findByEmail(userDetails.getUsername())
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+        final com.budgetbuddy.model.dynamodb.UserTable user =
+                userService
+                        .findByEmail(userDetails.getUsername())
+                        .orElseThrow(
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
 
         // Verify current password (PAKE2 - requires challenge)
-        if (request.getCurrentPasswordChallenge() == null || request.getCurrentPasswordChallenge().isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "Challenge is required for current password verification");
+        if (request.getCurrentPasswordChallenge() == null
+                || request.getCurrentPasswordChallenge().isEmpty()) {
+            throw new AppException(
+                    ErrorCode.INVALID_INPUT,
+                    "Challenge is required for current password verification");
         }
-        challengeService.verifyAndConsumeChallenge(request.getCurrentPasswordChallenge(), user.getEmail());
-        
-        AuthRequest currentPasswordRequest = new AuthRequest(
-                user.getEmail(),
-                request.getCurrentPasswordHash(),
-                request.getCurrentPasswordChallenge()
-        );
+        challengeService.verifyAndConsumeChallenge(
+                request.getCurrentPasswordChallenge(), user.getEmail());
+
+        final AuthRequest currentPasswordRequest =
+                new AuthRequest(
+                        user.getEmail(),
+                        request.getCurrentPasswordHash(),
+                        request.getCurrentPasswordChallenge());
 
         try {
             authService.authenticate(currentPasswordRequest);
         } catch (AppException e) {
             if (e.getErrorCode() == ErrorCode.INVALID_CREDENTIALS) {
-                throw new AppException(ErrorCode.INVALID_CREDENTIALS, "Current password is incorrect");
+                throw new AppException(
+                        ErrorCode.INVALID_CREDENTIALS, "Current password is incorrect");
             }
             throw e;
         }
 
         // Verify challenge for new password (PAKE2)
-        if (request.getNewPasswordChallenge() == null || request.getNewPasswordChallenge().isEmpty()) {
-            throw new AppException(ErrorCode.INVALID_INPUT, "Challenge is required for new password");
+        if (request.getNewPasswordChallenge() == null
+                || request.getNewPasswordChallenge().isEmpty()) {
+            throw new AppException(
+                    ErrorCode.INVALID_INPUT, "Challenge is required for new password");
         }
-        challengeService.verifyAndConsumeChallenge(request.getNewPasswordChallenge(), user.getEmail());
-        
-        // Change password
-        userService.changePasswordSecure(
-                user.getUserId(),
-                request.getNewPasswordHash()
-        );
+        challengeService.verifyAndConsumeChallenge(
+                request.getNewPasswordChallenge(), user.getEmail());
 
-        logger.info("Password changed successfully for user: {}", user.getEmail());
+        // Change password
+        userService.changePasswordSecure(user.getUserId(), request.getNewPasswordHash());
+
+        LOGGER.info("Password changed successfully for user: {}", user.getEmail());
         return ResponseEntity.ok(new PasswordChangeResponse(true, "Password changed successfully"));
     }
 
@@ -372,7 +395,7 @@ public class AuthController {
         @JsonProperty("passwordHash")
         @JsonAlias("password_hash")
         private String passwordHash;
-        
+
         // PAKE2: Challenge for new password
         @JsonProperty("challenge")
         private String challenge;
@@ -400,18 +423,16 @@ public class AuthController {
         public void setPasswordHash(final String passwordHash) {
             this.passwordHash = passwordHash;
         }
-        
+
         public String getChallenge() {
             return challenge;
         }
-        
+
         public void setChallenge(final String challenge) {
             this.challenge = challenge;
         }
 
-        /**
-         * Check if request uses secure format (password_hash only)
-         */
+        /** Check if request uses secure format (password_hash only) */
         @com.fasterxml.jackson.annotation.JsonIgnore
         public boolean isSecureFormat() {
             return passwordHash != null && !passwordHash.isEmpty();
@@ -423,8 +444,7 @@ public class AuthController {
         private boolean success;
         private String message;
 
-        public PasswordResetResponse() {
-        }
+        public PasswordResetResponse() {}
 
         public PasswordResetResponse(final boolean success, final String message) {
             this.success = success;
@@ -459,12 +479,12 @@ public class AuthController {
         @JsonAlias("new_password_hash")
         @NotBlank(message = "New password hash is required")
         private String newPasswordHash;
-        
+
         // PAKE2: Challenge for current password verification
         @JsonProperty("currentPasswordChallenge")
         @JsonAlias("current_password_challenge")
         private String currentPasswordChallenge;
-        
+
         // PAKE2: Challenge for new password
         @JsonProperty("newPasswordChallenge")
         @JsonAlias("new_password_challenge")
@@ -485,30 +505,30 @@ public class AuthController {
         public void setNewPasswordHash(final String newPasswordHash) {
             this.newPasswordHash = newPasswordHash;
         }
-        
+
         public String getCurrentPasswordChallenge() {
             return currentPasswordChallenge;
         }
-        
+
         public void setCurrentPasswordChallenge(final String currentPasswordChallenge) {
             this.currentPasswordChallenge = currentPasswordChallenge;
         }
-        
+
         public String getNewPasswordChallenge() {
             return newPasswordChallenge;
         }
-        
+
         public void setNewPasswordChallenge(final String newPasswordChallenge) {
             this.newPasswordChallenge = newPasswordChallenge;
         }
 
-        /**
-         * Check if request uses secure format (password_hash only)
-         */
+        /** Check if request uses secure format (password_hash only) */
         @com.fasterxml.jackson.annotation.JsonIgnore
         public boolean isSecureFormat() {
-            return newPasswordHash != null && !newPasswordHash.isEmpty()
-                   && currentPasswordHash != null && !currentPasswordHash.isEmpty();
+            return newPasswordHash != null
+                    && !newPasswordHash.isEmpty()
+                    && currentPasswordHash != null
+                    && !currentPasswordHash.isEmpty();
         }
     }
 
@@ -517,8 +537,7 @@ public class AuthController {
         private boolean success;
         private String message;
 
-        public PasswordChangeResponse() {
-        }
+        public PasswordChangeResponse() {}
 
         public PasswordChangeResponse(final boolean success, final String message) {
             this.success = success;

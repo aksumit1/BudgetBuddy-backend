@@ -2,19 +2,18 @@ package com.budgetbuddy.model.dynamodb;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.time.LocalDate;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbAttribute;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbBean;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbPartitionKey;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbSecondaryPartitionKey;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbSecondarySortKey;
 
-import java.math.BigDecimal;
-import java.time.Instant;
-import java.time.LocalDate;
-
 /**
- * DynamoDB table for Accounts
- * CRITICAL: @JsonInclude ensures null fields are included in JSON responses for iOS
+ * DynamoDB table for Accounts CRITICAL: @JsonInclude ensures null fields are included in JSON
+ * responses for iOS
  */
 @DynamoDbBean
 @JsonInclude(JsonInclude.Include.ALWAYS)
@@ -27,7 +26,9 @@ public class AccountTable {
     private String accountType;
     private String accountSubtype;
     private BigDecimal balance;
-    private LocalDate balanceDate; // Date of the transaction from which balance was extracted (for date comparison)
+    private LocalDate
+            balanceDate; // Date of the transaction from which balance was extracted (for date
+    // comparison)
     private String currencyCode;
     private String plaidAccountId; // GSI for Plaid lookup
     private String plaidItemId; // GSI for Plaid item lookup
@@ -37,11 +38,46 @@ public class AccountTable {
     private Instant createdAt;
     private Instant updatedAt;
     private Long updatedAtTimestamp; // GSI sort key (epoch seconds) for incremental sync
-    
+
+    /** Optimistic-concurrency counter — see {@code BudgetTable.version}. */
+    private Long version;
+
+    /**
+     * User-overridden account name flag. Set to {@code true} whenever the user renames an account
+     * via the Account Details screen. When set, the Plaid sync path will not overwrite {@code
+     * accountName} even if Plaid reports a different official name — otherwise the user's rename
+     * gets reverted every sync cycle. Null / false = Plaid is authoritative.
+     */
+    private Boolean accountNameOverridden;
+
     // Credit card statement metadata (from PDF imports)
     private LocalDate paymentDueDate; // Latest payment due date from statements
-    private BigDecimal minimumPaymentDue; // Minimum payment due (from statement with latest payment due date)
-    private Long rewardPoints; // Reward points (from statement with latest payment due date, 0 to 10 million)
+    private BigDecimal
+            minimumPaymentDue; // Minimum payment due (from statement with latest payment due date)
+    private Long
+            rewardPoints; // Reward points (from statement with latest payment due date, 0 to 10
+    // million)
+
+    // Flow 8 — card advisor fields. Optional; populated by Plaid enrichment, PDF
+    // parsing, or the user. Non-credit accounts leave these null.
+    private BigDecimal creditLimit;
+    private BigDecimal availableCredit;
+
+    /** Purchase APR as a percent (21.99 = 21.99 %). */
+    private BigDecimal aprPercent;
+
+    /** Foreign transaction fee as a percent. 0 = no-foreign-fee card. */
+    private BigDecimal foreignTxFeePercent;
+
+    /** Category → multiplier (e.g. {"dining": 3.0, "default": 1.0}). */
+    private java.util.Map<String, BigDecimal> rewardMultipliers;
+
+    /** "cash_back" | "points" | "miles". */
+    private String rewardType;
+
+    // TODO: Customer ID of the bank
+    // TODO: Amount of Money I have reserved for the gaosl, unless it pulls from goals or goal pulls
+    // from Account
 
     @DynamoDbPartitionKey
     @DynamoDbAttribute("accountId")
@@ -165,7 +201,10 @@ public class AccountTable {
     }
 
     @DynamoDbAttribute("lastSyncedAt")
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", timezone = "UTC")
+    @JsonFormat(
+            shape = JsonFormat.Shape.STRING,
+            pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
+            timezone = "UTC")
     public Instant getLastSyncedAt() {
         return lastSyncedAt;
     }
@@ -175,7 +214,10 @@ public class AccountTable {
     }
 
     @DynamoDbAttribute("createdAt")
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", timezone = "UTC")
+    @JsonFormat(
+            shape = JsonFormat.Shape.STRING,
+            pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
+            timezone = "UTC")
     public Instant getCreatedAt() {
         return createdAt;
     }
@@ -185,7 +227,10 @@ public class AccountTable {
     }
 
     @DynamoDbAttribute("updatedAt")
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", timezone = "UTC")
+    @JsonFormat(
+            shape = JsonFormat.Shape.STRING,
+            pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
+            timezone = "UTC")
     public Instant getUpdatedAt() {
         return updatedAt;
     }
@@ -205,36 +250,147 @@ public class AccountTable {
     public void setUpdatedAtTimestamp(final Long updatedAtTimestamp) {
         this.updatedAtTimestamp = updatedAtTimestamp;
     }
-    
+
     @DynamoDbAttribute("paymentDueDate")
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
     @JsonInclude(JsonInclude.Include.ALWAYS) // Always include in JSON, even if null
     public LocalDate getPaymentDueDate() {
         return paymentDueDate;
     }
-    
+
     public void setPaymentDueDate(final LocalDate paymentDueDate) {
         this.paymentDueDate = paymentDueDate;
     }
-    
+
     @DynamoDbAttribute("minimumPaymentDue")
     @JsonInclude(JsonInclude.Include.ALWAYS) // Always include in JSON, even if null
     public BigDecimal getMinimumPaymentDue() {
         return minimumPaymentDue;
     }
-    
+
     public void setMinimumPaymentDue(final BigDecimal minimumPaymentDue) {
         this.minimumPaymentDue = minimumPaymentDue;
     }
-    
+
     @DynamoDbAttribute("rewardPoints")
     @JsonInclude(JsonInclude.Include.ALWAYS) // Always include in JSON, even if null
     public Long getRewardPoints() {
         return rewardPoints;
     }
-    
+
     public void setRewardPoints(final Long rewardPoints) {
         this.rewardPoints = rewardPoints;
     }
-}
 
+    @DynamoDbAttribute("creditLimit")
+    public BigDecimal getCreditLimit() {
+        return creditLimit;
+    }
+
+    public void setCreditLimit(final BigDecimal creditLimit) {
+        this.creditLimit = creditLimit;
+    }
+
+    @DynamoDbAttribute("availableCredit")
+    public BigDecimal getAvailableCredit() {
+        return availableCredit;
+    }
+
+    public void setAvailableCredit(final BigDecimal availableCredit) {
+        this.availableCredit = availableCredit;
+    }
+
+    @DynamoDbAttribute("aprPercent")
+    public BigDecimal getAprPercent() {
+        return aprPercent;
+    }
+
+    public void setAprPercent(final BigDecimal aprPercent) {
+        this.aprPercent = aprPercent;
+    }
+
+    @DynamoDbAttribute("foreignTxFeePercent")
+    public BigDecimal getForeignTxFeePercent() {
+        return foreignTxFeePercent;
+    }
+
+    public void setForeignTxFeePercent(final BigDecimal foreignTxFeePercent) {
+        this.foreignTxFeePercent = foreignTxFeePercent;
+    }
+
+    @DynamoDbAttribute("rewardMultipliers")
+    public java.util.Map<String, BigDecimal> getRewardMultipliers() {
+        return rewardMultipliers;
+    }
+
+    public void setRewardMultipliers(final java.util.Map<String, BigDecimal> rewardMultipliers) {
+        this.rewardMultipliers = rewardMultipliers;
+    }
+
+    @DynamoDbAttribute("rewardType")
+    public String getRewardType() {
+        return rewardType;
+    }
+
+    public void setRewardType(final String rewardType) {
+        this.rewardType = rewardType;
+    }
+
+    @DynamoDbAttribute("version")
+    public Long getVersion() {
+        return version;
+    }
+
+    public void setVersion(final Long version) {
+        this.version = version;
+    }
+
+    @DynamoDbAttribute("accountNameOverridden")
+    public Boolean getAccountNameOverridden() {
+        return accountNameOverridden;
+    }
+
+    public void setAccountNameOverridden(final Boolean accountNameOverridden) {
+        this.accountNameOverridden = accountNameOverridden;
+    }
+
+    /**
+     * User-toggled visibility flag. Hidden accounts remain in the list but their transactions are
+     * excluded from default reports / totals. Reversible — flipping back to false restores the
+     * account fully. Null treated as false. See AccountController PATCH /{id} for the toggle
+     * endpoint.
+     */
+    private Boolean isHidden;
+
+    @DynamoDbAttribute("isHidden")
+    @JsonInclude(JsonInclude.Include.ALWAYS)
+    public Boolean getIsHidden() {
+        return isHidden;
+    }
+
+    public void setIsHidden(final Boolean isHidden) {
+        this.isHidden = isHidden;
+    }
+
+    /**
+     * Soft-delete timestamp. Set when the user deletes an account from the iOS UI; the account row
+     * is kept around briefly so an undo can restore it, but transactions belonging to it are
+     * hard-deleted at the same time (the iOS list filters deleted accounts out via
+     * visibleAccountIds). Null = active. See AccountController DELETE /{id}.
+     */
+    private Instant deletedAt;
+
+    @DynamoDbAttribute("deletedAt")
+    @JsonFormat(
+            shape = JsonFormat.Shape.STRING,
+            pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
+            timezone = "UTC")
+    @JsonInclude(JsonInclude.Include.ALWAYS)
+    public Instant getDeletedAt() {
+        return deletedAt;
+    }
+
+    public void setDeletedAt(final Instant deletedAt) {
+        this.deletedAt = deletedAt;
+    }
+}

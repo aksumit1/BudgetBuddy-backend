@@ -1,9 +1,20 @@
 package com.budgetbuddy.filter;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -11,32 +22,18 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.io.StringWriter;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
-
-/**
- * Unit Tests for RequestResponseLoggingFilter
- */
+/** Unit Tests for RequestResponseLoggingFilter */
 @ExtendWith(MockitoExtension.class)
 @org.mockito.junit.jupiter.MockitoSettings(strictness = org.mockito.quality.Strictness.LENIENT)
 class RequestResponseLoggingFilterTest {
 
-    @Mock
-    private HttpServletRequest request;
+    @Mock private HttpServletRequest request;
 
-    @Mock
-    private HttpServletResponse response;
+    @Mock private HttpServletResponse response;
 
-    @Mock
-    private FilterChain filterChain;
+    @Mock private FilterChain filterChain;
 
-    @InjectMocks
-    private RequestResponseLoggingFilter filter;
+    @InjectMocks private RequestResponseLoggingFilter filter;
 
     @BeforeEach
     void setUp() throws IOException {
@@ -44,13 +41,14 @@ class RequestResponseLoggingFilterTest {
         when(request.getMethod()).thenReturn("GET");
         when(request.getRemoteAddr()).thenReturn("127.0.0.1");
 
-        StringWriter stringWriter = new StringWriter();
-        PrintWriter printWriter = new PrintWriter(stringWriter);
+        final StringWriter stringWriter = new StringWriter();
+        final PrintWriter printWriter = new PrintWriter(stringWriter);
         when(response.getWriter()).thenReturn(printWriter);
     }
 
     @Test
-    void testDoFilterInternal_WithValidRequest_ProcessesRequest() throws ServletException, IOException {
+    void testDoFilterInternalWithValidRequestProcessesRequest()
+            throws ServletException, IOException {
         // When
         filter.doFilterInternal(request, response, filterChain);
 
@@ -59,7 +57,8 @@ class RequestResponseLoggingFilterTest {
     }
 
     @Test
-    void testDoFilterInternal_WithHealthEndpoint_SkipsFilter() throws ServletException, IOException {
+    void testDoFilterInternalWithHealthEndpointSkipsFilter()
+            throws ServletException, IOException {
         // Given
         when(request.getRequestURI()).thenReturn("/actuator/health");
 
@@ -71,27 +70,26 @@ class RequestResponseLoggingFilterTest {
     }
 
     @Test
-    void testShouldNotFilter_WithHealthEndpoint_ReturnsTrue() {
+    void testShouldNotFilterWithHealthEndpointReturnsTrue() {
         // Given
         when(request.getRequestURI()).thenReturn("/actuator/health");
 
         // When
-        boolean shouldNotFilter = filter.shouldNotFilter(request);
+        final boolean shouldNotFilter = filter.shouldNotFilter(request);
 
         // Then
         assertTrue(shouldNotFilter);
     }
 
     @Test
-    void testShouldNotFilter_WithApiEndpoint_ReturnsFalse() {
+    void testShouldNotFilterWithApiEndpointReturnsFalse() {
         // Given
         when(request.getRequestURI()).thenReturn("/api/transactions");
 
         // When
-        boolean shouldNotFilter = filter.shouldNotFilter(request);
+        final boolean shouldNotFilter = filter.shouldNotFilter(request);
 
         // Then
         assertFalse(shouldNotFilter);
     }
 }
-

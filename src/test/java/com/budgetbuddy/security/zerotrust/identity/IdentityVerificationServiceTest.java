@@ -1,26 +1,24 @@
 package com.budgetbuddy.security.zerotrust.identity;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.when;
+
 import com.budgetbuddy.model.dynamodb.UserTable;
 import com.budgetbuddy.repository.dynamodb.UserRepository;
+import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
-import java.util.Set;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
-
-/**
- * Comprehensive tests for IdentityVerificationService
- */
+/** Comprehensive tests for IdentityVerificationService */
 class IdentityVerificationServiceTest {
 
-    @Mock
-    private UserRepository userRepository;
+    @Mock private UserRepository userRepository;
 
     private IdentityVerificationService identityVerificationService;
 
@@ -32,10 +30,10 @@ class IdentityVerificationServiceTest {
 
     @Test
     @DisplayName("Should verify identity for enabled user with verified email")
-    void testVerifyIdentity_Success() {
+    void testVerifyIdentitySuccess() {
         // Given
-        String userId = "user-123";
-        UserTable user = new UserTable();
+        final String userId = "user-123";
+        final UserTable user = new UserTable();
         user.setUserId(userId);
         user.setEnabled(true);
         user.setEmailVerified(true);
@@ -43,7 +41,7 @@ class IdentityVerificationServiceTest {
         when(userRepository.findById(userId)).thenReturn(java.util.Optional.of(user));
 
         // When
-        boolean verified = identityVerificationService.verifyIdentity(userId);
+        final boolean verified = identityVerificationService.verifyIdentity(userId);
 
         // Then
         assertTrue(verified);
@@ -51,10 +49,10 @@ class IdentityVerificationServiceTest {
 
     @Test
     @DisplayName("Should fail verification for disabled user")
-    void testVerifyIdentity_DisabledUser() {
+    void testVerifyIdentityDisabledUser() {
         // Given
-        String userId = "user-123";
-        UserTable user = new UserTable();
+        final String userId = "user-123";
+        final UserTable user = new UserTable();
         user.setUserId(userId);
         user.setEnabled(false);
         user.setEmailVerified(true);
@@ -62,7 +60,7 @@ class IdentityVerificationServiceTest {
         when(userRepository.findById(userId)).thenReturn(java.util.Optional.of(user));
 
         // When
-        boolean verified = identityVerificationService.verifyIdentity(userId);
+        final boolean verified = identityVerificationService.verifyIdentity(userId);
 
         // Then
         assertFalse(verified);
@@ -70,10 +68,10 @@ class IdentityVerificationServiceTest {
 
     @Test
     @DisplayName("Should fail verification for unverified email")
-    void testVerifyIdentity_UnverifiedEmail() {
+    void testVerifyIdentityUnverifiedEmail() {
         // Given
-        String userId = "user-123";
-        UserTable user = new UserTable();
+        final String userId = "user-123";
+        final UserTable user = new UserTable();
         user.setUserId(userId);
         user.setEnabled(true);
         user.setEmailVerified(false);
@@ -81,7 +79,7 @@ class IdentityVerificationServiceTest {
         when(userRepository.findById(userId)).thenReturn(java.util.Optional.of(user));
 
         // When
-        boolean verified = identityVerificationService.verifyIdentity(userId);
+        final boolean verified = identityVerificationService.verifyIdentity(userId);
 
         // Then
         assertFalse(verified);
@@ -89,13 +87,13 @@ class IdentityVerificationServiceTest {
 
     @Test
     @DisplayName("Should fail verification for non-existent user")
-    void testVerifyIdentity_NonExistentUser() {
+    void testVerifyIdentityNonExistentUser() {
         // Given
-        String userId = "user-123";
+        final String userId = "user-123";
         when(userRepository.findById(userId)).thenReturn(java.util.Optional.empty());
 
         // When
-        boolean verified = identityVerificationService.verifyIdentity(userId);
+        final boolean verified = identityVerificationService.verifyIdentity(userId);
 
         // Then
         assertFalse(verified);
@@ -103,17 +101,18 @@ class IdentityVerificationServiceTest {
 
     @Test
     @DisplayName("Should grant permission for admin user")
-    void testHasPermission_Admin() {
+    void testHasPermissionAdmin() {
         // Given
-        String userId = "admin-123";
-        UserTable user = new UserTable();
+        final String userId = "admin-123";
+        final UserTable user = new UserTable();
         user.setUserId(userId);
         user.setRoles(Set.of("ADMIN"));
 
         when(userRepository.findById(userId)).thenReturn(java.util.Optional.of(user));
 
         // When
-        boolean hasPermission = identityVerificationService.hasPermission(userId, "/api/admin", "DELETE");
+        final boolean hasPermission =
+                identityVerificationService.hasPermission(userId, "/api/admin", "DELETE");
 
         // Then
         assertTrue(hasPermission);
@@ -121,17 +120,18 @@ class IdentityVerificationServiceTest {
 
     @Test
     @DisplayName("Should deny permission for regular user accessing admin resource")
-    void testHasPermission_RegularUserAdminResource() {
+    void testHasPermissionRegularUserAdminResource() {
         // Given
-        String userId = "user-123";
-        UserTable user = new UserTable();
+        final String userId = "user-123";
+        final UserTable user = new UserTable();
         user.setUserId(userId);
         user.setRoles(Set.of("USER"));
 
         when(userRepository.findById(userId)).thenReturn(java.util.Optional.of(user));
 
         // When
-        boolean hasPermission = identityVerificationService.hasPermission(userId, "/api/admin", "GET");
+        final boolean hasPermission =
+                identityVerificationService.hasPermission(userId, "/api/admin", "GET");
 
         // Then
         assertFalse(hasPermission);
@@ -139,17 +139,18 @@ class IdentityVerificationServiceTest {
 
     @Test
     @DisplayName("Should grant permission for regular user accessing user resource")
-    void testHasPermission_RegularUserUserResource() {
+    void testHasPermissionRegularUserUserResource() {
         // Given
-        String userId = "user-123";
-        UserTable user = new UserTable();
+        final String userId = "user-123";
+        final UserTable user = new UserTable();
         user.setUserId(userId);
         user.setRoles(Set.of("USER"));
 
         when(userRepository.findById(userId)).thenReturn(java.util.Optional.of(user));
 
         // When
-        boolean hasPermission = identityVerificationService.hasPermission(userId, "/api/transactions", "GET");
+        final boolean hasPermission =
+                identityVerificationService.hasPermission(userId, "/api/transactions", "GET");
 
         // Then
         assertTrue(hasPermission);
@@ -159,15 +160,15 @@ class IdentityVerificationServiceTest {
     @DisplayName("Should return user roles")
     void testGetUserRoles() {
         // Given
-        String userId = "user-123";
-        UserTable user = new UserTable();
+        final String userId = "user-123";
+        final UserTable user = new UserTable();
         user.setUserId(userId);
         user.setRoles(Set.of("USER", "PREMIUM"));
 
         when(userRepository.findById(userId)).thenReturn(java.util.Optional.of(user));
 
         // When
-        Set<String> roles = identityVerificationService.getUserRoles(userId);
+        final Set<String> roles = identityVerificationService.getUserRoles(userId);
 
         // Then
         assertNotNull(roles);
@@ -178,13 +179,13 @@ class IdentityVerificationServiceTest {
 
     @Test
     @DisplayName("Should return empty set for non-existent user")
-    void testGetUserRoles_NonExistentUser() {
+    void testGetUserRolesNonExistentUser() {
         // Given
-        String userId = "user-123";
+        final String userId = "user-123";
         when(userRepository.findById(userId)).thenReturn(java.util.Optional.empty());
 
         // When
-        Set<String> roles = identityVerificationService.getUserRoles(userId);
+        final Set<String> roles = identityVerificationService.getUserRoles(userId);
 
         // Then
         assertNotNull(roles);

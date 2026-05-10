@@ -1,10 +1,19 @@
 package com.budgetbuddy.api;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.when;
+
 import com.budgetbuddy.exception.AppException;
 import com.budgetbuddy.model.dynamodb.AccountTable;
 import com.budgetbuddy.model.dynamodb.UserTable;
 import com.budgetbuddy.repository.dynamodb.AccountRepository;
 import com.budgetbuddy.service.UserService;
+import java.math.BigDecimal;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -15,33 +24,23 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.userdetails.UserDetails;
 
-import java.math.BigDecimal;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
-
-/**
- * Unit Tests for AccountController
- * 
- */
+/** Unit Tests for AccountController */
+// PMD's LawOfDemeter is documented as imprecise on chains involving
+// standard library types (BigDecimal, String, Optional) and DTO
+// getters; this class has many such idiomatic uses. Suppress at
+// class level rather than littering every method.
+@SuppressWarnings("PMD.LawOfDemeter")
 @ExtendWith(MockitoExtension.class)
 @org.mockito.junit.jupiter.MockitoSettings(strictness = org.mockito.quality.Strictness.LENIENT)
 class AccountControllerTest {
 
-    @Mock
-    private AccountRepository accountRepository;
+    @Mock private AccountRepository accountRepository;
 
-    @Mock
-    private UserService userService;
+    @Mock private UserService userService;
 
-    @Mock
-    private UserDetails userDetails;
+    @Mock private UserDetails userDetails;
 
-    @InjectMocks
-    private AccountController accountController;
+    @InjectMocks private AccountController accountController;
 
     private UserTable testUser;
     private AccountTable testAccount;
@@ -63,14 +62,14 @@ class AccountControllerTest {
     }
 
     @Test
-    void testGetAccounts_WithValidUser_ReturnsAccounts() {
+    void testGetAccountsWithValidUserReturnsAccounts() {
         // Given
-        List<AccountTable> accounts = Arrays.asList(testAccount);
+        final List<AccountTable> accounts = Arrays.asList(testAccount);
         when(userService.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
         when(accountRepository.findByUserId("user-123")).thenReturn(accounts);
 
         // When
-        ResponseEntity<List<AccountTable>> response = accountController.getAccounts(userDetails);
+        final ResponseEntity<List<AccountTable>> response = accountController.getAccounts(userDetails);
 
         // Then
         assertEquals(HttpStatus.OK, response.getStatusCode());
@@ -79,21 +78,24 @@ class AccountControllerTest {
     }
 
     @Test
-    void testGetAccounts_WithNullUserDetails_ThrowsException() {
+    void testGetAccountsWithNullUserDetailsThrowsException() {
         // When/Then
-        assertThrows(AppException.class, () -> {
-            accountController.getAccounts(null);
-        });
+        assertThrows(
+                AppException.class,
+                () -> {
+                    accountController.getAccounts(null);
+                });
     }
 
     @Test
-    void testGetAccount_WithValidId_ReturnsAccount() {
+    void testGetAccountWithValidIdReturnsAccount() {
         // Given
         when(userService.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
         when(accountRepository.findById("account-123")).thenReturn(Optional.of(testAccount));
 
         // When
-        ResponseEntity<AccountTable> response = accountController.getAccount(userDetails, "account-123");
+        final ResponseEntity<AccountTable> response =
+                accountController.getAccount(userDetails, "account-123");
 
         // Then
         assertEquals(HttpStatus.OK, response.getStatusCode());
@@ -102,9 +104,9 @@ class AccountControllerTest {
     }
 
     @Test
-    void testGetAccount_WithUnauthorizedAccount_ThrowsException() {
+    void testGetAccountWithUnauthorizedAccountThrowsException() {
         // Given
-        AccountTable otherUserAccount = new AccountTable();
+        final AccountTable otherUserAccount = new AccountTable();
         otherUserAccount.setAccountId("account-456");
         otherUserAccount.setUserId("other-user");
 
@@ -112,17 +114,20 @@ class AccountControllerTest {
         when(accountRepository.findById("account-456")).thenReturn(Optional.of(otherUserAccount));
 
         // When/Then
-        assertThrows(AppException.class, () -> {
-            accountController.getAccount(userDetails, "account-456");
-        });
+        assertThrows(
+                AppException.class,
+                () -> {
+                    accountController.getAccount(userDetails, "account-456");
+                });
     }
 
     @Test
-    void testGetAccount_WithNullId_ThrowsException() {
+    void testGetAccountWithNullIdThrowsException() {
         // When/Then
-        assertThrows(AppException.class, () -> {
-            accountController.getAccount(userDetails, null);
-        });
+        assertThrows(
+                AppException.class,
+                () -> {
+                    accountController.getAccount(userDetails, null);
+                });
     }
 }
-

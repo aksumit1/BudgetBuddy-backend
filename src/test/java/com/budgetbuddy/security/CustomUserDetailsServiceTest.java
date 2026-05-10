@@ -1,7 +1,18 @@
 package com.budgetbuddy.security;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import com.budgetbuddy.model.dynamodb.UserTable;
 import com.budgetbuddy.repository.dynamodb.UserRepository;
+import java.util.Optional;
+import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
@@ -10,16 +21,9 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
-import java.util.Optional;
-import java.util.Set;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
-
 class CustomUserDetailsServiceTest {
 
-    @Mock
-    private UserRepository userRepository;
+    @Mock private UserRepository userRepository;
 
     private CustomUserDetailsService service;
 
@@ -30,22 +34,22 @@ class CustomUserDetailsServiceTest {
     }
 
     @Test
-    void testLoadUserByUsername_UserExists_ShouldReturnUserDetails() {
+    void testLoadUserByUsernameUserExistsShouldReturnUserDetails() {
         // Given
-        String email = "test@example.com";
-        String passwordHash = "hashedPassword";
-        UserTable user = new UserTable();
+        final String email = "test@example.com";
+        final String passwordHash = "hashedPassword";
+        final UserTable user = new UserTable();
         user.setUserId("user-123");
         user.setEmail(email);
         user.setPasswordHash(passwordHash);
         user.setEnabled(true);
         user.setRoles(Set.of("USER"));
-        
+
         when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
-        
+
         // When
-        UserDetails userDetails = service.loadUserByUsername(email);
-        
+        final UserDetails userDetails = service.loadUserByUsername(email);
+
         // Then
         assertNotNull(userDetails);
         assertEquals(email, userDetails.getUsername());
@@ -54,135 +58,141 @@ class CustomUserDetailsServiceTest {
         assertTrue(userDetails.isAccountNonLocked());
         assertTrue(userDetails.isAccountNonExpired());
         assertTrue(userDetails.isCredentialsNonExpired());
-        assertTrue(userDetails.getAuthorities().stream()
-                .anyMatch(a -> a.getAuthority().equals("ROLE_USER")));
-        
+        assertTrue(
+                userDetails.getAuthorities().stream()
+                        .anyMatch(a -> "ROLE_USER".equals(a.getAuthority())));
+
         verify(userRepository, times(1)).findByEmail(email);
     }
 
     @Test
-    void testLoadUserByUsername_UserNotExists_ShouldThrowException() {
+    void testLoadUserByUsernameUserNotExistsShouldThrowException() {
         // Given
-        String email = "nonexistent@example.com";
+        final String email = "nonexistent@example.com";
         when(userRepository.findByEmail(email)).thenReturn(Optional.empty());
-        
+
         // When/Then
-        assertThrows(UsernameNotFoundException.class, () -> {
-            service.loadUserByUsername(email);
-        });
-        
+        assertThrows(
+                UsernameNotFoundException.class,
+                () -> {
+                    service.loadUserByUsername(email);
+                });
+
         verify(userRepository, times(1)).findByEmail(email);
     }
 
     @Test
-    void testLoadUserByUsername_UserDisabled_ShouldBeDisabled() {
+    void testLoadUserByUsernameUserDisabledShouldBeDisabled() {
         // Given
-        String email = "disabled@example.com";
-        UserTable user = new UserTable();
+        final String email = "disabled@example.com";
+        final UserTable user = new UserTable();
         user.setUserId("user-456");
         user.setEmail(email);
         user.setPasswordHash("hash");
         user.setEnabled(false);
         user.setRoles(Set.of("USER"));
-        
+
         when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
-        
+
         // When
-        UserDetails userDetails = service.loadUserByUsername(email);
-        
+        final UserDetails userDetails = service.loadUserByUsername(email);
+
         // Then
         assertFalse(userDetails.isEnabled());
         assertFalse(userDetails.isAccountNonLocked());
     }
 
     @Test
-    void testLoadUserByUsername_NoRoles_ShouldHaveDefaultRole() {
+    void testLoadUserByUsernameNoRolesShouldHaveDefaultRole() {
         // Given
-        String email = "noroles@example.com";
-        UserTable user = new UserTable();
+        final String email = "noroles@example.com";
+        final UserTable user = new UserTable();
         user.setUserId("user-789");
         user.setEmail(email);
         user.setPasswordHash("hash");
         user.setEnabled(true);
         user.setRoles(null); // No roles
-        
+
         when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
-        
+
         // When
-        UserDetails userDetails = service.loadUserByUsername(email);
-        
+        final UserDetails userDetails = service.loadUserByUsername(email);
+
         // Then
-        assertTrue(userDetails.getAuthorities().stream()
-                .anyMatch(a -> a.getAuthority().equals("ROLE_USER")));
+        assertTrue(
+                userDetails.getAuthorities().stream()
+                        .anyMatch(a -> "ROLE_USER".equals(a.getAuthority())));
     }
 
     @Test
-    void testLoadUserByUsername_EmptyRoles_ShouldHaveDefaultRole() {
+    void testLoadUserByUsernameEmptyRolesShouldHaveDefaultRole() {
         // Given
-        String email = "emptyroles@example.com";
-        UserTable user = new UserTable();
+        final String email = "emptyroles@example.com";
+        final UserTable user = new UserTable();
         user.setUserId("user-101");
         user.setEmail(email);
         user.setPasswordHash("hash");
         user.setEnabled(true);
         user.setRoles(Set.of()); // Empty roles
-        
+
         when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
-        
+
         // When
-        UserDetails userDetails = service.loadUserByUsername(email);
-        
+        final UserDetails userDetails = service.loadUserByUsername(email);
+
         // Then
-        assertTrue(userDetails.getAuthorities().stream()
-                .anyMatch(a -> a.getAuthority().equals("ROLE_USER")));
+        assertTrue(
+                userDetails.getAuthorities().stream()
+                        .anyMatch(a -> "ROLE_USER".equals(a.getAuthority())));
     }
 
     @Test
-    void testLoadUserByUsername_MultipleRoles_ShouldHaveAllRoles() {
+    void testLoadUserByUsernameMultipleRolesShouldHaveAllRoles() {
         // Given
-        String email = "admin@example.com";
-        UserTable user = new UserTable();
+        final String email = "admin@example.com";
+        final UserTable user = new UserTable();
         user.setUserId("user-admin");
         user.setEmail(email);
         user.setPasswordHash("hash");
         user.setEnabled(true);
         user.setRoles(Set.of("USER", "ADMIN"));
-        
+
         when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
-        
+
         // When
-        UserDetails userDetails = service.loadUserByUsername(email);
-        
+        final UserDetails userDetails = service.loadUserByUsername(email);
+
         // Then
-        Set<String> authorities = userDetails.getAuthorities().stream()
-                .map(GrantedAuthority::getAuthority)
-                .collect(java.util.stream.Collectors.toSet());
+        final Set<String> authorities =
+                userDetails.getAuthorities().stream()
+                        .map(GrantedAuthority::getAuthority)
+                        .collect(java.util.stream.Collectors.toSet());
         assertTrue(authorities.contains("ROLE_USER"));
         assertTrue(authorities.contains("ROLE_ADMIN"));
     }
 
     @Test
-    void testLoadUserByUsername_RolesAreUppercased() {
+    void testLoadUserByUsernameRolesAreUppercased() {
         // Given
-        String email = "mixed@example.com";
-        UserTable user = new UserTable();
+        final String email = "mixed@example.com";
+        final UserTable user = new UserTable();
         user.setUserId("user-mixed");
         user.setEmail(email);
         user.setPasswordHash("hash");
         user.setEnabled(true);
         user.setRoles(Set.of("user", "admin")); // Lowercase
-        
+
         when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
-        
+
         // When
-        UserDetails userDetails = service.loadUserByUsername(email);
-        
+        final UserDetails userDetails = service.loadUserByUsername(email);
+
         // Then
-        Set<String> authorities = userDetails.getAuthorities().stream()
-                .map(GrantedAuthority::getAuthority)
-                .collect(java.util.stream.Collectors.toSet());
+        final Set<String> authorities =
+                userDetails.getAuthorities().stream()
+                        .map(GrantedAuthority::getAuthority)
+                        .collect(java.util.stream.Collectors.toSet());
         assertTrue(authorities.contains("ROLE_USER"));
         assertTrue(authorities.contains("ROLE_ADMIN"));
     }
 }
-

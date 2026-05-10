@@ -1,37 +1,33 @@
 package com.budgetbuddy.service;
 
-import org.junit.jupiter.api.BeforeEach;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+
+import java.math.BigDecimal;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
-import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.math.BigDecimal;
-
-import static org.junit.jupiter.api.Assertions.*;
-
-/**
- * Tests for payment type detection in PlaidCategoryMapper
- */
+/** Tests for payment type detection in PlaidCategoryMapper */
 @ExtendWith(MockitoExtension.class)
 class PaymentTypeDetectionTest {
 
-    @InjectMocks
-    private PlaidCategoryMapper categoryMapper;
+    @InjectMocks private PlaidCategoryMapper categoryMapper;
 
     @Test
-    void testDetectCreditCardPayment_WithCreditCardPaymentDescription() {
+    void testDetectCreditCardPaymentWithCreditCardPaymentDescription() {
         // Given
-        String description = "Credit Card Payment - Chase";
-        String merchantName = null;
-        String paymentChannel = null;
-        BigDecimal amount = new BigDecimal("-500.00");
+        final String description = "Credit Card Payment - Chase";
+        final String merchantName = null;
+        final String paymentChannel = null;
+        final BigDecimal amount = new BigDecimal("-500.00");
 
         // When
-        PlaidCategoryMapper.CategoryMapping mapping = categoryMapper.mapPlaidCategory(
-            null, null, merchantName, description, paymentChannel, amount
-        );
+        final PlaidCategoryMapper.CategoryMapping mapping =
+                categoryMapper.mapPlaidCategory(
+                        null, null, merchantName, description, paymentChannel, amount);
 
         // Then
         assertNotNull(mapping);
@@ -40,17 +36,17 @@ class PaymentTypeDetectionTest {
     }
 
     @Test
-    void testDetectCreditCardPayment_WithCCPayment() {
+    void testDetectCreditCardPaymentWithCCPayment() {
         // Given
-        String description = "CC Payment";
-        String merchantName = null;
-        String paymentChannel = null;
-        BigDecimal amount = new BigDecimal("-300.00");
+        final String description = "CC Payment";
+        final String merchantName = null;
+        final String paymentChannel = null;
+        final BigDecimal amount = new BigDecimal("-300.00");
 
         // When
-        PlaidCategoryMapper.CategoryMapping mapping = categoryMapper.mapPlaidCategory(
-            null, null, merchantName, description, paymentChannel, amount
-        );
+        final PlaidCategoryMapper.CategoryMapping mapping =
+                categoryMapper.mapPlaidCategory(
+                        null, null, merchantName, description, paymentChannel, amount);
 
         // Then
         assertNotNull(mapping);
@@ -58,17 +54,17 @@ class PaymentTypeDetectionTest {
     }
 
     @Test
-    void testDetectRecurringACHPayment_WithRecurringKeyword() {
+    void testDetectRecurringACHPaymentWithRecurringKeyword() {
         // Given
-        String description = "Monthly Recurring Payment - Utilities";
-        String merchantName = "Utility Company";
-        String paymentChannel = "ach";
-        BigDecimal amount = new BigDecimal("-100.00");
+        final String description = "Monthly Recurring Payment - Utilities";
+        final String merchantName = "Utility Company";
+        final String paymentChannel = "ach";
+        final BigDecimal amount = new BigDecimal("-100.00");
 
         // When
-        PlaidCategoryMapper.CategoryMapping mapping = categoryMapper.mapPlaidCategory(
-            null, null, merchantName, description, paymentChannel, amount
-        );
+        final PlaidCategoryMapper.CategoryMapping mapping =
+                categoryMapper.mapPlaidCategory(
+                        null, null, merchantName, description, paymentChannel, amount);
 
         // Then
         assertNotNull(mapping);
@@ -77,17 +73,17 @@ class PaymentTypeDetectionTest {
     }
 
     @Test
-    void testDetectRecurringACHPayment_WithAutopay() {
+    void testDetectRecurringACHPaymentWithAutopay() {
         // Given
-        String description = "AUTOPAY - Loan Payment";
-        String merchantName = "Loan Company";
-        String paymentChannel = "ach";
-        BigDecimal amount = new BigDecimal("-250.00");
+        final String description = "AUTOPAY - Loan Payment";
+        final String merchantName = "Loan Company";
+        final String paymentChannel = "ach";
+        final BigDecimal amount = new BigDecimal("-250.00");
 
         // When
-        PlaidCategoryMapper.CategoryMapping mapping = categoryMapper.mapPlaidCategory(
-            null, null, merchantName, description, paymentChannel, amount
-        );
+        final PlaidCategoryMapper.CategoryMapping mapping =
+                categoryMapper.mapPlaidCategory(
+                        null, null, merchantName, description, paymentChannel, amount);
 
         // Then
         assertNotNull(mapping);
@@ -95,17 +91,17 @@ class PaymentTypeDetectionTest {
     }
 
     @Test
-    void testDetectRecurringACHPayment_WithBillPay() {
+    void testDetectRecurringACHPaymentWithBillPay() {
         // Given
-        String description = "Bill Pay - Credit Card";
-        String merchantName = null;
-        String paymentChannel = "ach";
-        BigDecimal amount = new BigDecimal("-200.00");
+        final String description = "Bill Pay - Credit Card";
+        final String merchantName = null;
+        final String paymentChannel = "ach";
+        final BigDecimal amount = new BigDecimal("-200.00");
 
         // When
-        PlaidCategoryMapper.CategoryMapping mapping = categoryMapper.mapPlaidCategory(
-            null, null, merchantName, description, paymentChannel, amount
-        );
+        final PlaidCategoryMapper.CategoryMapping mapping =
+                categoryMapper.mapPlaidCategory(
+                        null, null, merchantName, description, paymentChannel, amount);
 
         // Then
         assertNotNull(mapping);
@@ -113,17 +109,17 @@ class PaymentTypeDetectionTest {
     }
 
     @Test
-    void testDetectRecurringACHPayment_WithNonACH_ReturnsOther() {
+    void testDetectRecurringACHPaymentWithNonACHReturnsOther() {
         // Given: Non-ACH transaction
-        String description = "Online Purchase";
-        String merchantName = "Amazon";
-        String paymentChannel = "online";
-        BigDecimal amount = new BigDecimal("-50.00");
+        final String description = "Online Purchase";
+        final String merchantName = "Amazon";
+        final String paymentChannel = "online";
+        final BigDecimal amount = new BigDecimal("-50.00");
 
         // When
-        PlaidCategoryMapper.CategoryMapping mapping = categoryMapper.mapPlaidCategory(
-            null, null, merchantName, description, paymentChannel, amount
-        );
+        final PlaidCategoryMapper.CategoryMapping mapping =
+                categoryMapper.mapPlaidCategory(
+                        null, null, merchantName, description, paymentChannel, amount);
 
         // Then: Should not be payment (no payment channel or keywords)
         assertNotNull(mapping);
@@ -131,17 +127,17 @@ class PaymentTypeDetectionTest {
     }
 
     @Test
-    void testDetectRecurringACHPayment_WithPositiveAmount_NotPayment() {
+    void testDetectRecurringACHPaymentWithPositiveAmountNotPayment() {
         // Given: Positive ACH (credit, not payment)
-        String description = "ACH Credit";
-        String merchantName = null;
-        String paymentChannel = "ach";
-        BigDecimal amount = new BigDecimal("500.00");
+        final String description = "ACH Credit";
+        final String merchantName = null;
+        final String paymentChannel = "ach";
+        final BigDecimal amount = new BigDecimal("500.00");
 
         // When
-        PlaidCategoryMapper.CategoryMapping mapping = categoryMapper.mapPlaidCategory(
-            null, null, merchantName, description, paymentChannel, amount
-        );
+        final PlaidCategoryMapper.CategoryMapping mapping =
+                categoryMapper.mapPlaidCategory(
+                        null, null, merchantName, description, paymentChannel, amount);
 
         // Then: Should be income, not payment
         assertNotNull(mapping);
@@ -150,21 +146,25 @@ class PaymentTypeDetectionTest {
     }
 
     @Test
-    void testPaymentDetection_PriorityOverOtherCategories() {
+    void testPaymentDetectionPriorityOverOtherCategories() {
         // Given: Credit card payment that might be categorized as other
-        String description = "Credit Card Payment";
-        String merchantName = null;
-        String paymentChannel = null;
-        BigDecimal amount = new BigDecimal("-500.00");
+        final String description = "Credit Card Payment";
+        final String merchantName = null;
+        final String paymentChannel = null;
+        final BigDecimal amount = new BigDecimal("-500.00");
 
         // When
-        PlaidCategoryMapper.CategoryMapping mapping = categoryMapper.mapPlaidCategory(
-            "GENERAL_SERVICES", "GENERAL_SERVICES", merchantName, description, paymentChannel, amount
-        );
+        final PlaidCategoryMapper.CategoryMapping mapping =
+                categoryMapper.mapPlaidCategory(
+                        "GENERAL_SERVICES",
+                        "GENERAL_SERVICES",
+                        merchantName,
+                        description,
+                        paymentChannel,
+                        amount);
 
         // Then: Payment should override other categories
         assertNotNull(mapping);
         assertEquals("payment", mapping.getPrimary());
     }
 }
-

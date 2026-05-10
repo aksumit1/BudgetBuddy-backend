@@ -1,5 +1,8 @@
 package com.budgetbuddy.config;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+
 import com.budgetbuddy.AWSTestConfiguration;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -8,11 +11,12 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 
-import static org.junit.jupiter.api.Assertions.*;
-
-/**
- * Tests for HealthCheckConfig
- */
+/** Tests for HealthCheckConfig */
+// PMD's LawOfDemeter is documented as imprecise on chains involving
+// standard library types (BigDecimal, String, Optional) and DTO
+// getters; this class has many such idiomatic uses. Suppress at
+// class level rather than littering every method.
+@SuppressWarnings("PMD.LawOfDemeter")
 @SpringBootTest(classes = com.budgetbuddy.BudgetBuddyApplication.class)
 @ActiveProfiles("test")
 @Import(AWSTestConfiguration.class)
@@ -28,15 +32,15 @@ class HealthCheckConfigTest {
     private HealthIndicator livenessHealthIndicator;
 
     @Test
-    void testDynamoDbHealthIndicator_IsCreated() {
+    void testDynamoDbHealthIndicatorIsCreated() {
         // Then
         assertNotNull(dynamoDbHealthIndicator, "DynamoDB health indicator should be created");
     }
 
     @Test
-    void testDynamoDbHealthIndicator_ReturnsHealth() {
+    void testDynamoDbHealthIndicatorReturnsHealth() {
         // When
-        var health = dynamoDbHealthIndicator.health();
+        final var health = dynamoDbHealthIndicator.health();
 
         // Then
         assertNotNull(health, "Health should not be null");
@@ -44,15 +48,15 @@ class HealthCheckConfigTest {
     }
 
     @Test
-    void testReadinessHealthIndicator_IsCreated() {
+    void testReadinessHealthIndicatorIsCreated() {
         // Then
         assertNotNull(readinessHealthIndicator, "Readiness health indicator should be created");
     }
 
     @Test
-    void testReadinessHealthIndicator_ReturnsUp() {
+    void testReadinessHealthIndicatorReturnsUp() {
         // When
-        var health = readinessHealthIndicator.health();
+        final var health = readinessHealthIndicator.health();
 
         // Then
         assertNotNull(health, "Health should not be null");
@@ -60,19 +64,18 @@ class HealthCheckConfigTest {
     }
 
     @Test
-    void testLivenessHealthIndicator_IsCreated() {
+    void testLivenessHealthIndicatorIsCreated() {
         // Then
         assertNotNull(livenessHealthIndicator, "Liveness health indicator should be created");
     }
 
     @Test
-    void testLivenessHealthIndicator_ReturnsUp() {
+    void testLivenessHealthIndicatorReturnsUp() {
         // When
-        var health = livenessHealthIndicator.health();
+        final var health = livenessHealthIndicator.health();
 
         // Then
         assertNotNull(health, "Health should not be null");
         assertEquals("UP", health.getStatus().getCode(), "Liveness should be UP");
     }
 }
-

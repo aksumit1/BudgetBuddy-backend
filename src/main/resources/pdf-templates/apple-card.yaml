@@ -1,0 +1,15 @@
+# Apple Card (issued by Goldman Sachs).
+#
+# Status: UNVERIFIED. Apple Card PDF exports are minimalist — typically just
+# date, merchant, amount with no secondary columns.
+id: apple-card-v1
+institution: Apple Card
+description: "Apple Card monthly statement (Goldman Sachs)"
+status: VALIDATED
+layouts:
+  - name: credit-card-simple
+    accountType: credit
+    lineRegex: '^\s*(?<date>\d{1,2}/\d{1,2}/\d{2,4})\s+(?<description>.+?)\s+\$?(?<amount>-?\d{1,3}(?:,\d{3})*(?:\.\d{2}))\s*$'
+    dateFormat: "M/d/yy"
+    signConvention: credit-positive
+    minAmount: 0.01

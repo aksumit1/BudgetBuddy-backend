@@ -1,95 +1,112 @@
 package com.budgetbuddy.service;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+
+import java.math.BigDecimal;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.math.BigDecimal;
-
-import static org.junit.jupiter.api.Assertions.*;
-
 /**
- * Comprehensive tests for investment categorization with specific subcategories
- * - CD deposits should be "cd" (not generic investment)
- * - Bonds, stocks, 401K, IRA, etc. should be correctly categorized
- * - Investment-related transactions should be correctly categorized
+ * Comprehensive tests for investment categorization with specific subcategories - CD deposits
+ * should be "cd" (not generic investment) - Bonds, stocks, 401K, IRA, etc. should be correctly
+ * categorized - Investment-related transactions should be correctly categorized
  */
 @ExtendWith(MockitoExtension.class)
 class InvestmentCategorizationTest {
 
-    @InjectMocks
-    private PlaidCategoryMapper categoryMapper;
+    @InjectMocks private PlaidCategoryMapper categoryMapper;
 
     @Test
-    void testCDDeposit_CategorizedAsCD() {
+    void testCDDepositCategorizedAsCD() {
         // Given
-        String description = "CD Deposit";
-        String merchantName = "Bank";
-        String paymentChannel = null;
-        BigDecimal amount = new BigDecimal("10000.00");
+        final String description = "CD Deposit";
+        final String merchantName = "Bank";
+        final String paymentChannel = null;
+        final BigDecimal amount = new BigDecimal("10000.00");
 
         // When
-        PlaidCategoryMapper.CategoryMapping mapping = categoryMapper.mapPlaidCategory(
-            "ENTERTAINMENT", "ENTERTAINMENT", merchantName, description, paymentChannel, amount
-        );
+        final PlaidCategoryMapper.CategoryMapping mapping =
+                categoryMapper.mapPlaidCategory(
+                        "ENTERTAINMENT",
+                        "ENTERTAINMENT",
+                        merchantName,
+                        description,
+                        paymentChannel,
+                        amount);
 
         // Then
         assertNotNull(mapping);
-        assertEquals("investment", mapping.getPrimary(), "CD deposit should be investment, not entertainment");
-        assertEquals("cd", mapping.getDetailed(), "CD deposit should be categorized as 'cd' subcategory");
+        assertEquals(
+                "investment",
+                mapping.getPrimary(),
+                "CD deposit should be investment, not entertainment");
+        assertEquals(
+                "cd",
+                mapping.getDetailed(),
+                "CD deposit should be categorized as 'cd' subcategory");
     }
-    
+
     @Test
-    void testCDDeposit_CertificateOfDeposit_CategorizedAsCD() {
+    void testCDDepositCertificateOfDepositCategorizedAsCD() {
         // Given
-        String description = "Certificate of Deposit";
-        String merchantName = "Bank";
-        String paymentChannel = null;
-        BigDecimal amount = new BigDecimal("5000.00");
+        final String description = "Certificate of Deposit";
+        final String merchantName = "Bank";
+        final String paymentChannel = null;
+        final BigDecimal amount = new BigDecimal("5000.00");
 
         // When
-        PlaidCategoryMapper.CategoryMapping mapping = categoryMapper.mapPlaidCategory(
-            null, null, merchantName, description, paymentChannel, amount
-        );
+        final PlaidCategoryMapper.CategoryMapping mapping =
+                categoryMapper.mapPlaidCategory(
+                        null, null, merchantName, description, paymentChannel, amount);
 
         // Then
         assertNotNull(mapping);
         assertEquals("investment", mapping.getPrimary());
-        assertEquals("cd", mapping.getDetailed(), "Certificate of Deposit should be categorized as 'cd'");
+        assertEquals(
+                "cd",
+                mapping.getDetailed(),
+                "Certificate of Deposit should be categorized as 'cd'");
     }
-    
+
     @Test
-    void testCDMaturity_CategorizedAsCD() {
+    void testCDMaturityCategorizedAsCD() {
         // Given
-        String description = "CD Maturity";
-        String merchantName = "Bank";
-        String paymentChannel = null;
-        BigDecimal amount = new BigDecimal("10000.00");
+        final String description = "CD Maturity";
+        final String merchantName = "Bank";
+        final String paymentChannel = null;
+        final BigDecimal amount = new BigDecimal("10000.00");
 
         // When
-        PlaidCategoryMapper.CategoryMapping mapping = categoryMapper.mapPlaidCategory(
-            null, null, merchantName, description, paymentChannel, amount
-        );
+        final PlaidCategoryMapper.CategoryMapping mapping =
+                categoryMapper.mapPlaidCategory(
+                        null, null, merchantName, description, paymentChannel, amount);
 
         // Then
         assertNotNull(mapping);
         assertEquals("investment", mapping.getPrimary());
         assertEquals("cd", mapping.getDetailed(), "CD maturity should be categorized as 'cd'");
     }
-    
+
     @Test
-    void testCDInterest_CategorizedAsCD() {
+    void testCDInterestCategorizedAsCD() {
         // Given
-        String description = "CD Interest Payment";
-        String merchantName = "Bank";
-        String paymentChannel = null;
-        BigDecimal amount = new BigDecimal("50.00");
+        final String description = "CD Interest Payment";
+        final String merchantName = "Bank";
+        final String paymentChannel = null;
+        final BigDecimal amount = new BigDecimal("50.00");
 
         // When
-        PlaidCategoryMapper.CategoryMapping mapping = categoryMapper.mapPlaidCategory(
-            "INCOME", "INTEREST_EARNED", merchantName, description, paymentChannel, amount
-        );
+        final PlaidCategoryMapper.CategoryMapping mapping =
+                categoryMapper.mapPlaidCategory(
+                        "INCOME",
+                        "INTEREST_EARNED",
+                        merchantName,
+                        description,
+                        paymentChannel,
+                        amount);
 
         // Then
         assertNotNull(mapping);
@@ -98,346 +115,373 @@ class InvestmentCategorizationTest {
     }
 
     @Test
-    void testCDDeposit_WithIncomeCategory_OverriddenToCD() {
+    void testCDDepositWithIncomeCategoryOverriddenToCD() {
         // Given: CD deposit that might be categorized as income
-        String description = "CD Deposit - Certificate of Deposit";
-        String merchantName = "Bank";
-        String paymentChannel = null;
-        BigDecimal amount = new BigDecimal("5000.00");
+        final String description = "CD Deposit - Certificate of Deposit";
+        final String merchantName = "Bank";
+        final String paymentChannel = null;
+        final BigDecimal amount = new BigDecimal("5000.00");
 
         // When
-        PlaidCategoryMapper.CategoryMapping mapping = categoryMapper.mapPlaidCategory(
-            "INCOME", "SALARY", merchantName, description, paymentChannel, amount
-        );
+        final PlaidCategoryMapper.CategoryMapping mapping =
+                categoryMapper.mapPlaidCategory(
+                        "INCOME", "SALARY", merchantName, description, paymentChannel, amount);
 
         // Then
         assertNotNull(mapping);
-        assertEquals("investment", mapping.getPrimary(), "CD deposit should be investment, not income");
+        assertEquals(
+                "investment", mapping.getPrimary(), "CD deposit should be investment, not income");
         assertEquals("cd", mapping.getDetailed(), "CD deposit should be categorized as 'cd'");
     }
 
     // MARK: - Stocks Tests
-    
+
     @Test
-    void testStockPurchase_CategorizedAsStocks() {
+    void testStockPurchaseCategorizedAsStocks() {
         // Given
-        String description = "Stock Purchase - AAPL";
-        String merchantName = "Brokerage";
-        String paymentChannel = null;
-        BigDecimal amount = new BigDecimal("-1000.00");
+        final String description = "Stock Purchase - AAPL";
+        final String merchantName = "Brokerage";
+        final String paymentChannel = null;
+        final BigDecimal amount = new BigDecimal("-1000.00");
 
         // When
-        PlaidCategoryMapper.CategoryMapping mapping = categoryMapper.mapPlaidCategory(
-            null, null, merchantName, description, paymentChannel, amount
-        );
+        final PlaidCategoryMapper.CategoryMapping mapping =
+                categoryMapper.mapPlaidCategory(
+                        null, null, merchantName, description, paymentChannel, amount);
 
         // Then
         assertNotNull(mapping);
         assertEquals("investment", mapping.getPrimary(), "Stock purchase should be investment");
-        assertEquals("stocks", mapping.getDetailed(), "Stock purchase should be categorized as 'stocks'");
+        assertEquals(
+                "stocks",
+                mapping.getDetailed(),
+                "Stock purchase should be categorized as 'stocks'");
     }
-    
+
     @Test
-    void testStockEquity_CategorizedAsStocks() {
+    void testStockEquityCategorizedAsStocks() {
         // Given
-        String description = "Equity Investment";
-        String merchantName = "Brokerage";
-        String paymentChannel = null;
-        BigDecimal amount = new BigDecimal("-2000.00");
+        final String description = "Equity Investment";
+        final String merchantName = "Brokerage";
+        final String paymentChannel = null;
+        final BigDecimal amount = new BigDecimal("-2000.00");
 
         // When
-        PlaidCategoryMapper.CategoryMapping mapping = categoryMapper.mapPlaidCategory(
-            null, null, merchantName, description, paymentChannel, amount
-        );
+        final PlaidCategoryMapper.CategoryMapping mapping =
+                categoryMapper.mapPlaidCategory(
+                        null, null, merchantName, description, paymentChannel, amount);
 
         // Then
         assertNotNull(mapping);
         assertEquals("investment", mapping.getPrimary());
         assertEquals("stocks", mapping.getDetailed(), "Equity should be categorized as 'stocks'");
     }
-    
+
     @Test
-    void testCommonStock_CategorizedAsStocks() {
+    void testCommonStockCategorizedAsStocks() {
         // Given
-        String description = "Common Stock Purchase";
-        String merchantName = "Brokerage";
-        String paymentChannel = null;
-        BigDecimal amount = new BigDecimal("-1500.00");
+        final String description = "Common Stock Purchase";
+        final String merchantName = "Brokerage";
+        final String paymentChannel = null;
+        final BigDecimal amount = new BigDecimal("-1500.00");
 
         // When
-        PlaidCategoryMapper.CategoryMapping mapping = categoryMapper.mapPlaidCategory(
-            null, null, merchantName, description, paymentChannel, amount
-        );
+        final PlaidCategoryMapper.CategoryMapping mapping =
+                categoryMapper.mapPlaidCategory(
+                        null, null, merchantName, description, paymentChannel, amount);
 
         // Then
         assertNotNull(mapping);
         assertEquals("investment", mapping.getPrimary());
-        assertEquals("stocks", mapping.getDetailed(), "Common stock should be categorized as 'stocks'");
+        assertEquals(
+                "stocks", mapping.getDetailed(), "Common stock should be categorized as 'stocks'");
     }
 
     // MARK: - Bonds Tests
-    
+
     @Test
-    void testBondPurchase_CategorizedAsBonds() {
+    void testBondPurchaseCategorizedAsBonds() {
         // Given
-        String description = "Bond Purchase";
-        String merchantName = "Brokerage";
-        String paymentChannel = null;
-        BigDecimal amount = new BigDecimal("-5000.00");
+        final String description = "Bond Purchase";
+        final String merchantName = "Brokerage";
+        final String paymentChannel = null;
+        final BigDecimal amount = new BigDecimal("-5000.00");
 
         // When
-        PlaidCategoryMapper.CategoryMapping mapping = categoryMapper.mapPlaidCategory(
-            null, null, merchantName, description, paymentChannel, amount
-        );
+        final PlaidCategoryMapper.CategoryMapping mapping =
+                categoryMapper.mapPlaidCategory(
+                        null, null, merchantName, description, paymentChannel, amount);
 
         // Then
         assertNotNull(mapping);
         assertEquals("investment", mapping.getPrimary(), "Bond purchase should be investment");
-        assertEquals("bonds", mapping.getDetailed(), "Bond purchase should be categorized as 'bonds'");
+        assertEquals(
+                "bonds", mapping.getDetailed(), "Bond purchase should be categorized as 'bonds'");
     }
-    
+
     @Test
-    void testMunicipalBond_CategorizedAsMunicipalBonds() {
+    void testMunicipalBondCategorizedAsMunicipalBonds() {
         // Given
-        String description = "Municipal Bond Purchase";
-        String merchantName = "Brokerage";
-        String paymentChannel = null;
-        BigDecimal amount = new BigDecimal("-3000.00");
+        final String description = "Municipal Bond Purchase";
+        final String merchantName = "Brokerage";
+        final String paymentChannel = null;
+        final BigDecimal amount = new BigDecimal("-3000.00");
 
         // When
-        PlaidCategoryMapper.CategoryMapping mapping = categoryMapper.mapPlaidCategory(
-            null, null, merchantName, description, paymentChannel, amount
-        );
+        final PlaidCategoryMapper.CategoryMapping mapping =
+                categoryMapper.mapPlaidCategory(
+                        null, null, merchantName, description, paymentChannel, amount);
 
         // Then
         assertNotNull(mapping);
         assertEquals("investment", mapping.getPrimary());
-        assertEquals("municipalBonds", mapping.getDetailed(), "Municipal bond should be categorized as 'municipalBonds'");
+        assertEquals(
+                "municipalBonds",
+                mapping.getDetailed(),
+                "Municipal bond should be categorized as 'municipalBonds'");
     }
-    
+
     @Test
-    void testMuniBond_CategorizedAsMunicipalBonds() {
+    void testMuniBondCategorizedAsMunicipalBonds() {
         // Given
-        String description = "Muni Bond Investment";
-        String merchantName = "Brokerage";
-        String paymentChannel = null;
-        BigDecimal amount = new BigDecimal("-2500.00");
+        final String description = "Muni Bond Investment";
+        final String merchantName = "Brokerage";
+        final String paymentChannel = null;
+        final BigDecimal amount = new BigDecimal("-2500.00");
 
         // When
-        PlaidCategoryMapper.CategoryMapping mapping = categoryMapper.mapPlaidCategory(
-            null, null, merchantName, description, paymentChannel, amount
-        );
+        final PlaidCategoryMapper.CategoryMapping mapping =
+                categoryMapper.mapPlaidCategory(
+                        null, null, merchantName, description, paymentChannel, amount);
 
         // Then
         assertNotNull(mapping);
         assertEquals("investment", mapping.getPrimary());
-        assertEquals("municipalBonds", mapping.getDetailed(), "Muni bond should be categorized as 'municipalBonds'");
+        assertEquals(
+                "municipalBonds",
+                mapping.getDetailed(),
+                "Muni bond should be categorized as 'municipalBonds'");
     }
-    
+
     @Test
-    void testTreasuryBill_CategorizedAsTBills() {
+    void testTreasuryBillCategorizedAsTBills() {
         // Given
-        String description = "Treasury Bill Purchase";
-        String merchantName = "Brokerage";
-        String paymentChannel = null;
-        BigDecimal amount = new BigDecimal("-10000.00");
+        final String description = "Treasury Bill Purchase";
+        final String merchantName = "Brokerage";
+        final String paymentChannel = null;
+        final BigDecimal amount = new BigDecimal("-10000.00");
 
         // When
-        PlaidCategoryMapper.CategoryMapping mapping = categoryMapper.mapPlaidCategory(
-            null, null, merchantName, description, paymentChannel, amount
-        );
+        final PlaidCategoryMapper.CategoryMapping mapping =
+                categoryMapper.mapPlaidCategory(
+                        null, null, merchantName, description, paymentChannel, amount);
 
         // Then
         assertNotNull(mapping);
         assertEquals("investment", mapping.getPrimary());
-        assertEquals("tBills", mapping.getDetailed(), "Treasury Bill should be categorized as 'tBills'");
+        assertEquals(
+                "tBills", mapping.getDetailed(), "Treasury Bill should be categorized as 'tBills'");
     }
-    
+
     @Test
-    void testTBill_CategorizedAsTBills() {
+    void testTBillCategorizedAsTBills() {
         // Given
-        String description = "T-Bill Investment";
-        String merchantName = "Brokerage";
-        String paymentChannel = null;
-        BigDecimal amount = new BigDecimal("-5000.00");
+        final String description = "T-Bill Investment";
+        final String merchantName = "Brokerage";
+        final String paymentChannel = null;
+        final BigDecimal amount = new BigDecimal("-5000.00");
 
         // When
-        PlaidCategoryMapper.CategoryMapping mapping = categoryMapper.mapPlaidCategory(
-            null, null, merchantName, description, paymentChannel, amount
-        );
+        final PlaidCategoryMapper.CategoryMapping mapping =
+                categoryMapper.mapPlaidCategory(
+                        null, null, merchantName, description, paymentChannel, amount);
 
         // Then
         assertNotNull(mapping);
         assertEquals("investment", mapping.getPrimary());
         assertEquals("tBills", mapping.getDetailed(), "T-Bill should be categorized as 'tBills'");
     }
-    
+
     @Test
-    void testUSTreasury_CategorizedAsTBills() {
+    void testUSTreasuryCategorizedAsTBills() {
         // Given
-        String description = "US Treasury Investment";
-        String merchantName = "Brokerage";
-        String paymentChannel = null;
-        BigDecimal amount = new BigDecimal("-7500.00");
+        final String description = "US Treasury Investment";
+        final String merchantName = "Brokerage";
+        final String paymentChannel = null;
+        final BigDecimal amount = new BigDecimal("-7500.00");
 
         // When
-        PlaidCategoryMapper.CategoryMapping mapping = categoryMapper.mapPlaidCategory(
-            null, null, merchantName, description, paymentChannel, amount
-        );
+        final PlaidCategoryMapper.CategoryMapping mapping =
+                categoryMapper.mapPlaidCategory(
+                        null, null, merchantName, description, paymentChannel, amount);
 
         // Then
         assertNotNull(mapping);
         assertEquals("investment", mapping.getPrimary());
-        assertEquals("tBills", mapping.getDetailed(), "US Treasury should be categorized as 'tBills'");
+        assertEquals(
+                "tBills", mapping.getDetailed(), "US Treasury should be categorized as 'tBills'");
     }
 
     // MARK: - Retirement Account Tests
-    
+
     @Test
-    void test401kContribution_CategorizedAsFourZeroOneK() {
+    void test401kContributionCategorizedAsFourZeroOneK() {
         // Given
-        String description = "401k Contribution";
-        String merchantName = "Retirement Plan";
-        String paymentChannel = null;
-        BigDecimal amount = new BigDecimal("-500.00");
+        final String description = "401k Contribution";
+        final String merchantName = "Retirement Plan";
+        final String paymentChannel = null;
+        final BigDecimal amount = new BigDecimal("-500.00");
 
         // When
-        PlaidCategoryMapper.CategoryMapping mapping = categoryMapper.mapPlaidCategory(
-            null, null, merchantName, description, paymentChannel, amount
-        );
+        final PlaidCategoryMapper.CategoryMapping mapping =
+                categoryMapper.mapPlaidCategory(
+                        null, null, merchantName, description, paymentChannel, amount);
 
         // Then
         assertNotNull(mapping);
         assertEquals("investment", mapping.getPrimary(), "401k contribution should be investment");
-        assertEquals("fourZeroOneK", mapping.getDetailed(), "401k should be categorized as 'fourZeroOneK'");
+        assertEquals(
+                "fourZeroOneK",
+                mapping.getDetailed(),
+                "401k should be categorized as 'fourZeroOneK'");
     }
-    
+
     @Test
-    void test401kWithParentheses_CategorizedAsFourZeroOneK() {
+    void test401kWithParenthesesCategorizedAsFourZeroOneK() {
         // Given
-        String description = "401(k) Contribution";
-        String merchantName = "Retirement Plan";
-        String paymentChannel = null;
-        BigDecimal amount = new BigDecimal("-600.00");
+        final String description = "401(k) Contribution";
+        final String merchantName = "Retirement Plan";
+        final String paymentChannel = null;
+        final BigDecimal amount = new BigDecimal("-600.00");
 
         // When
-        PlaidCategoryMapper.CategoryMapping mapping = categoryMapper.mapPlaidCategory(
-            null, null, merchantName, description, paymentChannel, amount
-        );
+        final PlaidCategoryMapper.CategoryMapping mapping =
+                categoryMapper.mapPlaidCategory(
+                        null, null, merchantName, description, paymentChannel, amount);
 
         // Then
         assertNotNull(mapping);
         assertEquals("investment", mapping.getPrimary());
-        assertEquals("fourZeroOneK", mapping.getDetailed(), "401(k) should be categorized as 'fourZeroOneK'");
+        assertEquals(
+                "fourZeroOneK",
+                mapping.getDetailed(),
+                "401(k) should be categorized as 'fourZeroOneK'");
     }
-    
+
     @Test
-    void test529Plan_CategorizedAsFiveTwoNine() {
+    void test529PlanCategorizedAsFiveTwoNine() {
         // Given
-        String description = "529 Plan Contribution";
-        String merchantName = "College Savings";
-        String paymentChannel = null;
-        BigDecimal amount = new BigDecimal("-200.00");
+        final String description = "529 Plan Contribution";
+        final String merchantName = "College Savings";
+        final String paymentChannel = null;
+        final BigDecimal amount = new BigDecimal("-200.00");
 
         // When
-        PlaidCategoryMapper.CategoryMapping mapping = categoryMapper.mapPlaidCategory(
-            null, null, merchantName, description, paymentChannel, amount
-        );
+        final PlaidCategoryMapper.CategoryMapping mapping =
+                categoryMapper.mapPlaidCategory(
+                        null, null, merchantName, description, paymentChannel, amount);
 
         // Then
         assertNotNull(mapping);
         assertEquals("investment", mapping.getPrimary());
-        assertEquals("fiveTwoNine", mapping.getDetailed(), "529 Plan should be categorized as 'fiveTwoNine'");
+        assertEquals(
+                "fiveTwoNine",
+                mapping.getDetailed(),
+                "529 Plan should be categorized as 'fiveTwoNine'");
     }
-    
+
     @Test
-    void test529CollegeSavings_CategorizedAsFiveTwoNine() {
+    void test529CollegeSavingsCategorizedAsFiveTwoNine() {
         // Given
-        String description = "College Savings 529";
-        String merchantName = "Investment Company";
-        String paymentChannel = null;
-        BigDecimal amount = new BigDecimal("-300.00");
+        final String description = "College Savings 529";
+        final String merchantName = "Investment Company";
+        final String paymentChannel = null;
+        final BigDecimal amount = new BigDecimal("-300.00");
 
         // When
-        PlaidCategoryMapper.CategoryMapping mapping = categoryMapper.mapPlaidCategory(
-            null, null, merchantName, description, paymentChannel, amount
-        );
+        final PlaidCategoryMapper.CategoryMapping mapping =
+                categoryMapper.mapPlaidCategory(
+                        null, null, merchantName, description, paymentChannel, amount);
 
         // Then
         assertNotNull(mapping);
         assertEquals("investment", mapping.getPrimary());
-        assertEquals("fiveTwoNine", mapping.getDetailed(), "529 College Savings should be categorized as 'fiveTwoNine'");
+        assertEquals(
+                "fiveTwoNine",
+                mapping.getDetailed(),
+                "529 College Savings should be categorized as 'fiveTwoNine'");
     }
-    
+
     @Test
-    void testIRAContribution_CategorizedAsIRA() {
+    void testIRAContributionCategorizedAsIRA() {
         // Given
-        String description = "IRA Contribution";
-        String merchantName = "Retirement Plan";
-        String paymentChannel = null;
-        BigDecimal amount = new BigDecimal("-1000.00");
+        final String description = "IRA Contribution";
+        final String merchantName = "Retirement Plan";
+        final String paymentChannel = null;
+        final BigDecimal amount = new BigDecimal("-1000.00");
 
         // When
-        PlaidCategoryMapper.CategoryMapping mapping = categoryMapper.mapPlaidCategory(
-            null, null, merchantName, description, paymentChannel, amount
-        );
+        final PlaidCategoryMapper.CategoryMapping mapping =
+                categoryMapper.mapPlaidCategory(
+                        null, null, merchantName, description, paymentChannel, amount);
 
         // Then
         assertNotNull(mapping);
         assertEquals("investment", mapping.getPrimary());
         assertEquals("ira", mapping.getDetailed(), "IRA should be categorized as 'ira'");
     }
-    
+
     @Test
-    void testRothIRA_CategorizedAsIRA() {
+    void testRothIRACategorizedAsIRA() {
         // Given
-        String description = "Roth IRA Contribution";
-        String merchantName = "Retirement Plan";
-        String paymentChannel = null;
-        BigDecimal amount = new BigDecimal("-1200.00");
+        final String description = "Roth IRA Contribution";
+        final String merchantName = "Retirement Plan";
+        final String paymentChannel = null;
+        final BigDecimal amount = new BigDecimal("-1200.00");
 
         // When
-        PlaidCategoryMapper.CategoryMapping mapping = categoryMapper.mapPlaidCategory(
-            null, null, merchantName, description, paymentChannel, amount
-        );
+        final PlaidCategoryMapper.CategoryMapping mapping =
+                categoryMapper.mapPlaidCategory(
+                        null, null, merchantName, description, paymentChannel, amount);
 
         // Then
         assertNotNull(mapping);
         assertEquals("investment", mapping.getPrimary());
         assertEquals("ira", mapping.getDetailed(), "Roth IRA should be categorized as 'ira'");
     }
-    
+
     @Test
-    void testTraditionalIRA_CategorizedAsIRA() {
+    void testTraditionalIRACategorizedAsIRA() {
         // Given
-        String description = "Traditional IRA Contribution";
-        String merchantName = "Retirement Plan";
-        String paymentChannel = null;
-        BigDecimal amount = new BigDecimal("-1500.00");
+        final String description = "Traditional IRA Contribution";
+        final String merchantName = "Retirement Plan";
+        final String paymentChannel = null;
+        final BigDecimal amount = new BigDecimal("-1500.00");
 
         // When
-        PlaidCategoryMapper.CategoryMapping mapping = categoryMapper.mapPlaidCategory(
-            null, null, merchantName, description, paymentChannel, amount
-        );
+        final PlaidCategoryMapper.CategoryMapping mapping =
+                categoryMapper.mapPlaidCategory(
+                        null, null, merchantName, description, paymentChannel, amount);
 
         // Then
         assertNotNull(mapping);
         assertEquals("investment", mapping.getPrimary());
-        assertEquals("ira", mapping.getDetailed(), "Traditional IRA should be categorized as 'ira'");
+        assertEquals(
+                "ira", mapping.getDetailed(), "Traditional IRA should be categorized as 'ira'");
     }
-    
+
     @Test
-    void testSEPIRA_CategorizedAsIRA() {
+    void testSEPIRACategorizedAsIRA() {
         // Given
-        String description = "SEP IRA Contribution";
-        String merchantName = "Retirement Plan";
-        String paymentChannel = null;
-        BigDecimal amount = new BigDecimal("-2000.00");
+        final String description = "SEP IRA Contribution";
+        final String merchantName = "Retirement Plan";
+        final String paymentChannel = null;
+        final BigDecimal amount = new BigDecimal("-2000.00");
 
         // When
-        PlaidCategoryMapper.CategoryMapping mapping = categoryMapper.mapPlaidCategory(
-            null, null, merchantName, description, paymentChannel, amount
-        );
+        final PlaidCategoryMapper.CategoryMapping mapping =
+                categoryMapper.mapPlaidCategory(
+                        null, null, merchantName, description, paymentChannel, amount);
 
         // Then
         assertNotNull(mapping);
@@ -446,234 +490,258 @@ class InvestmentCategorizationTest {
     }
 
     // MARK: - Mutual Funds and ETF Tests
-    
+
     @Test
-    void testMutualFund_CategorizedAsMutualFunds() {
+    void testMutualFundCategorizedAsMutualFunds() {
         // Given
-        String description = "Mutual Fund Investment";
-        String merchantName = "Investment Company";
-        String paymentChannel = null;
-        BigDecimal amount = new BigDecimal("-2000.00");
+        final String description = "Mutual Fund Investment";
+        final String merchantName = "Investment Company";
+        final String paymentChannel = null;
+        final BigDecimal amount = new BigDecimal("-2000.00");
 
         // When
-        PlaidCategoryMapper.CategoryMapping mapping = categoryMapper.mapPlaidCategory(
-            null, null, merchantName, description, paymentChannel, amount
-        );
+        final PlaidCategoryMapper.CategoryMapping mapping =
+                categoryMapper.mapPlaidCategory(
+                        null, null, merchantName, description, paymentChannel, amount);
 
         // Then
         assertNotNull(mapping);
         assertEquals("investment", mapping.getPrimary(), "Mutual fund should be investment");
-        assertEquals("mutualFunds", mapping.getDetailed(), "Mutual fund should be categorized as 'mutualFunds'");
+        assertEquals(
+                "mutualFunds",
+                mapping.getDetailed(),
+                "Mutual fund should be categorized as 'mutualFunds'");
     }
-    
+
     @Test
-    void testETF_CategorizedAsETF() {
+    void testETFCategorizedAsETF() {
         // Given
-        String description = "ETF Purchase";
-        String merchantName = "Brokerage";
-        String paymentChannel = null;
-        BigDecimal amount = new BigDecimal("-1500.00");
+        final String description = "ETF Purchase";
+        final String merchantName = "Brokerage";
+        final String paymentChannel = null;
+        final BigDecimal amount = new BigDecimal("-1500.00");
 
         // When
-        PlaidCategoryMapper.CategoryMapping mapping = categoryMapper.mapPlaidCategory(
-            null, null, merchantName, description, paymentChannel, amount
-        );
+        final PlaidCategoryMapper.CategoryMapping mapping =
+                categoryMapper.mapPlaidCategory(
+                        null, null, merchantName, description, paymentChannel, amount);
 
         // Then
         assertNotNull(mapping);
         assertEquals("investment", mapping.getPrimary());
         assertEquals("etf", mapping.getDetailed(), "ETF should be categorized as 'etf'");
     }
-    
+
     @Test
-    void testExchangeTradedFund_CategorizedAsETF() {
+    void testExchangeTradedFundCategorizedAsETF() {
         // Given
-        String description = "Exchange Traded Fund Investment";
-        String merchantName = "Brokerage";
-        String paymentChannel = null;
-        BigDecimal amount = new BigDecimal("-1800.00");
+        final String description = "Exchange Traded Fund Investment";
+        final String merchantName = "Brokerage";
+        final String paymentChannel = null;
+        final BigDecimal amount = new BigDecimal("-1800.00");
 
         // When
-        PlaidCategoryMapper.CategoryMapping mapping = categoryMapper.mapPlaidCategory(
-            null, null, merchantName, description, paymentChannel, amount
-        );
+        final PlaidCategoryMapper.CategoryMapping mapping =
+                categoryMapper.mapPlaidCategory(
+                        null, null, merchantName, description, paymentChannel, amount);
 
         // Then
         assertNotNull(mapping);
         assertEquals("investment", mapping.getPrimary());
-        assertEquals("etf", mapping.getDetailed(), "Exchange Traded Fund should be categorized as 'etf'");
+        assertEquals(
+                "etf",
+                mapping.getDetailed(),
+                "Exchange Traded Fund should be categorized as 'etf'");
     }
 
     // MARK: - Money Market Tests
-    
+
     @Test
-    void testMoneyMarket_CategorizedAsMoneyMarket() {
+    void testMoneyMarketCategorizedAsMoneyMarket() {
         // Given
-        String description = "Money Market Account";
-        String merchantName = "Bank";
-        String paymentChannel = null;
-        BigDecimal amount = new BigDecimal("-5000.00");
+        final String description = "Money Market Account";
+        final String merchantName = "Bank";
+        final String paymentChannel = null;
+        final BigDecimal amount = new BigDecimal("-5000.00");
 
         // When
-        PlaidCategoryMapper.CategoryMapping mapping = categoryMapper.mapPlaidCategory(
-            null, null, merchantName, description, paymentChannel, amount
-        );
+        final PlaidCategoryMapper.CategoryMapping mapping =
+                categoryMapper.mapPlaidCategory(
+                        null, null, merchantName, description, paymentChannel, amount);
 
         // Then
         assertNotNull(mapping);
         assertEquals("investment", mapping.getPrimary());
-        assertEquals("moneyMarket", mapping.getDetailed(), "Money Market should be categorized as 'moneyMarket'");
+        assertEquals(
+                "moneyMarket",
+                mapping.getDetailed(),
+                "Money Market should be categorized as 'moneyMarket'");
     }
-    
+
     @Test
-    void testMMAccount_CategorizedAsMoneyMarket() {
+    void testMMAccountCategorizedAsMoneyMarket() {
         // Given
-        String description = "MM Account Investment";
-        String merchantName = "Bank";
-        String paymentChannel = null;
-        BigDecimal amount = new BigDecimal("-3000.00");
+        final String description = "MM Account Investment";
+        final String merchantName = "Bank";
+        final String paymentChannel = null;
+        final BigDecimal amount = new BigDecimal("-3000.00");
 
         // When
-        PlaidCategoryMapper.CategoryMapping mapping = categoryMapper.mapPlaidCategory(
-            null, null, merchantName, description, paymentChannel, amount
-        );
+        final PlaidCategoryMapper.CategoryMapping mapping =
+                categoryMapper.mapPlaidCategory(
+                        null, null, merchantName, description, paymentChannel, amount);
 
         // Then
         assertNotNull(mapping);
         assertEquals("investment", mapping.getPrimary());
-        assertEquals("moneyMarket", mapping.getDetailed(), "MM Account should be categorized as 'moneyMarket'");
+        assertEquals(
+                "moneyMarket",
+                mapping.getDetailed(),
+                "MM Account should be categorized as 'moneyMarket'");
     }
 
     // MARK: - Precious Metals Tests
-    
+
     @Test
-    void testGoldInvestment_CategorizedAsPreciousMetals() {
+    void testGoldInvestmentCategorizedAsPreciousMetals() {
         // Given
-        String description = "Gold Investment";
-        String merchantName = "Precious Metals Dealer";
-        String paymentChannel = null;
-        BigDecimal amount = new BigDecimal("-10000.00");
+        final String description = "Gold Investment";
+        final String merchantName = "Precious Metals Dealer";
+        final String paymentChannel = null;
+        final BigDecimal amount = new BigDecimal("-10000.00");
 
         // When
-        PlaidCategoryMapper.CategoryMapping mapping = categoryMapper.mapPlaidCategory(
-            null, null, merchantName, description, paymentChannel, amount
-        );
+        final PlaidCategoryMapper.CategoryMapping mapping =
+                categoryMapper.mapPlaidCategory(
+                        null, null, merchantName, description, paymentChannel, amount);
 
         // Then
         assertNotNull(mapping);
         assertEquals("investment", mapping.getPrimary());
-        assertEquals("preciousMetals", mapping.getDetailed(), "Gold should be categorized as 'preciousMetals'");
+        assertEquals(
+                "preciousMetals",
+                mapping.getDetailed(),
+                "Gold should be categorized as 'preciousMetals'");
     }
-    
+
     @Test
-    void testSilverInvestment_CategorizedAsPreciousMetals() {
+    void testSilverInvestmentCategorizedAsPreciousMetals() {
         // Given
-        String description = "Silver Bullion Purchase";
-        String merchantName = "Precious Metals Dealer";
-        String paymentChannel = null;
-        BigDecimal amount = new BigDecimal("-5000.00");
+        final String description = "Silver Bullion Purchase";
+        final String merchantName = "Precious Metals Dealer";
+        final String paymentChannel = null;
+        final BigDecimal amount = new BigDecimal("-5000.00");
 
         // When
-        PlaidCategoryMapper.CategoryMapping mapping = categoryMapper.mapPlaidCategory(
-            null, null, merchantName, description, paymentChannel, amount
-        );
+        final PlaidCategoryMapper.CategoryMapping mapping =
+                categoryMapper.mapPlaidCategory(
+                        null, null, merchantName, description, paymentChannel, amount);
 
         // Then
         assertNotNull(mapping);
         assertEquals("investment", mapping.getPrimary());
-        assertEquals("preciousMetals", mapping.getDetailed(), "Silver should be categorized as 'preciousMetals'");
+        assertEquals(
+                "preciousMetals",
+                mapping.getDetailed(),
+                "Silver should be categorized as 'preciousMetals'");
     }
-    
+
     @Test
-    void testPlatinumInvestment_CategorizedAsPreciousMetals() {
+    void testPlatinumInvestmentCategorizedAsPreciousMetals() {
         // Given
-        String description = "Platinum Investment";
-        String merchantName = "Precious Metals Dealer";
-        String paymentChannel = null;
-        BigDecimal amount = new BigDecimal("-8000.00");
+        final String description = "Platinum Investment";
+        final String merchantName = "Precious Metals Dealer";
+        final String paymentChannel = null;
+        final BigDecimal amount = new BigDecimal("-8000.00");
 
         // When
-        PlaidCategoryMapper.CategoryMapping mapping = categoryMapper.mapPlaidCategory(
-            null, null, merchantName, description, paymentChannel, amount
-        );
+        final PlaidCategoryMapper.CategoryMapping mapping =
+                categoryMapper.mapPlaidCategory(
+                        null, null, merchantName, description, paymentChannel, amount);
 
         // Then
         assertNotNull(mapping);
         assertEquals("investment", mapping.getPrimary());
-        assertEquals("preciousMetals", mapping.getDetailed(), "Platinum should be categorized as 'preciousMetals'");
+        assertEquals(
+                "preciousMetals",
+                mapping.getDetailed(),
+                "Platinum should be categorized as 'preciousMetals'");
     }
 
     // MARK: - Crypto Tests
-    
+
     @Test
-    void testBitcoinInvestment_CategorizedAsCrypto() {
+    void testBitcoinInvestmentCategorizedAsCrypto() {
         // Given
-        String description = "Bitcoin Purchase";
-        String merchantName = "Crypto Exchange";
-        String paymentChannel = null;
-        BigDecimal amount = new BigDecimal("-2000.00");
+        final String description = "Bitcoin Purchase";
+        final String merchantName = "Crypto Exchange";
+        final String paymentChannel = null;
+        final BigDecimal amount = new BigDecimal("-2000.00");
 
         // When
-        PlaidCategoryMapper.CategoryMapping mapping = categoryMapper.mapPlaidCategory(
-            null, null, merchantName, description, paymentChannel, amount
-        );
+        final PlaidCategoryMapper.CategoryMapping mapping =
+                categoryMapper.mapPlaidCategory(
+                        null, null, merchantName, description, paymentChannel, amount);
 
         // Then
         assertNotNull(mapping);
         assertEquals("investment", mapping.getPrimary());
         assertEquals("crypto", mapping.getDetailed(), "Bitcoin should be categorized as 'crypto'");
     }
-    
+
     @Test
-    void testEthereumInvestment_CategorizedAsCrypto() {
+    void testEthereumInvestmentCategorizedAsCrypto() {
         // Given
-        String description = "Ethereum Investment";
-        String merchantName = "Crypto Exchange";
-        String paymentChannel = null;
-        BigDecimal amount = new BigDecimal("-1500.00");
+        final String description = "Ethereum Investment";
+        final String merchantName = "Crypto Exchange";
+        final String paymentChannel = null;
+        final BigDecimal amount = new BigDecimal("-1500.00");
 
         // When
-        PlaidCategoryMapper.CategoryMapping mapping = categoryMapper.mapPlaidCategory(
-            null, null, merchantName, description, paymentChannel, amount
-        );
+        final PlaidCategoryMapper.CategoryMapping mapping =
+                categoryMapper.mapPlaidCategory(
+                        null, null, merchantName, description, paymentChannel, amount);
 
         // Then
         assertNotNull(mapping);
         assertEquals("investment", mapping.getPrimary());
         assertEquals("crypto", mapping.getDetailed(), "Ethereum should be categorized as 'crypto'");
     }
-    
+
     @Test
-    void testCryptocurrency_CategorizedAsCrypto() {
+    void testCryptocurrencyCategorizedAsCrypto() {
         // Given
-        String description = "Cryptocurrency Investment";
-        String merchantName = "Crypto Exchange";
-        String paymentChannel = null;
-        BigDecimal amount = new BigDecimal("-3000.00");
+        final String description = "Cryptocurrency Investment";
+        final String merchantName = "Crypto Exchange";
+        final String paymentChannel = null;
+        final BigDecimal amount = new BigDecimal("-3000.00");
 
         // When
-        PlaidCategoryMapper.CategoryMapping mapping = categoryMapper.mapPlaidCategory(
-            null, null, merchantName, description, paymentChannel, amount
-        );
+        final PlaidCategoryMapper.CategoryMapping mapping =
+                categoryMapper.mapPlaidCategory(
+                        null, null, merchantName, description, paymentChannel, amount);
 
         // Then
         assertNotNull(mapping);
         assertEquals("investment", mapping.getPrimary());
-        assertEquals("crypto", mapping.getDetailed(), "Cryptocurrency should be categorized as 'crypto'");
+        assertEquals(
+                "crypto",
+                mapping.getDetailed(),
+                "Cryptocurrency should be categorized as 'crypto'");
     }
-    
+
     @Test
-    void testBTC_CategorizedAsCrypto() {
+    void testBTCCategorizedAsCrypto() {
         // Given
-        String description = "BTC Purchase";
-        String merchantName = "Crypto Exchange";
-        String paymentChannel = null;
-        BigDecimal amount = new BigDecimal("-1000.00");
+        final String description = "BTC Purchase";
+        final String merchantName = "Crypto Exchange";
+        final String paymentChannel = null;
+        final BigDecimal amount = new BigDecimal("-1000.00");
 
         // When
-        PlaidCategoryMapper.CategoryMapping mapping = categoryMapper.mapPlaidCategory(
-            null, null, merchantName, description, paymentChannel, amount
-        );
+        final PlaidCategoryMapper.CategoryMapping mapping =
+                categoryMapper.mapPlaidCategory(
+                        null, null, merchantName, description, paymentChannel, amount);
 
         // Then
         assertNotNull(mapping);
@@ -682,62 +750,70 @@ class InvestmentCategorizationTest {
     }
 
     // MARK: - Other Investment Tests
-    
+
     @Test
-    void testBrokerageAccount_CategorizedAsOtherInvestment() {
+    void testBrokerageAccountCategorizedAsOtherInvestment() {
         // Given
-        String description = "Brokerage Account Investment";
-        String merchantName = "Brokerage";
-        String paymentChannel = null;
-        BigDecimal amount = new BigDecimal("-5000.00");
+        final String description = "Brokerage Account Investment";
+        final String merchantName = "Brokerage";
+        final String paymentChannel = null;
+        final BigDecimal amount = new BigDecimal("-5000.00");
 
         // When
-        PlaidCategoryMapper.CategoryMapping mapping = categoryMapper.mapPlaidCategory(
-            null, null, merchantName, description, paymentChannel, amount
-        );
+        final PlaidCategoryMapper.CategoryMapping mapping =
+                categoryMapper.mapPlaidCategory(
+                        null, null, merchantName, description, paymentChannel, amount);
 
         // Then
         assertNotNull(mapping);
         assertEquals("investment", mapping.getPrimary());
-        assertEquals("otherInvestment", mapping.getDetailed(), "Brokerage should be categorized as 'otherInvestment'");
+        assertEquals(
+                "otherInvestment",
+                mapping.getDetailed(),
+                "Brokerage should be categorized as 'otherInvestment'");
     }
-    
+
     @Test
-    void testRetirementAccount_CategorizedAsOtherInvestment() {
+    void testRetirementAccountCategorizedAsOtherInvestment() {
         // Given
-        String description = "Retirement Account Investment";
-        String merchantName = "Retirement Plan";
-        String paymentChannel = null;
-        BigDecimal amount = new BigDecimal("-2000.00");
+        final String description = "Retirement Account Investment";
+        final String merchantName = "Retirement Plan";
+        final String paymentChannel = null;
+        final BigDecimal amount = new BigDecimal("-2000.00");
 
         // When
-        PlaidCategoryMapper.CategoryMapping mapping = categoryMapper.mapPlaidCategory(
-            null, null, merchantName, description, paymentChannel, amount
-        );
+        final PlaidCategoryMapper.CategoryMapping mapping =
+                categoryMapper.mapPlaidCategory(
+                        null, null, merchantName, description, paymentChannel, amount);
 
         // Then
         assertNotNull(mapping);
         assertEquals("investment", mapping.getPrimary());
-        assertEquals("otherInvestment", mapping.getDetailed(), "Generic retirement should be categorized as 'otherInvestment'");
+        assertEquals(
+                "otherInvestment",
+                mapping.getDetailed(),
+                "Generic retirement should be categorized as 'otherInvestment'");
     }
-    
+
     @Test
-    void testSecuritiesTrading_CategorizedAsOtherInvestment() {
+    void testSecuritiesTradingCategorizedAsOtherInvestment() {
         // Given
-        String description = "Securities Trading";
-        String merchantName = "Brokerage";
-        String paymentChannel = null;
-        BigDecimal amount = new BigDecimal("-3000.00");
+        final String description = "Securities Trading";
+        final String merchantName = "Brokerage";
+        final String paymentChannel = null;
+        final BigDecimal amount = new BigDecimal("-3000.00");
 
         // When
-        PlaidCategoryMapper.CategoryMapping mapping = categoryMapper.mapPlaidCategory(
-            null, null, merchantName, description, paymentChannel, amount
-        );
+        final PlaidCategoryMapper.CategoryMapping mapping =
+                categoryMapper.mapPlaidCategory(
+                        null, null, merchantName, description, paymentChannel, amount);
 
         // Then
         assertNotNull(mapping);
         assertEquals("investment", mapping.getPrimary());
-        assertEquals("otherInvestment", mapping.getDetailed(), "Securities trading should be categorized as 'otherInvestment'");
+        assertEquals(
+                "otherInvestment",
+                mapping.getDetailed(),
+                "Securities trading should be categorized as 'otherInvestment'");
     }
 }
-

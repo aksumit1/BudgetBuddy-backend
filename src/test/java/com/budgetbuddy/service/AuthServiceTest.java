@@ -1,5 +1,17 @@
 package com.budgetbuddy.service;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.anyString;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import com.budgetbuddy.dto.AuthRequest;
 import com.budgetbuddy.dto.AuthResponse;
 import com.budgetbuddy.exception.AppException;
@@ -8,6 +20,8 @@ import com.budgetbuddy.model.dynamodb.UserTable;
 import com.budgetbuddy.repository.dynamodb.UserRepository;
 import com.budgetbuddy.security.JwtTokenProvider;
 import com.budgetbuddy.security.PasswordHashingService;
+import java.util.Optional;
+import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -15,31 +29,28 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.Optional;
-import java.util.Set;
+// PMD's LawOfDemeter is documented as imprecise on chains involving
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.*;
+// standard library types (BigDecimal, String, Optional) and DTO
+
+// getters; this class has many such idiomatic uses. Suppress at
+
+// class level rather than littering every method.
+
+@SuppressWarnings("PMD.LawOfDemeter")
 
 @ExtendWith(MockitoExtension.class)
 class AuthServiceTest {
 
-    @Mock
-    private UserRepository userRepository;
+    @Mock private UserRepository userRepository;
 
-    @Mock
-    private JwtTokenProvider tokenProvider;
+    @Mock private JwtTokenProvider tokenProvider;
 
-    @Mock
-    private UserService userService;
+    @Mock private UserService userService;
 
-    @Mock
-    private PasswordHashingService passwordHashingService;
+    @Mock private PasswordHashingService passwordHashingService;
 
-    @InjectMocks
-    private AuthService authService;
+    @InjectMocks private AuthService authService;
 
     private UserTable testUser;
 
@@ -57,9 +68,9 @@ class AuthServiceTest {
     }
 
     @Test
-    void testAuthenticate_Success() {
+    void testAuthenticateSuccess() {
         // Arrange - BREAKING CHANGE: Client salt removed
-        AuthRequest request = new AuthRequest();
+        final AuthRequest request = new AuthRequest();
         request.setEmail("test@example.com");
         request.setPasswordHash("client-hash");
         // BREAKING CHANGE: Client salt removed - backend handles salt management
@@ -69,11 +80,12 @@ class AuthServiceTest {
                 .thenReturn(true);
         when(tokenProvider.generateToken(any())).thenReturn("access-token");
         when(tokenProvider.generateRefreshToken(anyString())).thenReturn("refresh-token");
-        when(tokenProvider.getExpirationDateFromToken(anyString())).thenReturn(new java.util.Date());
+        when(tokenProvider.getExpirationDateFromToken(anyString()))
+                .thenReturn(new java.util.Date());
         doNothing().when(userRepository).save(any(UserTable.class));
 
         // Act
-        AuthResponse result = authService.authenticate(request);
+        final AuthResponse result = authService.authenticate(request);
 
         // Assert
         assertNotNull(result);
@@ -83,9 +95,9 @@ class AuthServiceTest {
     }
 
     @Test
-    void testAuthenticate_InvalidCredentials() {
+    void testAuthenticateInvalidCredentials() {
         // Arrange - BREAKING CHANGE: Client salt removed
-        AuthRequest request = new AuthRequest();
+        final AuthRequest request = new AuthRequest();
         request.setEmail("test@example.com");
         request.setPasswordHash("client-hash");
         // BREAKING CHANGE: Client salt removed - backend handles salt management
@@ -95,17 +107,20 @@ class AuthServiceTest {
                 .thenReturn(false);
 
         // Act & Assert
-        AppException exception = assertThrows(AppException.class, () -> {
-            authService.authenticate(request);
-        });
+        final AppException exception =
+                assertThrows(
+                        AppException.class,
+                        () -> {
+                            authService.authenticate(request);
+                        });
 
         assertEquals(ErrorCode.INVALID_CREDENTIALS, exception.getErrorCode());
     }
 
     @Test
-    void testAuthenticate_UserNotFound() {
+    void testAuthenticateUserNotFound() {
         // Arrange - BREAKING CHANGE: Client salt removed
-        AuthRequest request = new AuthRequest();
+        final AuthRequest request = new AuthRequest();
         request.setEmail("nonexistent@example.com");
         request.setPasswordHash("client-hash");
         // BREAKING CHANGE: Client salt removed - backend handles salt management
@@ -113,11 +128,13 @@ class AuthServiceTest {
         when(userRepository.findByEmail(anyString())).thenReturn(Optional.empty());
 
         // Act & Assert
-        AppException exception = assertThrows(AppException.class, () -> {
-            authService.authenticate(request);
-        });
+        final AppException exception =
+                assertThrows(
+                        AppException.class,
+                        () -> {
+                            authService.authenticate(request);
+                        });
 
         assertEquals(ErrorCode.INVALID_CREDENTIALS, exception.getErrorCode());
     }
 }
-

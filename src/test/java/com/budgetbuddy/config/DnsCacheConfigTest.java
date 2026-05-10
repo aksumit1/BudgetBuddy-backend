@@ -1,16 +1,15 @@
 package com.budgetbuddy.config;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+
+import java.security.Security;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import java.security.Security;
-
-import static org.junit.jupiter.api.Assertions.*;
-
-/**
- * Unit Tests for DnsCacheConfig
- */
+/** Unit Tests for DnsCacheConfig */
 class DnsCacheConfigTest {
 
     private DnsCacheConfig config;
@@ -26,7 +25,7 @@ class DnsCacheConfigTest {
     }
 
     @Test
-    void testConfigureDnsCache_WithDefaultValues() {
+    void testConfigureDnsCacheWithDefaultValues() {
         // Given
         ReflectionTestUtils.setField(config, "dnsCacheTtlSeconds", 3600);
         ReflectionTestUtils.setField(config, "dnsCacheNegativeTtlSeconds", 1);
@@ -35,14 +34,14 @@ class DnsCacheConfigTest {
         config.configureDnsCache();
 
         // Then - verify properties are set
-        String ttl = Security.getProperty("networkaddress.cache.ttl");
-        String negativeTtl = Security.getProperty("networkaddress.cache.negative.ttl");
+        final String ttl = Security.getProperty("networkaddress.cache.ttl");
+        final String negativeTtl = Security.getProperty("networkaddress.cache.negative.ttl");
         assertEquals("3600", ttl);
         assertEquals("1", negativeTtl);
     }
 
     @Test
-    void testConfigureDnsCache_WithCustomValues() {
+    void testConfigureDnsCacheWithCustomValues() {
         // Given
         ReflectionTestUtils.setField(config, "dnsCacheTtlSeconds", 7200);
         ReflectionTestUtils.setField(config, "dnsCacheNegativeTtlSeconds", 5);
@@ -51,19 +50,19 @@ class DnsCacheConfigTest {
         config.configureDnsCache();
 
         // Then
-        String ttl = Security.getProperty("networkaddress.cache.ttl");
-        String negativeTtl = Security.getProperty("networkaddress.cache.negative.ttl");
+        final String ttl = Security.getProperty("networkaddress.cache.ttl");
+        final String negativeTtl = Security.getProperty("networkaddress.cache.negative.ttl");
         assertEquals("7200", ttl);
         assertEquals("5", negativeTtl);
     }
 
     @Test
-    void testClearDnsCache_Success() {
+    void testClearDnsCacheSuccess() {
         // Given
         ReflectionTestUtils.setField(config, "dnsCacheTtlSeconds", 3600);
         ReflectionTestUtils.setField(config, "dnsCacheNegativeTtlSeconds", 1);
         config.configureDnsCache();
-        
+
         // Set some values
         Security.setProperty("networkaddress.cache.ttl", "3600");
         Security.setProperty("networkaddress.cache.negative.ttl", "1");
@@ -72,14 +71,14 @@ class DnsCacheConfigTest {
         assertDoesNotThrow(() -> config.clearDnsCache());
 
         // Then - values should still be set (cleared and restored)
-        String ttl = Security.getProperty("networkaddress.cache.ttl");
-        String negativeTtl = Security.getProperty("networkaddress.cache.negative.ttl");
+        final String ttl = Security.getProperty("networkaddress.cache.ttl");
+        final String negativeTtl = Security.getProperty("networkaddress.cache.negative.ttl");
         assertNotNull(ttl);
         assertNotNull(negativeTtl);
     }
 
     @Test
-    void testClearDnsCache_PreservesConfiguration() {
+    void testClearDnsCachePreservesConfiguration() {
         // Given
         ReflectionTestUtils.setField(config, "dnsCacheTtlSeconds", 3600);
         ReflectionTestUtils.setField(config, "dnsCacheNegativeTtlSeconds", 1);
@@ -89,8 +88,8 @@ class DnsCacheConfigTest {
         assertDoesNotThrow(() -> config.clearDnsCache());
 
         // Then - values should be preserved after clearing
-        String ttl = Security.getProperty("networkaddress.cache.ttl");
-        String negativeTtl = Security.getProperty("networkaddress.cache.negative.ttl");
+        final String ttl = Security.getProperty("networkaddress.cache.ttl");
+        final String negativeTtl = Security.getProperty("networkaddress.cache.negative.ttl");
         assertNotNull(ttl);
         assertNotNull(negativeTtl);
         // Values should match configured defaults

@@ -1,11 +1,24 @@
 package com.budgetbuddy.service;
 
-import com.budgetbuddy.exception.AppException;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.when;
+
 import com.budgetbuddy.model.dynamodb.AccountTable;
 import com.budgetbuddy.model.dynamodb.TransactionTable;
 import com.budgetbuddy.repository.dynamodb.AccountRepository;
 import com.budgetbuddy.repository.dynamodb.TransactionRepository;
-import org.junit.jupiter.api.BeforeEach;
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -13,86 +26,89 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
-
-/**
- * Edge case and boundary condition tests for TaxExportService
- */
+/** Edge case and boundary condition tests for TaxExportService */
+// PMD's LawOfDemeter is documented as imprecise on chains involving
+// standard library types (BigDecimal, String, Optional) and DTO
+// getters; this class has many such idiomatic uses. Suppress at
+// class level rather than littering every method.
+@SuppressWarnings("PMD.LawOfDemeter")
 @ExtendWith(MockitoExtension.class)
 @DisplayName("Tax Export Service Edge Cases Tests")
 class TaxExportEdgeCasesTest {
 
-    @Mock
-    private TransactionRepository transactionRepository;
+    @Mock private TransactionRepository transactionRepository;
 
-    @Mock
-    private AccountRepository accountRepository;
+    @Mock private AccountRepository accountRepository;
 
-    @InjectMocks
-    private TaxExportService taxExportService;
+    @InjectMocks private TaxExportService taxExportService;
 
     @Test
     @DisplayName("Should handle null userId")
-    void testGenerateTaxExport_NullUserId() {
+    void testGenerateTaxExportNullUserId() {
         // When/Then
-        assertThrows(IllegalArgumentException.class, () -> {
-            taxExportService.generateTaxExport(null, 2024, null, null, null, null);
-        });
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> {
+                    taxExportService.generateTaxExport(null, 2024, null, null, null, null);
+                });
     }
 
     @Test
     @DisplayName("Should handle empty userId")
-    void testGenerateTaxExport_EmptyUserId() {
+    void testGenerateTaxExportEmptyUserId() {
         // When/Then
-        assertThrows(IllegalArgumentException.class, () -> {
-            taxExportService.generateTaxExport("", 2024, null, null, null, null);
-        });
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> {
+                    taxExportService.generateTaxExport("", 2024, null, null, null, null);
+                });
     }
 
     @Test
     @DisplayName("Should handle invalid year (too low)")
-    void testGenerateTaxExport_InvalidYearTooLow() {
+    void testGenerateTaxExportInvalidYearTooLow() {
         // When/Then
-        assertThrows(IllegalArgumentException.class, () -> {
-            taxExportService.generateTaxExport("user123", 1800, null, null, null, null);
-        });
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> {
+                    taxExportService.generateTaxExport("user123", 1800, null, null, null, null);
+                });
     }
 
     @Test
     @DisplayName("Should handle invalid year (too high)")
-    void testGenerateTaxExport_InvalidYearTooHigh() {
+    void testGenerateTaxExportInvalidYearTooHigh() {
         // When/Then
-        assertThrows(IllegalArgumentException.class, () -> {
-            taxExportService.generateTaxExport("user123", 2200, null, null, null, null);
-        });
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> {
+                    taxExportService.generateTaxExport("user123", 2200, null, null, null, null);
+                });
     }
 
     @Test
     @DisplayName("Should handle transaction with null date")
-    void testGenerateTaxExport_TransactionWithNullDate() {
+    void testGenerateTaxExportTransactionWithNullDate() {
         // Given
-        String userId = "user123";
-        int year = 2024;
-        TransactionTable transaction = createTransaction(
-            "tx1", null, "Description", "Merchant",
-            new BigDecimal("100.00"), "other", null
-        );
+        final String userId = "user123";
+        final int year = 2024;
+        final TransactionTable transaction =
+                createTransaction(
+                        "tx1",
+                        null,
+                        "Description",
+                        "Merchant",
+                        new BigDecimal("100.00"),
+                        "other",
+                        null);
 
         when(transactionRepository.findByUserIdAndDateRange(
-            eq(userId), eq("2024-01-01"), eq("2024-12-31")
-        )).thenReturn(Arrays.asList(transaction));
+                        eq(userId), eq("2024-01-01"), eq("2024-12-31")))
+                .thenReturn(Arrays.asList(transaction));
 
         // When
-        TaxExportService.TaxExportResult result = taxExportService.generateTaxExport(userId, year, null, null, null, null);
+        final TaxExportService.TaxExportResult result =
+                taxExportService.generateTaxExport(userId, year, null, null, null, null);
 
         // Then - Should skip transaction with null date
         assertNotNull(result);
@@ -101,11 +117,11 @@ class TaxExportEdgeCasesTest {
 
     @Test
     @DisplayName("Should handle transaction with invalid date format")
-    void testGenerateTaxExport_TransactionWithInvalidDate() {
+    void testGenerateTaxExportTransactionWithInvalidDate() {
         // Given
-        String userId = "user123";
-        int year = 2024;
-        TransactionTable transaction = new TransactionTable();
+        final String userId = "user123";
+        final int year = 2024;
+        final TransactionTable transaction = new TransactionTable();
         transaction.setTransactionId("tx1");
         transaction.setUserId(userId);
         transaction.setTransactionDate("invalid-date-format");
@@ -113,11 +129,12 @@ class TaxExportEdgeCasesTest {
         transaction.setAmount(new BigDecimal("100.00"));
 
         when(transactionRepository.findByUserIdAndDateRange(
-            eq(userId), eq("2024-01-01"), eq("2024-12-31")
-        )).thenReturn(Arrays.asList(transaction));
+                        eq(userId), eq("2024-01-01"), eq("2024-12-31")))
+                .thenReturn(Arrays.asList(transaction));
 
         // When
-        TaxExportService.TaxExportResult result = taxExportService.generateTaxExport(userId, year, null, null, null, null);
+        final TaxExportService.TaxExportResult result =
+                taxExportService.generateTaxExport(userId, year, null, null, null, null);
 
         // Then - Should skip transaction with invalid date
         assertNotNull(result);
@@ -125,21 +142,21 @@ class TaxExportEdgeCasesTest {
 
     @Test
     @DisplayName("Should handle transaction with null amount")
-    void testGenerateTaxExport_TransactionWithNullAmount() {
+    void testGenerateTaxExportTransactionWithNullAmount() {
         // Given
-        String userId = "user123";
-        int year = 2024;
-        TransactionTable transaction = createTransaction(
-            "tx1", "2024-01-15", "Description", "Merchant",
-            null, "other", null
-        );
+        final String userId = "user123";
+        final int year = 2024;
+        final TransactionTable transaction =
+                createTransaction(
+                        "tx1", "2024-01-15", "Description", "Merchant", null, "other", null);
 
         when(transactionRepository.findByUserIdAndDateRange(
-            eq(userId), eq("2024-01-01"), eq("2024-12-31")
-        )).thenReturn(Arrays.asList(transaction));
+                        eq(userId), eq("2024-01-01"), eq("2024-12-31")))
+                .thenReturn(Arrays.asList(transaction));
 
         // When
-        TaxExportService.TaxExportResult result = taxExportService.generateTaxExport(userId, year, null, null, null, null);
+        final TaxExportService.TaxExportResult result =
+                taxExportService.generateTaxExport(userId, year, null, null, null, null);
 
         // Then - Should handle gracefully
         assertNotNull(result);
@@ -148,50 +165,62 @@ class TaxExportEdgeCasesTest {
 
     @Test
     @DisplayName("Should handle transaction with null description")
-    void testGenerateTaxExport_TransactionWithNullDescription() {
+    void testGenerateTaxExportTransactionWithNullDescription() {
         // Given
-        String userId = "user123";
-        int year = 2024;
-        TransactionTable transaction = createTransaction(
-            "tx1", "2024-01-15", null, "Merchant",
-            new BigDecimal("100.00"), "other", null
-        );
+        final String userId = "user123";
+        final int year = 2024;
+        final TransactionTable transaction =
+                createTransaction(
+                        "tx1",
+                        "2024-01-15",
+                        null,
+                        "Merchant",
+                        new BigDecimal("100.00"),
+                        "other",
+                        null);
 
         when(transactionRepository.findByUserIdAndDateRange(
-            eq(userId), eq("2024-01-01"), eq("2024-12-31")
-        )).thenReturn(Arrays.asList(transaction));
+                        eq(userId), eq("2024-01-01"), eq("2024-12-31")))
+                .thenReturn(Arrays.asList(transaction));
 
         // When
-        TaxExportService.TaxExportResult result = taxExportService.generateTaxExport(userId, year, null, null, null, null);
+        final TaxExportService.TaxExportResult result =
+                taxExportService.generateTaxExport(userId, year, null, null, null, null);
 
         // Then
         assertNotNull(result);
-        String csv = taxExportService.exportToCSV(result, year);
+        final String csv = taxExportService.exportToCSV(result, year);
         assertNotNull(csv);
         // Description should be empty string in export
     }
 
     @Test
     @DisplayName("Should handle transaction with newlines in description")
-    void testGenerateTaxExport_TransactionWithNewlines() {
+    void testGenerateTaxExportTransactionWithNewlines() {
         // Given
-        String userId = "user123";
-        int year = 2024;
-        TransactionTable transaction = createTransaction(
-            "tx1", "2024-01-15", "Line 1\nLine 2\rLine 3", "Merchant",
-            new BigDecimal("100.00"), "other", null
-        );
+        final String userId = "user123";
+        final int year = 2024;
+        final TransactionTable transaction =
+                createTransaction(
+                        "tx1",
+                        "2024-01-15",
+                        "Line 1\nLine 2\rLine 3",
+                        "Merchant",
+                        new BigDecimal("100.00"),
+                        "other",
+                        null);
 
         when(transactionRepository.findByUserIdAndDateRange(
-            eq(userId), eq("2024-01-01"), eq("2024-12-31")
-        )).thenReturn(Arrays.asList(transaction));
+                        eq(userId), eq("2024-01-01"), eq("2024-12-31")))
+                .thenReturn(Arrays.asList(transaction));
 
         // When
-        TaxExportService.TaxExportResult result = taxExportService.generateTaxExport(userId, year, null, null, null, null);
+        final TaxExportService.TaxExportResult result =
+                taxExportService.generateTaxExport(userId, year, null, null, null, null);
 
         // Then
         assertNotNull(result);
-        String csv = taxExportService.exportToCSV(result, year);
+        final String csv = taxExportService.exportToCSV(result, year);
         assertNotNull(csv);
         // CSV should not contain unescaped newlines
         assertFalse(csv.contains("\nLine 2"), "CSV should escape newlines");
@@ -199,50 +228,62 @@ class TaxExportEdgeCasesTest {
 
     @Test
     @DisplayName("Should handle transaction with commas in description")
-    void testGenerateTaxExport_TransactionWithCommas() {
+    void testGenerateTaxExportTransactionWithCommas() {
         // Given
-        String userId = "user123";
-        int year = 2024;
-        TransactionTable transaction = createTransaction(
-            "tx1", "2024-01-15", "Description, with, commas", "Merchant",
-            new BigDecimal("100.00"), "other", null
-        );
+        final String userId = "user123";
+        final int year = 2024;
+        final TransactionTable transaction =
+                createTransaction(
+                        "tx1",
+                        "2024-01-15",
+                        "Description, with, commas",
+                        "Merchant",
+                        new BigDecimal("100.00"),
+                        "other",
+                        null);
 
         when(transactionRepository.findByUserIdAndDateRange(
-            eq(userId), eq("2024-01-01"), eq("2024-12-31")
-        )).thenReturn(Arrays.asList(transaction));
+                        eq(userId), eq("2024-01-01"), eq("2024-12-31")))
+                .thenReturn(Arrays.asList(transaction));
 
         // When
-        TaxExportService.TaxExportResult result = taxExportService.generateTaxExport(userId, year, null, null, null, null);
+        final TaxExportService.TaxExportResult result =
+                taxExportService.generateTaxExport(userId, year, null, null, null, null);
 
         // Then
         assertNotNull(result);
-        String csv = taxExportService.exportToCSV(result, year);
+        final String csv = taxExportService.exportToCSV(result, year);
         assertNotNull(csv);
         // CSV should handle commas properly (either escaped or quoted)
     }
 
     @Test
     @DisplayName("Should handle transaction with quotes in description")
-    void testGenerateTaxExport_TransactionWithQuotes() {
+    void testGenerateTaxExportTransactionWithQuotes() {
         // Given
-        String userId = "user123";
-        int year = 2024;
-        TransactionTable transaction = createTransaction(
-            "tx1", "2024-01-15", "Description with \"quotes\"", "Merchant",
-            new BigDecimal("100.00"), "other", null
-        );
+        final String userId = "user123";
+        final int year = 2024;
+        final TransactionTable transaction =
+                createTransaction(
+                        "tx1",
+                        "2024-01-15",
+                        "Description with \"quotes\"",
+                        "Merchant",
+                        new BigDecimal("100.00"),
+                        "other",
+                        null);
 
         when(transactionRepository.findByUserIdAndDateRange(
-            eq(userId), eq("2024-01-01"), eq("2024-12-31")
-        )).thenReturn(Arrays.asList(transaction));
+                        eq(userId), eq("2024-01-01"), eq("2024-12-31")))
+                .thenReturn(Arrays.asList(transaction));
 
         // When
-        TaxExportService.TaxExportResult result = taxExportService.generateTaxExport(userId, year, null, null, null, null);
+        final TaxExportService.TaxExportResult result =
+                taxExportService.generateTaxExport(userId, year, null, null, null, null);
 
         // Then
         assertNotNull(result);
-        String csv = taxExportService.exportToCSV(result, year);
+        final String csv = taxExportService.exportToCSV(result, year);
         assertNotNull(csv);
         // CSV should escape quotes as double quotes
         assertTrue(csv.contains("\"\""), "CSV should escape quotes");
@@ -250,21 +291,27 @@ class TaxExportEdgeCasesTest {
 
     @Test
     @DisplayName("Should handle transaction date outside year range")
-    void testGenerateTaxExport_TransactionOutsideYearRange() {
+    void testGenerateTaxExportTransactionOutsideYearRange() {
         // Given
-        String userId = "user123";
-        int year = 2024;
-        TransactionTable transaction = createTransaction(
-            "tx1", "2023-12-31", "Old Transaction", "Merchant",
-            new BigDecimal("100.00"), "other", null
-        );
+        final String userId = "user123";
+        final int year = 2024;
+        final TransactionTable transaction =
+                createTransaction(
+                        "tx1",
+                        "2023-12-31",
+                        "Old Transaction",
+                        "Merchant",
+                        new BigDecimal("100.00"),
+                        "other",
+                        null);
 
         when(transactionRepository.findByUserIdAndDateRange(
-            eq(userId), eq("2024-01-01"), eq("2024-12-31")
-        )).thenReturn(Arrays.asList(transaction));
+                        eq(userId), eq("2024-01-01"), eq("2024-12-31")))
+                .thenReturn(Arrays.asList(transaction));
 
         // When
-        TaxExportService.TaxExportResult result = taxExportService.generateTaxExport(userId, year, null, null, null, null);
+        final TaxExportService.TaxExportResult result =
+                taxExportService.generateTaxExport(userId, year, null, null, null, null);
 
         // Then - Should skip transaction outside year range
         assertNotNull(result);
@@ -273,56 +320,69 @@ class TaxExportEdgeCasesTest {
 
     @Test
     @DisplayName("Should handle very large dataset")
-    void testGenerateTaxExport_VeryLargeDataset() {
+    void testGenerateTaxExportVeryLargeDataset() {
         // Given
-        String userId = "user123";
-        int year = 2024;
-        List<TransactionTable> transactions = new ArrayList<>();
-        for (int i = 0; i < 10000; i++) {
-            transactions.add(createTransaction(
-                "tx" + i, "2024-06-15", "Transaction " + i, "Merchant",
-                new BigDecimal("10.00"), "other", null
-            ));
+        final String userId = "user123";
+        final int year = 2024;
+        final List<TransactionTable> transactions = new ArrayList<>();
+        for (int i = 0; i < 10_000; i++) {
+            transactions.add(
+                    createTransaction(
+                            "tx" + i,
+                            "2024-06-15",
+                            "Transaction " + i,
+                            "Merchant",
+                            new BigDecimal("10.00"),
+                            "other",
+                            null));
         }
 
         when(transactionRepository.findByUserIdAndDateRange(
-            eq(userId), eq("2024-01-01"), eq("2024-12-31")
-        )).thenReturn(transactions);
+                        eq(userId), eq("2024-01-01"), eq("2024-12-31")))
+                .thenReturn(transactions);
 
         // When
-        TaxExportService.TaxExportResult result = taxExportService.generateTaxExport(userId, year, null, null, null, null);
+        final TaxExportService.TaxExportResult result =
+                taxExportService.generateTaxExport(userId, year, null, null, null, null);
 
         // Then
         assertNotNull(result);
-        assertEquals(10000, transactions.size());
+        assertEquals(10_000, transactions.size());
         // Export should complete without errors
         assertDoesNotThrow(() -> taxExportService.exportToCSV(result, year));
     }
 
     @Test
     @DisplayName("Should calculate year-end balance from accounts")
-    void testGenerateTaxExport_CalculatesYearEndBalance() {
+    void testGenerateTaxExportCalculatesYearEndBalance() {
         // Given
-        String userId = "user123";
-        int year = 2024;
-        List<TransactionTable> transactions = Arrays.asList(
-            createTransaction("tx1", "2024-01-15", "Transaction", "Merchant",
-                new BigDecimal("100.00"), "other", null)
-        );
+        final String userId = "user123";
+        final int year = 2024;
+        final List<TransactionTable> transactions =
+                Arrays.asList(
+                        createTransaction(
+                                "tx1",
+                                "2024-01-15",
+                                "Transaction",
+                                "Merchant",
+                                new BigDecimal("100.00"),
+                                "other",
+                                null));
 
-        List<AccountTable> accounts = Arrays.asList(
-            createAccount("acc1", userId, new BigDecimal("1000.00")),
-            createAccount("acc2", userId, new BigDecimal("2000.00"))
-        );
+        final List<AccountTable> accounts =
+                Arrays.asList(
+                        createAccount("acc1", userId, new BigDecimal("1000.00")),
+                        createAccount("acc2", userId, new BigDecimal("2000.00")));
 
         when(transactionRepository.findByUserIdAndDateRange(
-            eq(userId), eq("2024-01-01"), eq("2024-12-31")
-        )).thenReturn(transactions);
-        
+                        eq(userId), eq("2024-01-01"), eq("2024-12-31")))
+                .thenReturn(transactions);
+
         when(accountRepository.findByUserId(userId)).thenReturn(accounts);
 
         // When
-        TaxExportService.TaxExportResult result = taxExportService.generateTaxExport(userId, year, null, null, null, null);
+        final TaxExportService.TaxExportResult result =
+                taxExportService.generateTaxExport(userId, year, null, null, null, null);
 
         // Then
         assertNotNull(result);
@@ -331,26 +391,37 @@ class TaxExportEdgeCasesTest {
 
     @Test
     @DisplayName("Should filter by category")
-    void testGenerateTaxExport_FilterByCategory() {
+    void testGenerateTaxExportFilterByCategory() {
         // Given
-        String userId = "user123";
-        int year = 2024;
-        TransactionTable salaryTx = createTransaction(
-            "tx1", "2024-01-15", "Payroll Deposit", "ADP",
-            new BigDecimal("5000.00"), "salary", "ach"
-        );
-        TransactionTable interestTx = createTransaction(
-            "tx2", "2024-02-01", "Interest Payment", "Bank",
-            new BigDecimal("250.00"), "interest", null
-        );
+        final String userId = "user123";
+        final int year = 2024;
+        final TransactionTable salaryTx =
+                createTransaction(
+                        "tx1",
+                        "2024-01-15",
+                        "Payroll Deposit",
+                        "ADP",
+                        new BigDecimal("5000.00"),
+                        "salary",
+                        "ach");
+        final TransactionTable interestTx =
+                createTransaction(
+                        "tx2",
+                        "2024-02-01",
+                        "Interest Payment",
+                        "Bank",
+                        new BigDecimal("250.00"),
+                        "interest",
+                        null);
 
         when(transactionRepository.findByUserIdAndDateRange(
-            eq(userId), eq("2024-01-01"), eq("2024-12-31")
-        )).thenReturn(Arrays.asList(salaryTx, interestTx));
+                        eq(userId), eq("2024-01-01"), eq("2024-12-31")))
+                .thenReturn(Arrays.asList(salaryTx, interestTx));
 
         // When - Filter for SALARY only
-        TaxExportService.TaxExportResult result = taxExportService.generateTaxExport(
-            userId, year, Arrays.asList("SALARY"), null, null, null);
+        final TaxExportService.TaxExportResult result =
+                taxExportService.generateTaxExport(
+                        userId, year, Arrays.asList("SALARY"), null, null, null);
 
         // Then
         assertNotNull(result);
@@ -360,85 +431,104 @@ class TaxExportEdgeCasesTest {
 
     @Test
     @DisplayName("Should filter by account ID")
-    void testGenerateTaxExport_FilterByAccountId() {
+    void testGenerateTaxExportFilterByAccountId() {
         // Given
-        String userId = "user123";
-        int year = 2024;
-        TransactionTable tx1 = createTransaction(
-            "tx1", "2024-01-15", "Transaction 1", "Merchant",
-            new BigDecimal("100.00"), "other", null
-        );
+        final String userId = "user123";
+        final int year = 2024;
+        final TransactionTable tx1 =
+                createTransaction(
+                        "tx1",
+                        "2024-01-15",
+                        "Transaction 1",
+                        "Merchant",
+                        new BigDecimal("100.00"),
+                        "other",
+                        null);
         tx1.setAccountId("acc1");
-        TransactionTable tx2 = createTransaction(
-            "tx2", "2024-01-16", "Transaction 2", "Merchant",
-            new BigDecimal("200.00"), "other", null
-        );
+        final TransactionTable tx2 =
+                createTransaction(
+                        "tx2",
+                        "2024-01-16",
+                        "Transaction 2",
+                        "Merchant",
+                        new BigDecimal("200.00"),
+                        "other",
+                        null);
         tx2.setAccountId("acc2");
 
         when(transactionRepository.findByUserIdAndDateRange(
-            eq(userId), eq("2024-01-01"), eq("2024-12-31")
-        )).thenReturn(Arrays.asList(tx1, tx2));
+                        eq(userId), eq("2024-01-01"), eq("2024-12-31")))
+                .thenReturn(Arrays.asList(tx1, tx2));
 
         // When - Filter for acc1 only
-        TaxExportService.TaxExportResult result = taxExportService.generateTaxExport(
-            userId, year, null, Arrays.asList("acc1"), null, null);
+        final TaxExportService.TaxExportResult result =
+                taxExportService.generateTaxExport(
+                        userId, year, null, Arrays.asList("acc1"), null, null);
 
         // Then
         assertNotNull(result);
         // Should only contain transactions from acc1
-        long acc1Count = result.getTransactionsByCategory().values().stream()
-            .flatMap(List::stream)
-            .filter(tx -> "acc1".equals(tx.getAccountId()))
-            .count();
+        final long acc1Count =
+                result.getTransactionsByCategory().values().stream()
+                        .flatMap(List::stream)
+                        .filter(tx -> "acc1".equals(tx.getAccountId()))
+                        .count();
         assertEquals(1, acc1Count);
     }
 
     @Test
     @DisplayName("Should handle empty transaction list")
-    void testGenerateTaxExport_EmptyTransactions() {
+    void testGenerateTaxExportEmptyTransactions() {
         // Given
-        String userId = "user123";
-        int year = 2024;
+        final String userId = "user123";
+        final int year = 2024;
 
         when(transactionRepository.findByUserIdAndDateRange(
-            eq(userId), eq("2024-01-01"), eq("2024-12-31")
-        )).thenReturn(Collections.emptyList());
-        
+                        eq(userId), eq("2024-01-01"), eq("2024-12-31")))
+                .thenReturn(Collections.emptyList());
+
         when(accountRepository.findByUserId(userId)).thenReturn(Collections.emptyList());
 
         // When
-        TaxExportService.TaxExportResult result = taxExportService.generateTaxExport(userId, year, null, null, null, null);
+        final TaxExportService.TaxExportResult result =
+                taxExportService.generateTaxExport(userId, year, null, null, null, null);
 
         // Then
         assertNotNull(result);
         assertTrue(result.getTransactionsByCategory().isEmpty());
         assertEquals(BigDecimal.ZERO, result.getSummary().getYearEndBalance());
-        
+
         // Export should still work
-        String csv = taxExportService.exportToCSV(result, year);
+        final String csv = taxExportService.exportToCSV(result, year);
         assertNotNull(csv);
         assertTrue(csv.contains("Tax Year: 2024"));
     }
 
     @Test
     @DisplayName("Should handle null transaction in list")
-    void testGenerateTaxExport_NullTransactionInList() {
+    void testGenerateTaxExportNullTransactionInList() {
         // Given
-        String userId = "user123";
-        int year = 2024;
-        List<TransactionTable> transactions = new ArrayList<>();
+        final String userId = "user123";
+        final int year = 2024;
+        final List<TransactionTable> transactions = new ArrayList<>();
         transactions.add(null);
-        transactions.add(createTransaction(
-            "tx1", "2024-01-15", "Valid Transaction", "Merchant",
-            new BigDecimal("100.00"), "other", null
-        ));
+        transactions.add(
+                createTransaction(
+                        "tx1",
+                        "2024-01-15",
+                        "Valid Transaction",
+                        "Merchant",
+                        new BigDecimal("100.00"),
+                        "other",
+                        null));
 
         when(transactionRepository.findByUserIdAndDateRange(
-            eq(userId), eq("2024-01-01"), eq("2024-12-31")
-        )).thenReturn(transactions);
+                        eq(userId), eq("2024-01-01"), eq("2024-12-31")))
+                .thenReturn(transactions);
 
         // When
-        TaxExportService.TaxExportResult result = taxExportService.generateTaxExport(userId, year, null, null, null, null);
+        final TaxExportService.TaxExportResult result =
+                taxExportService.generateTaxExport(userId, year, null, null, null, null);
 
         // Then - Should skip null transaction
         assertNotNull(result);
@@ -447,9 +537,14 @@ class TaxExportEdgeCasesTest {
 
     // Helper methods
     private TransactionTable createTransaction(
-            String transactionId, String date, String description, String merchantName,
-            BigDecimal amount, String category, String paymentChannel) {
-        TransactionTable transaction = new TransactionTable();
+            final String transactionId,
+            final String date,
+            final String description,
+            final String merchantName,
+            final BigDecimal amount,
+            final String category,
+            final String paymentChannel) {
+        final TransactionTable transaction = new TransactionTable();
         transaction.setTransactionId(transactionId);
         transaction.setUserId("user123");
         transaction.setTransactionDate(date);
@@ -460,12 +555,13 @@ class TaxExportEdgeCasesTest {
         transaction.setCategoryDetailed(category);
         transaction.setPaymentChannel(paymentChannel);
         transaction.setCurrencyCode("USD");
-        transaction.setTransactionType(amount != null && amount.compareTo(BigDecimal.ZERO) < 0 ? "EXPENSE" : "INCOME");
+        transaction.setTransactionType(
+                amount != null && amount.compareTo(BigDecimal.ZERO) < 0 ? "EXPENSE" : "INCOME");
         return transaction;
     }
 
-    private AccountTable createAccount(String accountId, String userId, BigDecimal balance) {
-        AccountTable account = new AccountTable();
+    private AccountTable createAccount(final String accountId, final String userId, final BigDecimal balance) {
+        final AccountTable account = new AccountTable();
         account.setAccountId(accountId);
         account.setUserId(userId);
         account.setAccountName("Test Account");
@@ -474,4 +570,3 @@ class TaxExportEdgeCasesTest {
         return account;
     }
 }
-

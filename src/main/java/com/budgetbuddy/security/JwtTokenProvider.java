@@ -1,8 +1,19 @@
 package com.budgetbuddy.security;
 
 import com.budgetbuddy.aws.secrets.SecretsManagerService;
-import io.jsonwebtoken.*;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.JwtException;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.MalformedJwtException;
+import io.jsonwebtoken.UnsupportedJwtException;
 import io.jsonwebtoken.security.Keys;
+import java.nio.charset.StandardCharsets;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.function.Function;
+import javax.crypto.SecretKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -10,21 +21,19 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
-import javax.crypto.SecretKey;
-import java.nio.charset.StandardCharsets;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.function.Function;
-
 /**
- * JWT Token Provider for generating and validating JWT tokens
- * Supports AWS Secrets Manager for secure secret storage
+ * JWT Token Provider for generating and validating JWT tokens Supports AWS Secrets Manager for
+ * secure secret storage
  */
+// PMD's LawOfDemeter is documented as imprecise on chains involving
+// standard library types (BigDecimal, String, Optional) and DTO
+// getters; this class has many such idiomatic uses. Suppress at
+// class level rather than littering every method.
+@SuppressWarnings("PMD.LawOfDemeter")
 @Component
 public class JwtTokenProvider {
 
-    private static final Logger logger = LoggerFactory.getLogger(JwtTokenProvider.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(JwtTokenProvider.class);
 
     private final SecretsManagerService secretsManagerService;
 
@@ -62,16 +71,17 @@ public class JwtTokenProvider {
                 return cachedSigningKey;
             }
 
-            String secret = getJwtSecret();
-            SecretKey signingKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
-            
+            final String secret = getJwtSecret();
+            final SecretKey signingKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
+
             // Cache both secret and signing key
             cachedJwtSecret = secret;
             cachedSigningKey = signingKey;
-            
-            logger.debug("JWT signing key initialized and cached | Secret source: {}", 
+
+            LOGGER.debug(
+                    "JWT signing key initialized and cached | Secret source: {}",
                     cachedJwtSecret.equals(jwtSecretFallback) ? "fallback" : "Secrets Manager");
-            
+
             return signingKey;
         }
     }
@@ -93,55 +103,56 @@ public class JwtTokenProvider {
                 // Try to get from Secrets Manager first
                 secret = secretsManagerService.getSecret(jwtSecretName, "JWT_SECRET");
                 if (secret != null && !secret.isEmpty()) {
-                    logger.info("JWT secret loaded from Secrets Manager: {}", jwtSecretName);
+                    LOGGER.info("JWT secret loaded from Secrets Manager: {}", jwtSecretName);
                     cachedJwtSecret = secret;
                     return secret;
                 }
             } catch (Exception e) {
-                logger.warn("Failed to fetch JWT secret from Secrets Manager, using fallback: {}", e.getMessage());
+                LOGGER.warn(
+                        "Failed to fetch JWT secret from Secrets Manager, using fallback: {}",
+                        e.getMessage());
             }
 
             // Fallback to environment variable or configuration
             if (jwtSecretFallback != null && !jwtSecretFallback.isEmpty()) {
                 // Validate that it's not a placeholder
                 if ("your-256-bit-secret-key-change-in-production".equals(jwtSecretFallback)) {
-                    logger.error("JWT secret is using placeholder value. Please set JWT_SECRET environment variable or app.jwt.secret property. " +
-                            "JWT tokens will not be secure with the default placeholder!");
-                    throw new IllegalStateException("JWT secret is not configured. Please set JWT_SECRET environment variable or app.jwt.secret property. " +
-                            "The default placeholder value is not secure and must be changed in production.");
+                    LOGGER.error(
+                            "JWT secret is using placeholder value. Please set JWT_SECRET environment variable or app.jwt.secret property. "
+                                    + "JWT tokens will not be secure with the default placeholder!");
+                    throw new IllegalStateException(
+                            "JWT secret is not configured. Please set JWT_SECRET environment variable or app.jwt.secret property. "
+                                    + "The default placeholder value is not secure and must be changed in production.");
                 }
-                logger.info("JWT secret loaded from fallback (environment variable or configuration)");
+                LOGGER.info(
+                        "JWT secret loaded from fallback (environment variable or configuration)");
                 cachedJwtSecret = jwtSecretFallback;
                 return jwtSecretFallback;
             }
 
-            throw new IllegalStateException("JWT secret not configured. Set app.jwt.secret or configure AWS Secrets Manager.");
+            throw new IllegalStateException(
+                    "JWT secret not configured. Set app.jwt.secret or configure AWS Secrets Manager.");
         }
     }
 
-    /**
-     * Generate JWT token for user
-     */
+    /** Generate JWT token for user */
     public String generateToken(final Authentication authentication) {
-        UserDetails userPrincipal = (UserDetails) authentication.getPrincipal();
-        Map<String, Object> claims = new HashMap<>();
+        final UserDetails userPrincipal = (UserDetails) authentication.getPrincipal();
+        final Map<String, Object> claims = new HashMap<>();
         return createToken(claims, userPrincipal.getUsername(), jwtExpiration);
     }
 
-    /**
-     * Generate refresh token
-     */
+    /** Generate refresh token */
     public String generateRefreshToken(final String username) {
-        Map<String, Object> claims = new HashMap<>();
+        final Map<String, Object> claims = new HashMap<>();
         return createToken(claims, username, refreshExpiration);
     }
 
-    /**
-     * Create JWT token
-     */
-    private String createToken(final Map<String, Object> claims, final String subject, final long expiration) {
-        Date now = new Date();
-        Date expiryDate = new Date(now.getTime() + expiration);
+    /** Create JWT token */
+    private String createToken(
+            final Map<String, Object> claims, final String subject, final long expiration) {
+        final Date now = new Date();
+        final Date expiryDate = new Date(now.getTime() + expiration);
 
         return Jwts.builder()
                 .claims(claims)
@@ -152,31 +163,23 @@ public class JwtTokenProvider {
                 .compact();
     }
 
-    /**
-     * Get username from token
-     */
+    /** Get username from token */
     public String getUsernameFromToken(final String token) {
         return getClaimFromToken(token, Claims::getSubject);
     }
 
-    /**
-     * Get expiration date from token
-     */
+    /** Get expiration date from token */
     public Date getExpirationDateFromToken(final String token) {
         return getClaimFromToken(token, Claims::getExpiration);
     }
 
-    /**
-     * Get claim from token
-     */
-    public <T> T getClaimFromToken(String token, Function<Claims, T> claimsResolver) {
+    /** Get claim from token */
+    public <T> T getClaimFromToken(final String token, final Function<Claims, T> claimsResolver) {
         final Claims claims = getAllClaimsFromToken(token);
         return claimsResolver.apply(claims);
     }
 
-    /**
-     * Get all claims from token
-     */
+    /** Get all claims from token */
     private Claims getAllClaimsFromToken(final String token) {
         return Jwts.parser()
                 .verifyWith(getSigningKey())
@@ -185,78 +188,89 @@ public class JwtTokenProvider {
                 .getPayload();
     }
 
-    /**
-     * Check if token is expired
-     */
+    /** Check if token is expired */
     private Boolean isTokenExpired(final String token) {
         final Date expiration = getExpirationDateFromToken(token);
         return expiration.before(new Date());
     }
 
-    /**
-     * Validate token
-     */
+    /** Validate token */
     public Boolean validateToken(final String token, final UserDetails userDetails) {
         try {
             final String username = getUsernameFromToken(token);
-            return (username.equals(userDetails.getUsername()) && !isTokenExpired(token));
+            return username.equals(userDetails.getUsername()) && !isTokenExpired(token);
         } catch (JwtException | IllegalArgumentException e) {
-            logger.error("Invalid JWT token: {}", e.getMessage());
+            LOGGER.error("Invalid JWT token: {}", e.getMessage());
             return false;
         }
     }
 
-    /**
-     * Validate token without user details
-     */
+    /** Validate token without user details */
     public Boolean validateToken(final String token) {
         if (token == null || token.isEmpty()) {
-            logger.error("JWT token is null or empty");
+            LOGGER.error("JWT token is null or empty");
             return false;
         }
-        
+
         // Clean control characters before validation
-        String cleanedToken = cleanControlCharacters(token);
+        final String cleanedToken = cleanControlCharacters(token);
         if (!cleanedToken.equals(token)) {
-            logger.warn("JWT token contained control characters, cleaned before validation");
+            LOGGER.warn("JWT token contained control characters, cleaned before validation");
         }
-        
+
         try {
-            Jwts.parser()
-                    .verifyWith(getSigningKey())
-                    .build()
-                    .parseSignedClaims(cleanedToken);
+            Jwts.parser().verifyWith(getSigningKey()).build().parseSignedClaims(cleanedToken);
             return true;
         } catch (ExpiredJwtException e) {
-            logger.warn("JWT token is expired: {} | Token preview: {}", 
-                    e.getMessage(), cleanedToken.length() > 20 ? cleanedToken.substring(0, 20) + "..." : cleanedToken);
+            LOGGER.warn(
+                    "JWT token is expired: {} | Token preview: {}",
+                    e.getMessage(),
+                    cleanedToken.length() > 20
+                            ? cleanedToken.substring(0, 20) + "..."
+                            : cleanedToken);
         } catch (UnsupportedJwtException e) {
-            logger.warn("JWT token is unsupported: {} | Token preview: {}", 
-                    e.getMessage(), cleanedToken.length() > 20 ? cleanedToken.substring(0, 20) + "..." : cleanedToken);
+            LOGGER.warn(
+                    "JWT token is unsupported: {} | Token preview: {}",
+                    e.getMessage(),
+                    cleanedToken.length() > 20
+                            ? cleanedToken.substring(0, 20) + "..."
+                            : cleanedToken);
         } catch (MalformedJwtException e) {
-            logger.warn("Invalid JWT token: {} | Token preview: {}", 
-                    e.getMessage(), cleanedToken.length() > 20 ? cleanedToken.substring(0, 20) + "..." : cleanedToken);
+            LOGGER.warn(
+                    "Invalid JWT token: {} | Token preview: {}",
+                    e.getMessage(),
+                    cleanedToken.length() > 20
+                            ? cleanedToken.substring(0, 20) + "..."
+                            : cleanedToken);
         } catch (IllegalArgumentException e) {
-            logger.warn("JWT claims string is empty: {} | Token preview: {}", 
-                    e.getMessage(), cleanedToken.length() > 20 ? cleanedToken.substring(0, 20) + "..." : cleanedToken);
+            LOGGER.warn(
+                    "JWT claims string is empty: {} | Token preview: {}",
+                    e.getMessage(),
+                    cleanedToken.length() > 20
+                            ? cleanedToken.substring(0, 20) + "..."
+                            : cleanedToken);
         } catch (io.jsonwebtoken.security.SignatureException e) {
-            logger.warn("JWT signature verification failed: {} | This may indicate a secret mismatch | Token preview: {}", 
-                    e.getMessage(), cleanedToken.length() > 20 ? cleanedToken.substring(0, 20) + "..." : cleanedToken);
+            LOGGER.warn(
+                    "JWT signature verification failed: {} | This may indicate a secret mismatch | Token preview: {}",
+                    e.getMessage(),
+                    cleanedToken.length() > 20
+                            ? cleanedToken.substring(0, 20) + "..."
+                            : cleanedToken);
         }
         return false;
     }
-    
+
     /**
-     * Remove control characters from token string
-     * Control characters (0-31) except whitespace (\r, \n, \t) are not allowed in JWT tokens
+     * Remove control characters from token string Control characters (0-31) except whitespace (\r,
+     * \n, \t) are not allowed in JWT tokens
      */
     private String cleanControlCharacters(final String token) {
         if (token == null || token.isEmpty()) {
             return token;
         }
-        
-        StringBuilder cleaned = new StringBuilder(token.length());
-        for (char c : token.toCharArray()) {
+
+        final StringBuilder cleaned = new StringBuilder(token.length());
+        for (final char c : token.toCharArray()) {
             // Keep printable characters and whitespace (\r, \n, \t)
             // Remove control characters (0-31) except whitespace
             if (c >= 32 || c == '\r' || c == '\n' || c == '\t') {
@@ -266,4 +280,3 @@ public class JwtTokenProvider {
         return cleaned.toString();
     }
 }
-

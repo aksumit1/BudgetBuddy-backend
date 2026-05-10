@@ -1,10 +1,25 @@
 package com.budgetbuddy.service.plaid;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.when;
+
 import com.budgetbuddy.model.dynamodb.AccountTable;
 import com.budgetbuddy.model.dynamodb.TransactionTable;
 import com.budgetbuddy.repository.dynamodb.AccountRepository;
 import com.budgetbuddy.service.PlaidCategoryMapper;
-import com.plaid.client.model.*;
+import com.plaid.client.model.AccountBalance;
+import com.plaid.client.model.AccountBase;
+import com.plaid.client.model.AccountSubtype;
+import com.plaid.client.model.AccountType;
+import com.plaid.client.model.Item;
+import com.plaid.client.model.Transaction;
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -13,125 +28,115 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 
-import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.util.Optional;
-import java.util.UUID;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
-
-/**
- * Unit Tests for PlaidDataExtractor
- * Tests data extraction from Plaid SDK objects
- */
+/** Unit Tests for PlaidDataExtractor Tests data extraction from Plaid SDK objects */
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
 class PlaidDataExtractorTest {
 
-    @Mock
-    private PlaidCategoryMapper categoryMapper;
+    @Mock private PlaidCategoryMapper categoryMapper;
 
-    @Mock
-    private AccountRepository accountRepository;
+    @Mock private AccountRepository accountRepository;
 
     private PlaidDataExtractor dataExtractor;
 
     @BeforeEach
     void setUp() {
-        dataExtractor = new PlaidDataExtractor(accountRepository, org.mockito.Mockito.mock(com.budgetbuddy.service.TransactionTypeCategoryService.class));
+        dataExtractor =
+                new PlaidDataExtractor(
+                        accountRepository,
+                        org.mockito.Mockito.mock(
+                                com.budgetbuddy.service.TransactionTypeCategoryService.class));
     }
 
     @Test
-    void testExtractAccountId_WithValidAccount_ReturnsAccountId() {
+    void testExtractAccountIdWithValidAccountReturnsAccountId() {
         // Given
-        AccountBase account = new AccountBase();
+        final AccountBase account = new AccountBase();
         account.setAccountId("plaid-account-123");
 
         // When
-        String accountId = dataExtractor.extractAccountId(account);
+        final String accountId = dataExtractor.extractAccountId(account);
 
         // Then
         assertEquals("plaid-account-123", accountId);
     }
 
     @Test
-    void testExtractAccountId_WithNullAccountId_ReturnsNull() {
+    void testExtractAccountIdWithNullAccountIdReturnsNull() {
         // Given
-        AccountBase account = new AccountBase();
+        final AccountBase account = new AccountBase();
         account.setAccountId(null);
 
         // When
-        String accountId = dataExtractor.extractAccountId(account);
+        final String accountId = dataExtractor.extractAccountId(account);
 
         // Then
         assertNull(accountId);
     }
 
     @Test
-    void testExtractTransactionId_WithValidTransaction_ReturnsTransactionId() {
+    void testExtractTransactionIdWithValidTransactionReturnsTransactionId() {
         // Given
-        Transaction transaction = new Transaction();
+        final Transaction transaction = new Transaction();
         transaction.setTransactionId("plaid-txn-456");
 
         // When
-        String transactionId = dataExtractor.extractTransactionId(transaction);
+        final String transactionId = dataExtractor.extractTransactionId(transaction);
 
         // Then
         assertEquals("plaid-txn-456", transactionId);
     }
 
     @Test
-    void testExtractTransactionId_WithNullTransactionId_ReturnsNull() {
+    void testExtractTransactionIdWithNullTransactionIdReturnsNull() {
         // Given
-        Transaction transaction = new Transaction();
+        final Transaction transaction = new Transaction();
         transaction.setTransactionId(null);
 
         // When
-        String transactionId = dataExtractor.extractTransactionId(transaction);
+        final String transactionId = dataExtractor.extractTransactionId(transaction);
 
         // Then
         assertNull(transactionId);
     }
 
     @Test
-    void testExtractItemId_WithValidItem_ReturnsItemId() {
+    void testExtractItemIdWithValidItemReturnsItemId() {
         // Given
-        Item item = new Item();
+        final Item item = new Item();
         item.setItemId("plaid-item-789");
 
         // When
-        String itemId = dataExtractor.extractItemId(item);
+        final String itemId = dataExtractor.extractItemId(item);
 
         // Then
         assertEquals("plaid-item-789", itemId);
     }
 
     @Test
-    void testExtractItemId_WithNullItem_ReturnsNull() {
+    void testExtractItemIdWithNullItemReturnsNull() {
         // When
-        String itemId = dataExtractor.extractItemId(null);
+        final String itemId = dataExtractor.extractItemId(null);
 
         // Then
         assertNull(itemId);
     }
 
     @Test
-    void testUpdateAccountFromPlaid_WithValidAccount_UpdatesAccount() {
+    void testUpdateAccountFromPlaidWithValidAccountUpdatesAccount() {
         // Given
-        AccountTable account = new AccountTable();
+        final AccountTable account = new AccountTable();
         account.setAccountId(UUID.randomUUID().toString());
-        
-        AccountBase plaidAccount = new AccountBase();
+
+        final AccountBase plaidAccount = new AccountBase();
         plaidAccount.setAccountId("plaid-account-1");
         plaidAccount.setName("Test Account");
         plaidAccount.setOfficialName("Test Account Official");
         plaidAccount.setMask("1234");
         plaidAccount.setType(AccountType.DEPOSITORY);
         plaidAccount.setSubtype(AccountSubtype.CHECKING);
-        
-        AccountBalance balance = new AccountBalance();
+
+        final AccountBalance balance = new AccountBalance();
         balance.setAvailable(1000.0);
         balance.setCurrent(1000.0);
         balance.setIsoCurrencyCode("USD");
@@ -149,10 +154,10 @@ class PlaidDataExtractorTest {
     }
 
     @Test
-    void testUpdateAccountFromPlaid_WithNullBalance_UsesDefaults() {
+    void testUpdateAccountFromPlaidWithNullBalanceUsesDefaults() {
         // Given
-        AccountTable account = new AccountTable();
-        AccountBase plaidAccount = new AccountBase();
+        final AccountTable account = new AccountTable();
+        final AccountBase plaidAccount = new AccountBase();
         plaidAccount.setName("Test Account");
         plaidAccount.setBalances(null);
 
@@ -166,20 +171,20 @@ class PlaidDataExtractorTest {
     }
 
     @Test
-    void testUpdateTransactionFromPlaid_WithValidTransaction_UpdatesTransaction() {
+    void testUpdateTransactionFromPlaidWithValidTransactionUpdatesTransaction() {
         // Given
-        TransactionTable transaction = new TransactionTable();
+        final TransactionTable transaction = new TransactionTable();
         transaction.setTransactionId(UUID.randomUUID().toString());
         transaction.setUserId(UUID.randomUUID().toString());
-        
-        Transaction plaidTransaction = new Transaction();
+
+        final Transaction plaidTransaction = new Transaction();
         plaidTransaction.setTransactionId("plaid-txn-1");
         plaidTransaction.setAccountId("plaid-account-1");
         plaidTransaction.setAmount(100.0);
         plaidTransaction.setName("Test Transaction");
         plaidTransaction.setDate(LocalDate.now());
         plaidTransaction.setIsoCurrencyCode("USD");
-        
+
         when(categoryMapper.mapPlaidCategory(any(), any(), any(), any()))
                 .thenReturn(new PlaidCategoryMapper.CategoryMapping("other", "other", false));
 
@@ -188,20 +193,21 @@ class PlaidDataExtractorTest {
 
         // Then
         assertNotNull(transaction.getUpdatedAt());
-        // CRITICAL: Plaid amounts are normalized (sign reversed) - Plaid +100.0 becomes -100.0 after normalization
+        // CRITICAL: Plaid amounts are normalized (sign reversed) - Plaid +100.0 becomes -100.0
+        // after normalization
         assertEquals(BigDecimal.valueOf(-100.0), transaction.getAmount());
         assertEquals("Test Transaction", transaction.getDescription());
         assertEquals("USD", transaction.getCurrencyCode());
     }
 
     @Test
-    void testExtractAccountIdFromTransaction_WithValidTransaction_ReturnsAccountId() {
+    void testExtractAccountIdFromTransactionWithValidTransactionReturnsAccountId() {
         // Given
-        Transaction transaction = new Transaction();
+        final Transaction transaction = new Transaction();
         transaction.setAccountId("plaid-account-1");
 
         // When
-        String accountId = dataExtractor.extractAccountIdFromTransaction(transaction);
+        final String accountId = dataExtractor.extractAccountIdFromTransaction(transaction);
 
         // Then
         assertEquals("plaid-account-1", accountId);
@@ -210,165 +216,164 @@ class PlaidDataExtractorTest {
     // ========== Plaid Amount Normalization Tests ==========
 
     @Test
-    void testNormalizePlaidAmount_WithNullAmount_ReturnsNull() {
+    void testNormalizePlaidAmountWithNullAmountReturnsNull() {
         // When
-        BigDecimal result = dataExtractor.normalizePlaidAmount(null, null);
+        final BigDecimal result = dataExtractor.normalizePlaidAmount(null, null);
 
         // Then
         assertNull(result);
     }
 
     @Test
-    void testNormalizePlaidAmount_WithNullAccount_ReversesSign() {
+    void testNormalizePlaidAmountWithNullAccountReversesSign() {
         // Given
-        BigDecimal rawAmount = new BigDecimal("100.00");
+        final BigDecimal rawAmount = new BigDecimal("100.00");
 
         // When
-        BigDecimal result = dataExtractor.normalizePlaidAmount(rawAmount, null);
+        final BigDecimal result = dataExtractor.normalizePlaidAmount(rawAmount, null);
 
         // Then - Should reverse sign even without account info
         assertEquals(new BigDecimal("-100.00"), result);
     }
 
     @Test
-    void testNormalizePlaidAmount_WithPositiveExpense_ReversesToNegative() {
+    void testNormalizePlaidAmountWithPositiveExpenseReversesToNegative() {
         // Given - Plaid sends expenses as positive
-        BigDecimal rawAmount = new BigDecimal("50.00");
-        AccountTable account = new AccountTable();
+        final BigDecimal rawAmount = new BigDecimal("50.00");
+        final AccountTable account = new AccountTable();
         account.setAccountType("checking");
 
         // When
-        BigDecimal result = dataExtractor.normalizePlaidAmount(rawAmount, account);
+        final BigDecimal result = dataExtractor.normalizePlaidAmount(rawAmount, account);
 
         // Then - Should reverse to negative (backend convention)
         assertEquals(new BigDecimal("-50.00"), result);
     }
 
     @Test
-    void testNormalizePlaidAmount_WithNegativeIncome_ReversesToPositive() {
+    void testNormalizePlaidAmountWithNegativeIncomeReversesToPositive() {
         // Given - Plaid sends income as negative
-        BigDecimal rawAmount = new BigDecimal("-5000.00");
-        AccountTable account = new AccountTable();
+        final BigDecimal rawAmount = new BigDecimal("-5000.00");
+        final AccountTable account = new AccountTable();
         account.setAccountType("checking");
 
         // When
-        BigDecimal result = dataExtractor.normalizePlaidAmount(rawAmount, account);
+        final BigDecimal result = dataExtractor.normalizePlaidAmount(rawAmount, account);
 
         // Then - Should reverse to positive (backend convention)
         assertEquals(new BigDecimal("5000.00"), result);
     }
 
     @Test
-    void testNormalizePlaidAmount_WithZeroAmount_ReturnsZero() {
+    void testNormalizePlaidAmountWithZeroAmountReturnsZero() {
         // Given
-        BigDecimal rawAmount = BigDecimal.ZERO;
-        AccountTable account = new AccountTable();
+        final BigDecimal rawAmount = BigDecimal.ZERO;
+        final AccountTable account = new AccountTable();
         account.setAccountType("checking");
 
         // When
-        BigDecimal result = dataExtractor.normalizePlaidAmount(rawAmount, account);
+        final BigDecimal result = dataExtractor.normalizePlaidAmount(rawAmount, account);
 
         // Then - Zero should remain zero
         assertEquals(BigDecimal.ZERO, result);
     }
 
     @Test
-    void testNormalizePlaidAmount_WithCreditCardAccount_ReversesSign() {
+    void testNormalizePlaidAmountWithCreditCardAccountReversesSign() {
         // Given - Credit card transaction from Plaid
-        BigDecimal rawAmount = new BigDecimal("100.00");
-        AccountTable account = new AccountTable();
+        final BigDecimal rawAmount = new BigDecimal("100.00");
+        final AccountTable account = new AccountTable();
         account.setAccountType("credit");
         account.setAccountSubtype("credit card");
 
         // When
-        BigDecimal result = dataExtractor.normalizePlaidAmount(rawAmount, account);
+        final BigDecimal result = dataExtractor.normalizePlaidAmount(rawAmount, account);
 
         // Then - Should reverse sign for all account types
         assertEquals(new BigDecimal("-100.00"), result);
     }
 
     @Test
-    void testNormalizePlaidAmount_WithLoanAccount_ReversesSign() {
+    void testNormalizePlaidAmountWithLoanAccountReversesSign() {
         // Given - Loan transaction from Plaid
-        BigDecimal rawAmount = new BigDecimal("500.00");
-        AccountTable account = new AccountTable();
+        final BigDecimal rawAmount = new BigDecimal("500.00");
+        final AccountTable account = new AccountTable();
         account.setAccountType("loan");
 
         // When
-        BigDecimal result = dataExtractor.normalizePlaidAmount(rawAmount, account);
+        final BigDecimal result = dataExtractor.normalizePlaidAmount(rawAmount, account);
 
         // Then - Should reverse sign for all account types
         assertEquals(new BigDecimal("-500.00"), result);
     }
 
     @Test
-    void testNormalizePlaidAmount_WithInvestmentAccount_ReversesSign() {
+    void testNormalizePlaidAmountWithInvestmentAccountReversesSign() {
         // Given - Investment transaction from Plaid
-        BigDecimal rawAmount = new BigDecimal("1000.00");
-        AccountTable account = new AccountTable();
+        final BigDecimal rawAmount = new BigDecimal("1000.00");
+        final AccountTable account = new AccountTable();
         account.setAccountType("investment");
 
         // When
-        BigDecimal result = dataExtractor.normalizePlaidAmount(rawAmount, account);
+        final BigDecimal result = dataExtractor.normalizePlaidAmount(rawAmount, account);
 
         // Then - Should reverse sign for all account types
         assertEquals(new BigDecimal("-1000.00"), result);
     }
 
     @Test
-    void testNormalizePlaidAmount_WithVeryLargeAmount_HandlesCorrectly() {
+    void testNormalizePlaidAmountWithVeryLargeAmountHandlesCorrectly() {
         // Given - Very large amount
-        BigDecimal rawAmount = new BigDecimal("999999999.99");
-        AccountTable account = new AccountTable();
+        final BigDecimal rawAmount = new BigDecimal("999999999.99");
+        final AccountTable account = new AccountTable();
         account.setAccountType("checking");
 
         // When
-        BigDecimal result = dataExtractor.normalizePlaidAmount(rawAmount, account);
+        final BigDecimal result = dataExtractor.normalizePlaidAmount(rawAmount, account);
 
         // Then - Should reverse sign correctly
         assertEquals(new BigDecimal("-999999999.99"), result);
     }
 
     @Test
-    void testNormalizePlaidAmount_WithVerySmallAmount_HandlesCorrectly() {
+    void testNormalizePlaidAmountWithVerySmallAmountHandlesCorrectly() {
         // Given - Very small amount
-        BigDecimal rawAmount = new BigDecimal("0.01");
-        AccountTable account = new AccountTable();
+        final BigDecimal rawAmount = new BigDecimal("0.01");
+        final AccountTable account = new AccountTable();
         account.setAccountType("checking");
 
         // When
-        BigDecimal result = dataExtractor.normalizePlaidAmount(rawAmount, account);
+        final BigDecimal result = dataExtractor.normalizePlaidAmount(rawAmount, account);
 
         // Then - Should reverse sign correctly
         assertEquals(new BigDecimal("-0.01"), result);
     }
 
     @Test
-    void testNormalizePlaidAmount_WithNegativeVeryLargeAmount_HandlesCorrectly() {
+    void testNormalizePlaidAmountWithNegativeVeryLargeAmountHandlesCorrectly() {
         // Given - Very large negative amount (income)
-        BigDecimal rawAmount = new BigDecimal("-999999999.99");
-        AccountTable account = new AccountTable();
+        final BigDecimal rawAmount = new BigDecimal("-999999999.99");
+        final AccountTable account = new AccountTable();
         account.setAccountType("checking");
 
         // When
-        BigDecimal result = dataExtractor.normalizePlaidAmount(rawAmount, account);
+        final BigDecimal result = dataExtractor.normalizePlaidAmount(rawAmount, account);
 
         // Then - Should reverse to positive
         assertEquals(new BigDecimal("999999999.99"), result);
     }
 
     @Test
-    void testNormalizePlaidAmount_WithAccountNullType_ReversesSign() {
+    void testNormalizePlaidAmountWithAccountNullTypeReversesSign() {
         // Given - Account with null type
-        BigDecimal rawAmount = new BigDecimal("100.00");
-        AccountTable account = new AccountTable();
+        final BigDecimal rawAmount = new BigDecimal("100.00");
+        final AccountTable account = new AccountTable();
         account.setAccountType(null);
 
         // When
-        BigDecimal result = dataExtractor.normalizePlaidAmount(rawAmount, account);
+        final BigDecimal result = dataExtractor.normalizePlaidAmount(rawAmount, account);
 
         // Then - Should still reverse sign
         assertEquals(new BigDecimal("-100.00"), result);
     }
 }
-

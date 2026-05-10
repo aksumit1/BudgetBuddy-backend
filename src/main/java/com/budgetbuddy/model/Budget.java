@@ -1,21 +1,19 @@
 package com.budgetbuddy.model;
 
 import jakarta.validation.constraints.NotNull;
-
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 /**
- * Budget entity representing a monthly budget for a category
- * Note: This is a domain model. For DynamoDB persistence, use BudgetTable.
+ * Budget entity representing a monthly budget for a category Note: This is a domain model. For
+ * DynamoDB persistence, use BudgetTable.
  */
 public class Budget implements java.io.Serializable {
     private static final long serialVersionUID = 1L;
 
     private Long id;
 
-    @NotNull
-    private User user;
+    @NotNull private User user;
 
     private Transaction.TransactionCategory category;
 
@@ -32,11 +30,12 @@ public class Budget implements java.io.Serializable {
     private LocalDateTime updatedAt;
 
     // Constructors
-    public Budget() {
-    }
+    public Budget() {}
 
-    public Budget(final User user, final Transaction.TransactionCategory category,
-                  final BigDecimal monthlyLimit) {
+    public Budget(
+            final User user,
+            final Transaction.TransactionCategory category,
+            final BigDecimal monthlyLimit) {
         this.user = user;
         this.category = category;
         this.monthlyLimit = monthlyLimit;
@@ -115,4 +114,3 @@ public class Budget implements java.io.Serializable {
         this.updatedAt = updatedAt;
     }
 }
-

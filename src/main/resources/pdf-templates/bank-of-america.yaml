@@ -1,0 +1,28 @@
+# Bank of America — checking/savings + credit cards.
+# See PATTERN_LEARNINGS.md for US-layout subtleties.
+#
+# Status: VALIDATED — passes bank-of-america/checking-basic snapshot.
+id: bank-of-america-v1
+institution: Bank of America
+description: "BoA personal checking, savings, credit card"
+status: VALIDATED
+layouts:
+  # Credit card two-date layout runs first so it doesn't lose to the
+  # checking-single-line layout matching the transaction date instead
+  # of the posting date.
+  - name: credit-card-two-date
+    accountType: credit
+    lineRegex: '^\s*\d{1,2}/\d{1,2}\s+(?<date>\d{1,2}/\d{1,2})\s+(?<description>.+?)\s+\$?(?<amount>-?\d{1,3}(?:,\d{3})*(?:\.\d{2}))\s*$'
+    dateFormat: "M/d"
+    signConvention: credit-positive
+    minAmount: 0.01
+
+  # Personal checking. Single date, then description, optional trailing
+  # running balance. The negative lookahead on the date prevents matching
+  # the first date of a two-date credit-card line.
+  - name: checking-with-trailing-balance
+    accountType: checking
+    lineRegex: '^\s*(?<date>\d{1,2}/\d{1,2}/\d{2,4})(?!\s+\d{1,2}/\d{1,2})\s+(?<description>.+?)\s+\$?(?<amount>-?\d{1,3}(?:,\d{3})*(?:\.\d{2}))(?:\s+[\d,.]+)?\s*$'
+    dateFormat: "M/d/yy"
+    signConvention: as-is
+    minAmount: 0.01

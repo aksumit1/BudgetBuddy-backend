@@ -1,10 +1,18 @@
 package com.budgetbuddy.api;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.when;
+
 import com.budgetbuddy.exception.AppException;
 import com.budgetbuddy.exception.ErrorCode;
 import com.budgetbuddy.model.dynamodb.UserTable;
 import com.budgetbuddy.security.zerotrust.device.DeviceAttestationService;
 import com.budgetbuddy.service.UserService;
+import java.util.Map;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -15,32 +23,18 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.userdetails.UserDetails;
 
-import java.util.Map;
-import java.util.Optional;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.*;
-
-/**
- * Unit Tests for DeviceAttestationController
- */
+/** Unit Tests for DeviceAttestationController */
 @ExtendWith(MockitoExtension.class)
 @org.mockito.junit.jupiter.MockitoSettings(strictness = org.mockito.quality.Strictness.LENIENT)
 class DeviceAttestationControllerTest {
 
-    @Mock
-    private DeviceAttestationService deviceAttestationService;
+    @Mock private DeviceAttestationService deviceAttestationService;
 
-    @Mock
-    private UserService userService;
+    @Mock private UserService userService;
 
-    @Mock
-    private UserDetails userDetails;
+    @Mock private UserDetails userDetails;
 
-    @InjectMocks
-    private DeviceAttestationController controller;
+    @InjectMocks private DeviceAttestationController controller;
 
     private UserTable testUser;
 
@@ -54,9 +48,10 @@ class DeviceAttestationControllerTest {
     }
 
     @Test
-    void testVerifyDevice_WithValidRequest_ReturnsSuccess() {
+    void testVerifyDeviceWithValidRequestReturnsSuccess() {
         // Given
-        DeviceAttestationController.VerifyDeviceRequest request = new DeviceAttestationController.VerifyDeviceRequest();
+        final DeviceAttestationController.VerifyDeviceRequest request =
+                new DeviceAttestationController.VerifyDeviceRequest();
         request.setDeviceId("device-123");
         request.setAttestationToken("token-123");
         request.setPlatform("ios");
@@ -66,7 +61,8 @@ class DeviceAttestationControllerTest {
                 .thenReturn(true);
 
         // When
-        ResponseEntity<Map<String, Object>> response = controller.verifyDevice(userDetails, request);
+        final ResponseEntity<Map<String, Object>> response =
+                controller.verifyDevice(userDetails, request);
 
         // Then
         assertEquals(HttpStatus.OK, response.getStatusCode());
@@ -77,27 +73,31 @@ class DeviceAttestationControllerTest {
     }
 
     @Test
-    void testVerifyDevice_WithFailedAttestation_ThrowsException() {
+    void testVerifyDeviceWithFailedAttestationThrowsException() {
         // Given
-        DeviceAttestationController.VerifyDeviceRequest request = new DeviceAttestationController.VerifyDeviceRequest();
+        final DeviceAttestationController.VerifyDeviceRequest request =
+                new DeviceAttestationController.VerifyDeviceRequest();
         request.setDeviceId("device-123");
         request.setAttestationToken("invalid-token");
         request.setPlatform("ios");
 
         when(userService.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
-        when(deviceAttestationService.verifyDevice("device-123", "user-123", "invalid-token", "ios"))
+        when(deviceAttestationService.verifyDevice(
+                        "device-123", "user-123", "invalid-token", "ios"))
                 .thenReturn(false);
 
         // When/Then
-        AppException exception = assertThrows(AppException.class, () -> 
-                controller.verifyDevice(userDetails, request));
+        final AppException exception =
+                assertThrows(
+                        AppException.class, () -> controller.verifyDevice(userDetails, request));
         assertEquals(ErrorCode.INVALID_INPUT, exception.getErrorCode());
     }
 
     @Test
-    void testVerifyDevice_WithNullUserDetails_ThrowsException() {
+    void testVerifyDeviceWithNullUserDetailsThrowsException() {
         // Given
-        DeviceAttestationController.VerifyDeviceRequest request = new DeviceAttestationController.VerifyDeviceRequest();
+        final DeviceAttestationController.VerifyDeviceRequest request =
+                new DeviceAttestationController.VerifyDeviceRequest();
         request.setDeviceId("device-123");
 
         // When/Then
@@ -105,15 +105,16 @@ class DeviceAttestationControllerTest {
     }
 
     @Test
-    void testVerifyDevice_WithNullRequest_ThrowsException() {
+    void testVerifyDeviceWithNullRequestThrowsException() {
         // When/Then
         assertThrows(AppException.class, () -> controller.verifyDevice(userDetails, null));
     }
 
     @Test
-    void testVerifyDevice_WithEmptyDeviceId_ThrowsException() {
+    void testVerifyDeviceWithEmptyDeviceIdThrowsException() {
         // Given
-        DeviceAttestationController.VerifyDeviceRequest request = new DeviceAttestationController.VerifyDeviceRequest();
+        final DeviceAttestationController.VerifyDeviceRequest request =
+                new DeviceAttestationController.VerifyDeviceRequest();
         request.setDeviceId("");
 
         // When/Then
@@ -121,9 +122,10 @@ class DeviceAttestationControllerTest {
     }
 
     @Test
-    void testVerifyDevice_WithNullDeviceId_ThrowsException() {
+    void testVerifyDeviceWithNullDeviceIdThrowsException() {
         // Given
-        DeviceAttestationController.VerifyDeviceRequest request = new DeviceAttestationController.VerifyDeviceRequest();
+        final DeviceAttestationController.VerifyDeviceRequest request =
+                new DeviceAttestationController.VerifyDeviceRequest();
         request.setDeviceId(null);
 
         // When/Then
@@ -131,23 +133,25 @@ class DeviceAttestationControllerTest {
     }
 
     @Test
-    void testVerifyDevice_WithAndroidPlatform_ReturnsSuccess() {
+    void testVerifyDeviceWithAndroidPlatformReturnsSuccess() {
         // Given
-        DeviceAttestationController.VerifyDeviceRequest request = new DeviceAttestationController.VerifyDeviceRequest();
+        final DeviceAttestationController.VerifyDeviceRequest request =
+                new DeviceAttestationController.VerifyDeviceRequest();
         request.setDeviceId("device-123");
         request.setAttestationToken("token-123");
         request.setPlatform("android");
 
         when(userService.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
-        when(deviceAttestationService.verifyDevice("device-123", "user-123", "token-123", "android"))
+        when(deviceAttestationService.verifyDevice(
+                        "device-123", "user-123", "token-123", "android"))
                 .thenReturn(true);
 
         // When
-        ResponseEntity<Map<String, Object>> response = controller.verifyDevice(userDetails, request);
+        final ResponseEntity<Map<String, Object>> response =
+                controller.verifyDevice(userDetails, request);
 
         // Then
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertTrue((Boolean) response.getBody().get("success"));
     }
 }
-

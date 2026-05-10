@@ -1,5 +1,12 @@
 package com.budgetbuddy.integration;
 
+
+import java.nio.charset.StandardCharsets;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import com.budgetbuddy.AWSTestConfiguration;
 import com.budgetbuddy.exception.AppException;
 import com.budgetbuddy.model.dynamodb.AccountTable;
@@ -17,6 +24,11 @@ import com.budgetbuddy.service.GoalService;
 import com.budgetbuddy.service.TransactionService;
 import com.budgetbuddy.service.UserService;
 import com.budgetbuddy.util.IdGenerator;
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.util.Base64;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,53 +36,35 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 
-import java.math.BigDecimal;
-import java.time.Instant;
-import java.time.LocalDate;
-import java.util.Base64;
-import java.util.Optional;
-import java.util.UUID;
-
-import static org.junit.jupiter.api.Assertions.*;
-
 /**
- * Integration tests for ID consistency across backend operations
- * Verifies that IDs are generated consistently and match between app and backend expectations
+ * Integration tests for ID consistency across backend operations Verifies that IDs are generated
+ * consistently and match between app and backend expectations
  */
 @SpringBootTest(classes = com.budgetbuddy.BudgetBuddyApplication.class)
 @ActiveProfiles("test")
 @Import(AWSTestConfiguration.class)
 class IdConsistencyIntegrationTest {
-    
+
     // Note: Some tests may require LocalStack to be running for DynamoDB operations
     // If tests fail with ApplicationContext errors, ensure LocalStack is running
 
-    @Autowired
-    private UserService userService;
+    @Autowired private UserService userService;
 
-    @Autowired
-    private UserRepository userRepository;
+    @Autowired private UserRepository userRepository;
 
-    @Autowired
-    private AccountRepository accountRepository;
+    @Autowired private AccountRepository accountRepository;
 
-    @Autowired
-    private TransactionRepository transactionRepository;
+    @Autowired private TransactionRepository transactionRepository;
 
-    @Autowired
-    private BudgetService budgetService;
+    @Autowired private BudgetService budgetService;
 
-    @Autowired
-    private BudgetRepository budgetRepository;
+    @Autowired private BudgetRepository budgetRepository;
 
-    @Autowired
-    private GoalService goalService;
+    @Autowired private GoalService goalService;
 
-    @Autowired
-    private GoalRepository goalRepository;
+    @Autowired private GoalRepository goalRepository;
 
-    @Autowired
-    private TransactionService transactionService;
+    @Autowired private TransactionService transactionService;
 
     private UserTable testUser;
     private AccountTable testAccount;
@@ -87,20 +81,15 @@ class IdConsistencyIntegrationTest {
         }
 
         // Create test user
-        String testEmail = "id-test-" + UUID.randomUUID() + "@example.com";
-        String testPasswordHash = Base64.getEncoder().encodeToString("hashed-password".getBytes());
+        final String testEmail = "id-test-" + UUID.randomUUID() + "@example.com";
+        final String testPasswordHash = Base64.getEncoder().encodeToString("hashed-password".getBytes(StandardCharsets.UTF_8));
 
-
-        testUser = userService.createUserSecure(
-                testEmail,
-                testPasswordHash, "ID",
-                "Test"
-        );
+        testUser = userService.createUserSecure(testEmail, testPasswordHash, "ID", "Test");
 
         // Create test account with deterministic ID
-        String institutionName = "Test Bank";
-        String plaidAccountId = "plaid_acc_123";
-        String accountId = IdGenerator.generateAccountId(institutionName, plaidAccountId);
+        final String institutionName = "Test Bank";
+        final String plaidAccountId = "plaid_acc_123";
+        final String accountId = IdGenerator.generateAccountId(institutionName, plaidAccountId);
 
         testAccount = new AccountTable();
         testAccount.setAccountId(accountId);
@@ -118,95 +107,98 @@ class IdConsistencyIntegrationTest {
     }
 
     @Test
-    void testAccountId_ConsistentGeneration() {
+    void testAccountIdConsistentGeneration() {
         // Given
-        String institutionName = "Chase Bank";
-        String plaidAccountId = "plaid_acc_456";
+        final String institutionName = "Chase Bank";
+        final String plaidAccountId = "plaid_acc_456";
 
         // When - Generate ID using IdGenerator
-        String generatedAccountId = IdGenerator.generateAccountId(institutionName, plaidAccountId);
+        final String generatedAccountId = IdGenerator.generateAccountId(institutionName, plaidAccountId);
 
         // Then - Should be valid UUID
-        assertTrue(IdGenerator.isValidUUID(generatedAccountId), "Generated account ID should be valid UUID");
+        assertTrue(
+                IdGenerator.isValidUUID(generatedAccountId),
+                "Generated account ID should be valid UUID");
 
         // When - Generate again with same inputs
-        String generatedAccountId2 = IdGenerator.generateAccountId(institutionName, plaidAccountId);
+        final String generatedAccountId2 = IdGenerator.generateAccountId(institutionName, plaidAccountId);
 
         // Then - Should be identical
-        assertEquals(generatedAccountId, generatedAccountId2, "Account IDs should be deterministic");
+        assertEquals(
+                generatedAccountId, generatedAccountId2, "Account IDs should be deterministic");
     }
 
     @Test
-    void testTransactionId_ConsistentGeneration() {
+    void testTransactionIdConsistentGeneration() {
         // Given
-        String institutionName = testAccount.getInstitutionName();
-        String accountId = testAccount.getAccountId();
-        String plaidTransactionId = "plaid_txn_789";
+        final String institutionName = testAccount.getInstitutionName();
+        final String accountId = testAccount.getAccountId();
+        final String plaidTransactionId = "plaid_txn_789";
 
         // When - Generate transaction ID
-        String generatedTransactionId = IdGenerator.generateTransactionId(
-                institutionName,
-                accountId,
-                plaidTransactionId
-        );
+        final String generatedTransactionId =
+                IdGenerator.generateTransactionId(institutionName, accountId, plaidTransactionId);
 
         // Then - Should be valid UUID
-        assertTrue(IdGenerator.isValidUUID(generatedTransactionId), "Generated transaction ID should be valid UUID");
+        assertTrue(
+                IdGenerator.isValidUUID(generatedTransactionId),
+                "Generated transaction ID should be valid UUID");
 
         // When - Generate again with same inputs
-        String generatedTransactionId2 = IdGenerator.generateTransactionId(
-                institutionName,
-                accountId,
-                plaidTransactionId
-        );
+        final String generatedTransactionId2 =
+                IdGenerator.generateTransactionId(institutionName, accountId, plaidTransactionId);
 
         // Then - Should be identical
-        assertEquals(generatedTransactionId, generatedTransactionId2, "Transaction IDs should be deterministic");
+        assertEquals(
+                generatedTransactionId,
+                generatedTransactionId2,
+                "Transaction IDs should be deterministic");
     }
 
     @Test
-    void testTransactionCreation_WithConsistentId() {
+    void testTransactionCreationWithConsistentId() {
         // Given
-        String institutionName = testAccount.getInstitutionName();
-        String accountId = testAccount.getAccountId();
-        String plaidTransactionId = "plaid_txn_999";
-        String expectedTransactionId = IdGenerator.generateTransactionId(
-                institutionName,
-                accountId,
-                plaidTransactionId
-        );
+        final String institutionName = testAccount.getInstitutionName();
+        final String accountId = testAccount.getAccountId();
+        final String plaidTransactionId = "plaid_txn_999";
+        final String expectedTransactionId =
+                IdGenerator.generateTransactionId(institutionName, accountId, plaidTransactionId);
 
         // When - Create transaction (backend will generate ID if not provided)
-        TransactionTable transaction = transactionService.createTransaction(
-                testUser,
-                accountId,
-                BigDecimal.valueOf(100.00),
-                LocalDate.now(),
-                "Test Transaction",
-                "FOOD",
-                null // Let backend generate
-        );
+        final TransactionTable transaction =
+                transactionService.createTransaction(
+                        testUser,
+                        accountId,
+                        BigDecimal.valueOf(100.00),
+                        LocalDate.now(),
+                        "Test Transaction",
+                        "FOOD",
+                        null // Let backend generate
+                );
 
         // Note: Since we're not providing the Plaid transaction ID in createTransaction,
         // the backend will generate a random UUID. This test verifies the ID generation works.
         assertNotNull(transaction.getTransactionId(), "Transaction should have an ID");
-        assertTrue(IdGenerator.isValidUUID(transaction.getTransactionId()), "Transaction ID should be valid UUID");
+        assertTrue(
+                IdGenerator.isValidUUID(transaction.getTransactionId()),
+                "Transaction ID should be valid UUID");
     }
 
     @Test
-    void testBudgetCreation_WithAppProvidedId() {
+    void testBudgetCreationWithAppProvidedId() {
         // Given
-        String userId = testUser.getUserId();
-        String category = "FOOD";
-        String expectedBudgetId = IdGenerator.generateBudgetId(userId, category);
+        final String userId = testUser.getUserId();
+        final String category = "FOOD";
+        final String expectedBudgetId = IdGenerator.generateBudgetId(userId, category);
 
         // When - Create budget with app-provided ID
-        BudgetTable budget = budgetService.createOrUpdateBudget(
-                testUser,
-                category,
-                BigDecimal.valueOf(500.00),
-                expectedBudgetId // App-provided ID
-        );
+        final BudgetTable budget =
+                budgetService.createOrUpdateBudget(
+                        testUser,
+                        category,
+                        BigDecimal.valueOf(500.00),
+                        expectedBudgetId // App-provided ID
+                );
 
         // Then - Should use the provided ID
         assertEquals(expectedBudgetId, budget.getBudgetId(), "Budget should use provided ID");
@@ -214,44 +206,44 @@ class IdConsistencyIntegrationTest {
     }
 
     @Test
-    void testBudgetCreation_WithoutAppProvidedId_GeneratesDeterministic() {
+    void testBudgetCreationWithoutAppProvidedIdGeneratesDeterministic() {
         // Given
-        String userId = testUser.getUserId();
-        String category = "TRANSPORTATION";
-        String expectedBudgetId = IdGenerator.generateBudgetId(userId, category);
+        final String userId = testUser.getUserId();
+        final String category = "TRANSPORTATION";
+        final String expectedBudgetId = IdGenerator.generateBudgetId(userId, category);
 
         // When - Create budget without app-provided ID
-        BudgetTable budget = budgetService.createOrUpdateBudget(
-                testUser,
-                category,
-                BigDecimal.valueOf(300.00),
-                null // Let backend generate
-        );
+        final BudgetTable budget =
+                budgetService.createOrUpdateBudget(
+                        testUser, category, BigDecimal.valueOf(300.00), null // Let backend generate
+                );
 
         // Then - Should generate deterministic ID matching our expectation
-        assertEquals(expectedBudgetId, budget.getBudgetId(), "Budget should generate deterministic ID");
+        assertEquals(
+                expectedBudgetId, budget.getBudgetId(), "Budget should generate deterministic ID");
         assertTrue(IdGenerator.isValidUUID(budget.getBudgetId()), "Budget ID should be valid UUID");
     }
 
     @Test
-    void testGoalCreation_WithAppProvidedId() {
+    void testGoalCreationWithAppProvidedId() {
         // Given
-        String userId = testUser.getUserId();
-        String goalName = "Emergency Fund";
-        String expectedGoalId = IdGenerator.generateGoalId(userId, goalName);
+        final String userId = testUser.getUserId();
+        final String goalName = "Emergency Fund";
+        final String expectedGoalId = IdGenerator.generateGoalId(userId, goalName);
 
         // When - Create goal with app-provided ID
-        GoalTable goal = goalService.createGoal(
-                testUser,
-                goalName,
-                "Save for emergencies",
-                BigDecimal.valueOf(10000.00),
-                LocalDate.now().plusMonths(12),
-                "EMERGENCY_FUND",
-                expectedGoalId, // App-provided ID
-                null, // currentAmount
-                null // accountIds
-        );
+        final GoalTable goal =
+                goalService.createGoal(
+                        testUser,
+                        goalName,
+                        "Save for emergencies",
+                        BigDecimal.valueOf(10000.00),
+                        LocalDate.now().plusMonths(12),
+                        "EMERGENCY_FUND",
+                        expectedGoalId, // App-provided ID
+                        null, // currentAmount
+                        null // accountIds
+                );
 
         // Then - Should use the provided ID
         assertEquals(expectedGoalId, goal.getGoalId(), "Goal should use provided ID");
@@ -259,24 +251,25 @@ class IdConsistencyIntegrationTest {
     }
 
     @Test
-    void testGoalCreation_WithoutAppProvidedId_GeneratesDeterministic() {
+    void testGoalCreationWithoutAppProvidedIdGeneratesDeterministic() {
         // Given
-        String userId = testUser.getUserId();
-        String goalName = "Vacation Fund";
-        String expectedGoalId = IdGenerator.generateGoalId(userId, goalName);
+        final String userId = testUser.getUserId();
+        final String goalName = "Vacation Fund";
+        final String expectedGoalId = IdGenerator.generateGoalId(userId, goalName);
 
         // When - Create goal without app-provided ID
-        GoalTable goal = goalService.createGoal(
-                testUser,
-                goalName,
-                "Save for vacation",
-                BigDecimal.valueOf(5000.00),
-                LocalDate.now().plusMonths(6),
-                "VACATION",
-                null, // Let backend generate
-                null, // currentAmount
-                null // accountIds
-        );
+        final GoalTable goal =
+                goalService.createGoal(
+                        testUser,
+                        goalName,
+                        "Save for vacation",
+                        BigDecimal.valueOf(5000.00),
+                        LocalDate.now().plusMonths(6),
+                        "VACATION",
+                        null, // Let backend generate
+                        null, // currentAmount
+                        null // accountIds
+                );
 
         // Then - Should generate deterministic ID matching our expectation
         assertEquals(expectedGoalId, goal.getGoalId(), "Goal should generate deterministic ID");
@@ -284,136 +277,153 @@ class IdConsistencyIntegrationTest {
     }
 
     @Test
-    void testAccountId_AppBackendConsistency() {
+    void testAccountIdAppBackendConsistency() {
         // Given - Simulate what app would generate
-        String institutionName = "Wells Fargo";
-        String plaidAccountId = "plaid_acc_app_test";
+        final String institutionName = "Wells Fargo";
+        final String plaidAccountId = "plaid_acc_app_test";
 
         // When - App generates ID (simulated)
-        String appGeneratedId = IdGenerator.generateAccountId(institutionName, plaidAccountId);
+        final String appGeneratedId = IdGenerator.generateAccountId(institutionName, plaidAccountId);
 
         // When - Backend generates ID (same logic)
-        String backendGeneratedId = IdGenerator.generateAccountId(institutionName, plaidAccountId);
+        final String backendGeneratedId = IdGenerator.generateAccountId(institutionName, plaidAccountId);
 
         // Then - Should be identical
-        assertEquals(appGeneratedId, backendGeneratedId, "App and backend should generate same account ID");
+        assertEquals(
+                appGeneratedId,
+                backendGeneratedId,
+                "App and backend should generate same account ID");
     }
 
     @Test
-    void testTransactionId_AppBackendConsistency() {
+    void testTransactionIdAppBackendConsistency() {
         // Given - Simulate what app would generate
-        String institutionName = "Bank of America";
-        String accountId = UUID.randomUUID().toString(); // App's account ID
-        String plaidTransactionId = "plaid_txn_app_test";
+        final String institutionName = "Bank of America";
+        final String accountId = UUID.randomUUID().toString(); // App's account ID
+        final String plaidTransactionId = "plaid_txn_app_test";
 
         // When - App generates transaction ID (simulated)
-        String appGeneratedId = IdGenerator.generateTransactionId(institutionName, accountId, plaidTransactionId);
+        final String appGeneratedId =
+                IdGenerator.generateTransactionId(institutionName, accountId, plaidTransactionId);
 
         // When - Backend generates transaction ID (same logic)
-        String backendGeneratedId = IdGenerator.generateTransactionId(institutionName, accountId, plaidTransactionId);
+        final String backendGeneratedId =
+                IdGenerator.generateTransactionId(institutionName, accountId, plaidTransactionId);
 
         // Then - Should be identical
-        assertEquals(appGeneratedId, backendGeneratedId, "App and backend should generate same transaction ID");
+        assertEquals(
+                appGeneratedId,
+                backendGeneratedId,
+                "App and backend should generate same transaction ID");
     }
 
     @Test
-    void testBudgetId_AppBackendConsistency() {
+    void testBudgetIdAppBackendConsistency() {
         // Given - Simulate what app would generate
-        String userId = testUser.getUserId();
-        String category = "DINING";
+        final String userId = testUser.getUserId();
+        final String category = "DINING";
 
         // When - App generates budget ID (simulated)
-        String appGeneratedId = IdGenerator.generateBudgetId(userId, category);
+        final String appGeneratedId = IdGenerator.generateBudgetId(userId, category);
 
         // When - Backend generates budget ID (same logic)
-        String backendGeneratedId = IdGenerator.generateBudgetId(userId, category);
+        final String backendGeneratedId = IdGenerator.generateBudgetId(userId, category);
 
         // Then - Should be identical
-        assertEquals(appGeneratedId, backendGeneratedId, "App and backend should generate same budget ID");
+        assertEquals(
+                appGeneratedId,
+                backendGeneratedId,
+                "App and backend should generate same budget ID");
     }
 
     @Test
-    void testGoalId_AppBackendConsistency() {
+    void testGoalIdAppBackendConsistency() {
         // Given - Simulate what app would generate
-        String userId = testUser.getUserId();
-        String goalName = "House Down Payment";
+        final String userId = testUser.getUserId();
+        final String goalName = "House Down Payment";
 
         // When - App generates goal ID (simulated)
-        String appGeneratedId = IdGenerator.generateGoalId(userId, goalName);
+        final String appGeneratedId = IdGenerator.generateGoalId(userId, goalName);
 
         // When - Backend generates goal ID (same logic)
-        String backendGeneratedId = IdGenerator.generateGoalId(userId, goalName);
+        final String backendGeneratedId = IdGenerator.generateGoalId(userId, goalName);
 
         // Then - Should be identical
-        assertEquals(appGeneratedId, backendGeneratedId, "App and backend should generate same goal ID");
+        assertEquals(
+                appGeneratedId, backendGeneratedId, "App and backend should generate same goal ID");
     }
 
     @Test
-    void testBudgetId_DuplicatePrevention() {
+    void testBudgetIdDuplicatePrevention() {
         // Given
-        String userId = testUser.getUserId();
-        String category = "ENTERTAINMENT";
-        String budgetId = IdGenerator.generateBudgetId(userId, category);
+        final String userId = testUser.getUserId();
+        final String category = "ENTERTAINMENT";
+        final String budgetId = IdGenerator.generateBudgetId(userId, category);
 
         // When - Create first budget with ID
-        BudgetTable budget1 = budgetService.createOrUpdateBudget(
-                testUser,
-                category,
-                BigDecimal.valueOf(200.00),
-                budgetId
-        );
+        final BudgetTable budget1 =
+                budgetService.createOrUpdateBudget(
+                        testUser, category, BigDecimal.valueOf(200.00), budgetId);
 
         // Then - Should succeed
         assertNotNull(budget1, "First budget should be created");
 
         // When - Try to create another budget with same ID
-        assertThrows(AppException.class, () -> {
-            budgetService.createOrUpdateBudget(
-                    testUser,
-                    "OTHER", // Different category but same ID (shouldn't happen in practice)
-                    BigDecimal.valueOf(300.00),
-                    budgetId // Same ID
-            );
-        }, "Should throw exception when budget ID already exists");
+        assertThrows(
+                AppException.class,
+                () -> {
+                    budgetService.createOrUpdateBudget(
+                            testUser,
+                            "OTHER", // Different category but same ID (shouldn't happen in
+                            // practice)
+                            BigDecimal.valueOf(300.00),
+                            budgetId // Same ID
+                            );
+                },
+                "Should throw exception when budget ID already exists");
     }
 
     @Test
-    void testGoalId_DuplicatePrevention() {
+    void testGoalIdDuplicatePrevention() {
         // Given
-        String userId = testUser.getUserId();
-        String goalName = "Test Goal";
-        String goalId = IdGenerator.generateGoalId(userId, goalName);
+        final String userId = testUser.getUserId();
+        final String goalName = "Test Goal";
+        final String goalId = IdGenerator.generateGoalId(userId, goalName);
 
         // When - Create first goal with ID
-        GoalTable goal1 = goalService.createGoal(
-                testUser,
-                goalName,
-                "Test description",
-                BigDecimal.valueOf(1000.00),
-                LocalDate.now().plusMonths(6),
-                "CUSTOM",
-                goalId,
-                null, // currentAmount
-                null // accountIds
-        );
+        final GoalTable goal1 =
+                goalService.createGoal(
+                        testUser,
+                        goalName,
+                        "Test description",
+                        BigDecimal.valueOf(1000.00),
+                        LocalDate.now().plusMonths(6),
+                        "CUSTOM",
+                        goalId,
+                        null, // currentAmount
+                        null // accountIds
+                );
 
         // Then - Should succeed
         assertNotNull(goal1, "First goal should be created");
 
         // When - Try to create another goal with same ID
-        assertThrows(AppException.class, () -> {
-            goalService.createGoal(
-                    testUser,
-                    "Different Goal Name", // Different name but same ID (shouldn't happen in practice)
-                    "Different description",
-                    BigDecimal.valueOf(2000.00),
-                    LocalDate.now().plusMonths(12),
-                    "CUSTOM",
-                    goalId, // Same ID
-                    null, // currentAmount
-                    null // accountIds
-            );
-        }, "Should throw exception when goal ID already exists");
+        assertThrows(
+                AppException.class,
+                () -> {
+                    goalService.createGoal(
+                            testUser,
+                            "Different Goal Name", // Different name but same ID (shouldn't happen
+                            // in practice)
+                            "Different description",
+                            BigDecimal.valueOf(2000.00),
+                            LocalDate.now().plusMonths(12),
+                            "CUSTOM",
+                            goalId, // Same ID
+                            null, // currentAmount
+                            null // accountIds
+                            );
+                },
+                "Should throw exception when goal ID already exists");
     }
 }
-

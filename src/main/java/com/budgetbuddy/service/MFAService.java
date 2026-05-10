@@ -1,5 +1,7 @@
 package com.budgetbuddy.service;
 
+
+import java.util.Locale;
 import com.budgetbuddy.exception.AppException;
 import com.budgetbuddy.exception.ErrorCode;
 import com.budgetbuddy.model.dynamodb.UserTable;
@@ -9,11 +11,6 @@ import com.warrenstrange.googleauth.GoogleAuthenticatorConfig;
 import com.warrenstrange.googleauth.GoogleAuthenticatorKey;
 import com.warrenstrange.googleauth.GoogleAuthenticatorQRGenerator;
 import com.warrenstrange.googleauth.KeyRepresentation;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
-
 import java.security.SecureRandom;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -22,16 +19,24 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
 
 /**
- * Multi-Factor Authentication (MFA) Service
- * Supports TOTP, SMS OTP, Email OTP, and Backup Codes
+ * Multi-Factor Authentication (MFA) Service Supports TOTP, SMS OTP, Email OTP, and Backup Codes
  * Compliant with: SOC 2, HIPAA, PCI-DSS, ISO 27001, NYDFS, NIST 800-63B
  */
+// PMD's LawOfDemeter is documented as imprecise on chains involving
+// standard library types (BigDecimal, String, Optional) and DTO
+// getters; this class has many such idiomatic uses. Suppress at
+// class level rather than littering every method.
+@SuppressWarnings("PMD.LawOfDemeter")
 @Service
 public class MFAService {
 
-    private static final Logger logger = LoggerFactory.getLogger(MFAService.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(MFAService.class);
 
     private final UserRepository userRepository;
     private final GoogleAuthenticator googleAuthenticator;
@@ -63,24 +68,23 @@ public class MFAService {
 
     public MFAService(final UserRepository userRepository) {
         this.userRepository = userRepository;
-        
+
         // Configure Google Authenticator for TOTP
-        GoogleAuthenticatorConfig config = new GoogleAuthenticatorConfig.GoogleAuthenticatorConfigBuilder()
-                .setTimeStepSizeInMillis(TimeUnit.SECONDS.toMillis(30)) // 30-second time steps
-                .setWindowSize(1) // Allow 1 time step window for clock skew
-                .setCodeDigits(6) // 6-digit codes
-                .setKeyRepresentation(KeyRepresentation.BASE32) // Base32 encoding
-                .build();
-        
+        final GoogleAuthenticatorConfig config =
+                new GoogleAuthenticatorConfig.GoogleAuthenticatorConfigBuilder()
+                        .setTimeStepSizeInMillis(
+                                TimeUnit.SECONDS.toMillis(30)) // 30-second time steps
+                        .setWindowSize(1) // Allow 1 time step window for clock skew
+                        .setCodeDigits(6) // 6-digit codes
+                        .setKeyRepresentation(KeyRepresentation.BASE32) // Base32 encoding
+                        .build();
+
         this.googleAuthenticator = new GoogleAuthenticator(config);
     }
 
     // MARK: - TOTP (Time-based One-Time Password)
 
-    /**
-     * Generate TOTP secret for a user
-     * Returns the secret and QR code URL for setup
-     */
+    /** Generate TOTP secret for a user Returns the secret and QR code URL for setup */
     public TOTPSetupResult setupTOTP(final String userId, final String email) {
         if (userId == null || userId.isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "User ID is required");
@@ -90,77 +94,69 @@ public class MFAService {
         }
 
         // Generate TOTP secret
-        GoogleAuthenticatorKey key = googleAuthenticator.createCredentials();
-        String secret = key.getKey();
+        final GoogleAuthenticatorKey key = googleAuthenticator.createCredentials();
+        final String secret = key.getKey();
 
         // Store secret (in production, encrypt and store in DynamoDB)
         totpSecrets.put(userId, secret);
 
         // Generate QR code URL
-        String qrCodeUrl = GoogleAuthenticatorQRGenerator.getOtpAuthURL(
-                totpIssuer,
-                email,
-                key
-        );
+        final String qrCodeUrl = GoogleAuthenticatorQRGenerator.getOtpAuthURL(totpIssuer, email, key);
 
-        logger.info("TOTP secret generated for user: {}", userId);
+        LOGGER.info("TOTP secret generated for user: {}", userId);
 
         return new TOTPSetupResult(secret, qrCodeUrl);
     }
 
-    /**
-     * Verify TOTP code
-     */
+    /** Verify TOTP code */
     public boolean verifyTOTP(final String userId, final int code) {
         if (userId == null || userId.isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "User ID is required");
         }
 
-        String secret = totpSecrets.get(userId);
+        final String secret = totpSecrets.get(userId);
         if (secret == null || secret.isEmpty()) {
-            logger.warn("TOTP secret not found for user: {}", userId);
+            LOGGER.warn("TOTP secret not found for user: {}", userId);
             return false;
         }
 
-        boolean isValid = googleAuthenticator.authorize(secret, code);
-        
+        final boolean isValid = googleAuthenticator.authorize(secret, code);
+
         if (isValid) {
-            logger.debug("TOTP code verified successfully for user: {}", userId);
+            LOGGER.debug("TOTP code verified successfully for user: {}", userId);
         } else {
-            logger.warn("TOTP code verification failed for user: {}", userId);
+            LOGGER.warn("TOTP code verification failed for user: {}", userId);
         }
 
         return isValid;
     }
 
-    /**
-     * Remove TOTP for a user
-     */
+    /** Remove TOTP for a user */
     public void removeTOTP(final String userId) {
         if (userId == null || userId.isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "User ID is required");
         }
 
         totpSecrets.remove(userId);
-        logger.info("TOTP removed for user: {}", userId);
+        LOGGER.info("TOTP removed for user: {}", userId);
     }
 
     // MARK: - Backup Codes
 
     /**
-     * Generate backup codes for a user
-     * Returns list of backup codes (should be shown to user once and stored securely)
+     * Generate backup codes for a user Returns list of backup codes (should be shown to user once
+     * and stored securely)
      */
     public List<String> generateBackupCodes(final String userId) {
         if (userId == null || userId.isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "User ID is required");
         }
 
-        List<String> codes = new ArrayList<>();
-        Set<String> hashedCodes = new HashSet<>();
+        final List<String> codes = new ArrayList<>();
+        final Set<String> hashedCodes = new HashSet<>();
 
         for (int i = 0; i < backupCodesCount; i++) {
-            String code = generateBackupCode();
+            final String code = generateBackupCode();
             codes.add(code);
             // Hash code before storing (in production, use proper hashing)
             hashedCodes.add(hashBackupCode(code));
@@ -169,14 +165,12 @@ public class MFAService {
         // Store hashed backup codes (in production, encrypt and store in DynamoDB)
         backupCodes.put(userId, hashedCodes);
 
-        logger.info("Generated {} backup codes for user: {}", backupCodesCount, userId);
+        LOGGER.info("Generated {} backup codes for user: {}", backupCodesCount, userId);
 
         return codes;
     }
 
-    /**
-     * Verify backup code
-     */
+    /** Verify backup code */
     public boolean verifyBackupCode(final String userId, final String code) {
         if (userId == null || userId.isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "User ID is required");
@@ -185,39 +179,37 @@ public class MFAService {
             return false;
         }
 
-        Set<String> hashedCodes = backupCodes.get(userId);
+        final Set<String> hashedCodes = backupCodes.get(userId);
         if (hashedCodes == null || hashedCodes.isEmpty()) {
-            logger.warn("Backup codes not found for user: {}", userId);
+            LOGGER.warn("Backup codes not found for user: {}", userId);
             return false;
         }
 
-        String hashedCode = hashBackupCode(code);
-        boolean isValid = hashedCodes.remove(hashedCode);
+        final String hashedCode = hashBackupCode(code);
+        final boolean isValid = hashedCodes.remove(hashedCode);
 
         if (isValid) {
             // Update stored codes (remove used code)
             backupCodes.put(userId, hashedCodes);
-            logger.info("Backup code verified and removed for user: {}", userId);
+            LOGGER.info("Backup code verified and removed for user: {}", userId);
         } else {
-            logger.warn("Invalid backup code for user: {}", userId);
+            LOGGER.warn("Invalid backup code for user: {}", userId);
         }
 
         return isValid;
     }
 
-    /**
-     * Check if user has backup codes
-     */
+    /** Check if user has backup codes */
     public boolean hasBackupCodes(final String userId) {
-        Set<String> codes = backupCodes.get(userId);
+        final Set<String> codes = backupCodes.get(userId);
         return codes != null && !codes.isEmpty();
     }
 
     // MARK: - SMS/Email OTP
 
     /**
-     * Generate and store OTP code (for SMS or Email)
-     * In production, this would trigger SMS/Email sending via AWS SNS/SES
+     * Generate and store OTP code (for SMS or Email) In production, this would trigger SMS/Email
+     * sending via AWS SNS/SES
      */
     public String generateOTP(final String userId, final OTPType type) {
         if (userId == null || userId.isEmpty()) {
@@ -225,15 +217,19 @@ public class MFAService {
         }
 
         // Generate 6-digit OTP
-        int otp = 100000 + secureRandom.nextInt(900000);
-        String otpCode = String.valueOf(otp);
+        final int otp = 100_000 + secureRandom.nextInt(900_000);
+        final String otpCode = String.valueOf(otp);
 
         // Store OTP with expiration
-        String key = userId + ":" + type.name().toLowerCase();
-        OTPInfo otpInfo = new OTPInfo(otpCode, Instant.now().plusSeconds(otpExpirationSeconds));
+        final String key = userId + ":" + type.name().toLowerCase(Locale.ROOT);
+        final OTPInfo otpInfo = new OTPInfo(otpCode, Instant.now().plusSeconds(otpExpirationSeconds));
         otpCodes.put(key, otpInfo);
 
-        logger.info("Generated {} OTP for user: {} (expires in {} seconds)", type, userId, otpExpirationSeconds);
+        LOGGER.info(
+                "Generated {} OTP for user: {} (expires in {} seconds)",
+                type,
+                userId,
+                otpExpirationSeconds);
 
         // In production, send OTP via SMS/Email here
         // For now, return the code (should be sent via SMS/Email in production)
@@ -241,9 +237,7 @@ public class MFAService {
         return otpCode;
     }
 
-    /**
-     * Verify OTP code (SMS or Email)
-     */
+    /** Verify OTP code (SMS or Email) */
     public boolean verifyOTP(final String userId, final OTPType type, final String code) {
         if (userId == null || userId.isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "User ID is required");
@@ -252,30 +246,30 @@ public class MFAService {
             return false;
         }
 
-        String key = userId + ":" + type.name().toLowerCase();
-        OTPInfo otpInfo = otpCodes.get(key);
+        final String key = userId + ":" + type.name().toLowerCase(Locale.ROOT);
+        final OTPInfo otpInfo = otpCodes.get(key);
 
         if (otpInfo == null) {
-            logger.warn("OTP not found for user: {}, type: {}", userId, type);
+            LOGGER.warn("OTP not found for user: {}, type: {}", userId, type);
             return false;
         }
 
         // Check expiration
         if (otpInfo.getExpiresAt().isBefore(Instant.now())) {
             otpCodes.remove(key);
-            logger.warn("OTP expired for user: {}, type: {}", userId, type);
+            LOGGER.warn("OTP expired for user: {}, type: {}", userId, type);
             return false;
         }
 
         // Verify code
-        boolean isValid = otpInfo.getCode().equals(code);
+        final boolean isValid = otpInfo.getCode().equals(code);
 
         if (isValid) {
             // Remove used OTP
             otpCodes.remove(key);
-            logger.info("OTP verified successfully for user: {}, type: {}", userId, type);
+            LOGGER.info("OTP verified successfully for user: {}, type: {}", userId, type);
         } else {
-            logger.warn("Invalid OTP for user: {}, type: {}", userId, type);
+            LOGGER.warn("Invalid OTP for user: {}, type: {}", userId, type);
         }
 
         return isValid;
@@ -283,15 +277,13 @@ public class MFAService {
 
     // MARK: - MFA Status
 
-    /**
-     * Check if MFA is enabled for a user
-     */
+    /** Check if MFA is enabled for a user */
     public boolean isMFAEnabled(final String userId) {
         if (userId == null || userId.isEmpty()) {
             return false;
         }
 
-        UserTable user = userRepository.findById(userId).orElse(null);
+        final UserTable user = userRepository.findById(userId).orElse(null);
         if (user == null) {
             return false;
         }
@@ -299,34 +291,36 @@ public class MFAService {
         return Boolean.TRUE.equals(user.getTwoFactorEnabled());
     }
 
-    /**
-     * Enable MFA for a user
-     */
+    /** Enable MFA for a user */
     public void enableMFA(final String userId) {
         if (userId == null || userId.isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "User ID is required");
         }
 
-        UserTable user = userRepository.findById(userId)
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+        final UserTable user =
+                userRepository
+                        .findById(userId)
+                        .orElseThrow(
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
 
         user.setTwoFactorEnabled(true);
         user.setUpdatedAt(Instant.now());
         userRepository.save(user);
 
-        logger.info("MFA enabled for user: {}", userId);
+        LOGGER.info("MFA enabled for user: {}", userId);
     }
 
-    /**
-     * Disable MFA for a user
-     */
+    /** Disable MFA for a user */
     public void disableMFA(final String userId) {
         if (userId == null || userId.isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "User ID is required");
         }
 
-        UserTable user = userRepository.findById(userId)
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
+        final UserTable user =
+                userRepository
+                        .findById(userId)
+                        .orElseThrow(
+                                () -> new AppException(ErrorCode.USER_NOT_FOUND, "User not found"));
 
         user.setTwoFactorEnabled(false);
         user.setUpdatedAt(Instant.now());
@@ -336,26 +330,22 @@ public class MFAService {
         totpSecrets.remove(userId);
         backupCodes.remove(userId);
 
-        logger.info("MFA disabled for user: {}", userId);
+        LOGGER.info("MFA disabled for user: {}", userId);
     }
 
     // MARK: - Helper Methods
 
-    /**
-     * Generate a backup code
-     */
+    /** Generate a backup code */
     private String generateBackupCode() {
-        StringBuilder code = new StringBuilder(backupCodeLength);
-        String chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // Exclude ambiguous characters
+        final StringBuilder code = new StringBuilder(backupCodeLength);
+        final String chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // Exclude ambiguous characters
         for (int i = 0; i < backupCodeLength; i++) {
             code.append(chars.charAt(secureRandom.nextInt(chars.length())));
         }
         return code.toString();
     }
 
-    /**
-     * Hash backup code (simple hash for demo - use proper hashing in production)
-     */
+    /** Hash backup code (simple hash for demo - use proper hashing in production) */
     private String hashBackupCode(final String code) {
         // In production, use proper hashing (e.g., BCrypt, Argon2)
         // For now, use simple hash (NOT SECURE - for demo only)
@@ -364,9 +354,7 @@ public class MFAService {
 
     // MARK: - Inner Classes
 
-    /**
-     * TOTP setup result
-     */
+    /** TOTP setup result */
     public static class TOTPSetupResult {
         private final String secret;
         private final String qrCodeUrl;
@@ -385,22 +373,18 @@ public class MFAService {
         }
     }
 
-    /**
-     * OTP type
-     */
+    /** OTP type */
     public enum OTPType {
         SMS,
         EMAIL
     }
 
-    /**
-     * OTP information
-     */
+    /** OTP information */
     private static class OTPInfo {
         private final String code;
         private final Instant expiresAt;
 
-        public OTPInfo(final String code, final Instant expiresAt) {
+        OTPInfo(final String code, final Instant expiresAt) {
             this.code = code;
             this.expiresAt = expiresAt;
         }
@@ -414,4 +398,3 @@ public class MFAService {
         }
     }
 }
-

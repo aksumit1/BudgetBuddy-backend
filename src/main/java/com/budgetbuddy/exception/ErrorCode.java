@@ -1,9 +1,6 @@
 package com.budgetbuddy.exception;
 
-/**
- * Comprehensive Error Code Enum
- * Categorizes all possible errors in the system
- */
+/** Comprehensive Error Code Enum Categorizes all possible errors in the system */
 public enum ErrorCode {
     // Authentication & Authorization (1xxx)
     AUTHENTICATION_FAILED(1001, "Authentication failed"),
@@ -86,18 +83,21 @@ public enum ErrorCode {
     BUDGET_NOT_FOUND(9006, "Budget not found"),
     GOAL_NOT_ACHIEVABLE(9004, "Goal not achievable"),
     GOAL_NOT_FOUND(9007, "Goal not found"),
+    GOAL_ALREADY_COMPLETED(9008, "Goal has already been completed"),
     INVALID_TRANSACTION(9005, "Invalid transaction"),
+    /** 409 Conflict — row has moved since the client last read it (Flow 4 / O2). */
+    CONFLICT(9009, "Conflict with current resource state"),
 
     // System Errors (10xxx)
-    INTERNAL_SERVER_ERROR(10001, "Internal server error"),
-    SERVICE_UNAVAILABLE_ERROR(10002, "Service temporarily unavailable"),
-    CONFIGURATION_ERROR(10003, "Configuration error"),
-    UNKNOWN_ERROR(10004, "Unknown error occurred");
+    INTERNAL_SERVER_ERROR(10_001, "Internal server error"),
+    SERVICE_UNAVAILABLE_ERROR(10_002, "Service temporarily unavailable"),
+    CONFIGURATION_ERROR(10_003, "Configuration error"),
+    UNKNOWN_ERROR(10_004, "Unknown error occurred");
 
     private final int code;
     private final String message;
 
-    ErrorCode(int code, String message) {
+    ErrorCode(final int code, final String message) {
         this.code = code;
         this.message = message;
     }
@@ -110,8 +110,8 @@ public enum ErrorCode {
         return message;
     }
 
-    public static ErrorCode fromCode(int code) {
-        for (ErrorCode errorCode : values()) {
+    public static ErrorCode fromCode(final int code) {
+        for (final ErrorCode errorCode : values()) {
             if (errorCode.code == code) {
                 return errorCode;
             }
@@ -119,4 +119,3 @@ public enum ErrorCode {
         return UNKNOWN_ERROR;
     }
 }
-

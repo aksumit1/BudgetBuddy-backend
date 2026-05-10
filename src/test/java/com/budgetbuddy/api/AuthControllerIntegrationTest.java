@@ -1,9 +1,17 @@
 package com.budgetbuddy.api;
 
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.request;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
 import com.budgetbuddy.AWSTestConfiguration;
 import com.budgetbuddy.dto.AuthRequest;
 import com.budgetbuddy.util.TableInitializer;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.nio.charset.StandardCharsets;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -20,43 +28,37 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 
-import java.nio.charset.StandardCharsets;
-
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
-
-/**
- */
+/** */
+// PMD's LawOfDemeter is documented as imprecise on chains involving
+// standard library types (BigDecimal, String, Optional) and DTO
+// getters; this class has many such idiomatic uses. Suppress at
+// class level rather than littering every method.
+@SuppressWarnings("PMD.LawOfDemeter")
 @SpringBootTest(
-    classes = com.budgetbuddy.BudgetBuddyApplication.class,
-    webEnvironment = org.springframework.boot.test.context.SpringBootTest.WebEnvironment.MOCK
-)
+        classes = com.budgetbuddy.BudgetBuddyApplication.class,
+        webEnvironment = org.springframework.boot.test.context.SpringBootTest.WebEnvironment.MOCK)
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 @Import(AWSTestConfiguration.class)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class AuthControllerIntegrationTest {
 
-    private static final Logger logger = LoggerFactory.getLogger(AuthControllerIntegrationTest.class);
+    private static final Logger LOGGER =
+            LoggerFactory.getLogger(AuthControllerIntegrationTest.class);
 
-    @Autowired
-    private MockMvc mockMvc;
+    @Autowired private MockMvc mockMvc;
 
-    @Autowired
-    private ObjectMapper objectMapper;
+    @Autowired private ObjectMapper objectMapper;
 
-    @Autowired
-    private DynamoDbClient dynamoDbClient;
+    @Autowired private DynamoDbClient dynamoDbClient;
 
-    // Note: @MockBean is deprecated in Spring Boot 3.4.0, but still functional
+    // Note: @MockitoBean is deprecated in Spring Boot 3.4.0, but still functional
     @SuppressWarnings("deprecation")
-    @org.springframework.boot.test.mock.mockito.MockBean
+    @org.springframework.test.context.bean.override.mockito.MockitoBean
     private com.budgetbuddy.security.rate.RateLimitService rateLimitService;
 
     @SuppressWarnings("deprecation")
-    @org.springframework.boot.test.mock.mockito.MockBean
+    @org.springframework.test.context.bean.override.mockito.MockitoBean
     private com.budgetbuddy.security.ddos.DDoSProtectionService ddosProtectionService;
 
     @BeforeEach
@@ -74,12 +76,17 @@ class AuthControllerIntegrationTest {
             TableInitializer.ensureTablesInitializedAndVerified(dynamoDbClient);
         } catch (RuntimeException e) {
             // If LocalStack is not available, skip this test class
-            if (e.getCause() != null && 
-                (e.getCause().getMessage().contains("Connection refused") || 
-                 e.getCause().getMessage().contains("Unable to execute HTTP request"))) {
-                logger.warn("LocalStack/DynamoDB not available, skipping integration tests: {}", e.getMessage());
-                Assumptions.assumeTrue(false, 
-                    "LocalStack/DynamoDB is not available. Please start Docker and LocalStack to run integration tests.");
+            if (e.getCause() != null
+                    && (e.getCause().getMessage().contains("Connection refused")
+                            || e.getCause()
+                                    .getMessage()
+                                    .contains("Unable to execute HTTP request"))) {
+                LOGGER.warn(
+                        "LocalStack/DynamoDB not available, skipping integration tests: {}",
+                        e.getMessage());
+                Assumptions.assumeTrue(
+                        false,
+                        "LocalStack/DynamoDB is not available. Please start Docker and LocalStack to run integration tests.");
             } else {
                 throw e; // Re-throw if it's a different error
             }
@@ -87,201 +94,224 @@ class AuthControllerIntegrationTest {
     }
 
     @Test
-    void testRegister_Success() throws Exception {
+    void testRegisterSuccess() throws Exception {
         // Use unique email for each test run to avoid conflicts
-        String uniqueEmail = "newuser" + System.currentTimeMillis() + "@example.com";
-        AuthRequest request = new AuthRequest();
+        final String uniqueEmail = "newuser" + System.currentTimeMillis() + "@example.com";
+        final AuthRequest request = new AuthRequest();
         request.setEmail(uniqueEmail);
         // Use proper base64-encoded strings
-        request.setPasswordHash(java.util.Base64.getEncoder().encodeToString("hashed-password".getBytes(StandardCharsets.UTF_8)));
+        request.setPasswordHash(
+                java.util.Base64.getEncoder()
+                        .encodeToString("hashed-password".getBytes(StandardCharsets.UTF_8)));
         // BREAKING CHANGE: Client salt removed - backend handles salt management
-        // request.setSalt(java.util.Base64.getEncoder().encodeToString("client-salt".getBytes()));
+        // request.setSalt(java.util.Base64.getEncoder().encodeToString("client-salt".getBytes(StandardCharsets.UTF_8)));
 
-        mockMvc.perform(post("/api/auth/register")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(request)))
+        mockMvc.perform(
+                        post("/api/auth/register")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.accessToken").exists())
                 .andExpect(jsonPath("$.user.id").exists());
     }
 
     @Test
-    void testRegister_InvalidEmail() throws Exception {
-        AuthRequest request = new AuthRequest();
+    void testRegisterInvalidEmail() throws Exception {
+        final AuthRequest request = new AuthRequest();
         request.setEmail("invalid-email");
         // Use proper base64-encoded strings
-        request.setPasswordHash(java.util.Base64.getEncoder().encodeToString("hashed-password".getBytes(StandardCharsets.UTF_8)));
+        request.setPasswordHash(
+                java.util.Base64.getEncoder()
+                        .encodeToString("hashed-password".getBytes(StandardCharsets.UTF_8)));
         // BREAKING CHANGE: Client salt removed - backend handles salt management
-        // request.setSalt(java.util.Base64.getEncoder().encodeToString("client-salt".getBytes()));
+        // request.setSalt(java.util.Base64.getEncoder().encodeToString("client-salt".getBytes(StandardCharsets.UTF_8)));
 
-        mockMvc.perform(post("/api/auth/register")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(request)))
+        mockMvc.perform(
+                        post("/api/auth/register")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
     }
 
     @Test
-    void testLogin_Success() throws Exception {
+    void testLoginSuccess() throws Exception {
         // Use unique email for each test run to avoid conflicts
-        String uniqueEmail = "loginuser" + System.currentTimeMillis() + "@example.com";
+        final String uniqueEmail = "loginuser" + System.currentTimeMillis() + "@example.com";
         // First register a user
-        String passwordHash = java.util.Base64.getEncoder().encodeToString("hashed-password".getBytes());
-        String clientSalt = java.util.Base64.getEncoder().encodeToString("client-salt".getBytes());
-        
-        AuthRequest registerRequest = new AuthRequest();
+        final String passwordHash =
+                java.util.Base64.getEncoder().encodeToString("hashed-password".getBytes(StandardCharsets.UTF_8));
+        final String clientSalt = java.util.Base64.getEncoder().encodeToString("client-salt".getBytes(StandardCharsets.UTF_8));
+
+        final AuthRequest registerRequest = new AuthRequest();
         registerRequest.setEmail(uniqueEmail);
         registerRequest.setPasswordHash(passwordHash);
-        
 
-        mockMvc.perform(post("/api/auth/register")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(registerRequest)))
+        mockMvc.perform(
+                        post("/api/auth/register")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(registerRequest)))
                 .andExpect(status().isCreated());
 
         // Then login
-        AuthRequest loginRequest = new AuthRequest();
+        final AuthRequest loginRequest = new AuthRequest();
         loginRequest.setEmail(uniqueEmail);
         loginRequest.setPasswordHash(passwordHash);
-        
 
-        mockMvc.perform(post("/api/auth/login")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(loginRequest)))
+        mockMvc.perform(
+                        post("/api/auth/login")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(loginRequest)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.accessToken").exists())
                 .andExpect(jsonPath("$.user.id").exists());
     }
 
     @Test
-    void testLogin_InvalidCredentials() throws Exception {
-        AuthRequest request = new AuthRequest();
+    void testLoginInvalidCredentials() throws Exception {
+        final AuthRequest request = new AuthRequest();
         request.setEmail("nonexistent@example.com");
         // Use proper base64-encoded strings
-        request.setPasswordHash(java.util.Base64.getEncoder().encodeToString("wrong-hash".getBytes()));
+        request.setPasswordHash(
+                java.util.Base64.getEncoder().encodeToString("wrong-hash".getBytes(StandardCharsets.UTF_8)));
         // BREAKING CHANGE: Client salt removed - backend handles salt management
-        // request.setSalt(java.util.Base64.getEncoder().encodeToString("client-salt".getBytes()));
+        // request.setSalt(java.util.Base64.getEncoder().encodeToString("client-salt".getBytes(StandardCharsets.UTF_8)));
 
-        mockMvc.perform(post("/api/auth/login")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(request)))
+        mockMvc.perform(
+                        post("/api/auth/login")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isUnauthorized());
     }
 
     @Test
-    void testChangePassword_Success() throws Exception {
+    void testChangePasswordSuccess() throws Exception {
         // Register and login to get auth token
-        String uniqueEmail = "changepwd" + System.currentTimeMillis() + "@example.com";
-        String passwordHash = java.util.Base64.getEncoder().encodeToString("hashed-password".getBytes());
-        String clientSalt = java.util.Base64.getEncoder().encodeToString("client-salt".getBytes());
-        
-        AuthRequest registerRequest = new AuthRequest();
+        final String uniqueEmail = "changepwd" + System.currentTimeMillis() + "@example.com";
+        final String passwordHash =
+                java.util.Base64.getEncoder().encodeToString("hashed-password".getBytes(StandardCharsets.UTF_8));
+        final String clientSalt = java.util.Base64.getEncoder().encodeToString("client-salt".getBytes(StandardCharsets.UTF_8));
+
+        final AuthRequest registerRequest = new AuthRequest();
         registerRequest.setEmail(uniqueEmail);
         registerRequest.setPasswordHash(passwordHash);
-        
 
-        String registerResponse = mockMvc.perform(post("/api/auth/register")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(registerRequest)))
-                .andExpect(status().isCreated())
-                .andReturn()
-                .getResponse()
-                .getContentAsString();
+        final String registerResponse =
+                mockMvc.perform(
+                        post("/api/auth/register")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(registerRequest)))
+                        .andExpect(status().isCreated())
+                        .andReturn()
+                        .getResponse()
+                        .getContentAsString();
 
         // Extract access token from response
-        String accessToken = objectMapper.readTree(registerResponse).get("accessToken").asText();
+        final String accessToken = objectMapper.readTree(registerResponse).get("accessToken").asText();
 
         // Prepare password change request
-        String newPasswordHash = java.util.Base64.getEncoder().encodeToString("new-hashed-password".getBytes());
-        String newClientSalt = java.util.Base64.getEncoder().encodeToString("new-client-salt".getBytes());
+        final String newPasswordHash =
+                java.util.Base64.getEncoder().encodeToString("new-hashed-password".getBytes(StandardCharsets.UTF_8));
+        final String newClientSalt =
+                java.util.Base64.getEncoder().encodeToString("new-client-salt".getBytes(StandardCharsets.UTF_8));
 
         // BREAKING CHANGE: Client salt removed
-        AuthController.ChangePasswordRequest changeRequest = new AuthController.ChangePasswordRequest();
+        final AuthController.ChangePasswordRequest changeRequest =
+                new AuthController.ChangePasswordRequest();
         changeRequest.setCurrentPasswordHash(passwordHash);
         // BREAKING CHANGE: Client salt removed - backend handles salt management
         changeRequest.setNewPasswordHash(newPasswordHash);
         // BREAKING CHANGE: Client salt removed
 
         // Change password
-        mockMvc.perform(post("/api/auth/change-password")
-                .header("Authorization", "Bearer " + accessToken)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(changeRequest)))
+        mockMvc.perform(
+                        post("/api/auth/change-password")
+                                .header("Authorization", "Bearer " + accessToken)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(changeRequest)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.message").exists());
 
         // Verify new password works by logging in with it
-        AuthRequest newLoginRequest = new AuthRequest();
+        final AuthRequest newLoginRequest = new AuthRequest();
         newLoginRequest.setEmail(uniqueEmail);
         newLoginRequest.setPasswordHash(newPasswordHash);
-        
 
-        mockMvc.perform(post("/api/auth/login")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(newLoginRequest)))
+        mockMvc.perform(
+                        post("/api/auth/login")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(newLoginRequest)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.accessToken").exists());
     }
 
     @Test
-    void testChangePassword_InvalidCurrentPassword() throws Exception {
+    void testChangePasswordInvalidCurrentPassword() throws Exception {
         // Register and login to get auth token
-        String uniqueEmail = "changepwd2" + System.currentTimeMillis() + "@example.com";
-        String passwordHash = java.util.Base64.getEncoder().encodeToString("hashed-password".getBytes());
-        String clientSalt = java.util.Base64.getEncoder().encodeToString("client-salt".getBytes());
-        
-        AuthRequest registerRequest = new AuthRequest();
+        final String uniqueEmail = "changepwd2" + System.currentTimeMillis() + "@example.com";
+        final String passwordHash =
+                java.util.Base64.getEncoder().encodeToString("hashed-password".getBytes(StandardCharsets.UTF_8));
+        final String clientSalt = java.util.Base64.getEncoder().encodeToString("client-salt".getBytes(StandardCharsets.UTF_8));
+
+        final AuthRequest registerRequest = new AuthRequest();
         registerRequest.setEmail(uniqueEmail);
         registerRequest.setPasswordHash(passwordHash);
-        
 
-        String registerResponse = mockMvc.perform(post("/api/auth/register")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(registerRequest)))
-                .andExpect(status().isCreated())
-                .andReturn()
-                .getResponse()
-                .getContentAsString();
+        final String registerResponse =
+                mockMvc.perform(
+                        post("/api/auth/register")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(registerRequest)))
+                        .andExpect(status().isCreated())
+                        .andReturn()
+                        .getResponse()
+                        .getContentAsString();
 
         // Extract access token from response
-        String accessToken = objectMapper.readTree(registerResponse).get("accessToken").asText();
+        final String accessToken = objectMapper.readTree(registerResponse).get("accessToken").asText();
 
         // Prepare password change request with wrong current password
-        String newPasswordHash = java.util.Base64.getEncoder().encodeToString("new-hashed-password".getBytes());
-        String newClientSalt = java.util.Base64.getEncoder().encodeToString("new-client-salt".getBytes());
+        final String newPasswordHash =
+                java.util.Base64.getEncoder().encodeToString("new-hashed-password".getBytes(StandardCharsets.UTF_8));
+        final String newClientSalt =
+                java.util.Base64.getEncoder().encodeToString("new-client-salt".getBytes(StandardCharsets.UTF_8));
 
         // BREAKING CHANGE: Client salt removed
-        AuthController.ChangePasswordRequest changeRequest = new AuthController.ChangePasswordRequest();
+        final AuthController.ChangePasswordRequest changeRequest =
+                new AuthController.ChangePasswordRequest();
         changeRequest.setCurrentPasswordHash("wrong-password-hash");
         // BREAKING CHANGE: Client salt removed - backend handles salt management
         changeRequest.setNewPasswordHash(newPasswordHash);
         // BREAKING CHANGE: Client salt removed
 
         // Change password should fail
-        mockMvc.perform(post("/api/auth/change-password")
-                .header("Authorization", "Bearer " + accessToken)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(changeRequest)))
+        mockMvc.perform(
+                        post("/api/auth/change-password")
+                                .header("Authorization", "Bearer " + accessToken)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(changeRequest)))
                 .andExpect(status().isUnauthorized());
     }
 
     @Test
-    void testChangePassword_WithoutAuthentication() throws Exception {
+    void testChangePasswordWithoutAuthentication() throws Exception {
         // BREAKING CHANGE: Client salt removed
-        String newPasswordHash = java.util.Base64.getEncoder().encodeToString("new-password-hash".getBytes());
+        final String newPasswordHash =
+                java.util.Base64.getEncoder().encodeToString("new-password-hash".getBytes(StandardCharsets.UTF_8));
 
         // BREAKING CHANGE: Client salt removed
-        AuthController.ChangePasswordRequest changeRequest = new AuthController.ChangePasswordRequest();
+        final AuthController.ChangePasswordRequest changeRequest =
+                new AuthController.ChangePasswordRequest();
         changeRequest.setCurrentPasswordHash("some-hash");
         // BREAKING CHANGE: Client salt removed - backend handles salt management
         changeRequest.setNewPasswordHash(newPasswordHash);
         // BREAKING CHANGE: Client salt removed
 
         // Change password without authentication should fail
-        mockMvc.perform(post("/api/auth/change-password")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(changeRequest)))
+        mockMvc.perform(
+                        post("/api/auth/change-password")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(changeRequest)))
                 .andExpect(status().isUnauthorized());
     }
 }
-

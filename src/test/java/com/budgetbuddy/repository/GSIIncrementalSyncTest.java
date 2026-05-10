@@ -1,46 +1,44 @@
 package com.budgetbuddy.repository;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import com.budgetbuddy.model.dynamodb.AccountTable;
 import com.budgetbuddy.model.dynamodb.BudgetTable;
 import com.budgetbuddy.model.dynamodb.GoalTable;
 import com.budgetbuddy.model.dynamodb.TransactionActionTable;
 import com.budgetbuddy.model.dynamodb.TransactionTable;
-import com.budgetbuddy.repository.dynamodb.*;
+import com.budgetbuddy.repository.dynamodb.AccountRepository;
+import com.budgetbuddy.repository.dynamodb.BudgetRepository;
+import com.budgetbuddy.repository.dynamodb.GoalRepository;
+import com.budgetbuddy.repository.dynamodb.TransactionActionRepository;
+import com.budgetbuddy.repository.dynamodb.TransactionRepository;
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.util.List;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.math.BigDecimal;
-import java.time.Instant;
-import java.util.List;
-import java.util.UUID;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
-
-/**
- * Unit tests for GSI-based incremental sync methods
- */
+/** Unit tests for GSI-based incremental sync methods */
 @ExtendWith(MockitoExtension.class)
 class GSIIncrementalSyncTest {
 
-    @Mock
-    private AccountRepository accountRepository;
+    @Mock private AccountRepository accountRepository;
 
-    @Mock
-    private TransactionRepository transactionRepository;
+    @Mock private TransactionRepository transactionRepository;
 
-    @Mock
-    private BudgetRepository budgetRepository;
+    @Mock private BudgetRepository budgetRepository;
 
-    @Mock
-    private GoalRepository goalRepository;
+    @Mock private GoalRepository goalRepository;
 
-    @Mock
-    private TransactionActionRepository transactionActionRepository;
+    @Mock private TransactionActionRepository transactionActionRepository;
 
     private String testUserId;
     private Long testTimestamp;
@@ -52,15 +50,16 @@ class GSIIncrementalSyncTest {
     }
 
     @Test
-    void testAccountRepository_FindByUserIdAndUpdatedAfter() {
+    void testAccountRepositoryFindByUserIdAndUpdatedAfter() {
         // Mock response
-        AccountTable account = createTestAccount();
+        final AccountTable account = createTestAccount();
         account.setUpdatedAt(Instant.now());
         when(accountRepository.findByUserIdAndUpdatedAfter(testUserId, testTimestamp))
                 .thenReturn(List.of(account));
 
         // Test
-        List<AccountTable> results = accountRepository.findByUserIdAndUpdatedAfter(testUserId, testTimestamp);
+        final List<AccountTable> results =
+                accountRepository.findByUserIdAndUpdatedAfter(testUserId, testTimestamp);
 
         assertNotNull(results);
         assertEquals(1, results.size());
@@ -68,31 +67,34 @@ class GSIIncrementalSyncTest {
     }
 
     @Test
-    void testTransactionRepository_FindByUserIdAndUpdatedAfter() {
+    void testTransactionRepositoryFindByUserIdAndUpdatedAfter() {
         // Mock response
-        TransactionTable transaction = createTestTransaction();
+        final TransactionTable transaction = createTestTransaction();
         transaction.setUpdatedAt(Instant.now());
         when(transactionRepository.findByUserIdAndUpdatedAfter(testUserId, testTimestamp, 50))
                 .thenReturn(List.of(transaction));
 
         // Test
-        List<TransactionTable> results = transactionRepository.findByUserIdAndUpdatedAfter(testUserId, testTimestamp, 50);
+        final List<TransactionTable> results =
+                transactionRepository.findByUserIdAndUpdatedAfter(testUserId, testTimestamp, 50);
 
         assertNotNull(results);
         assertEquals(1, results.size());
-        verify(transactionRepository, times(1)).findByUserIdAndUpdatedAfter(testUserId, testTimestamp, 50);
+        verify(transactionRepository, times(1))
+                .findByUserIdAndUpdatedAfter(testUserId, testTimestamp, 50);
     }
 
     @Test
-    void testBudgetRepository_FindByUserIdAndUpdatedAfter() {
+    void testBudgetRepositoryFindByUserIdAndUpdatedAfter() {
         // Mock response
-        BudgetTable budget = createTestBudget();
+        final BudgetTable budget = createTestBudget();
         budget.setUpdatedAt(Instant.now());
         when(budgetRepository.findByUserIdAndUpdatedAfter(testUserId, testTimestamp))
                 .thenReturn(List.of(budget));
 
         // Test
-        List<BudgetTable> results = budgetRepository.findByUserIdAndUpdatedAfter(testUserId, testTimestamp);
+        final List<BudgetTable> results =
+                budgetRepository.findByUserIdAndUpdatedAfter(testUserId, testTimestamp);
 
         assertNotNull(results);
         assertEquals(1, results.size());
@@ -100,15 +102,16 @@ class GSIIncrementalSyncTest {
     }
 
     @Test
-    void testGoalRepository_FindByUserIdAndUpdatedAfter() {
+    void testGoalRepositoryFindByUserIdAndUpdatedAfter() {
         // Mock response
-        GoalTable goal = createTestGoal();
+        final GoalTable goal = createTestGoal();
         goal.setUpdatedAt(Instant.now());
         when(goalRepository.findByUserIdAndUpdatedAfter(testUserId, testTimestamp))
                 .thenReturn(List.of(goal));
 
         // Test
-        List<GoalTable> results = goalRepository.findByUserIdAndUpdatedAfter(testUserId, testTimestamp);
+        final List<GoalTable> results =
+                goalRepository.findByUserIdAndUpdatedAfter(testUserId, testTimestamp);
 
         assertNotNull(results);
         assertEquals(1, results.size());
@@ -116,31 +119,32 @@ class GSIIncrementalSyncTest {
     }
 
     @Test
-    void testTransactionActionRepository_FindByUserIdAndUpdatedAfter() {
+    void testTransactionActionRepositoryFindByUserIdAndUpdatedAfter() {
         // Mock response
-        TransactionActionTable action = createTestAction();
+        final TransactionActionTable action = createTestAction();
         action.setUpdatedAt(Instant.now());
         when(transactionActionRepository.findByUserIdAndUpdatedAfter(testUserId, testTimestamp))
                 .thenReturn(List.of(action));
 
         // Test
-        List<TransactionActionTable> results = transactionActionRepository.findByUserIdAndUpdatedAfter(testUserId, testTimestamp);
+        final List<TransactionActionTable> results =
+                transactionActionRepository.findByUserIdAndUpdatedAfter(testUserId, testTimestamp);
 
         assertNotNull(results);
         assertEquals(1, results.size());
-        verify(transactionActionRepository, times(1)).findByUserIdAndUpdatedAfter(testUserId, testTimestamp);
+        verify(transactionActionRepository, times(1))
+                .findByUserIdAndUpdatedAfter(testUserId, testTimestamp);
     }
 
     @Test
-    void testAccountRepository_FindByPlaidItemId_UsesGSI() {
-        String plaidItemId = "item-123";
-        AccountTable account = createTestAccount();
+    void testAccountRepositoryFindByPlaidItemIdUsesGSI() {
+        final String plaidItemId = "item-123";
+        final AccountTable account = createTestAccount();
         account.setPlaidItemId(plaidItemId);
-        when(accountRepository.findByPlaidItemId(plaidItemId))
-                .thenReturn(List.of(account));
+        when(accountRepository.findByPlaidItemId(plaidItemId)).thenReturn(List.of(account));
 
         // Test
-        List<AccountTable> results = accountRepository.findByPlaidItemId(plaidItemId);
+        final List<AccountTable> results = accountRepository.findByPlaidItemId(plaidItemId);
 
         assertNotNull(results);
         assertEquals(1, results.size());
@@ -149,7 +153,7 @@ class GSIIncrementalSyncTest {
 
     // Helper methods
     private AccountTable createTestAccount() {
-        AccountTable account = new AccountTable();
+        final AccountTable account = new AccountTable();
         account.setAccountId(UUID.randomUUID().toString());
         account.setUserId(testUserId);
         account.setAccountName("Test Account");
@@ -162,7 +166,7 @@ class GSIIncrementalSyncTest {
     }
 
     private TransactionTable createTestTransaction() {
-        TransactionTable transaction = new TransactionTable();
+        final TransactionTable transaction = new TransactionTable();
         transaction.setTransactionId(UUID.randomUUID().toString());
         transaction.setUserId(testUserId);
         transaction.setAccountId(UUID.randomUUID().toString());
@@ -175,7 +179,7 @@ class GSIIncrementalSyncTest {
     }
 
     private BudgetTable createTestBudget() {
-        BudgetTable budget = new BudgetTable();
+        final BudgetTable budget = new BudgetTable();
         budget.setBudgetId(UUID.randomUUID().toString());
         budget.setUserId(testUserId);
         budget.setCategory("Food");
@@ -187,7 +191,7 @@ class GSIIncrementalSyncTest {
     }
 
     private GoalTable createTestGoal() {
-        GoalTable goal = new GoalTable();
+        final GoalTable goal = new GoalTable();
         goal.setGoalId(UUID.randomUUID().toString());
         goal.setUserId(testUserId);
         goal.setName("Test Goal");
@@ -201,7 +205,7 @@ class GSIIncrementalSyncTest {
     }
 
     private TransactionActionTable createTestAction() {
-        TransactionActionTable action = new TransactionActionTable();
+        final TransactionActionTable action = new TransactionActionTable();
         action.setActionId(UUID.randomUUID().toString());
         action.setUserId(testUserId);
         action.setTransactionId(UUID.randomUUID().toString());
@@ -212,4 +216,3 @@ class GSIIncrementalSyncTest {
         return action;
     }
 }
-

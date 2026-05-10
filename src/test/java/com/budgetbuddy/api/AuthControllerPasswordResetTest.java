@@ -1,13 +1,27 @@
 package com.budgetbuddy.api;
 
+
+import java.util.Locale;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.anyString;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.request;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
 import com.budgetbuddy.AWSTestConfiguration;
+import com.budgetbuddy.security.ddos.DDoSProtectionService;
+import com.budgetbuddy.security.rate.RateLimitService;
 import com.budgetbuddy.service.AuthService;
 import com.budgetbuddy.service.ChallengeService;
 import com.budgetbuddy.service.PasswordResetService;
 import com.budgetbuddy.service.UserService;
 import com.budgetbuddy.util.MessageUtil;
-import com.budgetbuddy.security.ddos.DDoSProtectionService;
-import com.budgetbuddy.security.rate.RateLimitService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.junit.jupiter.api.BeforeEach;
@@ -15,59 +29,51 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
-
 @SpringBootTest(
-    classes = com.budgetbuddy.BudgetBuddyApplication.class,
-    webEnvironment = org.springframework.boot.test.context.SpringBootTest.WebEnvironment.MOCK
-)
+        classes = com.budgetbuddy.BudgetBuddyApplication.class,
+        webEnvironment = org.springframework.boot.test.context.SpringBootTest.WebEnvironment.MOCK)
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 @Import(AWSTestConfiguration.class)
 class AuthControllerPasswordResetTest {
 
-    @Autowired
-    private MockMvc mockMvc;
+    @Autowired private MockMvc mockMvc;
 
-    @Autowired
-    private ObjectMapper objectMapper;
+    @Autowired private ObjectMapper objectMapper;
 
-    // Note: @MockBean is deprecated in Spring Boot 3.4.0, but still functional
+    // Note: @MockitoBean is deprecated in Spring Boot 3.4.0, but still functional
     @SuppressWarnings("deprecation")
-    @MockBean
+    @MockitoBean
     private AuthService authService;
 
     @SuppressWarnings("deprecation")
-    @MockBean
+    @MockitoBean
     private UserService userService;
 
     @SuppressWarnings("deprecation")
-    @MockBean
+    @MockitoBean
     private PasswordResetService passwordResetService;
 
     @SuppressWarnings("deprecation")
-    @MockBean
+    @MockitoBean
     private MessageUtil messageUtil;
 
     @SuppressWarnings("deprecation")
-    @MockBean
+    @MockitoBean
     private DDoSProtectionService ddosProtectionService;
 
     @SuppressWarnings("deprecation")
-    @MockBean
+    @MockitoBean
     private RateLimitService rateLimitService;
 
     @SuppressWarnings("deprecation")
-    @MockBean
+    @MockitoBean
     private ChallengeService challengeService;
 
     private String testEmail;
@@ -78,31 +84,35 @@ class AuthControllerPasswordResetTest {
         testEmail = "test@example.com";
         testCode = "123456";
         // Mock MessageUtil to return the key if not found (for exception handler)
-        when(messageUtil.getErrorMessage(anyString())).thenAnswer(invocation -> {
-            String key = invocation.getArgument(0);
-            return "error." + key.toLowerCase().replace("_", ".");
-        });
+        when(messageUtil.getErrorMessage(anyString()))
+                .thenAnswer(
+                        invocation -> {
+                            final String key = invocation.getArgument(0);
+                            return "error." + key.toLowerCase(Locale.ROOT).replace("_", ".");
+                        });
         // Mock DDoS protection to allow all requests in tests
         when(ddosProtectionService.isAllowed(anyString())).thenReturn(true);
         // Mock rate limiting to allow all requests in tests
         when(rateLimitService.isAllowed(anyString(), anyString())).thenReturn(true);
         // Ensure ObjectMapper has JavaTimeModule for Instant serialization
-        if (objectMapper.getRegisteredModuleIds().stream().noneMatch(id -> id.toString().contains("JavaTimeModule"))) {
+        if (objectMapper.getRegisteredModuleIds().stream()
+                .noneMatch(id -> id.toString().contains("JavaTimeModule"))) {
             objectMapper.registerModule(new JavaTimeModule());
         }
     }
 
     @Test
-    void testForgotPassword_Success() throws Exception {
+    void testForgotPasswordSuccess() throws Exception {
         // Given
         doNothing().when(passwordResetService).requestPasswordReset(testEmail);
-        AuthController.ForgotPasswordRequest request = new AuthController.ForgotPasswordRequest();
+        final AuthController.ForgotPasswordRequest request = new AuthController.ForgotPasswordRequest();
         request.setEmail(testEmail);
 
         // When/Then
-        mockMvc.perform(post("/api/auth/forgot-password")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+        mockMvc.perform(
+                        post("/api/auth/forgot-password")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("success"))
                 .andExpect(jsonPath("$.message").value("Verification code sent to your email"));
@@ -111,58 +121,63 @@ class AuthControllerPasswordResetTest {
     }
 
     @Test
-    void testForgotPassword_InvalidEmail() throws Exception {
+    void testForgotPasswordInvalidEmail() throws Exception {
         // Given
-        AuthController.ForgotPasswordRequest request = new AuthController.ForgotPasswordRequest();
+        final AuthController.ForgotPasswordRequest request = new AuthController.ForgotPasswordRequest();
         request.setEmail("invalid-email");
 
         // When/Then
-        mockMvc.perform(post("/api/auth/forgot-password")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+        mockMvc.perform(
+                        post("/api/auth/forgot-password")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
 
         verify(passwordResetService, never()).requestPasswordReset(anyString());
     }
 
     @Test
-    void testForgotPassword_EmailServiceFailure() throws Exception {
+    void testForgotPasswordEmailServiceFailure() throws Exception {
         // Given
         // Intentionally throw AppException with INTERNAL_SERVER_ERROR to test error handling
         // Note: EnhancedGlobalExceptionHandler will log this at ERROR level, which is correct
         // for system errors (INTERNAL_SERVER_ERROR is a system error, not a business logic error)
-        doThrow(new com.budgetbuddy.exception.AppException(
-                com.budgetbuddy.exception.ErrorCode.INTERNAL_SERVER_ERROR,
-                "Failed to send verification email. Please try again later."))
-                .when(passwordResetService).requestPasswordReset(testEmail);
-        
-        AuthController.ForgotPasswordRequest request = new AuthController.ForgotPasswordRequest();
+        doThrow(
+                        new com.budgetbuddy.exception.AppException(
+                                com.budgetbuddy.exception.ErrorCode.INTERNAL_SERVER_ERROR,
+                                "Failed to send verification email. Please try again later."))
+                .when(passwordResetService)
+                .requestPasswordReset(testEmail);
+
+        final AuthController.ForgotPasswordRequest request = new AuthController.ForgotPasswordRequest();
         request.setEmail(testEmail);
 
         // When/Then
-        mockMvc.perform(post("/api/auth/forgot-password")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+        mockMvc.perform(
+                        post("/api/auth/forgot-password")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isInternalServerError());
 
         verify(passwordResetService).requestPasswordReset(testEmail);
-        
+
         // Note: EnhancedGlobalExceptionHandler will log an ERROR for INTERNAL_SERVER_ERROR
         // This is expected and correct behavior - system errors should be logged at ERROR level
     }
 
     @Test
-    void testVerifyResetCode_Success() throws Exception {
+    void testVerifyResetCodeSuccess() throws Exception {
         // Given
         doNothing().when(passwordResetService).verifyResetCode(testEmail, testCode);
-        AuthController.VerifyCodeRequest request = new AuthController.VerifyCodeRequest();
+        final AuthController.VerifyCodeRequest request = new AuthController.VerifyCodeRequest();
         request.setEmail(testEmail);
         request.setCode(testCode);
 
         // When/Then
-        mockMvc.perform(post("/api/auth/verify-reset-code")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+        mockMvc.perform(
+                        post("/api/auth/verify-reset-code")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("success"))
                 .andExpect(jsonPath("$.message").value("Code verified successfully"));
@@ -171,17 +186,17 @@ class AuthControllerPasswordResetTest {
     }
 
     @Test
-    void testResetPassword_Success() throws Exception {
+    void testResetPasswordSuccess() throws Exception {
         // Given
         // BREAKING CHANGE: Client salt removed - backend handles salt management
         // PAKE2: Challenge is now required
-        String testChallenge = "test-challenge-123";
+        final String testChallenge = "test-challenge-123";
         doNothing().when(passwordResetService).resetPassword(testEmail, testCode, "password_hash");
         doNothing().when(userService).resetPasswordByEmail(testEmail, "password_hash");
         // Mock challenge verification to succeed
         doNothing().when(challengeService).verifyAndConsumeChallenge(testChallenge, testEmail);
 
-        AuthController.PasswordResetRequest request = new AuthController.PasswordResetRequest();
+        final AuthController.PasswordResetRequest request = new AuthController.PasswordResetRequest();
         request.setEmail(testEmail);
         request.setCode(testCode);
         request.setPasswordHash("password_hash");
@@ -189,9 +204,10 @@ class AuthControllerPasswordResetTest {
         // BREAKING CHANGE: Client salt removed, PAKE2 challenge required
 
         // When/Then
-        mockMvc.perform(post("/api/auth/reset-password")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+        mockMvc.perform(
+                        post("/api/auth/reset-password")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.message").value("Password reset successful"));
@@ -203,38 +219,39 @@ class AuthControllerPasswordResetTest {
     }
 
     @Test
-    void testResetPassword_MissingCode() throws Exception {
+    void testResetPasswordMissingCode() throws Exception {
         // Given
-        AuthController.PasswordResetRequest request = new AuthController.PasswordResetRequest();
+        final AuthController.PasswordResetRequest request = new AuthController.PasswordResetRequest();
         request.setEmail(testEmail);
         request.setPasswordHash("password_hash");
-        
+
         // Code is missing
 
         // When/Then
-        mockMvc.perform(post("/api/auth/reset-password")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+        mockMvc.perform(
+                        post("/api/auth/reset-password")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
 
         verify(passwordResetService, never()).resetPassword(anyString(), anyString(), anyString());
     }
 
     @Test
-    void testResetPassword_InvalidFormat() throws Exception {
+    void testResetPasswordInvalidFormat() throws Exception {
         // Given
-        AuthController.PasswordResetRequest request = new AuthController.PasswordResetRequest();
+        final AuthController.PasswordResetRequest request = new AuthController.PasswordResetRequest();
         request.setEmail(testEmail);
         request.setCode(testCode);
         // Missing password_hash and salt
 
         // When/Then
-        mockMvc.perform(post("/api/auth/reset-password")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+        mockMvc.perform(
+                        post("/api/auth/reset-password")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
 
         verify(passwordResetService, never()).resetPassword(anyString(), anyString(), anyString());
     }
 }
-

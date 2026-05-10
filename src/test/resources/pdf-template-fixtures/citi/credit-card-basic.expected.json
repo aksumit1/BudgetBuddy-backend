@@ -1,0 +1,10 @@
+{
+  "institution": "Citi",
+  "note": "synthetic Citi — two-date credit card layout",
+  "expected": [
+    { "date": "2024-03-16", "description": "AMAZON MARKETPLACE SEATTLE WA", "amount": "42.18" },
+    { "date": "2024-03-18", "description": "COSTCO GAS SAN JOSE CA",        "amount": "58.00" },
+    { "date": "2024-03-21", "description": "DOORDASH FOOD DELIVERY",        "amount": "24.50" },
+    { "date": "2024-03-26", "description": "PAYMENT - THANK YOU",           "amount": "-500.00" }
+  ]
+}

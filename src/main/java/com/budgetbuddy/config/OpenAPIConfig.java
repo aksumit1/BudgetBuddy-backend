@@ -6,15 +6,14 @@ import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.info.License;
 import io.swagger.v3.oas.models.servers.Server;
 import io.swagger.v3.oas.models.tags.Tag;
+import java.util.List;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import java.util.List;
-
 /**
- * OpenAPI 3.0 Configuration
- * Provides comprehensive API documentation following latest OpenAPI schema
+ * OpenAPI 3.0 Configuration Provides comprehensive API documentation following latest OpenAPI
+ * schema
  */
 @Configuration
 public class OpenAPIConfig {
@@ -28,9 +27,11 @@ public class OpenAPIConfig {
     @Bean
     public OpenAPI budgetBuddyOpenAPI() {
         return new OpenAPI()
-                .info(new Info()
-                        .title("BudgetBuddy Backend API")
-                        .description("""
+                .info(
+                        new Info()
+                                .title("BudgetBuddy Backend API")
+                                .description(
+                                        """
                                 Enterprise-ready financial management API with comprehensive features:
 
                                 ## Features
@@ -55,38 +56,53 @@ public class OpenAPIConfig {
                                 - HIPAA PHI protection
                                 - ISO 27001 security management
                                 """)
-                        .version(apiVersion)
-                        .contact(new Contact()
-                                .name("BudgetBuddy API Support")
-                                .email("api-support@budgetbuddy.com")
-                                .url("https://budgetbuddy.com/support"))
-                        .license(new License()
-                                .name("Proprietary")
-                                .url("https://budgetbuddy.com/license")))
-                .servers(List.of(
-                        new Server()
-                                .url(baseUrl)
-                                .description("Production Server"),
-                        new Server()
-                                .url("https://staging-api.budgetbuddy.com")
-                                .description("Staging Server"),
-                        new Server()
-                                .url("http://localhost:8080")
-                                .description("Local Development Server")
-                ))
-                .tags(List.of(
-                        new Tag().name("Authentication").description("User authentication and authorization"),
-                        new Tag().name("Users").description("User management"),
-                        new Tag().name("Accounts").description("Financial account management"),
-                        new Tag().name("Transactions").description("Transaction management and sync"),
-                        new Tag().name("Budgets").description("Budget tracking and management"),
-                        new Tag().name("Goals").description("Financial goal planning"),
-                        new Tag().name("Analytics").description("Financial analytics and insights"),
-                        new Tag().name("Plaid").description("Plaid integration (link tokens, webhooks)"),
-                        new Tag().name("Stripe").description("Stripe payment processing"),
-                        new Tag().name("Compliance").description("Compliance and audit endpoints"),
-                        new Tag().name("Notifications").description("Notification management")
-                ));
+                                .version(apiVersion)
+                                .contact(
+                                        new Contact()
+                                                .name("BudgetBuddy API Support")
+                                                .email("api-support@budgetbuddy.com")
+                                                .url("https://budgetbuddy.com/support"))
+                                .license(
+                                        new License()
+                                                .name("Proprietary")
+                                                .url("https://budgetbuddy.com/license")))
+                .servers(
+                        List.of(
+                                new Server().url(baseUrl).description("Production Server"),
+                                new Server()
+                                        .url("https://staging-api.budgetbuddy.com")
+                                        .description("Staging Server"),
+                                new Server()
+                                        .url("http://localhost:8080")
+                                        .description("Local Development Server")))
+                .tags(
+                        List.of(
+                                new Tag()
+                                        .name("Authentication")
+                                        .description("User authentication and authorization"),
+                                new Tag().name("Users").description("User management"),
+                                new Tag()
+                                        .name("Accounts")
+                                        .description("Financial account management"),
+                                new Tag()
+                                        .name("Transactions")
+                                        .description("Transaction management and sync"),
+                                new Tag()
+                                        .name("Budgets")
+                                        .description("Budget tracking and management"),
+                                new Tag().name("Goals").description("Financial goal planning"),
+                                new Tag()
+                                        .name("Analytics")
+                                        .description("Financial analytics and insights"),
+                                new Tag()
+                                        .name("Plaid")
+                                        .description("Plaid integration (link tokens, webhooks)"),
+                                new Tag().name("Stripe").description("Stripe payment processing"),
+                                new Tag()
+                                        .name("Compliance")
+                                        .description("Compliance and audit endpoints"),
+                                new Tag()
+                                        .name("Notifications")
+                                        .description("Notification management")));
     }
 }
-

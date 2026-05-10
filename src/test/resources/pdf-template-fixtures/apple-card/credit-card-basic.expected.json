@@ -1,0 +1,10 @@
+{
+  "institution": "Apple Card",
+  "note": "synthetic Apple Card — minimalist single-line layout",
+  "expected": [
+    { "date": "2024-03-15", "description": "APPLE.COM/BILL",                        "amount": "9.99" },
+    { "date": "2024-03-18", "description": "STARBUCKS #812 SAN FRANCISCO CA",       "amount": "7.25" },
+    { "date": "2024-03-20", "description": "UBER TRIP HELP.UBER.COM",               "amount": "14.80" },
+    { "date": "2024-03-25", "description": "PAYMENT RECEIVED",                      "amount": "-250.00" }
+  ]
+}

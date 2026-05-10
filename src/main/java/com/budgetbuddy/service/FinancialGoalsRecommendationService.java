@@ -1,5 +1,7 @@
 package com.budgetbuddy.service;
 
+
+import java.util.Locale;
 import com.budgetbuddy.exception.AppException;
 import com.budgetbuddy.exception.ErrorCode;
 import com.budgetbuddy.model.dynamodb.AccountTable;
@@ -8,33 +10,40 @@ import com.budgetbuddy.model.dynamodb.TransactionTable;
 import com.budgetbuddy.repository.dynamodb.AccountRepository;
 import com.budgetbuddy.repository.dynamodb.GoalRepository;
 import com.budgetbuddy.repository.dynamodb.TransactionRepository;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.time.LocalDate;
-import java.util.*;
-import java.util.stream.Collectors;
-
 /**
  * Financial Goals Recommendation Service
- * 
- * Recommends actionable financial goals based on user's financial health and spending patterns.
+ *
+ * <p>Recommends actionable financial goals based on user's financial health and spending patterns.
  */
+// PMD's LawOfDemeter is documented as imprecise on chains involving
+// standard library types (BigDecimal, String, Optional) and DTO
+// getters; this class has many such idiomatic uses. Suppress at
+// class level rather than littering every method.
+@SuppressWarnings("PMD.LawOfDemeter")
 @Service
 public class FinancialGoalsRecommendationService {
 
-    private static final Logger logger = LoggerFactory.getLogger(FinancialGoalsRecommendationService.class);
-    
+    private static final Logger LOGGER =
+            LoggerFactory.getLogger(FinancialGoalsRecommendationService.class);
+
     // Financial health thresholds
     private static final int EMERGENCY_FUND_MONTHS = 6; // 6 months of expenses
     private static final double MIN_SAVINGS_RATE = 0.15; // 15% minimum savings rate
     private static final double IDEAL_SAVINGS_RATE = 0.20; // 20% ideal savings rate
     private static final double WANTS_BUDGET_PERCENT = 0.20; // 20% for wants after essentials
     private static final double DEBT_TO_INCOME_THRESHOLD = 0.36; // 36% debt-to-income ratio
-    
+
     private final TransactionRepository transactionRepository;
     private final AccountRepository accountRepository;
     private final GoalRepository goalRepository;
@@ -48,20 +57,18 @@ public class FinancialGoalsRecommendationService {
         this.goalRepository = goalRepository;
     }
 
-    /**
-     * Get financial goal recommendations for a user
-     */
+    /** Get financial goal recommendations for a user */
     public List<FinancialGoalRecommendation> getRecommendations(final String userId) {
         if (userId == null || userId.isEmpty()) {
             throw new AppException(ErrorCode.INVALID_INPUT, "User ID is required");
         }
 
-        logger.info("Generating financial goal recommendations for user: {}", userId);
+        LOGGER.info("Generating financial goal recommendations for user: {}", userId);
 
         // Analyze user's financial situation
-        FinancialAnalysis analysis = analyzeFinancialHealth(userId);
+        final FinancialAnalysis analysis = analyzeFinancialHealth(userId);
 
-        List<FinancialGoalRecommendation> recommendations = new ArrayList<>();
+        final List<FinancialGoalRecommendation> recommendations = new ArrayList<>();
 
         // 1. Emergency Fund Goal
         recommendations.addAll(recommendEmergencyFund(userId, analysis));
@@ -80,78 +87,112 @@ public class FinancialGoalsRecommendationService {
 
         // Sort by priority
         return recommendations.stream()
-                .sorted(Comparator.comparing(FinancialGoalRecommendation::getPriority, Comparator.reverseOrder()))
+                .sorted(
+                        Comparator.comparing(
+                                FinancialGoalRecommendation::getPriority,
+                                Comparator.reverseOrder()))
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Analyze user's financial health
-     */
+    /** Analyze user's financial health */
     private FinancialAnalysis analyzeFinancialHealth(final String userId) {
-        LocalDate endDate = LocalDate.now();
-        LocalDate startDate = endDate.minusDays(90); // Last 3 months
+        final LocalDate endDate = LocalDate.now();
+        final LocalDate startDate = endDate.minusDays(90); // Last 3 months
 
-        String startDateStr = startDate.format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE);
-        String endDateStr = endDate.format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE);
+        final String startDateStr = startDate.format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE);
+        final String endDateStr = endDate.format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE);
 
         // Get transactions
-        List<TransactionTable> transactions = transactionRepository
-                .findByUserIdAndDateRange(userId, startDateStr, endDateStr);
+        final List<TransactionTable> transactions =
+                transactionRepository.findByUserIdAndDateRange(userId, startDateStr, endDateStr);
 
         // Get accounts
-        List<AccountTable> accounts = accountRepository.findByUserId(userId);
+        final List<AccountTable> accounts = accountRepository.findByUserId(userId);
 
         // Calculate income and expenses
-        BigDecimal monthlyIncome = transactions.stream()
-                .filter(tx -> tx.getAmount() != null && tx.getAmount().compareTo(BigDecimal.ZERO) > 0)
-                .map(TransactionTable::getAmount)
-                .reduce(BigDecimal.ZERO, BigDecimal::add)
-                .divide(BigDecimal.valueOf(3), 2, RoundingMode.HALF_UP); // Average over 3 months
+        final BigDecimal monthlyIncome =
+                transactions.stream()
+                        .filter(
+                                tx ->
+                                        tx.getAmount() != null
+                                                && tx.getAmount().compareTo(BigDecimal.ZERO) > 0)
+                        .map(TransactionTable::getAmount)
+                        .reduce(BigDecimal.ZERO, BigDecimal::add)
+                        .divide(
+                                BigDecimal.valueOf(3),
+                                2,
+                                RoundingMode.HALF_UP); // Average over 3 months
 
-        BigDecimal monthlyExpenses = transactions.stream()
-                .filter(tx -> tx.getAmount() != null && tx.getAmount().compareTo(BigDecimal.ZERO) < 0)
-                .filter(tx -> tx.getIsHidden() == null || !tx.getIsHidden())
-                .map(tx -> tx.getAmount().abs())
-                .reduce(BigDecimal.ZERO, BigDecimal::add)
-                .divide(BigDecimal.valueOf(3), 2, RoundingMode.HALF_UP);
+        final BigDecimal monthlyExpenses =
+                transactions.stream()
+                        .filter(
+                                tx ->
+                                        tx.getAmount() != null
+                                                && tx.getAmount().compareTo(BigDecimal.ZERO) < 0)
+                        .filter(tx -> tx.getIsHidden() == null || !tx.getIsHidden())
+                        .map(tx -> tx.getAmount().abs())
+                        .reduce(BigDecimal.ZERO, BigDecimal::add)
+                        .divide(BigDecimal.valueOf(3), 2, RoundingMode.HALF_UP);
 
         // Calculate savings
-        BigDecimal monthlySavings = monthlyIncome.subtract(monthlyExpenses);
-        double savingsRate = monthlyIncome.compareTo(BigDecimal.ZERO) > 0
-                ? monthlySavings.divide(monthlyIncome, 4, RoundingMode.HALF_UP).doubleValue()
-                : 0.0;
+        final BigDecimal monthlySavings = monthlyIncome.subtract(monthlyExpenses);
+        final double savingsRate =
+                monthlyIncome.compareTo(BigDecimal.ZERO) > 0
+                        ? monthlySavings
+                        .divide(monthlyIncome, 4, RoundingMode.HALF_UP)
+                        .doubleValue()
+                        : 0.0;
 
         // Calculate total liquid assets (checking + savings)
-        BigDecimal liquidAssets = accounts.stream()
-                .filter(acc -> acc.getAccountType() != null && 
-                        (acc.getAccountType().equals("checking") || acc.getAccountType().equals("savings")))
-                .filter(acc -> acc.getBalance() != null)
-                .map(AccountTable::getBalance)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        final BigDecimal liquidAssets =
+                accounts.stream()
+                        .filter(
+                                acc ->
+                                        acc.getAccountType() != null
+                                                && ("checking".equals(acc.getAccountType())
+                                                || "savings".equals(acc.getAccountType())))
+                        .filter(acc -> acc.getBalance() != null)
+                        .map(AccountTable::getBalance)
+                        .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         // Calculate debt (credit cards, loans)
-        BigDecimal totalDebt = accounts.stream()
-                .filter(acc -> acc.getAccountType() != null && 
-                        (acc.getAccountType().equals("creditCard") || 
-                         acc.getAccountType().equals("autoLoan") ||
-                         acc.getAccountType().equals("personalLoan") ||
-                         acc.getAccountType().equals("studentLoan") ||
-                         acc.getAccountType().equals("mortgage")))
-                .filter(acc -> acc.getBalance() != null)
-                .map(acc -> acc.getBalance().abs()) // Debt is negative balance
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        final BigDecimal totalDebt =
+                accounts.stream()
+                        .filter(
+                                acc ->
+                                        acc.getAccountType() != null
+                                                && ("creditCard".equals(acc.getAccountType())
+                                                || "autoLoan".equals(acc.getAccountType())
+                                                || "personalLoan"
+                                                .equals(acc.getAccountType())
+                                                || "studentLoan"
+                                                .equals(acc.getAccountType())
+                                                || "mortgage".equals(acc.getAccountType())))
+                        .filter(acc -> acc.getBalance() != null)
+                        .map(acc -> acc.getBalance().abs()) // Debt is negative balance
+                        .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         // Calculate debt-to-income ratio
-        double debtToIncome = monthlyIncome.compareTo(BigDecimal.ZERO) > 0
-                ? totalDebt.divide(monthlyIncome.multiply(BigDecimal.valueOf(12)), 4, RoundingMode.HALF_UP).doubleValue()
-                : 0.0;
+        final double debtToIncome =
+                monthlyIncome.compareTo(BigDecimal.ZERO) > 0
+                        ? totalDebt
+                        .divide(
+                                monthlyIncome.multiply(BigDecimal.valueOf(12)),
+                                4,
+                                RoundingMode.HALF_UP)
+                        .doubleValue()
+                        : 0.0;
 
         // Calculate emergency fund adequacy
-        BigDecimal emergencyFundTarget = monthlyExpenses.multiply(BigDecimal.valueOf(EMERGENCY_FUND_MONTHS));
-        BigDecimal emergencyFundGap = emergencyFundTarget.subtract(liquidAssets);
-        double emergencyFundProgress = emergencyFundTarget.compareTo(BigDecimal.ZERO) > 0
-                ? liquidAssets.divide(emergencyFundTarget, 4, RoundingMode.HALF_UP).doubleValue()
-                : 0.0;
+        final BigDecimal emergencyFundTarget =
+                monthlyExpenses.multiply(BigDecimal.valueOf(EMERGENCY_FUND_MONTHS));
+        final BigDecimal emergencyFundGap = emergencyFundTarget.subtract(liquidAssets);
+        final double emergencyFundProgress =
+                emergencyFundTarget.compareTo(BigDecimal.ZERO) > 0
+                        ? liquidAssets
+                        .divide(emergencyFundTarget, 4, RoundingMode.HALF_UP)
+                        .doubleValue()
+                        : 0.0;
 
         return new FinancialAnalysis(
                 monthlyIncome,
@@ -163,23 +204,19 @@ public class FinancialGoalsRecommendationService {
                 debtToIncome,
                 emergencyFundTarget,
                 emergencyFundGap,
-                emergencyFundProgress
-        );
+                emergencyFundProgress);
     }
 
-    /**
-     * Recommend emergency fund goal
-     */
+    /** Recommend emergency fund goal */
     private List<FinancialGoalRecommendation> recommendEmergencyFund(
-            final String userId,
-            final FinancialAnalysis analysis) {
-        
-        List<FinancialGoalRecommendation> recommendations = new ArrayList<>();
+            final String userId, final FinancialAnalysis analysis) {
+
+        final List<FinancialGoalRecommendation> recommendations = new ArrayList<>();
 
         if (analysis.emergencyFundProgress < 1.0) {
-            BigDecimal targetAmount = analysis.emergencyFundTarget;
-            BigDecimal currentAmount = analysis.liquidAssets;
-            BigDecimal gap = analysis.emergencyFundGap;
+            final BigDecimal targetAmount = analysis.emergencyFundTarget;
+            final BigDecimal currentAmount = analysis.liquidAssets;
+            final BigDecimal gap = analysis.emergencyFundGap;
 
             // Calculate timeline based on savings rate
             int monthsToGoal = 0;
@@ -189,174 +226,194 @@ public class FinancialGoalsRecommendationService {
                 monthsToGoal = 24; // Default to 24 months if no savings
             }
 
-            LocalDate targetDate = LocalDate.now().plusMonths(Math.min(monthsToGoal, 24));
+            final LocalDate targetDate = LocalDate.now().plusMonths(Math.min(monthsToGoal, 24));
 
-            Priority priority = analysis.emergencyFundProgress < 0.5 ? Priority.HIGH : Priority.MEDIUM;
+            final Priority priority =
+                    analysis.emergencyFundProgress < 0.5 ? Priority.HIGH : Priority.MEDIUM;
 
-            recommendations.add(new FinancialGoalRecommendation(
-                    GoalType.EMERGENCY_FUND,
-                    "Build Emergency Fund",
-                    String.format("Build a %d-month emergency fund to cover unexpected expenses", EMERGENCY_FUND_MONTHS),
-                    currentAmount,
-                    targetAmount,
-                    targetDate,
-                    priority,
-                    String.format("Save $%.2f/month to reach $%.2f emergency fund in %d months",
-                            analysis.monthlySavings.doubleValue(), targetAmount.doubleValue(), monthsToGoal),
-                    gap
-            ));
+            recommendations.add(
+                    new FinancialGoalRecommendation(
+                            GoalType.EMERGENCY_FUND,
+                            "Build Emergency Fund",
+                            String.format(
+                                    "Build a %d-month emergency fund to cover unexpected expenses",
+                                    EMERGENCY_FUND_MONTHS),
+                            currentAmount,
+                            targetAmount,
+                            targetDate,
+                            priority,
+                            String.format(
+                                    "Save $%.2f/month to reach $%.2f emergency fund in %d months",
+                                    analysis.monthlySavings.doubleValue(),
+                                    targetAmount.doubleValue(),
+                                    monthsToGoal),
+                            gap));
         }
 
         return recommendations;
     }
 
-    /**
-     * Recommend debt payoff goals
-     */
+    /** Recommend debt payoff goals */
     private List<FinancialGoalRecommendation> recommendDebtPayoff(
-            final String userId,
-            final FinancialAnalysis analysis) {
-        
-        List<FinancialGoalRecommendation> recommendations = new ArrayList<>();
+            final String userId, final FinancialAnalysis analysis) {
+
+        final List<FinancialGoalRecommendation> recommendations = new ArrayList<>();
 
         if (analysis.totalDebt.compareTo(BigDecimal.ZERO) > 0) {
             // Check if debt-to-income ratio is high
             if (analysis.debtToIncome > DEBT_TO_INCOME_THRESHOLD) {
-                Priority priority = analysis.debtToIncome > 0.5 ? Priority.HIGH : Priority.MEDIUM;
+                final Priority priority = analysis.debtToIncome > 0.5 ? Priority.HIGH : Priority.MEDIUM;
 
                 // Calculate payoff timeline
-                BigDecimal monthlyPayment = analysis.monthlyIncome.multiply(BigDecimal.valueOf(0.1)); // 10% of income
+                final BigDecimal monthlyPayment =
+                        analysis.monthlyIncome.multiply(BigDecimal.valueOf(0.1)); // 10% of income
                 int monthsToPayoff = 0;
                 if (monthlyPayment.compareTo(BigDecimal.ZERO) > 0) {
-                    monthsToPayoff = analysis.totalDebt.divide(monthlyPayment, 0, RoundingMode.UP).intValue();
+                    monthsToPayoff =
+                            analysis.totalDebt
+                                    .divide(monthlyPayment, 0, RoundingMode.UP)
+                                    .intValue();
                 }
 
-                LocalDate targetDate = LocalDate.now().plusMonths(Math.min(monthsToPayoff, 60)); // Max 5 years
+                final LocalDate targetDate =
+                        LocalDate.now().plusMonths(Math.min(monthsToPayoff, 60)); // Max 5 years
 
-                recommendations.add(new FinancialGoalRecommendation(
-                        GoalType.DEBT_PAYOFF,
-                        "Pay Off Debt",
-                        String.format("Reduce debt-to-income ratio from %.1f%% to below 36%%", analysis.debtToIncome * 100),
-                        BigDecimal.ZERO,
-                        analysis.totalDebt,
-                        targetDate,
-                        priority,
-                        String.format("Pay $%.2f/month to eliminate $%.2f debt in %d months",
-                                monthlyPayment.doubleValue(), analysis.totalDebt.doubleValue(), monthsToPayoff),
-                        analysis.totalDebt
-                ));
+                recommendations.add(
+                        new FinancialGoalRecommendation(
+                                GoalType.DEBT_PAYOFF,
+                                "Pay Off Debt",
+                                String.format(
+                                        "Reduce debt-to-income ratio from %.1f%% to below 36%%",
+                                        analysis.debtToIncome * 100),
+                                BigDecimal.ZERO,
+                                analysis.totalDebt,
+                                targetDate,
+                                priority,
+                                String.format(
+                                        "Pay $%.2f/month to eliminate $%.2f debt in %d months",
+                                        monthlyPayment.doubleValue(),
+                                        analysis.totalDebt.doubleValue(),
+                                        monthsToPayoff),
+                                analysis.totalDebt));
             }
         }
 
         return recommendations;
     }
 
-    /**
-     * Recommend savings rate goals
-     */
+    /** Recommend savings rate goals */
     private List<FinancialGoalRecommendation> recommendSavingsRate(
-            final String userId,
-            final FinancialAnalysis analysis) {
-        
-        List<FinancialGoalRecommendation> recommendations = new ArrayList<>();
+            final String userId, final FinancialAnalysis analysis) {
+
+        final List<FinancialGoalRecommendation> recommendations = new ArrayList<>();
 
         if (analysis.savingsRate < IDEAL_SAVINGS_RATE) {
-            BigDecimal targetMonthlySavings = analysis.monthlyIncome.multiply(BigDecimal.valueOf(IDEAL_SAVINGS_RATE));
-            BigDecimal currentSavings = analysis.monthlySavings;
-            BigDecimal gap = targetMonthlySavings.subtract(currentSavings);
+            final BigDecimal targetMonthlySavings =
+                    analysis.monthlyIncome.multiply(BigDecimal.valueOf(IDEAL_SAVINGS_RATE));
+            final BigDecimal currentSavings = analysis.monthlySavings;
+            final BigDecimal gap = targetMonthlySavings.subtract(currentSavings);
 
             if (gap.compareTo(BigDecimal.ZERO) > 0) {
-                Priority priority = analysis.savingsRate < MIN_SAVINGS_RATE ? Priority.HIGH : Priority.MEDIUM;
+                final Priority priority =
+                        analysis.savingsRate < MIN_SAVINGS_RATE ? Priority.HIGH : Priority.MEDIUM;
 
-                recommendations.add(new FinancialGoalRecommendation(
-                        GoalType.SAVINGS_RATE,
-                        "Increase Savings Rate",
-                        String.format("Increase savings rate from %.1f%% to %.1f%%", 
-                                analysis.savingsRate * 100, IDEAL_SAVINGS_RATE * 100),
-                        currentSavings,
-                        targetMonthlySavings,
-                        LocalDate.now().plusMonths(6),
-                        priority,
-                        String.format("Save an additional $%.2f/month to reach %.1f%% savings rate",
-                                gap.doubleValue(), IDEAL_SAVINGS_RATE * 100),
-                        gap
-                ));
+                recommendations.add(
+                        new FinancialGoalRecommendation(
+                                GoalType.SAVINGS_RATE,
+                                "Increase Savings Rate",
+                                String.format(
+                                        "Increase savings rate from %.1f%% to %.1f%%",
+                                        analysis.savingsRate * 100, IDEAL_SAVINGS_RATE * 100),
+                                currentSavings,
+                                targetMonthlySavings,
+                                LocalDate.now().plusMonths(6),
+                                priority,
+                                String.format(
+                                        "Save an additional $%.2f/month to reach %.1f%% savings rate",
+                                        gap.doubleValue(), IDEAL_SAVINGS_RATE * 100),
+                                gap));
             }
         }
 
         return recommendations;
     }
 
-    /**
-     * Recommend wants budget goal
-     */
+    /** Recommend wants budget goal */
     private List<FinancialGoalRecommendation> recommendWantsBudget(
-            final String userId,
-            final FinancialAnalysis analysis) {
-        
-        List<FinancialGoalRecommendation> recommendations = new ArrayList<>();
+            final String userId, final FinancialAnalysis analysis) {
+
+        final List<FinancialGoalRecommendation> recommendations = new ArrayList<>();
 
         // Calculate wants budget (20% of income after essentials)
-        BigDecimal essentials = analysis.monthlyExpenses.multiply(BigDecimal.valueOf(0.7)); // Assume 70% essentials
-        BigDecimal wantsBudget = analysis.monthlyIncome.multiply(BigDecimal.valueOf(WANTS_BUDGET_PERCENT));
-        BigDecimal remainingAfterEssentials = analysis.monthlyIncome.subtract(essentials);
+        final BigDecimal essentials =
+                analysis.monthlyExpenses.multiply(BigDecimal.valueOf(0.7)); // Assume 70% essentials
+        final BigDecimal wantsBudget =
+                analysis.monthlyIncome.multiply(BigDecimal.valueOf(WANTS_BUDGET_PERCENT));
+        final BigDecimal remainingAfterEssentials = analysis.monthlyIncome.subtract(essentials);
 
         if (remainingAfterEssentials.compareTo(BigDecimal.ZERO) > 0) {
-            Priority priority = Priority.LOW; // Lower priority, but good for financial wellness
+            final Priority priority = Priority.LOW; // Lower priority, but good for financial wellness
 
-            recommendations.add(new FinancialGoalRecommendation(
-                    GoalType.WANTS_BUDGET,
-                    "Allocate Wants Budget",
-                    "Set aside 20% of income for guilt-free spending on wants",
-                    BigDecimal.ZERO,
-                    wantsBudget,
-                    LocalDate.now().plusMonths(1),
-                    priority,
-                    String.format("Allocate $%.2f/month for wants (20%% of income). This allows guilt-free spending while maintaining financial health.",
-                            wantsBudget.doubleValue()),
-                    wantsBudget
-            ));
+            recommendations.add(
+                    new FinancialGoalRecommendation(
+                            GoalType.WANTS_BUDGET,
+                            "Allocate Wants Budget",
+                            "Set aside 20% of income for guilt-free spending on wants",
+                            BigDecimal.ZERO,
+                            wantsBudget,
+                            LocalDate.now().plusMonths(1),
+                            priority,
+                            String.format(
+                                    "Allocate $%.2f/month for wants (20%% of income). This allows guilt-free spending while maintaining financial health.",
+                                    wantsBudget.doubleValue()),
+                            wantsBudget));
         }
 
         return recommendations;
     }
 
-    /**
-     * Recommend retirement goals
-     */
+    /** Recommend retirement goals */
     private List<FinancialGoalRecommendation> recommendRetirement(
-            final String userId,
-            final FinancialAnalysis analysis) {
-        
-        List<FinancialGoalRecommendation> recommendations = new ArrayList<>();
+            final String userId, final FinancialAnalysis analysis) {
+
+        final List<FinancialGoalRecommendation> recommendations = new ArrayList<>();
 
         // Check existing retirement goals
-        List<GoalTable> existingGoals = goalRepository.findByUserId(userId);
-        boolean hasRetirementGoal = existingGoals.stream()
-                .anyMatch(goal -> goal.getGoalType() != null && goal.getGoalType().toLowerCase().contains("retirement"));
+        final List<GoalTable> existingGoals = goalRepository.findByUserId(userId);
+        final boolean hasRetirementGoal =
+                existingGoals.stream()
+                        .anyMatch(
+                                goal ->
+                                        goal.getGoalType() != null
+                                                && goal.getGoalType()
+                                                .toLowerCase(Locale.ROOT)
+                                                .contains("retirement"));
 
         if (!hasRetirementGoal && analysis.monthlyIncome.compareTo(BigDecimal.ZERO) > 0) {
             // Recommend 15% of income for retirement
-            BigDecimal monthlyRetirementContribution = analysis.monthlyIncome.multiply(BigDecimal.valueOf(0.15));
-            
+            final BigDecimal monthlyRetirementContribution =
+                    analysis.monthlyIncome.multiply(BigDecimal.valueOf(0.15));
+
             // Estimate retirement need (25x annual expenses)
-            BigDecimal annualExpenses = analysis.monthlyExpenses.multiply(BigDecimal.valueOf(12));
-            BigDecimal retirementTarget = annualExpenses.multiply(BigDecimal.valueOf(25));
+            final BigDecimal annualExpenses = analysis.monthlyExpenses.multiply(BigDecimal.valueOf(12));
+            final BigDecimal retirementTarget = annualExpenses.multiply(BigDecimal.valueOf(25));
 
-            Priority priority = Priority.MEDIUM;
+            final Priority priority = Priority.MEDIUM;
 
-            recommendations.add(new FinancialGoalRecommendation(
-                    GoalType.RETIREMENT,
-                    "Start Retirement Savings",
-                    "Build retirement fund for financial independence",
-                    BigDecimal.ZERO,
-                    retirementTarget,
-                    LocalDate.now().plusYears(30), // 30-year timeline
-                    priority,
-                    String.format("Contribute $%.2f/month (15%% of income) to retirement. Target: $%.2f for financial independence.",
-                            monthlyRetirementContribution.doubleValue(), retirementTarget.doubleValue()),
-                    retirementTarget
-            ));
+            recommendations.add(
+                    new FinancialGoalRecommendation(
+                            GoalType.RETIREMENT,
+                            "Start Retirement Savings",
+                            "Build retirement fund for financial independence",
+                            BigDecimal.ZERO,
+                            retirementTarget,
+                            LocalDate.now().plusYears(30), // 30-year timeline
+                            priority,
+                            String.format(
+                                    "Contribute $%.2f/month (15%% of income) to retirement. Target: $%.2f for financial independence.",
+                                    monthlyRetirementContribution.doubleValue(),
+                                    retirementTarget.doubleValue()),
+                            retirementTarget));
         }
 
         return recommendations;
@@ -432,15 +489,41 @@ public class FinancialGoalsRecommendationService {
             this.gap = gap;
         }
 
-        public GoalType getType() { return type; }
-        public String getTitle() { return title; }
-        public String getDescription() { return description; }
-        public BigDecimal getCurrentAmount() { return currentAmount; }
-        public BigDecimal getTargetAmount() { return targetAmount; }
-        public LocalDate getTargetDate() { return targetDate; }
-        public Priority getPriority() { return priority; }
-        public String getActionPlan() { return actionPlan; }
-        public BigDecimal getGap() { return gap; }
+        public GoalType getType() {
+            return type;
+        }
+
+        public String getTitle() {
+            return title;
+        }
+
+        public String getDescription() {
+            return description;
+        }
+
+        public BigDecimal getCurrentAmount() {
+            return currentAmount;
+        }
+
+        public BigDecimal getTargetAmount() {
+            return targetAmount;
+        }
+
+        public LocalDate getTargetDate() {
+            return targetDate;
+        }
+
+        public Priority getPriority() {
+            return priority;
+        }
+
+        public String getActionPlan() {
+            return actionPlan;
+        }
+
+        public BigDecimal getGap() {
+            return gap;
+        }
     }
 
     public enum GoalType {
@@ -459,7 +542,13 @@ public class FinancialGoalsRecommendationService {
         HIGH(3);
 
         private final int value;
-        Priority(int value) { this.value = value; }
-        public int getValue() { return value; }
+
+        Priority(final int value) {
+            this.value = value;
+        }
+
+        public int getValue() {
+            return value;
+        }
     }
 }

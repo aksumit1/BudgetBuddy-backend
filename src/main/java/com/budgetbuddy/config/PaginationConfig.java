@@ -3,10 +3,7 @@ package com.budgetbuddy.config;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 
-/**
- * Pagination Configuration
- * Centralizes pagination limits and defaults
- */
+/** Pagination Configuration Centralizes pagination limits and defaults */
 @Configuration
 public class PaginationConfig {
 
@@ -31,4 +28,3 @@ public class PaginationConfig {
         return maxPreviewPageSize;
     }
 }
-

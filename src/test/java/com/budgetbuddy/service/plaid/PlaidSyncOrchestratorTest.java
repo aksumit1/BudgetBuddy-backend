@@ -1,6 +1,14 @@
 package com.budgetbuddy.service.plaid;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+
 import com.budgetbuddy.model.dynamodb.UserTable;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -8,26 +16,18 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.UUID;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
-
 /**
- * Unit Tests for PlaidSyncOrchestrator
- * Tests orchestration of account and transaction synchronization
+ * Unit Tests for PlaidSyncOrchestrator Tests orchestration of account and transaction
+ * synchronization
  */
 @ExtendWith(MockitoExtension.class)
 class PlaidSyncOrchestratorTest {
 
-    @Mock
-    private PlaidAccountSyncService accountSyncService;
+    @Mock private PlaidAccountSyncService accountSyncService;
 
-    @Mock
-    private PlaidTransactionSyncService transactionSyncService;
+    @Mock private PlaidTransactionSyncService transactionSyncService;
 
-    @InjectMocks
-    private PlaidSyncOrchestrator orchestrator;
+    @InjectMocks private PlaidSyncOrchestrator orchestrator;
 
     private UserTable testUser;
     private String testAccessToken;
@@ -43,7 +43,7 @@ class PlaidSyncOrchestratorTest {
     }
 
     @Test
-    void testSyncAll_CallsBothServices() {
+    void testSyncAllCallsBothServices() {
         // When
         assertDoesNotThrow(() -> orchestrator.syncAll(testUser, testAccessToken, testItemId));
 
@@ -53,9 +53,10 @@ class PlaidSyncOrchestratorTest {
     }
 
     @Test
-    void testSyncAccountsOnly_CallsAccountServiceOnly() {
+    void testSyncAccountsOnlyCallsAccountServiceOnly() {
         // When
-        assertDoesNotThrow(() -> orchestrator.syncAccountsOnly(testUser, testAccessToken, testItemId));
+        assertDoesNotThrow(
+                () -> orchestrator.syncAccountsOnly(testUser, testAccessToken, testItemId));
 
         // Then
         verify(accountSyncService, times(1)).syncAccounts(testUser, testAccessToken, testItemId);
@@ -63,7 +64,7 @@ class PlaidSyncOrchestratorTest {
     }
 
     @Test
-    void testSyncTransactionsOnly_CallsTransactionServiceOnly() {
+    void testSyncTransactionsOnlyCallsTransactionServiceOnly() {
         // When
         assertDoesNotThrow(() -> orchestrator.syncTransactionsOnly(testUser, testAccessToken));
 
@@ -73,12 +74,14 @@ class PlaidSyncOrchestratorTest {
     }
 
     @Test
-    void testSyncAll_WithNullUser_PropagatesException() {
-        // When/Then - PlaidSyncOrchestrator will throw NullPointerException when accessing user.getUserId()
+    void testSyncAllWithNullUserPropagatesException() {
+        // When/Then - PlaidSyncOrchestrator will throw NullPointerException when accessing
+        // user.getUserId()
         // This is expected behavior - the orchestrator doesn't validate null before logging
-        assertThrows(NullPointerException.class, () -> {
-            orchestrator.syncAll(null, testAccessToken, testItemId);
-        });
+        assertThrows(
+                NullPointerException.class,
+                () -> {
+                    orchestrator.syncAll(null, testAccessToken, testItemId);
+                });
     }
 }
-

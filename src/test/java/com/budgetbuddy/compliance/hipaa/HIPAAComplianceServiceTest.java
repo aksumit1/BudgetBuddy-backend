@@ -1,7 +1,23 @@
 package com.budgetbuddy.compliance.hipaa;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.anyBoolean;
+import static org.mockito.Mockito.anyString;
+import static org.mockito.Mockito.atLeast;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import com.budgetbuddy.compliance.AuditLogService;
 import com.budgetbuddy.security.zerotrust.identity.IdentityVerificationService;
+import java.time.Instant;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -11,50 +27,41 @@ import software.amazon.awssdk.services.cloudwatch.CloudWatchClient;
 import software.amazon.awssdk.services.cloudwatch.model.PutMetricDataRequest;
 import software.amazon.awssdk.services.cloudwatch.model.PutMetricDataResponse;
 
-import java.time.Instant;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
-
-/**
- * Unit Tests for HIPAAComplianceService
- */
+/** Unit Tests for HIPAAComplianceService */
 @ExtendWith(MockitoExtension.class)
 class HIPAAComplianceServiceTest {
 
-    @Mock
-    private AuditLogService auditLogService;
+    @Mock private AuditLogService auditLogService;
 
-    @Mock
-    private CloudWatchClient cloudWatchClient;
+    @Mock private CloudWatchClient cloudWatchClient;
 
     private HIPAAComplianceService hipaaComplianceService;
     private String testUserId;
     private String testPhiId;
 
-    @Mock
-    private IdentityVerificationService identityVerificationService;
+    @Mock private IdentityVerificationService identityVerificationService;
 
     @BeforeEach
     void setUp() {
-        hipaaComplianceService = new HIPAAComplianceService(
-                auditLogService,
-                cloudWatchClient,
-                identityVerificationService
-        );
+        hipaaComplianceService =
+                new HIPAAComplianceService(
+                        auditLogService, cloudWatchClient, identityVerificationService);
         testUserId = "user-123";
         testPhiId = "phi-123";
-        
-        PutMetricDataResponse response = PutMetricDataResponse.builder().build();
+
+        final PutMetricDataResponse response = PutMetricDataResponse.builder().build();
         // Use lenient to avoid unnecessary stubbing errors
-        org.mockito.Mockito.lenient().when(cloudWatchClient.putMetricData(any(PutMetricDataRequest.class))).thenReturn(response);
+        org.mockito.Mockito.lenient()
+                .when(cloudWatchClient.putMetricData(any(PutMetricDataRequest.class)))
+                .thenReturn(response);
     }
 
     @Test
-    void testLogPHIAccess_WithAuthorizedAccess_LogsAccess() {
+    void testLogPHIAccessWithAuthorizedAccessLogsAccess() {
         // Given
-        doNothing().when(auditLogService).logPHIAccess(anyString(), anyString(), anyString(), anyBoolean());
+        doNothing()
+                .when(auditLogService)
+                .logPHIAccess(anyString(), anyString(), anyString(), anyBoolean());
 
         // When
         hipaaComplianceService.logPHIAccess(testUserId, "MEDICAL_RECORD", "READ", true);
@@ -65,9 +72,11 @@ class HIPAAComplianceServiceTest {
     }
 
     @Test
-    void testLogPHIAccess_WithUnauthorizedAccess_LogsWarning() {
+    void testLogPHIAccessWithUnauthorizedAccessLogsWarning() {
         // Given
-        doNothing().when(auditLogService).logPHIAccess(anyString(), anyString(), anyString(), anyBoolean());
+        doNothing()
+                .when(auditLogService)
+                .logPHIAccess(anyString(), anyString(), anyString(), anyBoolean());
 
         // When
         hipaaComplianceService.logPHIAccess(testUserId, "MEDICAL_RECORD", "READ", false);
@@ -79,33 +88,42 @@ class HIPAAComplianceServiceTest {
     }
 
     @Test
-    void testAuditPHIActivity_WithValidInput_LogsActivity() {
+    void testAuditPHIActivityWithValidInputLogsActivity() {
         // Given
-        doNothing().when(auditLogService).auditPHIActivity(anyString(), anyString(), anyString(), anyString());
+        doNothing()
+                .when(auditLogService)
+                .auditPHIActivity(anyString(), anyString(), anyString(), anyString());
 
         // When
-        hipaaComplianceService.auditPHIActivity(testUserId, testPhiId, "VIEW", "User viewed medical record");
+        hipaaComplianceService.auditPHIActivity(
+                testUserId, testPhiId, "VIEW", "User viewed medical record");
 
         // Then
-        verify(auditLogService).auditPHIActivity(testUserId, testPhiId, "VIEW", "User viewed medical record");
+        verify(auditLogService)
+                .auditPHIActivity(testUserId, testPhiId, "VIEW", "User viewed medical record");
         verify(cloudWatchClient).putMetricData(any(PutMetricDataRequest.class));
     }
 
     @Test
-    void testLogPHIModification_WithValidInput_LogsModification() {
+    void testLogPHIModificationWithValidInputLogsModification() {
         // Given
-        doNothing().when(auditLogService).logPHIModification(anyString(), anyString(), anyString(), anyString(), anyString());
+        doNothing()
+                .when(auditLogService)
+                .logPHIModification(
+                        anyString(), anyString(), anyString(), anyString(), anyString());
 
         // When
-        hipaaComplianceService.logPHIModification(testUserId, testPhiId, "UPDATE", "old-value", "new-value");
+        hipaaComplianceService.logPHIModification(
+                testUserId, testPhiId, "UPDATE", "old-value", "new-value");
 
         // Then
-        verify(auditLogService).logPHIModification(testUserId, testPhiId, "UPDATE", "old-value", "new-value");
+        verify(auditLogService)
+                .logPHIModification(testUserId, testPhiId, "UPDATE", "old-value", "new-value");
         verify(cloudWatchClient).putMetricData(any(PutMetricDataRequest.class));
     }
 
     @Test
-    void testLogPHITransmission_WithEncrypted_LogsTransmission() {
+    void testLogPHITransmissionWithEncryptedLogsTransmission() {
         // Given
         // When
         hipaaComplianceService.logPHITransmission(testUserId, "https://api.example.com", true);
@@ -115,7 +133,7 @@ class HIPAAComplianceServiceTest {
     }
 
     @Test
-    void testLogPHITransmission_WithUnencrypted_LogsViolation() {
+    void testLogPHITransmissionWithUnencryptedLogsViolation() {
         // Given
         // When
         hipaaComplianceService.logPHITransmission(testUserId, "https://api.example.com", false);
@@ -125,9 +143,9 @@ class HIPAAComplianceServiceTest {
     }
 
     @Test
-    void testCheckSessionTimeout_WithActiveSession_DoesNothing() {
+    void testCheckSessionTimeoutWithActiveSessionDoesNothing() {
         // Given
-        long lastActivityTime = Instant.now().minusSeconds(300).getEpochSecond(); // 5 minutes ago
+        final long lastActivityTime = Instant.now().minusSeconds(300).getEpochSecond(); // 5 minutes ago
 
         // When
         hipaaComplianceService.checkSessionTimeout(testUserId, lastActivityTime);
@@ -137,9 +155,10 @@ class HIPAAComplianceServiceTest {
     }
 
     @Test
-    void testCheckSessionTimeout_WithExpiredSession_LogsTimeout() {
+    void testCheckSessionTimeoutWithExpiredSessionLogsTimeout() {
         // Given
-        long lastActivityTime = Instant.now().minusSeconds(1000).getEpochSecond(); // 16+ minutes ago
+        final long lastActivityTime =
+                Instant.now().minusSeconds(1000).getEpochSecond(); // 16+ minutes ago
 
         // When
         hipaaComplianceService.checkSessionTimeout(testUserId, lastActivityTime);
@@ -149,26 +168,31 @@ class HIPAAComplianceServiceTest {
     }
 
     @Test
-    void testReportBreach_WithValidInput_ReportsBreach() {
+    void testReportBreachWithValidInputReportsBreach() {
         // Given
-        String breachType = "UNAUTHORIZED_ACCESS";
-        String details = "Unauthorized access to PHI";
+        final String breachType = "UNAUTHORIZED_ACCESS";
+        final String details = "Unauthorized access to PHI";
         doNothing().when(auditLogService).logBreach(any(HIPAAComplianceService.BreachReport.class));
-        doNothing().when(auditLogService).logBreachNotification(any(HIPAAComplianceService.BreachReport.class));
+        doNothing()
+                .when(auditLogService)
+                .logBreachNotification(any(HIPAAComplianceService.BreachReport.class));
 
         // When
         hipaaComplianceService.reportBreach(testUserId, testPhiId, breachType, details);
 
         // Then
         verify(auditLogService).logBreach(any(HIPAAComplianceService.BreachReport.class));
-        verify(auditLogService).logBreachNotification(any(HIPAAComplianceService.BreachReport.class));
+        verify(auditLogService)
+                .logBreachNotification(any(HIPAAComplianceService.BreachReport.class));
         verify(cloudWatchClient, atLeast(3)).putMetricData(any(PutMetricDataRequest.class));
     }
 
     @Test
-    void testLogWorkforceAccess_WithGrantedAccess_LogsAccess() {
+    void testLogWorkforceAccessWithGrantedAccessLogsAccess() {
         // Given
-        doNothing().when(auditLogService).logWorkforceAccess(anyString(), anyString(), anyString(), anyBoolean());
+        doNothing()
+                .when(auditLogService)
+                .logWorkforceAccess(anyString(), anyString(), anyString(), anyBoolean());
 
         // When
         hipaaComplianceService.logWorkforceAccess(testUserId, "DOCTOR", "MEDICAL_RECORDS", true);
@@ -179,9 +203,11 @@ class HIPAAComplianceServiceTest {
     }
 
     @Test
-    void testLogWorkforceAccess_WithDeniedAccess_LogsAccess() {
+    void testLogWorkforceAccessWithDeniedAccessLogsAccess() {
         // Given
-        doNothing().when(auditLogService).logWorkforceAccess(anyString(), anyString(), anyString(), anyBoolean());
+        doNothing()
+                .when(auditLogService)
+                .logWorkforceAccess(anyString(), anyString(), anyString(), anyBoolean());
 
         // When
         hipaaComplianceService.logWorkforceAccess(testUserId, "NURSE", "MEDICAL_RECORDS", false);
@@ -192,14 +218,16 @@ class HIPAAComplianceServiceTest {
     }
 
     @Test
-    void testCheckPHIAccessPolicy_AdminUser_HasFullAccess() {
+    void testCheckPHIAccessPolicyAdminUserHasFullAccess() {
         // Given - Admin user
         when(identityVerificationService.getUserRoles(testUserId))
                 .thenReturn(java.util.Set.of("ADMIN", "USER"));
-        doNothing().when(auditLogService).logPHIAccess(anyString(), anyString(), anyString(), anyBoolean());
+        doNothing()
+                .when(auditLogService)
+                .logPHIAccess(anyString(), anyString(), anyString(), anyBoolean());
 
         // When
-        boolean result = hipaaComplianceService.checkPHIAccessPolicy(testUserId, "financial");
+        final boolean result = hipaaComplianceService.checkPHIAccessPolicy(testUserId, "financial");
 
         // Then
         assertTrue(result, "Admin should have full access");
@@ -207,14 +235,16 @@ class HIPAAComplianceServiceTest {
     }
 
     @Test
-    void testCheckPHIAccessPolicy_RegularUser_HasAccessToOwnData() {
+    void testCheckPHIAccessPolicyRegularUserHasAccessToOwnData() {
         // Given - Regular user
         when(identityVerificationService.getUserRoles(testUserId))
                 .thenReturn(java.util.Set.of("USER"));
-        doNothing().when(auditLogService).logPHIAccess(anyString(), anyString(), anyString(), anyBoolean());
+        doNothing()
+                .when(auditLogService)
+                .logPHIAccess(anyString(), anyString(), anyString(), anyBoolean());
 
         // When
-        boolean result = hipaaComplianceService.checkPHIAccessPolicy(testUserId, "financial");
+        final boolean result = hipaaComplianceService.checkPHIAccessPolicy(testUserId, "financial");
 
         // Then
         assertTrue(result, "Regular user should have access to their own financial data");
@@ -222,14 +252,15 @@ class HIPAAComplianceServiceTest {
     }
 
     @Test
-    void testCheckPHIAccessPolicy_UserWithNoRoles_DeniedAccess() {
+    void testCheckPHIAccessPolicyUserWithNoRolesDeniedAccess() {
         // Given - User with no roles
-        when(identityVerificationService.getUserRoles(testUserId))
-                .thenReturn(java.util.Set.of());
-        doNothing().when(auditLogService).logPHIAccess(anyString(), anyString(), anyString(), anyBoolean());
+        when(identityVerificationService.getUserRoles(testUserId)).thenReturn(java.util.Set.of());
+        doNothing()
+                .when(auditLogService)
+                .logPHIAccess(anyString(), anyString(), anyString(), anyBoolean());
 
         // When
-        boolean result = hipaaComplianceService.checkPHIAccessPolicy(testUserId, "financial");
+        final boolean result = hipaaComplianceService.checkPHIAccessPolicy(testUserId, "financial");
 
         // Then
         assertFalse(result, "User with no roles should be denied access");
@@ -237,7 +268,7 @@ class HIPAAComplianceServiceTest {
     }
 
     @Test
-    void testLogAuthentication_WithSuccessfulAuth_LogsSuccess() {
+    void testLogAuthenticationWithSuccessfulAuthLogsSuccess() {
         // Given
         doNothing().when(auditLogService).logAuthentication(anyString(), anyString(), anyBoolean());
 
@@ -250,7 +281,7 @@ class HIPAAComplianceServiceTest {
     }
 
     @Test
-    void testLogAuthentication_WithFailedAuth_LogsFailure() {
+    void testLogAuthenticationWithFailedAuthLogsFailure() {
         // Given
         doNothing().when(auditLogService).logAuthentication(anyString(), anyString(), anyBoolean());
 
@@ -263,9 +294,9 @@ class HIPAAComplianceServiceTest {
     }
 
     @Test
-    void testBreachReport_SettersAndGetters() {
+    void testBreachReportSettersAndGetters() {
         // Given
-        HIPAAComplianceService.BreachReport report = new HIPAAComplianceService.BreachReport();
+        final HIPAAComplianceService.BreachReport report = new HIPAAComplianceService.BreachReport();
 
         // When
         report.setUserId(testUserId);
@@ -284,4 +315,3 @@ class HIPAAComplianceServiceTest {
         assertTrue(report.isReported());
     }
 }
-

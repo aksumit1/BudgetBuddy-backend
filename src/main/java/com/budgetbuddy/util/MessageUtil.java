@@ -1,20 +1,15 @@
 package com.budgetbuddy.util;
 
+import java.util.Locale;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.stereotype.Component;
 
-import java.util.Locale;
-
 /**
- * Message Utility for Internationalization
- * Provides localized messages based on user locale
+ * Message Utility for Internationalization Provides localized messages based on user locale
  *
- * Features:
- * - Locale-aware message retrieval
- * - Error message formatting
- * - Success message formatting
- * - Validation message formatting
+ * <p>Features: - Locale-aware message retrieval - Error message formatting - Success message
+ * formatting - Validation message formatting
  */
 @Component
 public class MessageUtil {
@@ -25,24 +20,18 @@ public class MessageUtil {
         this.messageSource = messageSource;
     }
 
-    /**
-     * Get localized message
-     */
+    /** Get localized message */
     public String getMessage(final String code) {
         return getMessage(code, null);
     }
 
-    /**
-     * Get localized message with arguments
-     */
+    /** Get localized message with arguments */
     public String getMessage(final String code, final Object[] args) {
-        Locale locale = LocaleContextHolder.getLocale();
+        final Locale locale = LocaleContextHolder.getLocale();
         return getMessage(code, args, locale);
     }
 
-    /**
-     * Get localized message with specific locale
-     */
+    /** Get localized message with specific locale */
     public String getMessage(final String code, final Object[] args, final Locale locale) {
         try {
             return messageSource.getMessage(code, args, code, locale);
@@ -52,27 +41,21 @@ public class MessageUtil {
         }
     }
 
-    /**
-     * Get error message
-     */
+    /** Get error message */
     public String getErrorMessage(final String errorCode) {
-        String messageKey = "error." + errorCode.toLowerCase().replace("_", ".");
+        final String messageKey = "error." + errorCode.toLowerCase(Locale.ROOT).replace("_", ".");
         return getMessage(messageKey);
     }
 
-    /**
-     * Get success message
-     */
+    /** Get success message */
     public String getSuccessMessage(final String successCode) {
-        String messageKey = "success." + successCode.toLowerCase().replace("_", ".");
+        final String messageKey = "success." + successCode.toLowerCase(Locale.ROOT).replace("_", ".");
         return getMessage(messageKey);
     }
 
-    /**
-     * Get validation message
-     */
+    /** Get validation message */
     public String getValidationMessage(final String validationCode) {
-        String messageKey = "validation." + validationCode.toLowerCase().replace("_", ".");
+        final String messageKey = "validation." + validationCode.toLowerCase(Locale.ROOT).replace("_", ".");
         return getMessage(messageKey);
     }
 }

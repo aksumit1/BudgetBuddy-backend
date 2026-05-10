@@ -1,8 +1,19 @@
 package com.budgetbuddy.security;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.anyString;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import java.util.Collections;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -16,36 +27,24 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
-import java.util.Collections;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
-
 /**
- * Unit Tests for JwtAuthenticationFilter
- * Tests JWT token processing and authentication context setup
+ * Unit Tests for JwtAuthenticationFilter Tests JWT token processing and authentication context
+ * setup
  */
 @ExtendWith(MockitoExtension.class)
 class JwtAuthenticationFilterTest {
 
-    @Mock
-    private JwtTokenProvider tokenProvider;
+    @Mock private JwtTokenProvider tokenProvider;
 
-    @Mock
-    private UserDetailsService userDetailsService;
+    @Mock private UserDetailsService userDetailsService;
 
-    @Mock
-    private HttpServletRequest request;
+    @Mock private HttpServletRequest request;
 
-    @Mock
-    private HttpServletResponse response;
+    @Mock private HttpServletResponse response;
 
-    @Mock
-    private FilterChain filterChain;
+    @Mock private FilterChain filterChain;
 
-    @InjectMocks
-    private JwtAuthenticationFilter jwtAuthenticationFilter;
+    @InjectMocks private JwtAuthenticationFilter jwtAuthenticationFilter;
 
     private static final String VALID_TOKEN = "valid.jwt.token";
     private static final String TEST_USERNAME = "test@example.com";
@@ -57,13 +56,15 @@ class JwtAuthenticationFilterTest {
     }
 
     @Test
-    void testDoFilterInternal_WithValidToken_ShouldSetAuthentication() throws Exception {
+    void testDoFilterInternalWithValidTokenShouldSetAuthentication() throws Exception {
         // Given
-        UserDetails userDetails = User.builder()
-                .username(TEST_USERNAME)
-                .password("password")
-                .authorities(Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER")))
-                .build();
+        final UserDetails userDetails =
+                User.builder()
+                        .username(TEST_USERNAME)
+                        .password("password")
+                        .authorities(
+                                Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER")))
+                        .build();
 
         when(request.getHeader("Authorization")).thenReturn(BEARER_TOKEN);
         when(tokenProvider.validateToken(VALID_TOKEN)).thenReturn(true);
@@ -76,13 +77,14 @@ class JwtAuthenticationFilterTest {
         // Then
         verify(filterChain).doFilter(request, response);
         assertNotNull(SecurityContextHolder.getContext().getAuthentication());
-        assertEquals(TEST_USERNAME, SecurityContextHolder.getContext().getAuthentication().getName());
+        assertEquals(
+                TEST_USERNAME, SecurityContextHolder.getContext().getAuthentication().getName());
         verify(tokenProvider).validateToken(VALID_TOKEN);
         verify(userDetailsService).loadUserByUsername(TEST_USERNAME);
     }
 
     @Test
-    void testDoFilterInternal_WithInvalidToken_ShouldNotSetAuthentication() throws Exception {
+    void testDoFilterInternalWithInvalidTokenShouldNotSetAuthentication() throws Exception {
         // Given
         when(request.getHeader("Authorization")).thenReturn(BEARER_TOKEN);
         when(tokenProvider.validateToken(VALID_TOKEN)).thenReturn(false);
@@ -98,7 +100,7 @@ class JwtAuthenticationFilterTest {
     }
 
     @Test
-    void testDoFilterInternal_WithNoToken_ShouldNotSetAuthentication() throws Exception {
+    void testDoFilterInternalWithNoTokenShouldNotSetAuthentication() throws Exception {
         // Given
         when(request.getHeader("Authorization")).thenReturn(null);
 
@@ -113,7 +115,7 @@ class JwtAuthenticationFilterTest {
     }
 
     @Test
-    void testDoFilterInternal_WithUserNotFound_ShouldNotSetAuthentication() throws Exception {
+    void testDoFilterInternalWithUserNotFoundShouldNotSetAuthentication() throws Exception {
         // Given
         when(request.getHeader("Authorization")).thenReturn(BEARER_TOKEN);
         when(tokenProvider.validateToken(VALID_TOKEN)).thenReturn(true);
@@ -132,7 +134,7 @@ class JwtAuthenticationFilterTest {
     }
 
     @Test
-    void testDoFilterInternal_WithJwtException_ShouldNotSetAuthentication() throws Exception {
+    void testDoFilterInternalWithJwtExceptionShouldNotSetAuthentication() throws Exception {
         // Given
         when(request.getHeader("Authorization")).thenReturn(BEARER_TOKEN);
         when(tokenProvider.validateToken(VALID_TOKEN))
@@ -149,7 +151,7 @@ class JwtAuthenticationFilterTest {
     }
 
     @Test
-    void testDoFilterInternal_WithEmptyUsername_ShouldNotSetAuthentication() throws Exception {
+    void testDoFilterInternalWithEmptyUsernameShouldNotSetAuthentication() throws Exception {
         // Given
         when(request.getHeader("Authorization")).thenReturn(BEARER_TOKEN);
         when(tokenProvider.validateToken(VALID_TOKEN)).thenReturn(true);
@@ -166,7 +168,7 @@ class JwtAuthenticationFilterTest {
     }
 
     @Test
-    void testDoFilterInternal_WithNullUsername_ShouldNotSetAuthentication() throws Exception {
+    void testDoFilterInternalWithNullUsernameShouldNotSetAuthentication() throws Exception {
         // Given
         when(request.getHeader("Authorization")).thenReturn(BEARER_TOKEN);
         when(tokenProvider.validateToken(VALID_TOKEN)).thenReturn(true);
@@ -183,10 +185,11 @@ class JwtAuthenticationFilterTest {
     }
 
     @Test
-    void testDoFilterInternal_WithUnexpectedException_ShouldContinueFilterChain() throws Exception {
+    void testDoFilterInternalWithUnexpectedExceptionShouldContinueFilterChain() throws Exception {
         // Given
         when(request.getHeader("Authorization")).thenReturn(BEARER_TOKEN);
-        when(tokenProvider.validateToken(VALID_TOKEN)).thenThrow(new RuntimeException("Unexpected error"));
+        when(tokenProvider.validateToken(VALID_TOKEN))
+                .thenThrow(new RuntimeException("Unexpected error"));
 
         // When
         jwtAuthenticationFilter.doFilterInternal(request, response, filterChain);
@@ -197,7 +200,7 @@ class JwtAuthenticationFilterTest {
     }
 
     @Test
-    void testDoFilterInternal_WithNullUserDetails_ShouldNotSetAuthentication() throws Exception {
+    void testDoFilterInternalWithNullUserDetailsShouldNotSetAuthentication() throws Exception {
         // Given
         when(request.getHeader("Authorization")).thenReturn(BEARER_TOKEN);
         when(tokenProvider.validateToken(VALID_TOKEN)).thenReturn(true);
@@ -214,7 +217,7 @@ class JwtAuthenticationFilterTest {
     }
 
     @Test
-    void testDoFilterInternal_WithTokenWithoutBearerPrefix_ShouldNotProcess() throws Exception {
+    void testDoFilterInternalWithTokenWithoutBearerPrefixShouldNotProcess() throws Exception {
         // Given
         when(request.getHeader("Authorization")).thenReturn(VALID_TOKEN); // No "Bearer " prefix
 
@@ -228,19 +231,22 @@ class JwtAuthenticationFilterTest {
     }
 
     @Test
-    void testConstructor_WithNullTokenProvider_ShouldThrowException() {
+    void testConstructorWithNullTokenProviderShouldThrowException() {
         // When/Then
-        assertThrows(IllegalArgumentException.class, () -> {
-            new JwtAuthenticationFilter(null, userDetailsService);
-        });
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> {
+                    new JwtAuthenticationFilter(null, userDetailsService);
+                });
     }
 
     @Test
-    void testConstructor_WithNullUserDetailsService_ShouldThrowException() {
+    void testConstructorWithNullUserDetailsServiceShouldThrowException() {
         // When/Then
-        assertThrows(IllegalArgumentException.class, () -> {
-            new JwtAuthenticationFilter(tokenProvider, null);
-        });
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> {
+                    new JwtAuthenticationFilter(tokenProvider, null);
+                });
     }
 }
-

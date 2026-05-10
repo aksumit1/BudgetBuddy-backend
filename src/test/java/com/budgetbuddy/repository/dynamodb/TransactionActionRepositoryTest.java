@@ -1,8 +1,18 @@
 package com.budgetbuddy.repository.dynamodb;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import com.budgetbuddy.AWSTestConfiguration;
 import com.budgetbuddy.model.dynamodb.TransactionActionTable;
 import com.budgetbuddy.util.TableInitializer;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -13,28 +23,16 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 
-import java.time.Instant;
-import java.time.LocalDate;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
-
-import static org.junit.jupiter.api.Assertions.*;
-
-/**
- * Tests for TransactionActionRepository
- */
+/** Tests for TransactionActionRepository */
 @SpringBootTest(classes = com.budgetbuddy.BudgetBuddyApplication.class)
 @ActiveProfiles("test")
 @Import(AWSTestConfiguration.class)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class TransactionActionRepositoryTest {
 
-    @Autowired
-    private TransactionActionRepository transactionActionRepository;
+    @Autowired private TransactionActionRepository transactionActionRepository;
 
-    @Autowired
-    private DynamoDbClient dynamoDbClient;
+    @Autowired private DynamoDbClient dynamoDbClient;
 
     private String testUserId;
     private String testTransactionId;
@@ -49,7 +47,7 @@ class TransactionActionRepositoryTest {
     void setUp() {
         testUserId = UUID.randomUUID().toString();
         testTransactionId = UUID.randomUUID().toString();
-        
+
         testAction = new TransactionActionTable();
         testAction.setActionId(UUID.randomUUID().toString());
         testAction.setUserId(testUserId);
@@ -64,31 +62,36 @@ class TransactionActionRepositoryTest {
     }
 
     @Test
-    void testSave_WithValidAction_Succeeds() {
+    void testSaveWithValidActionSucceeds() {
         // When
         transactionActionRepository.save(testAction);
 
         // Then
-        Optional<TransactionActionTable> found = transactionActionRepository.findById(testAction.getActionId());
+        final Optional<TransactionActionTable> found =
+                transactionActionRepository.findById(testAction.getActionId());
         assertTrue(found.isPresent(), "Action should be saved");
         assertEquals(testAction.getTitle(), found.get().getTitle());
     }
 
     @Test
-    void testSave_WithNullAction_ThrowsException() {
+    void testSaveWithNullActionThrowsException() {
         // When/Then
-        assertThrows(IllegalArgumentException.class, () -> {
-            transactionActionRepository.save(null);
-        }, "Should throw exception for null action");
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> {
+                    transactionActionRepository.save(null);
+                },
+                "Should throw exception for null action");
     }
 
     @Test
-    void testFindById_WithExistingAction_ReturnsAction() {
+    void testFindByIdWithExistingActionReturnsAction() {
         // Given
         transactionActionRepository.save(testAction);
 
         // When
-        Optional<TransactionActionTable> found = transactionActionRepository.findById(testAction.getActionId());
+        final Optional<TransactionActionTable> found =
+                transactionActionRepository.findById(testAction.getActionId());
 
         // Then
         assertTrue(found.isPresent(), "Action should be found");
@@ -96,20 +99,21 @@ class TransactionActionRepositoryTest {
     }
 
     @Test
-    void testFindById_WithNonExistentAction_ReturnsEmpty() {
+    void testFindByIdWithNonExistentActionReturnsEmpty() {
         // When
-        Optional<TransactionActionTable> found = transactionActionRepository.findById(UUID.randomUUID().toString());
+        final Optional<TransactionActionTable> found =
+                transactionActionRepository.findById(UUID.randomUUID().toString());
 
         // Then
         assertTrue(found.isEmpty(), "Should return empty for non-existent action");
     }
 
     @Test
-    void testFindByTransactionId_ReturnsTransactionActions() {
+    void testFindByTransactionIdReturnsTransactionActions() {
         // Given
         transactionActionRepository.save(testAction);
-        
-        TransactionActionTable action2 = new TransactionActionTable();
+
+        final TransactionActionTable action2 = new TransactionActionTable();
         action2.setActionId(UUID.randomUUID().toString());
         action2.setUserId(testUserId);
         action2.setTransactionId(testTransactionId);
@@ -121,7 +125,8 @@ class TransactionActionRepositoryTest {
         transactionActionRepository.save(action2);
 
         // When
-        List<TransactionActionTable> actions = transactionActionRepository.findByTransactionId(testTransactionId);
+        final List<TransactionActionTable> actions =
+                transactionActionRepository.findByTransactionId(testTransactionId);
 
         // Then
         assertNotNull(actions, "Actions should not be null");
@@ -129,12 +134,12 @@ class TransactionActionRepositoryTest {
     }
 
     @Test
-    void testFindByUserId_ReturnsUserActions() {
+    void testFindByUserIdReturnsUserActions() {
         // Given
         transactionActionRepository.save(testAction);
 
         // When
-        List<TransactionActionTable> actions = transactionActionRepository.findByUserId(testUserId);
+        final List<TransactionActionTable> actions = transactionActionRepository.findByUserId(testUserId);
 
         // Then
         assertNotNull(actions, "Actions should not be null");
@@ -142,53 +147,62 @@ class TransactionActionRepositoryTest {
     }
 
     @Test
-    void testDelete_WithValidId_RemovesAction() {
+    void testDeleteWithValidIdRemovesAction() {
         // Given
         transactionActionRepository.save(testAction);
-        String actionId = testAction.getActionId();
+        final String actionId = testAction.getActionId();
 
         // When
         transactionActionRepository.delete(actionId);
 
         // Then
-        Optional<TransactionActionTable> found = transactionActionRepository.findById(actionId);
+        final Optional<TransactionActionTable> found = transactionActionRepository.findById(actionId);
         assertTrue(found.isEmpty(), "Action should be deleted");
     }
 
     @Test
-    void testDelete_WithNullId_ThrowsException() {
+    void testDeleteWithNullIdThrowsException() {
         // When/Then
-        assertThrows(IllegalArgumentException.class, () -> {
-            transactionActionRepository.delete(null);
-        }, "Should throw exception for null ID");
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> {
+                    transactionActionRepository.delete(null);
+                },
+                "Should throw exception for null ID");
     }
-    
+
     @Test
-    void testFindByUserIdAndUpdatedAfter_WithValidParams_ReturnsUpdatedActions() {
+    void testFindByUserIdAndUpdatedAfterWithValidParamsReturnsUpdatedActions() {
         // Given
-        long updatedAfterTimestamp = Instant.now().minusSeconds(3600).getEpochSecond();
+        final long updatedAfterTimestamp = Instant.now().minusSeconds(3600).getEpochSecond();
         testAction.setUpdatedAtTimestamp(Instant.now().getEpochSecond());
         transactionActionRepository.save(testAction);
-        
+
         // When
-        List<TransactionActionTable> result = transactionActionRepository.findByUserIdAndUpdatedAfter(testUserId, updatedAfterTimestamp);
-        
+        final List<TransactionActionTable> result =
+                transactionActionRepository.findByUserIdAndUpdatedAfter(
+                        testUserId, updatedAfterTimestamp);
+
         // Then
         assertNotNull(result);
         assertTrue(result.size() >= 0);
     }
-    
+
     @Test
-    void testFindByUserIdAndUpdatedAfter_WithNullParams_ReturnsEmpty() {
+    void testFindByUserIdAndUpdatedAfterWithNullParamsReturnsEmpty() {
         // When
-        List<TransactionActionTable> result1 = transactionActionRepository.findByUserIdAndUpdatedAfter(null, Instant.now().getEpochSecond());
-        List<TransactionActionTable> result2 = transactionActionRepository.findByUserIdAndUpdatedAfter(testUserId, null);
-        List<TransactionActionTable> result3 = transactionActionRepository.findByUserIdAndUpdatedAfter("", Instant.now().getEpochSecond());
-        
+        final List<TransactionActionTable> result1 =
+                transactionActionRepository.findByUserIdAndUpdatedAfter(
+                        null, Instant.now().getEpochSecond());
+        final List<TransactionActionTable> result2 =
+                transactionActionRepository.findByUserIdAndUpdatedAfter(testUserId, null);
+        final List<TransactionActionTable> result3 =
+                transactionActionRepository.findByUserIdAndUpdatedAfter(
+                        "", Instant.now().getEpochSecond());
+
         // Then
         assertTrue(result1.isEmpty());
         assertTrue(result2.isEmpty());
         assertTrue(result3.isEmpty());
     }
 }
-

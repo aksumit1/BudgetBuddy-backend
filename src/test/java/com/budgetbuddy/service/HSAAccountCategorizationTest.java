@@ -1,38 +1,38 @@
 package com.budgetbuddy.service;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.anyString;
+import static org.mockito.Mockito.when;
+
 import com.budgetbuddy.model.dynamodb.AccountTable;
 import com.budgetbuddy.model.dynamodb.TransactionTable;
 import com.budgetbuddy.repository.dynamodb.AccountRepository;
-import com.budgetbuddy.service.PlaidCategoryMapper;
 import com.budgetbuddy.service.plaid.PlaidDataExtractor;
 import com.plaid.client.model.PersonalFinanceCategory;
 import com.plaid.client.model.Transaction;
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.util.Optional;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
-
 /**
- * Tests for HSA account categorization
- * - HSA accounts should be treated as investment accounts
- * - HSA deposits (positive amounts) should be categorized as investment
- * - HSA debits (negative amounts) should be categorized as expenses
+ * Tests for HSA account categorization - HSA accounts should be treated as investment accounts -
+ * HSA deposits (positive amounts) should be categorized as investment - HSA debits (negative
+ * amounts) should be categorized as expenses
  */
 @ExtendWith(MockitoExtension.class)
 @org.mockito.junit.jupiter.MockitoSettings(strictness = org.mockito.quality.Strictness.LENIENT)
 class HSAAccountCategorizationTest {
 
-    @Mock
-    private AccountRepository accountRepository;
+    @Mock private AccountRepository accountRepository;
 
     @Mock
     private com.budgetbuddy.service.TransactionTypeCategoryService transactionTypeCategoryService;
@@ -44,7 +44,8 @@ class HSAAccountCategorizationTest {
 
     @BeforeEach
     void setUp() {
-        plaidDataExtractor = new PlaidDataExtractor(accountRepository, transactionTypeCategoryService);
+        plaidDataExtractor =
+                new PlaidDataExtractor(accountRepository, transactionTypeCategoryService);
 
         // Setup HSA account
         hsaAccount = new AccountTable();
@@ -60,35 +61,48 @@ class HSAAccountCategorizationTest {
     }
 
     @Test
-    void testHSADeposit_CategorizedAsInvestment() {
+    void testHSADepositCategorizedAsInvestment() {
         // Given: HSA deposit (positive amount)
         transactionTable.setAmount(new BigDecimal("1000.00"));
         transactionTable.setDescription("HSA Contribution");
 
         // Mock account lookup
         when(accountRepository.findById("hsa-account-123")).thenReturn(Optional.of(hsaAccount));
-        when(accountRepository.findByPlaidAccountId("plaid-hsa-123")).thenReturn(Optional.of(hsaAccount));
+        when(accountRepository.findByPlaidAccountId("plaid-hsa-123"))
+                .thenReturn(Optional.of(hsaAccount));
 
-        // Mock TransactionTypeCategoryService to return "other" category (will be overridden by HSA logic)
-        TransactionTypeCategoryService.CategoryResult defaultResult = 
-            new TransactionTypeCategoryService.CategoryResult("other", "other", "PLAID", 0.5);
-        when(transactionTypeCategoryService.determineCategory(any(), any(), any(), any(), any(), any(), any(), any(), anyString()))
+        // Mock TransactionTypeCategoryService to return "other" category (will be overridden by HSA
+        // logic)
+        final TransactionTypeCategoryService.CategoryResult defaultResult =
+                new TransactionTypeCategoryService.CategoryResult("other", "other", "PLAID", 0.5);
+        when(transactionTypeCategoryService.determineCategory(
+                        any(), any(), any(), any(), any(), any(), any(), any(), anyString(), any()))
                 .thenReturn(defaultResult);
 
         // Create Plaid transaction
-        Transaction plaidTransaction = createPlaidTransaction("plaid-hsa-123", "HSA Contribution", null, 1000.00, null, null);
+        final Transaction plaidTransaction =
+                createPlaidTransaction(
+                        "plaid-hsa-123", "HSA Contribution", null, 1000.00, null, null);
 
         // When
         plaidDataExtractor.updateTransactionFromPlaid(transactionTable, plaidTransaction);
 
         // Then
-        assertEquals("investment", transactionTable.getCategoryPrimary(), "HSA deposit should be investment");
-        assertEquals("otherInvestment", transactionTable.getCategoryDetailed(), "HSA deposit should be otherInvestment");
-        assertFalse(transactionTable.getCategoryOverridden(), "HSA deposit should not be user-overridden");
+        assertEquals(
+                "investment",
+                transactionTable.getCategoryPrimary(),
+                "HSA deposit should be investment");
+        assertEquals(
+                "otherInvestment",
+                transactionTable.getCategoryDetailed(),
+                "HSA deposit should be otherInvestment");
+        assertFalse(
+                transactionTable.getCategoryOverridden(),
+                "HSA deposit should not be user-overridden");
     }
 
     @Test
-    void testHSADebit_CategorizedAsExpense() {
+    void testHSADebitCategorizedAsExpense() {
         // Given: HSA debit (negative amount)
         transactionTable.setAmount(new BigDecimal("-150.00"));
         transactionTable.setDescription("Medical Expense");
@@ -96,56 +110,83 @@ class HSAAccountCategorizationTest {
 
         // Mock account lookup
         when(accountRepository.findById("hsa-account-123")).thenReturn(Optional.of(hsaAccount));
-        when(accountRepository.findByPlaidAccountId("plaid-hsa-123")).thenReturn(Optional.of(hsaAccount));
+        when(accountRepository.findByPlaidAccountId("plaid-hsa-123"))
+                .thenReturn(Optional.of(hsaAccount));
 
         // Mock TransactionTypeCategoryService - returns healthcare (HSA logic should preserve this)
-        TransactionTypeCategoryService.CategoryResult healthcareResult = 
-            new TransactionTypeCategoryService.CategoryResult("healthcare", "healthcare", "PLAID", 0.9);
-        when(transactionTypeCategoryService.determineCategory(any(), any(), any(), any(), any(), any(), any(), any(), anyString()))
+        final TransactionTypeCategoryService.CategoryResult healthcareResult =
+                new TransactionTypeCategoryService.CategoryResult(
+                        "healthcare", "healthcare", "PLAID", 0.9);
+        when(transactionTypeCategoryService.determineCategory(
+                        any(), any(), any(), any(), any(), any(), any(), any(), anyString(), any()))
                 .thenReturn(healthcareResult);
 
         // Create Plaid transaction
-        Transaction plaidTransaction = createPlaidTransaction("plaid-hsa-123", "Medical Expense", "Pharmacy", -150.00, "MEDICAL", "PHARMACIES");
+        final Transaction plaidTransaction =
+                createPlaidTransaction(
+                        "plaid-hsa-123",
+                        "Medical Expense",
+                        "Pharmacy",
+                        -150.00,
+                        "MEDICAL",
+                        "PHARMACIES");
 
         // When
         plaidDataExtractor.updateTransactionFromPlaid(transactionTable, plaidTransaction);
 
         // Then
-        assertEquals("healthcare", transactionTable.getCategoryPrimary(), "HSA debit should be expense (healthcare)");
-        assertEquals("healthcare", transactionTable.getCategoryDetailed(), "HSA debit should be healthcare");
+        assertEquals(
+                "healthcare",
+                transactionTable.getCategoryPrimary(),
+                "HSA debit should be expense (healthcare)");
+        assertEquals(
+                "healthcare",
+                transactionTable.getCategoryDetailed(),
+                "HSA debit should be healthcare");
     }
 
     @Test
-    void testHSADebit_WithGenericCategory_DefaultsToHealthcare() {
+    void testHSADebitWithGenericCategoryDefaultsToHealthcare() {
         // Given: HSA debit with generic category
         transactionTable.setAmount(new BigDecimal("-200.00"));
         transactionTable.setDescription("HSA Withdrawal");
 
         // Mock account lookup
         when(accountRepository.findById("hsa-account-123")).thenReturn(Optional.of(hsaAccount));
-        when(accountRepository.findByPlaidAccountId("plaid-hsa-123")).thenReturn(Optional.of(hsaAccount));
+        when(accountRepository.findByPlaidAccountId("plaid-hsa-123"))
+                .thenReturn(Optional.of(hsaAccount));
 
-        // Mock TransactionTypeCategoryService - returns generic "other" (HSA logic should override to healthcare)
-        TransactionTypeCategoryService.CategoryResult otherResult = 
-            new TransactionTypeCategoryService.CategoryResult("other", "other", "PLAID", 0.5);
-        when(transactionTypeCategoryService.determineCategory(any(), any(), any(), any(), any(), any(), any(), any(), anyString()))
+        // Mock TransactionTypeCategoryService - returns generic "other" (HSA logic should override
+        // to healthcare)
+        final TransactionTypeCategoryService.CategoryResult otherResult =
+                new TransactionTypeCategoryService.CategoryResult("other", "other", "PLAID", 0.5);
+        when(transactionTypeCategoryService.determineCategory(
+                        any(), any(), any(), any(), any(), any(), any(), any(), anyString(), any()))
                 .thenReturn(otherResult);
 
         // Create Plaid transaction
-        Transaction plaidTransaction = createPlaidTransaction("plaid-hsa-123", "HSA Withdrawal", null, -200.00, null, null);
+        final Transaction plaidTransaction =
+                createPlaidTransaction(
+                        "plaid-hsa-123", "HSA Withdrawal", null, -200.00, null, null);
 
         // When
         plaidDataExtractor.updateTransactionFromPlaid(transactionTable, plaidTransaction);
 
         // Then
-        assertEquals("healthcare", transactionTable.getCategoryPrimary(), "HSA debit with generic category should default to healthcare");
-        assertEquals("healthcare", transactionTable.getCategoryDetailed(), "HSA debit should be healthcare");
+        assertEquals(
+                "healthcare",
+                transactionTable.getCategoryPrimary(),
+                "HSA debit with generic category should default to healthcare");
+        assertEquals(
+                "healthcare",
+                transactionTable.getCategoryDetailed(),
+                "HSA debit should be healthcare");
     }
 
     @Test
-    void testNonHSAAccount_NotAffected() {
+    void testNonHSAAccountNotAffected() {
         // Given: Non-HSA account transaction
-        AccountTable checkingAccount = new AccountTable();
+        final AccountTable checkingAccount = new AccountTable();
         checkingAccount.setAccountId("checking-123");
         checkingAccount.setAccountType("checking");
         checkingAccount.setPlaidAccountId("plaid-checking-123");
@@ -156,31 +197,46 @@ class HSAAccountCategorizationTest {
 
         // Mock account lookup
         when(accountRepository.findById("checking-123")).thenReturn(Optional.of(checkingAccount));
-        when(accountRepository.findByPlaidAccountId("plaid-checking-123")).thenReturn(Optional.of(checkingAccount));
+        when(accountRepository.findByPlaidAccountId("plaid-checking-123"))
+                .thenReturn(Optional.of(checkingAccount));
 
-        // Mock TransactionTypeCategoryService - returns income (non-HSA accounts should not be overridden)
-        TransactionTypeCategoryService.CategoryResult incomeResult = 
-            new TransactionTypeCategoryService.CategoryResult("income", "deposit", "PLAID", 0.9);
-        when(transactionTypeCategoryService.determineCategory(any(), any(), any(), any(), any(), any(), any(), any(), anyString()))
+        // Mock TransactionTypeCategoryService - returns income (non-HSA accounts should not be
+        // overridden)
+        final TransactionTypeCategoryService.CategoryResult incomeResult =
+                new TransactionTypeCategoryService.CategoryResult(
+                        "income", "deposit", "PLAID", 0.9);
+        when(transactionTypeCategoryService.determineCategory(
+                        any(), any(), any(), any(), any(), any(), any(), any(), anyString(), any()))
                 .thenReturn(incomeResult);
 
         // Create Plaid transaction
-        Transaction plaidTransaction = createPlaidTransaction("plaid-checking-123", "Deposit", null, 1000.00, "INCOME", "DEPOSIT");
+        final Transaction plaidTransaction =
+                createPlaidTransaction(
+                        "plaid-checking-123", "Deposit", null, 1000.00, "INCOME", "DEPOSIT");
 
         // When
         plaidDataExtractor.updateTransactionFromPlaid(transactionTable, plaidTransaction);
 
         // Then: Should use normal categorization, not investment
-        assertEquals("income", transactionTable.getCategoryPrimary(), "Non-HSA account should use normal categorization");
-        assertEquals("deposit", transactionTable.getCategoryDetailed(), "Non-HSA account should use normal categorization");
+        assertEquals(
+                "income",
+                transactionTable.getCategoryPrimary(),
+                "Non-HSA account should use normal categorization");
+        assertEquals(
+                "deposit",
+                transactionTable.getCategoryDetailed(),
+                "Non-HSA account should use normal categorization");
     }
 
-    /**
-     * Creates a Plaid Transaction object for testing
-     */
-    private Transaction createPlaidTransaction(String accountId, String name, String merchantName, 
-                                               double amount, String categoryPrimary, String categoryDetailed) {
-        Transaction transaction = new Transaction();
+    /** Creates a Plaid Transaction object for testing */
+    private Transaction createPlaidTransaction(
+            final String accountId,
+            final String name,
+            final String merchantName,
+            final double amount,
+            final String categoryPrimary,
+            final String categoryDetailed) {
+        final Transaction transaction = new Transaction();
         transaction.setAccountId(accountId);
         transaction.setName(name);
         transaction.setMerchantName(merchantName);
@@ -190,7 +246,7 @@ class HSAAccountCategorizationTest {
         transaction.setPending(false);
 
         if (categoryPrimary != null || categoryDetailed != null) {
-            PersonalFinanceCategory pfc = new PersonalFinanceCategory();
+            final PersonalFinanceCategory pfc = new PersonalFinanceCategory();
             pfc.setPrimary(categoryPrimary);
             pfc.setDetailed(categoryDetailed);
             transaction.setPersonalFinanceCategory(pfc);
@@ -199,4 +255,3 @@ class HSAAccountCategorizationTest {
         return transaction;
     }
 }
-

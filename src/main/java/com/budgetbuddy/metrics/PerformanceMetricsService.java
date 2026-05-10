@@ -3,30 +3,23 @@ package com.budgetbuddy.metrics;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
-
 /**
- * Performance Metrics Service
- * Tracks and records performance metrics for monitoring
+ * Performance Metrics Service Tracks and records performance metrics for monitoring
  *
- * Metrics tracked:
- * - Request count by endpoint
- * - Response time by endpoint
- * - Error count by endpoint
- * - Throughput (requests per second)
- * - Active connections
+ * <p>Metrics tracked: - Request count by endpoint - Response time by endpoint - Error count by
+ * endpoint - Throughput (requests per second) - Active connections
  */
 @Service
 public class PerformanceMetricsService {
 
     @SuppressWarnings("unused") // Reserved for future logging
-    private static final Logger logger =
-            LoggerFactory.getLogger(PerformanceMetricsService.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(PerformanceMetricsService.class);
 
     private final MeterRegistry meterRegistry;
     // JDK 25: Using ConcurrentHashMap for thread-safe operations
@@ -42,25 +35,26 @@ public class PerformanceMetricsService {
         this.meterRegistry = meterRegistry;
 
         // Initialize counters
-        this.totalRequests = Counter.builder("http.requests.total")
-                .description("Total number of HTTP requests")
-                .register(meterRegistry);
+        this.totalRequests =
+                Counter.builder("http.requests.total")
+                        .description("Total number of HTTP requests")
+                        .register(meterRegistry);
 
-        this.totalErrors = Counter.builder("http.errors.total")
-                .description("Total number of HTTP errors")
-                .register(meterRegistry);
+        this.totalErrors =
+                Counter.builder("http.errors.total")
+                        .description("Total number of HTTP errors")
+                        .register(meterRegistry);
 
-        this.totalSuccess = Counter.builder("http.success.total")
-                .description("Total number of successful HTTP requests")
-                .register(meterRegistry);
+        this.totalSuccess =
+                Counter.builder("http.success.total")
+                        .description("Total number of successful HTTP requests")
+                        .register(meterRegistry);
     }
 
-    /**
-     * Start timing a request
-     */
-    public void startRequest(final String correlationId, final String endpoint,
-                             final String method) {
-        Timer.Sample sample = Timer.start(meterRegistry);
+    /** Start timing a request */
+    public void startRequest(
+            final String correlationId, final String endpoint, final String method) {
+        final Timer.Sample sample = Timer.start(meterRegistry);
         activeRequests.put(correlationId, sample);
 
         // Increment total requests
@@ -75,21 +69,22 @@ public class PerformanceMetricsService {
                 .increment();
     }
 
-    /**
-     * End timing a request and record metrics
-     */
-    public void endRequest(final String correlationId, final String endpoint,
-                           final String method, final int statusCode,
-                           final boolean isError) {
-        Timer.Sample sample = activeRequests.remove(correlationId);
+    /** End timing a request and record metrics */
+    public void endRequest(
+            final String correlationId,
+            final String endpoint,
+            final String method,
+            final int statusCode,
+            final boolean isError) {
+        final Timer.Sample sample = activeRequests.remove(correlationId);
         if (sample != null) {
-            Timer timer = Timer.builder("http.request.duration")
-                    .tag("endpoint", sanitizeEndpoint(endpoint))
-                    .tag("method", method)
-                    .tag("status", String.valueOf(statusCode))
-                    .description("Request duration by endpoint, "
-                            + "method, and status")
-                    .register(meterRegistry);
+            final Timer timer =
+                    Timer.builder("http.request.duration")
+                            .tag("endpoint", sanitizeEndpoint(endpoint))
+                            .tag("method", method)
+                            .tag("status", String.valueOf(statusCode))
+                            .description("Request duration by endpoint, " + "method, and status")
+                            .register(meterRegistry);
 
             sample.stop(timer);
         }
@@ -102,8 +97,7 @@ public class PerformanceMetricsService {
                     .tag("endpoint", sanitizeEndpoint(endpoint))
                     .tag("method", method)
                     .tag("status", String.valueOf(statusCode))
-                    .description("Number of errors by endpoint, "
-                            + "method, and status")
+                    .description("Number of errors by endpoint, " + "method, and status")
                     .register(meterRegistry)
                     .increment();
         } else {
@@ -111,31 +105,21 @@ public class PerformanceMetricsService {
         }
     }
 
-    /**
-     * Record throughput (requests per second)
-     */
-    public void recordThroughput(final String endpoint,
-                                 final double requestsPerSecond) {
-        io.micrometer.core.instrument.Gauge.builder("http.throughput",
-                        () -> requestsPerSecond)
+    /** Record throughput (requests per second) */
+    public void recordThroughput(final String endpoint, final double requestsPerSecond) {
+        io.micrometer.core.instrument.Gauge.builder("http.throughput", () -> requestsPerSecond)
                 .tag("endpoint", sanitizeEndpoint(endpoint))
                 .register(meterRegistry);
     }
 
-    /**
-     * Record active connections
-     */
+    /** Record active connections */
     public void recordActiveConnections(final int count) {
-        io.micrometer.core.instrument.Gauge.builder("http.connections.active",
-                        () -> count)
+        io.micrometer.core.instrument.Gauge.builder("http.connections.active", () -> count)
                 .register(meterRegistry);
     }
 
-    /**
-     * Record database query time
-     */
-    public void recordDatabaseQuery(final String operation,
-                                     final long durationMs) {
+    /** Record database query time */
+    public void recordDatabaseQuery(final String operation, final long durationMs) {
         Timer.builder("database.query.duration")
                 .tag("operation", operation)
                 .description("Database query duration by operation")
@@ -143,13 +127,12 @@ public class PerformanceMetricsService {
                 .record(durationMs, TimeUnit.MILLISECONDS);
     }
 
-    /**
-     * Record external API call time
-     */
-    public void recordExternalApiCall(final String service,
-                                      final String endpoint,
-                                      final long durationMs,
-                                      final boolean success) {
+    /** Record external API call time */
+    public void recordExternalApiCall(
+            final String service,
+            final String endpoint,
+            final long durationMs,
+            final boolean success) {
         Timer.builder("external.api.duration")
                 .tag("service", service)
                 .tag("endpoint", sanitizeEndpoint(endpoint))
@@ -166,11 +149,8 @@ public class PerformanceMetricsService {
                 .increment();
     }
 
-    /**
-     * Record cache hit/miss
-     */
-    public void recordCacheOperation(final String cacheName,
-                                     final boolean hit) {
+    /** Record cache hit/miss */
+    public void recordCacheOperation(final String cacheName, final boolean hit) {
         Counter.builder("cache.operations")
                 .tag("cache", cacheName)
                 .tag("result", hit ? "hit" : "miss")
@@ -179,27 +159,23 @@ public class PerformanceMetricsService {
                 .increment();
     }
 
-    /**
-     * Record queue size
-     */
+    /** Record queue size */
     public void recordQueueSize(final String queueName, final int size) {
         io.micrometer.core.instrument.Gauge.builder("queue.size", () -> size)
                 .tag("queue", queueName)
                 .register(meterRegistry);
     }
 
-    /**
-     * Sanitize endpoint for metrics (remove IDs, etc.)
-     */
+    /** Sanitize endpoint for metrics (remove IDs, etc.) */
     private String sanitizeEndpoint(final String endpoint) {
         if (endpoint == null) {
             return "unknown";
         }
 
         // Replace UUIDs and IDs with placeholders
-        String sanitized = endpoint.replaceAll(
-                "/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}",
-                "/{id}");
+        String sanitized =
+                endpoint.replaceAll(
+                        "/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}", "/{id}");
         sanitized = sanitized.replaceAll("/\\d+", "/{id}");
 
         // Limit length
@@ -211,4 +187,3 @@ public class PerformanceMetricsService {
         return sanitized;
     }
 }
-

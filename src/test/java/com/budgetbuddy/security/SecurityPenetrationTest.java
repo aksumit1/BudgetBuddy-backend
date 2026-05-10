@@ -1,5 +1,12 @@
 package com.budgetbuddy.security;
 
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.request;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.request;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
 import com.budgetbuddy.AWSTestConfiguration;
 import com.budgetbuddy.dto.AuthRequest;
 import com.budgetbuddy.util.TableInitializer;
@@ -15,15 +22,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
-
-/**
- * Security Penetration Tests
- * Tests for common security vulnerabilities
- * 
- */
+/** Security Penetration Tests Tests for common security vulnerabilities */
 @SpringBootTest(classes = com.budgetbuddy.BudgetBuddyApplication.class)
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
@@ -31,11 +30,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class SecurityPenetrationTest {
 
-    @Autowired
-    private MockMvc mockMvc;
+    @Autowired private MockMvc mockMvc;
 
-    @Autowired
-    private DynamoDbClient dynamoDbClient;
+    @Autowired private DynamoDbClient dynamoDbClient;
 
     @BeforeAll
     void ensureTablesInitialized() {
@@ -43,34 +40,42 @@ class SecurityPenetrationTest {
     }
 
     @Test
-    void testSQLInjection_EmailField_IsPrevented() throws Exception {
+    void testSQLInjectionEmailFieldIsPrevented() throws Exception {
         // Given - SQL injection attempt
-        String maliciousEmail = "test@example.com' OR '1'='1";
+        final String maliciousEmail = "test@example.com' OR '1'='1";
 
         // When/Then - Should be rejected by validation
-        mockMvc.perform(post("/api/auth/login")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(String.format("{\"email\":\"%s\",\"passwordHash\":\"hash\",\"salt\":\"salt\"}", maliciousEmail)))
+        mockMvc.perform(
+                        post("/api/auth/login")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(
+                                        String.format(
+                                                "{\"email\":\"%s\",\"passwordHash\":\"hash\",\"salt\":\"salt\"}",
+                                                maliciousEmail)))
                 .andExpect(status().is4xxClientError());
     }
 
     @Test
-    void testXSS_InputSanitization_IsApplied() throws Exception {
+    void testXSSInputSanitizationIsApplied() throws Exception {
         // Given - XSS attempt
-        String xssPayload = "<script>alert('XSS')</script>";
+        final String xssPayload = "<script>alert('XSS')</script>";
 
         // When/Then - Should be sanitized
         // Note: Actual sanitization depends on implementation
-        mockMvc.perform(post("/api/auth/register")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(String.format("{\"email\":\"%s\",\"passwordHash\":\"hash\",\"salt\":\"salt\"}", xssPayload)))
+        mockMvc.perform(
+                        post("/api/auth/register")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(
+                                        String.format(
+                                                "{\"email\":\"%s\",\"passwordHash\":\"hash\",\"salt\":\"salt\"}",
+                                                xssPayload)))
                 .andExpect(status().is4xxClientError());
     }
 
     @Test
-    void testBruteForce_WithRateLimiting_IsBlocked() throws Exception {
+    void testBruteForceWithRateLimitingIsBlocked() throws Exception {
         // Given - Multiple rapid login attempts
-        AuthRequest request = new AuthRequest();
+        final AuthRequest request = new AuthRequest();
         request.setEmail("test@example.com");
         request.setPasswordHash("wrong-hash");
         // BREAKING CHANGE: Client salt removed - backend handles salt management
@@ -79,9 +84,11 @@ class SecurityPenetrationTest {
         int blockedCount = 0;
         for (int i = 0; i < 20; i++) {
             try {
-                mockMvc.perform(post("/api/auth/login")
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content("{\"email\":\"test@example.com\",\"passwordHash\":\"wrong\",\"salt\":\"salt\"}"))
+                mockMvc.perform(
+                                post("/api/auth/login")
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .content(
+                                                "{\"email\":\"test@example.com\",\"passwordHash\":\"wrong\",\"salt\":\"salt\"}"))
                         .andExpect(status().is4xxClientError());
 
                 if (i >= 5) {
@@ -95,22 +102,21 @@ class SecurityPenetrationTest {
 
         // Then - Should have rate limiting
         System.out.println("Brute force test - blocked requests: " + blockedCount);
-        assertTrue(blockedCount > 0 || true); // At least some should be blocked
+        assertTrue(true); // At least some should be blocked
     }
 
     @Test
-    void testAuthentication_WithInvalidToken_IsRejected() throws Exception {
+    void testAuthenticationWithInvalidTokenIsRejected() throws Exception {
         // Given - Invalid JWT token
-        String invalidToken = "invalid.jwt.token";
+        final String invalidToken = "invalid.jwt.token";
 
         // When/Then
-        mockMvc.perform(get("/api/transactions")
-                        .header("Authorization", "Bearer " + invalidToken))
+        mockMvc.perform(get("/api/transactions").header("Authorization", "Bearer " + invalidToken))
                 .andExpect(status().isUnauthorized());
     }
 
     @Test
-    void testAuthorization_UnauthorizedAccess_IsRejected() throws Exception {
+    void testAuthorizationUnauthorizedAccessIsRejected() throws Exception {
         // Given - Valid token but accessing another user's resource
         // Note: This requires a valid token setup
 
@@ -120,49 +126,50 @@ class SecurityPenetrationTest {
     }
 
     @Test
-    void testInputValidation_WithOversizedPayload_IsRejected() throws Exception {
+    void testInputValidationWithOversizedPayloadIsRejected() throws Exception {
         // Given - Oversized JSON payload (but not too large to cause server error)
-        StringBuilder largePayload = new StringBuilder("{\"email\":\"");
-        for (int i = 0; i < 10000; i++) { // Reduced size to avoid server errors
+        final StringBuilder largePayload = new StringBuilder("{\"email\":\"");
+        for (int i = 0; i < 10_000; i++) { // Reduced size to avoid server errors
             largePayload.append("x");
         }
         largePayload.append("@example.com\",\"passwordHash\":\"hash\",\"salt\":\"salt\"}");
 
         // When/Then - Should be rejected (could be 4xx or 5xx depending on implementation)
         try {
-            mockMvc.perform(post("/api/auth/register")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(largePayload.toString()))
+            mockMvc.perform(
+                            post("/api/auth/register")
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .content(largePayload.toString()))
                     .andExpect(status().is4xxClientError());
         } catch (AssertionError e) {
             // If 4xx fails, try 5xx (server error for oversized payload)
-            mockMvc.perform(post("/api/auth/register")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(largePayload.toString()))
+            mockMvc.perform(
+                            post("/api/auth/register")
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .content(largePayload.toString()))
                     .andExpect(status().is5xxServerError());
         }
     }
 
     @Test
-    void testPathTraversal_IsPrevented() throws Exception {
+    void testPathTraversalIsPrevented() throws Exception {
         // Given - Path traversal attempt
-        String maliciousPath = "../../../etc/passwd";
+        final String maliciousPath = "../../../etc/passwd";
 
         // When/Then - Should be rejected
-        mockMvc.perform(get("/api/files/" + maliciousPath))
-                .andExpect(status().is4xxClientError());
+        mockMvc.perform(get("/api/files/" + maliciousPath)).andExpect(status().is4xxClientError());
     }
 
     @Test
-    void testCSRF_WithMissingToken_IsHandled() throws Exception {
+    void testCSRFWithMissingTokenIsHandled() throws Exception {
         // Given - Request without CSRF token
         // Note: CSRF may be disabled for stateless API
 
         // When/Then - Should be handled appropriately
-        mockMvc.perform(post("/api/transactions")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{}"))
+        mockMvc.perform(
+                        post("/api/transactions")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("{}"))
                 .andExpect(status().is4xxClientError());
     }
 }
-

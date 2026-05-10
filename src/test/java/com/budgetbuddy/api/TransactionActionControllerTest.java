@@ -1,11 +1,26 @@
 package com.budgetbuddy.api;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.isNull;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import com.budgetbuddy.exception.AppException;
 import com.budgetbuddy.model.dynamodb.TransactionActionTable;
 import com.budgetbuddy.model.dynamodb.TransactionTable;
 import com.budgetbuddy.model.dynamodb.UserTable;
 import com.budgetbuddy.service.TransactionActionService;
 import com.budgetbuddy.service.UserService;
+import java.util.Arrays;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -16,31 +31,23 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.userdetails.UserDetails;
 
-import java.util.Arrays;
-import java.util.List;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
-
-/**
- * Unit Tests for TransactionActionController
- */
+/** Unit Tests for TransactionActionController */
+// PMD's LawOfDemeter is documented as imprecise on chains involving
+// standard library types (BigDecimal, String, Optional) and DTO
+// getters; this class has many such idiomatic uses. Suppress at
+// class level rather than littering every method.
+@SuppressWarnings("PMD.LawOfDemeter")
 @ExtendWith(MockitoExtension.class)
 @org.mockito.junit.jupiter.MockitoSettings(strictness = org.mockito.quality.Strictness.LENIENT)
 class TransactionActionControllerTest {
 
-    @Mock
-    private TransactionActionService actionService;
+    @Mock private TransactionActionService actionService;
 
-    @Mock
-    private UserService userService;
+    @Mock private UserService userService;
 
-    @Mock
-    private UserDetails userDetails;
+    @Mock private UserDetails userDetails;
 
-    @InjectMocks
-    private TransactionActionController controller;
+    @InjectMocks private TransactionActionController controller;
 
     private UserTable testUser;
     private TransactionTable testTransaction;
@@ -65,19 +72,20 @@ class TransactionActionControllerTest {
         testAction.setPriority("MEDIUM");
 
         when(userDetails.getUsername()).thenReturn("test@example.com");
-        when(userService.findByEmail("test@example.com")).thenReturn(java.util.Optional.of(testUser));
+        when(userService.findByEmail("test@example.com"))
+                .thenReturn(java.util.Optional.of(testUser));
     }
 
     @Test
-    void testGetActions_WithValidUser_ReturnsActions() {
+    void testGetActionsWithValidUserReturnsActions() {
         // Given
-        List<TransactionActionTable> mockActions = Arrays.asList(testAction);
+        final List<TransactionActionTable> mockActions = Arrays.asList(testAction);
         when(actionService.getActionsByTransactionId(testUser, testTransaction.getTransactionId()))
                 .thenReturn(mockActions);
 
         // When
-        ResponseEntity<List<TransactionActionTable>> response = controller.getActions(
-                userDetails, testTransaction.getTransactionId());
+        final ResponseEntity<List<TransactionActionTable>> response =
+                controller.getActions(userDetails, testTransaction.getTransactionId());
 
         // Then
         assertEquals(HttpStatus.OK, response.getStatusCode());
@@ -87,41 +95,44 @@ class TransactionActionControllerTest {
     }
 
     @Test
-    void testGetActions_WithNullUserDetails_ThrowsException() {
+    void testGetActionsWithNullUserDetailsThrowsException() {
         // When/Then
-        assertThrows(AppException.class, () -> controller.getActions(null, testTransaction.getTransactionId()));
+        assertThrows(
+                AppException.class,
+                () -> controller.getActions(null, testTransaction.getTransactionId()));
     }
 
     @Test
-    void testGetActions_WithEmptyTransactionId_ThrowsException() {
+    void testGetActionsWithEmptyTransactionIdThrowsException() {
         // When/Then
         assertThrows(AppException.class, () -> controller.getActions(userDetails, ""));
     }
 
     @Test
-    void testCreateAction_WithValidRequest_ReturnsCreated() {
+    void testCreateActionWithValidRequestReturnsCreated() {
         // Given
-        TransactionActionController.CreateActionRequest request = new TransactionActionController.CreateActionRequest();
+        final TransactionActionController.CreateActionRequest request =
+                new TransactionActionController.CreateActionRequest();
         request.setTitle("New Action");
         request.setDescription("Action description");
         request.setPriority("HIGH");
 
         // Updated to match the new method signature with actionId and plaidTransactionId
         when(actionService.createAction(
-                eq(testUser),
-                eq(testTransaction.getTransactionId()),
-                eq("New Action"),
-                eq("Action description"),
-                isNull(),
-                isNull(),
-                eq("HIGH"),
-                isNull(), // actionId
-                isNull())) // plaidTransactionId
+                        eq(testUser),
+                        eq(testTransaction.getTransactionId()),
+                        eq("New Action"),
+                        eq("Action description"),
+                        isNull(),
+                        isNull(),
+                        eq("HIGH"),
+                        isNull(), // actionId
+                        isNull())) // plaidTransactionId
                 .thenReturn(testAction);
 
         // When
-        ResponseEntity<TransactionActionTable> response = controller.createAction(
-                userDetails, testTransaction.getTransactionId(), request);
+        final ResponseEntity<TransactionActionTable> response =
+                controller.createAction(userDetails, testTransaction.getTransactionId(), request);
 
         // Then
         assertEquals(HttpStatus.CREATED, response.getStatusCode());
@@ -130,43 +141,52 @@ class TransactionActionControllerTest {
     }
 
     @Test
-    void testCreateAction_WithEmptyTitle_ThrowsException() {
+    void testCreateActionWithEmptyTitleThrowsException() {
         // Given
-        TransactionActionController.CreateActionRequest request = new TransactionActionController.CreateActionRequest();
+        final TransactionActionController.CreateActionRequest request =
+                new TransactionActionController.CreateActionRequest();
         request.setTitle("");
 
         // When/Then
-        assertThrows(AppException.class, () -> controller.createAction(
-                userDetails, testTransaction.getTransactionId(), request));
+        assertThrows(
+                AppException.class,
+                () ->
+                        controller.createAction(
+                                userDetails, testTransaction.getTransactionId(), request));
     }
 
     @Test
-    void testUpdateAction_WithValidRequest_ReturnsOk() {
+    void testUpdateActionWithValidRequestReturnsOk() {
         // Given
-        TransactionActionController.UpdateActionRequest request = new TransactionActionController.UpdateActionRequest();
+        final TransactionActionController.UpdateActionRequest request =
+                new TransactionActionController.UpdateActionRequest();
         request.setTitle("Updated Action");
         request.setIsCompleted(true);
 
-        TransactionActionTable updatedAction = new TransactionActionTable();
+        final TransactionActionTable updatedAction = new TransactionActionTable();
         updatedAction.setActionId(testAction.getActionId());
         updatedAction.setTitle("Updated Action");
         updatedAction.setIsCompleted(true);
 
         when(actionService.updateAction(
-                eq(testUser),
-                eq(testAction.getActionId()),
-                eq("Updated Action"),
-                isNull(),
-                isNull(),
-                isNull(),
-                eq(true),
-                isNull(),
-                isNull()))
+                        eq(testUser),
+                        eq(testAction.getActionId()),
+                        eq("Updated Action"),
+                        isNull(),
+                        isNull(),
+                        isNull(),
+                        eq(true),
+                        isNull(),
+                        isNull()))
                 .thenReturn(updatedAction);
 
         // When
-        ResponseEntity<TransactionActionTable> response = controller.updateAction(
-                userDetails, testTransaction.getTransactionId(), testAction.getActionId(), request);
+        final ResponseEntity<TransactionActionTable> response =
+                controller.updateAction(
+                        userDetails,
+                        testTransaction.getTransactionId(),
+                        testAction.getActionId(),
+                        request);
 
         // Then
         assertEquals(HttpStatus.OK, response.getStatusCode());
@@ -176,23 +196,28 @@ class TransactionActionControllerTest {
     }
 
     @Test
-    void testUpdateAction_WithEmptyActionId_ThrowsException() {
+    void testUpdateActionWithEmptyActionIdThrowsException() {
         // Given
-        TransactionActionController.UpdateActionRequest request = new TransactionActionController.UpdateActionRequest();
+        final TransactionActionController.UpdateActionRequest request =
+                new TransactionActionController.UpdateActionRequest();
 
         // When/Then
-        assertThrows(AppException.class, () -> controller.updateAction(
-                userDetails, testTransaction.getTransactionId(), "", request));
+        assertThrows(
+                AppException.class,
+                () ->
+                        controller.updateAction(
+                                userDetails, testTransaction.getTransactionId(), "", request));
     }
 
     @Test
-    void testDeleteAction_WithValidActionId_ReturnsNoContent() {
+    void testDeleteActionWithValidActionIdReturnsNoContent() {
         // Given
         doNothing().when(actionService).deleteAction(testUser, testAction.getActionId());
 
         // When
-        ResponseEntity<Void> response = controller.deleteAction(
-                userDetails, testTransaction.getTransactionId(), testAction.getActionId());
+        final ResponseEntity<Void> response =
+                controller.deleteAction(
+                        userDetails, testTransaction.getTransactionId(), testAction.getActionId());
 
         // Then
         assertEquals(HttpStatus.NO_CONTENT, response.getStatusCode());
@@ -200,10 +225,10 @@ class TransactionActionControllerTest {
     }
 
     @Test
-    void testDeleteAction_WithEmptyActionId_ThrowsException() {
+    void testDeleteActionWithEmptyActionIdThrowsException() {
         // When/Then
-        assertThrows(AppException.class, () -> controller.deleteAction(
-                userDetails, testTransaction.getTransactionId(), ""));
+        assertThrows(
+                AppException.class,
+                () -> controller.deleteAction(userDetails, testTransaction.getTransactionId(), ""));
     }
 }
-

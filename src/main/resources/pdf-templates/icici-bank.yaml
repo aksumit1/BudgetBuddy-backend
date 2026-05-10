@@ -1,0 +1,21 @@
+# ICICI Bank (India) — savings, current, credit card.
+#
+# Status: UNVERIFIED. Shares the Indian-bank DD/MM/YYYY + INR convention.
+id: icici-bank-in-v1
+institution: ICICI Bank
+description: "ICICI Bank India — savings, current, credit card"
+status: UNVERIFIED
+layouts:
+  - name: savings-single-line
+    accountType: savings
+    lineRegex: '^\s*(?<date>\d{1,2}/\d{1,2}/\d{2,4})\s+(?<description>.+?)\s+(?<amount>\d{1,3}(?:,\d{3})*(?:\.\d{2}))\s+\d{1,3}(?:,\d{3})*(?:\.\d{2})\s*$'
+    dateFormat: "d/M/yy"
+    signConvention: negate
+    minAmount: 0.01
+
+  - name: credit-card-single-line
+    accountType: credit
+    lineRegex: '^\s*(?<date>\d{1,2}/\d{1,2}/\d{2,4})\s+(?<description>.+?)\s+₹?(?<amount>-?\d{1,3}(?:,\d{3})*(?:\.\d{2}))\s*(?:Dr|Cr)?\s*$'
+    dateFormat: "d/M/yy"
+    signConvention: credit-positive
+    minAmount: 0.01

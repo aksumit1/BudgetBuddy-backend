@@ -1,23 +1,22 @@
 package com.budgetbuddy.config;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
+
 import org.junit.jupiter.api.Test;
 import software.amazon.awssdk.services.ses.SesClient;
 import software.amazon.awssdk.services.sns.SnsClient;
 
-import static org.junit.jupiter.api.Assertions.*;
-
-/**
- * Unit Tests for NotificationConfig
- * Tests notification service client configuration
- */
+/** Unit Tests for NotificationConfig Tests notification service client configuration */
 class NotificationConfigTest {
 
     private NotificationConfig notificationConfig = new NotificationConfig();
 
     @Test
-    void testSnsClient_WithDefaultRegion() {
+    void testSnsClientWithDefaultRegion() {
         // When
-        SnsClient client = notificationConfig.snsClient("us-east-1");
+        final SnsClient client = notificationConfig.snsClient("us-east-1");
 
         // Then
         assertNotNull(client);
@@ -25,9 +24,9 @@ class NotificationConfigTest {
     }
 
     @Test
-    void testSnsClient_WithDifferentRegion() {
+    void testSnsClientWithDifferentRegion() {
         // When
-        SnsClient client = notificationConfig.snsClient("us-west-2");
+        final SnsClient client = notificationConfig.snsClient("us-west-2");
 
         // Then
         assertNotNull(client);
@@ -35,9 +34,9 @@ class NotificationConfigTest {
     }
 
     @Test
-    void testSesClient_WithDefaultRegion() {
+    void testSesClientWithDefaultRegion() {
         // When
-        SesClient client = notificationConfig.sesClient("us-east-1");
+        final SesClient client = notificationConfig.sesClient("us-east-1");
 
         // Then
         assertNotNull(client);
@@ -45,9 +44,9 @@ class NotificationConfigTest {
     }
 
     @Test
-    void testSesClient_WithDifferentRegion() {
+    void testSesClientWithDifferentRegion() {
         // When
-        SesClient client = notificationConfig.sesClient("us-west-2");
+        final SesClient client = notificationConfig.sesClient("us-west-2");
 
         // Then
         assertNotNull(client);
@@ -55,10 +54,10 @@ class NotificationConfigTest {
     }
 
     @Test
-    void testSnsAndSesClients_AreIndependent() {
+    void testSnsAndSesClientsAreIndependent() {
         // When
-        SnsClient snsClient = notificationConfig.snsClient("us-east-1");
-        SesClient sesClient = notificationConfig.sesClient("us-west-2");
+        final SnsClient snsClient = notificationConfig.snsClient("us-east-1");
+        final SesClient sesClient = notificationConfig.sesClient("us-west-2");
 
         // Then
         assertNotNull(snsClient);
@@ -68,4 +67,3 @@ class NotificationConfigTest {
         assertEquals("us-west-2", sesClient.serviceClientConfiguration().region().id());
     }
 }
-

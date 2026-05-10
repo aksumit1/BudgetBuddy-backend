@@ -1,5 +1,14 @@
 package com.budgetbuddy.service;
 
+
+
+import java.nio.charset.StandardCharsets;
+import java.util.Locale;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import com.budgetbuddy.AWSTestConfiguration;
 import com.budgetbuddy.model.Subscription;
 import com.budgetbuddy.model.dynamodb.AccountTable;
@@ -9,6 +18,10 @@ import com.budgetbuddy.repository.dynamodb.AccountRepository;
 import com.budgetbuddy.repository.dynamodb.SubscriptionRepository;
 import com.budgetbuddy.repository.dynamodb.TransactionRepository;
 import com.budgetbuddy.util.TableInitializer;
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.List;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -18,16 +31,9 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 
-import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.util.List;
-import java.util.UUID;
-
-import static org.junit.jupiter.api.Assertions.*;
-
 /**
- * Comprehensive test for real-world subscription scenarios
- * Tests newspapers, magazines, retail memberships, insurance, parking, etc.
+ * Comprehensive test for real-world subscription scenarios Tests newspapers, magazines, retail
+ * memberships, insurance, parking, etc.
  */
 @SpringBootTest(classes = com.budgetbuddy.BudgetBuddyApplication.class)
 @ActiveProfiles("test")
@@ -35,23 +41,17 @@ import static org.junit.jupiter.api.Assertions.*;
 @org.junit.jupiter.api.Tag("integration")
 public class SubscriptionServiceRealWorldTest {
 
-    @Autowired
-    private SubscriptionService subscriptionService;
+    @Autowired private SubscriptionService subscriptionService;
 
-    @Autowired
-    private SubscriptionRepository subscriptionRepository;
+    @Autowired private SubscriptionRepository subscriptionRepository;
 
-    @Autowired
-    private TransactionRepository transactionRepository;
+    @Autowired private TransactionRepository transactionRepository;
 
-    @Autowired
-    private AccountRepository accountRepository;
+    @Autowired private AccountRepository accountRepository;
 
-    @Autowired
-    private UserService userService;
+    @Autowired private UserService userService;
 
-    @Autowired
-    private DynamoDbClient dynamoDbClient;
+    @Autowired private DynamoDbClient dynamoDbClient;
 
     private String testUserId;
     private UserTable testUser;
@@ -61,14 +61,10 @@ public class SubscriptionServiceRealWorldTest {
     void setUp() {
         TableInitializer.ensureTablesInitializedAndVerified(dynamoDbClient);
 
-        String testUserEmail = "test-realworld-" + UUID.randomUUID() + "@example.com";
-        String base64PasswordHash = java.util.Base64.getEncoder().encodeToString("test-password".getBytes());
-        testUser = userService.createUserSecure(
-                testUserEmail,
-                base64PasswordHash,
-                "Test",
-                "User"
-        );
+        final String testUserEmail = "test-realworld-" + UUID.randomUUID() + "@example.com";
+        final String base64PasswordHash =
+                java.util.Base64.getEncoder().encodeToString("test-password".getBytes(StandardCharsets.UTF_8));
+        testUser = userService.createUserSecure(testUserEmail, base64PasswordHash, "Test", "User");
         testUserId = testUser.getUserId();
 
         testAccount = new AccountTable();
@@ -80,15 +76,20 @@ public class SubscriptionServiceRealWorldTest {
         testAccount.setBalance(BigDecimal.valueOf(1000.00));
         accountRepository.save(testAccount);
 
-        subscriptionRepository.findByUserId(testUserId).forEach(sub -> 
-            subscriptionRepository.delete(sub.getSubscriptionId())
-        );
+        subscriptionRepository
+                .findByUserId(testUserId)
+                .forEach(sub -> subscriptionRepository.delete(sub.getSubscriptionId()));
     }
 
-    private TransactionTable createTransaction(String merchant, String description, BigDecimal amount, 
-                                               LocalDate date, String categoryPrimary, String categoryDetailed) {
-        TransactionTable tx = new TransactionTable();
-        tx.setTransactionId(UUID.randomUUID().toString().toLowerCase());
+    private TransactionTable createTransaction(
+            final String merchant,
+            final String description,
+            final BigDecimal amount,
+            final LocalDate date,
+            final String categoryPrimary,
+            final String categoryDetailed) {
+        final TransactionTable tx = new TransactionTable();
+        tx.setTransactionId(UUID.randomUUID().toString().toLowerCase(Locale.ROOT));
         tx.setUserId(testUserId);
         tx.setAccountId(testAccount.getAccountId());
         tx.setAmount(amount);
@@ -104,26 +105,32 @@ public class SubscriptionServiceRealWorldTest {
     @Test
     @DisplayName("Should detect Wall Street Journal subscription")
     void testWSJSubscription() {
-        LocalDate baseDate = LocalDate.now().minusMonths(2);
+        final LocalDate baseDate = LocalDate.now().minusMonths(2);
         for (int i = 0; i < 3; i++) {
-            TransactionTable tx = createTransaction(
-                "WSJ.COM", 
-                "WSJ Subscription",
-                new BigDecimal("-19.99"),
-                baseDate.plusMonths(i),
-                "education",
-                "education"
-            );
+            final TransactionTable tx =
+                    createTransaction(
+                            "WSJ.COM",
+                            "WSJ Subscription",
+                            new BigDecimal("-19.99"),
+                            baseDate.plusMonths(i),
+                            "education",
+                            "education");
             transactionRepository.save(tx);
         }
 
-        List<Subscription> subscriptions = subscriptionService.detectSubscriptions(testUserId);
+        final List<Subscription> subscriptions = subscriptionService.detectSubscriptions(testUserId);
         assertFalse(subscriptions.isEmpty(), "Should detect WSJ subscription");
-        
-        Subscription wsj = subscriptions.stream()
-                .filter(s -> s.getMerchantName() != null && s.getMerchantName().toLowerCase().contains("wsj"))
-                .findFirst()
-                .orElse(null);
+
+        final Subscription wsj =
+                subscriptions.stream()
+                        .filter(
+                                s ->
+                                        s.getMerchantName() != null
+                                                && s.getMerchantName()
+                                                .toLowerCase(Locale.ROOT)
+                                                .contains("wsj"))
+                        .findFirst()
+                        .orElse(null);
         assertNotNull(wsj, "WSJ subscription should be detected");
         assertEquals("membership", wsj.getSubscriptionType());
     }
@@ -133,50 +140,65 @@ public class SubscriptionServiceRealWorldTest {
     void testBarronsSubscription() {
         // Given: DJ*Barrons subscription - $4.19/month for 4 months
         // This tests the specific case mentioned by the user
-        LocalDate baseDate = LocalDate.now().minusMonths(3);
+        final LocalDate baseDate = LocalDate.now().minusMonths(3);
         for (int i = 0; i < 4; i++) {
             // Create expense transaction (negative amount)
-            TransactionTable tx = createTransaction(
-                "D J*BARRONS", 
-                "D J*BARRONS 800-544-0422 NJ SUBSRIPTION",
-                new BigDecimal("-4.19"),
-                baseDate.plusMonths(i),
-                "education", // Barrons is categorized as education, but should still be detected as subscription
-                "education"
-            );
+            final TransactionTable tx =
+                    createTransaction(
+                            "D J*BARRONS",
+                            "D J*BARRONS 800-544-0422 NJ SUBSRIPTION",
+                            new BigDecimal("-4.19"),
+                            baseDate.plusMonths(i),
+                            "education", // Barrons is categorized as education, but should still be
+                            // detected as subscription
+                            "education");
             transactionRepository.save(tx);
-            
+
             // Create credit transaction (positive amount) - should NOT be matched
-            TransactionTable credit = createTransaction(
-                "AMEX",
-                "Platinum Digital Entertainment Credit D J*BARRONS",
-                new BigDecimal("4.19"),
-                baseDate.plusMonths(i).plusDays(1),
-                "education",
-                "education"
-            );
+            final TransactionTable credit =
+                    createTransaction(
+                            "AMEX",
+                            "Platinum Digital Entertainment Credit D J*BARRONS",
+                            new BigDecimal("4.19"),
+                            baseDate.plusMonths(i).plusDays(1),
+                            "education",
+                            "education");
             transactionRepository.save(credit);
         }
 
         // When: Detect subscriptions
-        List<Subscription> subscriptions = subscriptionService.detectSubscriptions(testUserId);
-        
+        final List<Subscription> subscriptions = subscriptionService.detectSubscriptions(testUserId);
+
         // Then: Should detect Barrons subscription
-        Subscription barrons = subscriptions.stream()
-                .filter(s -> s.getMerchantName() != null && 
-                           (s.getMerchantName().toLowerCase().contains("barrons") ||
-                            s.getMerchantName().toLowerCase().contains("dj")))
-                .findFirst()
-                .orElse(null);
-        
-        assertNotNull(barrons, "Barrons subscription should be detected despite being categorized as education");
-        assertEquals(Subscription.SubscriptionFrequency.MONTHLY, barrons.getFrequency(), 
-            "Barrons should be detected as monthly subscription");
-        assertEquals("membership", barrons.getSubscriptionType(), 
-            "Barrons should be detected as membership type");
-        assertTrue(barrons.getAmount().abs().compareTo(new BigDecimal("4.19")) == 0 ||
-                   barrons.getAmount().abs().compareTo(new BigDecimal("4.20")) <= 0,
-            "Barrons amount should be around $4.19");
+        final Subscription barrons =
+                subscriptions.stream()
+                        .filter(
+                                s ->
+                                        s.getMerchantName() != null
+                                                && (s.getMerchantName()
+                                                .toLowerCase(Locale.ROOT)
+                                                .contains("barrons")
+                                                || s.getMerchantName()
+                                                .toLowerCase(Locale.ROOT)
+                                                .contains("dj")))
+                        .findFirst()
+                        .orElse(null);
+
+        assertNotNull(
+                barrons,
+                "Barrons subscription should be detected despite being categorized as education");
+        assertEquals(
+                Subscription.SubscriptionFrequency.MONTHLY,
+                barrons.getFrequency(),
+                "Barrons should be detected as monthly subscription");
+        assertEquals(
+                "membership",
+                barrons.getSubscriptionType(),
+                "Barrons should be detected as membership type");
+        assertTrue(
+                barrons.getAmount().abs().compareTo(new BigDecimal("4.19")) == 0
+                        || barrons.getAmount().abs().compareTo(new BigDecimal("4.20")) <= 0,
+                "Barrons amount should be around $4.19");
         assertTrue(barrons.getActive(), "Barrons subscription should be active");
         assertNotNull(barrons.getNextPaymentDate(), "Barrons should have nextPaymentDate set");
     }
@@ -184,45 +206,51 @@ public class SubscriptionServiceRealWorldTest {
     @Test
     @DisplayName("Should detect Costco membership")
     void testCostcoMembership() {
-        LocalDate baseDate = LocalDate.now().minusYears(1);
+        final LocalDate baseDate = LocalDate.now().minusYears(1);
         // Annual membership - 3 payments to ensure pattern detection
         // Use consistent merchant name to ensure grouping
-        TransactionTable tx1 = createTransaction(
-            "COSTCO",
-            "Costco Membership",
-            new BigDecimal("-60.00"),
-            baseDate,
-            "subscriptions", // Use subscriptions category for better detection
-            "membership"
-        );
+        final TransactionTable tx1 =
+                createTransaction(
+                        "COSTCO",
+                        "Costco Membership",
+                        new BigDecimal("-60.00"),
+                        baseDate,
+                        "subscriptions", // Use subscriptions category for better detection
+                        "membership");
         transactionRepository.save(tx1);
 
-        TransactionTable tx2 = createTransaction(
-            "COSTCO",
-            "Costco Annual Membership",
-            new BigDecimal("-60.00"),
-            baseDate.plusYears(1),
-            "subscriptions", // Use subscriptions category for better detection
-            "membership"
-        );
+        final TransactionTable tx2 =
+                createTransaction(
+                        "COSTCO",
+                        "Costco Annual Membership",
+                        new BigDecimal("-60.00"),
+                        baseDate.plusYears(1),
+                        "subscriptions", // Use subscriptions category for better detection
+                        "membership");
         transactionRepository.save(tx2);
-        
+
         // Add a third transaction to strengthen the pattern (even if it's in the future)
-        TransactionTable tx3 = createTransaction(
-            "COSTCO",
-            "Costco Annual Membership Renewal",
-            new BigDecimal("-60.00"),
-            baseDate.plusYears(2),
-            "subscriptions",
-            "membership"
-        );
+        final TransactionTable tx3 =
+                createTransaction(
+                        "COSTCO",
+                        "Costco Annual Membership Renewal",
+                        new BigDecimal("-60.00"),
+                        baseDate.plusYears(2),
+                        "subscriptions",
+                        "membership");
         transactionRepository.save(tx3);
 
-        List<Subscription> subscriptions = subscriptionService.detectSubscriptions(testUserId);
-        Subscription costco = subscriptions.stream()
-                .filter(s -> s.getMerchantName() != null && s.getMerchantName().toLowerCase().contains("costco"))
-                .findFirst()
-                .orElse(null);
+        final List<Subscription> subscriptions = subscriptionService.detectSubscriptions(testUserId);
+        final Subscription costco =
+                subscriptions.stream()
+                        .filter(
+                                s ->
+                                        s.getMerchantName() != null
+                                                && s.getMerchantName()
+                                                .toLowerCase(Locale.ROOT)
+                                                .contains("costco"))
+                        .findFirst()
+                        .orElse(null);
         assertNotNull(costco, "Costco membership should be detected");
         assertEquals(Subscription.SubscriptionFrequency.ANNUAL, costco.getFrequency());
         assertEquals("membership", costco.getSubscriptionType());
@@ -231,24 +259,30 @@ public class SubscriptionServiceRealWorldTest {
     @Test
     @DisplayName("Should detect gym membership")
     void testGymMembership() {
-        LocalDate baseDate = LocalDate.now().minusMonths(2);
+        final LocalDate baseDate = LocalDate.now().minusMonths(2);
         for (int i = 0; i < 3; i++) {
-            TransactionTable tx = createTransaction(
-                "Planet Fitness",
-                "Monthly Membership",
-                new BigDecimal("-10.99"),
-                baseDate.plusMonths(i),
-                "health",
-                "fitness"
-            );
+            final TransactionTable tx =
+                    createTransaction(
+                            "Planet Fitness",
+                            "Monthly Membership",
+                            new BigDecimal("-10.99"),
+                            baseDate.plusMonths(i),
+                            "health",
+                            "fitness");
             transactionRepository.save(tx);
         }
 
-        List<Subscription> subscriptions = subscriptionService.detectSubscriptions(testUserId);
-        Subscription gym = subscriptions.stream()
-                .filter(s -> s.getMerchantName() != null && s.getMerchantName().toLowerCase().contains("planet"))
-                .findFirst()
-                .orElse(null);
+        final List<Subscription> subscriptions = subscriptionService.detectSubscriptions(testUserId);
+        final Subscription gym =
+                subscriptions.stream()
+                        .filter(
+                                s ->
+                                        s.getMerchantName() != null
+                                                && s.getMerchantName()
+                                                .toLowerCase(Locale.ROOT)
+                                                .contains("planet"))
+                        .findFirst()
+                        .orElse(null);
         assertNotNull(gym, "Gym membership should be detected");
         assertEquals("membership", gym.getSubscriptionType());
     }
@@ -256,48 +290,60 @@ public class SubscriptionServiceRealWorldTest {
     @Test
     @DisplayName("Should detect insurance recurring payment")
     void testInsuranceSubscription() {
-        LocalDate baseDate = LocalDate.now().minusMonths(2);
+        final LocalDate baseDate = LocalDate.now().minusMonths(2);
         for (int i = 0; i < 3; i++) {
-            TransactionTable tx = createTransaction(
-                "State Farm Insurance",
-                "Auto Insurance Premium",
-                new BigDecimal("-150.00"),
-                baseDate.plusMonths(i),
-                "insurance",
-                "insurance"
-            );
+            final TransactionTable tx =
+                    createTransaction(
+                            "State Farm Insurance",
+                            "Auto Insurance Premium",
+                            new BigDecimal("-150.00"),
+                            baseDate.plusMonths(i),
+                            "insurance",
+                            "insurance");
             transactionRepository.save(tx);
         }
 
-        List<Subscription> subscriptions = subscriptionService.detectSubscriptions(testUserId);
-        Subscription insurance = subscriptions.stream()
-                .filter(s -> s.getMerchantName() != null && s.getMerchantName().toLowerCase().contains("state farm"))
-                .findFirst()
-                .orElse(null);
+        final List<Subscription> subscriptions = subscriptionService.detectSubscriptions(testUserId);
+        final Subscription insurance =
+                subscriptions.stream()
+                        .filter(
+                                s ->
+                                        s.getMerchantName() != null
+                                                && s.getMerchantName()
+                                                .toLowerCase(Locale.ROOT)
+                                                .contains("state farm"))
+                        .findFirst()
+                        .orElse(null);
         assertNotNull(insurance, "Insurance subscription should be detected");
     }
 
     @Test
     @DisplayName("Should detect YouTube Music subscription")
     void testYouTubeMusicSubscription() {
-        LocalDate baseDate = LocalDate.now().minusMonths(2);
+        final LocalDate baseDate = LocalDate.now().minusMonths(2);
         for (int i = 0; i < 3; i++) {
-            TransactionTable tx = createTransaction(
-                "Google",
-                "YouTube Music Premium",
-                new BigDecimal("-10.99"),
-                baseDate.plusMonths(i),
-                "entertainment",
-                "streaming"
-            );
+            final TransactionTable tx =
+                    createTransaction(
+                            "Google",
+                            "YouTube Music Premium",
+                            new BigDecimal("-10.99"),
+                            baseDate.plusMonths(i),
+                            "entertainment",
+                            "streaming");
             transactionRepository.save(tx);
         }
 
-        List<Subscription> subscriptions = subscriptionService.detectSubscriptions(testUserId);
-        Subscription ytMusic = subscriptions.stream()
-                .filter(s -> s.getDescription() != null && s.getDescription().toLowerCase().contains("youtube music"))
-                .findFirst()
-                .orElse(null);
+        final List<Subscription> subscriptions = subscriptionService.detectSubscriptions(testUserId);
+        final Subscription ytMusic =
+                subscriptions.stream()
+                        .filter(
+                                s ->
+                                        s.getDescription() != null
+                                                && s.getDescription()
+                                                .toLowerCase(Locale.ROOT)
+                                                .contains("youtube music"))
+                        .findFirst()
+                        .orElse(null);
         assertNotNull(ytMusic, "YouTube Music subscription should be detected");
         assertEquals("streaming", ytMusic.getSubscriptionType());
     }
@@ -305,24 +351,30 @@ public class SubscriptionServiceRealWorldTest {
     @Test
     @DisplayName("Should detect Cursor AI subscription")
     void testCursorAISubscription() {
-        LocalDate baseDate = LocalDate.now().minusMonths(2);
+        final LocalDate baseDate = LocalDate.now().minusMonths(2);
         for (int i = 0; i < 3; i++) {
-            TransactionTable tx = createTransaction(
-                "Cursor",
-                "Cursor AI Subscription",
-                new BigDecimal("-20.00"),
-                baseDate.plusMonths(i),
-                "tech",
-                "tech"
-            );
+            final TransactionTable tx =
+                    createTransaction(
+                            "Cursor",
+                            "Cursor AI Subscription",
+                            new BigDecimal("-20.00"),
+                            baseDate.plusMonths(i),
+                            "tech",
+                            "tech");
             transactionRepository.save(tx);
         }
 
-        List<Subscription> subscriptions = subscriptionService.detectSubscriptions(testUserId);
-        Subscription cursor = subscriptions.stream()
-                .filter(s -> s.getMerchantName() != null && s.getMerchantName().toLowerCase().contains("cursor"))
-                .findFirst()
-                .orElse(null);
+        final List<Subscription> subscriptions = subscriptionService.detectSubscriptions(testUserId);
+        final Subscription cursor =
+                subscriptions.stream()
+                        .filter(
+                                s ->
+                                        s.getMerchantName() != null
+                                                && s.getMerchantName()
+                                                .toLowerCase(Locale.ROOT)
+                                                .contains("cursor"))
+                        .findFirst()
+                        .orElse(null);
         assertNotNull(cursor, "Cursor AI subscription should be detected");
         assertEquals("software", cursor.getSubscriptionType());
     }
@@ -331,45 +383,52 @@ public class SubscriptionServiceRealWorldTest {
     @DisplayName("Should detect day-of-month pattern (1st of month)")
     void testDayOfMonthPattern() {
         // Create transactions on 1st of each month
-        LocalDate baseDate = LocalDate.of(2025, 1, 1);
+        final LocalDate baseDate = LocalDate.of(2025, 1, 1);
         for (int i = 0; i < 4; i++) {
-            LocalDate date = baseDate.plusMonths(i).withDayOfMonth(1);
-            TransactionTable tx = createTransaction(
-                "Recurring Service",
-                "Monthly Subscription",
-                new BigDecimal("-25.00"),
-                date,
-                "subscriptions",
-                "subscriptions"
-            );
+            final LocalDate date = baseDate.plusMonths(i).withDayOfMonth(1);
+            final TransactionTable tx =
+                    createTransaction(
+                            "Recurring Service",
+                            "Monthly Subscription",
+                            new BigDecimal("-25.00"),
+                            date,
+                            "subscriptions",
+                            "subscriptions");
             transactionRepository.save(tx);
         }
 
-        List<Subscription> subscriptions = subscriptionService.detectSubscriptions(testUserId);
-        assertFalse(subscriptions.isEmpty(), "Should detect subscription with day-of-month pattern");
+        final List<Subscription> subscriptions = subscriptionService.detectSubscriptions(testUserId);
+        assertFalse(
+                subscriptions.isEmpty(), "Should detect subscription with day-of-month pattern");
     }
 
     @Test
     @DisplayName("Should detect weekly subscription pattern")
     void testWeeklySubscription() {
-        LocalDate baseDate = LocalDate.now().minusWeeks(4);
+        final LocalDate baseDate = LocalDate.now().minusWeeks(4);
         for (int i = 0; i < 5; i++) {
-            TransactionTable tx = createTransaction(
-                "Weekly Service",
-                "Weekly Subscription",
-                new BigDecimal("-5.99"),
-                baseDate.plusWeeks(i),
-                "subscriptions",
-                "subscriptions"
-            );
+            final TransactionTable tx =
+                    createTransaction(
+                            "Weekly Service",
+                            "Weekly Subscription",
+                            new BigDecimal("-5.99"),
+                            baseDate.plusWeeks(i),
+                            "subscriptions",
+                            "subscriptions");
             transactionRepository.save(tx);
         }
 
-        List<Subscription> subscriptions = subscriptionService.detectSubscriptions(testUserId);
-        Subscription weekly = subscriptions.stream()
-                .filter(s -> s.getMerchantName() != null && s.getMerchantName().toLowerCase().contains("weekly"))
-                .findFirst()
-                .orElse(null);
+        final List<Subscription> subscriptions = subscriptionService.detectSubscriptions(testUserId);
+        final Subscription weekly =
+                subscriptions.stream()
+                        .filter(
+                                s ->
+                                        s.getMerchantName() != null
+                                                && s.getMerchantName()
+                                                .toLowerCase(Locale.ROOT)
+                                                .contains("weekly"))
+                        .findFirst()
+                        .orElse(null);
         if (weekly != null) {
             assertEquals(Subscription.SubscriptionFrequency.WEEKLY, weekly.getFrequency());
         }

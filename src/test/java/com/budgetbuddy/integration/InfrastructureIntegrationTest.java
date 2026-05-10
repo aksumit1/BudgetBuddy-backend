@@ -1,8 +1,12 @@
 package com.budgetbuddy.integration;
 
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import com.budgetbuddy.AWSTestConfiguration;
 import com.budgetbuddy.service.dynamodb.DynamoDBTableManager;
 import com.budgetbuddy.util.TableInitializer;
+import java.util.List;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -13,22 +17,31 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
-import software.amazon.awssdk.services.dynamodb.model.*;
-
-import java.util.List;
-
-import static org.junit.jupiter.api.Assertions.*;
+import software.amazon.awssdk.services.dynamodb.model.DescribeTableRequest;
+import software.amazon.awssdk.services.dynamodb.model.DescribeTableResponse;
+import software.amazon.awssdk.services.dynamodb.model.DescribeTimeToLiveRequest;
+import software.amazon.awssdk.services.dynamodb.model.DescribeTimeToLiveResponse;
+import software.amazon.awssdk.services.dynamodb.model.GlobalSecondaryIndexDescription;
+import software.amazon.awssdk.services.dynamodb.model.ResourceNotFoundException;
+import software.amazon.awssdk.services.dynamodb.model.TableStatus;
+import software.amazon.awssdk.services.dynamodb.model.TimeToLiveStatus;
 
 /**
- * Integration Tests for Infrastructure
- * Verifies that all DynamoDB tables and infrastructure components are properly configured
- * 
- * Note: These tests require LocalStack to be running and auto-create-tables enabled.
- * Tables are automatically created by DynamoDBTableManager on application startup.
- * 
- * CRITICAL: The testDynamoDBClient_IsConfigured test runs first (Order(1)) and ensures
- * tables are created before any other tests run. This is essential for CI/CD pipelines.
+ * Integration Tests for Infrastructure Verifies that all DynamoDB tables and infrastructure
+ * components are properly configured
+ *
+ * <p>Note: These tests require LocalStack to be running and auto-create-tables enabled. Tables are
+ * automatically created by DynamoDBTableManager on application startup.
+ *
+ * <p>CRITICAL: The testDynamoDBClientIsConfigured test runs first (Order(1)) and ensures tables
+ * are created before any other tests run. This is essential for CI/CD pipelines.
  */
+// SDK / Spring integration — the underlying APIs (AWS SDK, Plaid SDK,
+// Spring services, reflection) throw arbitrary RuntimeException subtypes
+// that can't reasonably be enumerated. Broad catches log + recover (or
+// translate to AppException). Suppress at class level since narrowing
+// here would mean catch (RuntimeException) which PMD flags identically.
+@SuppressWarnings("PMD.AvoidCatchingGenericException")
 @SpringBootTest(classes = com.budgetbuddy.BudgetBuddyApplication.class)
 @ActiveProfiles("test")
 @Import(AWSTestConfiguration.class)
@@ -38,49 +51,57 @@ class InfrastructureIntegrationTest {
     @Autowired(required = false)
     private DynamoDBTableManager dynamoDBTableManager;
 
-    @Autowired
-    private DynamoDbClient dynamoDbClient;
+    @Autowired private DynamoDbClient dynamoDbClient;
 
-    private static final Logger logger = LoggerFactory.getLogger(InfrastructureIntegrationTest.class);
+    private static final Logger LOGGER =
+            LoggerFactory.getLogger(InfrastructureIntegrationTest.class);
     private static final String TABLE_PREFIX = "TestBudgetBuddy";
     private static volatile boolean tablesInitialized = false;
 
     @Test
     @Order(1)
-    void testDynamoDBClient_IsConfigured() {
+    void testDynamoDBClientIsConfigured() {
         // Then
         assertNotNull(dynamoDbClient, "DynamoDB client should be configured");
-        
+
         // CRITICAL: Initialize tables ONCE before any other tests run
         // This ensures tables exist even if @PostConstruct didn't run or failed
         // This is especially important in CI where Spring contexts may be created separately
         if (!tablesInitialized) {
             synchronized (InfrastructureIntegrationTest.class) {
                 if (!tablesInitialized) {
-                    logger.info("🔧 Initializing DynamoDB tables before tests run...");
-                    
+                    LOGGER.info("🔧 Initializing DynamoDB tables before tests run...");
+
                     // First, try using TableInitializer utility (direct DynamoDB client call)
                     try {
                         TableInitializer.initializeTables(dynamoDbClient);
-                        logger.info("✅ Tables initialized via TableInitializer");
+                        LOGGER.info("✅ Tables initialized via TableInitializer");
                     } catch (Exception e) {
-                        logger.warn("⚠️ TableInitializer failed, trying DynamoDBTableManager: {}", e.getMessage());
-                        
+                        LOGGER.warn(
+                                "⚠️ TableInitializer failed, trying DynamoDBTableManager: {}",
+                                e.getMessage());
+
                         // Fallback: Use DynamoDBTableManager if available
                         if (dynamoDBTableManager != null) {
                             try {
-                                java.lang.reflect.Method initMethod = dynamoDBTableManager.getClass().getDeclaredMethod("initializeTables");
+                                final java.lang.reflect.Method initMethod =
+                                        dynamoDBTableManager
+                                                .getClass()
+                                                .getDeclaredMethod("initializeTables");
                                 initMethod.setAccessible(true);
                                 initMethod.invoke(dynamoDBTableManager);
-                                logger.info("✅ Tables initialized via DynamoDBTableManager reflection");
+                                LOGGER.info(
+                                        "✅ Tables initialized via DynamoDBTableManager reflection");
                             } catch (Exception ex) {
-                                logger.error("❌ Failed to initialize tables via DynamoDBTableManager: {}", ex.getMessage());
+                                LOGGER.error(
+                                        "❌ Failed to initialize tables via DynamoDBTableManager: {}",
+                                        ex.getMessage());
                             }
                         }
                     }
-                    
+
                     tablesInitialized = true;
-                    logger.info("✅ Tables initialized, waiting for them to be ready...");
+                    LOGGER.info("✅ Tables initialized, waiting for them to be ready...");
                     try {
                         Thread.sleep(2000); // Wait 2 seconds for tables to be fully ready
                     } catch (InterruptedException e) {
@@ -92,232 +113,300 @@ class InfrastructureIntegrationTest {
     }
 
     @Test
-    void testUsersTable_Exists() {
+    void testUsersTableExists() {
         // Given
-        String tableName = TABLE_PREFIX + "-Users";
+        final String tableName = TABLE_PREFIX + "-Users";
 
         // When
-        boolean exists = tableExists(tableName);
+        final boolean exists = tableExists(tableName);
 
         // Then - Tables should be auto-created by DynamoDBTableManager
         // If table doesn't exist, it's a configuration issue, not an expected condition
-        assertTrue(exists, "Users table should exist: " + tableName + 
-                ". Ensure LocalStack is running and auto-create-tables is enabled in test config.");
+        assertTrue(
+                exists,
+                "Users table should exist: "
+                        + tableName
+                        + ". Ensure LocalStack is running and auto-create-tables is enabled in test config.");
     }
 
     @Test
-    void testAccountsTable_Exists() {
+    void testAccountsTableExists() {
         // Given
-        String tableName = TABLE_PREFIX + "-Accounts";
+        final String tableName = TABLE_PREFIX + "-Accounts";
 
         // When
-        boolean exists = tableExists(tableName);
+        final boolean exists = tableExists(tableName);
 
         // Then - Tables should be auto-created by DynamoDBTableManager
-        assertTrue(exists, "Accounts table should exist: " + tableName + 
-                ". Ensure LocalStack is running and auto-create-tables is enabled in test config.");
+        assertTrue(
+                exists,
+                "Accounts table should exist: "
+                        + tableName
+                        + ". Ensure LocalStack is running and auto-create-tables is enabled in test config.");
     }
 
     @Test
-    void testTransactionsTable_Exists() {
+    void testTransactionsTableExists() {
         // Given
-        String tableName = TABLE_PREFIX + "-Transactions";
+        final String tableName = TABLE_PREFIX + "-Transactions";
 
         // When
-        boolean exists = tableExists(tableName);
+        final boolean exists = tableExists(tableName);
 
         // Then - Tables should be auto-created by DynamoDBTableManager
-        assertTrue(exists, "Transactions table should exist: " + tableName + 
-                ". Ensure LocalStack is running and auto-create-tables is enabled in test config.");
+        assertTrue(
+                exists,
+                "Transactions table should exist: "
+                        + tableName
+                        + ". Ensure LocalStack is running and auto-create-tables is enabled in test config.");
     }
 
     @Test
-    void testBudgetsTable_Exists() {
+    void testBudgetsTableExists() {
         // Given
-        String tableName = TABLE_PREFIX + "-Budgets";
+        final String tableName = TABLE_PREFIX + "-Budgets";
 
         // When
-        boolean exists = tableExists(tableName);
+        final boolean exists = tableExists(tableName);
 
-                assertTrue(exists, "Table " + tableName + " should exist. Ensure LocalStack is running and auto-create-tables is enabled in test config.");
+        assertTrue(
+                exists,
+                "Table "
+                        + tableName
+                        + " should exist. Ensure LocalStack is running and auto-create-tables is enabled in test config.");
         assertTrue(exists, "Budgets table should exist: " + tableName);
     }
 
     @Test
-    void testGoalsTable_Exists() {
+    void testGoalsTableExists() {
         // Given
-        String tableName = TABLE_PREFIX + "-Goals";
+        final String tableName = TABLE_PREFIX + "-Goals";
 
         // When
-        boolean exists = tableExists(tableName);
+        final boolean exists = tableExists(tableName);
 
-                assertTrue(exists, "Table " + tableName + " should exist. Ensure LocalStack is running and auto-create-tables is enabled in test config.");
+        assertTrue(
+                exists,
+                "Table "
+                        + tableName
+                        + " should exist. Ensure LocalStack is running and auto-create-tables is enabled in test config.");
         assertTrue(exists, "Goals table should exist: " + tableName);
     }
 
     @Test
-    void testTransactionActionsTable_Exists() {
+    void testTransactionActionsTableExists() {
         // Given
-        String tableName = TABLE_PREFIX + "-TransactionActions";
+        final String tableName = TABLE_PREFIX + "-TransactionActions";
 
         // When
-        boolean exists = tableExists(tableName);
+        final boolean exists = tableExists(tableName);
 
-                assertTrue(exists, "Table " + tableName + " should exist. Ensure LocalStack is running and auto-create-tables is enabled in test config.");
+        assertTrue(
+                exists,
+                "Table "
+                        + tableName
+                        + " should exist. Ensure LocalStack is running and auto-create-tables is enabled in test config.");
         assertTrue(exists, "TransactionActions table should exist: " + tableName);
     }
 
     @Test
-    void testAuditLogsTable_Exists() {
+    void testAuditLogsTableExists() {
         // Given
-        String tableName = TABLE_PREFIX + "-AuditLogs";
+        final String tableName = TABLE_PREFIX + "-AuditLogs";
 
         // When
-        boolean exists = tableExists(tableName);
+        final boolean exists = tableExists(tableName);
 
-                assertTrue(exists, "Table " + tableName + " should exist. Ensure LocalStack is running and auto-create-tables is enabled in test config.");
+        assertTrue(
+                exists,
+                "Table "
+                        + tableName
+                        + " should exist. Ensure LocalStack is running and auto-create-tables is enabled in test config.");
         assertTrue(exists, "AuditLogs table should exist: " + tableName);
     }
 
     @Test
-    void testNotFoundTrackingTable_Exists() {
+    void testNotFoundTrackingTableExists() {
         // Given
-        String tableName = TABLE_PREFIX + "-NotFoundTracking";
+        final String tableName = TABLE_PREFIX + "-NotFoundTracking";
 
         // When
-        boolean exists = tableExists(tableName);
+        final boolean exists = tableExists(tableName);
 
-                assertTrue(exists, "Table " + tableName + " should exist. Ensure LocalStack is running and auto-create-tables is enabled in test config.");
+        assertTrue(
+                exists,
+                "Table "
+                        + tableName
+                        + " should exist. Ensure LocalStack is running and auto-create-tables is enabled in test config.");
         assertTrue(exists, "NotFoundTracking table should exist: " + tableName);
     }
 
     @Test
-    void testRateLimitsTable_Exists() {
+    void testRateLimitsTableExists() {
         // Given
-        String tableName = TABLE_PREFIX + "-RateLimits";
+        final String tableName = TABLE_PREFIX + "-RateLimits";
 
         // When
-        boolean exists = tableExists(tableName);
+        final boolean exists = tableExists(tableName);
 
-                assertTrue(exists, "Table " + tableName + " should exist. Ensure LocalStack is running and auto-create-tables is enabled in test config.");
+        assertTrue(
+                exists,
+                "Table "
+                        + tableName
+                        + " should exist. Ensure LocalStack is running and auto-create-tables is enabled in test config.");
         assertTrue(exists, "RateLimits table should exist: " + tableName);
     }
 
     @Test
-    void testDDoSProtectionTable_Exists() {
+    void testDDoSProtectionTableExists() {
         // Given
-        String tableName = TABLE_PREFIX + "-DDoSProtection";
+        final String tableName = TABLE_PREFIX + "-DDoSProtection";
 
         // When
-        boolean exists = tableExists(tableName);
+        final boolean exists = tableExists(tableName);
 
-                assertTrue(exists, "Table " + tableName + " should exist. Ensure LocalStack is running and auto-create-tables is enabled in test config.");
+        assertTrue(
+                exists,
+                "Table "
+                        + tableName
+                        + " should exist. Ensure LocalStack is running and auto-create-tables is enabled in test config.");
         assertTrue(exists, "DDoSProtection table should exist: " + tableName);
     }
 
     @Test
-    void testDeviceAttestationTable_Exists() {
+    void testDeviceAttestationTableExists() {
         // Given
-        String tableName = TABLE_PREFIX + "-DeviceAttestation";
+        final String tableName = TABLE_PREFIX + "-DeviceAttestation";
 
         // When
-        boolean exists = tableExists(tableName);
+        final boolean exists = tableExists(tableName);
 
-                assertTrue(exists, "Table " + tableName + " should exist. Ensure LocalStack is running and auto-create-tables is enabled in test config.");
+        assertTrue(
+                exists,
+                "Table "
+                        + tableName
+                        + " should exist. Ensure LocalStack is running and auto-create-tables is enabled in test config.");
         assertTrue(exists, "DeviceAttestation table should exist: " + tableName);
     }
 
     @Test
     @org.junit.jupiter.api.Disabled("DevicePin table is deprecated - PIN backend endpoints removed")
-    void testDevicePinTable_Exists() {
+    void testDevicePinTableExists() {
         // Given
-        String tableName = TABLE_PREFIX + "-DevicePin";
+        final String tableName = TABLE_PREFIX + "-DevicePin";
 
         // When
-        boolean exists = tableExists(tableName);
+        final boolean exists = tableExists(tableName);
 
         // Then - DevicePin table is deprecated, test is disabled
         // assertTrue(exists, "DevicePin table should exist: " + tableName);
     }
 
     @Test
-    void testTransactionsTable_HasRequiredGSIs() {
+    void testTransactionsTableHasRequiredGSIs() {
         // Given
-        String tableName = TABLE_PREFIX + "-Transactions";
+        final String tableName = TABLE_PREFIX + "-Transactions";
 
         // When
-        assertTrue(tableExists(tableName), "Table " + tableName + " should exist. Ensure LocalStack is running and auto-create-tables is enabled in test config.");
-        List<String> gsiNames = getGSINames(tableName);
+        assertTrue(
+                tableExists(tableName),
+                "Table "
+                        + tableName
+                        + " should exist. Ensure LocalStack is running and auto-create-tables is enabled in test config.");
+        final List<String> gsiNames = getGSINames(tableName);
 
         // Then
-        assertTrue(gsiNames.contains("UserIdDateIndex"), 
+        assertTrue(
+                gsiNames.contains("UserIdDateIndex"),
                 "Transactions table should have UserIdDateIndex GSI");
-        assertTrue(gsiNames.contains("AccountIdTransactionDateIndex"), 
+        assertTrue(
+                gsiNames.contains("AccountIdTransactionDateIndex"),
                 "Transactions table should have AccountIdTransactionDateIndex GSI");
-        assertTrue(gsiNames.contains("PlaidTransactionIdIndex"), 
+        assertTrue(
+                gsiNames.contains("PlaidTransactionIdIndex"),
                 "Transactions table should have PlaidTransactionIdIndex GSI");
     }
 
     @Test
-    void testTransactionActionsTable_HasRequiredGSIs() {
+    void testTransactionActionsTableHasRequiredGSIs() {
         // Given
-        String tableName = TABLE_PREFIX + "-TransactionActions";
+        final String tableName = TABLE_PREFIX + "-TransactionActions";
 
         // When
-        assertTrue(tableExists(tableName), "Table " + tableName + " should exist. Ensure LocalStack is running and auto-create-tables is enabled in test config.");
-        List<String> gsiNames = getGSINames(tableName);
+        assertTrue(
+                tableExists(tableName),
+                "Table "
+                        + tableName
+                        + " should exist. Ensure LocalStack is running and auto-create-tables is enabled in test config.");
+        final List<String> gsiNames = getGSINames(tableName);
 
         // Then
-        assertTrue(gsiNames.contains("TransactionIdIndex"), 
+        assertTrue(
+                gsiNames.contains("TransactionIdIndex"),
                 "TransactionActions table should have TransactionIdIndex GSI");
-        assertTrue(gsiNames.contains("UserIdIndex"), 
+        assertTrue(
+                gsiNames.contains("UserIdIndex"),
                 "TransactionActions table should have UserIdIndex GSI");
     }
 
     @Test
-    void testAuditLogsTable_HasRequiredGSIs() {
+    void testAuditLogsTableHasRequiredGSIs() {
         // Given
-        String tableName = TABLE_PREFIX + "-AuditLogs";
+        final String tableName = TABLE_PREFIX + "-AuditLogs";
 
         // When
-        assertTrue(tableExists(tableName), "Table " + tableName + " should exist. Ensure LocalStack is running and auto-create-tables is enabled in test config.");
-        List<String> gsiNames = getGSINames(tableName);
+        assertTrue(
+                tableExists(tableName),
+                "Table "
+                        + tableName
+                        + " should exist. Ensure LocalStack is running and auto-create-tables is enabled in test config.");
+        final List<String> gsiNames = getGSINames(tableName);
 
         // Then
-        assertTrue(gsiNames.contains("UserIdCreatedAtIndex"), 
+        assertTrue(
+                gsiNames.contains("UserIdCreatedAtIndex"),
                 "AuditLogs table should have UserIdCreatedAtIndex GSI");
-        // Note: ActionCreatedAtIndex GSI may not exist if table was created before this GSI was added
+        // Note: ActionCreatedAtIndex GSI may not exist if table was created before this GSI was
+        // added
         // This is acceptable for existing deployments - the GSI will be added in new deployments
         if (!gsiNames.contains("ActionCreatedAtIndex")) {
-            logger.warn("ActionCreatedAtIndex GSI not found - table may have been created before this GSI was added");
+            LOGGER.warn(
+                    "ActionCreatedAtIndex GSI not found - table may have been created before this GSI was added");
         }
         // For new deployments, require the GSI
-        // assertTrue(gsiNames.contains("ActionCreatedAtIndex"), 
+        // assertTrue(gsiNames.contains("ActionCreatedAtIndex"),
         //         "AuditLogs table should have ActionCreatedAtIndex GSI");
     }
 
     @Test
-    void testGoalsTable_HasRequiredGSI() {
+    void testGoalsTableHasRequiredGSI() {
         // Given
-        String tableName = TABLE_PREFIX + "-Goals";
+        final String tableName = TABLE_PREFIX + "-Goals";
 
         // When
-        assertTrue(tableExists(tableName), "Table " + tableName + " should exist. Ensure LocalStack is running and auto-create-tables is enabled in test config.");
-        List<String> gsiNames = getGSINames(tableName);
+        assertTrue(
+                tableExists(tableName),
+                "Table "
+                        + tableName
+                        + " should exist. Ensure LocalStack is running and auto-create-tables is enabled in test config.");
+        final List<String> gsiNames = getGSINames(tableName);
 
         // Then
-        assertTrue(gsiNames.contains("UserIdIndex"), 
-                "Goals table should have UserIdIndex GSI");
+        assertTrue(gsiNames.contains("UserIdIndex"), "Goals table should have UserIdIndex GSI");
     }
 
     @Test
-    void testNotFoundTrackingTable_HasTTL() {
+    void testNotFoundTrackingTableHasTTL() {
         // Given
-        String tableName = TABLE_PREFIX + "-NotFoundTracking";
+        final String tableName = TABLE_PREFIX + "-NotFoundTracking";
 
         // When
-        assertTrue(tableExists(tableName), "Table " + tableName + " should exist. Ensure LocalStack is running and auto-create-tables is enabled in test config.");
-        boolean ttlEnabled = hasTTLEnabled(tableName);
+        assertTrue(
+                tableExists(tableName),
+                "Table "
+                        + tableName
+                        + " should exist. Ensure LocalStack is running and auto-create-tables is enabled in test config.");
+        final boolean ttlEnabled = hasTTLEnabled(tableName);
 
         // Then - TTL may not be configured in test environment, so we just check if table exists
         // In production, TTL should be enabled
@@ -326,39 +415,51 @@ class InfrastructureIntegrationTest {
     }
 
     @Test
-    void testDDoSProtectionTable_HasTTL() {
+    void testDDoSProtectionTableHasTTL() {
         // Given
-        String tableName = TABLE_PREFIX + "-DDoSProtection";
+        final String tableName = TABLE_PREFIX + "-DDoSProtection";
 
         // When
-        assertTrue(tableExists(tableName), "Table " + tableName + " should exist. Ensure LocalStack is running and auto-create-tables is enabled in test config.");
-        boolean ttlEnabled = hasTTLEnabled(tableName);
+        assertTrue(
+                tableExists(tableName),
+                "Table "
+                        + tableName
+                        + " should exist. Ensure LocalStack is running and auto-create-tables is enabled in test config.");
+        final boolean ttlEnabled = hasTTLEnabled(tableName);
 
         // Then - TTL may not be configured in test environment
         assertTrue(tableExists(tableName), "DDoSProtection table should exist");
     }
 
     @Test
-    void testRateLimitsTable_HasTTL() {
+    void testRateLimitsTableHasTTL() {
         // Given
-        String tableName = TABLE_PREFIX + "-RateLimits";
+        final String tableName = TABLE_PREFIX + "-RateLimits";
 
         // When
-        assertTrue(tableExists(tableName), "Table " + tableName + " should exist. Ensure LocalStack is running and auto-create-tables is enabled in test config.");
-        boolean ttlEnabled = hasTTLEnabled(tableName);
+        assertTrue(
+                tableExists(tableName),
+                "Table "
+                        + tableName
+                        + " should exist. Ensure LocalStack is running and auto-create-tables is enabled in test config.");
+        final boolean ttlEnabled = hasTTLEnabled(tableName);
 
         // Then - TTL may not be configured in test environment
         assertTrue(tableExists(tableName), "RateLimits table should exist");
     }
 
     @Test
-    void testDeviceAttestationTable_HasTTL() {
+    void testDeviceAttestationTableHasTTL() {
         // Given
-        String tableName = TABLE_PREFIX + "-DeviceAttestation";
+        final String tableName = TABLE_PREFIX + "-DeviceAttestation";
 
         // When
-        assertTrue(tableExists(tableName), "Table " + tableName + " should exist. Ensure LocalStack is running and auto-create-tables is enabled in test config.");
-        boolean ttlEnabled = hasTTLEnabled(tableName);
+        assertTrue(
+                tableExists(tableName),
+                "Table "
+                        + tableName
+                        + " should exist. Ensure LocalStack is running and auto-create-tables is enabled in test config.");
+        final boolean ttlEnabled = hasTTLEnabled(tableName);
 
         // Then - TTL may not be configured in test environment
         assertTrue(tableExists(tableName), "DeviceAttestation table should exist");
@@ -366,12 +467,12 @@ class InfrastructureIntegrationTest {
 
     @Test
     @org.junit.jupiter.api.Disabled("DevicePin table is deprecated - PIN backend endpoints removed")
-    void testDevicePinTable_HasCompositeKey() {
+    void testDevicePinTableHasCompositeKey() {
         // Given
-        String tableName = TABLE_PREFIX + "-DevicePin";
+        final String tableName = TABLE_PREFIX + "-DevicePin";
 
         // When
-        boolean exists = tableExists(tableName);
+        final boolean exists = tableExists(tableName);
 
         // Then - DevicePin table is deprecated, test is disabled
         // DevicePin table should exist with composite key (userId, deviceId)
@@ -379,12 +480,11 @@ class InfrastructureIntegrationTest {
     }
 
     // Helper methods
-    private boolean tableExists(String tableName) {
+    private boolean tableExists(final String tableName) {
         try {
-            DescribeTableResponse response = dynamoDbClient.describeTable(
-                    DescribeTableRequest.builder()
-                            .tableName(tableName)
-                            .build());
+            final DescribeTableResponse response =
+                    dynamoDbClient.describeTable(
+                            DescribeTableRequest.builder().tableName(tableName).build());
             return response.table().tableStatus() == TableStatus.ACTIVE;
         } catch (ResourceNotFoundException e) {
             return false;
@@ -394,12 +494,11 @@ class InfrastructureIntegrationTest {
         }
     }
 
-    private List<String> getGSINames(String tableName) {
+    private List<String> getGSINames(final String tableName) {
         try {
-            DescribeTableResponse response = dynamoDbClient.describeTable(
-                    DescribeTableRequest.builder()
-                            .tableName(tableName)
-                            .build());
+            final DescribeTableResponse response =
+                    dynamoDbClient.describeTable(
+                            DescribeTableRequest.builder().tableName(tableName).build());
             return response.table().globalSecondaryIndexes().stream()
                     .map(GlobalSecondaryIndexDescription::indexName)
                     .toList();
@@ -408,15 +507,15 @@ class InfrastructureIntegrationTest {
         }
     }
 
-    private boolean hasTTLEnabled(String tableName) {
+    private boolean hasTTLEnabled(final String tableName) {
         try {
-            DescribeTimeToLiveResponse response = dynamoDbClient.describeTimeToLive(
-                    DescribeTimeToLiveRequest.builder()
-                            .tableName(tableName)
-                            .build());
+            final DescribeTimeToLiveResponse response =
+                    dynamoDbClient.describeTimeToLive(
+                            DescribeTimeToLiveRequest.builder().tableName(tableName).build());
             if (response.timeToLiveDescription() != null) {
                 // Check if TTL is enabled by checking the status
-                return response.timeToLiveDescription().timeToLiveStatus() == TimeToLiveStatus.ENABLED;
+                return response.timeToLiveDescription().timeToLiveStatus()
+                        == TimeToLiveStatus.ENABLED;
             }
             return false;
         } catch (Exception e) {
@@ -425,4 +524,3 @@ class InfrastructureIntegrationTest {
         }
     }
 }
-

@@ -6,10 +6,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 
-/**
- * API Versioning Interceptor
- * Adds API version headers to all responses
- */
+/** API Versioning Interceptor Adds API version headers to all responses */
 @Component
 public class ApiVersioningInterceptor implements HandlerInterceptor {
 
@@ -20,7 +17,10 @@ public class ApiVersioningInterceptor implements HandlerInterceptor {
     private String apiBaseUrl;
 
     @Override
-    public boolean preHandle(final HttpServletRequest request, final HttpServletResponse response, final Object handler) {
+    public boolean preHandle(
+            final HttpServletRequest request,
+            final HttpServletResponse response,
+            final Object handler) {
         // Add API version header
         response.setHeader("X-API-Version", apiVersion);
 
@@ -36,4 +36,3 @@ public class ApiVersioningInterceptor implements HandlerInterceptor {
         return true;
     }
 }
-

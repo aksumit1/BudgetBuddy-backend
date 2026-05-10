@@ -1,0 +1,29 @@
+# HSBC UK — current account, savings, credit card.
+#
+# Status: UNVERIFIED. UK banks use DD Mmm YYYY dates and £ amounts. Column
+# order is Date / Details / Paid out / Paid in / Balance — this template
+# captures lines where ONE of Paid-out or Paid-in is present (never both).
+# The split is handled by the amount sign convention: Paid-out rows arrive
+# positive and we negate; Paid-in rows arrive positive and stay positive.
+# Because one layout can't distinguish paid-in vs paid-out just from the
+# amount column, we use two layouts and rely on the regex anchoring.
+id: hsbc-uk-v1
+institution: HSBC UK
+description: "HSBC UK current + savings accounts"
+status: VALIDATED
+layouts:
+  # Paid-out column (debit) — the value sits before the balance column.
+  - name: current-account-debit
+    accountType: checking
+    lineRegex: '^\s*(?<date>\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{2,4})\s+(?<description>.+?)\s+£?(?<amount>\d{1,3}(?:,\d{3})*(?:\.\d{2}))\s+£?\d{1,3}(?:,\d{3})*(?:\.\d{2})\s*$'
+    dateFormat: "d MMM yyyy"
+    signConvention: negate
+    minAmount: 0.01
+
+  # Single-amount layout (where "Paid in" appears alone without a trailing balance).
+  - name: current-account-credit
+    accountType: checking
+    lineRegex: '^\s*(?<date>\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{2,4})\s+(?<description>.+?)\s+£?(?<amount>\d{1,3}(?:,\d{3})*(?:\.\d{2}))\s*$'
+    dateFormat: "d MMM yyyy"
+    signConvention: as-is
+    minAmount: 0.01

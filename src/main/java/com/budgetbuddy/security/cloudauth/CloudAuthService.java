@@ -5,103 +5,118 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import software.amazon.awssdk.services.cognitoidentityprovider.CognitoIdentityProviderClient;
-import software.amazon.awssdk.services.cognitoidentityprovider.model.*;
+import software.amazon.awssdk.services.cognitoidentityprovider.model.AdminCreateUserRequest;
+import software.amazon.awssdk.services.cognitoidentityprovider.model.AdminCreateUserResponse;
+import software.amazon.awssdk.services.cognitoidentityprovider.model.AdminInitiateAuthRequest;
+import software.amazon.awssdk.services.cognitoidentityprovider.model.AdminInitiateAuthResponse;
+import software.amazon.awssdk.services.cognitoidentityprovider.model.AdminSetUserPasswordRequest;
+import software.amazon.awssdk.services.cognitoidentityprovider.model.AttributeType;
+import software.amazon.awssdk.services.cognitoidentityprovider.model.AuthFlowType;
+import software.amazon.awssdk.services.cognitoidentityprovider.model.GetUserRequest;
+import software.amazon.awssdk.services.cognitoidentityprovider.model.MessageActionType;
+import software.amazon.awssdk.services.cognitoidentityprovider.model.NotAuthorizedException;
+import software.amazon.awssdk.services.cognitoidentityprovider.model.UsernameExistsException;
 
 /**
- * AWS Cognito Integration Service
- * Provides CloudAuth support using AWS Cognito
+ * AWS Cognito Integration Service Provides CloudAuth support using AWS Cognito
  *
- * Features:
- * - User authentication
- * - User registration
- * - Password reset
- * - MFA support
+ * <p>Features: - User authentication - User registration - Password reset - MFA support
  */
+// SDK / Spring integration — the underlying APIs (AWS SDK, Plaid SDK,
+// Spring services, reflection) throw arbitrary RuntimeException subtypes
+// that can't reasonably be enumerated. Broad catches log + recover (or
+// translate to AppException). Suppress at class level since narrowing
+// here would mean catch (RuntimeException) which PMD flags identically.
+@SuppressWarnings("PMD.AvoidCatchingGenericException")
 @Service
 public class CloudAuthService {
 
-    private static final Logger logger = LoggerFactory.getLogger(CloudAuthService.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(CloudAuthService.class);
 
     private final CognitoIdentityProviderClient cognitoClient;
     private final String userPoolId;
     private final String clientId;
 
-    public CloudAuthService(final CognitoIdentityProviderClient cognitoClient, @Value("${app.aws.cognito.user-pool-id:}") String userPoolId,
-            @Value("${app.aws.cognito.client-id:}") String clientId) {
+    public CloudAuthService(
+            final CognitoIdentityProviderClient cognitoClient,
+            @Value("${app.aws.cognito.user-pool-id:}") final String userPoolId,
+            @Value("${app.aws.cognito.client-id:}") final String clientId) {
         this.cognitoClient = cognitoClient;
         this.userPoolId = userPoolId;
         this.clientId = clientId;
     }
 
-    /**
-     * Authenticate user with Cognito
-     */
+    /** Authenticate user with Cognito */
     public CloudAuthResult authenticate(final String username, final String password) {
         try {
-            AdminInitiateAuthResponse response = cognitoClient.adminInitiateAuth(
-                    AdminInitiateAuthRequest.builder()
-                            .userPoolId(userPoolId)
-                            .clientId(clientId)
-                            .authFlow(AuthFlowType.ADMIN_USER_PASSWORD_AUTH)
-                            .authParameters(java.util.Map.of(
-                                    "USERNAME", username,
-                                    "PASSWORD", password
-                            ))
-                            .build());
+            final AdminInitiateAuthResponse response =
+                    cognitoClient.adminInitiateAuth(
+                            AdminInitiateAuthRequest.builder()
+                                    .userPoolId(userPoolId)
+                                    .clientId(clientId)
+                                    .authFlow(AuthFlowType.ADMIN_USER_PASSWORD_AUTH)
+                                    .authParameters(
+                                            java.util.Map.of(
+                                                    "USERNAME", username,
+                                                    "PASSWORD", password))
+                                    .build());
 
-            CloudAuthResult result = new CloudAuthResult();
+            final CloudAuthResult result = new CloudAuthResult();
             result.setSuccess(true);
             result.setAccessToken(response.authenticationResult().accessToken());
             result.setIdToken(response.authenticationResult().idToken());
             result.setRefreshToken(response.authenticationResult().refreshToken());
             result.setExpiresIn(response.authenticationResult().expiresIn());
 
-            logger.info("CloudAuth: User authenticated: {}", username);
+            LOGGER.info("CloudAuth: User authenticated: {}", username);
             return result;
         } catch (NotAuthorizedException e) {
-            logger.warn("CloudAuth: Authentication failed for user: {}", username);
-            CloudAuthResult result = new CloudAuthResult();
+            LOGGER.warn("CloudAuth: Authentication failed for user: {}", username);
+            final CloudAuthResult result = new CloudAuthResult();
             result.setSuccess(false);
             result.setError("Invalid credentials");
             return result;
         } catch (Exception e) {
-            logger.error("CloudAuth: Authentication error: {}", e.getMessage());
-            CloudAuthResult result = new CloudAuthResult();
+            LOGGER.error("CloudAuth: Authentication error: {}", e.getMessage());
+            final CloudAuthResult result = new CloudAuthResult();
             result.setSuccess(false);
             result.setError("Authentication service error");
             return result;
         }
     }
 
-    /**
-     * Register new user with Cognito
-     */
-    public CloudAuthResult register(final String email, final String password, final String firstName, final String lastName) {
+    /** Register new user with Cognito */
+    public CloudAuthResult register(
+            final String email,
+            final String password,
+            final String firstName,
+            final String lastName) {
         try {
-            AdminCreateUserResponse response = cognitoClient.adminCreateUser(
-                    AdminCreateUserRequest.builder()
-                            .userPoolId(userPoolId)
-                            .username(email)
-                            .userAttributes(
-                                    AttributeType.builder()
-                                            .name("email")
-                                            .value(email)
-                                            .build(),
-                                    AttributeType.builder()
-                                            .name("given_name")
-                                            .value(firstName)
-                                            .build(),
-                                    AttributeType.builder()
-                                            .name("family_name")
-                                            .value(lastName)
-                                            .build(),
-                                    AttributeType.builder()
-                                            .name("email_verified")
-                                            .value("false")
-                                            .build()
-                            )
-                            .messageAction(MessageActionType.SUPPRESS) // Don't send welcome email
-                            .build());
+            final AdminCreateUserResponse response =
+                    cognitoClient.adminCreateUser(
+                            AdminCreateUserRequest.builder()
+                                    .userPoolId(userPoolId)
+                                    .username(email)
+                                    .userAttributes(
+                                            AttributeType.builder()
+                                                    .name("email")
+                                                    .value(email)
+                                                    .build(),
+                                            AttributeType.builder()
+                                                    .name("given_name")
+                                                    .value(firstName)
+                                                    .build(),
+                                            AttributeType.builder()
+                                                    .name("family_name")
+                                                    .value(lastName)
+                                                    .build(),
+                                            AttributeType.builder()
+                                                    .name("email_verified")
+                                                    .value("false")
+                                                    .build())
+                                    .messageAction(
+                                            MessageActionType.SUPPRESS) // Don't send welcome email
+                                    .build());
 
             // Set permanent password
             cognitoClient.adminSetUserPassword(
@@ -112,46 +127,40 @@ public class CloudAuthService {
                             .permanent(true)
                             .build());
 
-            CloudAuthResult result = new CloudAuthResult();
+            final CloudAuthResult result = new CloudAuthResult();
             result.setSuccess(true);
             result.setUserId(response.user().username());
 
-            logger.info("CloudAuth: User registered: {}", email);
+            LOGGER.info("CloudAuth: User registered: {}", email);
             return result;
         } catch (UsernameExistsException e) {
-            logger.warn("CloudAuth: User already exists: {}", email);
-            CloudAuthResult result = new CloudAuthResult();
+            LOGGER.warn("CloudAuth: User already exists: {}", email);
+            final CloudAuthResult result = new CloudAuthResult();
             result.setSuccess(false);
             result.setError("User already exists");
             return result;
         } catch (Exception e) {
-            logger.error("CloudAuth: Registration error: {}", e.getMessage());
-            CloudAuthResult result = new CloudAuthResult();
+            LOGGER.error("CloudAuth: Registration error: {}", e.getMessage());
+            final CloudAuthResult result = new CloudAuthResult();
             result.setSuccess(false);
             result.setError("Registration service error");
             return result;
         }
     }
 
-    /**
-     * Verify token with Cognito
-     */
+    /** Verify token with Cognito */
     public boolean verifyToken(final String token) {
         try {
-            GetUserRequest request = GetUserRequest.builder()
-                    .accessToken(token)
-                    .build();
+            final GetUserRequest request = GetUserRequest.builder().accessToken(token).build();
             cognitoClient.getUser(request);
             return true;
         } catch (Exception e) {
-            logger.warn("CloudAuth: Token verification failed: {}", e.getMessage());
+            LOGGER.warn("CloudAuth: Token verification failed: {}", e.getMessage());
             return false;
         }
     }
 
-    /**
-     * CloudAuth Result
-     */
+    /** CloudAuth Result */
     public static class CloudAuthResult {
         private boolean success;
         private String userId;
@@ -162,20 +171,60 @@ public class CloudAuthService {
         private String error;
 
         // Getters and setters
-        public boolean isSuccess() { return success; }
-        public void setSuccess(final boolean success) { this.success = success; }
-        public String getUserId() { return userId; }
-        public void setUserId(final String userId) { this.userId = userId; }
-        public String getAccessToken() { return accessToken; }
-        public void setAccessToken(final String accessToken) { this.accessToken = accessToken; }
-        public String getIdToken() { return idToken; }
-        public void setIdToken(final String idToken) { this.idToken = idToken; }
-        public String getRefreshToken() { return refreshToken; }
-        public void setRefreshToken(final String refreshToken) { this.refreshToken = refreshToken; }
-        public Integer getExpiresIn() { return expiresIn; }
-        public void setExpiresIn(final Integer expiresIn) { this.expiresIn = expiresIn; }
-        public String getError() { return error; }
-        public void setError(final String error) { this.error = error; }
+        public boolean isSuccess() {
+            return success;
+        }
+
+        public void setSuccess(final boolean success) {
+            this.success = success;
+        }
+
+        public String getUserId() {
+            return userId;
+        }
+
+        public void setUserId(final String userId) {
+            this.userId = userId;
+        }
+
+        public String getAccessToken() {
+            return accessToken;
+        }
+
+        public void setAccessToken(final String accessToken) {
+            this.accessToken = accessToken;
+        }
+
+        public String getIdToken() {
+            return idToken;
+        }
+
+        public void setIdToken(final String idToken) {
+            this.idToken = idToken;
+        }
+
+        public String getRefreshToken() {
+            return refreshToken;
+        }
+
+        public void setRefreshToken(final String refreshToken) {
+            this.refreshToken = refreshToken;
+        }
+
+        public Integer getExpiresIn() {
+            return expiresIn;
+        }
+
+        public void setExpiresIn(final Integer expiresIn) {
+            this.expiresIn = expiresIn;
+        }
+
+        public String getError() {
+            return error;
+        }
+
+        public void setError(final String error) {
+            this.error = error;
+        }
     }
 }
-

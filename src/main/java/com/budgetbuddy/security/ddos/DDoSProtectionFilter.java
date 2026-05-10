@@ -1,7 +1,7 @@
 package com.budgetbuddy.security.ddos;
 
-import com.budgetbuddy.exception.ErrorCode;
 import com.budgetbuddy.exception.EnhancedGlobalExceptionHandler;
+import com.budgetbuddy.exception.ErrorCode;
 import com.budgetbuddy.security.rate.RateLimitService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
@@ -9,6 +9,8 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.time.Instant;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
@@ -16,24 +18,22 @@ import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-import java.io.IOException;
-import java.time.Instant;
-
 /**
- * DDoS Protection Filter
- * Implements multiple layers of protection:
- * - IP-based rate limiting
- * - Per-customer throttling
- * - Request size limits
- * - Connection limits
+ * DDoS Protection Filter Implements multiple layers of protection: - IP-based rate limiting -
+ * Per-customer throttling - Request size limits - Connection limits
  *
- * Thread-safe implementation with proper dependency injection
+ * <p>Thread-safe implementation with proper dependency injection
  */
 @Component
 @Order(1) // Execute before other filters
+// PMD's LawOfDemeter is documented as imprecise on chains involving
+// standard library types (BigDecimal, String, Optional) and DTO
+// getters; this class has many such idiomatic uses. Suppress at
+// class level rather than littering every method.
+@SuppressWarnings({"PMD.LawOfDemeter", "PMD.AvoidCatchingGenericException"})
 public class DDoSProtectionFilter extends OncePerRequestFilter {
 
-    private static final Logger logger = LoggerFactory.getLogger(DDoSProtectionFilter.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(DDoSProtectionFilter.class);
 
     private static final int MAX_REQUEST_SIZE = 10 * 1024 * 1024; // 10MB
     private static final int MAX_HEADER_SIZE = 8 * 1024; // 8KB
@@ -44,7 +44,7 @@ public class DDoSProtectionFilter extends OncePerRequestFilter {
     private final com.budgetbuddy.security.JwtTokenProvider jwtTokenProvider;
 
     public DDoSProtectionFilter(
-            final RateLimitService rateLimitService, 
+            final RateLimitService rateLimitService,
             final DDoSProtectionService ddosProtectionService,
             final com.budgetbuddy.security.JwtTokenProvider jwtTokenProvider) {
         if (rateLimitService == null) {
@@ -62,40 +62,63 @@ public class DDoSProtectionFilter extends OncePerRequestFilter {
     }
 
     @Override
-    protected void doFilterInternal(final HttpServletRequest request, final HttpServletResponse response, final FilterChain filterChain) throws ServletException, IOException {
+    protected void doFilterInternal(
+            final HttpServletRequest request,
+            final HttpServletResponse response,
+            final FilterChain filterChain)
+            throws ServletException, IOException {
 
-        String clientIp = getClientIpAddress(request);
-        String userId = getUserIdFromRequest(request);
+        final String clientIp = getClientIpAddress(request);
+        final String userId = getUserIdFromRequest(request);
 
         // Layer 1: IP-based rate limiting (DDoS protection)
         if (clientIp != null && !ddosProtectionService.isAllowed(clientIp)) {
-            logger.warn("DDoS protection: Blocked request from IP: {} | CorrelationId: {}", clientIp, MDC.get("correlationId"));
+            LOGGER.warn(
+                    "DDoS protection: Blocked request from IP: {} | CorrelationId: {}",
+                    clientIp,
+                    MDC.get("correlationId"));
             String correlationId = MDC.get("correlationId");
             if (correlationId == null) {
                 correlationId = java.util.UUID.randomUUID().toString();
                 MDC.put("correlationId", correlationId);
             }
-            sendRateLimitError(response, correlationId, "Rate limit exceeded. Please try again later.", 60, request.getRequestURI());
+            sendRateLimitError(
+                    response,
+                    correlationId,
+                    "Rate limit exceeded. Please try again later.",
+                    60,
+                    request.getRequestURI());
             return;
         }
 
         // Layer 2: Per-customer throttling
         if (userId != null && !rateLimitService.isAllowed(userId, request.getRequestURI())) {
-            logger.warn("Rate limit: Blocked request from user: {} for endpoint: {} | CorrelationId: {}", userId, request.getRequestURI(), MDC.get("correlationId"));
-            int retryAfter = rateLimitService.getRetryAfter(userId, request.getRequestURI());
+            LOGGER.warn(
+                    "Rate limit: Blocked request from user: {} for endpoint: {} | CorrelationId: {}",
+                    userId,
+                    request.getRequestURI(),
+                    MDC.get("correlationId"));
+            final int retryAfter = rateLimitService.getRetryAfter(userId, request.getRequestURI());
             String correlationId = MDC.get("correlationId");
             if (correlationId == null) {
                 correlationId = java.util.UUID.randomUUID().toString();
                 MDC.put("correlationId", correlationId);
             }
-            sendRateLimitError(response, correlationId, "Rate limit exceeded for your account. Please try again in " + retryAfter + " seconds.", retryAfter, request.getRequestURI());
+            sendRateLimitError(
+                    response,
+                    correlationId,
+                    "Rate limit exceeded for your account. Please try again in "
+                            + retryAfter
+                            + " seconds.",
+                    retryAfter,
+                    request.getRequestURI());
             return;
         }
 
         // Layer 3: Request size validation
-        long contentLength = request.getContentLengthLong();
+        final long contentLength = request.getContentLengthLong();
         if (contentLength > MAX_REQUEST_SIZE) {
-            logger.warn("Request too large: {} bytes from IP: {}", contentLength, clientIp);
+            LOGGER.warn("Request too large: {} bytes from IP: {}", contentLength, clientIp);
             response.setStatus(413); // SC_REQUEST_ENTITY_TOO_LARGE
             response.setContentType("application/json");
             response.getWriter().write("{\"error\":\"Request payload too large\"}");
@@ -104,7 +127,7 @@ public class DDoSProtectionFilter extends OncePerRequestFilter {
 
         // Layer 4: Header size validation
         if (getTotalHeaderSize(request) > MAX_HEADER_SIZE) {
-            logger.warn("Headers too large from IP: {}", clientIp);
+            LOGGER.warn("Headers too large from IP: {}", clientIp);
             response.setStatus(431); // SC_REQUEST_HEADER_FIELDS_TOO_LARGE
             response.setContentType("application/json");
             response.getWriter().write("{\"error\":\"Request headers too large\"}");
@@ -120,8 +143,7 @@ public class DDoSProtectionFilter extends OncePerRequestFilter {
     }
 
     /**
-     * Extract client IP address from request
-     * Priority: X-Forwarded-For > X-Real-IP > RemoteAddr
+     * Extract client IP address from request Priority: X-Forwarded-For > X-Real-IP > RemoteAddr
      * Handles X-Forwarded-For with multiple IPs safely
      */
     private String getClientIpAddress(final HttpServletRequest request) {
@@ -134,7 +156,7 @@ public class DDoSProtectionFilter extends OncePerRequestFilter {
         if (ip != null) {
             ip = ip.trim();
         }
-        
+
         // If X-Forwarded-For is not available or invalid, check X-Real-IP
         if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
             ip = request.getHeader("X-Real-IP");
@@ -142,7 +164,7 @@ public class DDoSProtectionFilter extends OncePerRequestFilter {
                 ip = ip.trim();
             }
         }
-        
+
         // Fallback to RemoteAddr if both headers are unavailable
         if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
             ip = request.getRemoteAddr();
@@ -150,7 +172,7 @@ public class DDoSProtectionFilter extends OncePerRequestFilter {
 
         // Handle multiple IPs (X-Forwarded-For can contain multiple IPs: "client, proxy1, proxy2")
         if (ip != null && ip.contains(",")) {
-            String[] ips = ip.split(",");
+            final String[] ips = ip.split(",");
             if (ips.length > 0) {
                 // Take the first IP (original client IP)
                 ip = ips[0].trim();
@@ -174,13 +196,13 @@ public class DDoSProtectionFilter extends OncePerRequestFilter {
 
         // Extract user ID from JWT token if available
         // Note: This filter runs before JWT authentication filter, so we parse token directly
-        String authHeader = request.getHeader("Authorization");
+        final String authHeader = request.getHeader("Authorization");
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             try {
-                String token = authHeader.substring(7).trim(); // Remove "Bearer " prefix
+                final String token = authHeader.substring(7).trim(); // Remove "Bearer " prefix
                 // Validate token before extracting username (to avoid parsing invalid tokens)
                 if (jwtTokenProvider.validateToken(token)) {
-                    String username = jwtTokenProvider.getUsernameFromToken(token);
+                    final String username = jwtTokenProvider.getUsernameFromToken(token);
                     if (username != null && !username.isEmpty()) {
                         return username; // Use username as user ID for rate limiting
                     }
@@ -188,31 +210,34 @@ public class DDoSProtectionFilter extends OncePerRequestFilter {
             } catch (Exception e) {
                 // Token parsing failed - this is expected for invalid tokens
                 // Don't log at error level as this is normal for unauthenticated requests
-                logger.debug("Could not extract user ID from JWT token: {}", e.getMessage());
+                LOGGER.debug("Could not extract user ID from JWT token: {}", e.getMessage());
             }
         }
-        
+
         // Fallback: Try to get from SecurityContext (in case filter order changed)
         try {
-            org.springframework.security.core.Authentication auth = 
-                org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
-            if (auth != null && auth.isAuthenticated() && auth.getPrincipal() instanceof org.springframework.security.core.userdetails.UserDetails) {
-                org.springframework.security.core.userdetails.UserDetails userDetails = 
-                    (org.springframework.security.core.userdetails.UserDetails) auth.getPrincipal();
+            final org.springframework.security.core.Authentication auth =
+                    org.springframework.security.core.context.SecurityContextHolder.getContext()
+                            .getAuthentication();
+            if (auth != null
+                    && auth.isAuthenticated()
+                    && auth.getPrincipal()
+                            instanceof org.springframework.security.core.userdetails.UserDetails) {
+                final org.springframework.security.core.userdetails.UserDetails userDetails =
+                        (org.springframework.security.core.userdetails.UserDetails)
+                                auth.getPrincipal();
                 return userDetails.getUsername();
             }
         } catch (Exception e) {
             // SecurityContext not available - this is normal when filter runs before authentication
-            logger.debug("SecurityContext not available for user ID extraction: {}", e.getMessage());
+            LOGGER.debug(
+                    "SecurityContext not available for user ID extraction: {}", e.getMessage());
         }
-        
+
         return null; // No user ID available - rate limiting will be IP-based
     }
 
-    /**
-     * Calculate total header size
-     * Thread-safe and handles null values
-     */
+    /** Calculate total header size Thread-safe and handles null values */
     private int getTotalHeaderSize(final HttpServletRequest request) {
         if (request == null) {
             return 0;
@@ -220,39 +245,47 @@ public class DDoSProtectionFilter extends OncePerRequestFilter {
 
         try {
             int totalSize = 0;
-            java.util.Enumeration<String> headerNames = request.getHeaderNames();
+            final java.util.Enumeration<String> headerNames = request.getHeaderNames();
             while (headerNames.hasMoreElements()) {
-                String headerName = headerNames.nextElement();
+                final String headerName = headerNames.nextElement();
                 if (headerName != null) {
-                    String headerValue = request.getHeader(headerName);
-                    totalSize += headerName.length() + (headerValue != null ? headerValue.length() : 0);
+                    final String headerValue = request.getHeader(headerName);
+                    totalSize +=
+                            headerName.length() + (headerValue != null ? headerValue.length() : 0);
                 }
             }
             return totalSize;
         } catch (Exception e) {
-            logger.warn("Failed to calculate header size: {}", e.getMessage());
+            LOGGER.warn("Failed to calculate header size: {}", e.getMessage());
             return 0;
         }
     }
 
     /**
-     * Send rate limit error response in standard format
-     * Matches EnhancedGlobalExceptionHandler.ErrorResponse format
+     * Send rate limit error response in standard format Matches
+     * EnhancedGlobalExceptionHandler.ErrorResponse format
      */
-    private void sendRateLimitError(final HttpServletResponse response, final String correlationId, final String message, final int retryAfter, final String path) throws IOException {
-        EnhancedGlobalExceptionHandler.ErrorResponse errorResponse = EnhancedGlobalExceptionHandler.ErrorResponse.builder()
-                .errorCode(ErrorCode.RATE_LIMIT_EXCEEDED.name())
-                .message(message)
-                .correlationId(correlationId)
-                .timestamp(Instant.now())
-                .path(path != null ? path : "")
-                .build();
+    private void sendRateLimitError(
+            final HttpServletResponse response,
+            final String correlationId,
+            final String message,
+            final int retryAfter,
+            final String path)
+            throws IOException {
+        final EnhancedGlobalExceptionHandler.ErrorResponse errorResponse =
+                EnhancedGlobalExceptionHandler.ErrorResponse.builder()
+                        .errorCode(ErrorCode.RATE_LIMIT_EXCEEDED.name())
+                        .message(message)
+                        .correlationId(correlationId)
+                        .timestamp(Instant.now())
+                        .path(path != null ? path : "")
+                        .build();
 
         response.setStatus(429); // SC_TOO_MANY_REQUESTS
         response.setHeader("Retry-After", String.valueOf(retryAfter));
         response.setContentType("application/json");
         response.setCharacterEncoding("UTF-8");
-        
+
         objectMapper.writeValue(response.getWriter(), errorResponse);
     }
 }

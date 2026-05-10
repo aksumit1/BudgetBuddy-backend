@@ -1,5 +1,10 @@
 package com.budgetbuddy.config;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
 import com.budgetbuddy.AWSTestConfiguration;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -8,36 +13,31 @@ import org.springframework.cache.CacheManager;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 
-import static org.junit.jupiter.api.Assertions.*;
-
-/**
- * Tests for CacheConfig
- */
+/** Tests for CacheConfig */
 @SpringBootTest(classes = com.budgetbuddy.BudgetBuddyApplication.class)
 @ActiveProfiles("test")
 @Import(AWSTestConfiguration.class)
 class CacheConfigTest {
 
-    @Autowired
-    private CacheManager cacheManager;
+    @Autowired private CacheManager cacheManager;
 
     @Test
-    void testCacheManager_IsCreated() {
+    void testCacheManagerIsCreated() {
         // Then
         assertNotNull(cacheManager, "Primary cache manager should be created");
     }
 
     @Test
-    void testCacheManager_CanStoreAndRetrieve() {
+    void testCacheManagerCanStoreAndRetrieve() {
         // Given
-        String key = "test-key";
-        String value = "test-value";
+        final String key = "test-key";
+        final String value = "test-value";
 
         // When
-        var cache = cacheManager.getCache("default");
+        final var cache = cacheManager.getCache("default");
         if (cache != null) {
             cache.put(key, value);
-            String retrieved = cache.get(key, String.class);
+            final String retrieved = cache.get(key, String.class);
 
             // Then
             assertEquals(value, retrieved, "Should retrieve stored value");
@@ -47,31 +47,34 @@ class CacheConfigTest {
         }
     }
 
-
     @Test
-    void testCacheManager_WithNullKey_ThrowsException() {
+    void testCacheManagerWithNullKeyThrowsException() {
         // Given
-        var cache = cacheManager.getCache("default");
+        final var cache = cacheManager.getCache("default");
 
         // When/Then - Spring Cache does not allow null keys, should throw exception
         if (cache != null) {
-            assertThrows(Exception.class, () -> {
-                cache.put(null, "value");
-            }, "Should throw exception for null key (Spring Cache requirement)");
+            assertThrows(
+                    Exception.class,
+                    () -> {
+                        cache.put(null, "value");
+                    },
+                    "Should throw exception for null key (Spring Cache requirement)");
         }
     }
 
     @Test
-    void testCacheManager_WithNullValue_HandlesGracefully() {
+    void testCacheManagerWithNullValueHandlesGracefully() {
         // Given
-        var cache = cacheManager.getCache("default");
+        final var cache = cacheManager.getCache("default");
 
         // When/Then - Should handle null value without crashing
         if (cache != null) {
-            assertDoesNotThrow(() -> {
-                cache.put("key", null);
-            }, "Should handle null value gracefully");
+            assertDoesNotThrow(
+                    () -> {
+                        cache.put("key", null);
+                    },
+                    "Should handle null value gracefully");
         }
     }
 }
-

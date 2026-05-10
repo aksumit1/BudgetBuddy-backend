@@ -1,6 +1,19 @@
 package com.budgetbuddy.repository.dynamodb;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.anyString;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+
 import com.budgetbuddy.model.dynamodb.FIDO2ChallengeTable;
+import java.time.Instant;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -9,26 +22,19 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable;
 import software.amazon.awssdk.enhanced.dynamodb.Key;
-import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
 
-import java.time.Instant;
-import java.util.Optional;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
-
-/**
- * Unit Tests for FIDO2ChallengeRepository
- */
+/** Unit Tests for FIDO2ChallengeRepository */
+// PMD's LawOfDemeter is documented as imprecise on chains involving
+// standard library types (BigDecimal, String, Optional) and DTO
+// getters; this class has many such idiomatic uses. Suppress at
+// class level rather than littering every method.
+@SuppressWarnings("PMD.LawOfDemeter")
 @ExtendWith(MockitoExtension.class)
 class FIDO2ChallengeRepositoryTest {
 
-    @Mock
-    private DynamoDbEnhancedClient enhancedClient;
+    @Mock private DynamoDbEnhancedClient enhancedClient;
 
-    @Mock
-    private DynamoDbTable<FIDO2ChallengeTable> challengeTable;
+    @Mock private DynamoDbTable<FIDO2ChallengeTable> challengeTable;
 
     private FIDO2ChallengeRepository repository;
     private String testChallengeKey;
@@ -42,14 +48,18 @@ class FIDO2ChallengeRepositoryTest {
         testChallenge.setUserId("user-123");
         testChallenge.setChallenge("test-challenge");
         testChallenge.setExpiresAt(Instant.now().plusSeconds(300));
-        
-        org.mockito.Mockito.lenient().when(enhancedClient.table(anyString(), any(software.amazon.awssdk.enhanced.dynamodb.TableSchema.class)))
+
+        org.mockito.Mockito.lenient()
+                .when(
+                        enhancedClient.table(
+                                anyString(),
+                                any(software.amazon.awssdk.enhanced.dynamodb.TableSchema.class)))
                 .thenReturn(challengeTable);
         repository = new FIDO2ChallengeRepository(enhancedClient, "Test");
     }
 
     @Test
-    void testSave_WithValidChallenge_SavesSuccessfully() {
+    void testSaveWithValidChallengeSavesSuccessfully() {
         // When
         repository.save(testChallenge);
 
@@ -59,13 +69,13 @@ class FIDO2ChallengeRepositoryTest {
     }
 
     @Test
-    void testSave_WithNullChallenge_ThrowsException() {
+    void testSaveWithNullChallengeThrowsException() {
         // When/Then
         assertThrows(IllegalArgumentException.class, () -> repository.save(null));
     }
 
     @Test
-    void testSave_WithExpiresAt_SetsTtl() {
+    void testSaveWithExpiresAtSetsTtl() {
         // Given
         testChallenge.setTtl(null);
         testChallenge.setExpiresAt(Instant.now().plusSeconds(300));
@@ -79,12 +89,14 @@ class FIDO2ChallengeRepositoryTest {
     }
 
     @Test
-    void testFindByChallengeKey_WithValidKey_ReturnsChallenge() {
+    void testFindByChallengeKeyWithValidKeyReturnsChallenge() {
         // Given
-        org.mockito.Mockito.lenient().when(challengeTable.getItem(org.mockito.ArgumentMatchers.<Key>any())).thenReturn(testChallenge);
+        org.mockito.Mockito.lenient()
+                .when(challengeTable.getItem(org.mockito.ArgumentMatchers.<Key>any()))
+                .thenReturn(testChallenge);
 
         // When
-        Optional<FIDO2ChallengeTable> result = repository.findByChallengeKey(testChallengeKey);
+        final Optional<FIDO2ChallengeTable> result = repository.findByChallengeKey(testChallengeKey);
 
         // Then
         assertTrue(result.isPresent());
@@ -92,9 +104,9 @@ class FIDO2ChallengeRepositoryTest {
     }
 
     @Test
-    void testFindByChallengeKey_WithNullKey_ReturnsEmpty() {
+    void testFindByChallengeKeyWithNullKeyReturnsEmpty() {
         // When
-        Optional<FIDO2ChallengeTable> result = repository.findByChallengeKey(null);
+        final Optional<FIDO2ChallengeTable> result = repository.findByChallengeKey(null);
 
         // Then
         assertFalse(result.isPresent());
@@ -102,9 +114,9 @@ class FIDO2ChallengeRepositoryTest {
     }
 
     @Test
-    void testFindByChallengeKey_WithEmptyKey_ReturnsEmpty() {
+    void testFindByChallengeKeyWithEmptyKeyReturnsEmpty() {
         // When
-        Optional<FIDO2ChallengeTable> result = repository.findByChallengeKey("");
+        final Optional<FIDO2ChallengeTable> result = repository.findByChallengeKey("");
 
         // Then
         assertFalse(result.isPresent());
@@ -112,14 +124,16 @@ class FIDO2ChallengeRepositoryTest {
     }
 
     @Test
-    void testFindByChallengeKey_WithExpiredChallenge_ReturnsEmpty() {
+    void testFindByChallengeKeyWithExpiredChallengeReturnsEmpty() {
         // Given
         testChallenge.setExpiresAt(Instant.now().minusSeconds(100));
-        org.mockito.Mockito.lenient().when(challengeTable.getItem(org.mockito.ArgumentMatchers.<Key>any())).thenReturn(testChallenge);
+        org.mockito.Mockito.lenient()
+                .when(challengeTable.getItem(org.mockito.ArgumentMatchers.<Key>any()))
+                .thenReturn(testChallenge);
         // deleteItem returns void, no need to stub it
 
         // When
-        Optional<FIDO2ChallengeTable> result = repository.findByChallengeKey(testChallengeKey);
+        final Optional<FIDO2ChallengeTable> result = repository.findByChallengeKey(testChallengeKey);
 
         // Then
         assertFalse(result.isPresent());
@@ -127,19 +141,19 @@ class FIDO2ChallengeRepositoryTest {
     }
 
     @Test
-    void testFindByChallengeKey_WithNonExistentKey_ReturnsEmpty() {
+    void testFindByChallengeKeyWithNonExistentKeyReturnsEmpty() {
         // Given
         org.mockito.Mockito.lenient().when(challengeTable.getItem(any(Key.class))).thenReturn(null);
 
         // When
-        Optional<FIDO2ChallengeTable> result = repository.findByChallengeKey(testChallengeKey);
+        final Optional<FIDO2ChallengeTable> result = repository.findByChallengeKey(testChallengeKey);
 
         // Then
         assertFalse(result.isPresent());
     }
 
     @Test
-    void testDelete_WithValidKey_DeletesChallenge() {
+    void testDeleteWithValidKeyDeletesChallenge() {
         // When
         repository.delete(testChallengeKey);
 
@@ -148,7 +162,7 @@ class FIDO2ChallengeRepositoryTest {
     }
 
     @Test
-    void testDelete_WithNullKey_DoesNothing() {
+    void testDeleteWithNullKeyDoesNothing() {
         // When
         repository.delete(null);
 
@@ -157,7 +171,7 @@ class FIDO2ChallengeRepositoryTest {
     }
 
     @Test
-    void testDelete_WithEmptyKey_DoesNothing() {
+    void testDeleteWithEmptyKeyDoesNothing() {
         // When
         repository.delete("");
 
@@ -166,12 +180,11 @@ class FIDO2ChallengeRepositoryTest {
     }
 
     @Test
-    void testGenerateChallengeKey_WithValidInput_ReturnsKey() {
+    void testGenerateChallengeKeyWithValidInputReturnsKey() {
         // When
-        String key = FIDO2ChallengeRepository.generateChallengeKey("user-123", "registration");
+        final String key = FIDO2ChallengeRepository.generateChallengeKey("user-123", "registration");
 
         // Then
         assertEquals("user-123:registration", key);
     }
 }
-

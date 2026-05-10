@@ -1,11 +1,23 @@
 package com.budgetbuddy.integration;
 
+
+import java.nio.charset.StandardCharsets;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import com.budgetbuddy.AWSTestConfiguration;
 import com.budgetbuddy.model.dynamodb.AccountTable;
 import com.budgetbuddy.model.dynamodb.UserTable;
 import com.budgetbuddy.repository.dynamodb.AccountRepository;
 import com.budgetbuddy.service.UserService;
 import com.budgetbuddy.util.TableInitializer;
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -18,21 +30,12 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 
-import java.math.BigDecimal;
-import java.time.Instant;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
-
-import static org.junit.jupiter.api.Assertions.*;
-
 /**
- * Integration Tests for PlaidSyncService
- * Tests the full flow of syncing accounts and transactions from Plaid
- * 
- * Note: These tests require a running LocalStack instance.
- * They test the actual database operations.
- * 
+ * Integration Tests for PlaidSyncService Tests the full flow of syncing accounts and transactions
+ * from Plaid
+ *
+ * <p>Note: These tests require a running LocalStack instance. They test the actual database
+ * operations.
  */
 @SpringBootTest(classes = com.budgetbuddy.BudgetBuddyApplication.class)
 @ActiveProfiles("test")
@@ -40,16 +43,13 @@ import static org.junit.jupiter.api.Assertions.*;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class PlaidSyncIntegrationTest {
 
-    private static final Logger logger = LoggerFactory.getLogger(PlaidSyncIntegrationTest.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(PlaidSyncIntegrationTest.class);
 
-    @Autowired
-    private AccountRepository accountRepository;
+    @Autowired private AccountRepository accountRepository;
 
-    @Autowired
-    private UserService userService;
+    @Autowired private UserService userService;
 
-    @Autowired
-    private DynamoDbClient dynamoDbClient;
+    @Autowired private DynamoDbClient dynamoDbClient;
 
     private UserTable testUser;
     private String testEmail;
@@ -65,21 +65,20 @@ class PlaidSyncIntegrationTest {
     void setUp() {
         testEmail = "test-plaid-" + UUID.randomUUID() + "@example.com";
         // Use proper base64-encoded strings
-        String base64PasswordHash = java.util.Base64.getEncoder().encodeToString("hashed-password".getBytes());
-        String base64ClientSalt = java.util.Base64.getEncoder().encodeToString("client-salt".getBytes());
-        testUser = userService.createUserSecure(
-                testEmail, base64PasswordHash, "Test",
-                "User"
-        );
+        final String base64PasswordHash =
+                java.util.Base64.getEncoder().encodeToString("hashed-password".getBytes(StandardCharsets.UTF_8));
+        final String base64ClientSalt =
+                java.util.Base64.getEncoder().encodeToString("client-salt".getBytes(StandardCharsets.UTF_8));
+        testUser = userService.createUserSecure(testEmail, base64PasswordHash, "Test", "User");
     }
 
     @Test
-    void testSyncAccounts_SavesAccountsWithActiveTrue() {
+    void testSyncAccountsSavesAccountsWithActiveTrue() {
         // Given - This would require a mock PlaidService or actual Plaid sandbox credentials
         // For now, we'll test the repository behavior after sync
-        
+
         // Create an account manually to simulate what sync would do
-        AccountTable account = new AccountTable();
+        final AccountTable account = new AccountTable();
         account.setAccountId(UUID.randomUUID().toString());
         account.setUserId(testUser.getUserId());
         account.setPlaidAccountId("test-plaid-account-" + UUID.randomUUID());
@@ -91,25 +90,26 @@ class PlaidSyncIntegrationTest {
         account.setActive(true); // This is what sync should set
         account.setCreatedAt(Instant.now());
         account.setUpdatedAt(Instant.now());
-        
+
         // When
         accountRepository.save(account);
-        
+
         // Then
-        List<AccountTable> retrieved = accountRepository.findByUserId(testUser.getUserId());
+        final List<AccountTable> retrieved = accountRepository.findByUserId(testUser.getUserId());
         assertFalse(retrieved.isEmpty(), "Account should be retrievable");
-        AccountTable retrievedAccount = retrieved.stream()
-                .filter(a -> a.getAccountId().equals(account.getAccountId()))
-                .findFirst()
-                .orElse(null);
+        final AccountTable retrievedAccount =
+                retrieved.stream()
+                        .filter(a -> a.getAccountId().equals(account.getAccountId()))
+                        .findFirst()
+                        .orElse(null);
         assertNotNull(retrievedAccount, "Account should be found");
         assertTrue(retrievedAccount.getActive(), "Account should be active");
     }
 
     @Test
-    void testFindByUserId_WithNullActiveAccount_ReturnsAccount() {
+    void testFindByUserIdWithNullActiveAccountReturnsAccount() {
         // Given - Account with null active (simulating old data)
-        AccountTable account = new AccountTable();
+        final AccountTable account = new AccountTable();
         account.setAccountId(UUID.randomUUID().toString());
         account.setUserId(testUser.getUserId());
         account.setAccountName("Old Account");
@@ -121,23 +121,24 @@ class PlaidSyncIntegrationTest {
         account.setCreatedAt(Instant.now());
         account.setUpdatedAt(Instant.now());
         accountRepository.save(account);
-        
+
         // When
-        List<AccountTable> retrieved = accountRepository.findByUserId(testUser.getUserId());
-        
+        final List<AccountTable> retrieved = accountRepository.findByUserId(testUser.getUserId());
+
         // Then
         assertFalse(retrieved.isEmpty(), "Accounts with null active should be returned");
-        AccountTable retrievedAccount = retrieved.stream()
-                .filter(a -> a.getAccountId().equals(account.getAccountId()))
-                .findFirst()
-                .orElse(null);
+        final AccountTable retrievedAccount =
+                retrieved.stream()
+                        .filter(a -> a.getAccountId().equals(account.getAccountId()))
+                        .findFirst()
+                        .orElse(null);
         assertNotNull(retrievedAccount, "Account with null active should be found");
     }
 
     @Test
-    void testFindByUserId_WithInactiveAccount_ExcludesAccount() {
+    void testFindByUserIdWithInactiveAccountExcludesAccount() {
         // Given
-        AccountTable account = new AccountTable();
+        final AccountTable account = new AccountTable();
         account.setAccountId(UUID.randomUUID().toString());
         account.setUserId(testUser.getUserId());
         account.setAccountName("Inactive Account");
@@ -149,21 +150,21 @@ class PlaidSyncIntegrationTest {
         account.setCreatedAt(Instant.now());
         account.setUpdatedAt(Instant.now());
         accountRepository.save(account);
-        
+
         // When
-        List<AccountTable> retrieved = accountRepository.findByUserId(testUser.getUserId());
-        
+        final List<AccountTable> retrieved = accountRepository.findByUserId(testUser.getUserId());
+
         // Then
-        boolean found = retrieved.stream()
-                .anyMatch(a -> a.getAccountId().equals(account.getAccountId()));
+        final boolean found =
+                retrieved.stream().anyMatch(a -> a.getAccountId().equals(account.getAccountId()));
         assertFalse(found, "Inactive accounts should be excluded");
     }
 
     @Test
-    void testFindByPlaidAccountId_WithExistingAccount_ReturnsAccount() {
+    void testFindByPlaidAccountIdWithExistingAccountReturnsAccount() {
         // Given
-        String plaidAccountId = "plaid-test-" + UUID.randomUUID();
-        AccountTable account = new AccountTable();
+        final String plaidAccountId = "plaid-test-" + UUID.randomUUID();
+        final AccountTable account = new AccountTable();
         account.setAccountId(UUID.randomUUID().toString());
         account.setUserId(testUser.getUserId());
         account.setPlaidAccountId(plaidAccountId);
@@ -176,20 +177,20 @@ class PlaidSyncIntegrationTest {
         account.setCreatedAt(Instant.now());
         account.setUpdatedAt(Instant.now());
         accountRepository.save(account);
-        
+
         // When
-        Optional<AccountTable> retrieved = accountRepository.findByPlaidAccountId(plaidAccountId);
-        
+        final Optional<AccountTable> retrieved = accountRepository.findByPlaidAccountId(plaidAccountId);
+
         // Then
         assertTrue(retrieved.isPresent(), "Account should be found by Plaid ID");
         assertEquals(plaidAccountId, retrieved.get().getPlaidAccountId());
     }
 
     @Test
-    void testAccountSync_UpdatesExistingAccount() {
+    void testAccountSyncUpdatesExistingAccount() {
         // Given - Existing account
-        String plaidAccountId = "plaid-update-" + UUID.randomUUID();
-        AccountTable existingAccount = new AccountTable();
+        final String plaidAccountId = "plaid-update-" + UUID.randomUUID();
+        final AccountTable existingAccount = new AccountTable();
         existingAccount.setAccountId(UUID.randomUUID().toString());
         existingAccount.setUserId(testUser.getUserId());
         existingAccount.setPlaidAccountId(plaidAccountId);
@@ -199,19 +200,21 @@ class PlaidSyncIntegrationTest {
         existingAccount.setCreatedAt(Instant.now().minusSeconds(3600));
         existingAccount.setUpdatedAt(Instant.now().minusSeconds(3600));
         accountRepository.save(existingAccount);
-        
+
         // When - Update the account (simulating sync)
         existingAccount.setAccountName("Updated Name");
         existingAccount.setBalance(new BigDecimal("1500.00"));
         existingAccount.setUpdatedAt(Instant.now());
         accountRepository.save(existingAccount);
-        
+
         // Then
-        Optional<AccountTable> retrieved = accountRepository.findByPlaidAccountId(plaidAccountId);
+        final Optional<AccountTable> retrieved = accountRepository.findByPlaidAccountId(plaidAccountId);
         assertTrue(retrieved.isPresent());
         assertEquals("Updated Name", retrieved.get().getAccountName());
-        assertEquals(0, new BigDecimal("1500.00").compareTo(retrieved.get().getBalance()), "Balance should be 1500.00");
+        assertEquals(
+                0,
+                new BigDecimal("1500.00").compareTo(retrieved.get().getBalance()),
+                "Balance should be 1500.00");
         assertTrue(retrieved.get().getActive(), "Active should remain true after update");
     }
 }
-

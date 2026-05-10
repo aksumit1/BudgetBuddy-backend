@@ -1,29 +1,35 @@
 package com.budgetbuddy.compliance.gdpr;
 
 import com.budgetbuddy.model.dynamodb.UserTable;
-import com.budgetbuddy.repository.dynamodb.*;
+import com.budgetbuddy.repository.dynamodb.AccountRepository;
+import com.budgetbuddy.repository.dynamodb.AuditLogRepository;
+import com.budgetbuddy.repository.dynamodb.BudgetRepository;
+import com.budgetbuddy.repository.dynamodb.GoalRepository;
+import com.budgetbuddy.repository.dynamodb.TransactionRepository;
+import com.budgetbuddy.repository.dynamodb.UserRepository;
 import com.budgetbuddy.service.aws.S3Service;
+import java.time.Instant;
+import java.util.List;
+import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
-import java.time.Instant;
-import java.util.List;
-import java.util.UUID;
-
 /**
- * GDPR Compliance Service
- * Implements GDPR requirements:
- * - Right to access (Article 15)
- * - Right to rectification (Article 16)
- * - Right to erasure / Right to be forgotten (Article 17)
- * - Right to data portability (Article 20)
- * - Right to object (Article 21)
+ * GDPR Compliance Service Implements GDPR requirements: - Right to access (Article 15) - Right to
+ * rectification (Article 16) - Right to erasure / Right to be forgotten (Article 17) - Right to
+ * data portability (Article 20) - Right to object (Article 21)
  */
+// SDK / Spring integration — the underlying APIs (AWS SDK, Plaid SDK,
+// Spring services, reflection) throw arbitrary RuntimeException subtypes
+// that can't reasonably be enumerated. Broad catches log + recover (or
+// translate to AppException). Suppress at class level since narrowing
+// here would mean catch (RuntimeException) which PMD flags identically.
+@SuppressWarnings("PMD.AvoidCatchingGenericException")
 @Service
 public class GDPRComplianceService {
 
-    private static final Logger logger = LoggerFactory.getLogger(GDPRComplianceService.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(GDPRComplianceService.class);
 
     private final UserRepository userRepository;
     private final TransactionRepository transactionRepository;
@@ -53,14 +59,11 @@ public class GDPRComplianceService {
         this.auditLogService = auditLogService;
     }
 
-    /**
-     * Article 15: Right to access
-     * Provide user with all their personal data
-     */
+    /** Article 15: Right to access Provide user with all their personal data */
     public GDPRDataExport exportUserData(final String userId) {
-        logger.info("GDPR: Exporting data for user: {}", userId);
+        LOGGER.info("GDPR: Exporting data for user: {}", userId);
 
-        GDPRDataExport export = new GDPRDataExport();
+        final GDPRDataExport export = new GDPRDataExport();
         export.setUserId(userId);
         export.setExportDate(Instant.now());
         export.setExportId(UUID.randomUUID().toString());
@@ -69,26 +72,28 @@ public class GDPRComplianceService {
         userRepository.findById(userId).ifPresent(export::setUserData);
 
         // Export transactions
-        List<com.budgetbuddy.model.dynamodb.TransactionTable> transactions =
-                transactionRepository.findByUserId(userId, 0, 10000); // Get all transactions
+        final List<com.budgetbuddy.model.dynamodb.TransactionTable> transactions =
+                transactionRepository.findByUserId(userId, 0, 10_000); // Get all transactions
         export.setTransactions(transactions);
 
         // Export accounts
-        List<com.budgetbuddy.model.dynamodb.AccountTable> accounts = accountRepository.findByUserId(userId);
+        final List<com.budgetbuddy.model.dynamodb.AccountTable> accounts =
+                accountRepository.findByUserId(userId);
         export.setAccounts(accounts);
 
         // Export budgets
-        List<com.budgetbuddy.model.dynamodb.BudgetTable> budgets = budgetRepository.findByUserId(userId);
+        final List<com.budgetbuddy.model.dynamodb.BudgetTable> budgets =
+                budgetRepository.findByUserId(userId);
         export.setBudgets(budgets);
 
         // Export goals
-        List<com.budgetbuddy.model.dynamodb.GoalTable> goals = goalRepository.findByUserId(userId);
+        final List<com.budgetbuddy.model.dynamodb.GoalTable> goals = goalRepository.findByUserId(userId);
         export.setGoals(goals);
 
         // Export audit logs
-        long startTimestamp = Instant.now().minusSeconds(31536000).getEpochSecond(); // Last year
-        long endTimestamp = Instant.now().getEpochSecond();
-        List<com.budgetbuddy.compliance.AuditLogTable> auditLogs =
+        final long startTimestamp = Instant.now().minusSeconds(31_536_000).getEpochSecond(); // Last year
+        final long endTimestamp = Instant.now().getEpochSecond();
+        final List<com.budgetbuddy.compliance.AuditLogTable> auditLogs =
                 auditLogRepository.findByUserIdAndDateRange(userId, startTimestamp, endTimestamp);
         export.setAuditLogs(auditLogs);
 
@@ -98,213 +103,241 @@ public class GDPRComplianceService {
         return export;
     }
 
-    /**
-     * Article 17: Right to erasure / Right to be forgotten
-     * Delete all user data
-     */
+    /** Article 17: Right to erasure / Right to be forgotten Delete all user data */
     public void deleteUserData(final String userId) {
-        logger.info("GDPR: Deleting all data for user: {}", userId);
+        LOGGER.info("GDPR: Deleting all data for user: {}", userId);
 
         // Delete transactions
-        List<com.budgetbuddy.model.dynamodb.TransactionTable> transactions =
-                transactionRepository.findByUserId(userId, 0, 10000);
+        final List<com.budgetbuddy.model.dynamodb.TransactionTable> transactions =
+                transactionRepository.findByUserId(userId, 0, 10_000);
         transactions.forEach(t -> transactionRepository.delete(t.getTransactionId()));
 
         // Delete accounts
-        List<com.budgetbuddy.model.dynamodb.AccountTable> accounts = accountRepository.findByUserId(userId);
-        accounts.forEach(account -> {
-            // Delete account-specific S3 files if any
-            deleteAccountFromS3(userId, account.getAccountId());
-        });
-        
+        final List<com.budgetbuddy.model.dynamodb.AccountTable> accounts =
+                accountRepository.findByUserId(userId);
+        accounts.forEach(
+                account -> {
+                    // Delete account-specific S3 files if any
+                    deleteAccountFromS3(userId, account.getAccountId());
+                });
+
         // Delete user export files from S3
         deleteUserExportsFromS3(userId);
 
         // Delete budgets
-        List<com.budgetbuddy.model.dynamodb.BudgetTable> budgets = budgetRepository.findByUserId(userId);
+        final List<com.budgetbuddy.model.dynamodb.BudgetTable> budgets =
+                budgetRepository.findByUserId(userId);
         budgets.forEach(b -> budgetRepository.delete(b.getBudgetId()));
 
         // Delete goals
-        List<com.budgetbuddy.model.dynamodb.GoalTable> goals = goalRepository.findByUserId(userId);
+        final List<com.budgetbuddy.model.dynamodb.GoalTable> goals = goalRepository.findByUserId(userId);
         goals.forEach(g -> goalRepository.delete(g.getGoalId()));
 
         // Anonymize user (don't delete for audit purposes, but remove PII)
-        userRepository.findById(userId).ifPresent(user -> {
-            user.setEmail("deleted_" + UUID.randomUUID().toString() + "@deleted.local");
-            user.setFirstName("Deleted");
-            user.setLastName("User");
-            user.setPhoneNumber(null);
-            user.setEnabled(false);
-            user.setEmailVerified(false);
-            userRepository.save(user);
-        });
+        userRepository
+                .findById(userId)
+                .ifPresent(
+                        user -> {
+                            user.setEmail(
+                                    "deleted_" + UUID.randomUUID().toString() + "@deleted.local");
+                            user.setFirstName("Deleted");
+                            user.setLastName("User");
+                            user.setPhoneNumber(null);
+                            user.setEnabled(false);
+                            user.setEmailVerified(false);
+                            userRepository.save(user);
+                        });
 
         // Log data deletion
         auditLogService.logDataDeletion(userId);
 
-        logger.info("GDPR: All data deleted for user: {}", userId);
+        LOGGER.info("GDPR: All data deleted for user: {}", userId);
     }
 
-    /**
-     * Article 20: Right to data portability
-     * Export user data in machine-readable format (JSON)
-     */
+    /** Article 20: Right to data portability Export user data in machine-readable format (JSON) */
     public String exportDataPortable(final String userId) {
-        GDPRDataExport export = exportUserData(userId);
+        final GDPRDataExport export = exportUserData(userId);
 
         // Convert to JSON
         try {
-            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            final com.fasterxml.jackson.databind.ObjectMapper mapper =
+                    new com.fasterxml.jackson.databind.ObjectMapper();
             mapper.registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule());
-            mapper.disable(com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+            mapper.disable(
+                    com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
             return mapper.writerWithDefaultPrettyPrinter().writeValueAsString(export);
         } catch (Exception e) {
-            logger.error("Failed to export data as JSON: {}", e.getMessage());
+            LOGGER.error("Failed to export data as JSON: {}", e.getMessage());
             throw new RuntimeException("Failed to export data", e);
         }
     }
 
-    /**
-     * Article 16: Right to rectification
-     * Update user data
-     */
+    /** Article 16: Right to rectification Update user data */
     public void updateUserData(final String userId, final UserTable updatedData) {
-        logger.info("GDPR: Updating data for user: {}", userId);
+        LOGGER.info("GDPR: Updating data for user: {}", userId);
 
-        userRepository.findById(userId).ifPresent(user -> {
-            if (updatedData.getFirstName() != null) {
-                user.setFirstName(updatedData.getFirstName());
-            }
-            if (updatedData.getLastName() != null) {
-                user.setLastName(updatedData.getLastName());
-            }
-            if (updatedData.getEmail() != null) {
-                user.setEmail(updatedData.getEmail());
-                user.setEmailVerified(false); // Require re-verification
-            }
-            if (updatedData.getPhoneNumber() != null) {
-                user.setPhoneNumber(updatedData.getPhoneNumber());
-            }
-            user.setUpdatedAt(Instant.now());
-            userRepository.save(user);
+        userRepository
+                .findById(userId)
+                .ifPresent(
+                        user -> {
+                            if (updatedData.getFirstName() != null) {
+                                user.setFirstName(updatedData.getFirstName());
+                            }
+                            if (updatedData.getLastName() != null) {
+                                user.setLastName(updatedData.getLastName());
+                            }
+                            if (updatedData.getEmail() != null) {
+                                user.setEmail(updatedData.getEmail());
+                                user.setEmailVerified(false); // Require re-verification
+                            }
+                            if (updatedData.getPhoneNumber() != null) {
+                                user.setPhoneNumber(updatedData.getPhoneNumber());
+                            }
+                            user.setUpdatedAt(Instant.now());
+                            userRepository.save(user);
 
-            // Log data update
-            auditLogService.logDataUpdate(userId);
-        });
+                            // Log data update
+                            auditLogService.logDataUpdate(userId);
+                        });
     }
 
     /**
-     * Article 33 - Breach Notification
-     * Notify supervisory authority within 72 hours of breach discovery
+     * Article 33 - Breach Notification Notify supervisory authority within 72 hours of breach
+     * discovery
      */
-    public void reportBreach(final String userId, final String breachType, final String details, final int affectedUsers) {
-        logger.error("GDPR BREACH DETECTED: User={}, Type={}, AffectedUsers={}, Details={}", 
-                userId, breachType, affectedUsers, details);
-        
+    public void reportBreach(
+            final String userId,
+            final String breachType,
+            final String details,
+            final int affectedUsers) {
+        LOGGER.error(
+                "GDPR BREACH DETECTED: User={}, Type={}, AffectedUsers={}, Details={}",
+                userId,
+                breachType,
+                affectedUsers,
+                details);
+
         // Log breach
-        auditLogService.logBreach(new com.budgetbuddy.compliance.hipaa.HIPAAComplianceService.BreachReport());
-        
+        auditLogService.logBreach(
+                new com.budgetbuddy.compliance.hipaa.HIPAAComplianceService.BreachReport());
+
         // Notify supervisory authority within 72 hours
         notifySupervisoryAuthority(breachType, details, affectedUsers);
-        
+
         // Notify affected individuals without undue delay
         if (affectedUsers > 0) {
             notifyAffectedIndividuals(userId, breachType, affectedUsers);
         }
     }
 
-    /**
-     * Article 7 - Conditions for Consent
-     * Manage user consent for data processing
-     */
-    public void recordConsent(final String userId, final String consentType, final boolean granted, final String purpose) {
+    /** Article 7 - Conditions for Consent Manage user consent for data processing */
+    public void recordConsent(
+            final String userId,
+            final String consentType,
+            final boolean granted,
+            final String purpose) {
         auditLogService.logConsent(userId, consentType, granted, purpose);
-        logger.info("GDPR: Consent recorded - User={}, Type={}, Granted={}, Purpose={}", 
-                userId, consentType, granted, purpose);
+        LOGGER.info(
+                "GDPR: Consent recorded - User={}, Type={}, Granted={}, Purpose={}",
+                userId,
+                consentType,
+                granted,
+                purpose);
     }
 
-    /**
-     * Article 7(3) - Withdrawal of Consent
-     * Allow users to withdraw consent at any time
-     */
+    /** Article 7(3) - Withdrawal of Consent Allow users to withdraw consent at any time */
     public void withdrawConsent(final String userId, final String consentType) {
         auditLogService.logConsentWithdrawal(userId, consentType);
-        logger.info("GDPR: Consent withdrawn - User={}, Type={}", userId, consentType);
-        
+        LOGGER.info("GDPR: Consent withdrawn - User={}, Type={}", userId, consentType);
+
         // In production, stop processing that requires this consent
         // For now, just log the withdrawal
     }
 
     /**
-     * Article 13/14 - Information to be Provided
-     * Ensure users are informed about data processing
+     * Article 13/14 - Information to be Provided Ensure users are informed about data processing
      */
-    public void logDataProcessingNotification(final String userId, final String processingPurpose, final String legalBasis) {
+    public void logDataProcessingNotification(
+            final String userId, final String processingPurpose, final String legalBasis) {
         auditLogService.logDataProcessingNotification(userId, processingPurpose, legalBasis);
-        logger.debug("GDPR: Data processing notification - User={}, Purpose={}, LegalBasis={}", 
-                userId, processingPurpose, legalBasis);
+        LOGGER.debug(
+                "GDPR: Data processing notification - User={}, Purpose={}, LegalBasis={}",
+                userId,
+                processingPurpose,
+                legalBasis);
     }
 
-    /**
-     * Notify supervisory authority (within 72 hours)
-     */
-    private void notifySupervisoryAuthority(final String breachType, final String details, final int affectedUsers) {
+    /** Notify supervisory authority (within 72 hours) */
+    private void notifySupervisoryAuthority(
+            final String breachType, final String details, final int affectedUsers) {
         // In production, send notification to relevant supervisory authority
         // Must be done within 72 hours of breach discovery
-        logger.error("GDPR: Supervisory authority notification required - Type={}, AffectedUsers={}", 
-                breachType, affectedUsers);
+        LOGGER.error(
+                "GDPR: Supervisory authority notification required - Type={}, AffectedUsers={}",
+                breachType,
+                affectedUsers);
     }
 
-    /**
-     * Notify affected individuals (without undue delay)
-     */
-    private void notifyAffectedIndividuals(final String userId, final String breachType, final int affectedUsers) {
+    /** Notify affected individuals (without undue delay) */
+    private void notifyAffectedIndividuals(
+            final String userId, final String breachType, final int affectedUsers) {
         // In production, send notification to all affected individuals
         // Must be done without undue delay
-        logger.warn("GDPR: Affected individuals notification required - User={}, Type={}, Count={}", 
-                userId, breachType, affectedUsers);
+        LOGGER.warn(
+                "GDPR: Affected individuals notification required - User={}, Type={}, Count={}",
+                userId,
+                breachType,
+                affectedUsers);
     }
 
     /**
-     * Delete account-specific files from S3
-     * Removes any S3 objects associated with a specific account
+     * Delete account-specific files from S3 Removes any S3 objects associated with a specific
+     * account
      */
     private void deleteAccountFromS3(final String userId, final String accountId) {
         try {
             // Delete account-specific files (e.g., "accounts/{userId}/{accountId}/...")
-            String accountPrefix = String.format("accounts/%s/%s/", userId, accountId);
-            int deletedCount = s3Service.deleteFilesByPrefix(accountPrefix);
+            final String accountPrefix = String.format("accounts/%s/%s/", userId, accountId);
+            final int deletedCount = s3Service.deleteFilesByPrefix(accountPrefix);
             if (deletedCount > 0) {
-                logger.info("Deleted {} S3 objects for account: {} (user: {})", deletedCount, accountId, userId);
+                LOGGER.info(
+                        "Deleted {} S3 objects for account: {} (user: {})",
+                        deletedCount,
+                        accountId,
+                        userId);
             }
         } catch (Exception e) {
             // Log error but don't fail the entire deletion process
-            logger.error("Failed to delete account files from S3 for account {} (user {}): {}", 
-                    accountId, userId, e.getMessage());
+            LOGGER.error(
+                    "Failed to delete account files from S3 for account {} (user {}): {}",
+                    accountId,
+                    userId,
+                    e.getMessage());
         }
     }
 
     /**
-     * Delete all user export files from S3
-     * Removes GDPR export files created for the user (e.g., "exports/user_{userId}_*.gz")
+     * Delete all user export files from S3 Removes GDPR export files created for the user (e.g.,
+     * "exports/user_{userId}_*.gz")
      */
     private void deleteUserExportsFromS3(final String userId) {
         try {
             // Delete export files (e.g., "exports/user_{userId}_*.gz")
-            String exportPrefix = String.format("exports/user_%s_", userId);
-            int deletedCount = s3Service.deleteFilesByPrefix(exportPrefix);
+            final String exportPrefix = String.format("exports/user_%s_", userId);
+            final int deletedCount = s3Service.deleteFilesByPrefix(exportPrefix);
             if (deletedCount > 0) {
-                logger.info("Deleted {} export files from S3 for user: {}", deletedCount, userId);
+                LOGGER.info("Deleted {} export files from S3 for user: {}", deletedCount, userId);
             }
         } catch (Exception e) {
             // Log error but don't fail the entire deletion process
-            logger.error("Failed to delete export files from S3 for user {}: {}", userId, e.getMessage());
+            LOGGER.error(
+                    "Failed to delete export files from S3 for user {}: {}",
+                    userId,
+                    e.getMessage());
         }
     }
 
-    /**
-     * GDPR Data Export DTO
-     */
+    /** GDPR Data Export DTO */
     public static class GDPRDataExport {
         private String exportId;
         private String userId;
@@ -317,24 +350,77 @@ public class GDPRComplianceService {
         private List<com.budgetbuddy.compliance.AuditLogTable> auditLogs;
 
         // Getters and setters
-        public String getExportId() { return exportId; }
-        public void setExportId(final String exportId) { this.exportId = exportId; }
-        public String getUserId() { return userId; }
-        public void setUserId(final String userId) { this.userId = userId; }
-        public Instant getExportDate() { return exportDate; }
-        public void setExportDate(final Instant exportDate) { this.exportDate = exportDate; }
-        public UserTable getUserData() { return userData; }
-        public void setUserData(final UserTable userData) { this.userData = userData; }
-        public List<com.budgetbuddy.model.dynamodb.TransactionTable> getTransactions() { return transactions; }
-        public void setTransactions(final List<com.budgetbuddy.model.dynamodb.TransactionTable> transactions) { this.transactions = transactions; }
-        public List<com.budgetbuddy.model.dynamodb.AccountTable> getAccounts() { return accounts; }
-        public void setAccounts(final List<com.budgetbuddy.model.dynamodb.AccountTable> accounts) { this.accounts = accounts; }
-        public List<com.budgetbuddy.model.dynamodb.BudgetTable> getBudgets() { return budgets; }
-        public void setBudgets(final List<com.budgetbuddy.model.dynamodb.BudgetTable> budgets) { this.budgets = budgets; }
-        public List<com.budgetbuddy.model.dynamodb.GoalTable> getGoals() { return goals; }
-        public void setGoals(final List<com.budgetbuddy.model.dynamodb.GoalTable> goals) { this.goals = goals; }
-        public List<com.budgetbuddy.compliance.AuditLogTable> getAuditLogs() { return auditLogs; }
-        public void setAuditLogs(final List<com.budgetbuddy.compliance.AuditLogTable> auditLogs) { this.auditLogs = auditLogs; }
+        public String getExportId() {
+            return exportId;
+        }
+
+        public void setExportId(final String exportId) {
+            this.exportId = exportId;
+        }
+
+        public String getUserId() {
+            return userId;
+        }
+
+        public void setUserId(final String userId) {
+            this.userId = userId;
+        }
+
+        public Instant getExportDate() {
+            return exportDate;
+        }
+
+        public void setExportDate(final Instant exportDate) {
+            this.exportDate = exportDate;
+        }
+
+        public UserTable getUserData() {
+            return userData;
+        }
+
+        public void setUserData(final UserTable userData) {
+            this.userData = userData;
+        }
+
+        public List<com.budgetbuddy.model.dynamodb.TransactionTable> getTransactions() {
+            return transactions;
+        }
+
+        public void setTransactions(
+                final List<com.budgetbuddy.model.dynamodb.TransactionTable> transactions) {
+            this.transactions = transactions;
+        }
+
+        public List<com.budgetbuddy.model.dynamodb.AccountTable> getAccounts() {
+            return accounts;
+        }
+
+        public void setAccounts(final List<com.budgetbuddy.model.dynamodb.AccountTable> accounts) {
+            this.accounts = accounts;
+        }
+
+        public List<com.budgetbuddy.model.dynamodb.BudgetTable> getBudgets() {
+            return budgets;
+        }
+
+        public void setBudgets(final List<com.budgetbuddy.model.dynamodb.BudgetTable> budgets) {
+            this.budgets = budgets;
+        }
+
+        public List<com.budgetbuddy.model.dynamodb.GoalTable> getGoals() {
+            return goals;
+        }
+
+        public void setGoals(final List<com.budgetbuddy.model.dynamodb.GoalTable> goals) {
+            this.goals = goals;
+        }
+
+        public List<com.budgetbuddy.compliance.AuditLogTable> getAuditLogs() {
+            return auditLogs;
+        }
+
+        public void setAuditLogs(final List<com.budgetbuddy.compliance.AuditLogTable> auditLogs) {
+            this.auditLogs = auditLogs;
+        }
     }
 }
-

@@ -1,5 +1,11 @@
 package com.budgetbuddy.integration;
 
+
+import java.nio.charset.StandardCharsets;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import com.budgetbuddy.AWSTestConfiguration;
 import com.budgetbuddy.model.dynamodb.AccountTable;
 import com.budgetbuddy.model.dynamodb.TransactionTable;
@@ -8,6 +14,10 @@ import com.budgetbuddy.repository.dynamodb.AccountRepository;
 import com.budgetbuddy.repository.dynamodb.TransactionRepository;
 import com.budgetbuddy.service.UserService;
 import com.budgetbuddy.util.TableInitializer;
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.util.List;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -20,39 +30,35 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 
-import java.math.BigDecimal;
-import java.time.Instant;
-import java.util.List;
-import java.util.UUID;
-
-import static org.junit.jupiter.api.Assertions.*;
-
 /**
- * Integration Tests for Plaid Reconnect Sync Flow
- * Tests that accounts and transactions are synced during token exchange (reconnect scenario)
- * 
- * This tests the critical fix where backend syncs accounts/transactions during token exchange,
- * and the app should fetch this data immediately after reconnect without requiring sign-out/sign-in.
+ * Integration Tests for Plaid Reconnect Sync Flow Tests that accounts and transactions are synced
+ * during token exchange (reconnect scenario)
+ *
+ * <p>This tests the critical fix where backend syncs accounts/transactions during token exchange,
+ * and the app should fetch this data immediately after reconnect without requiring
+ * sign-out/sign-in.
  */
+// PMD's LawOfDemeter is documented as imprecise on chains involving
+// standard library types (BigDecimal, String, Optional) and DTO
+// getters; this class has many such idiomatic uses. Suppress at
+// class level rather than littering every method.
+@SuppressWarnings("PMD.LawOfDemeter")
 @SpringBootTest(classes = com.budgetbuddy.BudgetBuddyApplication.class)
 @ActiveProfiles("test")
 @Import(AWSTestConfiguration.class)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class PlaidReconnectSyncIntegrationTest {
 
-    private static final Logger logger = LoggerFactory.getLogger(PlaidReconnectSyncIntegrationTest.class);
+    private static final Logger LOGGER =
+            LoggerFactory.getLogger(PlaidReconnectSyncIntegrationTest.class);
 
-    @Autowired
-    private AccountRepository accountRepository;
+    @Autowired private AccountRepository accountRepository;
 
-    @Autowired
-    private TransactionRepository transactionRepository;
+    @Autowired private TransactionRepository transactionRepository;
 
-    @Autowired
-    private UserService userService;
+    @Autowired private UserService userService;
 
-    @Autowired
-    private DynamoDbClient dynamoDbClient;
+    @Autowired private DynamoDbClient dynamoDbClient;
 
     private UserTable testUser;
     private String testEmail;
@@ -68,23 +74,22 @@ class PlaidReconnectSyncIntegrationTest {
     @BeforeEach
     void setUp() {
         testEmail = "test-reconnect-" + UUID.randomUUID() + "@example.com";
-        String base64PasswordHash = java.util.Base64.getEncoder().encodeToString("hashed-password".getBytes());
-        String base64ClientSalt = java.util.Base64.getEncoder().encodeToString("client-salt".getBytes());
-        testUser = userService.createUserSecure(
-                testEmail, base64PasswordHash, "Test",
-                "User"
-        );
-        
+        final String base64PasswordHash =
+                java.util.Base64.getEncoder().encodeToString("hashed-password".getBytes(StandardCharsets.UTF_8));
+        final String base64ClientSalt =
+                java.util.Base64.getEncoder().encodeToString("client-salt".getBytes(StandardCharsets.UTF_8));
+        testUser = userService.createUserSecure(testEmail, base64PasswordHash, "Test", "User");
+
         // Simulate item ID from token exchange
         testItemId = "test-item-id-" + UUID.randomUUID();
     }
 
     @Test
-    void testReconnectSync_AccountsSyncedDuringTokenExchange_AreRetrievable() {
+    void testReconnectSyncAccountsSyncedDuringTokenExchangeAreRetrievable() {
         // Given - Simulate accounts being synced during token exchange (reconnect scenario)
         // This is what happens in PlaidController.exchangePublicToken() after token exchange
-        
-        AccountTable account1 = new AccountTable();
+
+        final AccountTable account1 = new AccountTable();
         account1.setAccountId(UUID.randomUUID().toString());
         account1.setUserId(testUser.getUserId());
         account1.setPlaidAccountId("plaid-acc-1-" + UUID.randomUUID());
@@ -99,8 +104,8 @@ class PlaidReconnectSyncIntegrationTest {
         account1.setCreatedAt(Instant.now());
         account1.setUpdatedAt(Instant.now());
         account1.setLastSyncedAt(Instant.now());
-        
-        AccountTable account2 = new AccountTable();
+
+        final AccountTable account2 = new AccountTable();
         account2.setAccountId(UUID.randomUUID().toString());
         account2.setUserId(testUser.getUserId());
         account2.setPlaidAccountId("plaid-acc-2-" + UUID.randomUUID());
@@ -115,39 +120,41 @@ class PlaidReconnectSyncIntegrationTest {
         account2.setCreatedAt(Instant.now());
         account2.setUpdatedAt(Instant.now());
         account2.setLastSyncedAt(Instant.now());
-        
+
         // When - Save accounts (simulating sync during token exchange)
         accountRepository.save(account1);
         accountRepository.save(account2);
-        
+
         // Then - Accounts should be retrievable immediately
-        List<AccountTable> retrieved = accountRepository.findByUserId(testUser.getUserId());
+        final List<AccountTable> retrieved = accountRepository.findByUserId(testUser.getUserId());
         assertEquals(2, retrieved.size(), "Should have 2 accounts after reconnect sync");
-        
+
         // Verify account details
-        AccountTable retrievedAccount1 = retrieved.stream()
-                .filter(a -> a.getAccountId().equals(account1.getAccountId()))
-                .findFirst()
-                .orElse(null);
+        final AccountTable retrievedAccount1 =
+                retrieved.stream()
+                        .filter(a -> a.getAccountId().equals(account1.getAccountId()))
+                        .findFirst()
+                        .orElse(null);
         assertNotNull(retrievedAccount1, "Account 1 should be found");
         assertEquals("Checking Account", retrievedAccount1.getAccountName());
         assertEquals(testItemId, retrievedAccount1.getPlaidItemId());
         assertNotNull(retrievedAccount1.getLastSyncedAt(), "Account should have lastSyncedAt set");
-        
-        AccountTable retrievedAccount2 = retrieved.stream()
-                .filter(a -> a.getAccountId().equals(account2.getAccountId()))
-                .findFirst()
-                .orElse(null);
+
+        final AccountTable retrievedAccount2 =
+                retrieved.stream()
+                        .filter(a -> a.getAccountId().equals(account2.getAccountId()))
+                        .findFirst()
+                        .orElse(null);
         assertNotNull(retrievedAccount2, "Account 2 should be found");
         assertEquals("Savings Account", retrievedAccount2.getAccountName());
         assertEquals(testItemId, retrievedAccount2.getPlaidItemId());
     }
 
     @Test
-    void testReconnectSync_TransactionsSyncedDuringTokenExchange_AreRetrievable() {
+    void testReconnectSyncTransactionsSyncedDuringTokenExchangeAreRetrievable() {
         // Given - Simulate transactions being synced during token exchange
         // First create an account (required for transactions)
-        AccountTable account = new AccountTable();
+        final AccountTable account = new AccountTable();
         account.setAccountId(UUID.randomUUID().toString());
         account.setUserId(testUser.getUserId());
         account.setPlaidAccountId("plaid-acc-" + UUID.randomUUID());
@@ -161,9 +168,9 @@ class PlaidReconnectSyncIntegrationTest {
         account.setCreatedAt(Instant.now());
         account.setUpdatedAt(Instant.now());
         accountRepository.save(account);
-        
+
         // Create transactions (simulating sync during token exchange)
-        TransactionTable transaction1 = new TransactionTable();
+        final TransactionTable transaction1 = new TransactionTable();
         transaction1.setTransactionId(UUID.randomUUID().toString());
         transaction1.setUserId(testUser.getUserId());
         transaction1.setAccountId(account.getAccountId());
@@ -177,8 +184,8 @@ class PlaidReconnectSyncIntegrationTest {
         transaction1.setCurrencyCode("USD");
         transaction1.setCreatedAt(Instant.now());
         transaction1.setUpdatedAt(Instant.now());
-        
-        TransactionTable transaction2 = new TransactionTable();
+
+        final TransactionTable transaction2 = new TransactionTable();
         transaction2.setTransactionId(UUID.randomUUID().toString());
         transaction2.setUserId(testUser.getUserId());
         transaction2.setAccountId(account.getAccountId());
@@ -192,38 +199,47 @@ class PlaidReconnectSyncIntegrationTest {
         transaction2.setCurrencyCode("USD");
         transaction2.setCreatedAt(Instant.now());
         transaction2.setUpdatedAt(Instant.now());
-        
+
         // When - Save transactions (simulating sync during token exchange)
         transactionRepository.save(transaction1);
         transactionRepository.save(transaction2);
-        
+
         // Then - Transactions should be retrievable immediately
-        List<TransactionTable> retrieved = transactionRepository.findByUserId(testUser.getUserId(), 0, 100);
+        final List<TransactionTable> retrieved =
+                transactionRepository.findByUserId(testUser.getUserId(), 0, 100);
         assertEquals(2, retrieved.size(), "Should have 2 transactions after reconnect sync");
-        
+
         // Verify transaction details
-        TransactionTable retrievedTx1 = retrieved.stream()
-                .filter(t -> t.getTransactionId().equals(transaction1.getTransactionId()))
-                .findFirst()
-                .orElse(null);
+        final TransactionTable retrievedTx1 =
+                retrieved.stream()
+                        .filter(t -> t.getTransactionId().equals(transaction1.getTransactionId()))
+                        .findFirst()
+                        .orElse(null);
         assertNotNull(retrievedTx1, "Transaction 1 should be found");
         assertEquals("Grocery Store", retrievedTx1.getDescription());
-        assertEquals(0, new BigDecimal("-50.00").compareTo(retrievedTx1.getAmount()), "Amount should be -50.00");
-        
-        TransactionTable retrievedTx2 = retrieved.stream()
-                .filter(t -> t.getTransactionId().equals(transaction2.getTransactionId()))
-                .findFirst()
-                .orElse(null);
+        assertEquals(
+                0,
+                new BigDecimal("-50.00").compareTo(retrievedTx1.getAmount()),
+                "Amount should be -50.00");
+
+        final TransactionTable retrievedTx2 =
+                retrieved.stream()
+                        .filter(t -> t.getTransactionId().equals(transaction2.getTransactionId()))
+                        .findFirst()
+                        .orElse(null);
         assertNotNull(retrievedTx2, "Transaction 2 should be found");
         assertEquals("Coffee Shop", retrievedTx2.getDescription());
-        assertEquals(0, new BigDecimal("-25.00").compareTo(retrievedTx2.getAmount()), "Amount should be -25.00");
+        assertEquals(
+                0,
+                new BigDecimal("-25.00").compareTo(retrievedTx2.getAmount()),
+                "Amount should be -25.00");
     }
 
     @Test
-    void testReconnectSync_MultipleAccountsAdded_AllAccountsRetrievable() {
+    void testReconnectSyncMultipleAccountsAddedAllAccountsRetrievable() {
         // Given - Simulate reconnect where user adds more accounts
         // First, create existing account
-        AccountTable existingAccount = new AccountTable();
+        final AccountTable existingAccount = new AccountTable();
         existingAccount.setAccountId(UUID.randomUUID().toString());
         existingAccount.setUserId(testUser.getUserId());
         existingAccount.setPlaidAccountId("plaid-acc-existing");
@@ -234,12 +250,12 @@ class PlaidReconnectSyncIntegrationTest {
         existingAccount.setBalance(new BigDecimal("500.00"));
         existingAccount.setCurrencyCode("USD");
         existingAccount.setActive(true);
-        existingAccount.setCreatedAt(Instant.now().minusSeconds(86400)); // 1 day ago
-        existingAccount.setUpdatedAt(Instant.now().minusSeconds(86400));
+        existingAccount.setCreatedAt(Instant.now().minusSeconds(86_400)); // 1 day ago
+        existingAccount.setUpdatedAt(Instant.now().minusSeconds(86_400));
         accountRepository.save(existingAccount);
-        
+
         // When - Reconnect and add new accounts (simulating sync during token exchange)
-        AccountTable newAccount1 = new AccountTable();
+        final AccountTable newAccount1 = new AccountTable();
         newAccount1.setAccountId(UUID.randomUUID().toString());
         newAccount1.setUserId(testUser.getUserId());
         newAccount1.setPlaidAccountId("plaid-acc-new-1");
@@ -253,8 +269,8 @@ class PlaidReconnectSyncIntegrationTest {
         newAccount1.setCreatedAt(Instant.now());
         newAccount1.setUpdatedAt(Instant.now());
         newAccount1.setLastSyncedAt(Instant.now());
-        
-        AccountTable newAccount2 = new AccountTable();
+
+        final AccountTable newAccount2 = new AccountTable();
         newAccount2.setAccountId(UUID.randomUUID().toString());
         newAccount2.setUserId(testUser.getUserId());
         newAccount2.setPlaidAccountId("plaid-acc-new-2");
@@ -268,27 +284,30 @@ class PlaidReconnectSyncIntegrationTest {
         newAccount2.setCreatedAt(Instant.now());
         newAccount2.setUpdatedAt(Instant.now());
         newAccount2.setLastSyncedAt(Instant.now());
-        
+
         accountRepository.save(newAccount1);
         accountRepository.save(newAccount2);
-        
+
         // Then - All accounts (old + new) should be retrievable
-        List<AccountTable> retrieved = accountRepository.findByUserId(testUser.getUserId());
+        final List<AccountTable> retrieved = accountRepository.findByUserId(testUser.getUserId());
         assertEquals(3, retrieved.size(), "Should have 3 accounts total (1 old + 2 new)");
-        
+
         // Verify all accounts are present
-        assertTrue(retrieved.stream().anyMatch(a -> a.getAccountName().equals("Old Checking")), 
+        assertTrue(
+                retrieved.stream().anyMatch(a -> "Old Checking".equals(a.getAccountName())),
                 "Old account should be present");
-        assertTrue(retrieved.stream().anyMatch(a -> a.getAccountName().equals("New Checking")), 
+        assertTrue(
+                retrieved.stream().anyMatch(a -> "New Checking".equals(a.getAccountName())),
                 "New account 1 should be present");
-        assertTrue(retrieved.stream().anyMatch(a -> a.getAccountName().equals("New Savings")), 
+        assertTrue(
+                retrieved.stream().anyMatch(a -> "New Savings".equals(a.getAccountName())),
                 "New account 2 should be present");
     }
 
     @Test
-    void testReconnectSync_AccountsHaveLastSyncedAt_SetAfterSync() {
+    void testReconnectSyncAccountsHaveLastSyncedAtSetAfterSync() {
         // Given - Account synced during reconnect
-        AccountTable account = new AccountTable();
+        final AccountTable account = new AccountTable();
         account.setAccountId(UUID.randomUUID().toString());
         account.setUserId(testUser.getUserId());
         account.setPlaidAccountId("plaid-acc-" + UUID.randomUUID());
@@ -302,18 +321,19 @@ class PlaidReconnectSyncIntegrationTest {
         account.setCreatedAt(Instant.now());
         account.setUpdatedAt(Instant.now());
         account.setLastSyncedAt(Instant.now()); // Set during sync
-        
+
         // When - Save account
         accountRepository.save(account);
-        
+
         // Then - Account should have lastSyncedAt set
-        List<AccountTable> retrieved = accountRepository.findByUserId(testUser.getUserId());
+        final List<AccountTable> retrieved = accountRepository.findByUserId(testUser.getUserId());
         assertEquals(1, retrieved.size());
-        AccountTable retrievedAccount = retrieved.get(0);
-        assertNotNull(retrievedAccount.getLastSyncedAt(), 
+        final AccountTable retrievedAccount = retrieved.get(0);
+        assertNotNull(
+                retrievedAccount.getLastSyncedAt(),
                 "Account should have lastSyncedAt set after reconnect sync");
-        assertTrue(retrievedAccount.getLastSyncedAt().isAfter(Instant.now().minusSeconds(60)), 
+        assertTrue(
+                retrievedAccount.getLastSyncedAt().isAfter(Instant.now().minusSeconds(60)),
                 "lastSyncedAt should be recent (within last minute)");
     }
 }
-

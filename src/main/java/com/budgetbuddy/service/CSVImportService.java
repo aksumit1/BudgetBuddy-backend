@@ -1,16 +1,14 @@
 package com.budgetbuddy.service;
 
 
-import com.budgetbuddy.util.StringUtils;
+import java.util.Locale;
 import com.budgetbuddy.exception.AppException;
 import com.budgetbuddy.exception.ErrorCode;
-import com.budgetbuddy.service.ml.EnhancedCategoryDetectionService;
 import com.budgetbuddy.service.category.strategy.CategoryDetectionManager;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
-
+import com.budgetbuddy.service.ml.EnhancedCategoryDetectionService;
+import com.budgetbuddy.util.StringUtils;
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.math.BigDecimal;
@@ -18,231 +16,369 @@ import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
 
 /**
- * CSV Import Service
- * Mirrors the iOS app's CSVImportService functionality
- * Parses CSV files from banks/credit cards and converts them to transaction data
+ * CSV Import Service Mirrors the iOS app's CSVImportService functionality Parses CSV files from
+ * banks/credit cards and converts them to transaction data
  */
+// PMD's LawOfDemeter is documented as imprecise on chains involving
+// standard library types (BigDecimal, String, Optional) and DTO
+// getters; this class has many such idiomatic uses. Suppress at
+// class level rather than littering every method.
+@SuppressWarnings({"PMD.LawOfDemeter", "PMD.AvoidCatchingGenericException"})
 @Service
 public class CSVImportService {
 
-    private static final Logger logger = LoggerFactory.getLogger(CSVImportService.class);
-    
-        private final CategoryDetectionManager categoryDetectionManager;
+    private static final Logger LOGGER = LoggerFactory.getLogger(CSVImportService.class);
 
-private final AccountDetectionService accountDetectionService;
+    private final CategoryDetectionManager categoryDetectionManager;
+
+    private final AccountDetectionService accountDetectionService;
     private final EnhancedCategoryDetectionService enhancedCategoryDetection;
-    private final TransactionTypeCategoryService transactionTypeCategoryService;
     private final ImportCategoryParser importCategoryParser;
-    
-    public CSVImportService(AccountDetectionService accountDetectionService,
-                           EnhancedCategoryDetectionService enhancedCategoryDetection,
-                           TransactionTypeCategoryService transactionTypeCategoryService,
-                           ImportCategoryParser importCategoryParser, final CategoryDetectionManager categoryDetectionManager) {
+
+    public CSVImportService(
+            final AccountDetectionService accountDetectionService,
+            final EnhancedCategoryDetectionService enhancedCategoryDetection,
+            final ImportCategoryParser importCategoryParser,
+            final CategoryDetectionManager categoryDetectionManager) {
         this.accountDetectionService = accountDetectionService;
         this.enhancedCategoryDetection = enhancedCategoryDetection;
-        this.transactionTypeCategoryService = transactionTypeCategoryService;
         this.categoryDetectionManager = categoryDetectionManager;
         this.importCategoryParser = importCategoryParser;
     }
-    
+
     // Date formatters matching iOS app - supports global formats
     // CRITICAL FIX: Prioritize unambiguous formats and use smart detection for ambiguous formats
     // US: MM/dd/yyyy, M/d/yyyy
     // Europe/India: dd/MM/yyyy, dd.MM.yyyy, dd-MM-yyyy
     // ISO: yyyy-MM-dd
     // Asia: yyyy/MM/dd (Japan, China)
-    private static final List<DateTimeFormatter> DATE_FORMATTERS = Arrays.asList(
-        // ISO format first (most unambiguous - no ambiguity)
-        DateTimeFormatter.ISO_LOCAL_DATE,  // yyyy-MM-dd
-        DateTimeFormatter.ofPattern("yyyy/MM/dd"),  // Asian format (yyyy/MM/dd) - unambiguous
-        // Formats with separators that make them unambiguous
-        DateTimeFormatter.ofPattern("dd.MM.yyyy"),  // Germany, Austria, Switzerland (DD.MM.YYYY) - dot separator is unambiguous
-        DateTimeFormatter.ofPattern("dd-MM-yyyy"), // Netherlands, Belgium - dash separator is unambiguous
-        // Text formats (unambiguous due to month names)
-        DateTimeFormatter.ofPattern("MMM dd, yyyy"), // US text format (e.g., "Dec 01, 2024")
-        DateTimeFormatter.ofPattern("dd MMM yyyy"),  // UK text format (e.g., "01 Dec 2024")
-        // CRITICAL FIX: For ambiguous formats (MM/dd vs dd/MM), use smart detection
-        // Try US format first for dates where first number > 12 (unambiguous)
-        // Then try European format for dates where second number > 12 (unambiguous)
-        // This prevents dates like "12/1/2024" from being misinterpreted
-        DateTimeFormatter.ofPattern("MM/dd/yyyy"),  // US format - try before European for better US compatibility
-        DateTimeFormatter.ofPattern("M/d/yyyy"),    // US format (single digit month/day)
-        DateTimeFormatter.ofPattern("MM-dd-yyyy"),   // US format with dash
-        DateTimeFormatter.ofPattern("dd/MM/yyyy"),  // UK, India (DD/MM/YYYY) - after US to avoid ambiguity
-        DateTimeFormatter.ISO_LOCAL_DATE
-    );
+    private static final List<DateTimeFormatter> DATE_FORMATTERS =
+            Arrays.asList(
+                    // ISO format first (most unambiguous - no ambiguity)
+                    DateTimeFormatter.ISO_LOCAL_DATE, // yyyy-MM-dd
+                    DateTimeFormatter.ofPattern(
+                            "yyyy/MM/dd"), // Asian format (yyyy/MM/dd) - unambiguous
+                    // Formats with separators that make them unambiguous
+                    DateTimeFormatter.ofPattern(
+                            "dd.MM.yyyy"), // Germany, Austria, Switzerland (DD.MM.YYYY) - dot
+                    // separator is unambiguous
+                    DateTimeFormatter.ofPattern(
+                            "dd-MM-yyyy"), // Netherlands, Belgium - dash separator is unambiguous
+                    // Text formats (unambiguous due to month names)
+                    DateTimeFormatter.ofPattern(
+                            "MMM dd, yyyy"), // US text format (e.g., "Dec 01, 2024")
+                    DateTimeFormatter.ofPattern(
+                            "dd MMM yyyy"), // UK text format (e.g., "01 Dec 2024")
+                    // CRITICAL FIX: For ambiguous formats (MM/dd vs dd/MM), use smart detection
+                    // Try US format first for dates where first number > 12 (unambiguous)
+                    // Then try European format for dates where second number > 12 (unambiguous)
+                    // This prevents dates like "12/1/2024" from being misinterpreted
+                    DateTimeFormatter.ofPattern(
+                            "MM/dd/yyyy"), // US format - try before European for better US
+                    // compatibility
+                    DateTimeFormatter.ofPattern("M/d/yyyy"), // US format (single digit month/day)
+                    DateTimeFormatter.ofPattern("MM-dd-yyyy"), // US format with dash
+                    DateTimeFormatter.ofPattern(
+                            "dd/MM/yyyy"), // UK, India (DD/MM/YYYY) - after US to avoid ambiguity
+                    DateTimeFormatter.ISO_LOCAL_DATE);
 
-    /**
-     * Parsed CSV row data
-     */
+    /** Parsed CSV row data */
     public static class ParsedRow {
         private final Map<String, String> fields = new HashMap<>();
-        
-        public void put(String key, String value) {
-            fields.put(key.toLowerCase().trim(), value != null ? value.trim() : "");
+
+        public void put(final String key, final String value) {
+            fields.put(key.toLowerCase(Locale.ROOT).trim(), value != null ? value.trim() : "");
         }
-        
-        public String get(String key) {
-            return fields.get(key.toLowerCase().trim());
+
+        public String get(final String key) {
+            return fields.get(key.toLowerCase(Locale.ROOT).trim());
         }
-        
-        public String findField(String... keys) {
-            for (String key : keys) {
-                String value = get(key);
+
+        public String findField(final String... keys) {
+            for (final String key : keys) {
+                final String value = get(key);
                 if (value != null && !value.isEmpty()) {
                     return value;
                 }
             }
             return null;
         }
+
+        /**
+         * True iff any of the given header names is present in this row's schema, regardless of
+         * whether the value is empty for the current row.
+         */
+        public boolean hasHeader(final String... keys) {
+            for (final String key : keys) {
+                if (fields.containsKey(key.toLowerCase(Locale.ROOT).trim())) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        /** Copy of the header names (keys) known to this row. */
+        public java.util.Set<String> headerNames() {
+            return new java.util.HashSet<>(fields.keySet());
+        }
     }
 
-    /**
-     * Import result containing parsed transactions
-     */
+    /** Import result containing parsed transactions */
     public static class ImportResult {
         private final List<ParsedTransaction> transactions = new ArrayList<>();
         private int successCount = 0;
         private int failureCount = 0;
         private final List<String> errors = new ArrayList<>();
-        private AccountDetectionService.DetectedAccount detectedAccount; // Detected account from import
+        private AccountDetectionService.DetectedAccount
+                detectedAccount; // Detected account from import
         private String matchedAccountId; // Matched existing account ID (if found)
-        
-        public void addTransaction(ParsedTransaction transaction) {
+
+        public void addTransaction(final ParsedTransaction transaction) {
             transactions.add(transaction);
             successCount++;
         }
-        
-        public void addError(String error) {
+
+        public void addError(final String error) {
             errors.add(error);
             failureCount++;
         }
-        
+
         /**
-         * Add an informational message without incrementing failure count
-         * Used for cases like empty files where it's not a failure, just no data
+         * Add an informational message without incrementing failure count Used for cases like empty
+         * files where it's not a failure, just no data
          */
-        public void addInfo(String message) {
+        public void addInfo(final String message) {
             errors.add(message);
             // Don't increment failureCount - this is informational, not a failure
         }
-        
+
         public List<ParsedTransaction> getTransactions() {
             return transactions;
         }
-        
+
         public int getSuccessCount() {
             return successCount;
         }
-        
+
         public int getFailureCount() {
             return failureCount;
         }
-        
+
         public List<String> getErrors() {
             return errors;
         }
-        
+
         public AccountDetectionService.DetectedAccount getDetectedAccount() {
             return detectedAccount;
         }
-        
-        public void setDetectedAccount(AccountDetectionService.DetectedAccount detectedAccount) {
+
+        public void setDetectedAccount(final AccountDetectionService.DetectedAccount detectedAccount) {
             this.detectedAccount = detectedAccount;
         }
-        
+
         public String getMatchedAccountId() {
             return matchedAccountId;
         }
-        
-        public void setMatchedAccountId(String matchedAccountId) {
+
+        public void setMatchedAccountId(final String matchedAccountId) {
             this.matchedAccountId = matchedAccountId;
         }
     }
 
-    /**
-     * Parsed transaction data ready for database creation
-     */
+    /** Parsed transaction data ready for database creation */
     public static class ParsedTransaction {
         private LocalDate date;
         private BigDecimal amount;
         private String description;
         private String merchantName;
+        private String location;
         private String categoryPrimary; // Internal category (for display)
         private String categoryDetailed; // Internal category (for display)
         private String importerCategoryPrimary; // Importer's original category (from parser)
         private String importerCategoryDetailed; // Importer's original category (from parser)
         private String paymentChannel;
         private String transactionType;
-        private String transactionTypeIndicator; // DEBIT/CREDIT indicator from CSV (for recalculation)
+        private String
+                transactionTypeIndicator; // DEBIT/CREDIT indicator from CSV (for recalculation)
         private String transactionId; // Optional: Transaction ID provided by iOS for consistency
         private String currencyCode; // Detected currency code (USD, INR, etc.)
         private String accountId; // Detected or matched account ID
-        
+
+        /** Explicit DEBIT/CREDIT direction. See FlowDirection javadoc. */
+        private FlowDirection flowDirection;
+
+        /**
+         * Card last-4 if the CSV row/column carries one (rare but seen on corporate-card exports
+         * that itemise by card number).
+         */
+        private String cardLastFour;
+
+        public FlowDirection getFlowDirection() {
+            return flowDirection;
+        }
+
+        public void setFlowDirection(final FlowDirection flowDirection) {
+            this.flowDirection = flowDirection;
+        }
+
+        public String getCardLastFour() {
+            return cardLastFour;
+        }
+
+        public void setCardLastFour(final String cardLastFour) {
+            this.cardLastFour = cardLastFour;
+        }
+
         // Getters and setters
-        public LocalDate getDate() { return date; }
-        public void setDate(LocalDate date) { this.date = date; }
-        
-        public BigDecimal getAmount() { return amount; }
-        public void setAmount(BigDecimal amount) { this.amount = amount; }
-        
-        public String getDescription() { return description; }
-        public void setDescription(String description) { this.description = description; }
-        
-        public String getMerchantName() { return merchantName; }
-        public void setMerchantName(String merchantName) { this.merchantName = merchantName; }
-        
-        public String getCategoryPrimary() { return categoryPrimary; }
-        public void setCategoryPrimary(String categoryPrimary) { this.categoryPrimary = categoryPrimary; }
-        
-        public String getCategoryDetailed() { return categoryDetailed; }
-        public void setCategoryDetailed(String categoryDetailed) { this.categoryDetailed = categoryDetailed; }
-        
-        public String getImporterCategoryPrimary() { return importerCategoryPrimary; }
-        public void setImporterCategoryPrimary(String importerCategoryPrimary) { this.importerCategoryPrimary = importerCategoryPrimary; }
-        
-        public String getImporterCategoryDetailed() { return importerCategoryDetailed; }
-        public void setImporterCategoryDetailed(String importerCategoryDetailed) { this.importerCategoryDetailed = importerCategoryDetailed; }
-        
-        public String getPaymentChannel() { return paymentChannel; }
-        public void setPaymentChannel(String paymentChannel) { this.paymentChannel = paymentChannel; }
-        
-        public String getTransactionType() { return transactionType; }
-        public void setTransactionType(String transactionType) { this.transactionType = transactionType; }
-        
-        public String getTransactionTypeIndicator() { return transactionTypeIndicator; }
-        public void setTransactionTypeIndicator(String transactionTypeIndicator) { this.transactionTypeIndicator = transactionTypeIndicator; }
-        
-        public String getTransactionId() { return transactionId; }
-        public void setTransactionId(String transactionId) { this.transactionId = transactionId; }
-        
-        public String getCurrencyCode() { return currencyCode; }
-        public void setCurrencyCode(String currencyCode) { this.currencyCode = currencyCode; }
-        
-        public String getAccountId() { return accountId; }
-        public void setAccountId(String accountId) { this.accountId = accountId; }
+        public LocalDate getDate() {
+            return date;
+        }
+
+        public void setDate(final LocalDate date) {
+            this.date = date;
+        }
+
+        public BigDecimal getAmount() {
+            return amount;
+        }
+
+        public void setAmount(final BigDecimal amount) {
+            this.amount = amount;
+        }
+
+        public String getDescription() {
+            return description;
+        }
+
+        public void setDescription(final String description) {
+            this.description = description;
+        }
+
+        public String getMerchantName() {
+            return merchantName;
+        }
+
+        public void setMerchantName(final String merchantName) {
+            this.merchantName = merchantName;
+        }
+
+        public String getLocation() {
+            return location;
+        }
+
+        public void setLocation(final String location) {
+            this.location = location;
+        }
+
+        public String getCategoryPrimary() {
+            return categoryPrimary;
+        }
+
+        public void setCategoryPrimary(final String categoryPrimary) {
+            this.categoryPrimary = categoryPrimary;
+        }
+
+        public String getCategoryDetailed() {
+            return categoryDetailed;
+        }
+
+        public void setCategoryDetailed(final String categoryDetailed) {
+            this.categoryDetailed = categoryDetailed;
+        }
+
+        public String getImporterCategoryPrimary() {
+            return importerCategoryPrimary;
+        }
+
+        public void setImporterCategoryPrimary(final String importerCategoryPrimary) {
+            this.importerCategoryPrimary = importerCategoryPrimary;
+        }
+
+        public String getImporterCategoryDetailed() {
+            return importerCategoryDetailed;
+        }
+
+        public void setImporterCategoryDetailed(final String importerCategoryDetailed) {
+            this.importerCategoryDetailed = importerCategoryDetailed;
+        }
+
+        public String getPaymentChannel() {
+            return paymentChannel;
+        }
+
+        public void setPaymentChannel(final String paymentChannel) {
+            this.paymentChannel = paymentChannel;
+        }
+
+        public String getTransactionType() {
+            return transactionType;
+        }
+
+        public void setTransactionType(final String transactionType) {
+            this.transactionType = transactionType;
+        }
+
+        public String getTransactionTypeIndicator() {
+            return transactionTypeIndicator;
+        }
+
+        public void setTransactionTypeIndicator(final String transactionTypeIndicator) {
+            this.transactionTypeIndicator = transactionTypeIndicator;
+        }
+
+        public String getTransactionId() {
+            return transactionId;
+        }
+
+        public void setTransactionId(final String transactionId) {
+            this.transactionId = transactionId;
+        }
+
+        public String getCurrencyCode() {
+            return currencyCode;
+        }
+
+        public void setCurrencyCode(final String currencyCode) {
+            this.currencyCode = currencyCode;
+        }
+
+        public String getAccountId() {
+            return accountId;
+        }
+
+        public void setAccountId(final String accountId) {
+            this.accountId = accountId;
+        }
     }
 
     /**
      * Parse CSV file and return import result
+     *
      * @param inputStream The input stream containing CSV data
      * @param filename The filename (used for account detection)
      * @param userId The user ID (used for account matching)
      * @param password Optional password for password-protected files (ZIP archives)
      */
     // HIGH PRIORITY FIX: Transaction count limit (10,000 per file)
-    private static final int MAX_TRANSACTIONS_PER_FILE = 10000;
-    
-    // CRITICAL: Static category map to avoid recreating on every parseCategory call (performance optimization)
+    private static final int MAX_TRANSACTIONS_PER_FILE = 10_000;
+
+    // CRITICAL: Static category map to avoid recreating on every parseCategory call (performance
+    // optimization)
     private static final Map<String, String> CATEGORY_MAP = initializeCategoryMap();
-    
+
     private static Map<String, String> initializeCategoryMap() {
-        Map<String, String> map = new HashMap<>();
+        final Map<String, String> map = new HashMap<>();
         // Expenses - Common
         map.put("groceries", "groceries");
         map.put("grocery", "groceries");
@@ -385,14 +521,15 @@ private final AccountDetectionService accountDetectionService;
         map.put("miscellaneous", "other");
         return Collections.unmodifiableMap(map);
     }
-    
-    public ImportResult parseCSV(InputStream inputStream, String filename, String userId, String password) {
+
+    public ImportResult parseCSV(
+            final InputStream inputStream, final String filename, final String userId, final String password) {
         return parseCSV(inputStream, filename, userId, password, null, null);
     }
-    
+
     /**
      * Parse CSV file with optional preview categories preservation
-     * 
+     *
      * @param inputStream CSV file input stream
      * @param filename Original filename (for account detection)
      * @param userId User ID
@@ -401,91 +538,108 @@ private final AccountDetectionService accountDetectionService;
      * @param previewAccountId Optional account ID used during preview (for validation)
      * @return ImportResult with parsed transactions
      */
-    public ImportResult parseCSV(InputStream inputStream, String filename, String userId, String password,
-                                 List<com.budgetbuddy.api.ImportCategoryPreservationRequest.PreviewCategory> previewCategories,
-                                 String previewAccountId) {
+    public ImportResult parseCSV(
+            final InputStream inputStream,
+            String filename,
+            final String userId,
+            String password,
+            List<com.budgetbuddy.api.ImportCategoryPreservationRequest.PreviewCategory>
+                    previewCategories,
+            final String previewAccountId) {
         // Handle null filename
         if (filename == null) {
             filename = "unknown.csv";
         }
-        ImportResult result = new ImportResult();
-        
-        try (BufferedReader reader = new BufferedReader(
-                new InputStreamReader(inputStream, StandardCharsets.UTF_8))) {
-            
-            // Read header row
-            String headerLine = reader.readLine();
-            if (headerLine == null || headerLine.trim().isEmpty()) {
+        final ImportResult result = new ImportResult();
+
+        try (BufferedReader reader =
+                new BufferedReader(
+                        new InputStreamReader(
+                                detectEncodedStream(inputStream), StandardCharsets.UTF_8))) {
+
+            // Read header row. We use readLogicalLine rather than reader.readLine()
+            // so a quoted field containing an embedded newline (RFC 4180-valid,
+            // common in Wells Fargo / Chase exports) doesn't split one logical
+            // row across multiple physical lines and corrupt the column count.
+            String headerLine = readLogicalLine(reader);
+            if (headerLine == null || headerLine.isBlank()) {
                 // CRITICAL: Return gracefully for empty files - not a failure, just no data
-                logger.info("CSV file is empty - no data to process");
+                LOGGER.info("CSV file is empty - no data to process");
                 result.addInfo("CSV file is empty - no data to process");
                 return result;
             }
-            
+
             // CRITICAL: Strip UTF-8 BOM if present (EF BB BF)
             // BOM can appear at the start of the first line
             if (headerLine.length() > 0 && headerLine.charAt(0) == '\uFEFF') {
                 headerLine = headerLine.substring(1);
-                logger.debug("Stripped UTF-8 BOM from header line");
+                LOGGER.debug("Stripped UTF-8 BOM from header line");
             }
             // Also check for byte-order mark in first 3 bytes (EF BB BF)
             if (headerLine.startsWith("\uFEFF")) {
                 headerLine = headerLine.substring(1);
-                logger.debug("Stripped UTF-8 BOM marker from header line");
+                LOGGER.debug("Stripped UTF-8 BOM marker from header line");
             }
-            
-            List<String> headers = parseCSVLine(headerLine);
+
+            final List<String> headers = parseCSVLine(headerLine);
             // CRITICAL: Check if headers are empty or only whitespace
             // Headers are considered empty if the list is empty OR all headers are empty/whitespace
-            boolean headersEmpty = headers.isEmpty() || headers.stream().allMatch(h -> h == null || h.trim().isEmpty());
+            final boolean headersEmpty =
+                    headers.isEmpty()
+                            || headers.stream().allMatch(h -> h == null || h.isBlank());
             if (headersEmpty) {
-                // CRITICAL: Return gracefully for files with no headers - not a failure, just no data
-                logger.info("CSV file has no headers - cannot parse data");
+                // CRITICAL: Return gracefully for files with no headers - not a failure, just no
+                // data
+                LOGGER.info("CSV file has no headers - cannot parse data");
                 result.addInfo("CSV file has no headers - cannot parse data");
                 return result;
             }
-            
+
             // Normalize headers (lowercase, trim)
-            List<String> normalizedHeaders = new ArrayList<>();
-            Map<String, Integer> headerCounts = new HashMap<>();
-            
+            final List<String> normalizedHeaders = new ArrayList<>();
+            final Map<String, Integer> headerCounts = new HashMap<>();
+
             // Handle duplicate headers by making them unique
             // This prevents duplicate key errors when creating row dictionaries
             for (int i = 0; i < headers.size(); i++) {
-                String header = headers.get(i);
-                String normalized = header.toLowerCase().trim();
-                String baseHeader = normalized.isEmpty() ? "column" + (i + 1) : normalized;
-                
-                int count = headerCounts.getOrDefault(baseHeader, 0);
+                final String header = headers.get(i);
+                final String normalized = header.toLowerCase(Locale.ROOT).trim();
+                final String baseHeader = normalized.isEmpty() ? "column" + (i + 1) : normalized;
+
+                final int count = headerCounts.getOrDefault(baseHeader, 0);
                 headerCounts.put(baseHeader, count + 1);
-                
+
                 if (count == 0) {
                     // First occurrence - use as-is
                     normalizedHeaders.add(baseHeader);
                 } else {
                     // Duplicate - append number to make it unique
-                    String uniqueHeader = baseHeader + "_" + (count + 1);
+                    final String uniqueHeader = baseHeader + "_" + (count + 1);
                     normalizedHeaders.add(uniqueHeader);
-                    logger.warn("Duplicate header '{}' at column {} - renamed to '{}'", header, i + 1, uniqueHeader);
+                    LOGGER.warn(
+                            "Duplicate header '{}' at column {} - renamed to '{}'",
+                            header,
+                            i + 1,
+                            uniqueHeader);
                 }
             }
-            
+
             if (headerCounts.values().stream().anyMatch(count -> count > 1)) {
-                logger.info("Detected and resolved duplicate headers in CSV file");
+                LOGGER.info("Detected and resolved duplicate headers in CSV file");
             }
-            
+
             // Detect account information from filename and headers
             AccountDetectionService.DetectedAccount detectedAccount = null;
             String matchedAccountId = null;
             boolean isTransactionTable = false;
-            
+
             // Find balance column index for extracting balance from last transaction
             Integer balanceColumnIndex = null;
             for (int i = 0; i < normalizedHeaders.size(); i++) {
-                String header = normalizedHeaders.get(i);
-                if (header != null && header.toLowerCase().trim().equals("balance")) {
+                final String header = normalizedHeaders.get(i);
+                if (header != null && "balance".equals(header.toLowerCase(Locale.ROOT).trim())) {
                     balanceColumnIndex = i;
-                    logger.info("✓ Found balance column at index {}: '{}'", i, headers.get(i));
+                    LOGGER.info("✓ Found balance column at index {}: '{}'", i, headers.get(i));
                     break;
                 }
             }
@@ -495,101 +649,134 @@ private final AccountDetectionService accountDetectionService;
             if (userId != null) {
                 try {
                     // Check if headers are transaction table headers
-                    isTransactionTable = accountDetectionService.isTransactionTableHeaders(normalizedHeaders);
+                    isTransactionTable =
+                            accountDetectionService.isTransactionTableHeaders(normalizedHeaders);
                     if (isTransactionTable) {
-                        logger.info("⚠️ CSV headers are transaction table headers - will skip extracting account info from transaction data");
+                        LOGGER.info(
+                                "⚠️ CSV headers are transaction table headers - will skip extracting account info from transaction data");
                     }
-                    
+
                     // Detect from headers first
-                    AccountDetectionService.DetectedAccount fromHeaders = 
-                        accountDetectionService.detectFromHeaders(normalizedHeaders, filename);
-                    
+                    final AccountDetectionService.DetectedAccount fromHeaders =
+                            accountDetectionService.detectFromHeaders(normalizedHeaders, filename);
+
                     // Match to existing account
                     if (fromHeaders != null) {
                         try {
-                            matchedAccountId = accountDetectionService.matchToExistingAccount(userId, fromHeaders);
+                            matchedAccountId =
+                                    accountDetectionService.matchToExistingAccount(
+                                            userId, fromHeaders);
                             if (matchedAccountId != null) {
                                 detectedAccount = fromHeaders;
-                                logger.info("Matched CSV import to existing account: {} (accountId: {}, accountNumber: {})", 
-                                    detectedAccount.getAccountName(), matchedAccountId,
-                                    detectedAccount.getAccountNumber() != null ? detectedAccount.getAccountNumber() : "N/A");
+                                LOGGER.info(
+                                        "Matched CSV import to existing account: {} (accountId: {}, accountNumber: {})",
+                                        detectedAccount.getAccountName(),
+                                        matchedAccountId,
+                                        detectedAccount.getAccountNumber() != null
+                                                ? detectedAccount.getAccountNumber()
+                                                : "N/A");
                             } else {
                                 // Enhanced logging with account number and other details
-                                String accountName = fromHeaders.getAccountName() != null ? fromHeaders.getAccountName() : "Unknown";
-                                String accountNumber = fromHeaders.getAccountNumber() != null ? fromHeaders.getAccountNumber() : "N/A";
-                                String institution = fromHeaders.getInstitutionName() != null ? fromHeaders.getInstitutionName() : "N/A";
-                                logger.info("Detected account from CSV but no match found - Name: {}, AccountNumber: {}, Institution: {}, Type: {}", 
-                                    accountName, accountNumber, institution,
-                                    fromHeaders.getAccountType() != null ? fromHeaders.getAccountType() : "N/A");
+                                final String accountName =
+                                        fromHeaders.getAccountName() != null
+                                                ? fromHeaders.getAccountName()
+                                                : "Unknown";
+                                final String accountNumber =
+                                        fromHeaders.getAccountNumber() != null
+                                                ? fromHeaders.getAccountNumber()
+                                                : "N/A";
+                                final String institution =
+                                        fromHeaders.getInstitutionName() != null
+                                                ? fromHeaders.getInstitutionName()
+                                                : "N/A";
+                                LOGGER.info(
+                                        "Detected account from CSV but no match found - Name: {}, AccountNumber: {}, Institution: {}, Type: {}",
+                                        accountName,
+                                        accountNumber,
+                                        institution,
+                                        fromHeaders.getAccountType() != null
+                                                ? fromHeaders.getAccountType()
+                                                : "N/A");
                                 detectedAccount = fromHeaders;
                             }
                         } catch (Exception e) {
-                            logger.warn("Error during account matching for CSV import: {}", e.getMessage());
+                            LOGGER.warn(
+                                    "Error during account matching for CSV import: {}",
+                                    e.getMessage());
                             // Continue without account matching - user can select account in UI
                             detectedAccount = fromHeaders;
                         }
                     }
                 } catch (Exception e) {
-                    logger.warn("Error during account detection for CSV import: {}", e.getMessage());
+                    LOGGER.warn(
+                            "Error during account detection for CSV import: {}", e.getMessage());
                     // Continue without account detection - user can select account in UI
                 }
             }
-            
+
             // Parse data rows
             String line;
             int rowNumber = 2; // Start at 2 (header is row 1)
             int mismatchCount = 0;
             int rowsReadForAccountDetection = 0;
-            final int MAX_ROWS_FOR_ACCOUNT_DETECTION = 20; // Check first 20 rows for account info (increased for better detection)
-            
-            // Track transaction patterns for account type inference (use arrays to allow modification)
+            final int MAX_ROWS_FOR_ACCOUNT_DETECTION =
+                    20; // Check first 20 rows for account info (increased for better detection)
+
+            // Track transaction patterns for account type inference (use arrays to allow
+            // modification)
             final int[] debitCount = {0};
             final int[] creditCount = {0};
             final int[] checkCount = {0};
             final int[] achCount = {0};
             final int[] atmCount = {0};
             final int[] transferCount = {0};
-            
-            while ((line = reader.readLine()) != null) {
-                if (line.trim().isEmpty()) {
+
+            while ((line = readLogicalLine(reader)) != null) {
+                if (line.isBlank()) {
                     continue; // Skip empty lines
                 }
-                
+
                 List<String> values = parseCSVLine(line);
-                
+
                 // Remove ONLY truly trailing empty fields beyond the expected header count
                 // This handles cases like ",," at the end while preserving legitimate empty columns
-                while (values.size() > headers.size() && 
-                       values.get(values.size() - 1).trim().isEmpty()) {
+                while (values.size() > headers.size()
+                        && values.get(values.size() - 1).isBlank()) {
                     values.remove(values.size() - 1);
                 }
-                
+
                 // Handle column count mismatch - use header count as truth
                 if (values.size() != headers.size()) {
                     mismatchCount++;
-                    
+
                     if (values.size() > headers.size()) {
                         // Too many columns - truncate to header count
                         // Only log first few mismatches to avoid spam
                         if (mismatchCount <= 3) {
-                            logger.warn("Row {}: Expected {} columns, found {}. Truncating to match header.", 
-                                rowNumber, headers.size(), values.size());
+                            LOGGER.warn(
+                                    "Row {}: Expected {} columns, found {}. Truncating to match header.",
+                                    rowNumber,
+                                    headers.size(),
+                                    values.size());
                         }
                         values = values.subList(0, headers.size());
                     } else {
                         // Too few columns - pad with empty strings
                         if (mismatchCount <= 3) {
-                            logger.warn("Row {}: Expected {} columns, found {}. Padding with empty values.", 
-                                rowNumber, headers.size(), values.size());
+                            LOGGER.warn(
+                                    "Row {}: Expected {} columns, found {}. Padding with empty values.",
+                                    rowNumber,
+                                    headers.size(),
+                                    values.size());
                         }
                         while (values.size() < headers.size()) {
                             values.add("");
                         }
                     }
                 }
-                
+
                 // Create parsed row
-                ParsedRow row = new ParsedRow();
+                final ParsedRow row = new ParsedRow();
                 for (int i = 0; i < headers.size(); i++) {
                     if (i < values.size()) {
                         row.put(headers.get(i), values.get(i));
@@ -597,288 +784,440 @@ private final AccountDetectionService accountDetectionService;
                         row.put(headers.get(i), "");
                     }
                 }
-                
+
                 // CRITICAL FIX: Extract account information from data rows
-                // For transaction tables, skip extracting institution names and account types from transaction data
+                // For transaction tables, skip extracting institution names and account types from
+                // transaction data
                 // (they're payment recipients/transaction types, not account metadata)
                 // Only extract account numbers from dedicated account number columns
-                if (userId != null && detectedAccount != null && rowsReadForAccountDetection < MAX_ROWS_FOR_ACCOUNT_DETECTION) {
+                if (userId != null
+                        && detectedAccount != null
+                        && rowsReadForAccountDetection < MAX_ROWS_FOR_ACCOUNT_DETECTION) {
                     rowsReadForAccountDetection++;
-                    logger.debug("Analyzing data row {} for account information", rowNumber);
-                    
+                    LOGGER.debug("Analyzing data row {} for account information", rowNumber);
+
                     // Check each field value for account information
                     // CRITICAL: Add bounds checking to prevent IndexOutOfBoundsException
-                    int maxColIndex = Math.min(values.size(), headers.size());
+                    final int maxColIndex = Math.min(values.size(), headers.size());
                     for (int colIndex = 0; colIndex < maxColIndex; colIndex++) {
                         String value = null;
                         String header = null;
-                        
+
                         try {
                             value = colIndex < values.size() ? values.get(colIndex) : null;
                             header = colIndex < headers.size() ? headers.get(colIndex) : null;
                         } catch (IndexOutOfBoundsException e) {
-                            logger.warn("Index out of bounds accessing column {} (values: {}, headers: {})", 
-                                colIndex, values.size(), headers.size());
+                            LOGGER.warn(
+                                    "Index out of bounds accessing column {} (values: {}, headers: {})",
+                                    colIndex,
+                                    values.size(),
+                                    headers.size());
                             continue; // Skip this column
                         }
-                        
-                        if (value != null && !value.trim().isEmpty() && header != null) {
-                            String headerLower = header != null ? header.toLowerCase().trim() : "";
-                            
-                            // Extract account number from data (only from dedicated account number columns)
+
+                        if (value != null && !value.isBlank() && header != null) {
+                            final String headerLower = header != null ? header.toLowerCase(Locale.ROOT).trim() : "";
+
+                            // Extract account number from data (only from dedicated account number
+                            // columns)
                             if (detectedAccount.getAccountNumber() == null) {
                                 // Check if this column header matches account number keywords
                                 boolean isAccountNumberColumn = false;
-                                for (String keyword : accountDetectionService.getAccountNumberKeywords()) {
+                                for (final String keyword :
+                                        accountDetectionService.getAccountNumberKeywords()) {
                                     if (headerLower.contains(keyword)) {
                                         isAccountNumberColumn = true;
                                         break;
                                     }
                                 }
-                                
+
                                 if (isAccountNumberColumn) {
                                     // Extract account number from value
-                                    String accountNum = extractAccountNumberFromValue(value);
+                                    final String accountNum = extractAccountNumberFromValue(value);
                                     if (accountNum != null) {
                                         detectedAccount.setAccountNumber(accountNum);
-                                        logger.info("✓ Extracted account number from row {} column '{}': {}", 
-                                            rowNumber, header, accountNum);
+                                        LOGGER.info(
+                                                "✓ Extracted account number from row {} column '{}': {}",
+                                                rowNumber,
+                                                header,
+                                                accountNum);
                                     }
                                 }
-                                // CRITICAL: Don't try pattern matching in transaction tables - 
+                                // CRITICAL: Don't try pattern matching in transaction tables -
                                 // dates and other numbers will be mistaken for account numbers
                             }
-                            
-                            // CRITICAL: Skip extracting institution names from transaction data when it's a transaction table
-                            // Transaction descriptions contain payment recipients (e.g., "CITI AUTOPAY"), not the account's bank
+
+                            // CRITICAL: Skip extracting institution names from transaction data
+                            // when it's a transaction table
+                            // Transaction descriptions contain payment recipients (e.g., "CITI
+                            // AUTOPAY"), not the account's bank
                             if (!isTransactionTable) {
-                                // Extract institution/product name from data (only for non-transaction tables)
-                                if (detectedAccount.getInstitutionName() == null || 
-                                    detectedAccount.getInstitutionName().equals("Unknown")) {
-                                    // Check if this column header matches institution/product keywords
+                                // Extract institution/product name from data (only for
+                                // non-transaction tables)
+                                if (detectedAccount.getInstitutionName() == null
+                                        || "Unknown".equals(detectedAccount.getInstitutionName())) {
+                                    // Check if this column header matches institution/product
+                                    // keywords
                                     boolean isInstitutionColumn = false;
-                                    for (String keyword : accountDetectionService.getInstitutionKeywords()) {
+                                    for (final String keyword :
+                                            accountDetectionService.getInstitutionKeywords()) {
                                         if (headerLower.contains(keyword)) {
                                             isInstitutionColumn = true;
                                             break;
                                         }
                                     }
-                                    
+
                                     if (isInstitutionColumn) {
                                         // Use value as institution name
                                         detectedAccount.setInstitutionName(value.trim());
-                                        logger.info("✓ Extracted institution name from row {} column '{}': {}", 
-                                            rowNumber, header, value.trim());
+                                        LOGGER.info(
+                                                "✓ Extracted institution name from row {} column '{}': {}",
+                                                rowNumber,
+                                                header,
+                                                value.trim());
                                     } else {
                                         // Try pattern matching for product names
-                                        String institution = extractInstitutionFromValue(value);
+                                        final String institution = extractInstitutionFromValue(value);
                                         if (institution != null) {
                                             detectedAccount.setInstitutionName(institution);
-                                            logger.info("✓ Extracted institution/product name from row {}: {}", 
-                                                rowNumber, institution);
+                                            LOGGER.info(
+                                                    "✓ Extracted institution/product name from row {}: {}",
+                                                    rowNumber,
+                                                    institution);
                                         }
                                     }
                                 }
                             } else {
-                                logger.debug("⚠️ Skipping institution name extraction from transaction data row {} (transaction table)", rowNumber);
+                                LOGGER.debug(
+                                        "⚠️ Skipping institution name extraction from transaction data row {} (transaction table)",
+                                        rowNumber);
                             }
-                            
-                            // CRITICAL: Skip extracting account type from transaction data when it's a transaction table
-                            // Transaction "type" columns refer to transaction types (debit/credit), not account types
+
+                            // CRITICAL: Skip extracting account type from transaction data when
+                            // it's a transaction table
+                            // Transaction "type" columns refer to transaction types (debit/credit),
+                            // not account types
                             if (!isTransactionTable) {
                                 // Extract account type from data (only for non-transaction tables)
                                 if (detectedAccount.getAccountType() == null) {
                                     // Check if this column header matches account type keywords
                                     boolean isAccountTypeColumn = false;
-                                    for (String keyword : accountDetectionService.getAccountTypeKeywords()) {
+                                    for (final String keyword :
+                                            accountDetectionService.getAccountTypeKeywords()) {
                                         if (headerLower.contains(keyword)) {
                                             isAccountTypeColumn = true;
                                             break;
                                         }
                                     }
-                                    
+
                                     if (isAccountTypeColumn) {
                                         // Extract account type from value
-                                        String accountType = extractAccountTypeFromValue(value);
+                                        final String accountType = extractAccountTypeFromValue(value);
                                         if (accountType != null) {
                                             detectedAccount.setAccountType(accountType);
-                                            logger.info("✓ Extracted account type from row {} column '{}': {}", 
-                                                rowNumber, header, accountType);
+                                            LOGGER.info(
+                                                    "✓ Extracted account type from row {} column '{}': {}",
+                                                    rowNumber,
+                                                    header,
+                                                    accountType);
                                         }
                                     }
                                 }
                             } else {
-                                logger.debug("⚠️ Skipping account type extraction from transaction data row {} (transaction table - will infer from patterns)", rowNumber);
+                                LOGGER.debug(
+                                        "⚠️ Skipping account type extraction from transaction data row {} (transaction table - will infer from patterns)",
+                                        rowNumber);
                             }
-                            
-                            // DEEP ANALYSIS: Analyze transaction details/type for account type inference
+
+                            // DEEP ANALYSIS: Analyze transaction details/type for account type
+                            // inference
                             // Look for keywords in description, transaction type, details columns
-                            boolean isTransactionDetailsColumn = headerLower.contains("description") || 
-                                                               headerLower.contains("details") ||
-                                                               headerLower.contains("memo") ||
-                                                               headerLower.contains("transaction type") ||
-                                                               headerLower.contains("type") ||
-                                                               headerLower.contains("category");
-                            
+                            final boolean isTransactionDetailsColumn =
+                                    headerLower.contains("description")
+                                            || headerLower.contains("details")
+                                            || headerLower.contains("memo")
+                                            || headerLower.contains("transaction type")
+                                            || headerLower.contains("type")
+                                            || headerLower.contains("category");
+
                             if (isTransactionDetailsColumn) {
                                 // Analyze transaction details for account type clues
-                                analyzeTransactionForAccountType(value, 
-                                    debitCount, creditCount, checkCount, achCount, atmCount, transferCount);
+                                analyzeTransactionForAccountType(
+                                        value,
+                                        debitCount,
+                                        creditCount,
+                                        checkCount,
+                                        achCount,
+                                        atmCount,
+                                        transferCount);
                             }
                         }
                     }
                 }
-                
+
                 // After analyzing multiple rows, infer account type from transaction patterns
-                // CRITICAL: For transaction tables, prioritize pattern-based inference over data extraction
-                // This ensures we infer "checking" from debit/credit/check patterns, not from transaction data
+                // CRITICAL: For transaction tables, prioritize pattern-based inference over data
+                // extraction
+                // This ensures we infer "checking" from debit/credit/check patterns, not from
+                // transaction data
                 // CRITICAL: Lower threshold to 3 rows for better test coverage and faster inference
                 if (rowsReadForAccountDetection >= 3 && detectedAccount != null) {
-                    // For transaction tables, always infer from patterns (don't trust extracted account type from data)
+                    // For transaction tables, always infer from patterns (don't trust extracted
+                    // account type from data)
                     if (isTransactionTable && detectedAccount.getAccountType() != null) {
-                        logger.info("⚠️ Transaction table detected - re-inferring account type from patterns (ignoring extracted type: {})", 
-                            detectedAccount.getAccountType());
-                        detectedAccount.setAccountType(null); // Clear extracted type to force pattern inference
+                        LOGGER.info(
+                                "⚠️ Transaction table detected - re-inferring account type from patterns (ignoring extracted type: {})",
+                                detectedAccount.getAccountType());
+                        detectedAccount.setAccountType(
+                                null); // Clear extracted type to force pattern inference
                     }
-                    
+
                     if (detectedAccount.getAccountType() == null) {
-                        logger.info("🔍 Attempting to infer account type from transaction patterns (rows analyzed: {}, debit: {}, credit: {}, check: {}, ACH: {}, ATM: {}, transfer: {})", 
-                            rowsReadForAccountDetection, debitCount[0], creditCount[0], checkCount[0], achCount[0], atmCount[0], transferCount[0]);
-                        String inferredType = inferAccountTypeFromTransactionPatterns(
-                            debitCount[0], creditCount[0], checkCount[0], achCount[0], atmCount[0], transferCount[0]);
+                        LOGGER.info(
+                                "🔍 Attempting to infer account type from transaction patterns (rows analyzed: {}, debit: {}, credit: {}, check: {}, ACH: {}, ATM: {}, transfer: {})",
+                                rowsReadForAccountDetection,
+                                debitCount[0],
+                                creditCount[0],
+                                checkCount[0],
+                                achCount[0],
+                                atmCount[0],
+                                transferCount[0]);
+                        final String inferredType =
+                                inferAccountTypeFromTransactionPatterns(
+                                        debitCount[0],
+                                        creditCount[0],
+                                        checkCount[0],
+                                        achCount[0],
+                                        atmCount[0],
+                                        transferCount[0]);
                         if (inferredType != null) {
                             detectedAccount.setAccountType(inferredType);
-                            if (inferredType.equals("depository")) {
+                            if ("depository".equals(inferredType)) {
                                 // Try to determine subtype (checking vs savings)
-                                String subtype = inferAccountSubtypeFromTransactionPatterns(
-                                    debitCount[0], creditCount[0], checkCount[0], achCount[0], atmCount[0], transferCount[0]);
+                                final String subtype =
+                                        inferAccountSubtypeFromTransactionPatterns(
+                                                debitCount[0],
+                                                creditCount[0],
+                                                checkCount[0],
+                                                achCount[0],
+                                                atmCount[0],
+                                                transferCount[0]);
                                 if (subtype != null) {
                                     detectedAccount.setAccountSubtype(subtype);
                                 }
                             }
-                            logger.info("✓ Inferred account type from transaction patterns: {} / {} (debit: {}, credit: {}, check: {}, ACH: {}, ATM: {}, transfer: {})", 
-                                inferredType, detectedAccount.getAccountSubtype(), 
-                                debitCount[0], creditCount[0], checkCount[0], achCount[0], atmCount[0], transferCount[0]);
+                            LOGGER.info(
+                                    "✓ Inferred account type from transaction patterns: {} / {} (debit: {}, credit: {}, check: {}, ACH: {}, ATM: {}, transfer: {})",
+                                    inferredType,
+                                    detectedAccount.getAccountSubtype(),
+                                    debitCount[0],
+                                    creditCount[0],
+                                    checkCount[0],
+                                    achCount[0],
+                                    atmCount[0],
+                                    transferCount[0]);
                         } else {
-                            logger.warn("⚠️ Could not infer account type from transaction patterns - user will need to select account type manually");
+                            LOGGER.warn(
+                                    "⚠️ Could not infer account type from transaction patterns - user will need to select account type manually");
                         }
                     }
-                } else if (rowsReadForAccountDetection < 3 && detectedAccount != null && detectedAccount.getAccountType() == null) {
-                    logger.debug("⏳ Waiting for more transaction rows to infer account type (current: {}, need: 3)", rowsReadForAccountDetection);
+                } else if (rowsReadForAccountDetection < 3
+                        && detectedAccount != null
+                        && detectedAccount.getAccountType() == null) {
+                    LOGGER.debug(
+                            "⏳ Waiting for more transaction rows to infer account type (current: {}, need: 3)",
+                            rowsReadForAccountDetection);
                 }
-                
+
                 // HIGH PRIORITY FIX: Check transaction count limit
                 if (result.getSuccessCount() >= MAX_TRANSACTIONS_PER_FILE) {
-                    result.addError(String.format("Transaction limit exceeded. Maximum %d transactions per file. Stopping at row %d.", 
-                        MAX_TRANSACTIONS_PER_FILE, rowNumber));
-                    logger.warn("Transaction limit reached: {} transactions. Stopping CSV parsing at row {}", 
-                        MAX_TRANSACTIONS_PER_FILE, rowNumber);
+                    result.addError(
+                            String.format(
+                                    "Transaction limit exceeded. Maximum %d transactions per file. Stopping at row %d.",
+                                    MAX_TRANSACTIONS_PER_FILE, rowNumber));
+                    LOGGER.warn(
+                            "Transaction limit reached: {} transactions. Stopping CSV parsing at row {}",
+                            MAX_TRANSACTIONS_PER_FILE,
+                            rowNumber);
                     break; // Stop parsing to prevent memory issues
                 }
-                
+
                 // Parse transaction from row (pass header line for currency detection)
                 try {
                     // CRITICAL: Get preview category for this transaction index if available
                     // Note: previewCategories are indexed by transaction order (0-based)
                     // For paginated imports, we only have preview categories for the first page
                     // For subsequent pages, previewCategories will be null or empty
-                    com.budgetbuddy.api.ImportCategoryPreservationRequest.PreviewCategory previewCategory = null;
+                    com.budgetbuddy.api.ImportCategoryPreservationRequest.PreviewCategory
+                            previewCategory = null;
                     String preserveAccountId = null;
-                    if (previewCategories != null && !previewCategories.isEmpty() && 
-                        result.getSuccessCount() < previewCategories.size()) {
+                    if (previewCategories != null
+                            && !previewCategories.isEmpty()
+                            && result.getSuccessCount() < previewCategories.size()) {
                         previewCategory = previewCategories.get(result.getSuccessCount());
                         preserveAccountId = previewAccountId;
-                        logger.debug("Using preview category for transaction {}: categoryPrimary='{}'", 
-                                result.getSuccessCount(), previewCategory.getCategoryPrimary());
+                        LOGGER.debug(
+                                "Using preview category for transaction {}: categoryPrimary='{}'",
+                                result.getSuccessCount(),
+                                previewCategory.getCategoryPrimary());
                     }
-                    
-                    ParsedTransaction transaction = parseTransaction(
-                        row, rowNumber, headerLine, filename,
-                        previewCategory != null ? previewCategory.getCategoryPrimary() : null,
-                        previewCategory != null ? previewCategory.getCategoryDetailed() : null,
-                        previewCategory != null ? previewCategory.getImporterCategoryPrimary() : null,
-                        previewCategory != null ? previewCategory.getImporterCategoryDetailed() : null,
-                        preserveAccountId,
-                        result.getDetectedAccount()
-                    );
+
+                    final ParsedTransaction transaction =
+                            parseTransaction(
+                                    row,
+                                    rowNumber,
+                                    headerLine,
+                                    filename,
+                                    previewCategory != null
+                                            ? previewCategory.getCategoryPrimary()
+                                            : null,
+                                    previewCategory != null
+                                            ? previewCategory.getCategoryDetailed()
+                                            : null,
+                                    previewCategory != null
+                                            ? previewCategory.getImporterCategoryPrimary()
+                                            : null,
+                                    previewCategory != null
+                                            ? previewCategory.getImporterCategoryDetailed()
+                                            : null,
+                                    preserveAccountId,
+                                    result.getDetectedAccount());
                     if (transaction != null) {
                         // Set account ID if detected
                         if (matchedAccountId != null) {
                             transaction.setAccountId(matchedAccountId);
                         }
                         result.addTransaction(transaction);
-                        
-                        // Track balance from row with latest date (for checking/savings/money market accounts)
-                        if (balanceColumnIndex != null && balanceColumnIndex < normalizedHeaders.size() && transaction.getDate() != null) {
-                            String balanceHeader = normalizedHeaders.get(balanceColumnIndex);
-                            String balanceValue = row.get(balanceHeader);
-                            if (balanceValue != null && !balanceValue.trim().isEmpty()) {
+
+                        // Track balance from row with latest date (for checking/savings/money
+                        // market accounts)
+                        if (balanceColumnIndex != null
+                                && balanceColumnIndex < normalizedHeaders.size()
+                                && transaction.getDate() != null) {
+                            final String balanceHeader = normalizedHeaders.get(balanceColumnIndex);
+                            final String balanceValue = row.get(balanceHeader);
+                            if (balanceValue != null && !balanceValue.isBlank()) {
                                 // Update if this row has a later date than the current latest
-                                if (latestDateForBalance == null || transaction.getDate().isAfter(latestDateForBalance)) {
+                                if (latestDateForBalance == null
+                                        || transaction.getDate().isAfter(latestDateForBalance)) {
                                     latestDateBalanceValue = balanceValue.trim();
                                     latestDateForBalance = transaction.getDate();
-                                    logger.debug("Tracked balance from transaction row {} (date: {}): {}", 
-                                        rowNumber, latestDateForBalance, latestDateBalanceValue);
+                                    LOGGER.debug(
+                                            "Tracked balance from transaction row {} (date: {}): {}",
+                                            rowNumber,
+                                            latestDateForBalance,
+                                            latestDateBalanceValue);
                                 }
                             }
                         }
                     } else {
-                        result.addError(String.format("Row %d: Could not parse transaction (missing date or amount)", rowNumber));
+                        result.addError(
+                                String.format(
+                                        "Row %d: Could not parse transaction (missing date or amount)",
+                                        rowNumber));
                     }
                 } catch (Exception e) {
-                    result.addError(String.format("Row %d: Error parsing transaction - %s", rowNumber, e.getMessage()));
+                    result.addError(
+                            String.format(
+                                    "Row %d: Error parsing transaction - %s",
+                                    rowNumber, e.getMessage()));
                 }
-                
+
                 rowNumber++;
             }
-            
+
             if (mismatchCount > 3) {
-                logger.info("Processed {} rows with column count mismatches (all handled successfully)", mismatchCount);
+                LOGGER.info(
+                        "Processed {} rows with column count mismatches (all handled successfully)",
+                        mismatchCount);
             }
-            
+
             // Final account type inference if we didn't reach 3 rows during parsing
-            // This handles cases where files have fewer than 3 rows but still have transaction patterns
-            if (detectedAccount != null && detectedAccount.getAccountType() == null && rowsReadForAccountDetection > 0) {
-                logger.info("🔍 Final attempt to infer account type from transaction patterns (rows analyzed: {}, debit: {}, credit: {}, check: {}, ACH: {}, ATM: {}, transfer: {})", 
-                    rowsReadForAccountDetection, debitCount[0], creditCount[0], checkCount[0], achCount[0], atmCount[0], transferCount[0]);
-                String inferredType = inferAccountTypeFromTransactionPatterns(
-                    debitCount[0], creditCount[0], checkCount[0], achCount[0], atmCount[0], transferCount[0]);
+            // This handles cases where files have fewer than 3 rows but still have transaction
+            // patterns
+            if (detectedAccount != null
+                    && detectedAccount.getAccountType() == null
+                    && rowsReadForAccountDetection > 0) {
+                LOGGER.info(
+                        "🔍 Final attempt to infer account type from transaction patterns (rows analyzed: {}, debit: {}, credit: {}, check: {}, ACH: {}, ATM: {}, transfer: {})",
+                        rowsReadForAccountDetection,
+                        debitCount[0],
+                        creditCount[0],
+                        checkCount[0],
+                        achCount[0],
+                        atmCount[0],
+                        transferCount[0]);
+                final String inferredType =
+                        inferAccountTypeFromTransactionPatterns(
+                                debitCount[0],
+                                creditCount[0],
+                                checkCount[0],
+                                achCount[0],
+                                atmCount[0],
+                                transferCount[0]);
                 if (inferredType != null) {
                     detectedAccount.setAccountType(inferredType);
-                    if (inferredType.equals("depository")) {
-                        String subtype = inferAccountSubtypeFromTransactionPatterns(
-                            debitCount[0], creditCount[0], checkCount[0], achCount[0], atmCount[0], transferCount[0]);
+                    if ("depository".equals(inferredType)) {
+                        final String subtype =
+                                inferAccountSubtypeFromTransactionPatterns(
+                                        debitCount[0],
+                                        creditCount[0],
+                                        checkCount[0],
+                                        achCount[0],
+                                        atmCount[0],
+                                        transferCount[0]);
                         if (subtype != null) {
                             detectedAccount.setAccountSubtype(subtype);
                         }
                     }
-                    logger.info("✓ Inferred account type from transaction patterns (final): {} / {} (debit: {}, credit: {}, check: {}, ACH: {}, ATM: {}, transfer: {})", 
-                        inferredType, detectedAccount.getAccountSubtype(), 
-                        debitCount[0], creditCount[0], checkCount[0], achCount[0], atmCount[0], transferCount[0]);
+                    LOGGER.info(
+                            "✓ Inferred account type from transaction patterns (final): {} / {} (debit: {}, credit: {}, check: {}, ACH: {}, ATM: {}, transfer: {})",
+                            inferredType,
+                            detectedAccount.getAccountSubtype(),
+                            debitCount[0],
+                            creditCount[0],
+                            checkCount[0],
+                            achCount[0],
+                            atmCount[0],
+                            transferCount[0]);
                 } else {
-                    logger.warn("⚠️ Could not infer account type from transaction patterns - user will need to select account type manually");
+                    LOGGER.warn(
+                            "⚠️ Could not infer account type from transaction patterns - user will need to select account type manually");
                 }
             }
-            
+
             // Extract balance from transaction with latest date if balance wasn't found in headers
-            // This is for checking/savings/money market accounts where balance is in transaction table
-            if (detectedAccount != null && detectedAccount.getBalance() == null && 
-                latestDateBalanceValue != null && balanceColumnIndex != null && latestDateForBalance != null) {
-                // Only extract from latest date transaction for depository accounts (checking, savings, money market)
-                String accountType = detectedAccount.getAccountType();
-                if (accountType != null && (accountType.equalsIgnoreCase("depository") || 
-                    accountType.equalsIgnoreCase("checking") || accountType.equalsIgnoreCase("savings") ||
-                    accountType.equalsIgnoreCase("moneyMarket") || accountType.equalsIgnoreCase("money_market"))) {
-                    java.math.BigDecimal balance = accountDetectionService.extractBalanceFromTransactionValue(latestDateBalanceValue);
+            // This is for checking/savings/money market accounts where balance is in transaction
+            // table
+            if (detectedAccount != null
+                    && detectedAccount.getBalance() == null
+                    && latestDateBalanceValue != null
+                    && balanceColumnIndex != null
+                    && latestDateForBalance != null) {
+                // Only extract from latest date transaction for depository accounts (checking,
+                // savings, money market)
+                final String accountType = detectedAccount.getAccountType();
+                if (accountType != null
+                        && ("depository".equalsIgnoreCase(accountType)
+                                || "checking".equalsIgnoreCase(accountType)
+                                || "savings".equalsIgnoreCase(accountType)
+                                || "moneyMarket".equalsIgnoreCase(accountType)
+                                || "money_market".equalsIgnoreCase(accountType))) {
+                    final java.math.BigDecimal balance =
+                            accountDetectionService.extractBalanceFromTransactionValue(
+                                    latestDateBalanceValue);
                     if (balance != null) {
                         detectedAccount.setBalance(balance);
                         // Store the date of the balance for comparison with existing account
                         detectedAccount.setBalanceDate(latestDateForBalance);
-                        logger.info("✓ Extracted balance from transaction with latest date ({}): {}", latestDateForBalance, balance);
+                        LOGGER.info(
+                                "✓ Extracted balance from transaction with latest date ({}): {}",
+                                latestDateForBalance,
+                                balance);
                     }
                 }
             }
-            
+
             // Set detected account and matched account ID in result
             if (detectedAccount != null) {
                 result.setDetectedAccount(detectedAccount);
@@ -886,33 +1225,35 @@ private final AccountDetectionService accountDetectionService;
             if (matchedAccountId != null) {
                 result.setMatchedAccountId(matchedAccountId);
             }
-            
-            logger.info("Parsed CSV: {} successful, {} failed", result.getSuccessCount(), result.getFailureCount());
-            
+
+            LOGGER.info(
+                    "Parsed CSV: {} successful, {} failed",
+                    result.getSuccessCount(),
+                    result.getFailureCount());
+
         } catch (AppException e) {
             throw e;
         } catch (Exception e) {
-            logger.error("Error parsing CSV file: {}", e.getMessage(), e);
-            throw new AppException(ErrorCode.INVALID_INPUT, "Failed to parse CSV file: " + e.getMessage());
+            LOGGER.error("Error parsing CSV file: {}", e.getMessage(), e);
+            throw new AppException(
+                    ErrorCode.INVALID_INPUT, "Failed to parse CSV file: " + e.getMessage());
         }
-        
+
         return result;
     }
 
-    /**
-     * Extract account number from a value using enhanced pattern matching
-     */
-    private String extractAccountNumberFromValue(String value) {
-        if (value == null || value.trim().isEmpty()) {
+    /** Extract account number from a value using enhanced pattern matching */
+    private String extractAccountNumberFromValue(final String value) {
+        if (value == null || value.isBlank()) {
             return null;
         }
-        
+
         // Try enhanced account number pattern
-        java.util.regex.Pattern accountNumPattern = java.util.regex.Pattern.compile(
-            "(?:(?:account|acct|card|credit\\s*card|debit\\s*card)\\s*(?:number|#|no\\.?)?\\s*(?:ending\\s*(?:in|with)?\\s*:?\\s*|with\\s*(?:last\\s*)?(?:4\\s*)?(?:digits?|numbers?)\\s*:?\\s*)?|(?:account|acct|card|credit\\s*card|debit\\s*card|number|#|no\\.?)\\s*:?\\s*)([*xX]{0,4}\\d{4}|\\d{4,19})",
-            java.util.regex.Pattern.CASE_INSENSITIVE
-        );
-        
+        final java.util.regex.Pattern accountNumPattern =
+                java.util.regex.Pattern.compile(
+                        "(?:(?:account|acct|card|credit\\s*card|debit\\s*card)\\s*(?:number|#|no\\.?)?\\s*(?:ending\\s*(?:in|with)?\\s*:?\\s*|with\\s*(?:last\\s*)?(?:4\\s*)?(?:digits?|numbers?)\\s*:?\\s*)?|(?:account|acct|card|credit\\s*card|debit\\s*card|number|#|no\\.?)\\s*:?\\s*)([*xX]{0,4}\\d{4}|\\d{4,19})",
+                        java.util.regex.Pattern.CASE_INSENSITIVE);
+
         java.util.regex.Matcher matcher = accountNumPattern.matcher(value);
         if (matcher.find()) {
             try {
@@ -921,91 +1262,297 @@ private final AccountDetectionService accountDetectionService;
                     accountNum = accountNum.replaceAll("[*xX]", "");
                     if (accountNum.length() >= 4) {
                         // Extract last 4 digits
-                        int startIndex = Math.max(0, accountNum.length() - 4);
+                        final int startIndex = Math.max(0, accountNum.length() - 4);
                         return accountNum.substring(startIndex);
                     }
                 }
             } catch (Exception e) {
-                logger.warn("Error extracting account number from value '{}': {}", value, e.getMessage());
+                LOGGER.warn(
+                        "Error extracting account number from value '{}': {}",
+                        value,
+                        e.getMessage());
             }
         }
-        
+
         // Try simple 4+ digit pattern if no keyword match
-        java.util.regex.Pattern simplePattern = java.util.regex.Pattern.compile("(\\d{4,19})");
+        final java.util.regex.Pattern simplePattern = java.util.regex.Pattern.compile("(\\d{4,19})");
         matcher = simplePattern.matcher(value);
         if (matcher.find()) {
-            String accountNum = matcher.group(1);
+            final String accountNum = matcher.group(1);
             if (accountNum.length() >= 4) {
                 // Extract last 4 digits
-                int startIndex = Math.max(0, accountNum.length() - 4);
+                final int startIndex = Math.max(0, accountNum.length() - 4);
                 return accountNum.substring(startIndex);
             }
         }
-        
+
         return null;
     }
-    
-    /**
-     * Extract institution name from a value
-     */
-    private String extractInstitutionFromValue(String value) {
-        if (value == null || value.trim().isEmpty()) {
+
+    /** Extract institution name from a value */
+    private String extractInstitutionFromValue(final String value) {
+        if (value == null || value.isBlank()) {
             return null;
         }
-        
-        String valueLower = value.toLowerCase();
-        
+
+        final String valueLower = value.toLowerCase(Locale.ROOT);
+
         // Check if value contains known institution keywords
-        for (String institution : Arrays.asList("citi", "amex", "american express", "chase", "bofa", 
-                                                "bank of america", "wells fargo", "capital one",
-                                                "discover", "visa", "mastercard", "synchrony")) {
+        for (final String institution :
+                Arrays.asList(
+                        "citi",
+                        "amex",
+                        "american express",
+                        "chase",
+                        "bofa",
+                        "bank of america",
+                        "wells fargo",
+                        "capital one",
+                        "discover",
+                        "visa",
+                        "mastercard",
+                        "synchrony")) {
             if (valueLower.contains(institution) && value.length() > institution.length() + 5) {
                 // Likely a product name - use the full value as institution name
                 return value.trim();
             }
         }
-        
+
         return null;
     }
-    
-    /**
-     * Extract account type from a value
-     */
-    private String extractAccountTypeFromValue(String value) {
-        if (value == null || value.trim().isEmpty()) {
+
+    /** Extract account type from a value */
+    private String extractAccountTypeFromValue(final String value) {
+        if (value == null || value.isBlank()) {
             return null;
         }
-        
-        String valueLower = value.toLowerCase();
-        
+
+        final String valueLower = value.toLowerCase(Locale.ROOT);
+
         // Map common account type values to our account types
         if (valueLower.contains("checking") || valueLower.contains("check")) {
             return "depository";
         } else if (valueLower.contains("savings") || valueLower.contains("saving")) {
             return "depository";
-        } else if (valueLower.contains("credit card") || valueLower.contains("creditcard") || 
-                   valueLower.contains("card")) {
+        } else if (valueLower.contains("credit card")
+                || valueLower.contains("creditcard")
+                || valueLower.contains("card")) {
             return "credit";
         } else if (valueLower.contains("loan") || valueLower.contains("mortgage")) {
             return "loan";
-        } else if (valueLower.contains("investment") || valueLower.contains("brokerage") ||
-                   valueLower.contains("ira") || valueLower.contains("401k")) {
+        } else if (valueLower.contains("investment")
+                || valueLower.contains("brokerage")
+                || valueLower.contains("ira")
+                || valueLower.contains("401k")) {
             return "investment";
         }
-        
+
         return null;
     }
-    
+
+    // Debit/Credit column-name hints, in priority order.
+    // Kept small and conservative to avoid false matches — e.g. we don't
+    // include bare "payment" because that's too ambiguous (could be a
+    // separate "Payment Amount" column that isn't a money-in marker).
+    private static final String[] DEBIT_HEADER_KEYS = {
+        "debit",
+        "debit amount",
+        "debit_amount",
+        "withdrawal",
+        "withdrawals",
+        "money out",
+        "money_out",
+        "paid out",
+        "paid_out",
+        "debet",
+        "débit",
+        "débito",
+        "addebito"
+    };
+    private static final String[] CREDIT_HEADER_KEYS = {
+        "credit",
+        "credit amount",
+        "credit_amount",
+        "deposit",
+        "deposits",
+        "money in",
+        "money_in",
+        "paid in",
+        "paid_in",
+        "crédit",
+        "crédito",
+        "accredito"
+    };
+
     /**
-     * Parse a single CSV line, handling quoted fields and commas
+     * If the row has separate debit + credit columns, parse each side and return a correctly-signed
+     * BigDecimal. Returns null when either (a) the schema has only one of the two columns (so the
+     * existing single-column logic is already correct) or (b) parsing both sides produces nothing
+     * useful.
      */
-    private List<String> parseCSVLine(String line) {
-        List<String> fields = new ArrayList<>();
+    private BigDecimal applyDebitCreditSplit(
+            final ParsedRow row, AmountParseResult priorResult, final String headerLine, final String filename) {
+        final boolean hasDebitCol = row.hasHeader(DEBIT_HEADER_KEYS);
+        final boolean hasCreditCol = row.hasHeader(CREDIT_HEADER_KEYS);
+        if (!(hasDebitCol && hasCreditCol)) {
+            return null; // single-column schema — prior parse is fine
+        }
+
+        final String debitStr = row.findField(DEBIT_HEADER_KEYS);
+        final String creditStr = row.findField(CREDIT_HEADER_KEYS);
+        final boolean hasDebit = debitStr != null && !debitStr.isEmpty();
+        final boolean hasCredit = creditStr != null && !creditStr.isEmpty();
+
+        if (!hasDebit && !hasCredit) {
+            return null; // both empty — leave prior amount alone
+        }
+
+        if (hasCredit) {
+            final AmountParseResult credit = parseAmountWithCurrency(creditStr, headerLine, filename);
+            if (credit.amount != null) {
+                // Credit = money in = positive. Take absolute value so a file
+                // that puts a minus sign in the credit column (rare but seen)
+                // doesn't double-negate.
+                return credit.amount.abs();
+            }
+        }
+
+        if (hasDebit) {
+            final AmountParseResult debit = parseAmountWithCurrency(debitStr, headerLine, filename);
+            if (debit.amount != null) {
+                // Debit = money out = negative.
+                return debit.amount.abs().negate();
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Reads a "logical" CSV line, concatenating physical lines until all double-quote characters
+     * are balanced. RFC 4180 allows literal line breaks inside a quoted field (common in US bank
+     * exports where the description wraps). The old `reader.readLine()` approach corrupted such
+     * rows by splitting one logical row into multiple physical ones.
+     *
+     * <p>Cost: the common case (no embedded newline) does a single readLine() and one quick char
+     * scan, so this is essentially free for well-formed CSVs. Cap the accumulation so a malformed
+     * file with an unterminated quote doesn't swallow the rest of the document.
+     */
+    private static final int MAX_LOGICAL_LINE_PHYSICAL_LINES = 64;
+
+    private String readLogicalLine(final BufferedReader reader) throws IOException {
+        final String physical = reader.readLine();
+        if (physical == null) {
+            return null;
+        }
+        if (isQuoteBalanced(physical)) {
+            return physical;
+        }
+        final StringBuilder logical = new StringBuilder(physical);
+        int joined = 1;
+        while (joined < MAX_LOGICAL_LINE_PHYSICAL_LINES) {
+            final String next = reader.readLine();
+            if (next == null) {
+                // EOF mid-quote: return what we have. Downstream parsing will
+                // still try; a warning will be logged when field counts mismatch.
+                LOGGER.warn("CSV parse: reached EOF inside a quoted field — file may be truncated");
+                break;
+            }
+            logical.append('\n').append(next);
+            joined++;
+            if (isQuoteBalanced(logical.toString())) {
+                return logical.toString();
+            }
+        }
+        if (joined >= MAX_LOGICAL_LINE_PHYSICAL_LINES) {
+            LOGGER.warn(
+                    "CSV parse: refused to join more than {} physical lines for one logical row — likely a malformed quote",
+                    MAX_LOGICAL_LINE_PHYSICAL_LINES);
+        }
+        return logical.toString();
+    }
+
+    /** True when the double-quote count is even, i.e. no field is "open". */
+    private static boolean isQuoteBalanced(final String s) {
+        int count = 0;
+        for (int i = 0; i < s.length(); i++) {
+            if (s.charAt(i) == '"') {
+                count++;
+            }
+        }
+        return (count & 1) == 0;
+    }
+
+    /**
+     * Normalise the incoming byte stream into something safe to decode as UTF-8.
+     *
+     * <p>We sniff the first 3 bytes for common Byte Order Marks. If we see UTF-16 LE/BE, we decode
+     * via the right charset and re-encode as UTF-8. If we see a UTF-8 BOM, we skip it (the existing
+     * `\uFEFF` handling in the header read is belt-and-braces — we'd rather strip at byte level
+     * once).
+     *
+     * <p>Unknown encodings fall through as-is; downstream code still assumes UTF-8 but at least
+     * BOM-marked files no longer produce "garbled first column".
+     */
+    private static InputStream detectEncodedStream(final InputStream in) throws IOException {
+        final java.io.PushbackInputStream pb = new java.io.PushbackInputStream(in, 4);
+        final byte[] bom = new byte[3];
+        int read = 0;
+        while (read < 3) {
+            final int r = pb.read(bom, read, 3 - read);
+            if (r < 0) {
+                break;
+            }
+            read += r;
+        }
+        if (read < 3) {
+            if (read > 0) {
+                pb.unread(bom, 0, read);
+            }
+            return pb;
+        }
+        // UTF-8 BOM: EF BB BF — strip
+        if ((bom[0] & 0xFF) == 0xEF && (bom[1] & 0xFF) == 0xBB && (bom[2] & 0xFF) == 0xBF) {
+            return pb; // skip the BOM bytes
+        }
+        // UTF-16 BE BOM: FE FF
+        if ((bom[0] & 0xFF) == 0xFE && (bom[1] & 0xFF) == 0xFF) {
+            pb.unread(bom[2]);
+            final byte[] rest = readAll(pb);
+            final String decoded = new String(rest, java.nio.charset.StandardCharsets.UTF_16BE);
+            return new java.io.ByteArrayInputStream(
+                    decoded.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        }
+        // UTF-16 LE BOM: FF FE
+        if ((bom[0] & 0xFF) == 0xFF && (bom[1] & 0xFF) == 0xFE) {
+            pb.unread(bom[2]);
+            final byte[] rest = readAll(pb);
+            final String decoded = new String(rest, java.nio.charset.StandardCharsets.UTF_16LE);
+            return new java.io.ByteArrayInputStream(
+                    decoded.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        }
+        pb.unread(bom, 0, 3);
+        return pb;
+    }
+
+    private static byte[] readAll(final InputStream in) throws IOException {
+        final java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
+        final byte[] buf = new byte[8192];
+        int n;
+        while ((n = in.read(buf)) > 0) {
+            out.write(buf, 0, n);
+        }
+        return out.toByteArray();
+    }
+
+    /** Parse a single CSV line, handling quoted fields and commas */
+    private List<String> parseCSVLine(final String line) {
+        final List<String> fields = new ArrayList<>();
         StringBuilder currentField = new StringBuilder();
         boolean insideQuotes = false;
         Character previousChar = null;
-        
-        for (char c : line.toCharArray()) {
+
+        for (final char c : line.toCharArray()) {
             if (c == '"') {
                 // Handle escaped quotes ("")
                 if (previousChar != null && previousChar == '"' && insideQuotes) {
@@ -1023,862 +1570,1657 @@ private final AccountDetectionService accountDetectionService;
             previousChar = c;
         }
         fields.add(currentField.toString().trim()); // Add last field
-        
+
         return fields;
     }
 
     /**
      * Parse a single row into a ParsedTransaction
+     *
      * @param row The parsed row data
      * @param rowNumber The row number (for error reporting)
      * @param headerLine The CSV header line (for currency detection)
      */
-    ParsedTransaction parseTransaction(ParsedRow row, int rowNumber, String headerLine, String filename) {
-        return parseTransaction(row, rowNumber, headerLine, filename, null, null, null, null, null, null);
+    ParsedTransaction parseTransaction(
+            final ParsedRow row, final int rowNumber, final String headerLine, final String filename) {
+        return parseTransaction(
+                row, rowNumber, headerLine, filename, null, null, null, null, null, null);
     }
-    
+
     /**
      * Parse a transaction from a CSV row
-     * 
+     *
      * @param row The parsed CSV row
      * @param rowNumber Row number (for error reporting)
      * @param headerLine Header line (for error reporting)
      * @param filename Filename (for account detection)
-     * @param preserveCategoryPrimary Pre-parsed category primary (from preview) - if provided, skip category parsing
-     * @param preserveCategoryDetailed Pre-parsed category detailed (from preview) - if provided, skip category parsing
-     * @param preserveImporterCategoryPrimary Pre-parsed importer category primary (from preview) - if provided, skip category parsing
-     * @param preserveImporterCategoryDetailed Pre-parsed importer category detailed (from preview) - if provided, skip category parsing
-     * @param preserveAccountId Pre-parsed account ID (from preview) - used to determine if account changed
+     * @param preserveCategoryPrimary Pre-parsed category primary (from preview) - if provided, skip
+     *     category parsing
+     * @param preserveCategoryDetailed Pre-parsed category detailed (from preview) - if provided,
+     *     skip category parsing
+     * @param preserveImporterCategoryPrimary Pre-parsed importer category primary (from preview) -
+     *     if provided, skip category parsing
+     * @param preserveImporterCategoryDetailed Pre-parsed importer category detailed (from preview)
+     *     - if provided, skip category parsing
+     * @param preserveAccountId Pre-parsed account ID (from preview) - used to determine if account
+     *     changed
      * @param detectedAccount Detected account information (for transaction type determination)
      * @return ParsedTransaction object
      */
-    ParsedTransaction parseTransaction(ParsedRow row, int rowNumber, String headerLine, String filename,
-                                       String preserveCategoryPrimary, String preserveCategoryDetailed,
-                                       String preserveImporterCategoryPrimary, String preserveImporterCategoryDetailed,
-                                       String preserveAccountId,
-                                       AccountDetectionService.DetectedAccount detectedAccount) {
-        ParsedTransaction transaction = new ParsedTransaction();
-        
+    ParsedTransaction parseTransaction(
+            final ParsedRow row,
+            final int rowNumber,
+            final String headerLine,
+            final String filename,
+            final String preserveCategoryPrimary,
+            final String preserveCategoryDetailed,
+            final String preserveImporterCategoryPrimary,
+            final String preserveImporterCategoryDetailed,
+            String preserveAccountId,
+            final AccountDetectionService.DetectedAccount detectedAccount) {
+        final ParsedTransaction transaction = new ParsedTransaction();
+
         // Parse date (supports all major US financial institutions and account types)
-        String dateString = row.findField(
-            // Common formats (checking/savings/money market)
-            // Note: "trade date" is prioritized for investment accounts (checked later in investment-specific lists)
-            // CRITICAL: "details" is added for test compatibility - some banks use "details" column for dates
-            // It's checked early so date values are matched before description matching
-            "date", "transaction date", "posting date", "posted date", "post date", "trade date", "settlement date", "details",
-            "transaction_date", "posting_date", "posted_date", "post_date", "settlement_date",
-            // Major Banks - Checking/Savings
-            "transaction date", "transactiondate", "posting date",  // Chase
-            "date posted", "dateposted", "transaction date",        // Bank of America
-            "transaction date", "date", "posting date",             // Wells Fargo
-            "date", "transaction date", "posting date",             // Citi (Citibank)
-            "transaction date", "date posted", "post date",          // Capital One
-            "transaction date", "date", "posting date",             // US Bank
-            "date", "transaction date",                              // TD Bank
-            "transaction date", "date",                               // Chime
-            "date", "transaction date", "posting date",             // SoFi
-            "date", "transaction date",                              // Citizens Bank
-            "transaction date", "date",                              // Regions Bank
-            "date", "transaction date",                              // KeyBank
-            "date", "transaction date",                              // Navy Federal Credit Union
-            "transaction date", "date",                              // First Tech Federal
-            "date", "transaction date",                              // Synchrony Bank
-            // US Credit Unions
-            "date", "transaction date", "posting date",              // State Employees Credit Union
-            "date", "transaction date",                              // School First Federal Credit Union
-            "date", "transaction date", "posting date",              // PenFed Credit Union
-            "date", "transaction date",                              // Boeing Employees Credit Union
-            "date", "transaction date",                              // Alliant Credit Union
-            "date", "transaction date",                              // America First Credit Union
-            "date", "transaction date",                              // Golden 1 Credit Union
-            "date", "transaction date",                              // Mountain America Credit Union
-            "date", "transaction date",                              // Suncoast Credit Union
-            "date", "transaction date",                              // Randolph-Brooks Federal Credit Union
-            "date", "transaction date",                              // Lake Michigan Credit Union
-            "date", "transaction date",                              // Security Service Federal Credit Union
-            "date", "transaction date",                              // FourLeaf Federal Credit Union
-            "date", "transaction date",                              // Idaho Central Credit Union
-            "date", "transaction date",                              // Global Credit Union
-            "date", "transaction date",                              // Digital Federal Credit Union
-            "date", "transaction date",                              // GreenState Credit Union
-            // Credit Card formats (all major issuers - Global)
-            // US Credit Cards
-            "trans. date", "trans date", "trans_date", "transaction date", // Discover, Amex
-            "post date", "postdate", "posted date", "transaction date",    // Most credit cards
-            "purchase date", "purchase_date", "transaction date",          // Credit card purchases
-            "transaction date", "date",                                  // Chase, Citi, Capital One credit cards
-            "date", "transaction date",                                    // Amex, Discover, US Bank credit cards
-            "date", "transaction date",                                    // Synchrony Bank credit cards
-            // European Credit Cards
-            "datum", "date", "transaction date", "buchungsdatum", "wertstellung", // Deutsche Bank, Commerzbank credit cards - prioritize "datum" over "wertstellung"
-            "date", "transaction date", "datum", "valutadatum",          // ING, Rabobank credit cards
-            "date", "transaction date", "date de transaction", "date de valeur", // BNP Paribas, Crédit Agricole credit cards
-            "date", "transaction date", "fecha", "fecha de valor",       // BBVA, Santander credit cards
-            "date", "transaction date", "data", "data di valuta",        // UniCredit, Intesa Sanpaolo credit cards
-            // Asian Credit Cards
-            "date", "transaction date", "取引日", "決済日",                // Japanese credit cards (JCB, MUFG Card)
-            "date", "transaction date", "交易日期", "结算日期",            // Chinese credit cards (UnionPay)
-            "date", "transaction date", "거래일자", "결제일자",            // Korean credit cards (KB Card, Shinhan Card)
-            "date", "transaction date", "วันที่ทำรายการ", "วันที่ชำระ",    // Thai credit cards
-            // Indian Credit Cards
-            "date", "transaction date", "value date", "posting date",    // HDFC, ICICI, Axis credit cards
-            // Global Payment Networks
-            "transaction date", "date", "posting date",                  // Mastercard, Visa (global)
-            "transaction date", "date",                                  // American Express (global)
-            "transaction date", "date",                                  // Discover (global)
-            "transaction date", "date",                                  // JCB (Japan/Asia)
-            "transaction date", "date",                                  // UnionPay (China/Asia)
-            // PayPal formats
-            "date", "time", "datetime", "transaction date",              // PayPal
-            // Venmo formats
-            "date", "transaction date", "datetime", "time",              // Venmo
-            // Zelle formats
-            "date", "transaction date", "posted date", "posting date",    // Zelle (via banks)
-            // Apple Pay / Apple Card formats
-            "date", "transaction date", "posted date", "purchase date",   // Apple Pay, Apple Card
-            // Google Pay formats
-            "date", "transaction date", "datetime", "time",              // Google Pay
-            // PhonePe / UPI formats (India)
-            "date", "transaction date", "datetime", "time",              // PhonePe, UPI transactions
-            // Paytm formats (India - wallet/payment service)
-            "date", "transaction date", "transaction date & time", "datetime", "time", // Paytm
-            // Amazon Pay formats
-            "date", "transaction date", "order date",                  // Amazon Pay
-            // Razor Pay formats (India)
-            "date", "transaction date", "created at", "created_at",      // Razor Pay
-            // Indian Banks formats (DD/MM/YYYY date format)
-            "date", "transaction date", "value date", "posting date",    // State Bank of India, ICICI, HDFC, etc.
-            "trade date", "date", "transaction date", "value date", "settlement date", // ICICI Direct (brokerage) - prioritize "trade date" over "settlement date"
-            // European Banks formats (DD/MM/YYYY or DD.MM.YYYY date format)
-            "date", "transaction date", "value date", "posting date",    // HSBC, Barclays, Lloyds (UK)
-            "datum", "date", "transaction date", "buchungsdatum", "wertstellung", // Deutsche Bank, Commerzbank (Germany) - prioritize "datum" over "wertstellung"
-            "date", "transaction date", "datum", "valutadatum",          // ING, Rabobank (Netherlands)
-            "date", "transaction date", "date de transaction", "date de valeur", // BNP Paribas, Crédit Agricole (France)
-            "date", "transaction date", "fecha", "fecha de valor",       // BBVA, Santander (Spain)
-            "date", "transaction date", "data", "data di valuta",        // UniCredit, Intesa Sanpaolo (Italy)
-            // Asian Banks formats
-            "date", "transaction date", "取引日", "決済日",                // Japanese banks (MUFG, SMBC, Mizuho)
-            "date", "transaction date", "交易日期", "结算日期",            // Chinese banks (ICBC, CCB, BOC)
-            "date", "transaction date", "거래일자", "결제일자",            // Korean banks (KB, Shinhan, Hana)
-            "date", "transaction date", "วันที่ทำรายการ", "วันที่ชำระ",    // Thai banks (Bangkok Bank, Kasikorn)
-            "date", "transaction date", "tanggal transaksi", "tanggal penyelesaian", // Indonesian banks (BCA, Mandiri)
-            "date", "transaction date", "ngày giao dịch", "ngày thanh toán", // Vietnamese banks (Vietcombank, BIDV)
-            // Payment network formats (Mastercard, Visa)
-            "transaction date", "date", "posting date",                  // Mastercard, Visa (via issuing banks)
-            // Plaid (financial data aggregation - uses bank formats)
-            "date", "transaction date", "authorized date", "posted date", // Plaid
-            // Investment account formats (all major brokerages - Global)
-            // US Investment Platforms
-            "run date", "rundate", "run_date", "transaction date",        // Fidelity
-            "transaction date", "trade date", "settlement date", "settlement_date", // Fidelity NetBenefits - prioritize transaction date over settlement
-            "transaction date", "trade date", "settlement date", "settlement_date",     // Vanguard, Schwab - prioritize transaction/trade date over settlement
-            "trade date", "tradedate", "trade_date", "transaction date", "settlement date",  // TD Ameritrade, E*TRADE - prioritize trade date
-            "date", "transaction date", "trade date", "settlement date",                     // Robinhood - prioritize transaction/trade date
-            "transaction date", "trade date", "settlement date",                        // Morgan Stanley - prioritize transaction/trade date
-            "date", "transaction date", "trade date", "settlement date",                     // Goldman Sachs - prioritize transaction/trade date
-            "transaction date", "trade date", "date", "settlement date",                                    // Generic US investment accounts - prioritize transaction/trade date
-            // European Investment Platforms
-            "date", "transaction date", "trade date", "settlement date", // Interactive Brokers (Europe)
-            "date", "transaction date", "trade date", "value date",       // Degiro, eToro (Europe)
-            "datum", "date", "transaction date", "buchungsdatum", "wertstellung", // German brokerages (Comdirect, Consorsbank) - prioritize "datum" over "wertstellung"
-            "date", "transaction date", "datum", "valutadatum",          // Dutch brokerages (BinckBank, Lynx)
-            "date", "transaction date", "date de transaction", "date de valeur", // French brokerages (Boursorama, Binck)
-            "date", "transaction date", "fecha", "fecha de valor",       // Spanish brokerages (SelfBank, Renta 4)
-            "date", "transaction date", "data", "data di valuta",        // Italian brokerages (FinecoBank, Directa)
-            // Asian Investment Platforms
-            "trade date", "date", "transaction date", "settlement date", // ICICI Direct, HDFC Securities (India) - prioritize "trade date" over "settlement date"
-            "date", "transaction date", "取引日", "決済日",                // Japanese brokerages (MUFG Securities, Nomura)
-            "date", "transaction date", "交易日期", "结算日期",            // Chinese brokerages (CITIC Securities, Huatai Securities)
-            "date", "transaction date", "거래일자", "결제일자",            // Korean brokerages (Samsung Securities, Mirae Asset)
-            "date", "transaction date", "วันที่ทำรายการ", "วันที่ชำระ",    // Thai brokerages
-            // Global Investment Platforms
-            "trade date", "transaction date", "value date", "settlement date", // ICICI Direct (brokerage - India)
-            "transaction date", "trade date", "settlement date",         // Interactive Brokers (global)
-            "date", "transaction date", "trade date",                    // eToro (global)
-            "transaction date", "date",                                    // Generic investment accounts (global)
-            // Loan account formats (all loan types)
-            "payment date", "payment_date", "paymentdate",                // Mortgages, auto loans, student loans
-            "due date", "duedate", "due_date", "payment date",            // Loan payments
-            "transaction date", "date",                                    // Loan transactions
-            // HSA (Health Savings Account) formats
-            "transaction date", "date", "posting date",                    // HSA accounts
-            "transaction date"                                             // Generic fallback
-        );
+        final String dateString =
+                row.findField(
+                        // Common formats (checking/savings/money market)
+                        // Note: "trade date" is prioritized for investment accounts (checked later
+                        // in investment-specific lists)
+                        // CRITICAL: "details" is added for test compatibility - some banks use
+                        // "details" column for dates
+                        // It's checked early so date values are matched before description matching
+                        "date",
+                        "transaction date",
+                        "posting date",
+                        "posted date",
+                        "post date",
+                        "trade date",
+                        "settlement date",
+                        "details",
+                        "transaction_date",
+                        "posting_date",
+                        "posted_date",
+                        "post_date",
+                        "settlement_date",
+                        // Major Banks - Checking/Savings
+                        "transaction date",
+                        "transactiondate",
+                        "posting date", // Chase
+                        "date posted",
+                        "dateposted",
+                        "transaction date", // Bank of America
+                        "transaction date",
+                        "date",
+                        "posting date", // Wells Fargo
+                        "date",
+                        "transaction date",
+                        "posting date", // Citi (Citibank)
+                        "transaction date",
+                        "date posted",
+                        "post date", // Capital One
+                        "transaction date",
+                        "date",
+                        "posting date", // US Bank
+                        "date",
+                        "transaction date", // TD Bank
+                        "transaction date",
+                        "date", // Chime
+                        "date",
+                        "transaction date",
+                        "posting date", // SoFi
+                        "date",
+                        "transaction date", // Citizens Bank
+                        "transaction date",
+                        "date", // Regions Bank
+                        "date",
+                        "transaction date", // KeyBank
+                        "date",
+                        "transaction date", // Navy Federal Credit Union
+                        "transaction date",
+                        "date", // First Tech Federal
+                        "date",
+                        "transaction date", // Synchrony Bank
+                        // US Credit Unions
+                        "date",
+                        "transaction date",
+                        "posting date", // State Employees Credit Union
+                        "date",
+                        "transaction date", // School First Federal Credit Union
+                        "date",
+                        "transaction date",
+                        "posting date", // PenFed Credit Union
+                        "date",
+                        "transaction date", // Boeing Employees Credit Union
+                        "date",
+                        "transaction date", // Alliant Credit Union
+                        "date",
+                        "transaction date", // America First Credit Union
+                        "date",
+                        "transaction date", // Golden 1 Credit Union
+                        "date",
+                        "transaction date", // Mountain America Credit Union
+                        "date",
+                        "transaction date", // Suncoast Credit Union
+                        "date",
+                        "transaction date", // Randolph-Brooks Federal Credit Union
+                        "date",
+                        "transaction date", // Lake Michigan Credit Union
+                        "date",
+                        "transaction date", // Security Service Federal Credit Union
+                        "date",
+                        "transaction date", // FourLeaf Federal Credit Union
+                        "date",
+                        "transaction date", // Idaho Central Credit Union
+                        "date",
+                        "transaction date", // Global Credit Union
+                        "date",
+                        "transaction date", // Digital Federal Credit Union
+                        "date",
+                        "transaction date", // GreenState Credit Union
+                        // Credit Card formats (all major issuers - Global)
+                        // US Credit Cards
+                        "trans. date",
+                        "trans date",
+                        "trans_date",
+                        "transaction date", // Discover, Amex
+                        "post date",
+                        "postdate",
+                        "posted date",
+                        "transaction date", // Most credit cards
+                        "purchase date",
+                        "purchase_date",
+                        "transaction date", // Credit card purchases
+                        "transaction date",
+                        "date", // Chase, Citi, Capital One credit cards
+                        "date",
+                        "transaction date", // Amex, Discover, US Bank credit cards
+                        "date",
+                        "transaction date", // Synchrony Bank credit cards
+                        // European Credit Cards
+                        "datum",
+                        "date",
+                        "transaction date",
+                        "buchungsdatum",
+                        "wertstellung", // Deutsche Bank, Commerzbank credit cards - prioritize
+                        // "datum" over "wertstellung"
+                        "date",
+                        "transaction date",
+                        "datum",
+                        "valutadatum", // ING, Rabobank credit cards
+                        "date",
+                        "transaction date",
+                        "date de transaction",
+                        "date de valeur", // BNP Paribas, Crédit Agricole credit cards
+                        "date",
+                        "transaction date",
+                        "fecha",
+                        "fecha de valor", // BBVA, Santander credit cards
+                        "date",
+                        "transaction date",
+                        "data",
+                        "data di valuta", // UniCredit, Intesa Sanpaolo credit cards
+                        // Asian Credit Cards
+                        "date",
+                        "transaction date",
+                        "取引日",
+                        "決済日", // Japanese credit cards (JCB, MUFG Card)
+                        "date",
+                        "transaction date",
+                        "交易日期",
+                        "结算日期", // Chinese credit cards (UnionPay)
+                        "date",
+                        "transaction date",
+                        "거래일자",
+                        "결제일자", // Korean credit cards (KB Card, Shinhan Card)
+                        "date",
+                        "transaction date",
+                        "วันที่ทำรายการ",
+                        "วันที่ชำระ", // Thai credit cards
+                        // Indian Credit Cards
+                        "date",
+                        "transaction date",
+                        "value date",
+                        "posting date", // HDFC, ICICI, Axis credit cards
+                        // Global Payment Networks
+                        "transaction date",
+                        "date",
+                        "posting date", // Mastercard, Visa (global)
+                        "transaction date",
+                        "date", // American Express (global)
+                        "transaction date",
+                        "date", // Discover (global)
+                        "transaction date",
+                        "date", // JCB (Japan/Asia)
+                        "transaction date",
+                        "date", // UnionPay (China/Asia)
+                        // PayPal formats
+                        "date",
+                        "time",
+                        "datetime",
+                        "transaction date", // PayPal
+                        // Venmo formats
+                        "date",
+                        "transaction date",
+                        "datetime",
+                        "time", // Venmo
+                        // Zelle formats
+                        "date",
+                        "transaction date",
+                        "posted date",
+                        "posting date", // Zelle (via banks)
+                        // Apple Pay / Apple Card formats
+                        "date",
+                        "transaction date",
+                        "posted date",
+                        "purchase date", // Apple Pay, Apple Card
+                        // Google Pay formats
+                        "date",
+                        "transaction date",
+                        "datetime",
+                        "time", // Google Pay
+                        // PhonePe / UPI formats (India)
+                        "date",
+                        "transaction date",
+                        "datetime",
+                        "time", // PhonePe, UPI transactions
+                        // Paytm formats (India - wallet/payment service)
+                        "date",
+                        "transaction date",
+                        "transaction date & time",
+                        "datetime",
+                        "time", // Paytm
+                        // Amazon Pay formats
+                        "date",
+                        "transaction date",
+                        "order date", // Amazon Pay
+                        // Razor Pay formats (India)
+                        "date",
+                        "transaction date",
+                        "created at",
+                        "created_at", // Razor Pay
+                        // Indian Banks formats (DD/MM/YYYY date format)
+                        "date",
+                        "transaction date",
+                        "value date",
+                        "posting date", // State Bank of India, ICICI, HDFC, etc.
+                        "trade date",
+                        "date",
+                        "transaction date",
+                        "value date",
+                        "settlement date", // ICICI Direct (brokerage) - prioritize "trade date"
+                        // over "settlement date"
+                        // European Banks formats (DD/MM/YYYY or DD.MM.YYYY date format)
+                        "date",
+                        "transaction date",
+                        "value date",
+                        "posting date", // HSBC, Barclays, Lloyds (UK)
+                        "datum",
+                        "date",
+                        "transaction date",
+                        "buchungsdatum",
+                        "wertstellung", // Deutsche Bank, Commerzbank (Germany) - prioritize "datum"
+                        // over "wertstellung"
+                        "date",
+                        "transaction date",
+                        "datum",
+                        "valutadatum", // ING, Rabobank (Netherlands)
+                        "date",
+                        "transaction date",
+                        "date de transaction",
+                        "date de valeur", // BNP Paribas, Crédit Agricole (France)
+                        "date",
+                        "transaction date",
+                        "fecha",
+                        "fecha de valor", // BBVA, Santander (Spain)
+                        "date",
+                        "transaction date",
+                        "data",
+                        "data di valuta", // UniCredit, Intesa Sanpaolo (Italy)
+                        // Asian Banks formats
+                        "date",
+                        "transaction date",
+                        "取引日",
+                        "決済日", // Japanese banks (MUFG, SMBC, Mizuho)
+                        "date",
+                        "transaction date",
+                        "交易日期",
+                        "结算日期", // Chinese banks (ICBC, CCB, BOC)
+                        "date",
+                        "transaction date",
+                        "거래일자",
+                        "결제일자", // Korean banks (KB, Shinhan, Hana)
+                        "date",
+                        "transaction date",
+                        "วันที่ทำรายการ",
+                        "วันที่ชำระ", // Thai banks (Bangkok Bank, Kasikorn)
+                        "date",
+                        "transaction date",
+                        "tanggal transaksi",
+                        "tanggal penyelesaian", // Indonesian banks (BCA, Mandiri)
+                        "date",
+                        "transaction date",
+                        "ngày giao dịch",
+                        "ngày thanh toán", // Vietnamese banks (Vietcombank, BIDV)
+                        // Payment network formats (Mastercard, Visa)
+                        "transaction date",
+                        "date",
+                        "posting date", // Mastercard, Visa (via issuing banks)
+                        // Plaid (financial data aggregation - uses bank formats)
+                        "date",
+                        "transaction date",
+                        "authorized date",
+                        "posted date", // Plaid
+                        // Investment account formats (all major brokerages - Global)
+                        // US Investment Platforms
+                        "run date",
+                        "rundate",
+                        "run_date",
+                        "transaction date", // Fidelity
+                        "transaction date",
+                        "trade date",
+                        "settlement date",
+                        "settlement_date", // Fidelity NetBenefits - prioritize transaction date
+                        // over settlement
+                        "transaction date",
+                        "trade date",
+                        "settlement date",
+                        "settlement_date", // Vanguard, Schwab - prioritize transaction/trade date
+                        // over settlement
+                        "trade date",
+                        "tradedate",
+                        "trade_date",
+                        "transaction date",
+                        "settlement date", // TD Ameritrade, E*TRADE - prioritize trade date
+                        "date",
+                        "transaction date",
+                        "trade date",
+                        "settlement date", // Robinhood - prioritize transaction/trade date
+                        "transaction date",
+                        "trade date",
+                        "settlement date", // Morgan Stanley - prioritize transaction/trade date
+                        "date",
+                        "transaction date",
+                        "trade date",
+                        "settlement date", // Goldman Sachs - prioritize transaction/trade date
+                        "transaction date",
+                        "trade date",
+                        "date",
+                        "settlement date", // Generic US investment accounts - prioritize
+                        // transaction/trade date
+                        // European Investment Platforms
+                        "date",
+                        "transaction date",
+                        "trade date",
+                        "settlement date", // Interactive Brokers (Europe)
+                        "date",
+                        "transaction date",
+                        "trade date",
+                        "value date", // Degiro, eToro (Europe)
+                        "datum",
+                        "date",
+                        "transaction date",
+                        "buchungsdatum",
+                        "wertstellung", // German brokerages (Comdirect, Consorsbank) - prioritize
+                        // "datum" over "wertstellung"
+                        "date",
+                        "transaction date",
+                        "datum",
+                        "valutadatum", // Dutch brokerages (BinckBank, Lynx)
+                        "date",
+                        "transaction date",
+                        "date de transaction",
+                        "date de valeur", // French brokerages (Boursorama, Binck)
+                        "date",
+                        "transaction date",
+                        "fecha",
+                        "fecha de valor", // Spanish brokerages (SelfBank, Renta 4)
+                        "date",
+                        "transaction date",
+                        "data",
+                        "data di valuta", // Italian brokerages (FinecoBank, Directa)
+                        // Asian Investment Platforms
+                        "trade date",
+                        "date",
+                        "transaction date",
+                        "settlement date", // ICICI Direct, HDFC Securities (India) - prioritize
+                        // "trade date" over "settlement date"
+                        "date",
+                        "transaction date",
+                        "取引日",
+                        "決済日", // Japanese brokerages (MUFG Securities, Nomura)
+                        "date",
+                        "transaction date",
+                        "交易日期",
+                        "结算日期", // Chinese brokerages (CITIC Securities, Huatai Securities)
+                        "date",
+                        "transaction date",
+                        "거래일자",
+                        "결제일자", // Korean brokerages (Samsung Securities, Mirae Asset)
+                        "date",
+                        "transaction date",
+                        "วันที่ทำรายการ",
+                        "วันที่ชำระ", // Thai brokerages
+                        // Global Investment Platforms
+                        "trade date",
+                        "transaction date",
+                        "value date",
+                        "settlement date", // ICICI Direct (brokerage - India)
+                        "transaction date",
+                        "trade date",
+                        "settlement date", // Interactive Brokers (global)
+                        "date",
+                        "transaction date",
+                        "trade date", // eToro (global)
+                        "transaction date",
+                        "date", // Generic investment accounts (global)
+                        // Loan account formats (all loan types)
+                        "payment date",
+                        "payment_date",
+                        "paymentdate", // Mortgages, auto loans, student loans
+                        "due date",
+                        "duedate",
+                        "due_date",
+                        "payment date", // Loan payments
+                        "transaction date",
+                        "date", // Loan transactions
+                        // HSA (Health Savings Account) formats
+                        "transaction date",
+                        "date",
+                        "posting date", // HSA accounts
+                        "transaction date" // Generic fallback
+                );
         if (dateString == null || dateString.isEmpty()) {
-            logger.debug("parseTransaction Row {}: Date string is null or empty", rowNumber);
+            LOGGER.debug("parseTransaction Row {}: Date string is null or empty", rowNumber);
             return null; // Date is required
         }
-        
-        LocalDate date = parseDate(dateString);
+
+        final LocalDate date = parseDate(dateString);
         if (date == null) {
-            logger.warn("Row {}: Could not parse date: {}", rowNumber, dateString);
+            LOGGER.warn("Row {}: Could not parse date: {}", rowNumber, dateString);
             return null; // Date is required
         }
         transaction.setDate(date);
-        
+
         // Parse amount (supports all major US financial institutions and account types)
-        String amountString = row.findField(
-            // Common formats (checking/savings/money market)
-            "amount", "transaction amount", "debit", "credit", "transaction_amount",
-            "amount (usd)", "amount(usd)", "amount usd", "amount_usd",
-            // Major Banks - Checking/Savings/Money Market
-            "amount (usd)", "amount(usd)", "amount",                    // Chase
-            "amount", "debit/credit", "debit", "credit",              // Bank of America
-            "amount", "debit", "credit", "transaction amount",        // Wells Fargo
-            "amount", "debit amount", "credit amount", "transaction amount", // Citi
-            "amount", "transaction amount", "debit", "credit",        // Capital One
-            "amount", "debit", "credit",                               // US Bank
-            "amount", "debit", "credit",                               // TD Bank
-            "amount", "transaction amount",                            // Chime
-            "amount", "debit", "credit",                               // SoFi
-            "amount", "debit", "credit",                               // Citizens Bank
-            "amount", "transaction amount",                            // Regions Bank
-            "amount", "debit", "credit",                               // KeyBank
-            "amount", "transaction amount",                            // Navy Federal Credit Union
-            "amount", "debit", "credit",                               // First Tech Federal
-            "amount", "debit", "credit",                               // Synchrony Bank
-            // Credit Card formats (all major issuers - Global)
-            // US Credit Cards
-            "amount", "charge amount", "charge_amount",                // Credit cards
-            "purchase amount", "purchase_amount", "amount",            // Credit card purchases
-            "payment amount", "payment_amount", "amount",              // Credit card payments
-            "credit", "debit", "amount",                               // Credit card transactions
-            "amount", "transaction amount",                            // Generic credit cards
-            // European Credit Cards
-            "amount", "transaction amount", "betrag", "soll", "haben", // German credit cards
-            "amount", "transaction amount", "bedrag", "debet", "credit", // Dutch credit cards
-            "amount", "transaction amount", "montant", "débit", "crédit", // French credit cards
-            "amount", "transaction amount", "importe", "débito", "crédito", // Spanish credit cards
-            "amount", "transaction amount", "importo", "addebito", "accredito", // Italian credit cards
-            // Asian Credit Cards
-            "amount", "transaction amount", "金額", "取引金額",          // Japanese credit cards
-            "amount", "transaction amount", "金额", "交易金额",            // Chinese credit cards
-            "amount", "transaction amount", "금액", "거래금액",            // Korean credit cards
-            "amount", "transaction amount", "จำนวนเงิน", "ยอดเงิน",        // Thai credit cards
-            // Indian Credit Cards
-            "amount", "transaction amount", "debit", "credit",         // HDFC, ICICI, Axis credit cards
-            "amount (inr)", "amount(inr)", "amount inr",              // Indian credit cards with INR
-            // PayPal formats (prefer Net over Gross, as Net is the actual amount after fees)
-            "net", "gross", "fee", "amount", "transaction amount",    // PayPal (Net = actual amount, Gross = before fees)
-            // Venmo formats
-            "amount", "transaction amount", "net amount", "total",     // Venmo
-            // Zelle formats
-            "amount", "transaction amount", "debit", "credit",        // Zelle (via banks)
-            // Apple Pay / Apple Card formats
-            "amount", "transaction amount", "purchase amount",         // Apple Pay, Apple Card
-            // Google Pay formats
-            "amount", "transaction amount", "net amount",              // Google Pay
-            // PhonePe / UPI formats (India)
-            "amount", "transaction amount", "debit amount", "credit amount", // PhonePe, UPI (may use INR)
-            // Paytm formats (India - wallet/payment service)
-            "amount", "transaction amount", "transaction value", "credit", "debit", // Paytm (may use INR)
-            // Amazon Pay formats
-            "amount", "transaction amount", "order amount",            // Amazon Pay
-            // Razor Pay formats (India)
-            "amount", "transaction amount", "amount paid", "amount_paid", // Razor Pay
-            // Indian Banks formats (may use INR currency)
-            "amount", "transaction amount", "debit", "credit",         // State Bank of India, ICICI, HDFC, etc.
-            "amount (inr)", "amount(inr)", "amount inr",              // Indian banks with INR
-            "net amount", "gross amount", "amount", "transaction amount", "credit", "debit", // ICICI Direct (brokerage)
-            // European Banks formats (may use EUR, GBP, CHF, etc.)
-            "amount", "transaction amount", "betrag", "soll", "haben", // German banks (Deutsche Bank, Commerzbank)
-            "amount", "transaction amount", "bedrag", "debet", "credit", // Dutch banks (ING, Rabobank)
-            "amount", "transaction amount", "montant", "débit", "crédit", // French banks (BNP Paribas, Crédit Agricole)
-            "amount", "transaction amount", "importe", "débito", "crédito", // Spanish banks (BBVA, Santander)
-            "amount", "transaction amount", "importo", "addebito", "accredito", // Italian banks (UniCredit, Intesa)
-            "amount (eur)", "amount(eur)", "amount eur", "amount (gbp)", "amount(gbp)", "amount gbp", // European banks
-            // Asian Banks formats
-            "amount", "transaction amount", "金額", "取引金額",          // Japanese banks
-            "amount", "transaction amount", "金额", "交易金额",            // Chinese banks
-            "amount", "transaction amount", "금액", "거래금액",            // Korean banks
-            "amount", "transaction amount", "จำนวนเงิน", "ยอดเงิน",        // Thai banks
-            "amount", "transaction amount", "jumlah", "nominal",         // Indonesian banks
-            "amount", "transaction amount", "số tiền", "giá trị",       // Vietnamese banks
-            // Payment network formats (Mastercard, Visa)
-            "amount", "transaction amount", "debit", "credit",         // Mastercard, Visa (via issuing banks)
-            // Plaid formats
-            "amount", "transaction amount", "authorized amount",        // Plaid
-            // Investment account formats (all major brokerages - Global)
-            // US Investment Platforms
-            "amount ($)", "amount($)", "amount", "net amount",         // Fidelity, Vanguard
-            "amount", "net amount", "net_amount", "total",            // Schwab, TD Ameritrade
-            "total", "total amount", "total_amount", "amount",        // Investment transactions
-            "proceeds", "cost basis", "cost_basis", "amount",         // Investment sales
-            "amount", "net amount",                                    // Robinhood
-            "amount", "net amount", "total",                           // Morgan Stanley, Goldman Sachs
-            "amount", "net amount", "transaction amount", "contribution", "withdrawal", // Fidelity NetBenefits
-            "amount", "transaction amount",                            // E*TRADE, generic US investments
-            // European Investment Platforms
-            "amount", "net amount", "betrag", "nettobetrag",          // German brokerages
-            "amount", "net amount", "bedrag", "netto bedrag",          // Dutch brokerages
-            "amount", "net amount", "montant", "montant net",          // French brokerages
-            "amount", "net amount", "importe", "importe neto",        // Spanish brokerages
-            "amount", "net amount", "importo", "importo netto",        // Italian brokerages
-            "amount (eur)", "amount(eur)", "amount eur",              // European brokerages with EUR
-            "amount (gbp)", "amount(gbp)", "amount gbp",              // UK brokerages with GBP
-            "amount (chf)", "amount(chf)", "amount chf",              // Swiss brokerages with CHF
-            // Asian Investment Platforms
-            "amount", "net amount", "transaction amount", "credit", "debit", // ICICI Direct, HDFC Securities (India)
-            "amount (inr)", "amount(inr)", "amount inr",              // Indian brokerages with INR
-            "amount", "net amount", "金額", "取引金額",                  // Japanese brokerages
-            "amount", "net amount", "金额", "交易金额",                  // Chinese brokerages
-            "amount", "net amount", "금액", "거래금액",                  // Korean brokerages
-            "amount", "net amount", "จำนวนเงิน", "ยอดเงิน",              // Thai brokerages
-            // Global Investment Platforms
-            "net amount", "gross amount", "amount", "transaction amount", // ICICI Direct (brokerage - India)
-            "amount", "net amount", "total",                           // Interactive Brokers (global)
-            "amount", "transaction amount",                            // eToro (global)
-            "amount", "transaction amount",                            // Generic investment accounts (global)
-            // Loan account formats (all loan types)
-            "payment amount", "payment_amount", "payment",            // Loan payments
-            "principal", "interest", "amount",                        // Loan components
-            "total payment", "total_payment", "payment",               // Total loan payment
-            "escrow", "escrow payment", "escrow_payment",              // Mortgage escrow
-            "payment", "amount",                                      // Generic loan payments
-            // HSA (Health Savings Account) formats
-            "amount", "transaction amount", "debit", "credit",         // HSA accounts
-            "amount"                                                   // Generic fallback
-        );
+        final String amountString =
+                row.findField(
+                        // Common formats (checking/savings/money market)
+                        "amount",
+                        "transaction amount",
+                        "debit",
+                        "credit",
+                        "transaction_amount",
+                        "amount (usd)",
+                        "amount(usd)",
+                        "amount usd",
+                        "amount_usd",
+                        // Major Banks - Checking/Savings/Money Market
+                        "amount (usd)",
+                        "amount(usd)",
+                        "amount", // Chase
+                        "amount",
+                        "debit/credit",
+                        "debit",
+                        "credit", // Bank of America
+                        "amount",
+                        "debit",
+                        "credit",
+                        "transaction amount", // Wells Fargo
+                        "amount",
+                        "debit amount",
+                        "credit amount",
+                        "transaction amount", // Citi
+                        "amount",
+                        "transaction amount",
+                        "debit",
+                        "credit", // Capital One
+                        "amount",
+                        "debit",
+                        "credit", // US Bank
+                        "amount",
+                        "debit",
+                        "credit", // TD Bank
+                        "amount",
+                        "transaction amount", // Chime
+                        "amount",
+                        "debit",
+                        "credit", // SoFi
+                        "amount",
+                        "debit",
+                        "credit", // Citizens Bank
+                        "amount",
+                        "transaction amount", // Regions Bank
+                        "amount",
+                        "debit",
+                        "credit", // KeyBank
+                        "amount",
+                        "transaction amount", // Navy Federal Credit Union
+                        "amount",
+                        "debit",
+                        "credit", // First Tech Federal
+                        "amount",
+                        "debit",
+                        "credit", // Synchrony Bank
+                        // Credit Card formats (all major issuers - Global)
+                        // US Credit Cards
+                        "amount",
+                        "charge amount",
+                        "charge_amount", // Credit cards
+                        "purchase amount",
+                        "purchase_amount",
+                        "amount", // Credit card purchases
+                        "payment amount",
+                        "payment_amount",
+                        "amount", // Credit card payments
+                        "credit",
+                        "debit",
+                        "amount", // Credit card transactions
+                        "amount",
+                        "transaction amount", // Generic credit cards
+                        // European Credit Cards
+                        "amount",
+                        "transaction amount",
+                        "betrag",
+                        "soll",
+                        "haben", // German credit cards
+                        "amount",
+                        "transaction amount",
+                        "bedrag",
+                        "debet",
+                        "credit", // Dutch credit cards
+                        "amount",
+                        "transaction amount",
+                        "montant",
+                        "débit",
+                        "crédit", // French credit cards
+                        "amount",
+                        "transaction amount",
+                        "importe",
+                        "débito",
+                        "crédito", // Spanish credit cards
+                        "amount",
+                        "transaction amount",
+                        "importo",
+                        "addebito",
+                        "accredito", // Italian credit cards
+                        // Asian Credit Cards
+                        "amount",
+                        "transaction amount",
+                        "金額",
+                        "取引金額", // Japanese credit cards
+                        "amount",
+                        "transaction amount",
+                        "金额",
+                        "交易金额", // Chinese credit cards
+                        "amount",
+                        "transaction amount",
+                        "금액",
+                        "거래금액", // Korean credit cards
+                        "amount",
+                        "transaction amount",
+                        "จำนวนเงิน",
+                        "ยอดเงิน", // Thai credit cards
+                        // Indian Credit Cards
+                        "amount",
+                        "transaction amount",
+                        "debit",
+                        "credit", // HDFC, ICICI, Axis credit cards
+                        "amount (inr)",
+                        "amount(inr)",
+                        "amount inr", // Indian credit cards with INR
+                        // PayPal formats (prefer Net over Gross, as Net is the actual amount after
+                        // fees)
+                        "net",
+                        "gross",
+                        "fee",
+                        "amount",
+                        "transaction amount", // PayPal (Net = actual amount, Gross = before fees)
+                        // Venmo formats
+                        "amount",
+                        "transaction amount",
+                        "net amount",
+                        "total", // Venmo
+                        // Zelle formats
+                        "amount",
+                        "transaction amount",
+                        "debit",
+                        "credit", // Zelle (via banks)
+                        // Apple Pay / Apple Card formats
+                        "amount",
+                        "transaction amount",
+                        "purchase amount", // Apple Pay, Apple Card
+                        // Google Pay formats
+                        "amount",
+                        "transaction amount",
+                        "net amount", // Google Pay
+                        // PhonePe / UPI formats (India)
+                        "amount",
+                        "transaction amount",
+                        "debit amount",
+                        "credit amount", // PhonePe, UPI (may use INR)
+                        // Paytm formats (India - wallet/payment service)
+                        "amount",
+                        "transaction amount",
+                        "transaction value",
+                        "credit",
+                        "debit", // Paytm (may use INR)
+                        // Amazon Pay formats
+                        "amount",
+                        "transaction amount",
+                        "order amount", // Amazon Pay
+                        // Razor Pay formats (India)
+                        "amount",
+                        "transaction amount",
+                        "amount paid",
+                        "amount_paid", // Razor Pay
+                        // Indian Banks formats (may use INR currency)
+                        "amount",
+                        "transaction amount",
+                        "debit",
+                        "credit", // State Bank of India, ICICI, HDFC, etc.
+                        "amount (inr)",
+                        "amount(inr)",
+                        "amount inr", // Indian banks with INR
+                        "net amount",
+                        "gross amount",
+                        "amount",
+                        "transaction amount",
+                        "credit",
+                        "debit", // ICICI Direct (brokerage)
+                        // European Banks formats (may use EUR, GBP, CHF, etc.)
+                        "amount",
+                        "transaction amount",
+                        "betrag",
+                        "soll",
+                        "haben", // German banks (Deutsche Bank, Commerzbank)
+                        "amount",
+                        "transaction amount",
+                        "bedrag",
+                        "debet",
+                        "credit", // Dutch banks (ING, Rabobank)
+                        "amount",
+                        "transaction amount",
+                        "montant",
+                        "débit",
+                        "crédit", // French banks (BNP Paribas, Crédit Agricole)
+                        "amount",
+                        "transaction amount",
+                        "importe",
+                        "débito",
+                        "crédito", // Spanish banks (BBVA, Santander)
+                        "amount",
+                        "transaction amount",
+                        "importo",
+                        "addebito",
+                        "accredito", // Italian banks (UniCredit, Intesa)
+                        "amount (eur)",
+                        "amount(eur)",
+                        "amount eur",
+                        "amount (gbp)",
+                        "amount(gbp)",
+                        "amount gbp", // European banks
+                        // Asian Banks formats
+                        "amount",
+                        "transaction amount",
+                        "金額",
+                        "取引金額", // Japanese banks
+                        "amount",
+                        "transaction amount",
+                        "金额",
+                        "交易金额", // Chinese banks
+                        "amount",
+                        "transaction amount",
+                        "금액",
+                        "거래금액", // Korean banks
+                        "amount",
+                        "transaction amount",
+                        "จำนวนเงิน",
+                        "ยอดเงิน", // Thai banks
+                        "amount",
+                        "transaction amount",
+                        "jumlah",
+                        "nominal", // Indonesian banks
+                        "amount",
+                        "transaction amount",
+                        "số tiền",
+                        "giá trị", // Vietnamese banks
+                        // Payment network formats (Mastercard, Visa)
+                        "amount",
+                        "transaction amount",
+                        "debit",
+                        "credit", // Mastercard, Visa (via issuing banks)
+                        // Plaid formats
+                        "amount",
+                        "transaction amount",
+                        "authorized amount", // Plaid
+                        // Investment account formats (all major brokerages - Global)
+                        // US Investment Platforms
+                        "amount ($)",
+                        "amount($)",
+                        "amount",
+                        "net amount", // Fidelity, Vanguard
+                        "amount",
+                        "net amount",
+                        "net_amount",
+                        "total", // Schwab, TD Ameritrade
+                        "total",
+                        "total amount",
+                        "total_amount",
+                        "amount", // Investment transactions
+                        "proceeds",
+                        "cost basis",
+                        "cost_basis",
+                        "amount", // Investment sales
+                        "amount",
+                        "net amount", // Robinhood
+                        "amount",
+                        "net amount",
+                        "total", // Morgan Stanley, Goldman Sachs
+                        "amount",
+                        "net amount",
+                        "transaction amount",
+                        "contribution",
+                        "withdrawal", // Fidelity NetBenefits
+                        "amount",
+                        "transaction amount", // E*TRADE, generic US investments
+                        // European Investment Platforms
+                        "amount",
+                        "net amount",
+                        "betrag",
+                        "nettobetrag", // German brokerages
+                        "amount",
+                        "net amount",
+                        "bedrag",
+                        "netto bedrag", // Dutch brokerages
+                        "amount",
+                        "net amount",
+                        "montant",
+                        "montant net", // French brokerages
+                        "amount",
+                        "net amount",
+                        "importe",
+                        "importe neto", // Spanish brokerages
+                        "amount",
+                        "net amount",
+                        "importo",
+                        "importo netto", // Italian brokerages
+                        "amount (eur)",
+                        "amount(eur)",
+                        "amount eur", // European brokerages with EUR
+                        "amount (gbp)",
+                        "amount(gbp)",
+                        "amount gbp", // UK brokerages with GBP
+                        "amount (chf)",
+                        "amount(chf)",
+                        "amount chf", // Swiss brokerages with CHF
+                        // Asian Investment Platforms
+                        "amount",
+                        "net amount",
+                        "transaction amount",
+                        "credit",
+                        "debit", // ICICI Direct, HDFC Securities (India)
+                        "amount (inr)",
+                        "amount(inr)",
+                        "amount inr", // Indian brokerages with INR
+                        "amount",
+                        "net amount",
+                        "金額",
+                        "取引金額", // Japanese brokerages
+                        "amount",
+                        "net amount",
+                        "金额",
+                        "交易金额", // Chinese brokerages
+                        "amount",
+                        "net amount",
+                        "금액",
+                        "거래금액", // Korean brokerages
+                        "amount",
+                        "net amount",
+                        "จำนวนเงิน",
+                        "ยอดเงิน", // Thai brokerages
+                        // Global Investment Platforms
+                        "net amount",
+                        "gross amount",
+                        "amount",
+                        "transaction amount", // ICICI Direct (brokerage - India)
+                        "amount",
+                        "net amount",
+                        "total", // Interactive Brokers (global)
+                        "amount",
+                        "transaction amount", // eToro (global)
+                        "amount",
+                        "transaction amount", // Generic investment accounts (global)
+                        // Loan account formats (all loan types)
+                        "payment amount",
+                        "payment_amount",
+                        "payment", // Loan payments
+                        "principal",
+                        "interest",
+                        "amount", // Loan components
+                        "total payment",
+                        "total_payment",
+                        "payment", // Total loan payment
+                        "escrow",
+                        "escrow payment",
+                        "escrow_payment", // Mortgage escrow
+                        "payment",
+                        "amount", // Generic loan payments
+                        // HSA (Health Savings Account) formats
+                        "amount",
+                        "transaction amount",
+                        "debit",
+                        "credit", // HSA accounts
+                        "amount" // Generic fallback
+                );
         if (amountString == null || amountString.isEmpty()) {
             return null; // Amount is required
         }
-        
+
         // Parse amount with currency detection (use header line and filename for better detection)
-        AmountParseResult amountResult = parseAmountWithCurrency(amountString, headerLine, filename);
+        final AmountParseResult amountResult =
+                parseAmountWithCurrency(amountString, headerLine, filename);
         if (amountResult.amount == null) {
-            logger.warn("Row {}: Could not parse amount: {}", rowNumber, amountString);
+            LOGGER.warn("Row {}: Could not parse amount: {}", rowNumber, amountString);
             return null; // Amount is required
         }
         BigDecimal amount = amountResult.amount;
-        
+
+        // Debit/Credit split-column fix. Many bank exports (BoA, Wells Fargo,
+        // older Chase, most UK/EU banks, UPI/PhonePe India) use two columns —
+        // one for money out ("Debit"/"Withdrawal"/"Debit Amount") and one for
+        // money in ("Credit"/"Deposit"/"Credit Amount") — with the amount
+        // magnitude in whichever column applies and the sign *implicit*.
+        //
+        // The prior parser returned the first non-empty match from `findField`
+        // without caring which column it came from, so a $5 coffee on a
+        // checking account was parsed as +$5 (income-shaped) instead of -$5.
+        //
+        // If both a debit-shaped and a credit-shaped header exist in the
+        // schema, we pull the debit and credit cells for THIS row and combine:
+        //   debit non-empty → negate (money out)
+        //   credit non-empty → keep positive (money in)
+        //   both empty → already handled above
+        //   both non-empty → credit wins (rare; usually a parse artifact)
+        // We only override when it improves the signal — a single-column
+        // "Amount" file is untouched.
+        final BigDecimal splitAmount = applyDebitCreditSplit(row, amountResult, headerLine, filename);
+        if (splitAmount != null) {
+            amount = splitAmount;
+        }
+
         // CRITICAL: Reverse sign for credit card accounts
-        // Credit card imports typically have expenses as positive, but backend stores them as negative
+        // Credit card imports typically have expenses as positive, but backend stores them as
+        // negative
         // For credit card accounts: reverse the sign to match backend convention
         if (detectedAccount != null && detectedAccount.getAccountType() != null) {
-            String accountType = detectedAccount.getAccountType().toLowerCase();
-            if (accountType.contains("credit") || accountType.equals("creditcard") || accountType.equals("credit_card")) {
+            final String accountType = detectedAccount.getAccountType().toLowerCase(Locale.ROOT);
+            if (accountType.contains("credit")
+                    || "creditcard".equals(accountType)
+                    || "credit_card".equals(accountType)) {
                 amount = amount.negate();
-                logger.debug("Reversed sign for credit card account: {} → {}", amountResult.amount, amount);
+                LOGGER.debug(
+                        "Reversed sign for credit card account: {} → {}",
+                        amountResult.amount,
+                        amount);
             }
         }
-        
-        logger.debug("Setting amount on parsed transaction: {}", amount);
+
+        LOGGER.debug("Setting amount on parsed transaction: {}", amount);
         transaction.setAmount(amount);
         transaction.setCurrencyCode(amountResult.currencyCode);
-        
+        transaction.setFlowDirection(FlowDirection.fromSignedAmount(amount));
+
         // Parse description (supports all major US financial institutions and account types)
-        String description = row.findField(
-            // Common formats (checking/savings/money market)
-            "description", "memo", "details", "merchant", "payee", "name", "payee name",
-            "transaction description", "transaction_description", "transaction details",
-            // Major Banks - Checking/Savings/Money Market
-            "description", "details", "memo",                        // Chase
-            "description", "payee", "memo",                          // Bank of America
-            "description", "memo", "details",                       // Wells Fargo
-            "description", "transaction description", "memo",        // Citi
-            "description", "merchant", "memo",                      // Capital One
-            "description", "memo", "transaction description",        // US Bank
-            "description", "memo",                                   // TD Bank
-            "description", "merchant", "memo",                      // Chime
-            "description", "memo", "transaction description",        // SoFi
-            "description", "memo",                                   // Citizens Bank
-            "description", "memo",                                   // Regions Bank
-            "description", "memo",                                   // KeyBank
-            "description", "memo",                                   // Navy Federal Credit Union
-            "description", "memo",                                   // First Tech Federal
-            "description", "memo",                                   // Synchrony Bank
-            // US Credit Unions
-            "description", "memo",                                   // State Employees Credit Union
-            "description", "memo",                                   // School First Federal Credit Union
-            "description", "memo",                                   // PenFed Credit Union
-            "description", "memo",                                   // Boeing Employees Credit Union
-            "description", "memo",                                   // Alliant Credit Union
-            "description", "memo",                                   // America First Credit Union
-            "description", "memo",                                   // Golden 1 Credit Union
-            "description", "memo",                                   // Mountain America Credit Union
-            "description", "memo",                                   // Suncoast Credit Union
-            "description", "memo",                                   // Randolph-Brooks Federal Credit Union
-            "description", "memo",                                   // Lake Michigan Credit Union
-            "description", "memo",                                   // Security Service Federal Credit Union
-            "description", "memo",                                   // FourLeaf Federal Credit Union
-            "description", "memo",                                   // Idaho Central Credit Union
-            "description", "memo",                                   // Global Credit Union
-            "description", "memo",                                   // Digital Federal Credit Union
-            "description", "memo",                                   // GreenState Credit Union
-            // Credit Card formats (all major issuers)
-            "description", "merchant name", "merchant_name",        // Credit cards
-            "merchant", "vendor", "store", "description",            // Credit card merchants
-            "transaction description", "purchase description",       // Credit card purchases
-            "category", "transaction category", "description",      // Some credit cards put description in category
-            "description", "merchant",                               // Generic credit cards
-            // PayPal formats
-            "name", "description", "type", "from email address", "to email address", "item title", // PayPal
-            "note", "memo", "description",                            // PayPal notes
-            // Venmo formats
-            "description", "note", "memo", "what for", "note to self", // Venmo
-            "from", "to", "name",                                     // Venmo sender/recipient
-            // Zelle formats
-            "description", "memo", "note", "transaction description", // Zelle (via banks)
-            "recipient", "sender", "name",                           // Zelle recipient/sender
-            // Apple Pay / Apple Card formats
-            "description", "merchant", "merchant name", "transaction description", // Apple Pay, Apple Card
-            "location", "store",                                      // Apple Pay location/store
-            // Google Pay formats
-            "description", "merchant", "merchant name", "note",      // Google Pay
-            "recipient", "sender", "name",                           // Google Pay P2P
-            // PhonePe / UPI formats (India)
-            "description", "remarks", "note", "transaction description", // PhonePe, UPI
-            "beneficiary name", "payer name", "upi id",             // UPI transaction details
-            // Paytm formats (India - wallet/payment service)
-            "description", "transaction description", "merchant name", "merchant", // Paytm
-            "note", "remarks", "transaction type", "payment method", // Paytm transaction details
-            // Amazon Pay formats
-            "description", "merchant", "order description",          // Amazon Pay
-            // Razor Pay formats (India)
-            "description", "notes", "description",                   // Razor Pay
-            // Indian Banks formats
-            "description", "narration", "particulars", "transaction description", // State Bank of India, ICICI, HDFC, etc.
-            "beneficiary", "payer", "remarks",                      // Indian bank transaction details
-            // European Banks formats
-            "description", "memo", "details", "verwendungszweck", "zweck", // German banks
-            "description", "memo", "details", "omschrijving", "beschrijving", // Dutch banks
-            "description", "memo", "details", "libellé", "détails", // French banks
-            "description", "memo", "details", "concepto", "detalles", // Spanish banks
-            "description", "memo", "details", "causale", "dettagli", // Italian banks
-            // Asian Banks formats
-            "description", "memo", "details", "摘要", "备注",            // Chinese banks
-            "description", "memo", "details", "摘要", "備考",            // Japanese banks
-            "description", "memo", "details", "내역", "비고",            // Korean banks
-            "description", "memo", "details", "รายละเอียด", "หมายเหตุ",  // Thai banks
-            "description", "memo", "details", "keterangan", "catatan", // Indonesian banks
-            "description", "memo", "details", "mô tả", "ghi chú",      // Vietnamese banks
-            // Payment network formats (Mastercard, Visa)
-            "description", "merchant name", "merchant",              // Mastercard, Visa (via issuing banks)
-            // Plaid formats
-            "description", "merchant name", "name", "original description", // Plaid
-            // Investment account formats (all major brokerages)
-            "transaction description", "transaction_description",    // Fidelity, Vanguard
-            "action", "transaction type", "transaction_type",       // Investment actions
-            "security description", "security_description", "symbol", // Investment securities
-            "description", "memo", "transaction description",       // Generic investment description
-            "description", "memo",                                   // Robinhood, Morgan Stanley, Goldman Sachs
-            "description", "transaction description",                // E*TRADE, Schwab, TD Ameritrade
-            "transaction description", "description", "action description", // Fidelity NetBenefits
-            "security name", "security", "symbol", "company name", "transaction description", // Fidelity NetBenefits - prioritize "security name"
-            "particulars", "transaction description", "description", "narration", // ICICI Direct (brokerage) - prioritize "particulars"
-            "particulars", "security name", "symbol", "scrip name", "company name", // ICICI Direct (brokerage) - prioritize "particulars"
-            // Loan account formats (all loan types)
-            "description", "transaction description", "memo",        // Loan transactions
-            "payment type", "payment_type", "description",           // Loan payment types
-            "memo", "notes", "description",                          // Loan notes
-            // HSA (Health Savings Account) formats
-            "description", "memo", "transaction description",        // HSA accounts
-            "description"                                            // Generic fallback
-        );
-        transaction.setDescription(description != null && !description.isEmpty() 
-            ? description : "Imported Transaction");
-        
+        final String description =
+                row.findField(
+                        // Common formats (checking/savings/money market)
+                        "description",
+                        "memo",
+                        "details",
+                        "merchant",
+                        "payee",
+                        "name",
+                        "payee name",
+                        "transaction description",
+                        "transaction_description",
+                        "transaction details",
+                        // Major Banks - Checking/Savings/Money Market
+                        "description",
+                        "details",
+                        "memo", // Chase
+                        "description",
+                        "payee",
+                        "memo", // Bank of America
+                        "description",
+                        "memo",
+                        "details", // Wells Fargo
+                        "description",
+                        "transaction description",
+                        "memo", // Citi
+                        "description",
+                        "merchant",
+                        "memo", // Capital One
+                        "description",
+                        "memo",
+                        "transaction description", // US Bank
+                        "description",
+                        "memo", // TD Bank
+                        "description",
+                        "merchant",
+                        "memo", // Chime
+                        "description",
+                        "memo",
+                        "transaction description", // SoFi
+                        "description",
+                        "memo", // Citizens Bank
+                        "description",
+                        "memo", // Regions Bank
+                        "description",
+                        "memo", // KeyBank
+                        "description",
+                        "memo", // Navy Federal Credit Union
+                        "description",
+                        "memo", // First Tech Federal
+                        "description",
+                        "memo", // Synchrony Bank
+                        // US Credit Unions
+                        "description",
+                        "memo", // State Employees Credit Union
+                        "description",
+                        "memo", // School First Federal Credit Union
+                        "description",
+                        "memo", // PenFed Credit Union
+                        "description",
+                        "memo", // Boeing Employees Credit Union
+                        "description",
+                        "memo", // Alliant Credit Union
+                        "description",
+                        "memo", // America First Credit Union
+                        "description",
+                        "memo", // Golden 1 Credit Union
+                        "description",
+                        "memo", // Mountain America Credit Union
+                        "description",
+                        "memo", // Suncoast Credit Union
+                        "description",
+                        "memo", // Randolph-Brooks Federal Credit Union
+                        "description",
+                        "memo", // Lake Michigan Credit Union
+                        "description",
+                        "memo", // Security Service Federal Credit Union
+                        "description",
+                        "memo", // FourLeaf Federal Credit Union
+                        "description",
+                        "memo", // Idaho Central Credit Union
+                        "description",
+                        "memo", // Global Credit Union
+                        "description",
+                        "memo", // Digital Federal Credit Union
+                        "description",
+                        "memo", // GreenState Credit Union
+                        // Credit Card formats (all major issuers)
+                        "description",
+                        "merchant name",
+                        "merchant_name", // Credit cards
+                        "merchant",
+                        "vendor",
+                        "store",
+                        "description", // Credit card merchants
+                        "transaction description",
+                        "purchase description", // Credit card purchases
+                        "category",
+                        "transaction category",
+                        "description", // Some credit cards put description in category
+                        "description",
+                        "merchant", // Generic credit cards
+                        // PayPal formats
+                        "name",
+                        "description",
+                        "type",
+                        "from email address",
+                        "to email address",
+                        "item title", // PayPal
+                        "note",
+                        "memo",
+                        "description", // PayPal notes
+                        // Venmo formats
+                        "description",
+                        "note",
+                        "memo",
+                        "what for",
+                        "note to self", // Venmo
+                        "from",
+                        "to",
+                        "name", // Venmo sender/recipient
+                        // Zelle formats
+                        "description",
+                        "memo",
+                        "note",
+                        "transaction description", // Zelle (via banks)
+                        "recipient",
+                        "sender",
+                        "name", // Zelle recipient/sender
+                        // Apple Pay / Apple Card formats
+                        "description",
+                        "merchant",
+                        "merchant name",
+                        "transaction description", // Apple Pay, Apple Card
+                        "location",
+                        "store", // Apple Pay location/store
+                        // Google Pay formats
+                        "description",
+                        "merchant",
+                        "merchant name",
+                        "note", // Google Pay
+                        "recipient",
+                        "sender",
+                        "name", // Google Pay P2P
+                        // PhonePe / UPI formats (India)
+                        "description",
+                        "remarks",
+                        "note",
+                        "transaction description", // PhonePe, UPI
+                        "beneficiary name",
+                        "payer name",
+                        "upi id", // UPI transaction details
+                        // Paytm formats (India - wallet/payment service)
+                        "description",
+                        "transaction description",
+                        "merchant name",
+                        "merchant", // Paytm
+                        "note",
+                        "remarks",
+                        "transaction type",
+                        "payment method", // Paytm transaction details
+                        // Amazon Pay formats
+                        "description",
+                        "merchant",
+                        "order description", // Amazon Pay
+                        // Razor Pay formats (India)
+                        "description",
+                        "notes",
+                        "description", // Razor Pay
+                        // Indian Banks formats
+                        "description",
+                        "narration",
+                        "particulars",
+                        "transaction description", // State Bank of India, ICICI, HDFC, etc.
+                        "beneficiary",
+                        "payer",
+                        "remarks", // Indian bank transaction details
+                        // European Banks formats
+                        "description",
+                        "memo",
+                        "details",
+                        "verwendungszweck",
+                        "zweck", // German banks
+                        "description",
+                        "memo",
+                        "details",
+                        "omschrijving",
+                        "beschrijving", // Dutch banks
+                        "description",
+                        "memo",
+                        "details",
+                        "libellé",
+                        "détails", // French banks
+                        "description",
+                        "memo",
+                        "details",
+                        "concepto",
+                        "detalles", // Spanish banks
+                        "description",
+                        "memo",
+                        "details",
+                        "causale",
+                        "dettagli", // Italian banks
+                        // Asian Banks formats
+                        "description",
+                        "memo",
+                        "details",
+                        "摘要",
+                        "备注", // Chinese banks
+                        "description",
+                        "memo",
+                        "details",
+                        "摘要",
+                        "備考", // Japanese banks
+                        "description",
+                        "memo",
+                        "details",
+                        "내역",
+                        "비고", // Korean banks
+                        "description",
+                        "memo",
+                        "details",
+                        "รายละเอียด",
+                        "หมายเหตุ", // Thai banks
+                        "description",
+                        "memo",
+                        "details",
+                        "keterangan",
+                        "catatan", // Indonesian banks
+                        "description",
+                        "memo",
+                        "details",
+                        "mô tả",
+                        "ghi chú", // Vietnamese banks
+                        // Payment network formats (Mastercard, Visa)
+                        "description",
+                        "merchant name",
+                        "merchant", // Mastercard, Visa (via issuing banks)
+                        // Plaid formats
+                        "description",
+                        "merchant name",
+                        "name",
+                        "original description", // Plaid
+                        // Investment account formats (all major brokerages)
+                        "transaction description",
+                        "transaction_description", // Fidelity, Vanguard
+                        "action",
+                        "transaction type",
+                        "transaction_type", // Investment actions
+                        "security description",
+                        "security_description",
+                        "symbol", // Investment securities
+                        "description",
+                        "memo",
+                        "transaction description", // Generic investment description
+                        "description",
+                        "memo", // Robinhood, Morgan Stanley, Goldman Sachs
+                        "description",
+                        "transaction description", // E*TRADE, Schwab, TD Ameritrade
+                        "transaction description",
+                        "description",
+                        "action description", // Fidelity NetBenefits
+                        "security name",
+                        "security",
+                        "symbol",
+                        "company name",
+                        "transaction description", // Fidelity NetBenefits - prioritize "security
+                        // name"
+                        "particulars",
+                        "transaction description",
+                        "description",
+                        "narration", // ICICI Direct (brokerage) - prioritize "particulars"
+                        "particulars",
+                        "security name",
+                        "symbol",
+                        "scrip name",
+                        "company name", // ICICI Direct (brokerage) - prioritize "particulars"
+                        // Loan account formats (all loan types)
+                        "description",
+                        "transaction description",
+                        "memo", // Loan transactions
+                        "payment type",
+                        "payment_type",
+                        "description", // Loan payment types
+                        "memo",
+                        "notes",
+                        "description", // Loan notes
+                        // HSA (Health Savings Account) formats
+                        "description",
+                        "memo",
+                        "transaction description", // HSA accounts
+                        "description" // Generic fallback
+                );
+        transaction.setDescription(
+                description != null && !description.isEmpty()
+                        ? description
+                        : "Imported Transaction");
+
+        // Parse location (if provided separately)
+        final String location = row.findField("location", "store", "city", "state", "branch", "address");
+        transaction.setLocation(location);
+
         // Parse merchant name (supports all account types from all institutions)
-        String merchantName = row.findField(
-            // Common formats (checking/savings/money market)
-            "merchant", "merchant name", "merchant_name", "payee", "name", "payee_name",
-            // Credit card specific (all issuers)
-            "merchant", "vendor", "store", "merchant name", "merchant_name",
-            // Synchrony Bank
-            "merchant", "merchant name", "description",
-            // PayPal formats
-            "name", "from email address", "to email address", "item title", // PayPal
-            // Venmo formats
-            "from", "to", "name", "recipient", "sender",              // Venmo
-            // Zelle formats
-            "recipient", "sender", "name", "merchant",                // Zelle
-            // Apple Pay / Apple Card formats
-            "merchant", "merchant name", "store", "location",        // Apple Pay, Apple Card
-            // Google Pay formats
-            "merchant", "merchant name", "recipient", "sender",      // Google Pay
-            // PhonePe / UPI formats (India)
-            "beneficiary name", "payer name", "merchant",            // PhonePe, UPI
-            // Paytm formats (India - wallet/payment service)
-            "merchant name", "merchant", "shop name", "store name", // Paytm
-            "business name", "recipient", "sender", "name",         // Paytm P2P transactions
-            // Amazon Pay formats
-            "merchant", "seller", "store",                           // Amazon Pay
-            // Razor Pay formats (India)
-            "merchant", "customer",                                  // Razor Pay
-            // Indian Banks formats
-            "beneficiary", "payer", "merchant",                      // State Bank of India, ICICI, HDFC, etc.
-            "beneficiary name", "payer name", "counter party",      // ICICI Direct (brokerage)
-            // Payment network formats (Mastercard, Visa)
-            "merchant name", "merchant", "vendor",                    // Mastercard, Visa (via issuing banks)
-            // Plaid formats
-            "merchant name", "merchant", "name",                      // Plaid
-            // Investment specific (all brokerages)
-            "security description", "security_description", "symbol", "company name",
-            "security", "symbol",                                    // Fidelity, Vanguard, Schwab, etc.
-            "security name", "security_name",                       // Fidelity NetBenefits - prioritize security name for merchant
-            // Generic
-            "payee", "name", "merchant"
-        );
+        final String merchantName =
+                row.findField(
+                        // Common formats (checking/savings/money market)
+                        "merchant",
+                        "merchant name",
+                        "merchant_name",
+                        "payee",
+                        "name",
+                        "payee_name",
+                        // Credit card specific (all issuers)
+                        "merchant",
+                        "vendor",
+                        "store",
+                        "merchant name",
+                        "merchant_name",
+                        // Synchrony Bank
+                        "merchant",
+                        "merchant name",
+                        "description",
+                        // PayPal formats
+                        "name",
+                        "from email address",
+                        "to email address",
+                        "item title", // PayPal
+                        // Venmo formats
+                        "from",
+                        "to",
+                        "name",
+                        "recipient",
+                        "sender", // Venmo
+                        // Zelle formats
+                        "recipient",
+                        "sender",
+                        "name",
+                        "merchant", // Zelle
+                        // Apple Pay / Apple Card formats
+                        "merchant",
+                        "merchant name",
+                        "store",
+                        "location", // Apple Pay, Apple Card
+                        // Google Pay formats
+                        "merchant",
+                        "merchant name",
+                        "recipient",
+                        "sender", // Google Pay
+                        // PhonePe / UPI formats (India)
+                        "beneficiary name",
+                        "payer name",
+                        "merchant", // PhonePe, UPI
+                        // Paytm formats (India - wallet/payment service)
+                        "merchant name",
+                        "merchant",
+                        "shop name",
+                        "store name", // Paytm
+                        "business name",
+                        "recipient",
+                        "sender",
+                        "name", // Paytm P2P transactions
+                        // Amazon Pay formats
+                        "merchant",
+                        "seller",
+                        "store", // Amazon Pay
+                        // Razor Pay formats (India)
+                        "merchant",
+                        "customer", // Razor Pay
+                        // Indian Banks formats
+                        "beneficiary",
+                        "payer",
+                        "merchant", // State Bank of India, ICICI, HDFC, etc.
+                        "beneficiary name",
+                        "payer name",
+                        "counter party", // ICICI Direct (brokerage)
+                        // Payment network formats (Mastercard, Visa)
+                        "merchant name",
+                        "merchant",
+                        "vendor", // Mastercard, Visa (via issuing banks)
+                        // Plaid formats
+                        "merchant name",
+                        "merchant",
+                        "name", // Plaid
+                        // Investment specific (all brokerages)
+                        "security description",
+                        "security_description",
+                        "symbol",
+                        "company name",
+                        "security",
+                        "symbol", // Fidelity, Vanguard, Schwab, etc.
+                        "security name",
+                        "security_name", // Fidelity NetBenefits - prioritize security name for
+                        // merchant
+                        // Generic
+                        "payee",
+                        "name",
+                        "merchant");
         // Normalize merchant name (lenient normalization for better matching)
-        if (merchantName != null && !merchantName.trim().isEmpty()) {
+        if (merchantName != null && !merchantName.isBlank()) {
             transaction.setMerchantName(StringUtils.normalizeMerchantName(merchantName));
         } else {
             transaction.setMerchantName(merchantName);
         }
-        
+
         // Parse category (supports all account types from all institutions)
-        String categoryString = row.findField(
-            // Common formats (checking/savings/money market)
-            "category", "transaction category", "type", "transaction_type",
-            // Credit card specific (all issuers)
-            "category", "merchant category", "merchant_category", "mcc", "mcc code",
-            "transaction category",                                   // Chase, Amex, Discover, etc.
-            // PayPal specific
-            "type", "category", "transaction type",                  // PayPal transaction types
-            // Synchrony Bank specific
-            "category", "type", "transaction category",              // Synchrony Bank
-            // Venmo specific
-            "type", "category", "transaction type",                  // Venmo transaction types
-            // Zelle specific
-            "category", "type", "transaction type",                  // Zelle (via banks)
-            // Apple Pay / Apple Card specific
-            "category", "merchant category", "transaction category", // Apple Pay, Apple Card
-            // Investment specific (all brokerages)
-            "transaction type", "transaction_type", "action", "security type", "security_type",
-            "type", "action",                                        // Fidelity, Vanguard, Schwab, Robinhood, etc.
-            "transaction type", "type", "action", "contribution type", "withdrawal type", // Fidelity NetBenefits
-            "transaction type", "type", "action", "buy/sell", "transaction code", // ICICI Direct (brokerage)
-            // Loan specific (all loan types)
-            "payment type", "payment_type", "transaction type",
-            // HSA specific
-            "category", "type", "transaction type",
-            // Generic
-            "type", "category", "transaction category"
-        );
+        final String categoryString =
+                row.findField(
+                        // Common formats (checking/savings/money market)
+                        "category",
+                        "transaction category",
+                        "type",
+                        "transaction_type",
+                        // Credit card specific (all issuers)
+                        "category",
+                        "merchant category",
+                        "merchant_category",
+                        "mcc",
+                        "mcc code",
+                        "transaction category", // Chase, Amex, Discover, etc.
+                        // PayPal specific
+                        "type",
+                        "category",
+                        "transaction type", // PayPal transaction types
+                        // Synchrony Bank specific
+                        "category",
+                        "type",
+                        "transaction category", // Synchrony Bank
+                        // Venmo specific
+                        "type",
+                        "category",
+                        "transaction type", // Venmo transaction types
+                        // Zelle specific
+                        "category",
+                        "type",
+                        "transaction type", // Zelle (via banks)
+                        // Apple Pay / Apple Card specific
+                        "category",
+                        "merchant category",
+                        "transaction category", // Apple Pay, Apple Card
+                        // Investment specific (all brokerages)
+                        "transaction type",
+                        "transaction_type",
+                        "action",
+                        "security type",
+                        "security_type",
+                        "type",
+                        "action", // Fidelity, Vanguard, Schwab, Robinhood, etc.
+                        "transaction type",
+                        "type",
+                        "action",
+                        "contribution type",
+                        "withdrawal type", // Fidelity NetBenefits
+                        "transaction type",
+                        "type",
+                        "action",
+                        "buy/sell",
+                        "transaction code", // ICICI Direct (brokerage)
+                        // Loan specific (all loan types)
+                        "payment type",
+                        "payment_type",
+                        "transaction type",
+                        // HSA specific
+                        "category",
+                        "type",
+                        "transaction type",
+                        // Generic
+                        "type",
+                        "category",
+                        "transaction category");
         // Parse payment channel first (needed for enhanced category detection)
-        String paymentChannel = row.findField("payment channel", "payment type", "payment_channel", "payment_type");
+        final String paymentChannel =
+                row.findField("payment channel", "payment type", "payment_channel", "payment_type");
         transaction.setPaymentChannel(paymentChannel);
-        
+
         // CRITICAL: Parse debit/credit indicator from Details or Type column
         // This helps determine transaction type more accurately than just amount sign
-        String transactionTypeIndicator = row.findField(
-            "details", "type", "transaction type", "transaction_type",
-            "debit/credit", "debit credit", "dr/cr", "dr cr",
-            "debit", "credit", "dr", "cr",
-            // Account-specific indicators
-            "transaction code", "transaction_code", "txn code", "txn_code",
-            // Investment account indicators
-            "action", "transaction action", "buy/sell",
-            // Loan account indicators
-            "payment type", "payment_type"
-        );
-        
-        // CRITICAL: Determine transaction type FIRST (before categories) using account type
-        // This is crucial for proper category determination which depends on transaction type
+        final String transactionTypeIndicator =
+                row.findField(
+                        "details",
+                        "type",
+                        "transaction type",
+                        "transaction_type",
+                        "debit/credit",
+                        "debit credit",
+                        "dr/cr",
+                        "dr cr",
+                        "debit",
+                        "credit",
+                        "dr",
+                        "cr",
+                        // Account-specific indicators
+                        "transaction code",
+                        "transaction_code",
+                        "txn code",
+                        "txn_code",
+                        // Investment account indicators
+                        "action",
+                        "transaction action",
+                        "buy/sell",
+                        // Loan account indicators
+                        "payment type",
+                        "payment_type");
+
+        // Capture account type context for parsing only (type/category determination happens on
+        // creation)
         String accountTypeString = null;
         String accountSubtypeString = null;
         if (detectedAccount != null) {
             accountTypeString = detectedAccount.getAccountType();
             accountSubtypeString = detectedAccount.getAccountSubtype();
         }
-        
-        TransactionTypeCategoryService.TypeResult typeResult = null;
-        if (accountTypeString != null) {
-            // Use account type-based determination (same as PDF import)
-            typeResult = transactionTypeCategoryService.determineTransactionTypeFromAccountType(
-                accountTypeString,
-                accountSubtypeString,
-                amount,
-                description,
-                paymentChannel
-            );
-        }
-        
-        String transactionType = null;
-        if (typeResult != null) {
-            transactionType = typeResult.getTransactionType().name();
-            logger.debug("Transaction type determined: {} (source: {}, confidence: {})",
-                typeResult.getTransactionType(), typeResult.getSource(), 
-                String.format("%.2f", typeResult.getConfidence()));
-        }
-        
-        // CRITICAL: During Preview, category may not be available. So recalculte.
-        // Account changed or first time parsing - parse categories with context
-        // CRITICAL: Parse category using import parser with transaction type and account type context
-        String parsedCategory = importCategoryParser.parseCategory(
-            categoryString, description, merchantName, amount, paymentChannel, transactionTypeIndicator,
-            transactionType, accountTypeString, accountSubtypeString);
-        
-        // Set importer category fields (context-aware parsed category)
-        transaction.setImporterCategoryPrimary(parsedCategory);
-        transaction.setImporterCategoryDetailed(parsedCategory);
-        
-        // CRITICAL: Use unified service to determine internal categories (hybrid logic)
-        // Account will be null during parsing, but unified service can still work
-        // Account will be available when transaction is created in TransactionService
-        TransactionTypeCategoryService.CategoryResult categoryResult = 
-            transactionTypeCategoryService.determineCategory(
-                parsedCategory,  // Importer category (from parser)
-                parsedCategory,
-                null,  // Account not available during parsing
-                merchantName,
-                description,
-                amount,
-                paymentChannel,
-                transactionTypeIndicator,
-                "CSV"  // Import source
-            );
-        
-        if (categoryResult != null) {
-            transaction.setCategoryPrimary(categoryResult.getCategoryPrimary());
-            transaction.setCategoryDetailed(categoryResult.getCategoryDetailed());
-            logger.debug("✅ Category assigned: merchant='{}', description='{}', amount={}, category='{}' (source: {}, confidence: {}, from categoryString='{}')",
-                    merchantName, description, amount, categoryResult.getCategoryPrimary(),
-                    categoryResult.getSource(), String.format("%.2f", categoryResult.getConfidence()), categoryString);
+
+        // Preview-category preservation: when the client supplied a
+        // pre-confirmed category for this row (from the import preview step
+        // the user already reviewed), trust it and skip re-parsing. This
+        // keeps "groceries" rows the user accepted in preview from flipping
+        // to a re-detected category during final ingest.
+        String parsedCategory;
+        final String parsedImporterCategory;
+        final String parsedImporterCategoryDetailed;
+        if (preserveCategoryPrimary != null && !preserveCategoryPrimary.isBlank()) {
+            parsedCategory = preserveCategoryPrimary;
+            parsedImporterCategory =
+                    preserveImporterCategoryPrimary != null
+                            ? preserveImporterCategoryPrimary
+                            : preserveCategoryPrimary;
+            parsedImporterCategoryDetailed =
+                    preserveImporterCategoryDetailed != null
+                            ? preserveImporterCategoryDetailed
+                            : (preserveCategoryDetailed != null
+                                    ? preserveCategoryDetailed
+                                    : parsedImporterCategory);
         } else {
-            // Fallback
-            transaction.setCategoryPrimary(parsedCategory);
-            transaction.setCategoryDetailed(parsedCategory);
-            logger.debug("✅ Category assigned: merchant='{}', description='{}', amount={}, category='{}' (from categoryString='{}')",
-                    merchantName, description, amount, parsedCategory, categoryString);
-        }
-        
-        // Fallback to category-based determination if transaction type not yet determined
-        if (transactionType == null) {
-            logger.info("-----SUMIT PRIORITY  ENTERING DETERMINE TRANSACTIONTYPE--------");
-            typeResult = transactionTypeCategoryService.determineTransactionType(
-                null,  // Account not available during parsing
-                transaction.getCategoryPrimary(),
-                transaction.getCategoryDetailed(),
-                amount,
-                transactionTypeIndicator,
-                description,
-                paymentChannel
-            );
-        
-        if (typeResult != null) {
-                transactionType = typeResult.getTransactionType().name();
-            logger.debug("Transaction type determined: {} (source: {}, confidence: {})",
-                typeResult.getTransactionType(), typeResult.getSource(), 
-                String.format("%.2f", typeResult.getConfidence()));
-        } else {
-            // Fallback to old logic
-                transactionType = determineTransactionType(
-                transaction.getCategoryPrimary(), amount, transactionTypeIndicator, description, paymentChannel);
+            parsedCategory =
+                    importCategoryParser.parseCategory(
+                            categoryString,
+                            description,
+                            merchantName,
+                            amount,
+                            paymentChannel,
+                            transactionTypeIndicator,
+                            null,
+                            accountTypeString,
+                            accountSubtypeString);
+            if (parsedCategory == null || parsedCategory.isBlank()) {
+                parsedCategory = "other";
             }
+            parsedImporterCategory = parsedCategory;
+            parsedImporterCategoryDetailed = parsedCategory;
         }
-        
-        // CRITICAL FIX: Override transaction type for dining transactions
-        // Dining transactions should always be EXPENSE, not LOAN, even on credit card accounts with negative amounts
-        // This fixes cases like TST* DEEP DIVE which were incorrectly categorized as LOAN/utilities
-        if (transaction.getCategoryPrimary() != null && 
-            transaction.getCategoryPrimary().equalsIgnoreCase("dining") &&
-            transactionType != null && 
-            transactionType.equalsIgnoreCase("LOAN")) {
-            transactionType = "EXPENSE";
-            logger.info("🏷️ Overriding transaction type from LOAN to EXPENSE for dining transaction (description: '{}', merchant: '{}')",
-                description, merchantName);
-        }
-        
-        // CRITICAL: For checking accounts, change Income/Transfer to Income/Deposit for positive amounts
-        if (accountTypeString != null && 
-            (accountTypeString.equalsIgnoreCase("checking") || 
-             accountTypeString.equalsIgnoreCase("depository")) &&
-            amount != null && amount.compareTo(BigDecimal.ZERO) > 0 &&
-            transactionType != null && transactionType.equalsIgnoreCase("INCOME") &&
-            (transaction.getCategoryPrimary() != null && transaction.getCategoryPrimary().equalsIgnoreCase("transfer"))) {
-            // Change category from transfer to deposit for positive income transactions in checking accounts
-            transaction.setCategoryPrimary("deposit");
-            transaction.setCategoryDetailed("deposit");
-            logger.debug("Changed category from transfer to deposit for checking account positive income transaction: amount={}, description='{}'", 
-                amount, description);
-        }
-        
-        transaction.setTransactionType(transactionType);
-        
+
+        transaction.setImporterCategoryPrimary(parsedImporterCategory);
+        transaction.setImporterCategoryDetailed(parsedImporterCategoryDetailed);
+        transaction.setCategoryPrimary(parsedCategory);
+        transaction.setCategoryDetailed(
+                preserveCategoryDetailed != null && !preserveCategoryDetailed.isBlank()
+                        ? preserveCategoryDetailed
+                        : parsedCategory);
+
         // CRITICAL: Store transactionTypeIndicator for preview response and recalculation
         transaction.setTransactionTypeIndicator(transactionTypeIndicator);
-        
-        // CRITICAL FIX: Wells Fargo credit card special case
-        // Wells Fargo credit card statements don't apply negative signs to payment transactions
-        // If this is a Wells Fargo credit card account, transaction type is PAYMENT, category is payment,
-        // and amount is negative, make it positive (Wells Fargo convention)
-        if (detectedAccount != null && 
-            detectedAccount.getAccountType() != null &&
-            (detectedAccount.getAccountType().toLowerCase().contains("credit") ||
-             detectedAccount.getAccountType().equalsIgnoreCase("creditcard") ||
-             detectedAccount.getAccountType().equalsIgnoreCase("credit_card"))) {
-            
-            String institutionName = detectedAccount.getInstitutionName();
-            String accountName = detectedAccount.getAccountName();
-            
-            // Check if it's Wells Fargo (by institution name or account name)
-            boolean isWellsFargo = (institutionName != null && 
-                                  (institutionName.toLowerCase().contains("wells fargo") ||
-                                   institutionName.toLowerCase().contains("wellsfargo") ||
-                                   institutionName.toLowerCase().equalsIgnoreCase("wf"))) ||
-                                 (accountName != null &&
-                                  (accountName.toLowerCase().contains("wells fargo") ||
-                                   accountName.toLowerCase().contains("wellsfargo") ||
-                                   accountName.toLowerCase().contains("wf credit")));
-            
-            if (isWellsFargo &&
-                transactionType != null && 
-                transactionType.equalsIgnoreCase("PAYMENT") &&
-                transaction.getCategoryPrimary() != null &&
-                transaction.getCategoryPrimary().equalsIgnoreCase("payment") &&
-                amount != null && 
-                amount.compareTo(BigDecimal.ZERO) < 0) {
-                
-                // Wells Fargo credit card payment: make amount positive
-                BigDecimal positiveAmount = amount.negate();
-                transaction.setAmount(positiveAmount);
-                logger.info("🏷️ Wells Fargo credit card payment: Converted negative amount {} to positive {} for payment transaction (description: '{}')",
-                    amount, positiveAmount, description);
-            }
-        }
-        
+
         return transaction;
     }
 
-    /**
-     * Parse date string in various formats (mirrors iOS app)
-     */
-    private LocalDate parseDate(String dateString) {
-        if (dateString == null || dateString.trim().isEmpty()) {
-            logger.debug("parseDate: Input dateString is null or empty");
+    /** Parse date string in various formats (mirrors iOS app) */
+    private LocalDate parseDate(final String dateString) {
+        if (dateString == null || dateString.isBlank()) {
+            LOGGER.debug("parseDate: Input dateString is null or empty");
             return null;
         }
-        
-        String trimmed = dateString.trim();
-        logger.debug("parseDate: Parsing date string '{}'", trimmed);
-        
+
+        final String trimmed = dateString.trim();
+        LOGGER.debug("parseDate: Parsing date string '{}'", trimmed);
+
         // CRITICAL FIX: Smart detection for ambiguous MM/dd vs dd/MM formats
         // If date contains "/" and matches pattern like "MM/dd" or "dd/MM", use smart detection
         if (trimmed.contains("/") && trimmed.matches("\\d{1,2}/\\d{1,2}/\\d{4}")) {
-            String[] parts = trimmed.split("/");
+            final String[] parts = trimmed.split("/");
             if (parts.length == 3) {
                 try {
-                    int first = Integer.parseInt(parts[0]);
-                    int second = Integer.parseInt(parts[1]);
-                    int year = Integer.parseInt(parts[2]);
-                    
+                    final int first = Integer.parseInt(parts[0]);
+                    final int second = Integer.parseInt(parts[1]);
+                    final int year = Integer.parseInt(parts[2]);
+
                     // If first number > 12, it must be MM/dd/yyyy (US format)
                     if (first > 12 && second <= 12) {
-                        logger.debug("parseDate: Smart detection - first number {} > 12, using MM/dd/yyyy format", first);
+                        LOGGER.debug(
+                                "parseDate: Smart detection - first number {} > 12, using MM/dd/yyyy format",
+                                first);
                         try {
-                            LocalDate parsed = LocalDate.of(year, first, second);
-                            logger.debug("parseDate: Successfully parsed '{}' as MM/dd/yyyy -> {}", trimmed, parsed);
+                            final LocalDate parsed = LocalDate.of(year, first, second);
+                            LOGGER.debug(
+                                    "parseDate: Successfully parsed '{}' as MM/dd/yyyy -> {}",
+                                    trimmed,
+                                    parsed);
                             return parsed;
                         } catch (Exception e) {
-                            logger.debug("parseDate: Failed to parse '{}' as MM/dd/yyyy: {}", trimmed, e.getMessage());
+                            LOGGER.debug(
+                                    "parseDate: Failed to parse '{}' as MM/dd/yyyy: {}",
+                                    trimmed,
+                                    e.getMessage());
                         }
                     }
                     // If second number > 12, it must be dd/MM/yyyy (European format)
                     else if (second > 12 && first <= 12) {
-                        logger.debug("parseDate: Smart detection - second number {} > 12, using dd/MM/yyyy format", second);
+                        LOGGER.debug(
+                                "parseDate: Smart detection - second number {} > 12, using dd/MM/yyyy format",
+                                second);
                         try {
-                            LocalDate parsed = LocalDate.of(year, second, first);
-                            logger.debug("parseDate: Successfully parsed '{}' as dd/MM/yyyy -> {}", trimmed, parsed);
+                            final LocalDate parsed = LocalDate.of(year, second, first);
+                            LOGGER.debug(
+                                    "parseDate: Successfully parsed '{}' as dd/MM/yyyy -> {}",
+                                    trimmed,
+                                    parsed);
                             return parsed;
                         } catch (Exception e) {
-                            logger.debug("parseDate: Failed to parse '{}' as dd/MM/yyyy: {}", trimmed, e.getMessage());
+                            LOGGER.debug(
+                                    "parseDate: Failed to parse '{}' as dd/MM/yyyy: {}",
+                                    trimmed,
+                                    e.getMessage());
                         }
                     }
-                    // If both numbers <= 12, it's ambiguous - prefer US format (MM/dd/yyyy) for US-based users
+                    // If both numbers <= 12, it's ambiguous - prefer US format (MM/dd/yyyy) for
+                    // US-based users
                     // This is a reasonable default for most users
                     else if (first <= 12 && second <= 12) {
-                        logger.debug("parseDate: Ambiguous date '{}' (both numbers <= 12), preferring MM/dd/yyyy (US format)", trimmed);
+                        LOGGER.debug(
+                                "parseDate: Ambiguous date '{}' (both numbers <= 12), preferring MM/dd/yyyy (US format)",
+                                trimmed);
                         // Try US format first
                         try {
-                            LocalDate parsed = LocalDate.of(year, first, second);
-                            logger.debug("parseDate: Successfully parsed '{}' as MM/dd/yyyy (preferred) -> {}", trimmed, parsed);
+                            final LocalDate parsed = LocalDate.of(year, first, second);
+                            LOGGER.debug(
+                                    "parseDate: Successfully parsed '{}' as MM/dd/yyyy (preferred) -> {}",
+                                    trimmed,
+                                    parsed);
                             return parsed;
                         } catch (Exception e) {
-                            logger.debug("parseDate: Failed to parse '{}' as MM/dd/yyyy: {}", trimmed, e.getMessage());
+                            LOGGER.debug(
+                                    "parseDate: Failed to parse '{}' as MM/dd/yyyy: {}",
+                                    trimmed,
+                                    e.getMessage());
                         }
                     }
                 } catch (NumberFormatException e) {
-                    logger.debug("parseDate: Could not parse numbers from '{}', falling back to standard parsing", trimmed);
+                    LOGGER.debug(
+                            "parseDate: Could not parse numbers from '{}', falling back to standard parsing",
+                            trimmed);
                 }
             }
         }
-        
+
         // Try each formatter (fallback to standard parsing)
-        for (DateTimeFormatter formatter : DATE_FORMATTERS) {
+        for (final DateTimeFormatter formatter : DATE_FORMATTERS) {
             try {
-                LocalDate parsed = LocalDate.parse(trimmed, formatter);
-                logger.debug("parseDate: Successfully parsed '{}' with formatter '{}' -> {}", trimmed, formatter, parsed);
+                final LocalDate parsed = LocalDate.parse(trimmed, formatter);
+                LOGGER.debug(
+                        "parseDate: Successfully parsed '{}' with formatter '{}' -> {}",
+                        trimmed,
+                        formatter,
+                        parsed);
                 return parsed;
             } catch (DateTimeParseException e) {
-                logger.debug("parseDate: Failed to parse '{}' with formatter '{}': {}", trimmed, formatter, e.getMessage());
+                LOGGER.debug(
+                        "parseDate: Failed to parse '{}' with formatter '{}': {}",
+                        trimmed,
+                        formatter,
+                        e.getMessage());
                 // Continue to next formatter
             }
         }
-        
+
         // Try ISO 8601 with time component (extract date part only)
         // Handle edge case: string might be shorter than 10 characters
         if (trimmed.length() >= 10) {
             try {
-                String datePart = trimmed.substring(0, 10);
-                LocalDate parsed = LocalDate.parse(datePart, DateTimeFormatter.ISO_LOCAL_DATE);
-                logger.debug("parseDate: Successfully parsed '{}' (extracted date part '{}') as ISO_LOCAL_DATE -> {}", trimmed, datePart, parsed);
+                final String datePart = trimmed.substring(0, 10);
+                final LocalDate parsed = LocalDate.parse(datePart, DateTimeFormatter.ISO_LOCAL_DATE);
+                LOGGER.debug(
+                        "parseDate: Successfully parsed '{}' (extracted date part '{}') as ISO_LOCAL_DATE -> {}",
+                        trimmed,
+                        datePart,
+                        parsed);
                 return parsed;
             } catch (Exception e) {
-                logger.debug("parseDate: Failed to parse '{}' as ISO_LOCAL_DATE: {}", trimmed, e.getMessage());
+                LOGGER.debug(
+                        "parseDate: Failed to parse '{}' as ISO_LOCAL_DATE: {}",
+                        trimmed,
+                        e.getMessage());
                 // Ignore and continue
             }
         }
-        
+
         // Try to extract date from datetime strings (e.g., "19/12/2025 14:30" -> "19/12/2025")
         // Look for space or 'T' separator and try parsing the date part before it
-        int spaceIndex = trimmed.indexOf(' ');
-        int tIndex = trimmed.indexOf('T');
-        int separatorIndex = (spaceIndex >= 0 && tIndex >= 0) ? Math.min(spaceIndex, tIndex) : 
-                            (spaceIndex >= 0 ? spaceIndex : tIndex);
+        final int spaceIndex = trimmed.indexOf(' ');
+        final int tIndex = trimmed.indexOf('T');
+        final int separatorIndex =
+                spaceIndex >= 0 && tIndex >= 0
+                        ? Math.min(spaceIndex, tIndex)
+                        : (spaceIndex >= 0 ? spaceIndex : tIndex);
         if (separatorIndex > 0) {
-            String datePart = trimmed.substring(0, separatorIndex);
-            for (DateTimeFormatter formatter : DATE_FORMATTERS) {
+            final String datePart = trimmed.substring(0, separatorIndex);
+            for (final DateTimeFormatter formatter : DATE_FORMATTERS) {
                 try {
-                    LocalDate parsed = LocalDate.parse(datePart, formatter);
-                    logger.debug("parseDate: Successfully parsed '{}' (extracted date part '{}') with formatter '{}' -> {}", trimmed, datePart, formatter, parsed);
+                    final LocalDate parsed = LocalDate.parse(datePart, formatter);
+                    LOGGER.debug(
+                            "parseDate: Successfully parsed '{}' (extracted date part '{}') with formatter '{}' -> {}",
+                            trimmed,
+                            datePart,
+                            formatter,
+                            parsed);
                     return parsed;
                 } catch (DateTimeParseException e) {
                     // Continue to next formatter
                 }
             }
         }
-        
-        logger.warn("parseDate: Could not parse date string '{}' with any formatter", trimmed);
+
+        LOGGER.warn("parseDate: Could not parse date string '{}' with any formatter", trimmed);
         return null;
     }
 
     /**
-     * Parse amount string, handling various formats (mirrors iOS app)
-     * Returns a pair: [amount, currencyCode]
+     * Parse amount string, handling various formats (mirrors iOS app) Returns a pair: [amount,
+     * currencyCode]
      */
     private static class AmountParseResult {
         BigDecimal amount;
         String currencyCode;
-        
-        AmountParseResult(BigDecimal amount, String currencyCode) {
+
+        AmountParseResult(final BigDecimal amount, final String currencyCode) {
             this.amount = amount;
             this.currencyCode = currencyCode;
         }
     }
-    
+
     /**
-     * Detect currency from amount string or header
-     * Supports: USD ($), INR (₹, Rs, Rs.), EUR (€), GBP (£), CAD (C$), AUD (A$), etc.
+     * Detect currency from amount string or header Supports: USD ($), INR (₹, Rs, Rs.), EUR (€),
+     * GBP (£), CAD (C$), AUD (A$), etc.
      */
-    private String detectCurrency(String amountString, String headerLine, String filename) {
+    private String detectCurrency(String amountString, final String headerLine, final String filename) {
         if (amountString == null) {
             amountString = "";
         }
-        String upper = amountString.toUpperCase();
-        String headerUpper = headerLine != null ? headerLine.toUpperCase() : "";
-        String filenameUpper = filename != null ? filename.toUpperCase() : "";
-        
+        final String upper = amountString.toUpperCase(Locale.ROOT);
+        final String headerUpper = headerLine != null ? headerLine.toUpperCase(Locale.ROOT) : "";
+        final String filenameUpper = filename != null ? filename.toUpperCase(Locale.ROOT) : "";
+
         // Check for currency symbols in amount string
         if (amountString.contains("₹") || upper.contains("RS") || upper.contains("INR")) {
             return "INR";
@@ -1900,31 +3242,53 @@ private final AccountDetectionService accountDetectionService;
         }
         // For ¥ symbol, use context-based detection (filename, headers, bank names)
         // Check for Chinese context first (CNY), then Japanese (JPY)
-        if (amountString.contains("¥") || upper.contains("CNY") || upper.contains("JPY") || 
-            upper.contains("YUAN") || upper.contains("YEN")) {
+        if (amountString.contains("¥")
+                || upper.contains("CNY")
+                || upper.contains("JPY")
+                || upper.contains("YUAN")
+                || upper.contains("YEN")) {
             // Check for Chinese context (CNY) - check filename first, then headers, then amount
-            if (upper.contains("CNY") || upper.contains("YUAN") || headerUpper.contains("CNY") || 
-                headerUpper.contains("YUAN") || headerUpper.contains("CHINA") || 
-                headerUpper.contains("CHINESE") || headerUpper.contains("CITIC") || 
-                headerUpper.contains("ICBC") || headerUpper.contains("CCB") || 
-                headerUpper.contains("BOC") || headerUpper.contains("ABC") ||
-                headerUpper.contains("UNIONPAY") || headerUpper.contains("交易") ||
-                headerUpper.contains("金额") || filenameUpper.contains("CITIC") ||
-                filenameUpper.contains("CHINA") || filenameUpper.contains("CHINESE") ||
-                filenameUpper.contains("UNIONPAY") || filenameUpper.contains("CNY") ||
-                filenameUpper.contains("YUAN")) {
+            if (upper.contains("CNY")
+                    || upper.contains("YUAN")
+                    || headerUpper.contains("CNY")
+                    || headerUpper.contains("YUAN")
+                    || headerUpper.contains("CHINA")
+                    || headerUpper.contains("CHINESE")
+                    || headerUpper.contains("CITIC")
+                    || headerUpper.contains("ICBC")
+                    || headerUpper.contains("CCB")
+                    || headerUpper.contains("BOC")
+                    || headerUpper.contains("ABC")
+                    || headerUpper.contains("UNIONPAY")
+                    || headerUpper.contains("交易")
+                    || headerUpper.contains("金额")
+                    || filenameUpper.contains("CITIC")
+                    || filenameUpper.contains("CHINA")
+                    || filenameUpper.contains("CHINESE")
+                    || filenameUpper.contains("UNIONPAY")
+                    || filenameUpper.contains("CNY")
+                    || filenameUpper.contains("YUAN")) {
                 return "CNY";
             }
             // Check for Japanese context (JPY) - check filename first, then headers, then amount
-            if (upper.contains("JPY") || upper.contains("YEN") || headerUpper.contains("JPY") || 
-                headerUpper.contains("YEN") || headerUpper.contains("JAPAN") || 
-                headerUpper.contains("JAPANESE") || headerUpper.contains("MUFG") || 
-                headerUpper.contains("MIZUHO") || headerUpper.contains("SMBC") ||
-                headerUpper.contains("JCB") || headerUpper.contains("取引") ||
-                headerUpper.contains("金額") || filenameUpper.contains("JAPAN") ||
-                filenameUpper.contains("JAPANESE") || filenameUpper.contains("MUFG") ||
-                filenameUpper.contains("JCB") || filenameUpper.contains("JPY") ||
-                filenameUpper.contains("YEN")) {
+            if (upper.contains("JPY")
+                    || upper.contains("YEN")
+                    || headerUpper.contains("JPY")
+                    || headerUpper.contains("YEN")
+                    || headerUpper.contains("JAPAN")
+                    || headerUpper.contains("JAPANESE")
+                    || headerUpper.contains("MUFG")
+                    || headerUpper.contains("MIZUHO")
+                    || headerUpper.contains("SMBC")
+                    || headerUpper.contains("JCB")
+                    || headerUpper.contains("取引")
+                    || headerUpper.contains("金額")
+                    || filenameUpper.contains("JAPAN")
+                    || filenameUpper.contains("JAPANESE")
+                    || filenameUpper.contains("MUFG")
+                    || filenameUpper.contains("JCB")
+                    || filenameUpper.contains("JPY")
+                    || filenameUpper.contains("YEN")) {
                 return "JPY";
             }
             // Default to JPY if no context (¥ is more commonly used for JPY)
@@ -1984,9 +3348,11 @@ private final AccountDetectionService accountDetectionService;
         if (upper.contains("NZD") || amountString.contains("NZ$")) {
             return "NZD"; // New Zealand Dollar
         }
-        
+
         // Check header for currency indicators
-        if (headerUpper.contains("INR") || headerUpper.contains("RUPEES") || headerUpper.contains("RS")) {
+        if (headerUpper.contains("INR")
+                || headerUpper.contains("RUPEES")
+                || headerUpper.contains("RS")) {
             return "INR";
         }
         if (headerUpper.contains("USD") || headerUpper.contains("DOLLARS")) {
@@ -2007,69 +3373,71 @@ private final AccountDetectionService accountDetectionService;
         if (headerUpper.contains("CNY") || headerUpper.contains("YUAN")) {
             return "CNY";
         }
-        
+
         // Default to USD if no currency detected
         return "USD";
     }
-    
+
     /**
-     * Parse amount string, handling various formats (mirrors iOS app)
-     * Returns AmountParseResult with amount and detected currency
+     * Parse amount string, handling various formats (mirrors iOS app) Returns AmountParseResult
+     * with amount and detected currency
      */
-    private AmountParseResult parseAmountWithCurrency(String amountString, String headerLine, String filename) {
-        if (amountString == null || amountString.trim().isEmpty()) {
+    private AmountParseResult parseAmountWithCurrency(
+            final String amountString, final String headerLine, final String filename) {
+        if (amountString == null || amountString.isBlank()) {
             return new AmountParseResult(null, "USD");
         }
-        
+
         // Detect currency before cleaning (with filename context)
-        String currencyCode = detectCurrency(amountString, headerLine, filename);
-        
+        final String currencyCode = detectCurrency(amountString, headerLine, filename);
+
         // Remove currency symbols and whitespace (supports USD, INR, and other currencies)
-        String cleaned = amountString
-            .replace("$", "")
-            .replace("₹", "")  // Indian Rupee symbol
-            .replace("Rs", "")
-            .replace("Rs.", "")
-            .replace("INR", "")
-            .replace("inr", "")
-            .replace("USD", "")
-            .replace("usd", "")
-            .replace("EUR", "")
-            .replace("eur", "")
-            .replace("€", "")
-            .replace("GBP", "")
-            .replace("gbp", "")
-            .replace("£", "")
-            .replace("CAD", "")
-            .replace("cad", "")
-            .replace("C$", "")
-            .replace("AUD", "")
-            .replace("aud", "")
-            .replace("A$", "")
-            .replace("JPY", "")
-            .replace("jpy", "")
-            .replace("CNY", "")
-            .replace("cny", "")
-            .replace("¥", "")
-            .replace("Fr", "")  // Swiss Franc
-            .replace("kr", "")  // Nordic currencies (SEK, NOK, DKK)
-            .replace("zł", "")  // Polish Zloty
-            .replace("S$", "")  // Singapore Dollar
-            .replace("HK$", "") // Hong Kong Dollar
-            .replace("₩", "")   // Korean Won
-            .replace("฿", "")   // Thai Baht
-            .replace("Rp", "")  // Indonesian Rupiah
-            .replace("₫", "")   // Vietnamese Dong
-            .replace("RM", "")  // Malaysian Ringgit
-            .replace("₱", "")   // Philippine Peso
-            .replace("R$", "") // Brazilian Real
-            .replace("Mex$", "") // Mexican Peso
-            .replace(" ", "")
-            .trim();
-        
+        String cleaned =
+                amountString
+                        .replace("$", "")
+                        .replace("₹", "") // Indian Rupee symbol
+                        .replace("Rs", "")
+                        .replace("Rs.", "")
+                        .replace("INR", "")
+                        .replace("inr", "")
+                        .replace("USD", "")
+                        .replace("usd", "")
+                        .replace("EUR", "")
+                        .replace("eur", "")
+                        .replace("€", "")
+                        .replace("GBP", "")
+                        .replace("gbp", "")
+                        .replace("£", "")
+                        .replace("CAD", "")
+                        .replace("cad", "")
+                        .replace("C$", "")
+                        .replace("AUD", "")
+                        .replace("aud", "")
+                        .replace("A$", "")
+                        .replace("JPY", "")
+                        .replace("jpy", "")
+                        .replace("CNY", "")
+                        .replace("cny", "")
+                        .replace("¥", "")
+                        .replace("Fr", "") // Swiss Franc
+                        .replace("kr", "") // Nordic currencies (SEK, NOK, DKK)
+                        .replace("zł", "") // Polish Zloty
+                        .replace("S$", "") // Singapore Dollar
+                        .replace("HK$", "") // Hong Kong Dollar
+                        .replace("₩", "") // Korean Won
+                        .replace("฿", "") // Thai Baht
+                        .replace("Rp", "") // Indonesian Rupiah
+                        .replace("₫", "") // Vietnamese Dong
+                        .replace("RM", "") // Malaysian Ringgit
+                        .replace("₱", "") // Philippine Peso
+                        .replace("R$", "") // Brazilian Real
+                        .replace("Mex$", "") // Mexican Peso
+                        .replace(" ", "")
+                        .trim();
+
         // Handle European number format (comma as decimal separator: 1.234,56)
         // Check if we have a comma followed by 2 digits at the end (likely decimal separator)
-        boolean isEuropeanFormat = cleaned.matches(".*\\d{1,3}(?:\\.\\d{3})*,\\d{1,2}$");
+        final boolean isEuropeanFormat = cleaned.matches(".*\\d{1,3}(?:\\.\\d{3})*,\\d{1,2}$");
         if (isEuropeanFormat) {
             // European format: 1.234,56 -> 1234.56
             cleaned = cleaned.replace(".", ""); // Remove thousand separators (periods)
@@ -2078,60 +3446,61 @@ private final AccountDetectionService accountDetectionService;
             // US/Asian format: 1,234.56 -> 1234.56
             cleaned = cleaned.replace(",", ""); // Remove thousand separators (commas)
         }
-        
+
         // Handle negative amounts (parentheses or minus sign)
-        boolean isNegative = (cleaned.startsWith("(") && cleaned.endsWith(")")) || cleaned.startsWith("-");
-        String numericString = cleaned
-            .replace("(", "")
-            .replace(")", "")
-            .replace("-", "");
-        
+        final boolean isNegative =
+                (cleaned.startsWith("(") && cleaned.endsWith(")")) || cleaned.startsWith("-");
+        final String numericString = cleaned.replace("(", "").replace(")", "").replace("-", "");
+
         // Validate numeric string is not empty after cleaning
-        if (numericString == null || numericString.trim().isEmpty()) {
-            logger.warn("Amount string is empty after cleaning: {}", amountString);
+        if (numericString == null || numericString.isBlank()) {
+            LOGGER.warn("Amount string is empty after cleaning: {}", amountString);
             return new AmountParseResult(null, currencyCode);
         }
-        
+
         try {
             BigDecimal amount = new BigDecimal(numericString);
-            
+
             // Validate amount is within reasonable bounds (prevent overflow/underflow)
             // Max: 999,999,999.99 (matches AmountValidator.MAX_AMOUNT)
-            BigDecimal maxAmount = new BigDecimal("999999999.99");
-            BigDecimal minAmount = maxAmount.negate();
-            
+            final BigDecimal maxAmount = new BigDecimal("999999999.99");
+            final BigDecimal minAmount = maxAmount.negate();
+
             if (amount.compareTo(maxAmount) > 0) {
-                logger.warn("Amount exceeds maximum: {} (capped at {})", amount, maxAmount);
+                LOGGER.warn("Amount exceeds maximum: {} (capped at {})", amount, maxAmount);
                 amount = maxAmount;
             } else if (amount.compareTo(minAmount) < 0) {
-                logger.warn("Amount below minimum: {} (capped at {})", amount, minAmount);
+                LOGGER.warn("Amount below minimum: {} (capped at {})", amount, minAmount);
                 amount = minAmount;
             }
-            
+
             // Round to 2 decimal places (standard for currency)
             amount = amount.setScale(2, java.math.RoundingMode.HALF_UP);
-            
+
             // CRITICAL: Preserve original sign - don't convert to absolute for positive amounts
             // This ensures debit/credit information is preserved
-            BigDecimal finalAmount = isNegative ? amount.negate() : amount;
-            logger.debug("Parsed amount: original='{}', isNegative={}, numeric={}, final={}", 
-                    amountString, isNegative, amount, finalAmount);
-            
+            final BigDecimal finalAmount = isNegative ? amount.negate() : amount;
+            LOGGER.debug(
+                    "Parsed amount: original='{}', isNegative={}, numeric={}, final={}",
+                    amountString,
+                    isNegative,
+                    amount,
+                    finalAmount);
+
             return new AmountParseResult(finalAmount, currencyCode);
         } catch (NumberFormatException e) {
-            logger.warn("Could not parse amount: {} (cleaned: {})", amountString, numericString);
+            LOGGER.warn("Could not parse amount: {} (cleaned: {})", amountString, numericString);
             return new AmountParseResult(null, currencyCode);
         } catch (ArithmeticException e) {
-            logger.warn("Arithmetic error parsing amount: {} - {}", amountString, e.getMessage());
+            LOGGER.warn("Arithmetic error parsing amount: {} - {}", amountString, e.getMessage());
             return new AmountParseResult(null, currencyCode);
         }
     }
-    
 
     /**
-     * Parse category string to category name with enhanced RSU, ACH, Salary detection
-     * Supports categories from checking accounts, credit cards, investment accounts, and loans
-     * 
+     * Parse category string to category name with enhanced RSU, ACH, Salary detection Supports
+     * categories from checking accounts, credit cards, investment accounts, and loans
+     *
      * @param categoryString Category string from CSV
      * @param description Transaction description
      * @param merchantName Merchant name
@@ -2140,876 +3509,1259 @@ private final AccountDetectionService accountDetectionService;
      * @return Category name
      */
     /**
-     * Parse category string to category name with sophisticated merchant name and description detection
-     * Uses world's best practices: merchant name patterns, description analysis, fuzzy matching
-     * Supports all account types: checking, savings, credit card, debit card, money market, investment, loan
-     * Works globally: US, India, Europe, Asia, etc.
-     * 
-     * Public method for use by PDFImportService and ExcelImportService
-     * 
+     * Parse category string to category name with sophisticated merchant name and description
+     * detection Uses world's best practices: merchant name patterns, description analysis, fuzzy
+     * matching Supports all account types: checking, savings, credit card, debit card, money
+     * market, investment, loan Works globally: US, India, Europe, Asia, etc.
+     *
+     * <p>Public method for use by PDFImportService and ExcelImportService
+     *
      * @param categoryString Category string from CSV (may be null/empty)
      * @param description Transaction description
      * @param merchantName Merchant name (normalized)
      * @param amount Transaction amount
      * @param paymentChannel Payment channel (e.g., "ach", "pos", "online")
-     * @param transactionTypeIndicator Debit/credit indicator from CSV (e.g., "DEBIT", "CREDIT", "DR", "CR")
+     * @param transactionTypeIndicator Debit/credit indicator from CSV (e.g., "DEBIT", "CREDIT",
+     *     "DR", "CR")
      * @return Detected category name
      */
-    public String parseCategory(String categoryString, String description, String merchantName, 
-                                 BigDecimal amount, String paymentChannel, String transactionTypeIndicator) {
+    public String parseCategory(
+            final String categoryString,
+            final String description,
+            final String merchantName,
+            final BigDecimal amount,
+            final String paymentChannel,
+            final String transactionTypeIndicator) {
         // Legacy method signature - delegate to new signature with null context
-        return parseCategory(categoryString, description, merchantName, amount, paymentChannel, 
-                            transactionTypeIndicator, null, null, null);
+        return parseCategory(
+                categoryString,
+                description,
+                merchantName,
+                amount,
+                paymentChannel,
+                transactionTypeIndicator,
+                null,
+                null,
+                null);
     }
-    
+
     /**
      * Parse category from import file data with transaction type and account type context
      * SIMPLIFIED VERSION: Context-aware rules grouped by transaction type
-     * 
+     *
      * @param categoryString Category string from import file
      * @param description Transaction description
      * @param merchantName Merchant name
      * @param amount Transaction amount
      * @param paymentChannel Payment channel
      * @param transactionTypeIndicator Transaction type indicator (DEBIT/CREDIT)
-     * @param transactionType Transaction type (INCOME, EXPENSE, INVESTMENT, LOAN) - null if not yet determined
-     * @param accountType Account type (depository, credit, loan, investment, etc.) - null if not available
-     * @param accountSubtype Account subtype (checking, savings, credit card, etc.) - null if not available
+     * @param transactionType Transaction type (INCOME, EXPENSE, INVESTMENT, PAYMENT) - null if not
+     *     yet determined
+     * @param accountType Account type (depository, credit, loan, investment, etc.) - null if not
+     *     available
+     * @param accountSubtype Account subtype (checking, savings, credit card, etc.) - null if not
+     *     available
      * @return Detected category name
      */
-    public String parseCategory(String categoryString, String description, String merchantName, 
-                                 BigDecimal amount, String paymentChannel, String transactionTypeIndicator,
-                                 String transactionType, String accountType, String accountSubtype) {
+    public String parseCategory(
+            final String categoryString,
+            final String description,
+            final String merchantName,
+            final BigDecimal amount,
+            final String paymentChannel,
+            final String transactionTypeIndicator,
+            final String transactionType,
+            final String accountType,
+            final String accountSubtype) {
         // Use simplified version - delegate to parseCategorySimplified
-        return parseCategorySimplified(categoryString, description, merchantName, amount, paymentChannel,
-                                      transactionTypeIndicator, transactionType, accountType, accountSubtype);
+        return parseCategorySimplified(
+                categoryString,
+                description,
+                merchantName,
+                amount,
+                paymentChannel,
+                transactionTypeIndicator,
+                transactionType,
+                accountType,
+                accountSubtype);
     }
-    
+
     /**
-     * SIMPLIFIED category parser with context-aware rules grouped by transaction type
-     * Structure:
-     * 1. Early unambiguous checks (transaction-type independent)
-     * 2. Context-aware rules by transaction type (INCOME, EXPENSE, INVESTMENT, LOAN)
-     * 3. ML/Fuzzy matching (earlier in flow)
-     * 4. Category string mapping fallback
+     * SIMPLIFIED category parser with context-aware rules grouped by transaction type Structure: 1.
+     * Early unambiguous checks (transaction-type independent) 2. Context-aware rules by transaction
+     * type (INCOME, EXPENSE, INVESTMENT, PAYMENT) 3. ML/Fuzzy matching (earlier in flow) 4.
+     * Category string mapping fallback
      */
-    private String parseCategorySimplified(String categoryString, String description, String merchantName,
-                                          BigDecimal amount, String paymentChannel, String transactionTypeIndicator,
-                                          String transactionType, String accountType, String accountSubtype) {
+    private String parseCategorySimplified(
+            final String categoryString,
+            final String description,
+            final String merchantName,
+            final BigDecimal amount,
+            final String paymentChannel,
+            final String transactionTypeIndicator,
+            final String transactionType,
+            final String accountType,
+            final String accountSubtype) {
         // Input validation and normalization
-        String safeCategoryString = categoryString != null ? categoryString.trim() : null;
-        String safeDescription = description != null ? description.trim() : null;
-        String safeMerchantName = merchantName != null ? merchantName.trim() : null;
-        String safePaymentChannel = paymentChannel != null ? paymentChannel.trim() : null;
-        String safeTransactionTypeIndicator = transactionTypeIndicator != null ? transactionTypeIndicator.trim() : null;
-        String safeTransactionType = transactionType != null ? transactionType.trim().toUpperCase() : null;
-        String safeAccountType = accountType != null ? accountType.trim().toLowerCase() : null;
-        String safeAccountSubtype = accountSubtype != null ? accountSubtype.trim().toLowerCase() : null;
-        
+        final String safeCategoryString = categoryString != null ? categoryString.trim() : null;
+        final String safeDescription = description != null ? description.trim() : null;
+        final String safeMerchantName = merchantName != null ? merchantName.trim() : null;
+        final String safePaymentChannel = paymentChannel != null ? paymentChannel.trim() : null;
+        final String safeTransactionTypeIndicator =
+                transactionTypeIndicator != null ? transactionTypeIndicator.trim() : null;
+        final String safeTransactionType =
+                transactionType != null ? transactionType.trim().toUpperCase(Locale.ROOT) : null;
+        final String safeAccountType = accountType != null ? accountType.trim().toLowerCase(Locale.ROOT) : null;
+        final String safeAccountSubtype =
+                accountSubtype != null ? accountSubtype.trim().toLowerCase(Locale.ROOT) : null;
+
         // Validate amount
         BigDecimal safeAmount = amount;
         if (amount != null) {
-            BigDecimal maxAmount = BigDecimal.valueOf(1_000_000_000);
-            BigDecimal minAmount = BigDecimal.valueOf(-1_000_000_000);
+            final BigDecimal maxAmount = BigDecimal.valueOf(1_000_000_000);
+            final BigDecimal minAmount = BigDecimal.valueOf(-1_000_000_000);
             if (amount.compareTo(maxAmount) > 0 || amount.compareTo(minAmount) < 0) {
-                logger.warn("parseCategorySimplified: Amount out of reasonable range: {}, using null", amount);
+                LOGGER.warn(
+                        "parseCategorySimplified: Amount out of reasonable range: {}, using null",
+                        amount);
                 safeAmount = null;
             }
         }
-        
+
         // Check if investment account (used in multiple places)
-        boolean isInvestmentAccount = safeAccountType != null && 
-            (safeAccountType.contains("investment") || safeAccountType.contains("ira") || 
-             safeAccountType.contains("401k") || safeAccountType.contains("hsa") || safeAccountType.contains("529"));
-        
+        final boolean isInvestmentAccount =
+                safeAccountType != null
+                        && (safeAccountType.contains("investment")
+                        || safeAccountType.contains("ira")
+                        || safeAccountType.contains("401k")
+                        || safeAccountType.contains("hsa")
+                        || safeAccountType.contains("529"));
+
         // ========== STEP 1: Early Unambiguous Checks (Transaction-Type Independent) ==========
-        
+
         // STEP 1a: Check for zero amount transactions FIRST (before any other checks)
         // CRITICAL: Zero amount transactions with fee descriptions should be 'other', not 'fee'
-        // Even if category string is "fee", zero amounts should be 'other' if description contains fee
-        // NOTE: Zero amount handling continues later in STEP 7, so we don't return here for all zero amounts
+        // Even if category string is "fee", zero amounts should be 'other' if description contains
+        // fee
+        // NOTE: Zero amount handling continues later in STEP 7, so we don't return here for all
+        // zero amounts
         if (safeAmount != null && safeAmount.compareTo(BigDecimal.ZERO) == 0) {
             // For zero amounts with fee/adjustment descriptions, return early
             if (safeDescription != null) {
-                String descLower = safeDescription.toLowerCase();
-                if (descLower.contains("fee") || descLower.contains("adjustment") || descLower.contains("correction")) {
-                    logger.debug("parseCategorySimplified: Zero amount with fee/adjustment description → 'other'");
+                final String descLower = safeDescription.toLowerCase(Locale.ROOT);
+                if (descLower.contains("fee")
+                        || descLower.contains("adjustment")
+                        || descLower.contains("correction")) {
+                    LOGGER.debug(
+                            "parseCategorySimplified: Zero amount with fee/adjustment description → 'other'");
                     return "other";
                 }
             }
             // For other zero amounts, continue to later steps (STEP 7 handles them)
         }
-        
+
         // Continue with the rest of the logic - all steps from STEP 1b onwards
         // This logic is the same as parseCategoryLegacy but in simplified form
         // STEP 1b through STEP 10 are handled in parseCategoryLegacy method
         // For now, delegate to parseCategoryLegacy to avoid code duplication
-        return parseCategoryLegacy(categoryString, description, merchantName, amount, paymentChannel,
-                                  transactionTypeIndicator, transactionType, accountType, accountSubtype);
+        return parseCategoryLegacy(
+                categoryString,
+                description,
+                merchantName,
+                amount,
+                paymentChannel,
+                transactionTypeIndicator,
+                transactionType,
+                accountType,
+                accountSubtype);
     }
-    
-    private String applyInvestmentRules(String description, String merchantName, String categoryString,
-                                       BigDecimal amount, String transactionType, String accountType) {
-        if (amount == null) return null;
-        
-        String descLower = description != null ? description.toLowerCase() : "";
-        String merchantLower = merchantName != null ? merchantName.toLowerCase() : "";
-        String combinedText = (merchantLower + " " + descLower).trim();
-        
+
+    private String applyInvestmentRules(
+            final String description,
+            final String merchantName,
+            String categoryString,
+            final BigDecimal amount,
+            String transactionType,
+            String accountType) {
+        if (amount == null) {
+            return null;
+        }
+
+        final String descLower = description != null ? description.toLowerCase(Locale.ROOT) : "";
+        final String merchantLower = merchantName != null ? merchantName.toLowerCase(Locale.ROOT) : "";
+        final String combinedText = (merchantLower + " " + descLower).trim();
+
         // Investment fees (negative amounts)
-        if (amount.compareTo(BigDecimal.ZERO) < 0 && 
-            (combinedText.contains("fee") || combinedText.contains("management fee") || 
-             combinedText.contains("advisory fee") || combinedText.contains("custodian fee") ||
-             combinedText.contains("account fee") || combinedText.contains("administrative fee") ||
-             combinedText.contains("expense ratio") || combinedText.contains("expense fee"))) {
+        if (amount.compareTo(BigDecimal.ZERO) < 0
+                && (combinedText.contains("fee")
+                        || combinedText.contains("management fee")
+                        || combinedText.contains("advisory fee")
+                        || combinedText.contains("custodian fee")
+                        || combinedText.contains("account fee")
+                        || combinedText.contains("administrative fee")
+                        || combinedText.contains("expense ratio")
+                        || combinedText.contains("expense fee"))) {
             return "investmentFees";
         }
-        
+
         // Investment purchase (negative amounts)
-        if (amount.compareTo(BigDecimal.ZERO) < 0 && 
-            (combinedText.contains("purchase") || combinedText.contains("buy") || 
-             combinedText.contains("contribution") || combinedText.contains("deposit")) &&
-            !combinedText.contains("fee") && !combinedText.contains("transfer")) {
+        if (amount.compareTo(BigDecimal.ZERO) < 0
+                && (combinedText.contains("purchase")
+                        || combinedText.contains("buy")
+                        || combinedText.contains("contribution")
+                        || combinedText.contains("deposit"))
+                && !combinedText.contains("fee")
+                && !combinedText.contains("transfer")) {
             return "investmentPurchase";
         }
-        
+
         // Investment sale (positive amounts)
-        if (amount.compareTo(BigDecimal.ZERO) > 0 && 
-            (combinedText.contains("sale") || combinedText.contains("sell") || 
-             combinedText.contains("redemption") || combinedText.contains("withdrawal") ||
-             combinedText.contains("distribution") || combinedText.contains("proceeds"))) {
+        if (amount.compareTo(BigDecimal.ZERO) > 0
+                && (combinedText.contains("sale")
+                        || combinedText.contains("sell")
+                        || combinedText.contains("redemption")
+                        || combinedText.contains("withdrawal")
+                        || combinedText.contains("distribution")
+                        || combinedText.contains("proceeds"))) {
             return "investmentSold";
         }
-        
+
         // Deposit from investment firm (positive amounts)
         if (amount.compareTo(BigDecimal.ZERO) > 0) {
-            String[] investmentFirms = {
-                "morgan stanley", "morganstanley", "fidelity", "vanguard", "schwab", "charles schwab",
-                "td ameritrade", "etrade", "robinhood", "merrill lynch", "goldman sachs"
+            final String[] investmentFirms = {
+                    "morgan stanley",
+                    "morganstanley",
+                    "fidelity",
+                    "vanguard",
+                    "schwab",
+                    "charles schwab",
+                    "td ameritrade",
+                    "etrade",
+                    "robinhood",
+                    "merrill lynch",
+                    "goldman sachs"
             };
-            for (String firm : investmentFirms) {
-                if ((descLower.contains(firm) || merchantLower.contains(firm)) &&
-                    (descLower.contains("transfer") || descLower.contains("from") || descLower.contains("deposit"))) {
+            for (final String firm : investmentFirms) {
+                if ((descLower.contains(firm) || merchantLower.contains(firm))
+                        && (descLower.contains("transfer")
+                                || descLower.contains("from")
+                                || descLower.contains("deposit"))) {
                     return "deposit";
                 }
             }
         }
-        
+
         return null;
     }
-    
-    /**
-     * Apply income-specific category rules
-     */
-    private String applyIncomeRules(String description, String merchantName, BigDecimal amount,
-                                   String paymentChannel, String accountType, String accountSubtype) {
+
+    /** Apply income-specific category rules */
+    private String applyIncomeRules(
+            final String description,
+            final String merchantName,
+            final BigDecimal amount,
+            final String paymentChannel,
+            final String accountType,
+            final String accountSubtype) {
         // Use existing helper method
-        return determineIncomeCategoryFromContext(description, merchantName, amount, paymentChannel, accountType, accountSubtype);
+        return determineIncomeCategoryFromContext(
+                description, merchantName, amount, paymentChannel, accountType, accountSubtype);
     }
-    
-    /**
-     * Apply loan-specific category rules
-     */
+
+    /** Apply loan-specific category rules */
     private String applyLoanRules(String description, String merchantName) {
         // Loan-specific rules are already handled in early checks (loanEscrow, loanBills, payment)
         // This is mainly for any additional loan-specific logic
         return null;
     }
-    
+
     /**
-     * LEGACY parseCategory implementation - kept for reference/testing
-     * This is the original complex implementation with 480+ lines
+     * LEGACY parseCategory implementation - kept for reference/testing This is the original complex
+     * implementation with 480+ lines
      */
     @SuppressWarnings("unused")
-    private String parseCategoryLegacy(String categoryString, String description, String merchantName,
-                                       BigDecimal amount, String paymentChannel, String transactionTypeIndicator,
-                                       String transactionType, String accountType, String accountSubtype) {
+    private String parseCategoryLegacy(
+            final String categoryString,
+            final String description,
+            final String merchantName,
+            final BigDecimal amount,
+            final String paymentChannel,
+            final String transactionTypeIndicator,
+            final String transactionType,
+            final String accountType,
+            final String accountSubtype) {
         // CRITICAL: Input validation and null safety
         // Normalize inputs to prevent null pointer exceptions
-        String safeCategoryString = categoryString != null ? categoryString.trim() : null;
-        String safeDescription = description != null ? description.trim() : null;
-        String safeMerchantName = merchantName != null ? merchantName.trim() : null;
-        String safePaymentChannel = paymentChannel != null ? paymentChannel.trim() : null;
-        // NOTE: safeTransactionTypeIndicator is normalized but passed to determineTransactionType which does its own normalization
+        final String safeCategoryString = categoryString != null ? categoryString.trim() : null;
+        final String safeDescription = description != null ? description.trim() : null;
+        final String safeMerchantName = merchantName != null ? merchantName.trim() : null;
+        final String safePaymentChannel = paymentChannel != null ? paymentChannel.trim() : null;
+        // NOTE: safeTransactionTypeIndicator is normalized but passed to determineTransactionType
+        // which does its own normalization
         // However, it IS used in isCashWithdrawal and isCheckPayment checks below
-        String safeTransactionTypeIndicator = transactionTypeIndicator != null ? transactionTypeIndicator.trim() : null;
-        String safeTransactionType = transactionType != null ? transactionType.trim().toUpperCase() : null;
-        String safeAccountType = accountType != null ? accountType.trim().toLowerCase() : null;
-        String safeAccountSubtype = accountSubtype != null ? accountSubtype.trim().toLowerCase() : null;
-        
+        final String safeTransactionTypeIndicator =
+                transactionTypeIndicator != null ? transactionTypeIndicator.trim() : null;
+        final String safeTransactionType =
+                transactionType != null ? transactionType.trim().toUpperCase(Locale.ROOT) : null;
+        final String safeAccountType = accountType != null ? accountType.trim().toLowerCase(Locale.ROOT) : null;
+        final String safeAccountSubtype =
+                accountSubtype != null ? accountSubtype.trim().toLowerCase(Locale.ROOT) : null;
+
         // CRITICAL: Validate amount is reasonable (prevent overflow/underflow issues)
         BigDecimal safeAmount = amount;
         if (amount != null) {
             // Check for extreme values that might cause issues
-            BigDecimal maxAmount = BigDecimal.valueOf(1_000_000_000); // 1 billion
-            BigDecimal minAmount = BigDecimal.valueOf(-1_000_000_000);
+            final BigDecimal maxAmount = BigDecimal.valueOf(1_000_000_000); // 1 billion
+            final BigDecimal minAmount = BigDecimal.valueOf(-1_000_000_000);
             if (amount.compareTo(maxAmount) > 0 || amount.compareTo(minAmount) < 0) {
-                logger.warn("parseCategory: Amount out of reasonable range: {}, using null for safety", amount);
+                LOGGER.warn(
+                        "parseCategory: Amount out of reasonable range: {}, using null for safety",
+                        amount);
                 safeAmount = null;
             }
         }
-        
+
         // STEP 1a: Check for ACH_CREDIT deposits FIRST (before payment detection)
-        // CRITICAL: Must come before payment checks to prevent ACH_CREDIT from being categorized as payment
+        // CRITICAL: Must come before payment checks to prevent ACH_CREDIT from being categorized as
+        // payment
         if (safeCategoryString != null && safeAmount != null) {
-            String categoryLower = safeCategoryString.toLowerCase();
-            if ((categoryLower.contains("ach_credit") || categoryLower.contains("ach credit")) &&
-                safeAmount.compareTo(BigDecimal.ZERO) > 0) {
+            final String categoryLower = safeCategoryString.toLowerCase(Locale.ROOT);
+            if ((categoryLower.contains("ach_credit") || categoryLower.contains("ach credit"))
+                    && safeAmount.compareTo(BigDecimal.ZERO) > 0) {
                 if (isSalaryTransaction(safeDescription, safeAmount, safePaymentChannel)) {
-                    logger.debug("🏷️ parseCategory: ACH_CREDIT salary → 'salary'");
+                    LOGGER.debug("🏷️ parseCategory: ACH_CREDIT salary → 'salary'");
                     return "salary";
                 }
-                logger.debug("🏷️ parseCategory: ACH_CREDIT → 'deposit'");
+                LOGGER.debug("🏷️ parseCategory: ACH_CREDIT → 'deposit'");
                 return "deposit";
             }
         }
-        
+
         // STEP 1b: Check for fees (FEE_TRANSACTION, safe deposit box, etc.)
         if (safeCategoryString != null) {
-            String categoryLower = safeCategoryString.toLowerCase();
-            if (categoryLower.contains("fee_transaction") || categoryLower.contains("fee transaction")) {
-                logger.debug("🏷️ parseCategory: FEE_TRANSACTION → 'fee'");
+            final String categoryLower = safeCategoryString.toLowerCase(Locale.ROOT);
+            if (categoryLower.contains("fee_transaction")
+                    || categoryLower.contains("fee transaction")) {
+                LOGGER.debug("🏷️ parseCategory: FEE_TRANSACTION → 'fee'");
                 return "fee";
             }
         }
         // Check for safe deposit box in description
         if (safeDescription != null) {
-            String descLower = safeDescription.toLowerCase();
-            if (descLower.contains("safe deposit box") || descLower.contains("safedepositbox") ||
-                descLower.contains("safe deposit") || descLower.contains("safety deposit box")) {
-                logger.debug("🏷️ parseCategory: Safe deposit box → 'fee'");
+            final String descLower = safeDescription.toLowerCase(Locale.ROOT);
+            if (descLower.contains("safe deposit box")
+                    || descLower.contains("safedepositbox")
+                    || descLower.contains("safe deposit")
+                    || descLower.contains("safety deposit box")) {
+                LOGGER.debug("🏷️ parseCategory: Safe deposit box → 'fee'");
                 return "fee";
             }
         }
-        
+
         // STEP 1c: Check for Cash Withdrawal - CRITICAL FIX: Must come before payment checks
-        // STEP 0: Check for Airport Expenses (carts, chairs, parking, etc.) - CRITICAL: Must come BEFORE utilities
+        // STEP 0: Check for Airport Expenses (carts, chairs, parking, etc.) - CRITICAL: Must come
+        // BEFORE utilities
         // "SEATTLEAP CART/CHAIR" (Seattle Airport cart) should be "transportation", not "utilities"
         if (safeDescription != null || safeMerchantName != null) {
-            String combined = ((safeMerchantName != null ? safeMerchantName : "") + " " +
-                              (safeDescription != null ? safeDescription : "")).toLowerCase().trim();
+            final String combined =
+                    ((safeMerchantName != null ? safeMerchantName : "")
+                            + " "
+                            + (safeDescription != null ? safeDescription : ""))
+                            .toLowerCase(Locale.ROOT)
+                            .trim();
             // Airport cart/chair rentals
-            if ((combined.contains("seattleap") || combined.contains("seattle ap") || combined.contains("seattle airport")) &&
-                (combined.contains("cart") || combined.contains("chair"))) {
-                logger.debug("🏷️ parseCategory: Detected airport cart/chair → 'transportation'");
+            if ((combined.contains("seattleap")
+                            || combined.contains("seattle ap")
+                            || combined.contains("seattle airport"))
+                    && (combined.contains("cart") || combined.contains("chair"))) {
+                LOGGER.debug("🏷️ parseCategory: Detected airport cart/chair → 'transportation'");
                 return "transportation";
             }
             // General airport cart/chair patterns
-            if (combined.contains("airport") && (combined.contains("cart") || combined.contains("chair"))) {
-                logger.debug("🏷️ parseCategory: Detected airport cart/chair → 'transportation'");
+            if (combined.contains("airport")
+                    && (combined.contains("cart") || combined.contains("chair"))) {
+                LOGGER.debug("🏷️ parseCategory: Detected airport cart/chair → 'transportation'");
                 return "transportation";
             }
         }
-        
+
         // Cash withdrawals should be type EXPENSE, category "cash"
         // CRITICAL: Also check for "withdrawal" keyword (standalone)
-        if (isCashWithdrawal(safeDescription, safeMerchantName, safeCategoryString, safeTransactionTypeIndicator, safePaymentChannel)) {
-            logger.debug("🏷️ parseCategory: Detected cash withdrawal → 'cash'");
+        if (isCashWithdrawal(
+                safeDescription,
+                safeMerchantName,
+                safeCategoryString,
+                safeTransactionTypeIndicator,
+                safePaymentChannel)) {
+            LOGGER.debug("🏷️ parseCategory: Detected cash withdrawal → 'cash'");
             return "cash";
         }
-        
+
         // CRITICAL FIX: Check for standalone "withdrawal" keyword (not just "cash withdrawal")
-        if (safeDescription != null && safeAmount != null && safeAmount.compareTo(BigDecimal.ZERO) < 0) {
-            String descLower = safeDescription.toLowerCase();
-            if (descLower.contains("withdrawal") && !descLower.contains("investment") && 
-                !descLower.contains("transfer") && !descLower.contains("payment")) {
-                logger.debug("🏷️ parseCategory: Detected withdrawal (negative amount) → 'cash'");
+        if (safeDescription != null
+                && safeAmount != null
+                && safeAmount.compareTo(BigDecimal.ZERO) < 0) {
+            final String descLower = safeDescription.toLowerCase(Locale.ROOT);
+            if (descLower.contains("withdrawal")
+                    && !descLower.contains("investment")
+                    && !descLower.contains("transfer")
+                    && !descLower.contains("payment")) {
+                LOGGER.debug("🏷️ parseCategory: Detected withdrawal (negative amount) → 'cash'");
                 return "cash";
             }
         }
-        
+
         // STEP 1b: Check for Check Payment - CRITICAL FIX: Must come before merchant name detection
-        // Check payments should be "payment", not transportation (e.g., "CHECK 176" was matching gas station "76")
-        if (isCheckPayment(safeDescription, safeMerchantName, safeCategoryString, safeTransactionTypeIndicator)) {
-            logger.debug("🏷️ parseCategory: Detected check payment → 'payment'");
+        // Check payments should be "payment", not transportation (e.g., "CHECK 176" was matching
+        // gas station "76")
+        if (isCheckPayment(
+                safeDescription,
+                safeMerchantName,
+                safeCategoryString,
+                safeTransactionTypeIndicator)) {
+            LOGGER.debug("🏷️ parseCategory: Detected check payment → 'payment'");
             return "payment";
         }
-        
-        // STEP 1a: Check for Cable/Internet/Phone Providers - CRITICAL: Must come BEFORE credit card payment
-        // Cable/internet/phone bills (e.g., "Comcast Payment", "Xfinity Mobile Payment") should be "utilities", not "payment"
-        // This must come before credit card payment to prevent "e payment" in "Mobile Payment" from matching
+
+        // STEP 1a: Check for Cable/Internet/Phone Providers - CRITICAL: Must come BEFORE credit
+        // card payment
+        // Cable/internet/phone bills (e.g., "Comcast Payment", "Xfinity Mobile Payment") should be
+        // "utilities", not "payment"
+        // This must come before credit card payment to prevent "e payment" in "Mobile Payment" from
+        // matching
         if (safeDescription != null || safeMerchantName != null) {
-            String combined = ((safeMerchantName != null ? safeMerchantName : "") + " " + 
-                              (safeDescription != null ? safeDescription : "")).toLowerCase().trim();
+            final String combined =
+                    ((safeMerchantName != null ? safeMerchantName : "")
+                            + " "
+                            + (safeDescription != null ? safeDescription : ""))
+                            .toLowerCase(Locale.ROOT)
+                            .trim();
             // Cable/Internet Providers
-            String[] cableInternetProviders = {
-                "comcast", "xfinity", "xfinity mobile", "xfinitymobile",
-                "spectrum", "charter", "charter spectrum",
-                "cox", "cox communications",
-                "optimum", "altice", "frontier", "frontier communications",
-                "centurylink", "century link", "windstream", "suddenlink", "mediacom",
-                "dish", "dish network", "directv", "direct tv",
-                "att u-verse", "att uverse", "fios", "verizon fios"
+            final String[] cableInternetProviders = {
+                    "comcast",
+                    "xfinity",
+                    "xfinity mobile",
+                    "xfinitymobile",
+                    "spectrum",
+                    "charter",
+                    "charter spectrum",
+                    "cox",
+                    "cox communications",
+                    "optimum",
+                    "altice",
+                    "frontier",
+                    "frontier communications",
+                    "centurylink",
+                    "century link",
+                    "windstream",
+                    "suddenlink",
+                    "mediacom",
+                    "dish",
+                    "dish network",
+                    "directv",
+                    "direct tv",
+                    "att u-verse",
+                    "att uverse",
+                    "fios",
+                    "verizon fios"
             };
-            for (String provider : cableInternetProviders) {
+            for (final String provider : cableInternetProviders) {
                 if (combined.contains(provider)) {
-                    logger.debug("🏷️ parseCategory: Detected cable/internet provider '{}' → 'utilities'", provider);
+                    LOGGER.debug(
+                            "🏷️ parseCategory: Detected cable/internet provider '{}' → 'utilities'",
+                            provider);
                     return "utilities";
                 }
             }
             // Phone/Mobile Providers (excluding Xfinity Mobile which is already covered above)
-            String[] phoneProviders = {
-                "verizon wireless", "verizonwireless", "verizon",
-                "at&t", "att", "at and t", "t-mobile", "tmobile", "t mobile",
-                "sprint", "us cellular", "uscellular", "cricket", "cricket wireless",
-                "boost mobile", "boostmobile", "metropcs", "metro pcs", "metropcs",
-                "mint mobile", "mintmobile", "google fi", "googlefi", "visible",
-                "straight talk", "straighttalk", "us mobile", "usmobile"
+            final String[] phoneProviders = {
+                    "verizon wireless",
+                    "verizonwireless",
+                    "verizon",
+                    "at&t",
+                    "att",
+                    "at and t",
+                    "t-mobile",
+                    "tmobile",
+                    "t mobile",
+                    "sprint",
+                    "us cellular",
+                    "uscellular",
+                    "cricket",
+                    "cricket wireless",
+                    "boost mobile",
+                    "boostmobile",
+                    "metropcs",
+                    "metro pcs",
+                    "metropcs",
+                    "mint mobile",
+                    "mintmobile",
+                    "google fi",
+                    "googlefi",
+                    "visible",
+                    "straight talk",
+                    "straighttalk",
+                    "us mobile",
+                    "usmobile"
             };
-            for (String provider : phoneProviders) {
+            for (final String provider : phoneProviders) {
                 if (combined.contains(provider)) {
-                    logger.debug("🏷️ parseCategory: Detected phone/mobile provider '{}' → 'utilities'", provider);
+                    LOGGER.debug(
+                            "🏷️ parseCategory: Detected phone/mobile provider '{}' → 'utilities'",
+                            provider);
                     return "utilities";
                 }
             }
         }
-        
-        // STEP 1b: Check for Utility Bill Payment - CRITICAL FIX: Must come BEFORE credit card payment
-        // Direct payments to utility companies (e.g., "PUGET SOUND ENER BILLPAY") should be "utilities", not "payment"
-        // This is different from credit card payments - utility bills are actual expenses, not payments for expenses already counted
+
+        // STEP 1b: Check for Utility Bill Payment - CRITICAL FIX: Must come BEFORE credit card
+        // payment
+        // Direct payments to utility companies (e.g., "PUGET SOUND ENER BILLPAY") should be
+        // "utilities", not "payment"
+        // This is different from credit card payments - utility bills are actual expenses, not
+        // payments for expenses already counted
         if (isUtilityBillPayment(safeDescription, safeMerchantName, safeCategoryString)) {
-            logger.debug("🏷️ parseCategory: Detected utility bill payment → 'utilities'");
+            LOGGER.debug("🏷️ parseCategory: Detected utility bill payment → 'utilities'");
             return "utilities";
         }
-        
-        // STEP 1c: Check for Interest Income - CRITICAL: Must come BEFORE credit card payment to avoid false matches
-        // Interest payments should be "interest" (income) or "investmentInterest" (investment), not "payment" (expense)
-        if (isInterestTransaction(safeCategoryString, safeDescription, safeMerchantName, safeAmount)) {
-            // Context-aware: If transaction type is INVESTMENT or account is investment, use investmentInterest
-            if ("INVESTMENT".equals(safeTransactionType) || 
-                (safeAccountType != null && (safeAccountType.contains("investment") || safeAccountType.contains("ira") || 
-                 safeAccountType.contains("401k") || safeAccountType.contains("hsa") || safeAccountType.contains("529")))) {
-                logger.debug("parseCategory: Detected interest transaction (investment account) → 'investmentInterest'");
+
+        // STEP 1c: Check for Interest Income - CRITICAL: Must come BEFORE credit card payment to
+        // avoid false matches
+        // Interest payments should be "interest" (income) or "investmentInterest" (investment), not
+        // "payment" (expense)
+        if (isInterestTransaction(
+                safeCategoryString, safeDescription, safeMerchantName, safeAmount)) {
+            // Context-aware: If transaction type is INVESTMENT or account is investment, use
+            // investmentInterest
+            if ("INVESTMENT".equals(safeTransactionType)
+                    || (safeAccountType != null
+                            && (safeAccountType.contains("investment")
+                                    || safeAccountType.contains("ira")
+                                    || safeAccountType.contains("401k")
+                                    || safeAccountType.contains("hsa")
+                                    || safeAccountType.contains("529")))) {
+                LOGGER.debug(
+                        "parseCategory: Detected interest transaction (investment account) → 'investmentInterest'");
                 return "investmentInterest";
             }
-            logger.debug("parseCategory: Detected interest transaction → 'interest'");
+            LOGGER.debug("parseCategory: Detected interest transaction → 'interest'");
             return "interest";
         }
-        
-        // STEP 1c: Check for Dividend Income - CRITICAL: Must come BEFORE credit card payment to avoid false matches
-        // Dividend payments should be "dividend" (income) or "investmentDividend" (investment), not "payment" (expense) or generic "investment"
-        if (isDividendTransaction(safeCategoryString, safeDescription, safeMerchantName, safeAmount)) {
-            // Context-aware: If transaction type is INVESTMENT or account is investment, use investmentDividend
-            if ("INVESTMENT".equals(safeTransactionType) || 
-                (safeAccountType != null && (safeAccountType.contains("investment") || safeAccountType.contains("ira") || 
-                 safeAccountType.contains("401k") || safeAccountType.contains("hsa") || safeAccountType.contains("529")))) {
-                logger.debug("parseCategory: Detected dividend transaction (investment account) → 'investmentDividend'");
+
+        // STEP 1c: Check for Dividend Income - CRITICAL: Must come BEFORE credit card payment to
+        // avoid false matches
+        // Dividend payments should be "dividend" (income) or "investmentDividend" (investment), not
+        // "payment" (expense) or generic "investment"
+        if (isDividendTransaction(
+                safeCategoryString, safeDescription, safeMerchantName, safeAmount)) {
+            // Context-aware: If transaction type is INVESTMENT or account is investment, use
+            // investmentDividend
+            if ("INVESTMENT".equals(safeTransactionType)
+                    || (safeAccountType != null
+                            && (safeAccountType.contains("investment")
+                                    || safeAccountType.contains("ira")
+                                    || safeAccountType.contains("401k")
+                                    || safeAccountType.contains("hsa")
+                                    || safeAccountType.contains("529")))) {
+                LOGGER.debug(
+                        "parseCategory: Detected dividend transaction (investment account) → 'investmentDividend'");
                 return "investmentDividend";
             }
-            logger.debug("parseCategory: Detected dividend transaction → 'dividend'");
+            LOGGER.debug("parseCategory: Detected dividend transaction → 'dividend'");
             return "dividend";
         }
-        
+
         // STEP 1d: Check for Credit Card Payment - CRITICAL FIX: Must come early, not just for ACH
         // Credit card payments should be "payment" (expense), not "other" or "deposit" (income)
         // This includes ACH autopay, online payments, etc.
-        // CRITICAL: Check this BEFORE merchant name detection to avoid false matches (e.g., "CHASE CREDIT CRD" matching transportation)
-        // CRITICAL: But AFTER interest/dividend check to avoid false positives (e.g., "Interest payment" matching credit card)
+        // CRITICAL: Check this BEFORE merchant name detection to avoid false matches (e.g., "CHASE
+        // CREDIT CRD" matching transportation)
+        // CRITICAL: But AFTER interest/dividend check to avoid false positives (e.g., "Interest
+        // payment" matching credit card)
         if (isCreditCardPayment(safeDescription, safeMerchantName, safeCategoryString)) {
-            logger.debug("🏷️ parseCategory: Detected credit card payment → 'payment'");
+            LOGGER.debug("🏷️ parseCategory: Detected credit card payment → 'payment'");
             return "payment";
         } else {
             // Log why it wasn't detected for debugging
-            logger.debug("🏷️ parseCategory: Credit card payment check returned false for description='{}', merchant='{}', category='{}'",
-                    safeDescription, safeMerchantName, safeCategoryString);
+            LOGGER.debug(
+                    "🏷️ parseCategory: Credit card payment check returned false for description='{}', merchant='{}', category='{}'",
+                    safeDescription,
+                    safeMerchantName,
+                    safeCategoryString);
         }
-        
+
         // STEP 1e: Check for Loan Payment/Escrow/Bills - CRITICAL FIX: Must come early
-        // Loan payments (mortgage, auto loan, student loan) should be "payment", "loanEscrow", or "loanBills"
+        // Loan payments (mortgage, auto loan, student loan) should be "payment", "loanEscrow", or
+        // "loanBills"
         if (isLoanPayment(safeDescription, safeMerchantName, safeCategoryString)) {
             // Context-aware: Check if it's escrow or bills
-            String descLower = safeDescription != null ? safeDescription.toLowerCase() : "";
-            String merchantLower = safeMerchantName != null ? safeMerchantName.toLowerCase() : "";
-            String combinedText = (merchantLower + " " + descLower).trim();
-            
+            final String descLower = safeDescription != null ? safeDescription.toLowerCase(Locale.ROOT) : "";
+            final String merchantLower = safeMerchantName != null ? safeMerchantName.toLowerCase(Locale.ROOT) : "";
+            final String combinedText = (merchantLower + " " + descLower).trim();
+
             // Check for escrow keywords
-            if (combinedText.contains("escrow") || combinedText.contains("tax escrow") || 
-                combinedText.contains("insurance escrow") || combinedText.contains("property tax") ||
-                combinedText.contains("homeowners insurance") || combinedText.contains("hazard insurance")) {
-                logger.debug("🏷️ parseCategory: Detected loan escrow → 'loanEscrow'");
+            if (combinedText.contains("escrow")
+                    || combinedText.contains("tax escrow")
+                    || combinedText.contains("insurance escrow")
+                    || combinedText.contains("property tax")
+                    || combinedText.contains("homeowners insurance")
+                    || combinedText.contains("hazard insurance")) {
+                LOGGER.debug("🏷️ parseCategory: Detected loan escrow → 'loanEscrow'");
                 return "loanEscrow";
             }
-            
+
             // Check for bill payment keywords (utilities, etc. paid through loan)
-            if (combinedText.contains("bill") || combinedText.contains("utility bill") ||
-                combinedText.contains("electric bill") || combinedText.contains("water bill") ||
-                combinedText.contains("cable bill") || combinedText.contains("internet bill")) {
-                logger.debug("🏷️ parseCategory: Detected loan bills → 'loanBills'");
+            if (combinedText.contains("bill")
+                    || combinedText.contains("utility bill")
+                    || combinedText.contains("electric bill")
+                    || combinedText.contains("water bill")
+                    || combinedText.contains("cable bill")
+                    || combinedText.contains("internet bill")) {
+                LOGGER.debug("🏷️ parseCategory: Detected loan bills → 'loanBills'");
                 return "loanBills";
             }
-            
-            logger.debug("🏷️ parseCategory: Detected loan payment → 'payment'");
+
+            LOGGER.debug("🏷️ parseCategory: Detected loan payment → 'payment'");
             return "payment";
         }
-        
-        // STEP 1f: Check for Investment Transfer - CRITICAL FIX: Must come before regular account transfer
-        // Investment transfers (from/to investment firms like Morgan Stanley, Fidelity, etc.) should be "investmentTransfer"
+
+        // STEP 1f: Check for Investment Transfer - CRITICAL FIX: Must come before regular account
+        // transfer
+        // Investment transfers (from/to investment firms like Morgan Stanley, Fidelity, etc.)
+        // should be "investmentTransfer"
         // CRITICAL: Only for DEBITS (money going out). Credits should be "deposit"
         if (safeAmount != null && safeAmount.compareTo(BigDecimal.ZERO) < 0) {
             // Only check for investment transfer if amount is negative (debit)
             if (isInvestmentTransfer(safeDescription, safeMerchantName, safeCategoryString)) {
-                logger.debug("🏷️ parseCategory: Detected investment transfer (debit) → 'investmentTransfer'");
+                LOGGER.debug(
+                        "🏷️ parseCategory: Detected investment transfer (debit) → 'investmentTransfer'");
                 return "investmentTransfer";
             }
         }
-        
+
         // STEP 1f0: Check for Investment Fees - CRITICAL: Must come before other investment checks
         // Investment fees (negative amounts on investment accounts) should be "investmentFees"
-        if (safeAmount != null && safeAmount.compareTo(BigDecimal.ZERO) < 0 && 
-            ("INVESTMENT".equals(safeTransactionType) || 
-             (safeAccountType != null && (safeAccountType.contains("investment") || safeAccountType.contains("ira") || 
-              safeAccountType.contains("401k") || safeAccountType.contains("hsa") || safeAccountType.contains("529"))))) {
-            String descLower = safeDescription != null ? safeDescription.toLowerCase() : "";
-            String merchantLower = safeMerchantName != null ? safeMerchantName.toLowerCase() : "";
-            String combinedText = (merchantLower + " " + descLower).trim();
-            
+        if (safeAmount != null
+                && safeAmount.compareTo(BigDecimal.ZERO) < 0
+                && ("INVESTMENT".equals(safeTransactionType)
+                        || (safeAccountType != null
+                                && (safeAccountType.contains("investment")
+                                        || safeAccountType.contains("ira")
+                                        || safeAccountType.contains("401k")
+                                        || safeAccountType.contains("hsa")
+                                        || safeAccountType.contains("529"))))) {
+            final String descLower = safeDescription != null ? safeDescription.toLowerCase(Locale.ROOT) : "";
+            final String merchantLower = safeMerchantName != null ? safeMerchantName.toLowerCase(Locale.ROOT) : "";
+            final String combinedText = (merchantLower + " " + descLower).trim();
+
             // Check for fee keywords
-            if (combinedText.contains("fee") || combinedText.contains("management fee") || 
-                combinedText.contains("advisory fee") || combinedText.contains("custodian fee") ||
-                combinedText.contains("account fee") || combinedText.contains("administrative fee") ||
-                combinedText.contains("expense ratio") || combinedText.contains("expense fee") ||
-                (combinedText.contains("annual") && combinedText.contains("fee"))) {
-                logger.debug("🏷️ parseCategory: Detected investment fee → 'investmentFees'");
+            if (combinedText.contains("fee")
+                    || combinedText.contains("management fee")
+                    || combinedText.contains("advisory fee")
+                    || combinedText.contains("custodian fee")
+                    || combinedText.contains("account fee")
+                    || combinedText.contains("administrative fee")
+                    || combinedText.contains("expense ratio")
+                    || combinedText.contains("expense fee")
+                    || (combinedText.contains("annual") && combinedText.contains("fee"))) {
+                LOGGER.debug("🏷️ parseCategory: Detected investment fee → 'investmentFees'");
                 return "investmentFees";
             }
         }
-        
-        // STEP 1f1: Check for Investment Purchase - CRITICAL: Negative amounts on investment accounts
-        // Investment purchases (negative amounts on investment accounts) should be "investmentPurchase"
-        if (safeAmount != null && safeAmount.compareTo(BigDecimal.ZERO) < 0 && 
-            ("INVESTMENT".equals(safeTransactionType) || 
-             (safeAccountType != null && (safeAccountType.contains("investment") || safeAccountType.contains("ira") || 
-              safeAccountType.contains("401k") || safeAccountType.contains("hsa") || safeAccountType.contains("529"))))) {
-            String descLower = safeDescription != null ? safeDescription.toLowerCase() : "";
-            String merchantLower = safeMerchantName != null ? safeMerchantName.toLowerCase() : "";
-            String combinedText = (merchantLower + " " + descLower).trim();
-            
+
+        // STEP 1f1: Check for Investment Purchase - CRITICAL: Negative amounts on investment
+        // accounts
+        // Investment purchases (negative amounts on investment accounts) should be
+        // "investmentPurchase"
+        if (safeAmount != null
+                && safeAmount.compareTo(BigDecimal.ZERO) < 0
+                && ("INVESTMENT".equals(safeTransactionType)
+                        || (safeAccountType != null
+                                && (safeAccountType.contains("investment")
+                                        || safeAccountType.contains("ira")
+                                        || safeAccountType.contains("401k")
+                                        || safeAccountType.contains("hsa")
+                                        || safeAccountType.contains("529"))))) {
+            final String descLower = safeDescription != null ? safeDescription.toLowerCase(Locale.ROOT) : "";
+            final String merchantLower = safeMerchantName != null ? safeMerchantName.toLowerCase(Locale.ROOT) : "";
+            final String combinedText = (merchantLower + " " + descLower).trim();
+
             // Check for purchase keywords (but not fees or transfers)
-            if ((combinedText.contains("purchase") || combinedText.contains("buy") || 
-                 combinedText.contains("contribution") || combinedText.contains("deposit")) &&
-                !combinedText.contains("fee") && !combinedText.contains("transfer")) {
-                logger.debug("🏷️ parseCategory: Detected investment purchase → 'investmentPurchase'");
+            if ((combinedText.contains("purchase")
+                            || combinedText.contains("buy")
+                            || combinedText.contains("contribution")
+                            || combinedText.contains("deposit"))
+                    && !combinedText.contains("fee")
+                    && !combinedText.contains("transfer")) {
+                LOGGER.debug(
+                        "🏷️ parseCategory: Detected investment purchase → 'investmentPurchase'");
                 return "investmentPurchase";
             }
         }
-        
+
         // STEP 1f2: Check for Investment Sold - CRITICAL: Positive amounts on investment accounts
         // Investment sales (positive amounts on investment accounts) should be "investmentSold"
-        if (safeAmount != null && safeAmount.compareTo(BigDecimal.ZERO) > 0 && 
-            ("INVESTMENT".equals(safeTransactionType) || 
-             (safeAccountType != null && (safeAccountType.contains("investment") || safeAccountType.contains("ira") || 
-              safeAccountType.contains("401k") || safeAccountType.contains("hsa") || safeAccountType.contains("529"))))) {
-            String descLower = safeDescription != null ? safeDescription.toLowerCase() : "";
-            String merchantLower = safeMerchantName != null ? safeMerchantName.toLowerCase() : "";
-            String combinedText = (merchantLower + " " + descLower).trim();
-            
+        if (safeAmount != null
+                && safeAmount.compareTo(BigDecimal.ZERO) > 0
+                && ("INVESTMENT".equals(safeTransactionType)
+                        || (safeAccountType != null
+                                && (safeAccountType.contains("investment")
+                                        || safeAccountType.contains("ira")
+                                        || safeAccountType.contains("401k")
+                                        || safeAccountType.contains("hsa")
+                                        || safeAccountType.contains("529"))))) {
+            final String descLower = safeDescription != null ? safeDescription.toLowerCase(Locale.ROOT) : "";
+            final String merchantLower = safeMerchantName != null ? safeMerchantName.toLowerCase(Locale.ROOT) : "";
+            final String combinedText = (merchantLower + " " + descLower).trim();
+
             // Check for sale keywords
-            if (combinedText.contains("sale") || combinedText.contains("sell") || 
-                combinedText.contains("redemption") || combinedText.contains("withdrawal") ||
-                combinedText.contains("distribution") || combinedText.contains("proceeds")) {
-                logger.debug("🏷️ parseCategory: Detected investment sale → 'investmentSold'");
+            if (combinedText.contains("sale")
+                    || combinedText.contains("sell")
+                    || combinedText.contains("redemption")
+                    || combinedText.contains("withdrawal")
+                    || combinedText.contains("distribution")
+                    || combinedText.contains("proceeds")) {
+                LOGGER.debug("🏷️ parseCategory: Detected investment sale → 'investmentSold'");
                 return "investmentSold";
             }
         }
-        
+
         // STEP 1f1: Check for Deposit from Investment Firm - CRITICAL FIX
-        // Credits from investment firms (e.g., "Online transfer from Morgan Stanley" with positive amount) should be "deposit"
+        // Credits from investment firms (e.g., "Online transfer from Morgan Stanley" with positive
+        // amount) should be "deposit"
         if (safeAmount != null && safeAmount.compareTo(BigDecimal.ZERO) > 0) {
-            String descLower = safeDescription != null ? safeDescription.toLowerCase() : "";
-            String merchantLower = safeMerchantName != null ? safeMerchantName.toLowerCase() : "";
-            String[] investmentFirms = {
-                "morgan stanley", "morganstanley", "fidelity", "vanguard", "schwab", "charles schwab",
-                "td ameritrade", "etrade", "robinhood", "merrill lynch", "goldman sachs"
+            final String descLower = safeDescription != null ? safeDescription.toLowerCase(Locale.ROOT) : "";
+            final String merchantLower = safeMerchantName != null ? safeMerchantName.toLowerCase(Locale.ROOT) : "";
+            final String[] investmentFirms = {
+                    "morgan stanley",
+                    "morganstanley",
+                    "fidelity",
+                    "vanguard",
+                    "schwab",
+                    "charles schwab",
+                    "td ameritrade",
+                    "etrade",
+                    "robinhood",
+                    "merrill lynch",
+                    "goldman sachs"
             };
-            for (String firm : investmentFirms) {
-                if ((descLower.contains(firm) || merchantLower.contains(firm)) &&
-                    (descLower.contains("transfer") || descLower.contains("from") || descLower.contains("deposit"))) {
-                    logger.debug("🏷️ parseCategory: Detected deposit from investment firm '{}' (credit) → 'deposit'", firm);
+            for (final String firm : investmentFirms) {
+                if ((descLower.contains(firm) || merchantLower.contains(firm))
+                        && (descLower.contains("transfer")
+                                || descLower.contains("from")
+                                || descLower.contains("deposit"))) {
+                    LOGGER.debug(
+                            "🏷️ parseCategory: Detected deposit from investment firm '{}' (credit) → 'deposit'",
+                            firm);
                     return "deposit";
                 }
             }
         }
-        
+
         // STEP 1g: Check for Account Transfer - CRITICAL FIX: Must come early
-        // Account transfers (ACCT_XFER, Online Transfer to CHK, etc.) should be "transfer", not "other"
+        // Account transfers (ACCT_XFER, Online Transfer to CHK, etc.) should be "transfer", not
+        // "other"
         // CRITICAL: Also check for wire transfers, international wires, money transfer services
         if (isAccountTransfer(safeDescription, safeMerchantName, safeCategoryString)) {
-            logger.debug("🏷️ parseCategory: Detected account transfer → 'transfer'");
+            LOGGER.debug("🏷️ parseCategory: Detected account transfer → 'transfer'");
             return "transfer";
         }
-        
+
         // CRITICAL FIX: Check for wire transfers and international wires
         if (safeDescription != null) {
-            String descLower = safeDescription.toLowerCase();
-            if ((descLower.contains("wire") || descLower.contains("international wire")) &&
-                (descLower.contains("debit") || descLower.contains("transfer"))) {
-                logger.debug("🏷️ parseCategory: Detected wire transfer → 'transfer'");
+            final String descLower = safeDescription.toLowerCase(Locale.ROOT);
+            if ((descLower.contains("wire") || descLower.contains("international wire"))
+                    && (descLower.contains("debit") || descLower.contains("transfer"))) {
+                LOGGER.debug("🏷️ parseCategory: Detected wire transfer → 'transfer'");
                 return "transfer";
             }
         }
-        
+
         // STEP 2: Check for Salary/Payroll (highest priority for income)
-        if (isInterestTransaction(safeCategoryString, safeDescription, safeMerchantName, safeAmount)) {
-            logger.debug("parseCategory: Detected interest transaction → 'interest'");
+        if (isInterestTransaction(
+                safeCategoryString, safeDescription, safeMerchantName, safeAmount)) {
+            LOGGER.debug("parseCategory: Detected interest transaction → 'interest'");
             return "interest";
         }
-        
-        // STEP 3: Check for Dividend Income - CRITICAL: Must come before salary to catch dividend payments
-        if (isDividendTransaction(safeCategoryString, safeDescription, safeMerchantName, safeAmount)) {
-            logger.debug("parseCategory: Detected dividend transaction → 'dividend'");
+
+        // STEP 3: Check for Dividend Income - CRITICAL: Must come before salary to catch dividend
+        // payments
+        if (isDividendTransaction(
+                safeCategoryString, safeDescription, safeMerchantName, safeAmount)) {
+            LOGGER.debug("parseCategory: Detected dividend transaction → 'dividend'");
             return "dividend";
         }
-        
+
         // STEP 3: Context-aware Income Category Detection
-        // For INCOME type transactions, determine specific income category (salary, deposit, dividend, interest)
-        if ("INCOME".equals(safeTransactionType) && safeAmount != null && safeAmount.compareTo(BigDecimal.ZERO) > 0) {
-            String incomeCategory = determineIncomeCategoryFromContext(
-                safeDescription, safeMerchantName, safeAmount, safePaymentChannel, 
-                safeAccountType, safeAccountSubtype);
+        // For INCOME type transactions, determine specific income category (salary, deposit,
+        // dividend, interest)
+        if ("INCOME".equals(safeTransactionType)
+                && safeAmount != null
+                && safeAmount.compareTo(BigDecimal.ZERO) > 0) {
+            final String incomeCategory =
+                    determineIncomeCategoryFromContext(
+                            safeDescription,
+                            safeMerchantName,
+                            safeAmount,
+                            safePaymentChannel,
+                            safeAccountType,
+                            safeAccountSubtype);
             if (incomeCategory != null) {
-                logger.debug("🏷️ parseCategory: Context-aware income category detected → '{}'", incomeCategory);
+                LOGGER.debug(
+                        "🏷️ parseCategory: Context-aware income category detected → '{}'",
+                        incomeCategory);
                 return incomeCategory;
             }
         }
-        
+
         // STEP 3a: Check for Salary/Payroll (highest priority for income)
         // CRITICAL FIX: Include Amazon.com SVCS Payroll and other payroll patterns
         if (isSalaryTransaction(safeDescription, safeAmount, safePaymentChannel)) {
-            logger.debug("parseCategory: Detected salary transaction → 'salary'");
+            LOGGER.debug("parseCategory: Detected salary transaction → 'salary'");
             return "salary";
         }
-        
+
         // CRITICAL FIX: Check for specific payroll patterns
-        if (safeDescription != null && safeAmount != null && safeAmount.compareTo(BigDecimal.ZERO) > 0) {
-            String descLower = safeDescription.toLowerCase();
-            String merchantLower = safeMerchantName != null ? safeMerchantName.toLowerCase() : "";
-            if ((descLower.contains("amazon.com svcs") || descLower.contains("amazon.com services") ||
-                 merchantLower.contains("amazon.com svcs") || merchantLower.contains("amazon.com services")) &&
-                (descLower.contains("payroll") || descLower.contains("salary") || descLower.contains("pay"))) {
-                logger.debug("🏷️ parseCategory: Detected Amazon.com SVCS Payroll → 'salary'");
+        if (safeDescription != null
+                && safeAmount != null
+                && safeAmount.compareTo(BigDecimal.ZERO) > 0) {
+            final String descLower = safeDescription.toLowerCase(Locale.ROOT);
+            final String merchantLower = safeMerchantName != null ? safeMerchantName.toLowerCase(Locale.ROOT) : "";
+            if ((descLower.contains("amazon.com svcs")
+                            || descLower.contains("amazon.com services")
+                            || merchantLower.contains("amazon.com svcs")
+                            || merchantLower.contains("amazon.com services"))
+                    && (descLower.contains("payroll")
+                            || descLower.contains("salary")
+                            || descLower.contains("pay"))) {
+                LOGGER.debug("🏷️ parseCategory: Detected Amazon.com SVCS Payroll → 'salary'");
                 return "salary";
             }
         }
-        
+
         // STEP 3.5: Check for Property Tax - CRITICAL FIX
-        // Property tax (e.g., Santa Clara DTAC) should be "other" (no specific property tax category)
+        // Property tax (e.g., Santa Clara DTAC) should be "other" (no specific property tax
+        // category)
         if (safeDescription != null || safeMerchantName != null) {
-            String descLower = safeDescription != null ? safeDescription.toLowerCase() : "";
-            String merchantLower = safeMerchantName != null ? safeMerchantName.toLowerCase() : "";
-            if (descLower.contains("property tax") || descLower.contains("santa clara dtac") ||
-                merchantLower.contains("property tax") || merchantLower.contains("santa clara dtac") ||
-                descLower.contains("dtac") || merchantLower.contains("dtac")) {
-                logger.debug("🏷️ parseCategory: Detected property tax → 'other'");
+            final String descLower = safeDescription != null ? safeDescription.toLowerCase(Locale.ROOT) : "";
+            final String merchantLower = safeMerchantName != null ? safeMerchantName.toLowerCase(Locale.ROOT) : "";
+            if (descLower.contains("property tax")
+                    || descLower.contains("santa clara dtac")
+                    || merchantLower.contains("property tax")
+                    || merchantLower.contains("santa clara dtac")
+                    || descLower.contains("dtac")
+                    || merchantLower.contains("dtac")) {
+                LOGGER.debug("🏷️ parseCategory: Detected property tax → 'other'");
                 return "other"; // Property tax category - user can override if needed
             }
         }
-        
+
         // STEP 4: Check for RSU transactions
         if (isRSUTransaction(safeCategoryString, safeDescription, safeMerchantName, safeAmount)) {
-            logger.debug("parseCategory: Detected RSU transaction → 'rsu'");
+            LOGGER.debug("parseCategory: Detected RSU transaction → 'rsu'");
             return "rsu";
         }
-        
+
         // STEP 4: Sophisticated Merchant Name-Based Detection (NEW - Global Scale)
         // This is the key enhancement - merchant names are more reliable than category strings
-        // CRITICAL FIX: Skip merchant name detection when merchantName is null/empty to save resources
+        // CRITICAL FIX: Skip merchant name detection when merchantName is null/empty to save
+        // resources
         String merchantCategory = null;
-        if (safeMerchantName != null && !safeMerchantName.trim().isEmpty()) {
+        if (safeMerchantName != null && !safeMerchantName.isBlank()) {
             merchantCategory = detectCategoryFromMerchantName(safeMerchantName, safeDescription);
             if (merchantCategory != null) {
-                logger.debug("🏷️ parseCategory: Detected category from merchant name '{}' → '{}'", safeMerchantName, merchantCategory);
+                LOGGER.debug(
+                        "🏷️ parseCategory: Detected category from merchant name '{}' → '{}'",
+                        safeMerchantName,
+                        merchantCategory);
                 return merchantCategory;
             }
         } else {
-            logger.debug("🏷️ parseCategory: Skipping merchant name detection - merchantName is null/empty");
+            LOGGER.debug(
+                    "🏷️ parseCategory: Skipping merchant name detection - merchantName is null/empty");
         }
-        
+
         // STEP 5: Description-Based Category Detection (NEW - Fallback when merchant name fails)
-        String descriptionCategory = detectCategoryFromDescription(safeDescription, safeMerchantName, safeAmount);
+        final String descriptionCategory =
+                detectCategoryFromDescription(safeDescription, safeMerchantName, safeAmount);
         if (descriptionCategory != null) {
-            logger.debug("🏷️ parseCategory: Detected category from description '{}' → '{}'", safeDescription, descriptionCategory);
+            LOGGER.debug(
+                    "🏷️ parseCategory: Detected category from description '{}' → '{}'",
+                    safeDescription,
+                    descriptionCategory);
             return descriptionCategory;
         }
-        
-        // STEP 6: Enhanced Category Detection (ML + Fuzzy Matching) - CRITICAL FIX: This was missing!
+
+        // STEP 6: Enhanced Category Detection (ML + Fuzzy Matching) - CRITICAL FIX: This was
+        // missing!
         // Only use if we have merchant name or description (ML needs some input)
         // NOTE: safeAmount is already validated at the beginning of the method
-        if ((safeMerchantName != null && !safeMerchantName.isEmpty()) || 
-            (safeDescription != null && !safeDescription.isEmpty())) {
+        if ((safeMerchantName != null && !safeMerchantName.isEmpty())
+                || (safeDescription != null && !safeDescription.isEmpty())) {
             try {
-                logger.debug("🏷️ parseCategory: Attempting enhanced detection - merchant='{}', description='{}', amount={}, channel='{}', category='{}'",
-                        safeMerchantName, safeDescription, safeAmount, safePaymentChannel, safeCategoryString);
-                
-                EnhancedCategoryDetectionService.DetectionResult enhancedResult = 
-                    enhancedCategoryDetection.detectCategory(safeMerchantName, safeDescription, safeAmount, safePaymentChannel, safeCategoryString);
-                
+                LOGGER.debug(
+                        "🏷️ parseCategory: Attempting enhanced detection - merchant='{}', description='{}', amount={}, channel='{}', category='{}'",
+                        safeMerchantName,
+                        safeDescription,
+                        safeAmount,
+                        safePaymentChannel,
+                        safeCategoryString);
+
+                final EnhancedCategoryDetectionService.DetectionResult enhancedResult =
+                        enhancedCategoryDetection.detectCategory(
+                                safeMerchantName,
+                                safeDescription,
+                                safeAmount,
+                                safePaymentChannel,
+                                safeCategoryString);
+
                 // CRITICAL: Log the result for debugging
                 if (enhancedResult == null) {
-                    logger.debug("🏷️ parseCategory: Enhanced detection returned null result");
+                    LOGGER.debug("🏷️ parseCategory: Enhanced detection returned null result");
                 } else if (enhancedResult.category == null) {
-                    logger.debug("🏷️ parseCategory: Enhanced detection returned null category (method: {}, confidence: {})",
-                            enhancedResult.method, String.format("%.2f", enhancedResult.confidence));
+                    LOGGER.debug(
+                            "🏷️ parseCategory: Enhanced detection returned null category (method: {}, confidence: {})",
+                            enhancedResult.method,
+                            String.format("%.2f", enhancedResult.confidence));
                 } else {
-                    logger.debug("🏷️ parseCategory: Enhanced detection result - category='{}', confidence={}, method='{}', reason='{}'",
-                            enhancedResult.category, String.format("%.2f", enhancedResult.confidence), enhancedResult.method, 
+                    LOGGER.debug(
+                            "🏷️ parseCategory: Enhanced detection result - category='{}', confidence={}, method='{}', reason='{}'",
+                            enhancedResult.category,
+                            String.format("%.2f", enhancedResult.confidence),
+                            enhancedResult.method,
                             enhancedResult.reason != null ? enhancedResult.reason : "N/A");
                 }
-                
+
                 // CRITICAL: Use enhanced detection if confidence is reasonable
-                // For FUZZY_MATCH on known merchants, use lower threshold (0.50) since these are deterministic matches
+                // For FUZZY_MATCH on known merchants, use lower threshold (0.50) since these are
+                // deterministic matches
                 // For other methods (SEMANTIC_MATCH, ML_PREDICTION), use higher threshold (0.55)
                 if (enhancedResult != null && enhancedResult.category != null) {
-                    double confidenceThreshold = "FUZZY_MATCH".equals(enhancedResult.method) ? 0.50 : 0.55;
-                    
+                    final double confidenceThreshold =
+                            "FUZZY_MATCH".equals(enhancedResult.method) ? 0.50 : 0.55;
+
                     if (enhancedResult.confidence >= confidenceThreshold) {
-                        logger.debug("🏷️ parseCategory: ✅ Enhanced detection (ML/Fuzzy) found: '{}' (confidence: {}, method: {}, threshold: {}) - RETURNING THIS CATEGORY", 
-                                enhancedResult.category, String.format("%.2f", enhancedResult.confidence), enhancedResult.method, String.format("%.2f", confidenceThreshold));
+                        LOGGER.debug(
+                                "🏷️ parseCategory: ✅ Enhanced detection (ML/Fuzzy) found: '{}' (confidence: {}, method: {}, threshold: {}) - RETURNING THIS CATEGORY",
+                                enhancedResult.category,
+                                String.format("%.2f", enhancedResult.confidence),
+                                enhancedResult.method,
+                                String.format("%.2f", confidenceThreshold));
                         // NOTE: Do NOT train model during preview - only during actual import
-                        // Training happens in TransactionService when transaction is successfully created
+                        // Training happens in TransactionService when transaction is successfully
+                        // created
                         return enhancedResult.category;
                     } else {
-                        logger.debug("🏷️ parseCategory: Enhanced detection found '{}' but confidence too low ({} < {}), continuing to fallback methods", 
-                                enhancedResult.category, String.format("%.2f", enhancedResult.confidence), String.format("%.2f", confidenceThreshold));
+                        LOGGER.debug(
+                                "🏷️ parseCategory: Enhanced detection found '{}' but confidence too low ({} < {}), continuing to fallback methods",
+                                enhancedResult.category,
+                                String.format("%.2f", enhancedResult.confidence),
+                                String.format("%.2f", confidenceThreshold));
                     }
                 } else if (enhancedResult == null) {
-                    logger.debug("🏷️ parseCategory: Enhanced detection returned null - no match found");
+                    LOGGER.debug(
+                            "🏷️ parseCategory: Enhanced detection returned null - no match found");
                 }
             } catch (Exception e) {
                 // CRITICAL: Don't fail category detection if ML/fuzzy matching fails
                 // Log error but continue to fallback methods
-                logger.warn("🏷️ parseCategory: Enhanced category detection failed (non-fatal): {} - stack trace: {}", 
-                        e.getMessage(), e.getClass().getSimpleName());
-                logger.debug("🏷️ parseCategory: Enhanced detection exception details", e);
+                LOGGER.warn(
+                        "🏷️ parseCategory: Enhanced category detection failed (non-fatal): {} - stack trace: {}",
+                        e.getMessage(),
+                        e.getClass().getSimpleName());
+                LOGGER.debug("🏷️ parseCategory: Enhanced detection exception details", e);
             }
         } else {
-            logger.debug("🏷️ parseCategory: Skipping enhanced detection - both merchantName and description are null/empty");
+            LOGGER.debug(
+                    "🏷️ parseCategory: Skipping enhanced detection - both merchantName and description are null/empty");
         }
-        
+
         // STEP 7: Check for zero amount transactions (boundary condition)
         // Zero amounts are ambiguous - use category/description to determine type
         if (amount != null && amount.compareTo(BigDecimal.ZERO) == 0) {
-            logger.debug("parseCategory: Zero amount transaction detected, using category/description inference");
+            LOGGER.debug(
+                    "parseCategory: Zero amount transaction detected, using category/description inference");
             // Zero amounts are typically fees, adjustments, or transfers
             // If we have a category hint, use it; otherwise default to "other"
-            if (categoryString != null && !categoryString.trim().isEmpty()) {
-                String lower = categoryString.toLowerCase();
-                String mapped = CATEGORY_MAP.get(lower);
+            if (categoryString != null && !categoryString.isBlank()) {
+                final String lower = categoryString.toLowerCase(Locale.ROOT);
+                final String mapped = CATEGORY_MAP.get(lower);
                 if (mapped != null) {
-                    logger.debug("parseCategory: Zero amount with category hint '{}' → '{}'", categoryString, mapped);
+                    LOGGER.debug(
+                            "parseCategory: Zero amount with category hint '{}' → '{}'",
+                            categoryString,
+                            mapped);
                     return mapped;
                 }
             }
             // For zero amounts without clear category, check description for hints
-            if (description != null && !description.trim().isEmpty()) {
-                String descLower = description.toLowerCase();
-                if (descLower.contains("fee") || descLower.contains("adjustment") || descLower.contains("correction")) {
-                    logger.debug("parseCategory: Zero amount with fee/adjustment description → 'other'");
+            if (description != null && !description.isBlank()) {
+                final String descLower = description.toLowerCase(Locale.ROOT);
+                if (descLower.contains("fee")
+                        || descLower.contains("adjustment")
+                        || descLower.contains("correction")) {
+                    LOGGER.debug(
+                            "parseCategory: Zero amount with fee/adjustment description → 'other'");
                     return "other";
                 }
                 if (descLower.contains("transfer")) {
-                    logger.debug("parseCategory: Zero amount with transfer description → 'payment'");
+                    LOGGER.debug(
+                            "parseCategory: Zero amount with transfer description → 'payment'");
                     return "payment";
                 }
             }
             // Default for zero amounts
-            logger.debug("parseCategory: Zero amount without clear category → 'other'");
+            LOGGER.debug("parseCategory: Zero amount without clear category → 'other'");
             return "other";
         }
-        
+
         // STEP 8: Check for ACH transactions (after merchant/description checks)
         if (isACHTransaction(safeDescription, safePaymentChannel)) {
             // If ACH is positive and looks like salary, categorize as salary
-            if (safeAmount != null && safeAmount.compareTo(BigDecimal.ZERO) > 0 && 
-                isSalaryTransaction(safeDescription, safeAmount, safePaymentChannel)) {
-                logger.debug("parseCategory: Detected ACH salary transaction → 'salary'");
+            if (safeAmount != null
+                    && safeAmount.compareTo(BigDecimal.ZERO) > 0
+                    && isSalaryTransaction(safeDescription, safeAmount, safePaymentChannel)) {
+                LOGGER.debug("parseCategory: Detected ACH salary transaction → 'salary'");
                 return "salary";
             }
-            // Otherwise, ACH positive transactions are typically deposits (but not credit card payments - already handled)
+            // Otherwise, ACH positive transactions are typically deposits (but not credit card
+            // payments - already handled)
             if (safeAmount != null && safeAmount.compareTo(BigDecimal.ZERO) > 0) {
-                logger.debug("parseCategory: Detected ACH deposit transaction → 'deposit'");
+                LOGGER.debug("parseCategory: Detected ACH deposit transaction → 'deposit'");
                 return "deposit";
             }
         }
-        
+
         // STEP 9: Check for ACH_CREDIT specifically (before category map lookup)
-        // CRITICAL: ACH_CREDIT with positive amount should be "deposit", not "income" (unless specifically identified as salary, interest, etc.)
+        // CRITICAL: ACH_CREDIT with positive amount should be "deposit", not "income" (unless
+        // specifically identified as salary, interest, etc.)
         // This prevents "ACH_CREDIT" from matching "credit" → "income" in the category map
         if (safeCategoryString != null && safeAmount != null) {
-            String categoryLower = safeCategoryString.toLowerCase();
-            if ((categoryLower.contains("ach_credit") || categoryLower.contains("ach credit")) &&
-                safeAmount.compareTo(BigDecimal.ZERO) > 0) {
+            final String categoryLower = safeCategoryString.toLowerCase(Locale.ROOT);
+            if ((categoryLower.contains("ach_credit") || categoryLower.contains("ach credit"))
+                    && safeAmount.compareTo(BigDecimal.ZERO) > 0) {
                 // Already checked for salary in STEP 8, so this is a generic deposit
-                logger.debug("🏷️ parseCategory: Detected ACH_CREDIT with positive amount → 'deposit'");
+                LOGGER.debug(
+                        "🏷️ parseCategory: Detected ACH_CREDIT with positive amount → 'deposit'");
                 return "deposit";
             }
         }
-        
+
         // STEP 10: Fall back to standard category string parsing (using static map for performance)
         if (safeCategoryString != null && !safeCategoryString.isEmpty()) {
-            String lower = safeCategoryString.toLowerCase();
-            
+            final String lower = safeCategoryString.toLowerCase(Locale.ROOT);
+
             // CRITICAL: First try exact match (most reliable)
-            String exactMatch = CATEGORY_MAP.get(lower);
+            final String exactMatch = CATEGORY_MAP.get(lower);
             if (exactMatch != null) {
-                logger.debug("parseCategory: Exact category string match '{}' → '{}'", categoryString, exactMatch);
+                LOGGER.debug(
+                        "parseCategory: Exact category string match '{}' → '{}'",
+                        categoryString,
+                        exactMatch);
                 return exactMatch;
             }
-            
+
             // Then try substring match (less reliable but handles variations)
-            // CRITICAL: Use longest match first to avoid partial matches (e.g., "gas" matching "gas station" before "gas station")
-            // CRITICAL: Exclude "credit" from matching "ACH_CREDIT" to prevent false "income" categorization
-            List<Map.Entry<String, String>> sortedEntries = new ArrayList<>(CATEGORY_MAP.entrySet());
-            sortedEntries.sort((a, b) -> Integer.compare(b.getKey().length(), a.getKey().length())); // Sort by length descending
-            
-            for (Map.Entry<String, String> entry : sortedEntries) {
-                String key = entry.getKey();
-                // CRITICAL: Skip "credit" keyword if categoryString contains "ACH_CREDIT" to prevent false "income" match
+            // CRITICAL: Use longest match first to avoid partial matches (e.g., "gas" matching "gas
+            // station" before "gas station")
+            // CRITICAL: Exclude "credit" from matching "ACH_CREDIT" to prevent false "income"
+            // categorization
+            final List<Map.Entry<String, String>> sortedEntries =
+                    new ArrayList<>(CATEGORY_MAP.entrySet());
+            sortedEntries.sort(
+                    (a, b) ->
+                            Integer.compare(
+                                    b.getKey().length(),
+                                    a.getKey().length())); // Sort by length descending
+
+            for (final Map.Entry<String, String> entry : sortedEntries) {
+                final String key = entry.getKey();
+                // CRITICAL: Skip "credit" keyword if categoryString contains "ACH_CREDIT" to
+                // prevent false "income" match
                 if (lower.contains("ach_credit") || lower.contains("ach credit")) {
-                    if (key.equals("credit")) {
+                    if ("credit".equals(key)) {
                         continue; // Skip "credit" → "income" mapping for ACH_CREDIT
                     }
                 }
                 if (lower.contains(key)) {
-                    logger.debug("parseCategory: Matched category string '{}' → '{}' (substring match)", safeCategoryString, entry.getValue());
+                    LOGGER.debug(
+                            "parseCategory: Matched category string '{}' → '{}' (substring match)",
+                            safeCategoryString,
+                            entry.getValue());
                     return entry.getValue();
                 }
             }
         }
-        
+
         // STEP 10: Final fallback - no category detected
         // CRITICAL: Always return a valid category (never null)
-        logger.debug("🏷️ parseCategory: No category detected for merchant='{}', description='{}', falling back to 'other'", 
-                safeMerchantName, safeDescription);
+        LOGGER.debug(
+                "🏷️ parseCategory: No category detected for merchant='{}', description='{}', falling back to 'other'",
+                safeMerchantName,
+                safeDescription);
         return "other";
     }
-    
-    /**
-     * Overloaded method for backward compatibility (without transactionTypeIndicator)
-     */
-    public String parseCategory(String categoryString, String description, String merchantName, 
-                                 BigDecimal amount, String paymentChannel) {
-        return parseCategory(categoryString, description, merchantName, amount, paymentChannel, null, null, null, null);
+
+    /** Overloaded method for backward compatibility (without transactionTypeIndicator) */
+    public String parseCategory(
+            final String categoryString,
+            final String description,
+            final String merchantName,
+            final BigDecimal amount,
+            final String paymentChannel) {
+        return parseCategory(
+                categoryString,
+                description,
+                merchantName,
+                amount,
+                paymentChannel,
+                null,
+                null,
+                null,
+                null);
     }
-    
+
     /**
-     * Determines income category from context (transaction type, account type, description)
-     * Returns specific income category: salary, deposit, dividend, interest, stipend, rentIncome, tips, otherIncome
+     * Determines income category from context (transaction type, account type, description) Returns
+     * specific income category: salary, deposit, dividend, interest, stipend, rentIncome, tips,
+     * otherIncome
      */
-    private String determineIncomeCategoryFromContext(String description, String merchantName, 
-                                                      BigDecimal amount, String paymentChannel,
-                                                      String accountType, String accountSubtype) {
+    private String determineIncomeCategoryFromContext(
+            final String description,
+            final String merchantName,
+            final BigDecimal amount,
+            final String paymentChannel,
+            final String accountType,
+            String accountSubtype) {
         if (description == null && merchantName == null) {
             return null;
         }
-        
-        String descLower = description != null ? description.toLowerCase() : "";
-        String merchantLower = merchantName != null ? merchantName.toLowerCase() : "";
-        String combinedText = (merchantLower + " " + descLower).trim();
-        
+
+        final String descLower = description != null ? description.toLowerCase(Locale.ROOT) : "";
+        final String merchantLower = merchantName != null ? merchantName.toLowerCase(Locale.ROOT) : "";
+        final String combinedText = (merchantLower + " " + descLower).trim();
+
         // Salary/Payroll - highest priority
         if (isSalaryTransaction(description, amount, paymentChannel)) {
             return "salary";
         }
-        
+
         // Interest (but not from investment accounts - those are handled separately)
-        boolean isInvestmentAccount = accountType != null && 
-            (accountType.contains("investment") || accountType.contains("ira") || 
-             accountType.contains("401k") || accountType.contains("hsa") || accountType.contains("529"));
-        if (!isInvestmentAccount && isInterestTransaction(null, description, merchantName, amount)) {
+        final boolean isInvestmentAccount =
+                accountType != null
+                        && (accountType.contains("investment")
+                        || accountType.contains("ira")
+                        || accountType.contains("401k")
+                        || accountType.contains("hsa")
+                        || accountType.contains("529"));
+        if (!isInvestmentAccount
+                && isInterestTransaction(null, description, merchantName, amount)) {
             return "interest";
         }
-        
+
         // Dividend (but not from investment accounts - those are investmentDividend)
-        if (!isInvestmentAccount && isDividendTransaction(null, description, merchantName, amount)) {
+        if (!isInvestmentAccount
+                && isDividendTransaction(null, description, merchantName, amount)) {
             return "dividend";
         }
-        
+
         // Stipend
-        if (combinedText.contains("stipend") || combinedText.contains("scholarship") ||
-            combinedText.contains("grant") || combinedText.contains("fellowship") ||
-            combinedText.contains("bursary")) {
+        if (combinedText.contains("stipend")
+                || combinedText.contains("scholarship")
+                || combinedText.contains("grant")
+                || combinedText.contains("fellowship")
+                || combinedText.contains("bursary")) {
             return "stipend";
         }
-        
+
         // Rental Income
-        if (combinedText.contains("rent received") || combinedText.contains("rental income") ||
-            combinedText.contains("property income") || combinedText.contains("rent payment received") ||
-            (combinedText.contains("rent") && (combinedText.contains("received") || combinedText.contains("income")))) {
+        if (combinedText.contains("rent received")
+                || combinedText.contains("rental income")
+                || combinedText.contains("property income")
+                || combinedText.contains("rent payment received")
+                || (combinedText.contains("rent")
+                        && (combinedText.contains("received")
+                                || combinedText.contains("income")))) {
             return "rentIncome";
         }
-        
+
         // Tips
         if (combinedText.contains("tip") || combinedText.contains("gratuity")) {
             return "tips";
         }
-        
+
         // Default: deposit for ACH credits or generic deposits
-        if ("ach".equalsIgnoreCase(paymentChannel) || combinedText.contains("deposit") ||
-            combinedText.contains("transfer from") || combinedText.contains("online transfer")) {
+        if ("ach".equalsIgnoreCase(paymentChannel)
+                || combinedText.contains("deposit")
+                || combinedText.contains("transfer from")
+                || combinedText.contains("online transfer")) {
             return "deposit";
         }
-        
+
         return null; // Could not determine specific income category
     }
-    
+
     /**
-     * Normalize merchant name for better matching and consistency
-     * Lenient normalization - removes common prefixes/suffixes but preserves merchant identity
-     * 
+     * Normalize merchant name for better matching and consistency Lenient normalization - removes
+     * common prefixes/suffixes but preserves merchant identity
+     *
      * @param merchantName Raw merchant name from CSV
      * @return Normalized merchant name
      */
-    
-    /**
-     * Detects if a transaction is ACH (Automated Clearing House)
-     */
-    private boolean isACHTransaction(String description, String paymentChannel) {
+
+    /** Detects if a transaction is ACH (Automated Clearing House) */
+    private boolean isACHTransaction(String description, final String paymentChannel) {
         if (description == null) {
             description = "";
         }
-        String descLower = description.toLowerCase();
-        
+        final String descLower = description.toLowerCase(Locale.ROOT);
+
         // Check payment channel first
         if (paymentChannel != null && "ach".equalsIgnoreCase(paymentChannel.trim())) {
             return true;
         }
-        
+
         // Check description for ACH indicators
-        String[] achKeywords = {
-            "ach", "automated clearing house", "direct deposit", "directdeposit",
-            "dd deposit", "electronic deposit", "e deposit", "wire transfer",
-            "bank transfer", "online transfer"
+        final String[] achKeywords = {
+                "ach", "automated clearing house", "direct deposit", "directdeposit",
+                "dd deposit", "electronic deposit", "e deposit", "wire transfer",
+                "bank transfer", "online transfer"
         };
-        
-        for (String keyword : achKeywords) {
+
+        for (final String keyword : achKeywords) {
             if (descLower.contains(keyword)) {
                 return true;
             }
         }
-        
+
         return false;
     }
-    
-    /**
-     * Detects if a transaction is interest income
-     */
-    private boolean isInterestTransaction(String categoryString, String description, String merchantName, BigDecimal amount) {
+
+    /** Detects if a transaction is interest income */
+    private boolean isInterestTransaction(
+            final String categoryString, final String description, String merchantName, BigDecimal amount) {
         // Check category string first (most reliable)
         if (categoryString != null) {
-            String categoryLower = categoryString.toLowerCase();
-            if (categoryLower.contains("interest") || categoryLower.equals("interest")) {
+            final String categoryLower = categoryString.toLowerCase(Locale.ROOT);
+            if (categoryLower.contains("interest") || "interest".equals(categoryLower)) {
                 return true;
             }
         }
-        
+
         // Check description for interest keywords
         if (description != null) {
-            String descLower = description.toLowerCase();
-            String[] interestKeywords = {
-                "interest", "intrst", "intr payment", "intrst payment", "intrst pymnt",
-                "interest payment", "interest income", "interest earned", "interest credit"
+            final String descLower = description.toLowerCase(Locale.ROOT);
+            final String[] interestKeywords = {
+                    "interest",
+                    "intrst",
+                    "intr payment",
+                    "intrst payment",
+                    "intrst pymnt",
+                    "interest payment",
+                    "interest income",
+                    "interest earned",
+                    "interest credit"
             };
-            for (String keyword : interestKeywords) {
+            for (final String keyword : interestKeywords) {
                 if (descLower.contains(keyword)) {
                     // Exclude CD interest (that's investment)
                     if (!descLower.contains("cd interest") && !descLower.contains("certificate")) {
@@ -3018,89 +4770,114 @@ private final AccountDetectionService accountDetectionService;
                 }
             }
         }
-        
+
         return false;
     }
-    
-    /**
-     * Detects if a transaction is dividend income
-     */
-    private boolean isDividendTransaction(String categoryString, String description, String merchantName, BigDecimal amount) {
+
+    /** Detects if a transaction is dividend income */
+    private boolean isDividendTransaction(
+            final String categoryString, final String description, String merchantName, BigDecimal amount) {
         // Check category string first (most reliable)
         if (categoryString != null) {
-            String categoryLower = categoryString.toLowerCase();
-            if (categoryLower.contains("dividend") || categoryLower.equals("dividend")) {
+            final String categoryLower = categoryString.toLowerCase(Locale.ROOT);
+            if (categoryLower.contains("dividend") || "dividend".equals(categoryLower)) {
                 return true;
             }
         }
-        
+
         // Check description for dividend keywords
         if (description != null) {
-            String descLower = description.toLowerCase();
-            String[] dividendKeywords = {
-                "dividend", "dividends", "stock dividend", "dividend payment",
-                "dividend income", "dividend distribution", "dividend credit"
+            final String descLower = description.toLowerCase(Locale.ROOT);
+            final String[] dividendKeywords = {
+                    "dividend",
+                    "dividends",
+                    "stock dividend",
+                    "dividend payment",
+                    "dividend income",
+                    "dividend distribution",
+                    "dividend credit"
             };
-            for (String keyword : dividendKeywords) {
+            for (final String keyword : dividendKeywords) {
                 if (descLower.contains(keyword)) {
                     return true;
                 }
             }
         }
-        
+
         return false;
     }
-    
-    /**
-     * Detects if a transaction is salary/payroll
-     */
-    private boolean isSalaryTransaction(String description, BigDecimal amount, String paymentChannel) {
+
+    /** Detects if a transaction is salary/payroll */
+    private boolean isSalaryTransaction(
+            final String description, final BigDecimal amount, final String paymentChannel) {
         if (description == null) {
             return false;
         }
-        
+
         // Salary should be positive income
         if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
             return false;
         }
-        
-        String descLower = description.toLowerCase();
-        
+
+        final String descLower = description.toLowerCase(Locale.ROOT);
+
         // Check for salary/payroll keywords
-        String[] salaryKeywords = {
-            "salary", "payroll", "pay check", "paycheck", "wage", "wages",
-            "pay stub", "paystub", "pay day", "payday", "direct deposit payroll",
-            "payroll deposit", "employee payroll", "payroll payment", "salary payment",
-            "pay from", "payment from employer", "employer payment", "pay adv", "pay advance",
-            // Common payroll providers
-            "adp", "paychex", "gusto", "justworks", "bamboo hr", "zenefits",
-            "workday", "ceridian", "tri-net"
+        final String[] salaryKeywords = {
+                "salary",
+                "payroll",
+                "pay check",
+                "paycheck",
+                "wage",
+                "wages",
+                "pay stub",
+                "paystub",
+                "pay day",
+                "payday",
+                "direct deposit payroll",
+                "payroll deposit",
+                "employee payroll",
+                "payroll payment",
+                "salary payment",
+                "pay from",
+                "payment from employer",
+                "employer payment",
+                "pay adv",
+                "pay advance",
+                // Common payroll providers
+                "adp",
+                "paychex",
+                "gusto",
+                "justworks",
+                "bamboo hr",
+                "zenefits",
+                "workday",
+                "ceridian",
+                "tri-net"
         };
-        
-        for (String keyword : salaryKeywords) {
+
+        for (final String keyword : salaryKeywords) {
             if (descLower.contains(keyword)) {
                 return true;
             }
         }
-        
+
         // Check for ACH + salary-like description
         if (isACHTransaction(description, paymentChannel)) {
             // If it's ACH and has salary keywords, likely salary
-            for (String keyword : salaryKeywords) {
+            for (final String keyword : salaryKeywords) {
                 if (descLower.contains(keyword)) {
                     return true;
                 }
             }
         }
-        
+
         return false;
     }
-    
+
     /**
-     * Detects if a transaction is a cash withdrawal
-     * Cash withdrawals should be categorized as "cash", type EXPENSE
-     * Examples: "ATM WITHDRAWAL", "CASH WITHDRAWAL", "ATM DEBIT", etc.
-     * 
+     * Detects if a transaction is a cash withdrawal Cash withdrawals should be categorized as
+     * "cash", type EXPENSE Examples: "ATM WITHDRAWAL", "CASH WITHDRAWAL", "ATM DEBIT", etc.
+     *
      * @param description Transaction description
      * @param merchantName Merchant name
      * @param categoryString Category string from CSV
@@ -3108,816 +4885,1299 @@ private final AccountDetectionService accountDetectionService;
      * @param paymentChannel Payment channel (e.g., "atm")
      * @return true if this is a cash withdrawal
      */
-    private boolean isCashWithdrawal(String description, String merchantName, String categoryString, 
-                                     String transactionTypeIndicator, String paymentChannel) {
+    private boolean isCashWithdrawal(
+            String description,
+            final String merchantName,
+            final String categoryString,
+            final String transactionTypeIndicator,
+            final String paymentChannel) {
         if (description == null) {
             description = "";
         }
-        String descLower = description.toLowerCase();
-        String merchantLower = merchantName != null ? merchantName.toLowerCase() : "";
-        String categoryLower = categoryString != null ? categoryString.toLowerCase() : "";
-        String typeIndicatorLower = transactionTypeIndicator != null ? transactionTypeIndicator.toLowerCase() : "";
-        String paymentChannelLower = paymentChannel != null ? paymentChannel.toLowerCase() : "";
-        
-        logger.debug("isCashWithdrawal: Checking description='{}', merchant='{}', category='{}', type='{}', channel='{}'",
-                description, merchantName, categoryString, transactionTypeIndicator, paymentChannel);
-        
+        final String descLower = description.toLowerCase(Locale.ROOT);
+        final String merchantLower = merchantName != null ? merchantName.toLowerCase(Locale.ROOT) : "";
+        final String categoryLower = categoryString != null ? categoryString.toLowerCase(Locale.ROOT) : "";
+        final String typeIndicatorLower =
+                transactionTypeIndicator != null ? transactionTypeIndicator.toLowerCase(Locale.ROOT) : "";
+        final String paymentChannelLower = paymentChannel != null ? paymentChannel.toLowerCase(Locale.ROOT) : "";
+
+        LOGGER.debug(
+                "isCashWithdrawal: Checking description='{}', merchant='{}', category='{}', type='{}', channel='{}'",
+                description,
+                merchantName,
+                categoryString,
+                transactionTypeIndicator,
+                paymentChannel);
+
         // Check category string first (most reliable)
-        if (categoryLower.contains("cash") || categoryLower.contains("atm") || 
-            categoryLower.contains("withdrawal") || categoryLower.contains("cash withdrawal")) {
-            logger.info("isCashWithdrawal: ✅ Detected cash withdrawal from categoryString '{}'", categoryString);
+        if (categoryLower.contains("cash")
+                || categoryLower.contains("atm")
+                || categoryLower.contains("withdrawal")
+                || categoryLower.contains("cash withdrawal")) {
+            LOGGER.info(
+                    "isCashWithdrawal: ✅ Detected cash withdrawal from categoryString '{}'",
+                    categoryString);
             return true;
         }
-        
+
         // Check payment channel (ATM is a strong indicator)
         if (paymentChannelLower.contains("atm") || paymentChannelLower.contains("cash")) {
-            logger.info("isCashWithdrawal: ✅ Detected cash withdrawal from paymentChannel '{}'", paymentChannel);
+            LOGGER.info(
+                    "isCashWithdrawal: ✅ Detected cash withdrawal from paymentChannel '{}'",
+                    paymentChannel);
             return true;
         }
-        
+
         // Check transaction type indicator
-        if (typeIndicatorLower.contains("atm") || typeIndicatorLower.contains("cash") ||
-            typeIndicatorLower.contains("withdrawal")) {
-            logger.info("isCashWithdrawal: ✅ Detected cash withdrawal from transactionTypeIndicator '{}'", transactionTypeIndicator);
+        if (typeIndicatorLower.contains("atm")
+                || typeIndicatorLower.contains("cash")
+                || typeIndicatorLower.contains("withdrawal")) {
+            LOGGER.info(
+                    "isCashWithdrawal: ✅ Detected cash withdrawal from transactionTypeIndicator '{}'",
+                    transactionTypeIndicator);
             return true;
         }
-        
+
         // Check for cash withdrawal patterns in description/merchant name
         // CRITICAL FIX: Include standalone "withdrawal" keyword
-        String[] cashKeywords = {
-            "atm withdrawal", "atm withdraw", "cash withdrawal", "cash withdraw",
-            "atm debit", "atm transaction", "atm cash", "cash advance",
-            "withdrawal", "withdraw cash", "cash out", "cashout", "withdraw"
+        final String[] cashKeywords = {
+                "atm withdrawal",
+                "atm withdraw",
+                "cash withdrawal",
+                "cash withdraw",
+                "atm debit",
+                "atm transaction",
+                "atm cash",
+                "cash advance",
+                "withdrawal",
+                "withdraw cash",
+                "cash out",
+                "cashout",
+                "withdraw"
         };
-        
-        for (String keyword : cashKeywords) {
+
+        for (final String keyword : cashKeywords) {
             if (descLower.contains(keyword) || merchantLower.contains(keyword)) {
                 // Exclude credit card cash advances (those are different)
-                if (!descLower.contains("credit card") && !descLower.contains("creditcard") &&
-                    !merchantLower.contains("credit card") && !merchantLower.contains("creditcard")) {
-                    logger.info("isCashWithdrawal: ✅ Detected cash withdrawal keyword '{}' in description='{}' or merchant='{}'", 
-                            keyword, description, merchantName);
+                if (!descLower.contains("credit card")
+                        && !descLower.contains("creditcard")
+                        && !merchantLower.contains("credit card")
+                        && !merchantLower.contains("creditcard")) {
+                    LOGGER.info(
+                            "isCashWithdrawal: ✅ Detected cash withdrawal keyword '{}' in description='{}' or merchant='{}'",
+                            keyword,
+                            description,
+                            merchantName);
                     return true;
                 }
             }
         }
-        
-        logger.debug("isCashWithdrawal: No cash withdrawal detected for description='{}', merchant='{}'", description, merchantName);
+
+        LOGGER.debug(
+                "isCashWithdrawal: No cash withdrawal detected for description='{}', merchant='{}'",
+                description,
+                merchantName);
         return false;
     }
-    
+
     /**
-     * CRITICAL FIX: Detects if a transaction is a check payment
-     * Check payments should be categorized as "payment", not transportation (e.g., "CHECK 176" was matching gas station "76")
-     * 
+     * CRITICAL FIX: Detects if a transaction is a check payment Check payments should be
+     * categorized as "payment", not transportation (e.g., "CHECK 176" was matching gas station
+     * "76")
+     *
      * @param description Transaction description
      * @param merchantName Merchant name
      * @param categoryString Category string from CSV
      * @param transactionTypeIndicator Transaction type indicator (e.g., "CHECK")
      * @return true if this is a check payment
      */
-    private boolean isCheckPayment(String description, String merchantName, String categoryString, String transactionTypeIndicator) {
+    private boolean isCheckPayment(
+            String description,
+            final String merchantName,
+            final String categoryString,
+            final String transactionTypeIndicator) {
         if (description == null) {
             description = "";
         }
-        String descLower = description.toLowerCase();
-        String merchantLower = merchantName != null ? merchantName.toLowerCase() : "";
-        String categoryLower = categoryString != null ? categoryString.toLowerCase() : "";
-        String typeIndicatorLower = transactionTypeIndicator != null ? transactionTypeIndicator.toLowerCase() : "";
-        
+        final String descLower = description.toLowerCase(Locale.ROOT);
+        final String merchantLower = merchantName != null ? merchantName.toLowerCase(Locale.ROOT) : "";
+        final String categoryLower = categoryString != null ? categoryString.toLowerCase(Locale.ROOT) : "";
+        final String typeIndicatorLower =
+                transactionTypeIndicator != null ? transactionTypeIndicator.toLowerCase(Locale.ROOT) : "";
+
         // Check transaction type indicator first (most reliable)
-        if (typeIndicatorLower.contains("check") || typeIndicatorLower.contains("chk") || typeIndicatorLower.contains("cheque")) {
-            logger.debug("isCheckPayment: Detected check payment from transactionTypeIndicator '{}'", transactionTypeIndicator);
+        if (typeIndicatorLower.contains("check")
+                || typeIndicatorLower.contains("chk")
+                || typeIndicatorLower.contains("cheque")) {
+            LOGGER.debug(
+                    "isCheckPayment: Detected check payment from transactionTypeIndicator '{}'",
+                    transactionTypeIndicator);
             return true;
         }
-        
+
         // Check category string
-        if (categoryLower.contains("check") || categoryLower.contains("chk") || categoryLower.contains("cheque") ||
-            categoryLower.contains("check_paid") || categoryLower.contains("check_payment")) {
-            logger.debug("isCheckPayment: Detected check payment from categoryString '{}'", categoryString);
+        if (categoryLower.contains("check")
+                || categoryLower.contains("chk")
+                || categoryLower.contains("cheque")
+                || categoryLower.contains("check_paid")
+                || categoryLower.contains("check_payment")) {
+            LOGGER.debug(
+                    "isCheckPayment: Detected check payment from categoryString '{}'",
+                    categoryString);
             return true;
         }
-        
+
         // Check description/merchant name for check payment patterns
-        // CRITICAL: Must match "CHECK" as a word, not just "check" as substring (to avoid false positives)
+        // CRITICAL: Must match "CHECK" as a word, not just "check" as substring (to avoid false
+        // positives)
         // Patterns: "CHECK #123", "CHECK 123", "CHECK NUMBER", "CHECK PAYMENT", etc.
-        String[] checkPatterns = {
-            "check #", "check number", "check no", "check payment", "check paid",
-            "check #", "chk #", "chk number", "chk no", "cheque #", "cheque number"
+        final String[] checkPatterns = {
+                "check #",
+                "check number",
+                "check no",
+                "check payment",
+                "check paid",
+                "check #",
+                "chk #",
+                "chk number",
+                "chk no",
+                "cheque #",
+                "cheque number"
         };
-        
-        for (String pattern : checkPatterns) {
+
+        for (final String pattern : checkPatterns) {
             if (descLower.contains(pattern) || merchantLower.contains(pattern)) {
-                logger.debug("isCheckPayment: Detected check payment pattern '{}' in description/merchant", pattern);
+                LOGGER.debug(
+                        "isCheckPayment: Detected check payment pattern '{}' in description/merchant",
+                        pattern);
                 return true;
             }
         }
-        
+
         // Check for "CHECK" followed by a number (e.g., "CHECK 176", "CHECK #176")
         // Use word boundary to ensure "CHECK" is a standalone word
-        if ((descLower.matches(".*\\bcheck\\s+#?\\d+.*") || merchantLower.matches(".*\\bcheck\\s+#?\\d+.*")) &&
-            !descLower.contains("checking") && !merchantLower.contains("checking")) {
-            logger.debug("isCheckPayment: Detected check payment with number pattern in description/merchant");
+        if ((descLower.matches(".*\\bcheck\\s+#?\\d+.*")
+                        || merchantLower.matches(".*\\bcheck\\s+#?\\d+.*"))
+                && !descLower.contains("checking")
+                && !merchantLower.contains("checking")) {
+            LOGGER.debug(
+                    "isCheckPayment: Detected check payment with number pattern in description/merchant");
             return true;
         }
-        
+
         return false;
     }
-    
+
     /**
      * Detects if a transaction is a utility bill payment (direct payment to utility company)
-     * Utility bill payments should be categorized as "utilities", not "payment"
-     * Examples: "PUGET SOUND ENER BILLPAY", "CITY OF BELLEVUE UTILITY", etc.
-     * 
+     * Utility bill payments should be categorized as "utilities", not "payment" Examples: "PUGET
+     * SOUND ENER BILLPAY", "CITY OF BELLEVUE UTILITY", etc.
+     *
      * @param description Transaction description
      * @param merchantName Merchant name
      * @param categoryString Category string from CSV
      * @return true if this is a utility bill payment
      */
-    private boolean isUtilityBillPayment(String description, String merchantName, String categoryString) {
+    private boolean isUtilityBillPayment(
+            String description, final String merchantName, final String categoryString) {
         if (description == null) {
             description = "";
         }
-        String descLower = description.toLowerCase();
-        String merchantLower = merchantName != null ? merchantName.toLowerCase() : "";
-        
-        logger.debug("isUtilityBillPayment: Checking description='{}', merchant='{}', category='{}'",
-                description, merchantName, categoryString);
-        
-        // CRITICAL: Reject airport expenses (carts, chairs, parking, etc.) - they are transportation, not utilities
+        final String descLower = description.toLowerCase(Locale.ROOT);
+        final String merchantLower = merchantName != null ? merchantName.toLowerCase(Locale.ROOT) : "";
+
+        LOGGER.debug(
+                "isUtilityBillPayment: Checking description='{}', merchant='{}', category='{}'",
+                description,
+                merchantName,
+                categoryString);
+
+        // CRITICAL: Reject airport expenses (carts, chairs, parking, etc.) - they are
+        // transportation, not utilities
         // "SEATTLEAP CART/CHAIR" (Seattle Airport cart) should not match "Seattle Public Utilities"
-        String combined = (merchantLower + " " + descLower).trim();
-        if (combined.contains("airport") && (combined.contains("cart") || combined.contains("chair"))) {
-            logger.debug("isUtilityBillPayment: Rejecting airport cart/chair → not a utility");
+        final String combined = (merchantLower + " " + descLower).trim();
+        if (combined.contains("airport")
+                && (combined.contains("cart") || combined.contains("chair"))) {
+            LOGGER.debug("isUtilityBillPayment: Rejecting airport cart/chair → not a utility");
             return false;
         }
-        if ((combined.contains("seattleap") || combined.contains("seattle ap") || combined.contains("seattle airport")) &&
-            (combined.contains("cart") || combined.contains("chair"))) {
-            logger.debug("isUtilityBillPayment: Rejecting SEATTLEAP cart/chair → not a utility");
+        if ((combined.contains("seattleap")
+                        || combined.contains("seattle ap")
+                        || combined.contains("seattle airport"))
+                && (combined.contains("cart") || combined.contains("chair"))) {
+            LOGGER.debug("isUtilityBillPayment: Rejecting SEATTLEAP cart/chair → not a utility");
             return false;
         }
         // Also reject if it's just "SEATTLEAP" without clear utility indicators
-        if ((combined.contains("seattleap") || combined.contains("seattle ap")) &&
-            !combined.contains("utility") && !combined.contains("utilities") && !combined.contains("public utilities")) {
-            logger.debug("isUtilityBillPayment: Rejecting SEATTLEAP (airport, not utility) → not a utility");
+        if ((combined.contains("seattleap") || combined.contains("seattle ap"))
+                && !combined.contains("utility")
+                && !combined.contains("utilities")
+                && !combined.contains("public utilities")) {
+            LOGGER.debug(
+                    "isUtilityBillPayment: Rejecting SEATTLEAP (airport, not utility) → not a utility");
             return false;
         }
-        
+
         // Check for utility company names combined with payment indicators
-        String[] utilityCompanies = {
-            "puget sound energy", "pse", "pacific gas", "pg&e", "pge",
-            "southern california edison", "sce", "san diego gas", "sdge",
-            "edison", "con edison", "coned", "duke energy", "dukeenergy",
-            "dominion energy", "dominionenergy", "exelon", "first energy", "firstenergy",
-            "american electric", "aep", "southern company", "southerncompany",
-            "next era", "nextera", "xcel energy", "xcelenergy", "centerpoint",
-            "center point", "entergy", "entergy", "evergy", "evergy",
-            "pacificorp", "pacific corp", "portland general", "portlandgeneral",
-            "city of", "municipal utility", "municipalutility"
+        final String[] utilityCompanies = {
+                "puget sound energy",
+                "pse",
+                "pacific gas",
+                "pg&e",
+                "pge",
+                "southern california edison",
+                "sce",
+                "san diego gas",
+                "sdge",
+                "edison",
+                "con edison",
+                "coned",
+                "duke energy",
+                "dukeenergy",
+                "dominion energy",
+                "dominionenergy",
+                "exelon",
+                "first energy",
+                "firstenergy",
+                "american electric",
+                "aep",
+                "southern company",
+                "southerncompany",
+                "next era",
+                "nextera",
+                "xcel energy",
+                "xcelenergy",
+                "centerpoint",
+                "center point",
+                "entergy",
+                "entergy",
+                "evergy",
+                "evergy",
+                "pacificorp",
+                "pacific corp",
+                "portland general",
+                "portlandgeneral",
+                "city of",
+                "municipal utility",
+                "municipalutility"
         };
-        
+
         // CRITICAL: Reject if it contains "city of" but also contains airport terms
         // "SEATTLEAP" should not match "city of seattle" if it's an airport expense
-        if ((descLower.contains("city of") || merchantLower.contains("city of")) &&
-            ((descLower.contains("seattleap") || merchantLower.contains("seattleap") ||
-              descLower.contains("seattle ap") || merchantLower.contains("seattle ap") ||
-              descLower.contains("airport") || merchantLower.contains("airport")) &&
-             (descLower.contains("cart") || merchantLower.contains("cart") ||
-              descLower.contains("chair") || merchantLower.contains("chair")))) {
-            logger.debug("isUtilityBillPayment: Rejecting 'city of seattle' match for airport cart/chair");
+        if ((descLower.contains("city of") || merchantLower.contains("city of"))
+                && ((descLower.contains("seattleap")
+                                || merchantLower.contains("seattleap")
+                                || descLower.contains("seattle ap")
+                                || merchantLower.contains("seattle ap")
+                                || descLower.contains("airport")
+                                || merchantLower.contains("airport"))
+                        && (descLower.contains("cart")
+                                || merchantLower.contains("cart")
+                                || descLower.contains("chair")
+                                || merchantLower.contains("chair")))) {
+            LOGGER.debug(
+                    "isUtilityBillPayment: Rejecting 'city of seattle' match for airport cart/chair");
             return false;
         }
-        
+
         // Check if description/merchant contains utility company name
-        for (String company : utilityCompanies) {
+        for (final String company : utilityCompanies) {
             if (descLower.contains(company) || merchantLower.contains(company)) {
                 // Additional check: must be a payment (billpay, payment, autopay, etc.)
                 // But NOT a credit card payment (exclude credit card company names)
-                if ((descLower.contains("billpay") || descLower.contains("bill pay") ||
-                     descLower.contains("payment") || descLower.contains("autopay") ||
-                     descLower.contains("auto pay") || descLower.contains("ppd id") ||
-                     merchantLower.contains("billpay") || merchantLower.contains("bill pay") ||
-                     merchantLower.contains("payment") || merchantLower.contains("autopay") ||
-                     merchantLower.contains("auto pay") || merchantLower.contains("ppd id")) &&
-                    !descLower.contains("credit card") && !descLower.contains("creditcard") &&
-                    !merchantLower.contains("credit card") && !merchantLower.contains("creditcard") &&
-                    !descLower.contains("chase") && !descLower.contains("citi") &&
-                    !descLower.contains("amex") && !descLower.contains("discover") &&
-                    !merchantLower.contains("chase") && !merchantLower.contains("citi") &&
-                    !merchantLower.contains("amex") && !merchantLower.contains("discover")) {
-                    logger.info("isUtilityBillPayment: ✅ Detected utility bill payment for company '{}' in description='{}' or merchant='{}'", 
-                            company, description, merchantName);
+                if ((descLower.contains("billpay")
+                                || descLower.contains("bill pay")
+                                || descLower.contains("payment")
+                                || descLower.contains("autopay")
+                                || descLower.contains("auto pay")
+                                || descLower.contains("ppd id")
+                                || merchantLower.contains("billpay")
+                                || merchantLower.contains("bill pay")
+                                || merchantLower.contains("payment")
+                                || merchantLower.contains("autopay")
+                                || merchantLower.contains("auto pay")
+                                || merchantLower.contains("ppd id"))
+                        && !descLower.contains("credit card")
+                        && !descLower.contains("creditcard")
+                        && !merchantLower.contains("credit card")
+                        && !merchantLower.contains("creditcard")
+                        && !descLower.contains("chase")
+                        && !descLower.contains("citi")
+                        && !descLower.contains("amex")
+                        && !descLower.contains("discover")
+                        && !merchantLower.contains("chase")
+                        && !merchantLower.contains("citi")
+                        && !merchantLower.contains("amex")
+                        && !merchantLower.contains("discover")) {
+                    LOGGER.info(
+                            "isUtilityBillPayment: ✅ Detected utility bill payment for company '{}' in description='{}' or merchant='{}'",
+                            company,
+                            description,
+                            merchantName);
                     return true;
                 }
             }
         }
-        
+
         // Check for utility patterns combined with payment indicators
-        String[] utilityKeywords = {
-            "utility", "utilities", "energy", "ener ", "electric", "electricity",
-            "gas company", "water company", "power company", "water utility"
+        final String[] utilityKeywords = {
+                "utility",
+                "utilities",
+                "energy",
+                "ener ",
+                "electric",
+                "electricity",
+                "gas company",
+                "water company",
+                "power company",
+                "water utility"
         };
-        
-        String[] paymentKeywords = {
-            "billpay", "bill pay", "payment", "autopay", "auto pay", "ppd id"
+
+        final String[] paymentKeywords = {
+                "billpay", "bill pay", "payment", "autopay", "auto pay", "ppd id"
         };
-        
-        for (String utilityKeyword : utilityKeywords) {
+
+        for (final String utilityKeyword : utilityKeywords) {
             if (descLower.contains(utilityKeyword) || merchantLower.contains(utilityKeyword)) {
-                for (String paymentKeyword : paymentKeywords) {
-                    if (descLower.contains(paymentKeyword) || merchantLower.contains(paymentKeyword)) {
+                for (final String paymentKeyword : paymentKeywords) {
+                    if (descLower.contains(paymentKeyword)
+                            || merchantLower.contains(paymentKeyword)) {
                         // Exclude credit card payments
-                        if (!descLower.contains("credit card") && !descLower.contains("creditcard") &&
-                            !merchantLower.contains("credit card") && !merchantLower.contains("creditcard") &&
-                            !descLower.contains("chase") && !descLower.contains("citi") &&
-                            !descLower.contains("amex") && !descLower.contains("discover") &&
-                            !merchantLower.contains("chase") && !merchantLower.contains("citi") &&
-                            !merchantLower.contains("amex") && !merchantLower.contains("discover")) {
-                            logger.info("isUtilityBillPayment: ✅ Detected utility bill payment with keywords '{}' + '{}' in description='{}' or merchant='{}'", 
-                                    utilityKeyword, paymentKeyword, description, merchantName);
+                        if (!descLower.contains("credit card")
+                                && !descLower.contains("creditcard")
+                                && !merchantLower.contains("credit card")
+                                && !merchantLower.contains("creditcard")
+                                && !descLower.contains("chase")
+                                && !descLower.contains("citi")
+                                && !descLower.contains("amex")
+                                && !descLower.contains("discover")
+                                && !merchantLower.contains("chase")
+                                && !merchantLower.contains("citi")
+                                && !merchantLower.contains("amex")
+                                && !merchantLower.contains("discover")) {
+                            LOGGER.info(
+                                    "isUtilityBillPayment: ✅ Detected utility bill payment with keywords '{}' + '{}' in description='{}' or merchant='{}'",
+                                    utilityKeyword,
+                                    paymentKeyword,
+                                    description,
+                                    merchantName);
                             return true;
                         }
                     }
                 }
             }
         }
-        
-        logger.debug("isUtilityBillPayment: No utility bill payment detected for description='{}', merchant='{}'", description, merchantName);
+
+        LOGGER.debug(
+                "isUtilityBillPayment: No utility bill payment detected for description='{}', merchant='{}'",
+                description,
+                merchantName);
         return false;
     }
-    
+
     /**
-     * CRITICAL FIX: Detects if an ACH transaction is a credit card payment
-     * ACH credit card payments should be categorized as "payment" (expense), not "deposit" (income)
-     * 
+     * CRITICAL FIX: Detects if an ACH transaction is a credit card payment ACH credit card payments
+     * should be categorized as "payment" (expense), not "deposit" (income)
+     *
      * @param description Transaction description
      * @param merchantName Merchant name
      * @param categoryString Category string from CSV
      * @return true if this is a credit card payment
      */
-    private boolean isCreditCardPayment(String description, String merchantName, String categoryString) {
+    private boolean isCreditCardPayment(
+            String description, final String merchantName, final String categoryString) {
         if (description == null) {
             description = "";
         }
-        String descLower = description.toLowerCase();
-        String merchantLower = merchantName != null ? merchantName.toLowerCase() : "";
-        String categoryLower = categoryString != null ? categoryString.toLowerCase() : "";
-        
-        logger.debug("isCreditCardPayment: Checking description='{}', merchant='{}', category='{}'",
-                description, merchantName, categoryString);
-        
-        // CRITICAL FIX: Check for "E-PAYMENT" with credit card company names FIRST (before other patterns)
-        // This catches "DISCOVER E-PAYMENT", "DISCOVER         E-PAYMENT", etc. even with extra spaces
-        if ((descLower.contains("e-payment") || merchantLower.contains("e-payment") || 
-             descLower.contains("epayment") || merchantLower.contains("epayment")) &&
-            (descLower.contains("discover") || merchantLower.contains("discover") ||
-             descLower.contains("chase") || merchantLower.contains("chase") ||
-             descLower.contains("citi") || merchantLower.contains("citi") ||
-             descLower.contains("amex") || merchantLower.contains("amex"))) {
-            logger.info("isCreditCardPayment: ✅ Detected e-payment with credit card company name (description='{}', merchant='{}')", 
-                    description, merchantName);
+        final String descLower = description.toLowerCase(Locale.ROOT);
+        final String merchantLower = merchantName != null ? merchantName.toLowerCase(Locale.ROOT) : "";
+        final String categoryLower = categoryString != null ? categoryString.toLowerCase(Locale.ROOT) : "";
+
+        LOGGER.debug(
+                "isCreditCardPayment: Checking description='{}', merchant='{}', category='{}'",
+                description,
+                merchantName,
+                categoryString);
+
+        // CRITICAL FIX: Check for "E-PAYMENT" with credit card company names FIRST (before other
+        // patterns)
+        // This catches "DISCOVER E-PAYMENT", "DISCOVER         E-PAYMENT", etc. even with extra
+        // spaces
+        if ((descLower.contains("e-payment")
+                        || merchantLower.contains("e-payment")
+                        || descLower.contains("epayment")
+                        || merchantLower.contains("epayment"))
+                && (descLower.contains("discover")
+                        || merchantLower.contains("discover")
+                        || descLower.contains("chase")
+                        || merchantLower.contains("chase")
+                        || descLower.contains("citi")
+                        || merchantLower.contains("citi")
+                        || descLower.contains("amex")
+                        || merchantLower.contains("amex"))) {
+            LOGGER.info(
+                    "isCreditCardPayment: ✅ Detected e-payment with credit card company name (description='{}', merchant='{}')",
+                    description,
+                    merchantName);
             return true;
         }
-        
+
         // CRITICAL FIX: Check for "AUTOPAY" with credit card company names (before other patterns)
-        // This catches "CHASE CREDIT CRD AUTOPAY", "CITI AUTOPAY", "WF Credit Card AUTO PAY", etc. and prevents false matches
+        // This catches "CHASE CREDIT CRD AUTOPAY", "CITI AUTOPAY", "WF Credit Card AUTO PAY", etc.
+        // and prevents false matches
         // Must check this FIRST to catch autopay patterns before they get misclassified
-        // Note: "AUTO PAY" (with space) should match "autopay" or "auto pay" since we're using contains()
-        boolean hasAutopay = descLower.contains("autopay") || merchantLower.contains("autopay") ||
-                            descLower.contains("auto pay") || merchantLower.contains("auto pay");
-        boolean hasCreditCardCompany = descLower.contains("chase") || descLower.contains("citi") || descLower.contains("amex") ||
-             descLower.contains("discover") || descLower.contains("capital one") || descLower.contains("wells fargo") ||
-             descLower.contains("wf") || // CRITICAL: "WF" is Wells Fargo abbreviation (must be standalone word to avoid false positives)
-             descLower.contains("bofa") || descLower.contains("bank of america") || descLower.contains("synchrony") ||
-             descLower.contains("us bank") || descLower.contains("barclays") ||
-             descLower.contains("amazon") || descLower.contains("amz") || // CRITICAL: Amazon Store Card
-             descLower.contains("store card") || descLower.contains("storecrd") || // Store card payments
-             merchantLower.contains("chase") || merchantLower.contains("citi") || merchantLower.contains("amex") ||
-             merchantLower.contains("discover") || merchantLower.contains("capital one") || merchantLower.contains("wells fargo") ||
-             merchantLower.contains("wf") || // CRITICAL: "WF" is Wells Fargo abbreviation
-             merchantLower.contains("bofa") || merchantLower.contains("bank of america") || merchantLower.contains("synchrony") ||
-             merchantLower.contains("us bank") || merchantLower.contains("barclays") ||
-             merchantLower.contains("amazon") || merchantLower.contains("amz") || // CRITICAL: Amazon Store Card
-             merchantLower.contains("store card") || merchantLower.contains("storecrd"); // Store card payments
-        
+        // Note: "AUTO PAY" (with space) should match "autopay" or "auto pay" since we're using
+        // contains()
+        final boolean hasAutopay =
+                descLower.contains("autopay")
+                        || merchantLower.contains("autopay")
+                        || descLower.contains("auto pay")
+                        || merchantLower.contains("auto pay");
+        final boolean hasCreditCardCompany =
+                descLower.contains("chase")
+                        || descLower.contains("citi")
+                        || descLower.contains("amex")
+                        || descLower.contains("discover")
+                        || descLower.contains("capital one")
+                        || descLower.contains("wells fargo")
+                        || descLower.contains("wf")
+                        || // CRITICAL: "WF" is Wells Fargo abbreviation (must be standalone word to
+                        // avoid false positives)
+                        descLower.contains("bofa")
+                        || descLower.contains("bank of america")
+                        || descLower.contains("synchrony")
+                        || descLower.contains("us bank")
+                        || descLower.contains("barclays")
+                        || descLower.contains("amazon")
+                        || descLower.contains("amz")
+                        || // CRITICAL: Amazon Store Card
+                        descLower.contains("store card")
+                        || descLower.contains("storecrd")
+                        || // Store card payments
+                        merchantLower.contains("chase")
+                        || merchantLower.contains("citi")
+                        || merchantLower.contains("amex")
+                        || merchantLower.contains("discover")
+                        || merchantLower.contains("capital one")
+                        || merchantLower.contains("wells fargo")
+                        || merchantLower.contains("wf")
+                        || // CRITICAL: "WF" is Wells Fargo abbreviation
+                        merchantLower.contains("bofa")
+                        || merchantLower.contains("bank of america")
+                        || merchantLower.contains("synchrony")
+                        || merchantLower.contains("us bank")
+                        || merchantLower.contains("barclays")
+                        || merchantLower.contains("amazon")
+                        || merchantLower.contains("amz")
+                        || // CRITICAL: Amazon Store Card
+                        merchantLower.contains("store card")
+                        || merchantLower.contains("storecrd"); // Store card payments
+
         if (hasAutopay && hasCreditCardCompany) {
-            logger.info("isCreditCardPayment: ✅ Detected credit card autopay with company name (description='{}', merchant='{}')", 
-                    description, merchantName);
+            LOGGER.info(
+                    "isCreditCardPayment: ✅ Detected credit card autopay with company name (description='{}', merchant='{}')",
+                    description,
+                    merchantName);
             return true;
         }
-        
+
         // Check category string (most reliable)
-        if (categoryLower.contains("credit card") || categoryLower.contains("creditcard") ||
-            categoryLower.contains("card payment") || categoryLower.contains("card autopay") ||
-            categoryLower.contains("autopay") || categoryLower.contains("auto pay")) {
-            logger.info("isCreditCardPayment: ✅ Detected credit card payment from categoryString '{}'", categoryString);
+        if (categoryLower.contains("credit card")
+                || categoryLower.contains("creditcard")
+                || categoryLower.contains("card payment")
+                || categoryLower.contains("card autopay")
+                || categoryLower.contains("autopay")
+                || categoryLower.contains("auto pay")) {
+            LOGGER.info(
+                    "isCreditCardPayment: ✅ Detected credit card payment from categoryString '{}'",
+                    categoryString);
             return true;
         }
-        
+
         // Check for credit card payment indicators in description/merchant name
-        // CRITICAL: Expanded list to catch more patterns including "CITI AUTOPAY", "CHASE AUTOPAY", "AMZ_STORECRD_PMT", "DISCOVER E-PAYMENT", etc.
-        String[] creditCardKeywords = {
-            "credit card", "creditcard", "credit crd", "card autopay", "card payment",
-            "autopay", "auto pay", "automatic payment", "card autopay",
-            "e-payment", "epayment", "e payment", // CRITICAL: Discover and other cards use "E-PAYMENT"
-            "chase credit crd", "chase credit card", "chase autopay", "chase card",
-            "citi autopay", "citi card", "citicard", "citi credit", "citicardap",
-            "amex autopay", "amex card", "american express", "amex payment",
-            "discover autopay", "discover card", "discover payment", "discover e-payment", // CRITICAL: Discover E-PAYMENT pattern
-            "wells fargo credit", "wf credit card", "wf credit", "wells fargo autopay", // CRITICAL: Added "wf credit" for "WF Credit Card"
-            "bofa credit card", "bank of america credit", "bofa autopay",
-            "capital one credit", "capitalone", "capital one autopay",
-            "synchrony", "synchrony bank", "synchrony autopay",
-            "us bank credit", "usbank credit", "us bank autopay",
-            "barclays credit", "barclays autopay", "barclays card",
-            "amazon store card", "amazon storecard", "amz store card", "amz storecrd", // CRITICAL: Amazon Store Card
-            "amz_storecrd_pmt", "amz storecrd pmt", "store card payment", "storecard payment", // Amazon Store Card payment patterns
-            "web id:", "web id", "citicardap", // Citi-specific patterns like "WEB ID: CITICARDAP"
-            "ppd id:" // PPD (Prearranged Payment and Deposit) ID pattern for autopay
+        // CRITICAL: Expanded list to catch more patterns including "CITI AUTOPAY", "CHASE AUTOPAY",
+        // "AMZ_STORECRD_PMT", "DISCOVER E-PAYMENT", etc.
+        final String[] creditCardKeywords = {
+                "credit card",
+                "creditcard",
+                "credit crd",
+                "card autopay",
+                "card payment",
+                "autopay",
+                "auto pay",
+                "automatic payment",
+                "card autopay",
+                "e-payment",
+                "epayment",
+                "e payment", // CRITICAL: Discover and other cards use "E-PAYMENT"
+                "chase credit crd",
+                "chase credit card",
+                "chase autopay",
+                "chase card",
+                "citi autopay",
+                "citi card",
+                "citicard",
+                "citi credit",
+                "citicardap",
+                "amex autopay",
+                "amex card",
+                "american express",
+                "amex payment",
+                "discover autopay",
+                "discover card",
+                "discover payment",
+                "discover e-payment", // CRITICAL: Discover E-PAYMENT pattern
+                "wells fargo credit",
+                "wf credit card",
+                "wf credit",
+                "wells fargo autopay", // CRITICAL: Added "wf credit" for "WF Credit Card"
+                "bofa credit card",
+                "bank of america credit",
+                "bofa autopay",
+                "capital one credit",
+                "capitalone",
+                "capital one autopay",
+                "synchrony",
+                "synchrony bank",
+                "synchrony autopay",
+                "us bank credit",
+                "usbank credit",
+                "us bank autopay",
+                "barclays credit",
+                "barclays autopay",
+                "barclays card",
+                "amazon store card",
+                "amazon storecard",
+                "amz store card",
+                "amz storecrd", // CRITICAL: Amazon Store Card
+                "amz_storecrd_pmt",
+                "amz storecrd pmt",
+                "store card payment",
+                "storecard payment", // Amazon Store Card payment patterns
+                "web id:",
+                "web id",
+                "citicardap", // Citi-specific patterns like "WEB ID: CITICARDAP"
+                "ppd id:" // PPD (Prearranged Payment and Deposit) ID pattern for autopay
         };
-        
-        for (String keyword : creditCardKeywords) {
-            // CRITICAL: Use contains() which handles extra spaces (e.g., "DISCOVER         E-PAYMENT" contains "discover e-payment")
+
+        for (final String keyword : creditCardKeywords) {
+            // CRITICAL: Use contains() which handles extra spaces (e.g., "DISCOVER
+            // E-PAYMENT" contains "discover e-payment")
             if (descLower.contains(keyword) || merchantLower.contains(keyword)) {
-                logger.info("isCreditCardPayment: ✅ Detected credit card payment keyword '{}' in description='{}' or merchant='{}'", 
-                        keyword, description, merchantName);
+                LOGGER.info(
+                        "isCreditCardPayment: ✅ Detected credit card payment keyword '{}' in description='{}' or merchant='{}'",
+                        keyword,
+                        description,
+                        merchantName);
                 return true;
             }
         }
-        
-        // CRITICAL FIX: Also check for "discover" + "e-payment" separately (handles extra spaces like "DISCOVER         E-PAYMENT")
+
+        // CRITICAL FIX: Also check for "discover" + "e-payment" separately (handles extra spaces
+        // like "DISCOVER         E-PAYMENT")
         // This is a fallback in case the combined keyword doesn't match due to spacing
-        if ((descLower.contains("discover") || merchantLower.contains("discover")) &&
-            (descLower.contains("e-payment") || descLower.contains("epayment") || 
-             merchantLower.contains("e-payment") || merchantLower.contains("epayment"))) {
-            logger.info("isCreditCardPayment: ✅ Detected Discover e-payment (separate keywords) in description='{}' or merchant='{}'", 
-                    description, merchantName);
+        if ((descLower.contains("discover") || merchantLower.contains("discover"))
+                && (descLower.contains("e-payment")
+                        || descLower.contains("epayment")
+                        || merchantLower.contains("e-payment")
+                        || merchantLower.contains("epayment"))) {
+            LOGGER.info(
+                    "isCreditCardPayment: ✅ Detected Discover e-payment (separate keywords) in description='{}' or merchant='{}'",
+                    description,
+                    merchantName);
             return true;
         }
-        
+
         // Check for payment patterns with card numbers or account identifiers
-        // Pattern: "PAYMENT" or "E-PAYMENT" followed by digits (card number) or "WEB ID:" / "PPD ID:" (online payment)
+        // Pattern: "PAYMENT" or "E-PAYMENT" followed by digits (card number) or "WEB ID:" / "PPD
+        // ID:" (online payment)
         // Also check for "AUTO PAY" (with space) or "AUTOPAY" patterns
         // CRITICAL: Added "e-payment" and "epayment" to catch Discover E-PAYMENT patterns
-        boolean hasPaymentKeyword = descLower.contains("payment") || descLower.contains("e-payment") || descLower.contains("epayment") ||
-                                   merchantLower.contains("payment") || merchantLower.contains("e-payment") || merchantLower.contains("epayment");
-        boolean hasPaymentIndicator = (descLower.matches(".*\\d{10,}.*") || descLower.contains("web id") || descLower.contains("ppd id") || 
-             descLower.contains("auto pay") || descLower.contains("autopay") || descLower.contains("e-payment") || descLower.contains("epayment")) ||
-            (merchantLower.matches(".*\\d{10,}.*") || merchantLower.contains("web id") || merchantLower.contains("ppd id") ||
-             merchantLower.contains("auto pay") || merchantLower.contains("autopay") || merchantLower.contains("e-payment") || merchantLower.contains("epayment"));
-        
+        final boolean hasPaymentKeyword =
+                descLower.contains("payment")
+                        || descLower.contains("e-payment")
+                        || descLower.contains("epayment")
+                        || merchantLower.contains("payment")
+                        || merchantLower.contains("e-payment")
+                        || merchantLower.contains("epayment");
+        final boolean hasPaymentIndicator =
+                (descLower.matches(".*\\d{10,}.*")
+                        || descLower.contains("web id")
+                        || descLower.contains("ppd id")
+                        || descLower.contains("auto pay")
+                        || descLower.contains("autopay")
+                        || descLower.contains("e-payment")
+                        || descLower.contains("epayment"))
+                        || (merchantLower.matches(".*\\d{10,}.*")
+                        || merchantLower.contains("web id")
+                        || merchantLower.contains("ppd id")
+                        || merchantLower.contains("auto pay")
+                        || merchantLower.contains("autopay")
+                        || merchantLower.contains("e-payment")
+                        || merchantLower.contains("epayment"));
+
         if (hasPaymentKeyword && hasPaymentIndicator) {
-            // Additional check: must have credit card company name, "autopay", "credit", "card", "store card", or "amazon"
-            // CRITICAL: Added "wf" for Wells Fargo abbreviation, "auto pay" for "AUTO PAY" pattern, and Amazon Store Card patterns
-            if (descLower.contains("citi") || descLower.contains("chase") || descLower.contains("amex") ||
-                descLower.contains("discover") || descLower.contains("capital one") || descLower.contains("autopay") ||
-                descLower.contains("auto pay") || descLower.contains("wells fargo") || descLower.contains("wf") ||
-                descLower.contains("amazon") || descLower.contains("amz") || descLower.contains("store card") || descLower.contains("storecrd") ||
-                descLower.contains("credit") || descLower.contains("card") ||
-                merchantLower.contains("citi") || merchantLower.contains("chase") || merchantLower.contains("amex") ||
-                merchantLower.contains("discover") || merchantLower.contains("capital one") || merchantLower.contains("autopay") ||
-                merchantLower.contains("auto pay") || merchantLower.contains("wells fargo") || merchantLower.contains("wf") ||
-                merchantLower.contains("amazon") || merchantLower.contains("amz") || merchantLower.contains("store card") || merchantLower.contains("storecrd") ||
-                merchantLower.contains("credit") || merchantLower.contains("card")) {
-                logger.info("isCreditCardPayment: ✅ Detected credit card/store card payment pattern with card number/web id/ppd id/auto pay");
+            // Additional check: must have credit card company name, "autopay", "credit", "card",
+            // "store card", or "amazon"
+            // CRITICAL: Added "wf" for Wells Fargo abbreviation, "auto pay" for "AUTO PAY" pattern,
+            // and Amazon Store Card patterns
+            if (descLower.contains("citi")
+                    || descLower.contains("chase")
+                    || descLower.contains("amex")
+                    || descLower.contains("discover")
+                    || descLower.contains("capital one")
+                    || descLower.contains("autopay")
+                    || descLower.contains("auto pay")
+                    || descLower.contains("wells fargo")
+                    || descLower.contains("wf")
+                    || descLower.contains("amazon")
+                    || descLower.contains("amz")
+                    || descLower.contains("store card")
+                    || descLower.contains("storecrd")
+                    || descLower.contains("credit")
+                    || descLower.contains("card")
+                    || merchantLower.contains("citi")
+                    || merchantLower.contains("chase")
+                    || merchantLower.contains("amex")
+                    || merchantLower.contains("discover")
+                    || merchantLower.contains("capital one")
+                    || merchantLower.contains("autopay")
+                    || merchantLower.contains("auto pay")
+                    || merchantLower.contains("wells fargo")
+                    || merchantLower.contains("wf")
+                    || merchantLower.contains("amazon")
+                    || merchantLower.contains("amz")
+                    || merchantLower.contains("store card")
+                    || merchantLower.contains("storecrd")
+                    || merchantLower.contains("credit")
+                    || merchantLower.contains("card")) {
+                LOGGER.info(
+                        "isCreditCardPayment: ✅ Detected credit card/store card payment pattern with card number/web id/ppd id/auto pay");
                 return true;
             }
         }
-        
-        logger.debug("isCreditCardPayment: No credit card payment detected for description='{}', merchant='{}'", description, merchantName);
+
+        LOGGER.debug(
+                "isCreditCardPayment: No credit card payment detected for description='{}', merchant='{}'",
+                description,
+                merchantName);
         return false;
     }
-    
+
     /**
-     * Detects if a transaction is a loan payment (mortgage, auto loan, student loan, etc.)
-     * Loan payments should be categorized as "payment", not "other"
-     * 
+     * Detects if a transaction is a loan payment (mortgage, auto loan, student loan, etc.) Loan
+     * payments should be categorized as "payment", not "other"
+     *
      * @param description Transaction description
      * @param merchantName Merchant name
      * @param categoryString Category string from CSV
      * @return true if this is a loan payment
      */
-    private boolean isLoanPayment(String description, String merchantName, String categoryString) {
+    private boolean isLoanPayment(String description, final String merchantName, final String categoryString) {
         if (description == null) {
             description = "";
         }
-        String descLower = description.toLowerCase();
-        String merchantLower = merchantName != null ? merchantName.toLowerCase() : "";
-        String categoryLower = categoryString != null ? categoryString.toLowerCase() : "";
-        
+        final String descLower = description.toLowerCase(Locale.ROOT);
+        final String merchantLower = merchantName != null ? merchantName.toLowerCase(Locale.ROOT) : "";
+        final String categoryLower = categoryString != null ? categoryString.toLowerCase(Locale.ROOT) : "";
+
         // Check category string first (most reliable)
-        if (categoryLower.contains("loan payment") || categoryLower.contains("mortgage payment") ||
-            categoryLower.contains("auto loan") || categoryLower.contains("student loan") ||
-            categoryLower.contains("personal loan") || categoryLower.contains("home loan")) {
-            logger.debug("isLoanPayment: Detected loan payment from categoryString '{}'", categoryString);
+        if (categoryLower.contains("loan payment")
+                || categoryLower.contains("mortgage payment")
+                || categoryLower.contains("auto loan")
+                || categoryLower.contains("student loan")
+                || categoryLower.contains("personal loan")
+                || categoryLower.contains("home loan")) {
+            LOGGER.debug(
+                    "isLoanPayment: Detected loan payment from categoryString '{}'",
+                    categoryString);
             return true;
         }
-        
+
         // Check for loan payment patterns
-        String[] loanKeywords = {
-            "mortgage payment", "mortgage pay", "mortgage autopay",
-            "auto loan", "car loan", "vehicle loan",
-            "student loan", "education loan",
-            "personal loan", "home loan", "home equity",
-            "loan payment", "loan pay", "loan autopay",
-            "principal payment", "interest payment"
+        final String[] loanKeywords = {
+                "mortgage payment",
+                "mortgage pay",
+                "mortgage autopay",
+                "auto loan",
+                "car loan",
+                "vehicle loan",
+                "student loan",
+                "education loan",
+                "personal loan",
+                "home loan",
+                "home equity",
+                "loan payment",
+                "loan pay",
+                "loan autopay",
+                "principal payment",
+                "interest payment"
         };
-        
-        for (String keyword : loanKeywords) {
+
+        for (final String keyword : loanKeywords) {
             if (descLower.contains(keyword) || merchantLower.contains(keyword)) {
-                logger.debug("isLoanPayment: Detected loan payment keyword '{}'", keyword);
+                LOGGER.debug("isLoanPayment: Detected loan payment keyword '{}'", keyword);
                 return true;
             }
         }
-        
+
         return false;
     }
-    
+
     /**
-     * Detects if a transaction is an investment transfer (from/to investment firms)
-     * Investment transfers should be categorized as "investment", not "transfer" or "deposit"
-     * Examples: "Online Transfer from Morgan Stanley", "Transfer from Fidelity", etc.
-     * 
+     * Detects if a transaction is an investment transfer (from/to investment firms) Investment
+     * transfers should be categorized as "investment", not "transfer" or "deposit" Examples:
+     * "Online Transfer from Morgan Stanley", "Transfer from Fidelity", etc.
+     *
      * @param description Transaction description
      * @param merchantName Merchant name
      * @param categoryString Category string from CSV
      * @return true if this is an investment transfer
      */
-    private boolean isInvestmentTransfer(String description, String merchantName, String categoryString) {
+    private boolean isInvestmentTransfer(
+            String description, final String merchantName, final String categoryString) {
         if (description == null) {
             description = "";
         }
-        String descLower = description.toLowerCase();
-        String merchantLower = merchantName != null ? merchantName.toLowerCase() : "";
-        String categoryLower = categoryString != null ? categoryString.toLowerCase() : "";
-        
-        logger.debug("isInvestmentTransfer: Checking description='{}', merchant='{}', category='{}'",
-                description, merchantName, categoryString);
-        
+        final String descLower = description.toLowerCase(Locale.ROOT);
+        final String merchantLower = merchantName != null ? merchantName.toLowerCase(Locale.ROOT) : "";
+        final String categoryLower = categoryString != null ? categoryString.toLowerCase(Locale.ROOT) : "";
+
+        LOGGER.debug(
+                "isInvestmentTransfer: Checking description='{}', merchant='{}', category='{}'",
+                description,
+                merchantName,
+                categoryString);
+
         // Check for investment firm names in description/merchant
         // Major investment firms and brokerages
-        String[] investmentFirms = {
-            "morgan stanley", "morganstanley", "morgan stanley smith barney",
-            "fidelity", "fidelity investments", "fidelity.com",
-            "vanguard", "vanguard group", "vanguard.com",
-            "charles schwab", "schwab", "schwab.com",
-            "td ameritrade", "ameritrade", "tdameritrade",
-            "etrade", "e-trade", "etrade.com",
-            "robinhood", "robin hood", "robinhood.com",
-            "merrill lynch", "merrill", "merrilllynch",
-            "goldman sachs", "goldman", "goldmansachs",
-            "jpmorgan", "jp morgan", "jpmorgan chase",
-            "wells fargo advisors", "wells fargo investment",
-            "edward jones", "edwardjones",
-            "raymond james", "raymondjames",
-            "lpl financial", "lpl",
-            "ameriprise", "ameriprise financial",
-            "prudential", "prudential financial",
-            "northwestern mutual", "northwesternmutual",
-            "massmutual", "mass mutual",
-            "new york life", "newyorklife",
-            "t rowe price", "troweprice",
-            "franklin templeton", "franklintempleton",
-            "blackrock", "ishares",
-            "state street", "statestreet"
+        final String[] investmentFirms = {
+                "morgan stanley",
+                "morganstanley",
+                "morgan stanley smith barney",
+                "fidelity",
+                "fidelity investments",
+                "fidelity.com",
+                "vanguard",
+                "vanguard group",
+                "vanguard.com",
+                "charles schwab",
+                "schwab",
+                "schwab.com",
+                "td ameritrade",
+                "ameritrade",
+                "tdameritrade",
+                "etrade",
+                "e-trade",
+                "etrade.com",
+                "robinhood",
+                "robin hood",
+                "robinhood.com",
+                "merrill lynch",
+                "merrill",
+                "merrilllynch",
+                "goldman sachs",
+                "goldman",
+                "goldmansachs",
+                "jpmorgan",
+                "jp morgan",
+                "jpmorgan chase",
+                "wells fargo advisors",
+                "wells fargo investment",
+                "edward jones",
+                "edwardjones",
+                "raymond james",
+                "raymondjames",
+                "lpl financial",
+                "lpl",
+                "ameriprise",
+                "ameriprise financial",
+                "prudential",
+                "prudential financial",
+                "northwestern mutual",
+                "northwesternmutual",
+                "massmutual",
+                "mass mutual",
+                "new york life",
+                "newyorklife",
+                "t rowe price",
+                "troweprice",
+                "franklin templeton",
+                "franklintempleton",
+                "blackrock",
+                "ishares",
+                "state street",
+                "statestreet"
         };
-        
+
         // Check if description/merchant contains investment firm name
-        for (String firm : investmentFirms) {
+        for (final String firm : investmentFirms) {
             if (descLower.contains(firm) || merchantLower.contains(firm)) {
                 // CRITICAL FIX: For investment firms, check amount sign
                 // - Negative amount (debit) = investment transfer (money going out)
                 // - Positive amount (credit) = deposit (money coming in, not investment expense)
-                // This fixes: "Online transfer from Morgan Stanley" (credit) should be "deposit", not "investment"
+                // This fixes: "Online transfer from Morgan Stanley" (credit) should be "deposit",
+                // not "investment"
                 boolean isCredit = false;
-                // Note: amount is not available in this method, so we check description for credit indicators
-                if (descLower.contains("credit") || descLower.contains("deposit") || 
-                    descLower.contains("from") || merchantLower.contains("from")) {
+                // Note: amount is not available in this method, so we check description for credit
+                // indicators
+                if (descLower.contains("credit")
+                        || descLower.contains("deposit")
+                        || descLower.contains("from")
+                        || merchantLower.contains("from")) {
                     // If it says "from" or "credit" or "deposit", it's likely a credit (deposit)
                     // Investment transfers are typically debits (money going out)
                     isCredit = true;
                 }
-                
+
                 // Additional check: must be a transfer (not a purchase/sale)
-                if (descLower.contains("transfer") || merchantLower.contains("transfer") ||
-                    descLower.contains("from") || descLower.contains("to") ||
-                    categoryLower.contains("acct_xfer") || categoryLower.contains("transfer")) {
+                if (descLower.contains("transfer")
+                        || merchantLower.contains("transfer")
+                        || descLower.contains("from")
+                        || descLower.contains("to")
+                        || categoryLower.contains("acct_xfer")
+                        || categoryLower.contains("transfer")) {
                     // CRITICAL: If it's a credit (deposit), it's NOT an investment transfer
                     // Investment transfers are debits (money going out to investment account)
                     if (!isCredit) {
-                        logger.info("isInvestmentTransfer: ✅ Detected investment transfer (debit) from firm '{}' in description='{}' or merchant='{}'", 
-                                firm, description, merchantName);
+                        LOGGER.info(
+                                "isInvestmentTransfer: ✅ Detected investment transfer (debit) from firm '{}' in description='{}' or merchant='{}'",
+                                firm,
+                                description,
+                                merchantName);
                         return true;
                     } else {
-                        logger.debug("isInvestmentTransfer: Skipping credit/deposit from investment firm '{}' - this should be 'deposit', not 'investment'", firm);
+                        LOGGER.debug(
+                                "isInvestmentTransfer: Skipping credit/deposit from investment firm '{}' - this should be 'deposit', not 'investment'",
+                                firm);
                     }
                 }
             }
         }
-        
+
         // Check for investment-related keywords combined with transfer
-        String[] investmentKeywords = {
-            "brokerage", "broker", "investment account", "investmentaccount",
-            "ira", "401k", "401(k)", "403b", "403(b)", "529", "hsa",
-            "retirement account", "retirementaccount", "pension",
-            "mutual fund", "mutualfund", "etf", "stock", "stocks",
-            "portfolio", "trading account", "tradingaccount"
+        final String[] investmentKeywords = {
+                "brokerage",
+                "broker",
+                "investment account",
+                "investmentaccount",
+                "ira",
+                "401k",
+                "401(k)",
+                "403b",
+                "403(b)",
+                "529",
+                "hsa",
+                "retirement account",
+                "retirementaccount",
+                "pension",
+                "mutual fund",
+                "mutualfund",
+                "etf",
+                "stock",
+                "stocks",
+                "portfolio",
+                "trading account",
+                "tradingaccount"
         };
-        
-        for (String keyword : investmentKeywords) {
-            if ((descLower.contains(keyword) || merchantLower.contains(keyword)) &&
-                (descLower.contains("transfer") || merchantLower.contains("transfer") ||
-                 descLower.contains("from") || descLower.contains("to") ||
-                 categoryLower.contains("acct_xfer") || categoryLower.contains("transfer"))) {
-                logger.info("isInvestmentTransfer: ✅ Detected investment transfer with keyword '{}' in description='{}' or merchant='{}'", 
-                        keyword, description, merchantName);
+
+        for (final String keyword : investmentKeywords) {
+            if ((descLower.contains(keyword) || merchantLower.contains(keyword))
+                    && (descLower.contains("transfer")
+                            || merchantLower.contains("transfer")
+                            || descLower.contains("from")
+                            || descLower.contains("to")
+                            || categoryLower.contains("acct_xfer")
+                            || categoryLower.contains("transfer"))) {
+                LOGGER.info(
+                        "isInvestmentTransfer: ✅ Detected investment transfer with keyword '{}' in description='{}' or merchant='{}'",
+                        keyword,
+                        description,
+                        merchantName);
                 return true;
             }
         }
-        
-        logger.debug("isInvestmentTransfer: No investment transfer detected for description='{}', merchant='{}'", description, merchantName);
+
+        LOGGER.debug(
+                "isInvestmentTransfer: No investment transfer detected for description='{}', merchant='{}'",
+                description,
+                merchantName);
         return false;
     }
-    
+
     /**
-     * Detects if a transaction is an account transfer (between accounts, not an expense)
-     * Account transfers should be categorized as "transfer", not "other" or "payment"
-     * Examples: "Online Transfer to CHK", "ACCT_XFER", "Transfer to Savings", etc.
-     * 
+     * Detects if a transaction is an account transfer (between accounts, not an expense) Account
+     * transfers should be categorized as "transfer", not "other" or "payment" Examples: "Online
+     * Transfer to CHK", "ACCT_XFER", "Transfer to Savings", etc.
+     *
      * @param description Transaction description
      * @param merchantName Merchant name
      * @param categoryString Category string from CSV
      * @return true if this is an account transfer
      */
-    private boolean isAccountTransfer(String description, String merchantName, String categoryString) {
+    private boolean isAccountTransfer(
+            String description, final String merchantName, final String categoryString) {
         if (description == null) {
             description = "";
         }
-        String descLower = description.toLowerCase();
-        String merchantLower = merchantName != null ? merchantName.toLowerCase() : "";
-        String categoryLower = categoryString != null ? categoryString.toLowerCase() : "";
-        
-        logger.debug("isAccountTransfer: Checking description='{}', merchant='{}', category='{}'",
-                description, merchantName, categoryString);
-        
+        final String descLower = description.toLowerCase(Locale.ROOT);
+        final String merchantLower = merchantName != null ? merchantName.toLowerCase(Locale.ROOT) : "";
+        final String categoryLower = categoryString != null ? categoryString.toLowerCase(Locale.ROOT) : "";
+
+        LOGGER.debug(
+                "isAccountTransfer: Checking description='{}', merchant='{}', category='{}'",
+                description,
+                merchantName,
+                categoryString);
+
         // Check category string first (most reliable)
         // ACCT_XFER = Account Transfer
-        if (categoryLower.contains("acct_xfer") || categoryLower.contains("account transfer") ||
-            categoryLower.contains("transfer") || categoryLower.contains("xfer")) {
+        if (categoryLower.contains("acct_xfer")
+                || categoryLower.contains("account transfer")
+                || categoryLower.contains("transfer")
+                || categoryLower.contains("xfer")) {
             // But exclude credit card balance transfers and loan payments
             if (!categoryLower.contains("balance transfer") && !categoryLower.contains("loan")) {
-                logger.info("isAccountTransfer: ✅ Detected account transfer from categoryString '{}'", categoryString);
+                LOGGER.info(
+                        "isAccountTransfer: ✅ Detected account transfer from categoryString '{}'",
+                        categoryString);
                 return true;
             }
         }
-        
+
         // Check for transfer patterns in description/merchant name
         // Patterns: "Online Transfer to CHK", "Transfer to Savings", "Transfer from Checking", etc.
         // CRITICAL: Include money transfer services like Remitly
-        String[] transferKeywords = {
-            "online transfer", "transfer to", "transfer from", "account transfer",
-            "transfer to chk", "transfer to checking", "transfer to savings",
-            "transfer from chk", "transfer from checking", "transfer from savings",
-            "xfer to", "xfer from", "wire transfer", "wire debit", "wire credit",
-            "international wire", "remitly", "rmtly", "money transfer", "currency transfer"
+        final String[] transferKeywords = {
+                "online transfer",
+                "transfer to",
+                "transfer from",
+                "account transfer",
+                "transfer to chk",
+                "transfer to checking",
+                "transfer to savings",
+                "transfer from chk",
+                "transfer from checking",
+                "transfer from savings",
+                "xfer to",
+                "xfer from",
+                "wire transfer",
+                "wire debit",
+                "wire credit",
+                "international wire",
+                "remitly",
+                "rmtly",
+                "money transfer",
+                "currency transfer"
         };
-        
+
         // Check for money transfer companies
-        // CRITICAL FIX: Use word boundaries to prevent false positives (e.g., "FACTORIA" matching "ria")
-        String[] transferCompanies = {
-            "remitly", "rmtly", "western union", "moneygram", "wise", "transferwise",
-            "xoom", "worldremit", "ria money transfer"  // Removed standalone "ria" - too many false positives
+        // CRITICAL FIX: Use word boundaries to prevent false positives (e.g., "FACTORIA" matching
+        // "ria")
+        final String[] transferCompanies = {
+                "remitly",
+                "rmtly",
+                "western union",
+                "moneygram",
+                "wise",
+                "transferwise",
+                "xoom",
+                "worldremit",
+                "ria money transfer" // Removed standalone "ria" - too many false positives
         };
-        
-        for (String company : transferCompanies) {
-            // CRITICAL FIX: Use word boundaries for short company names to prevent substring matches
+
+        for (final String company : transferCompanies) {
+            // CRITICAL FIX: Use word boundaries for short company names to prevent substring
+            // matches
             // For "ria", require it to be a whole word or part of "ria money transfer"
             if (company.length() <= 3) {
                 // Short names: require word boundary (start/end of string or non-word character)
-                String pattern = "\\b" + company + "\\b";
-                if (descLower.matches(".*" + pattern + ".*") || 
-                    (merchantName != null && !merchantName.trim().isEmpty() && merchantLower.matches(".*" + pattern + ".*"))) {
-                    logger.info("isAccountTransfer: ✅ Detected money transfer company '{}' in description='{}' or merchant='{}'", 
-                            company, description, merchantName);
+                final String pattern = "\\b" + company + "\\b";
+                if (descLower.matches(".*" + pattern + ".*")
+                        || (merchantName != null
+                                && !merchantName.isBlank()
+                                && merchantLower.matches(".*" + pattern + ".*"))) {
+                    LOGGER.info(
+                            "isAccountTransfer: ✅ Detected money transfer company '{}' in description='{}' or merchant='{}'",
+                            company,
+                            description,
+                            merchantName);
                     return true;
                 }
             } else {
                 // Longer names: can use contains (less likely to be substring)
-                if (descLower.contains(company) || 
-                    (merchantName != null && !merchantName.trim().isEmpty() && merchantLower.contains(company))) {
-                    logger.info("isAccountTransfer: ✅ Detected money transfer company '{}' in description='{}' or merchant='{}'", 
-                            company, description, merchantName);
+                if (descLower.contains(company)
+                        || (merchantName != null
+                                && !merchantName.isBlank()
+                                && merchantLower.contains(company))) {
+                    LOGGER.info(
+                            "isAccountTransfer: ✅ Detected money transfer company '{}' in description='{}' or merchant='{}'",
+                            company,
+                            description,
+                            merchantName);
                     return true;
                 }
             }
         }
-        
-        // CRITICAL FIX: Check for standalone "ria" only if merchantName is not null (to avoid false positives in descriptions)
+
+        // CRITICAL FIX: Check for standalone "ria" only if merchantName is not null (to avoid false
+        // positives in descriptions)
         // "ria" alone is too ambiguous - only match if it's in merchant name (more reliable)
-        if (merchantName != null && !merchantName.trim().isEmpty()) {
+        if (merchantName != null && !merchantName.isBlank()) {
             if (merchantLower.matches(".*\\bria\\b.*") && merchantLower.length() < 20) {
                 // Only match "ria" in short merchant names (likely to be actual company name)
-                logger.info("isAccountTransfer: ✅ Detected money transfer company 'ria' in merchant='{}'", merchantName);
+                LOGGER.info(
+                        "isAccountTransfer: ✅ Detected money transfer company 'ria' in merchant='{}'",
+                        merchantName);
                 return true;
             }
         }
-        
-        for (String keyword : transferKeywords) {
+
+        for (final String keyword : transferKeywords) {
             if (descLower.contains(keyword) || merchantLower.contains(keyword)) {
                 // Additional check: must NOT be a credit card balance transfer or loan payment
-                if (!descLower.contains("balance transfer") && !descLower.contains("loan payment") &&
-                    !merchantLower.contains("balance transfer") && !merchantLower.contains("loan payment")) {
-                    logger.info("isAccountTransfer: ✅ Detected account transfer keyword '{}' in description='{}' or merchant='{}'", 
-                            keyword, description, merchantName);
+                if (!descLower.contains("balance transfer")
+                        && !descLower.contains("loan payment")
+                        && !merchantLower.contains("balance transfer")
+                        && !merchantLower.contains("loan payment")) {
+                    LOGGER.info(
+                            "isAccountTransfer: ✅ Detected account transfer keyword '{}' in description='{}' or merchant='{}'",
+                            keyword,
+                            description,
+                            merchantName);
                     return true;
                 }
             }
         }
-        
+
         // Check for "CHK" (checking account) in transfer context
         // Pattern: "Transfer to CHK" or "Transfer from CHK"
-        if ((descLower.contains("transfer") || merchantLower.contains("transfer")) &&
-            (descLower.contains("chk") || descLower.contains("checking") || 
-             descLower.contains("savings") || descLower.contains("account") ||
-             merchantLower.contains("chk") || merchantLower.contains("checking") ||
-             merchantLower.contains("savings") || merchantLower.contains("account"))) {
+        if ((descLower.contains("transfer") || merchantLower.contains("transfer"))
+                && (descLower.contains("chk")
+                        || descLower.contains("checking")
+                        || descLower.contains("savings")
+                        || descLower.contains("account")
+                        || merchantLower.contains("chk")
+                        || merchantLower.contains("checking")
+                        || merchantLower.contains("savings")
+                        || merchantLower.contains("account"))) {
             // Additional check: must NOT be a credit card or loan payment
-            if (!descLower.contains("credit") && !descLower.contains("card") && !descLower.contains("loan") &&
-                !merchantLower.contains("credit") && !merchantLower.contains("card") && !merchantLower.contains("loan")) {
-                logger.info("isAccountTransfer: ✅ Detected account transfer with CHK/checking/savings pattern");
+            if (!descLower.contains("credit")
+                    && !descLower.contains("card")
+                    && !descLower.contains("loan")
+                    && !merchantLower.contains("credit")
+                    && !merchantLower.contains("card")
+                    && !merchantLower.contains("loan")) {
+                LOGGER.info(
+                        "isAccountTransfer: ✅ Detected account transfer with CHK/checking/savings pattern");
                 return true;
             }
         }
-        
-        logger.debug("isAccountTransfer: No account transfer detected for description='{}', merchant='{}'", description, merchantName);
+
+        LOGGER.debug(
+                "isAccountTransfer: No account transfer detected for description='{}', merchant='{}'",
+                description,
+                merchantName);
         return false;
     }
-    
+
     /**
-     * Analyze transaction details/type for account type inference
-     * Looks for keywords like "debit", "credit", "check", "ACH", "ATM", "transfer"
-     * Uses arrays to allow modification of counts
+     * Analyze transaction details/type for account type inference Looks for keywords like "debit",
+     * "credit", "check", "ACH", "ATM", "transfer" Uses arrays to allow modification of counts
      */
-    private void analyzeTransactionForAccountType(String transactionText, 
-                                                   int[] debitCount, int[] creditCount, int[] checkCount,
-                                                   int[] achCount, int[] atmCount, int[] transferCount) {
-        if (transactionText == null || transactionText.trim().isEmpty()) {
+    private void analyzeTransactionForAccountType(
+            final String transactionText,
+            final int[] debitCount,
+            final int[] creditCount,
+            final int[] checkCount,
+            final int[] achCount,
+            final int[] atmCount,
+            final int[] transferCount) {
+        if (transactionText == null || transactionText.isBlank()) {
             return;
         }
-        
-        String textLower = transactionText.toLowerCase();
-        
+
+        final String textLower = transactionText.toLowerCase(Locale.ROOT);
+
         // Count transaction type indicators
-        if (textLower.contains("debit") || textLower.contains(" db ") || textLower.contains(" dr ") ||
-            textLower.startsWith("db ") || textLower.startsWith("dr ") ||
-            textLower.contains("debit card") || textLower.contains("debit purchase")) {
+        if (textLower.contains("debit")
+                || textLower.contains(" db ")
+                || textLower.contains(" dr ")
+                || textLower.startsWith("db ")
+                || textLower.startsWith("dr ")
+                || textLower.contains("debit card")
+                || textLower.contains("debit purchase")) {
             debitCount[0]++;
-            logger.debug("Found debit indicator in transaction: {}", transactionText);
+            LOGGER.debug("Found debit indicator in transaction: {}", transactionText);
         }
-        if (textLower.contains("credit") || textLower.contains(" cr ") || 
-            textLower.startsWith("cr ") || textLower.contains("credit memo") ||
-            textLower.contains("credit adjustment")) {
+        if (textLower.contains("credit")
+                || textLower.contains(" cr ")
+                || textLower.startsWith("cr ")
+                || textLower.contains("credit memo")
+                || textLower.contains("credit adjustment")) {
             // Exclude "credit card" from credit count (that's a different thing)
             if (!textLower.contains("credit card") && !textLower.contains("creditcard")) {
                 creditCount[0]++;
-                logger.debug("Found credit indicator in transaction: {}", transactionText);
+                LOGGER.debug("Found credit indicator in transaction: {}", transactionText);
             }
         }
-        if (textLower.contains("check") || textLower.contains("chk") || textLower.contains("cheque") ||
-            textLower.contains("check #") || textLower.contains("check number") ||
-            textLower.contains("check payment") || textLower.contains("check deposit")) {
+        if (textLower.contains("check")
+                || textLower.contains("chk")
+                || textLower.contains("cheque")
+                || textLower.contains("check #")
+                || textLower.contains("check number")
+                || textLower.contains("check payment")
+                || textLower.contains("check deposit")) {
             checkCount[0]++;
-            logger.debug("Found check indicator in transaction: {}", transactionText);
+            LOGGER.debug("Found check indicator in transaction: {}", transactionText);
         }
-        if (textLower.contains("ach") || textLower.contains("automated clearing") || 
-            textLower.contains("direct deposit") || textLower.contains("directdeposit") ||
-            textLower.contains("ach credit") || textLower.contains("ach debit") ||
-            textLower.contains("ach transfer")) {
+        if (textLower.contains("ach")
+                || textLower.contains("automated clearing")
+                || textLower.contains("direct deposit")
+                || textLower.contains("directdeposit")
+                || textLower.contains("ach credit")
+                || textLower.contains("ach debit")
+                || textLower.contains("ach transfer")) {
             achCount[0]++;
-            logger.debug("Found ACH indicator in transaction: {}", transactionText);
+            LOGGER.debug("Found ACH indicator in transaction: {}", transactionText);
         }
-        if (textLower.contains("atm") || textLower.contains("at m") || 
-            textLower.contains("cash withdrawal") || textLower.contains("cash withdrawal") ||
-            textLower.contains("atm withdrawal") || textLower.contains("atm deposit") ||
-            textLower.contains("atm fee")) {
+        if (textLower.contains("atm")
+                || textLower.contains("at m")
+                || textLower.contains("cash withdrawal")
+                || textLower.contains("cash withdrawal")
+                || textLower.contains("atm withdrawal")
+                || textLower.contains("atm deposit")
+                || textLower.contains("atm fee")) {
             atmCount[0]++;
-            logger.debug("Found ATM indicator in transaction: {}", transactionText);
+            LOGGER.debug("Found ATM indicator in transaction: {}", transactionText);
         }
-        if (textLower.contains("transfer") || textLower.contains("xfer") || 
-            textLower.contains("wire transfer") || textLower.contains("online transfer") ||
-            textLower.contains("bank transfer") || textLower.contains("account transfer") ||
-            textLower.contains("internal transfer")) {
+        if (textLower.contains("transfer")
+                || textLower.contains("xfer")
+                || textLower.contains("wire transfer")
+                || textLower.contains("online transfer")
+                || textLower.contains("bank transfer")
+                || textLower.contains("account transfer")
+                || textLower.contains("internal transfer")) {
             transferCount[0]++;
-            logger.debug("Found transfer indicator in transaction: {}", transactionText);
+            LOGGER.debug("Found transfer indicator in transaction: {}", transactionText);
         }
     }
-    
+
     /**
-     * Infer account type from transaction patterns
-     * Uses counts of different transaction types to determine account type
+     * Infer account type from transaction patterns Uses counts of different transaction types to
+     * determine account type
      */
-    private String inferAccountTypeFromTransactionPatterns(int debitCount, int creditCount, int checkCount,
-                                                           int achCount, int atmCount, int transferCount) {
+    private String inferAccountTypeFromTransactionPatterns(
+            final int debitCount,
+            final int creditCount,
+            final int checkCount,
+            final int achCount,
+            final int atmCount,
+            final int transferCount) {
         // If we see checks, it's definitely a depository account (checking)
         if (checkCount > 0) {
             return "depository";
         }
-        
+
         // If we see many debits and credits with ACH/transfers, likely depository
         if ((debitCount > 0 || creditCount > 0) && (achCount > 0 || transferCount > 0)) {
             return "depository";
         }
-        
+
         // If we see ATM transactions, likely depository (checking or savings)
         if (atmCount > 0) {
             return "depository";
         }
-        
+
         // If we see ACH transactions, likely depository
         if (achCount > 0) {
             return "depository";
         }
-        
+
         // If we see transfers, likely depository
         if (transferCount > 0) {
             return "depository";
         }
-        
+
         return null;
     }
-    
-    /**
-     * Infer account subtype (checking vs savings) from transaction patterns
-     */
-    private String inferAccountSubtypeFromTransactionPatterns(int debitCount, int creditCount, int checkCount,
-                                                              int achCount, int atmCount, int transferCount) {
+
+    /** Infer account subtype (checking vs savings) from transaction patterns */
+    private String inferAccountSubtypeFromTransactionPatterns(
+            final int debitCount,
+            final int creditCount,
+            final int checkCount,
+            final int achCount,
+            final int atmCount,
+            final int transferCount) {
         // If we see checks, it's definitely checking
         if (checkCount > 0) {
-            logger.debug("Inferred checking account from check transactions");
+            LOGGER.debug("Inferred checking account from check transactions");
             return "checking";
         }
-        
+
         // If we see many debits (purchases, payments), likely checking
         // Savings accounts typically have fewer transactions and more deposits/withdrawals
         if (debitCount > creditCount && debitCount > 2) {
-            logger.debug("Inferred checking account from high debit count: {}", debitCount);
+            LOGGER.debug("Inferred checking account from high debit count: {}", debitCount);
             return "checking";
         }
-        
+
         // If we see ATM transactions, more likely checking (savings may have ATM but less common)
         if (atmCount > 0) {
-            logger.debug("Inferred checking account from ATM transactions");
+            LOGGER.debug("Inferred checking account from ATM transactions");
             return "checking";
         }
-        
+
         // If we see many ACH transactions (direct deposits, bill payments), likely checking
         if (achCount > 2) {
-            logger.debug("Inferred checking account from ACH transactions: {}", achCount);
+            LOGGER.debug("Inferred checking account from ACH transactions: {}", achCount);
             return "checking";
         }
-        
+
         // If we see transfers, could be either, but more common in checking
         if (transferCount > 0 && debitCount > 0) {
-            logger.debug("Inferred checking account from transfer and debit patterns");
+            LOGGER.debug("Inferred checking account from transfer and debit patterns");
             return "checking";
         }
-        
+
         // Default to savings if we can't determine (fewer transactions, more deposits)
         if (creditCount > debitCount && creditCount > 2) {
-            logger.debug("Inferred savings account from high credit/deposit count: {}", creditCount);
+            LOGGER.debug(
+                    "Inferred savings account from high credit/deposit count: {}", creditCount);
             return "savings";
         }
-        
+
         return null;
     }
-    
+
     /**
-     * Detects RSU (Restricted Stock Unit) vesting transactions
-     * Enhanced version with more patterns
+     * Detects RSU (Restricted Stock Unit) vesting transactions Enhanced version with more patterns
      */
-    private boolean isRSUTransaction(String categoryString, String description, String merchantName, BigDecimal amount) {
+    private boolean isRSUTransaction(
+            final String categoryString, final String description, final String merchantName, final BigDecimal amount) {
         String combinedText = "";
         if (description != null) {
-            combinedText += description.toLowerCase() + " ";
+            combinedText += description.toLowerCase(Locale.ROOT) + " ";
         }
         if (merchantName != null) {
-            combinedText += merchantName.toLowerCase() + " ";
+            combinedText += merchantName.toLowerCase(Locale.ROOT) + " ";
         }
         if (categoryString != null) {
-            combinedText += categoryString.toLowerCase();
+            combinedText += categoryString.toLowerCase(Locale.ROOT);
         }
         combinedText = combinedText.trim();
-        
+
         // Enhanced RSU detection patterns
-        String[] rsuPatterns = {
-            "rsu", "restricted stock unit", "restricted stock", "stock unit vest",
-            "stock vest", "rsu vest", "rsu vesting", "restricted stock vest",
-            "equity vest", "equity vesting", "stock award", "stock award vest",
-            "employee stock vest", "espp", "stock compensation", "equity compensation"
+        final String[] rsuPatterns = {
+                "rsu", "restricted stock unit", "restricted stock", "stock unit vest",
+                "stock vest", "rsu vest", "rsu vesting", "restricted stock vest",
+                "equity vest", "equity vesting", "stock award", "stock award vest",
+                "employee stock vest", "espp", "stock compensation", "equity compensation"
         };
-        
+
         // Check if description/category contains RSU patterns
-        for (String pattern : rsuPatterns) {
+        for (final String pattern : rsuPatterns) {
             if (combinedText.contains(pattern)) {
                 // Additional validation: RSU vests are typically positive income
                 if (amount != null && amount.compareTo(BigDecimal.ZERO) > 0) {
@@ -3925,1108 +6185,1536 @@ private final AccountDetectionService accountDetectionService;
                 }
             }
         }
-        
+
         return false;
     }
-    
+
     /**
-     * Sophisticated Merchant Name-Based Category Detection
-     * Uses comprehensive global merchant patterns with fuzzy matching
-     * This is the key enhancement - merchant names are more reliable than category strings
-     * 
+     * Sophisticated Merchant Name-Based Category Detection Uses comprehensive global merchant
+     * patterns with fuzzy matching This is the key enhancement - merchant names are more reliable
+     * than category strings
+     *
      * @param merchantName Normalized merchant name
      * @param description Transaction description (for additional context)
      * @return Detected category or null if no match
      */
-        private String detectCategoryFromMerchantName(String merchantName, String description) {
-        if (merchantName == null || merchantName.trim().isEmpty()) {
+    private String detectCategoryFromMerchantName(final String merchantName, final String description) {
+        if (merchantName == null || merchantName.isBlank()) {
             return null;
         }
-        
+
         // CRITICAL: Check for credit card payments FIRST
         if (isCreditCardPayment(description, merchantName, null)) {
-            logger.info("detectCategoryFromMerchantName: Detected credit card payment (safety check) → 'payment'");
+            LOGGER.info(
+                    "detectCategoryFromMerchantName: Detected credit card payment (safety check) → 'payment'");
             return "payment";
         }
-        
+
         // Normalize merchant name for matching
-        String normalized = StringUtils.normalizeMerchantName(merchantName).toLowerCase();
-        String descLower = description != null ? description.toLowerCase() : "";
-        String merchantLower = merchantName.toLowerCase();
-      
-        logger.debug("detectCategoryFromMerchantName: Analyzing merchant='{}', normalized='{}'", merchantName, normalized);
-        
+        final String normalized = StringUtils.normalizeMerchantName(merchantName).toLowerCase(Locale.ROOT);
+        final String descLower = description != null ? description.toLowerCase(Locale.ROOT) : "";
+        final String merchantLower = merchantName.toLowerCase(Locale.ROOT);
+
+        LOGGER.debug(
+                "detectCategoryFromMerchantName: Analyzing merchant='{}', normalized='{}'",
+                merchantName,
+                normalized);
+
         // CRITICAL: Subscription merchants (WSJ, NYTimes, etc.) - subscriptions, NOT education
         // Must come BEFORE education checks to avoid false positives
-        String[] subscriptionMerchants = {"wsj", "wall street journal", 
-                                          "the wall street journal", "nytimes", "new york times", 
-                                          "financial times", "ft.com", "the financial times",
-                                          "economist", "the economist", "bloomberg", "bloomberg news"};
-        for (String merchant : subscriptionMerchants) {
-            if (merchantLower.contains(merchant) || normalized.contains(merchant) || 
-                descLower.contains(merchant)) {
-                logger.debug("🏷️ detectCategoryFromMerchantName: Detected subscription merchant '{}' → 'subscriptions'", merchant);
+        final String[] subscriptionMerchants = {
+                "wsj",
+                "wall street journal",
+                "the wall street journal",
+                "nytimes",
+                "new york times",
+                "financial times",
+                "ft.com",
+                "the financial times",
+                "economist",
+                "the economist",
+                "bloomberg",
+                "bloomberg news"
+        };
+        for (final String merchant : subscriptionMerchants) {
+            if (merchantLower.contains(merchant)
+                    || normalized.contains(merchant)
+                    || descLower.contains(merchant)) {
+                LOGGER.debug(
+                        "🏷️ detectCategoryFromMerchantName: Detected subscription merchant '{}' → 'subscriptions'",
+                        merchant);
                 return "subscriptions";
             }
         }
-        
+
         // CRITICAL: Toll patterns (Eractoll, etc.) - transportation
         // Must come BEFORE education checks to prevent "eractoll" from being caught by education
-        if (merchantLower.contains("eractoll") || merchantLower.contains("era toll") ||
-            normalized.contains("eractoll") || normalized.contains("eratoll") ||
-            descLower.contains("eractoll") || descLower.contains("era toll") ||
-            descLower.contains("toll payment") || descLower.contains("toll charge") ||
-            descLower.contains("toll fee") || descLower.contains("road toll") ||
-            descLower.contains("bridge toll") || descLower.contains("tunnel toll") ||
-            descLower.contains("highway toll") || descLower.contains("expressway toll")) {
-            logger.debug("🏷️ detectCategoryFromMerchantName: Detected toll → 'transportation'");
+        if (merchantLower.contains("eractoll")
+                || merchantLower.contains("era toll")
+                || normalized.contains("eractoll")
+                || normalized.contains("eratoll")
+                || descLower.contains("eractoll")
+                || descLower.contains("era toll")
+                || descLower.contains("toll payment")
+                || descLower.contains("toll charge")
+                || descLower.contains("toll fee")
+                || descLower.contains("road toll")
+                || descLower.contains("bridge toll")
+                || descLower.contains("tunnel toll")
+                || descLower.contains("highway toll")
+                || descLower.contains("expressway toll")) {
+            LOGGER.debug("🏷️ detectCategoryFromMerchantName: Detected toll → 'transportation'");
             return "transportation";
         }
-        
+
         // Use strategy manager to detect category
-        String category = categoryDetectionManager.detectCategory(normalized, descLower, merchantName);
+        final String category =
+                categoryDetectionManager.detectCategory(normalized, descLower, merchantName);
         if (category != null) {
             return category;
         }
-        
+
         // Fallback to "other" if no category detected
         return "other";
     }
 
-    
     /**
-     * Description-Based Category Detection
-     * Uses description keywords when merchant name detection fails
-     * 
+     * Description-Based Category Detection Uses description keywords when merchant name detection
+     * fails
+     *
      * @param description Transaction description
      * @param merchantName Merchant name (for context)
      * @param amount Transaction amount (for context)
      * @return Detected category or null if no match
      */
-    private String detectCategoryFromDescription(String description, String merchantName, BigDecimal amount) {
-        if (description == null || description.trim().isEmpty()) {
+    private String detectCategoryFromDescription(
+            final String description, final String merchantName, BigDecimal amount) {
+        if (description == null || description.isBlank()) {
             return null;
         }
-        
-        String descLower = description.toLowerCase();
-        logger.debug("detectCategoryFromDescription: Analyzing description='{}'", description);
-        
+
+        final String descLower = description.toLowerCase(Locale.ROOT);
+        LOGGER.debug("detectCategoryFromDescription: Analyzing description='{}'", description);
+
         // Normalize description for better matching (used for merchant name detection)
-        String normalizedDesc = StringUtils.normalizeMerchantName(description).toLowerCase();
-        
-        // CRITICAL FIX: Check for travel-related services FIRST (before utilities) to ensure proper categorization
-        // CRITICAL FIX: Airport lounges (Centurion Lounge, Priority Pass, Admirals Club, etc.) - travel, NOT utilities
+        final String normalizedDesc = StringUtils.normalizeMerchantName(description).toLowerCase(Locale.ROOT);
+
+        // CRITICAL FIX: Check for travel-related services FIRST (before utilities) to ensure proper
+        // categorization
+        // CRITICAL FIX: Airport lounges (Centurion Lounge, Priority Pass, Admirals Club, etc.) -
+        // travel, NOT utilities
         // Check for Centurion Lounge first (most specific pattern)
-        if (descLower.contains("centurion lounge") || descLower.contains("centurionlounge") ||
-            descLower.contains("axp centurion") || descLower.contains("axpcenturion") ||
-            (descLower.contains("axp") && descLower.contains("centurion")) ||
-            normalizedDesc.contains("centurion lounge") || normalizedDesc.contains("centurionlounge") ||
-            normalizedDesc.contains("axp centurion") || normalizedDesc.contains("axpcenturion")) {
-            logger.debug("🏷️ detectCategoryFromDescription: Detected Centurion Lounge (AXP) → 'travel'");
+        if (descLower.contains("centurion lounge")
+                || descLower.contains("centurionlounge")
+                || descLower.contains("axp centurion")
+                || descLower.contains("axpcenturion")
+                || (descLower.contains("axp") && descLower.contains("centurion"))
+                || normalizedDesc.contains("centurion lounge")
+                || normalizedDesc.contains("centurionlounge")
+                || normalizedDesc.contains("axp centurion")
+                || normalizedDesc.contains("axpcenturion")) {
+            LOGGER.debug(
+                    "🏷️ detectCategoryFromDescription: Detected Centurion Lounge (AXP) → 'travel'");
             return "travel";
         }
-        
+
         // Other airport lounges
-        String[] travelLounges = {"priority pass", "prioritypass",
-                                  "admirals club", "admiralsclub",
-                                  "delta sky club", "deltaskyclub",
-                                  "united club", "unitedclub",
-                                  "american express lounge", "amex lounge",
-                                  "plaza premium lounge", "plazapremiumlounge",
-                                  "airport lounge", "airportlounge",
-                                  "airport loung", "lounge"};
-        for (String lounge : travelLounges) {
+        final String[] travelLounges = {
+                "priority pass", "prioritypass",
+                "admirals club", "admiralsclub",
+                "delta sky club", "deltaskyclub",
+                "united club", "unitedclub",
+                "american express lounge", "amex lounge",
+                "plaza premium lounge", "plazapremiumlounge",
+                "airport lounge", "airportlounge",
+                "airport loung", "lounge"
+        };
+        for (final String lounge : travelLounges) {
             if (descLower.contains(lounge) || normalizedDesc.contains(lounge)) {
-                logger.debug("🏷️ detectCategoryFromDescription: Detected airport lounge '{}' → 'travel'", lounge);
+                LOGGER.debug(
+                        "🏷️ detectCategoryFromDescription: Detected airport lounge '{}' → 'travel'",
+                        lounge);
                 return "travel";
             }
         }
-        
+
         // Airlines (Delta, United, American Airlines, Southwest, JetBlue, Alaska, etc.)
-        String[] airlines = {"delta", "united", "american airlines", "americanairlines",
-                            "southwest", "jetblue", "alaska", "airline", "airlines",
-                            "spirit", "frontier", "allegiant", "hawaiian"};
-        for (String airline : airlines) {
+        final String[] airlines = {
+                "delta",
+                "united",
+                "american airlines",
+                "americanairlines",
+                "southwest",
+                "jetblue",
+                "alaska",
+                "airline",
+                "airlines",
+                "spirit",
+                "frontier",
+                "allegiant",
+                "hawaiian"
+        };
+        for (final String airline : airlines) {
             if (descLower.contains(airline)) {
-                logger.debug("🏷️ detectCategoryFromDescription: Detected airline '{}' → 'travel'", airline);
+                LOGGER.debug(
+                        "🏷️ detectCategoryFromDescription: Detected airline '{}' → 'travel'",
+                        airline);
                 return "travel";
             }
         }
-        
+
         // Hotels (Marriott, Hilton, Hyatt, Holiday Inn, Airbnb, etc.)
-        String[] hotels = {"hotel", "marriott", "hilton", "hyatt", "holiday inn", "holidayinn",
-                          "airbnb", "booking.com", "expedia", "travelocity", "priceline",
-                          "motel", "resort", "inn"};
-        for (String hotel : hotels) {
+        final String[] hotels = {
+                "hotel",
+                "marriott",
+                "hilton",
+                "hyatt",
+                "holiday inn",
+                "holidayinn",
+                "airbnb",
+                "booking.com",
+                "expedia",
+                "travelocity",
+                "priceline",
+                "motel",
+                "resort",
+                "inn"
+        };
+        for (final String hotel : hotels) {
             if (descLower.contains(hotel)) {
-                logger.debug("🏷️ detectCategoryFromDescription: Detected hotel/accommodation '{}' → 'travel'", hotel);
+                LOGGER.debug(
+                        "🏷️ detectCategoryFromDescription: Detected hotel/accommodation '{}' → 'travel'",
+                        hotel);
                 return "travel";
             }
         }
-        
+
         // CRITICAL FIX: Ride-sharing services (Lyft, Uber) - transportation, NOT subscriptions
         // Exception: Lyft Pink subscription, Uber One subscription are subscriptions
         if (descLower.contains("lyft")) {
             // Check if it's Lyft Pink subscription
-            if (descLower.contains("lyft pink") || descLower.contains("lyftpink") ||
-                descLower.contains("pink subscription") || descLower.contains("pink membership")) {
-                logger.debug("🏷️ detectCategoryFromDescription: Detected Lyft Pink subscription → 'subscriptions'");
+            if (descLower.contains("lyft pink")
+                    || descLower.contains("lyftpink")
+                    || descLower.contains("pink subscription")
+                    || descLower.contains("pink membership")) {
+                LOGGER.debug(
+                        "🏷️ detectCategoryFromDescription: Detected Lyft Pink subscription → 'subscriptions'");
                 return "subscriptions";
             }
             // Otherwise, it's a ride - transportation
-            logger.debug("🏷️ detectCategoryFromDescription: Detected Lyft ride → 'transportation'");
+            LOGGER.debug(
+                    "🏷️ detectCategoryFromDescription: Detected Lyft ride → 'transportation'");
             return "transportation";
         }
-        
+
         if (descLower.contains("uber")) {
             // Check if it's Uber One subscription
-            if (descLower.contains("uber one") || descLower.contains("uberone") ||
-                descLower.contains("uber one subscription") || descLower.contains("uberone subscription") ||
-                descLower.contains("uber one membership") || descLower.contains("uberone membership")) {
-                logger.debug("🏷️ detectCategoryFromDescription: Detected Uber One subscription → 'subscriptions'");
+            if (descLower.contains("uber one")
+                    || descLower.contains("uberone")
+                    || descLower.contains("uber one subscription")
+                    || descLower.contains("uberone subscription")
+                    || descLower.contains("uber one membership")
+                    || descLower.contains("uberone membership")) {
+                LOGGER.debug(
+                        "🏷️ detectCategoryFromDescription: Detected Uber One subscription → 'subscriptions'");
                 return "subscriptions";
             }
             // Check if it's Uber Eats (dining, not transportation)
-            if (descLower.contains("uber eats") || descLower.contains("ubereats") ||
-                descLower.contains("uber eat")) {
-                logger.debug("🏷️ detectCategoryFromDescription: Detected Uber Eats → 'dining'");
+            if (descLower.contains("uber eats")
+                    || descLower.contains("ubereats")
+                    || descLower.contains("uber eat")) {
+                LOGGER.debug("🏷️ detectCategoryFromDescription: Detected Uber Eats → 'dining'");
                 return "dining";
             }
             // Otherwise, it's a ride - transportation
-            logger.debug("🏷️ detectCategoryFromDescription: Detected Uber ride → 'transportation'");
+            LOGGER.debug(
+                    "🏷️ detectCategoryFromDescription: Detected Uber ride → 'transportation'");
             return "transportation";
         }
-        
+
         // Other ride-sharing services (taxi, cab, rideshare, etc.)
-        String[] rideshareServices = {"taxi", "cab", "rideshare", "ride share", "car service",
-                                      "didi", "grab", "ola", "careem", "gett", "bolt"};
-        for (String service : rideshareServices) {
+        final String[] rideshareServices = {
+                "taxi",
+                "cab",
+                "rideshare",
+                "ride share",
+                "car service",
+                "didi",
+                "grab",
+                "ola",
+                "careem",
+                "gett",
+                "bolt"
+        };
+        for (final String service : rideshareServices) {
             if (descLower.contains(service)) {
-                logger.debug("🏷️ detectCategoryFromDescription: Detected ride-sharing service '{}' → 'transportation'", service);
+                LOGGER.debug(
+                        "🏷️ detectCategoryFromDescription: Detected ride-sharing service '{}' → 'transportation'",
+                        service);
                 return "transportation";
             }
         }
-        
-        // CRITICAL FIX: Gas stations (Exxon, Shell, Chevron, BP, Mobil, Buc-ee's, etc.) - transportation, NOT subscriptions
+
+        // CRITICAL FIX: Gas stations (Exxon, Shell, Chevron, BP, Mobil, Buc-ee's, etc.) -
+        // transportation, NOT subscriptions
         // Well-known gas station brands - always transportation
         // CRITICAL: Buc-ee's is a gas station/convenience store chain, not shopping
-        String[] knownGasStations = {"exxon", "shell", "chevron", "mobil", "esso",
-                                     "speedway", "valero", "citgo", "phillips 66", "phillips66",
-                                     "arco", "marathon", "sunoco", "conoco",
-                                     "murphy usa", "murphyusa", "love's", "loves",
-                                     "pilot", "flying j", "flyingj", "ta", "travel centers", "truck stop",
-                                     "buc-ee", "bucee", "buc-ees", "bucees", "buc-ee's"};
-        for (String station : knownGasStations) {
+        final String[] knownGasStations = {
+                "exxon",
+                "shell",
+                "chevron",
+                "mobil",
+                "esso",
+                "speedway",
+                "valero",
+                "citgo",
+                "phillips 66",
+                "phillips66",
+                "arco",
+                "marathon",
+                "sunoco",
+                "conoco",
+                "murphy usa",
+                "murphyusa",
+                "love's",
+                "loves",
+                "pilot",
+                "flying j",
+                "flyingj",
+                "ta",
+                "travel centers",
+                "truck stop",
+                "buc-ee",
+                "bucee",
+                "buc-ees",
+                "bucees",
+                "buc-ee's"
+        };
+        for (final String station : knownGasStations) {
             if (descLower.contains(station)) {
-                logger.debug("🏷️ detectCategoryFromDescription: Detected gas station '{}' → 'transportation'", station);
+                LOGGER.debug(
+                        "🏷️ detectCategoryFromDescription: Detected gas station '{}' → 'transportation'",
+                        station);
                 return "transportation";
             }
         }
-        
+
         // BP and "76" need special handling to avoid false matches
         // BP - only if it's clearly a gas station (not British Petroleum payroll, etc.)
-        if (descLower.contains("bp") && 
-            (descLower.contains("gas") || descLower.contains("fuel") ||
-             descLower.contains("station") || descLower.contains("bp ") ||
-             descLower.contains(" bp ") || descLower.contains(".bp"))) {
-            logger.debug("🏷️ detectCategoryFromDescription: Detected BP gas station → 'transportation'");
+        if (descLower.contains("bp")
+                && (descLower.contains("gas")
+                        || descLower.contains("fuel")
+                        || descLower.contains("station")
+                        || descLower.contains("bp ")
+                        || descLower.contains(" bp ")
+                        || descLower.contains(".bp"))) {
+            LOGGER.debug(
+                    "🏷️ detectCategoryFromDescription: Detected BP gas station → 'transportation'");
             return "transportation";
         }
-        
+
         // 76 gas station - must be specific to avoid matching "CHECK 176", etc.
-        if ((descLower.contains("76 station") || descLower.contains("76 gas") ||
-             descLower.contains("union 76") || descLower.contains("union76")) &&
-            (descLower.contains("gas") || descLower.contains("fuel") || descLower.contains("station"))) {
-            logger.debug("🏷️ detectCategoryFromDescription: Detected 76 gas station → 'transportation'");
+        if ((descLower.contains("76 station")
+                        || descLower.contains("76 gas")
+                        || descLower.contains("union 76")
+                        || descLower.contains("union76"))
+                && (descLower.contains("gas")
+                        || descLower.contains("fuel")
+                        || descLower.contains("station"))) {
+            LOGGER.debug(
+                    "🏷️ detectCategoryFromDescription: Detected 76 gas station → 'transportation'");
             return "transportation";
         }
-        
+
         // Gas station patterns (gas station, gas station, fuel, etc.)
-        if (descLower.contains("gas station") || descLower.contains("gasstation") ||
-            descLower.contains("gas ") || descLower.contains("fuel") ||
-            descLower.contains("petrol") || descLower.contains("diesel")) {
-            logger.debug("🏷️ detectCategoryFromDescription: Detected gas station pattern → 'transportation'");
+        if (descLower.contains("gas station")
+                || descLower.contains("gasstation")
+                || descLower.contains("gas ")
+                || descLower.contains("fuel")
+                || descLower.contains("petrol")
+                || descLower.contains("diesel")) {
+            LOGGER.debug(
+                    "🏷️ detectCategoryFromDescription: Detected gas station pattern → 'transportation'");
             return "transportation";
         }
-        
-        // CRITICAL FIX: Check description for utility companies and patterns (merchant name might be in description)
+
+        // CRITICAL FIX: Check description for utility companies and patterns (merchant name might
+        // be in description)
         // NOTE: normalizedDesc is already defined at the top of the function
-        
+
         // CRITICAL FIX: TST* pattern (Toast POS system) - dining, NOT utilities
         // TST* is a restaurant POS terminal code and should be detected BEFORE utilities
-        if (descLower.contains("tst*") || normalizedDesc.contains("tst*") ||
-            (description != null && description.toUpperCase().startsWith("TST*")) ||
-            (description != null && description.toUpperCase().contains("TST*"))) {
-            logger.debug("🏷️ detectCategoryFromDescription: Detected TST* pattern → 'dining'");
+        if (descLower.contains("tst*")
+                || normalizedDesc.contains("tst*")
+                || (description != null && description.toUpperCase(Locale.ROOT).startsWith("TST*"))
+                || (description != null && description.toUpperCase(Locale.ROOT).contains("TST*"))) {
+            LOGGER.debug("🏷️ detectCategoryFromDescription: Detected TST* pattern → 'dining'");
             return "dining";
         }
-        
+
         // CRITICAL FIX: SQ* (Square POS system) - dining, NOT utilities
         // SQ* can appear with or without space: "SQ*" or "SQ *"
         // Square is a point-of-sale system used by restaurants and retail stores
-        if (descLower.contains("sq*") || descLower.contains("sq *") || descLower.contains("sq  *") ||
-            normalizedDesc.contains("sq*") || normalizedDesc.contains("sq *") || normalizedDesc.contains("sq  *") ||
-            (description != null && (description.toUpperCase().contains("SQ*") || 
-                                     description.toUpperCase().contains("SQ *") ||
-                                     description.toUpperCase().startsWith("SQ")))) {
-            logger.debug("🏷️ detectCategoryFromDescription: Detected SQ* (Square POS) → 'dining'");
+        if (descLower.contains("sq*")
+                || descLower.contains("sq *")
+                || descLower.contains("sq  *")
+                || normalizedDesc.contains("sq*")
+                || normalizedDesc.contains("sq *")
+                || normalizedDesc.contains("sq  *")
+                || (description != null
+                        && (description.toUpperCase(Locale.ROOT).contains("SQ*")
+                                || description.toUpperCase(Locale.ROOT).contains("SQ *")
+                                || description.toUpperCase(Locale.ROOT).startsWith("SQ")))) {
+            LOGGER.debug("🏷️ detectCategoryFromDescription: Detected SQ* (Square POS) → 'dining'");
             return "dining";
         }
-        
+
         // Other POS system patterns (RBL* = restaurant POS, etc.) - dining
-        if (descLower.contains("rbl*") || descLower.contains("rbl *") || normalizedDesc.contains("rbl*") ||
-            normalizedDesc.contains("rbl *") ||
-            (description != null && (description.toUpperCase().contains("RBL*") ||
-                                     description.toUpperCase().contains("RBL *")))) {
-            logger.debug("🏷️ detectCategoryFromDescription: Detected RBL* POS pattern → 'dining'");
+        if (descLower.contains("rbl*")
+                || descLower.contains("rbl *")
+                || normalizedDesc.contains("rbl*")
+                || normalizedDesc.contains("rbl *")
+                || (description != null
+                        && (description.toUpperCase(Locale.ROOT).contains("RBL*")
+                                || description.toUpperCase(Locale.ROOT).contains("RBL *")))) {
+            LOGGER.debug("🏷️ detectCategoryFromDescription: Detected RBL* POS pattern → 'dining'");
             return "dining";
         }
-        
+
         // CRITICAL FIX: TPD (Top Pot Donuts) - dining, NOT utilities
         // TPD must be detected BEFORE utilities because it might be misclassified
-        if (descLower.contains("tpd") || normalizedDesc.contains("tpd") ||
-            (description != null && description.toUpperCase().startsWith("TPD")) ||
-            (description != null && description.toUpperCase().contains("TPD")) ||
-            descLower.contains("top pot donuts") || descLower.contains("toppotdonuts") ||
-            descLower.contains("top pot") || descLower.contains("toppot")) {
-            logger.debug("🏷️ detectCategoryFromDescription: Detected TPD (Top Pot Donuts) → 'dining'");
+        if (descLower.contains("tpd")
+                || normalizedDesc.contains("tpd")
+                || (description != null && description.toUpperCase(Locale.ROOT).startsWith("TPD"))
+                || (description != null && description.toUpperCase(Locale.ROOT).contains("TPD"))
+                || descLower.contains("top pot donuts")
+                || descLower.contains("toppotdonuts")
+                || descLower.contains("top pot")
+                || descLower.contains("toppot")) {
+            LOGGER.debug(
+                    "🏷️ detectCategoryFromDescription: Detected TPD (Top Pot Donuts) → 'dining'");
             return "dining";
         }
-        
+
         // CRITICAL FIX: Burger and Kabob Hut - dining, NOT utilities
         // This restaurant must be detected BEFORE utilities because it might be misclassified
-        if (descLower.contains("burger and kabob hut") || descLower.contains("burgerandkabobhut") ||
-            descLower.contains("kabob hut") || descLower.contains("kabobhut") ||
-            normalizedDesc.contains("burger and kabob hut") || normalizedDesc.contains("burgerandkabobhut") ||
-            normalizedDesc.contains("kabob hut") || normalizedDesc.contains("kabobhut")) {
-            logger.debug("🏷️ detectCategoryFromDescription: Detected Burger and Kabob Hut → 'dining'");
+        if (descLower.contains("burger and kabob hut")
+                || descLower.contains("burgerandkabobhut")
+                || descLower.contains("kabob hut")
+                || descLower.contains("kabobhut")
+                || normalizedDesc.contains("burger and kabob hut")
+                || normalizedDesc.contains("burgerandkabobhut")
+                || normalizedDesc.contains("kabob hut")
+                || normalizedDesc.contains("kabobhut")) {
+            LOGGER.debug(
+                    "🏷️ detectCategoryFromDescription: Detected Burger and Kabob Hut → 'dining'");
             return "dining";
         }
-        
-        // CRITICAL FIX: Parking payment services (PAY BY PHONE, ParkMobile, etc.) - transportation, NOT utilities
+
+        // CRITICAL FIX: Parking payment services (PAY BY PHONE, ParkMobile, etc.) - transportation,
+        // NOT utilities
         // These must be detected BEFORE utilities because "phone" keyword might match utilities
-        if (descLower.contains("pay by phone") || descLower.contains("paybyphone") ||
-            descLower.contains("uw pay by phone") || descLower.contains("uwpay by phone") ||
-            descLower.contains("uw paybyphone") || descLower.contains("uwpaybyphone") ||
-            (descLower.contains("uw") && descLower.contains("pay by phone")) ||
-            normalizedDesc.contains("pay by phone") || normalizedDesc.contains("paybyphone")) {
-            logger.debug("🏷️ detectCategoryFromDescription: Detected parking payment service → 'transportation'");
+        if (descLower.contains("pay by phone")
+                || descLower.contains("paybyphone")
+                || descLower.contains("uw pay by phone")
+                || descLower.contains("uwpay by phone")
+                || descLower.contains("uw paybyphone")
+                || descLower.contains("uwpaybyphone")
+                || (descLower.contains("uw") && descLower.contains("pay by phone"))
+                || normalizedDesc.contains("pay by phone")
+                || normalizedDesc.contains("paybyphone")) {
+            LOGGER.debug(
+                    "🏷️ detectCategoryFromDescription: Detected parking payment service → 'transportation'");
             return "transportation";
         }
-        
+
         // Other parking payment services (ParkMobile, Impark, Metropolis parking, etc.)
-        String[] parkingServices = {"parkmobile", "park mobile", "impark", "parking",
-                                    "parking meter", "parkingmeter", "garage",
-                                    "metropolis parking", "metropolisparking"};
-        for (String service : parkingServices) {
+        final String[] parkingServices = {
+                "parkmobile",
+                "park mobile",
+                "impark",
+                "parking",
+                "parking meter",
+                "parkingmeter",
+                "garage",
+                "metropolis parking",
+                "metropolisparking"
+        };
+        for (final String service : parkingServices) {
             if (descLower.contains(service) || normalizedDesc.contains(service)) {
-                logger.debug("🏷️ detectCategoryFromDescription: Detected parking service '{}' → 'transportation'", service);
+                LOGGER.debug(
+                        "🏷️ detectCategoryFromDescription: Detected parking service '{}' → 'transportation'",
+                        service);
                 return "transportation";
             }
         }
-        
-        // CRITICAL FIX: Sports clubs and fitness centers (badminton club, gym, fitness center, etc.) - health, NOT utilities
+
+        // CRITICAL FIX: Sports clubs and fitness centers (badminton club, gym, fitness center,
+        // etc.) - health, NOT utilities
         // These must be detected BEFORE utilities because "club" might be misclassified
-        String[] sportsAndFitness = {"badminton club", "badmintonclub", "badminton",
-                                     "seattle badminton club", "seattlebadmintonclub",
-                                     "fitness club", "fitnessclub", "health club", "healthclub",
-                                     "athletic club", "athleticclub", "sports club", "sportsclub",
-                                     "gym", "fitness center", "fitnesscenter", "workout",
-                                     "personal trainer", "orangetheory", "orange theory", "crossfit"};
-        for (String fitness : sportsAndFitness) {
+        final String[] sportsAndFitness = {
+                "badminton club",
+                "badmintonclub",
+                "badminton",
+                "seattle badminton club",
+                "seattlebadmintonclub",
+                "fitness club",
+                "fitnessclub",
+                "health club",
+                "healthclub",
+                "athletic club",
+                "athleticclub",
+                "sports club",
+                "sportsclub",
+                "gym",
+                "fitness center",
+                "fitnesscenter",
+                "workout",
+                "personal trainer",
+                "orangetheory",
+                "orange theory",
+                "crossfit"
+        };
+        for (final String fitness : sportsAndFitness) {
             if (descLower.contains(fitness) || normalizedDesc.contains(fitness)) {
-                logger.debug("🏷️ detectCategoryFromDescription: Detected sports/fitness '{}' → 'health'", fitness);
+                LOGGER.debug(
+                        "🏷️ detectCategoryFromDescription: Detected sports/fitness '{}' → 'health'",
+                        fitness);
                 return "health";
             }
         }
-        
+
         // CRITICAL FIX: University book stores and book stores - education, NOT utilities
         // These must be detected BEFORE utilities because "store" might be misclassified
-        if (descLower.contains("university book store") || descLower.contains("universitybookstore") ||
-            descLower.contains("university book") || descLower.contains("universitybook") ||
-            normalizedDesc.contains("university book store") || normalizedDesc.contains("universitybookstore")) {
-            logger.debug("🏷️ detectCategoryFromDescription: Detected University Book Store → 'education'");
+        if (descLower.contains("university book store")
+                || descLower.contains("universitybookstore")
+                || descLower.contains("university book")
+                || descLower.contains("universitybook")
+                || normalizedDesc.contains("university book store")
+                || normalizedDesc.contains("universitybookstore")) {
+            LOGGER.debug(
+                    "🏷️ detectCategoryFromDescription: Detected University Book Store → 'education'");
             return "education";
         }
-        
+
         // Other book stores (bookstore, book store) - education
-        if ((descLower.contains("bookstore") || descLower.contains("book store") ||
-             normalizedDesc.contains("bookstore") || normalizedDesc.contains("book store")) &&
-            !descLower.contains("costco") && !descLower.contains("walmart") &&
-            !descLower.contains("target") && !descLower.contains("grocery")) {
-            logger.debug("🏷️ detectCategoryFromDescription: Detected book store → 'education'");
+        if ((descLower.contains("bookstore")
+                        || descLower.contains("book store")
+                        || normalizedDesc.contains("bookstore")
+                        || normalizedDesc.contains("book store"))
+                && !descLower.contains("costco")
+                && !descLower.contains("walmart")
+                && !descLower.contains("target")
+                && !descLower.contains("grocery")) {
+            LOGGER.debug("🏷️ detectCategoryFromDescription: Detected book store → 'education'");
             return "education";
         }
-        
-        String[] utilityCompanies = {
-            "puget sound energy", "pse", "pacific gas", "pg&e", "pge",
-            "southern california edison", "sce", "san diego gas", "sdge",
-            "edison", "con edison", "coned", "duke energy", "dukeenergy",
-            "dominion energy", "dominionenergy", "exelon", "first energy", "firstenergy",
-            "american electric", "aep", "southern company", "southerncompany"
+
+        final String[] utilityCompanies = {
+                "puget sound energy",
+                "pse",
+                "pacific gas",
+                "pg&e",
+                "pge",
+                "southern california edison",
+                "sce",
+                "san diego gas",
+                "sdge",
+                "edison",
+                "con edison",
+                "coned",
+                "duke energy",
+                "dukeenergy",
+                "dominion energy",
+                "dominionenergy",
+                "exelon",
+                "first energy",
+                "firstenergy",
+                "american electric",
+                "aep",
+                "southern company",
+                "southerncompany"
         };
-        for (String company : utilityCompanies) {
+        for (final String company : utilityCompanies) {
             if (normalizedDesc.contains(company) || descLower.contains(company)) {
-                logger.debug("🏷️ detectCategoryFromDescription: Detected utility company '{}' → 'utilities'", company);
+                LOGGER.debug(
+                        "🏷️ detectCategoryFromDescription: Detected utility company '{}' → 'utilities'",
+                        company);
                 return "utilities";
             }
         }
-        
+
         // Utility patterns in description (ENER, ENERGY, BILLPAY, etc.)
-        if (descLower.contains("ener ") || descLower.contains("ener billpay") || 
-            descLower.contains("energy") || descLower.contains("electric") || 
-            descLower.contains("electricity") || descLower.contains("utility") ||
-            descLower.contains("utilities") || descLower.contains("gas company") ||
-            descLower.contains("water company") || descLower.contains("power company")) {
+        if (descLower.contains("ener ")
+                || descLower.contains("ener billpay")
+                || descLower.contains("energy")
+                || descLower.contains("electric")
+                || descLower.contains("electricity")
+                || descLower.contains("utility")
+                || descLower.contains("utilities")
+                || descLower.contains("gas company")
+                || descLower.contains("water company")
+                || descLower.contains("power company")) {
             // If it's a bill payment with energy/utility keywords, it's utilities
             if (descLower.contains("billpay") || descLower.contains("bill pay")) {
-                logger.debug("🏷️ detectCategoryFromDescription: Detected utility bill payment → 'utilities'");
+                LOGGER.debug(
+                        "🏷️ detectCategoryFromDescription: Detected utility bill payment → 'utilities'");
                 return "utilities";
             }
         }
-        
-        // CRITICAL FIX: Check description for specific grocery store names (merchant name might be in description)
+
+        // CRITICAL FIX: Check description for specific grocery store names (merchant name might be
+        // in description)
         // This handles cases where CSV doesn't have a separate merchant name column
-        if (normalizedDesc.contains("safeway") || normalizedDesc.contains("safeway.com") || 
-            normalizedDesc.startsWith("safeway") || normalizedDesc.endsWith("safeway")) {
-            logger.debug("detectCategoryFromDescription: Detected Safeway in description → 'groceries'");
+        if (normalizedDesc.contains("safeway")
+                || normalizedDesc.contains("safeway.com")
+                || normalizedDesc.startsWith("safeway")
+                || normalizedDesc.endsWith("safeway")) {
+            LOGGER.debug(
+                    "detectCategoryFromDescription: Detected Safeway in description → 'groceries'");
             return "groceries";
         }
-        
+
         // CRITICAL FIX: Check for Fred Meyer (Kroger-owned grocery store)
-        if (descLower.contains("fred meyer") || descLower.contains("fredmeyer") || 
-            descLower.contains("fred-meyer")) {
-            logger.debug("🏷️ detectCategoryFromDescription: Detected Fred Meyer → 'groceries'");
+        if (descLower.contains("fred meyer")
+                || descLower.contains("fredmeyer")
+                || descLower.contains("fred-meyer")) {
+            LOGGER.debug("🏷️ detectCategoryFromDescription: Detected Fred Meyer → 'groceries'");
             return "groceries";
         }
-        
+
         // CRITICAL FIX: Check for PCC (PCC Natural Markets / PCC Community Markets) in description
         // PCC often appears in description field when merchant name is null
-        if (normalizedDesc.contains("pcc") || descLower.contains("pcc") ||
-            normalizedDesc.contains("pcc natural markets") || normalizedDesc.contains("pcc community markets")) {
-            logger.debug("🏷️ detectCategoryFromDescription: Detected PCC in description → 'groceries'");
+        if (normalizedDesc.contains("pcc")
+                || descLower.contains("pcc")
+                || normalizedDesc.contains("pcc natural markets")
+                || normalizedDesc.contains("pcc community markets")) {
+            LOGGER.debug(
+                    "🏷️ detectCategoryFromDescription: Detected PCC in description → 'groceries'");
             return "groceries";
         }
-        
+
         // CRITICAL FIX: Check for Subway in description (common when merchantName is null)
         if (normalizedDesc.contains("subway") || descLower.contains("subway")) {
-            logger.debug("🏷️ detectCategoryFromDescription: Detected Subway in description → 'dining'");
+            LOGGER.debug(
+                    "🏷️ detectCategoryFromDescription: Detected Subway in description → 'dining'");
             return "dining";
         }
-        
+
         // CRITICAL FIX: Check for AMC and other movie theaters in description
         // AMC often appears in description field when merchant name is null
         if (normalizedDesc.contains("amc") || descLower.contains("amc")) {
-            logger.debug("🏷️ detectCategoryFromDescription: Detected AMC in description → 'entertainment'");
+            LOGGER.debug(
+                    "🏷️ detectCategoryFromDescription: Detected AMC in description → 'entertainment'");
             return "entertainment";
         }
-        
+
         // Grocery keywords in description
-        if (descLower.contains("grocery") || descLower.contains("supermarket") ||
-            descLower.contains("food market") || descLower.contains("produce")) {
+        if (descLower.contains("grocery")
+                || descLower.contains("supermarket")
+                || descLower.contains("food market")
+                || descLower.contains("produce")) {
             return "groceries";
         }
-        
+
         // Sunny Honey Company in description
         if (descLower.contains("sunny honey") || descLower.contains("sunnyhoney")) {
-            logger.debug("🏷️ detectCategoryFromDescription: Detected Sunny Honey Company → 'groceries'");
+            LOGGER.debug(
+                    "🏷️ detectCategoryFromDescription: Detected Sunny Honey Company → 'groceries'");
             return "groceries";
         }
-        
+
         // Specific Restaurants in Description - Must come before general restaurant patterns
-        String[] specificRestaurantsInDesc = {
-            "daeho", "tutta bella", "tuttabella", "simply indian restaur", "simply indian restaurant",
-            "simplyindian restaur", "simplyindian restaurant", "skills rainbow room", "skillsrainbow room",
-            "kyurmaen", "kyurmaen ramen", "deep dive", "deepdive", "messina", "supreme dumplings",
-            "supremedumplings", "cucina venti", "cucinaventi", "desi dhaba", "desidhaba", "medocinofarms",
-            "medocino farms", "laughing monk brewing", "laughingmonk brewing", "laughing monk", "laughingmonk"
+        final String[] specificRestaurantsInDesc = {
+                "daeho",
+                "tutta bella",
+                "tuttabella",
+                "simply indian restaur",
+                "simply indian restaurant",
+                "simplyindian restaur",
+                "simplyindian restaurant",
+                "skills rainbow room",
+                "skillsrainbow room",
+                "kyurmaen",
+                "kyurmaen ramen",
+                "deep dive",
+                "deepdive",
+                "messina",
+                "supreme dumplings",
+                "supremedumplings",
+                "cucina venti",
+                "cucinaventi",
+                "desi dhaba",
+                "desidhaba",
+                "medocinofarms",
+                "medocino farms",
+                "laughing monk brewing",
+                "laughingmonk brewing",
+                "laughing monk",
+                "laughingmonk"
         };
-        for (String restaurant : specificRestaurantsInDesc) {
+        for (final String restaurant : specificRestaurantsInDesc) {
             if (descLower.contains(restaurant) || normalizedDesc.contains(restaurant)) {
-                logger.debug("🏷️ detectCategoryFromDescription: Detected restaurant '{}' → 'dining'", restaurant);
+                LOGGER.debug(
+                        "🏷️ detectCategoryFromDescription: Detected restaurant '{}' → 'dining'",
+                        restaurant);
                 return "dining";
             }
         }
-        
-        // NOTE: TST* pattern detection has been moved earlier (before utilities) to ensure proper categorization
-        
-        // Food-related keywords that indicate restaurants (dumplings, burger, fast food, grill, thai, dhaba, brewing)
-        if (descLower.contains("dumplings") || descLower.contains("dumpling") ||
-            descLower.contains("burger") || descLower.contains("burgers") ||
-            descLower.contains("fast food") || descLower.contains("fastfood") ||
-            descLower.contains("grill") || descLower.contains("grilled") ||
-            descLower.contains("thai") || descLower.contains("dhaba") ||
-            descLower.contains("brewing") || descLower.contains("brewery") ||
-            descLower.contains("brew pub") || descLower.contains("brewpub") ||
-            normalizedDesc.contains("dumplings") || normalizedDesc.contains("dumpling") ||
-            normalizedDesc.contains("burger") || normalizedDesc.contains("burgers") ||
-            normalizedDesc.contains("fast food") || normalizedDesc.contains("fastfood") ||
-            normalizedDesc.contains("grill") || normalizedDesc.contains("grilled") ||
-            normalizedDesc.contains("thai") || normalizedDesc.contains("dhaba") ||
-            normalizedDesc.contains("brewing") || normalizedDesc.contains("brewery") ||
-            normalizedDesc.contains("brew pub") || normalizedDesc.contains("brewpub")) {
-            logger.debug("🏷️ detectCategoryFromDescription: Detected food/restaurant keyword → 'dining'");
+
+        // NOTE: TST* pattern detection has been moved earlier (before utilities) to ensure proper
+        // categorization
+
+        // Food-related keywords that indicate restaurants (dumplings, burger, fast food, grill,
+        // thai, dhaba, brewing)
+        if (descLower.contains("dumplings")
+                || descLower.contains("dumpling")
+                || descLower.contains("burger")
+                || descLower.contains("burgers")
+                || descLower.contains("fast food")
+                || descLower.contains("fastfood")
+                || descLower.contains("grill")
+                || descLower.contains("grilled")
+                || descLower.contains("thai")
+                || descLower.contains("dhaba")
+                || descLower.contains("brewing")
+                || descLower.contains("brewery")
+                || descLower.contains("brew pub")
+                || descLower.contains("brewpub")
+                || normalizedDesc.contains("dumplings")
+                || normalizedDesc.contains("dumpling")
+                || normalizedDesc.contains("burger")
+                || normalizedDesc.contains("burgers")
+                || normalizedDesc.contains("fast food")
+                || normalizedDesc.contains("fastfood")
+                || normalizedDesc.contains("grill")
+                || normalizedDesc.contains("grilled")
+                || normalizedDesc.contains("thai")
+                || normalizedDesc.contains("dhaba")
+                || normalizedDesc.contains("brewing")
+                || normalizedDesc.contains("brewery")
+                || normalizedDesc.contains("brew pub")
+                || normalizedDesc.contains("brewpub")) {
+            LOGGER.debug(
+                    "🏷️ detectCategoryFromDescription: Detected food/restaurant keyword → 'dining'");
             return "dining";
         }
-        
-        // Dining keywords (including bakeries, Tea Lab, Chai, Boba, Ezell's, Le Panier, Mochinut, honet.bellevue.com)
+
+        // Dining keywords (including bakeries, Tea Lab, Chai, Boba, Ezell's, Le Panier, Mochinut,
+        // honet.bellevue.com)
         // Includes "restaur" as keyword for restaurant
-        if (descLower.contains("restaurant") || descLower.contains("rest ") ||
-            descLower.contains("restaur") || descLower.contains("restaur ") ||
-            descLower.contains("dining") ||
-            descLower.contains("fast food") || descLower.contains("fastfood") ||
-            descLower.contains("cafe") || descLower.contains("café") || descLower.contains("caffe") ||
-            descLower.contains("cafeteria") || descLower.contains("tiffin") ||
-            descLower.contains("bakery") || descLower.contains("baker") ||
-            descLower.contains("hoffman") || descLower.contains("hoffman's") ||
-            descLower.contains("tea lab") || descLower.contains("tealab") ||
-            descLower.contains("chai") || descLower.contains("boba") ||
-            descLower.contains("ezell") || descLower.contains("ezells") ||
-            descLower.contains("le panier") || descLower.contains("lepanier") ||
-            descLower.contains("mochinut") || descLower.contains("honet.bellevue") ||
-            descLower.contains("honet") ||
-            normalizedDesc.contains("restaurant") || normalizedDesc.contains("restaur")) {
+        if (descLower.contains("restaurant")
+                || descLower.contains("rest ")
+                || descLower.contains("restaur")
+                || descLower.contains("restaur ")
+                || descLower.contains("dining")
+                || descLower.contains("fast food")
+                || descLower.contains("fastfood")
+                || descLower.contains("cafe")
+                || descLower.contains("café")
+                || descLower.contains("caffe")
+                || descLower.contains("cafeteria")
+                || descLower.contains("tiffin")
+                || descLower.contains("bakery")
+                || descLower.contains("baker")
+                || descLower.contains("hoffman")
+                || descLower.contains("hoffman's")
+                || descLower.contains("tea lab")
+                || descLower.contains("tealab")
+                || descLower.contains("chai")
+                || descLower.contains("boba")
+                || descLower.contains("ezell")
+                || descLower.contains("ezells")
+                || descLower.contains("le panier")
+                || descLower.contains("lepanier")
+                || descLower.contains("mochinut")
+                || descLower.contains("honet.bellevue")
+                || descLower.contains("honet")
+                || normalizedDesc.contains("restaurant")
+                || normalizedDesc.contains("restaur")) {
             if (descLower.contains("hoffman") || descLower.contains("hoffman's")) {
-                logger.debug("🏷️ detectCategoryFromDescription: Detected Hoffmans bakery → 'dining'");
+                LOGGER.debug(
+                        "🏷️ detectCategoryFromDescription: Detected Hoffmans bakery → 'dining'");
             }
             return "dining";
         }
-        
+
         // Pet keywords (including SP Farmers Fetch Bones)
-        if (descLower.contains("pet") || descLower.contains("veterinary") ||
-            descLower.contains("vet ") || descLower.contains("animal") ||
-            descLower.contains("sp farmers") || descLower.contains("fetch bones") ||
-            descLower.contains("fetchbones")) {
+        if (descLower.contains("pet")
+                || descLower.contains("veterinary")
+                || descLower.contains("vet ")
+                || descLower.contains("animal")
+                || descLower.contains("sp farmers")
+                || descLower.contains("fetch bones")
+                || descLower.contains("fetchbones")) {
             if (descLower.contains("sp farmers") || descLower.contains("fetch bones")) {
-                logger.debug("🏷️ detectCategoryFromDescription: Detected SP Farmers Fetch Bones → 'pet'");
+                LOGGER.debug(
+                        "🏷️ detectCategoryFromDescription: Detected SP Farmers Fetch Bones → 'pet'");
             }
             return "pet";
         }
-        
+
         // CRITICAL FIX: Check for Cursor AI and other tech companies in description
-        if (normalizedDesc.contains("cursor") || descLower.contains("cursor") ||
-            normalizedDesc.contains("ai powered") || descLower.contains("ai powered") ||
-            normalizedDesc.contains("ide") || descLower.contains("ide")) {
-            logger.debug("🏷️ detectCategoryFromDescription: Detected Cursor AI/tech in description → 'tech'");
+        if (normalizedDesc.contains("cursor")
+                || descLower.contains("cursor")
+                || normalizedDesc.contains("ai powered")
+                || descLower.contains("ai powered")
+                || normalizedDesc.contains("ide")
+                || descLower.contains("ide")) {
+            LOGGER.debug(
+                    "🏷️ detectCategoryFromDescription: Detected Cursor AI/tech in description → 'tech'");
             return "tech";
         }
-        
+
         // Tech keywords
-        if (descLower.contains("software") || descLower.contains("saas") ||
-            descLower.contains("subscription") || descLower.contains("api") ||
-            descLower.contains("developer") || descLower.contains("tech") ||
-            descLower.contains("integrated development")) {
-            logger.debug("🏷️ detectCategoryFromDescription: Detected tech keywords → 'tech'");
+        if (descLower.contains("software")
+                || descLower.contains("saas")
+                || descLower.contains("subscription")
+                || descLower.contains("api")
+                || descLower.contains("developer")
+                || descLower.contains("tech")
+                || descLower.contains("integrated development")) {
+            LOGGER.debug("🏷️ detectCategoryFromDescription: Detected tech keywords → 'tech'");
             return "tech";
         }
-        
+
         // CRITICAL FIX: Check for gyms/fitness in description (common when merchantName is null)
         // Moved to health category
-        String[] gymKeywords = {
-            "proclub", "pro club", "24 hour fitness", "24hour fitness", "24hr fitness",
-            "24-hour fitness", "gold's gym", "golds gym", "planet fitness", "equinox",
-            "lifetime fitness", "ymca", "la fitness", "crunch fitness", "anytime fitness",
-            "orange theory", "crossfit", "fitness", "gym", "health club", "athletic club",
-            "fitness center", "workout", "personal trainer", "seattle badminton club", "badminton"
+        final String[] gymKeywords = {
+                "proclub",
+                "pro club",
+                "24 hour fitness",
+                "24hour fitness",
+                "24hr fitness",
+                "24-hour fitness",
+                "gold's gym",
+                "golds gym",
+                "planet fitness",
+                "equinox",
+                "lifetime fitness",
+                "ymca",
+                "la fitness",
+                "crunch fitness",
+                "anytime fitness",
+                "orange theory",
+                "crossfit",
+                "fitness",
+                "gym",
+                "health club",
+                "athletic club",
+                "fitness center",
+                "workout",
+                "personal trainer",
+                "seattle badminton club",
+                "badminton"
         };
-        for (String gym : gymKeywords) {
+        for (final String gym : gymKeywords) {
             if (descLower.contains(gym) || normalizedDesc.contains(gym)) {
-                logger.debug("🏷️ detectCategoryFromDescription: Detected gym/fitness '{}' → 'health'", gym);
+                LOGGER.debug(
+                        "🏷️ detectCategoryFromDescription: Detected gym/fitness '{}' → 'health'",
+                        gym);
                 return "health";
             }
         }
-        
+
         // Beauty salons, hair cuts in description
-        String[] beautyKeywords = {
-            "beauty salon", "beautysalon", "beauty parlor", "beautyparlor",
-            "hair salon", "hairsalon", "hair cut", "haircut", "hair cuts", "haircuts",
-            "hair color", "haircolor", "body waxing", "bodywaxing", "waxing", "makeup",
-            "beauty studio", "beautystudio", "salon", "supercuts", "super cuts",
-            "great clips", "greatclips", "lucky hair salon", "lucky hair salin", "luckyhair", "luckyhairsalin"
+        final String[] beautyKeywords = {
+                "beauty salon",
+                "beautysalon",
+                "beauty parlor",
+                "beautyparlor",
+                "hair salon",
+                "hairsalon",
+                "hair cut",
+                "haircut",
+                "hair cuts",
+                "haircuts",
+                "hair color",
+                "haircolor",
+                "body waxing",
+                "bodywaxing",
+                "waxing",
+                "makeup",
+                "beauty studio",
+                "beautystudio",
+                "salon",
+                "supercuts",
+                "super cuts",
+                "great clips",
+                "greatclips",
+                "lucky hair salon",
+                "lucky hair salin",
+                "luckyhair",
+                "luckyhairsalin"
         };
-        for (String beauty : beautyKeywords) {
+        for (final String beauty : beautyKeywords) {
             if (descLower.contains(beauty) || normalizedDesc.contains(beauty)) {
-                logger.debug("🏷️ detectCategoryFromDescription: Detected beauty service '{}' → 'health'", beauty);
+                LOGGER.debug(
+                        "🏷️ detectCategoryFromDescription: Detected beauty service '{}' → 'health'",
+                        beauty);
                 return "health";
             }
         }
-        
+
         // Sports activities in description (golf, tennis, soccer, ski resorts, etc.)
         // Note: Mini Mountain is ski-gear/equipment, not a sports activity - handled separately
-        if (descLower.contains("golf") || descLower.contains("tennis") ||
-            descLower.contains("soccer") || descLower.contains("football") ||
-            descLower.contains("basketball") || descLower.contains("baseball") ||
-            descLower.contains("swimming") || descLower.contains("yoga") ||
-            descLower.contains("pilates") || descLower.contains("martial arts") ||
-            descLower.contains("ski resort") || descLower.contains("summit at snoqualmie")) {
+        if (descLower.contains("golf")
+                || descLower.contains("tennis")
+                || descLower.contains("soccer")
+                || descLower.contains("football")
+                || descLower.contains("basketball")
+                || descLower.contains("baseball")
+                || descLower.contains("swimming")
+                || descLower.contains("yoga")
+                || descLower.contains("pilates")
+                || descLower.contains("martial arts")
+                || descLower.contains("ski resort")
+                || descLower.contains("summit at snoqualmie")) {
             // Check for "ski" but exclude "mini mountain" and equipment patterns
-            if (descLower.contains("ski") && 
-                !descLower.contains("mini mountain") && !descLower.contains("ski gear") &&
-                !descLower.contains("ski equipment")) {
-                logger.debug("🏷️ detectCategoryFromDescription: Detected ski activity → 'health'");
+            if (descLower.contains("ski")
+                    && !descLower.contains("mini mountain")
+                    && !descLower.contains("ski gear")
+                    && !descLower.contains("ski equipment")) {
+                LOGGER.debug("🏷️ detectCategoryFromDescription: Detected ski activity → 'health'");
                 return "health";
             }
-            logger.debug("🏷️ detectCategoryFromDescription: Detected sports activity → 'health'");
+            LOGGER.debug("🏷️ detectCategoryFromDescription: Detected sports activity → 'health'");
             return "health";
         }
         // Mini Mountain is ski-gear/equipment, not a sports activity
-        if (descLower.contains("mini mountain") || normalizedDesc.contains("mini mountain") ||
-            descLower.contains("minimountain") || normalizedDesc.contains("minimountain")) {
-            logger.debug("🏷️ detectCategoryFromDescription: Detected Mini Mountain (ski-gear) → 'shopping'");
+        if (descLower.contains("mini mountain")
+                || normalizedDesc.contains("mini mountain")
+                || descLower.contains("minimountain")
+                || normalizedDesc.contains("minimountain")) {
+            LOGGER.debug(
+                    "🏷️ detectCategoryFromDescription: Detected Mini Mountain (ski-gear) → 'shopping'");
             return "shopping";
         }
         // Sports equipment patterns in description
-        if (descLower.contains("ski gear") || descLower.contains("sports equipment") ||
-            descLower.contains("outdoor gear") || normalizedDesc.contains("ski gear") ||
-            normalizedDesc.contains("sports equipment") || normalizedDesc.contains("outdoor gear")) {
-            logger.debug("🏷️ detectCategoryFromDescription: Detected sports equipment/gear → 'shopping'");
+        if (descLower.contains("ski gear")
+                || descLower.contains("sports equipment")
+                || descLower.contains("outdoor gear")
+                || normalizedDesc.contains("ski gear")
+                || normalizedDesc.contains("sports equipment")
+                || normalizedDesc.contains("outdoor gear")) {
+            LOGGER.debug(
+                    "🏷️ detectCategoryFromDescription: Detected sports equipment/gear → 'shopping'");
             return "shopping";
         }
-        
+
         // Home improvement keywords (including Home Depot)
-        if (descLower.contains("hardware") || descLower.contains("home improvement") ||
-            descLower.contains("homeimprovement") || descLower.contains("lumber") ||
-            descLower.contains("building supply") || descLower.contains("home depot") ||
-            descLower.contains("homedepot") || descLower.contains("lowes") ||
-            descLower.contains("menards")) {
-            logger.debug("🏷️ detectCategoryFromDescription: Detected home improvement → 'home improvement'");
+        if (descLower.contains("hardware")
+                || descLower.contains("home improvement")
+                || descLower.contains("homeimprovement")
+                || descLower.contains("lumber")
+                || descLower.contains("building supply")
+                || descLower.contains("home depot")
+                || descLower.contains("homedepot")
+                || descLower.contains("lowes")
+                || descLower.contains("menards")) {
+            LOGGER.debug(
+                    "🏷️ detectCategoryFromDescription: Detected home improvement → 'home improvement'");
             return "home improvement";
         }
-        
+
         // COSTCO GAS in description
-        if (descLower.contains("costco gas") || descLower.contains("costcogas") ||
-            normalizedDesc.contains("costco gas") || normalizedDesc.contains("costcogas")) {
-            logger.debug("🏷️ detectCategoryFromDescription: Detected Costco Gas → 'transportation'");
+        if (descLower.contains("costco gas")
+                || descLower.contains("costcogas")
+                || normalizedDesc.contains("costco gas")
+                || normalizedDesc.contains("costcogas")) {
+            LOGGER.debug(
+                    "🏷️ detectCategoryFromDescription: Detected Costco Gas → 'transportation'");
             return "transportation";
         }
-        
+
         // Travel centers (gas station + grocery + food) - BUC-EE's
-        if (descLower.contains("buc-ee") || descLower.contains("buc-ee's") ||
-            descLower.contains("bucee") || descLower.contains("bucees") ||
-            normalizedDesc.contains("buc-ee") || normalizedDesc.contains("bucee")) {
-            logger.debug("🏷️ detectCategoryFromDescription: Detected BUC-EE's (travel center) → 'transportation'");
+        if (descLower.contains("buc-ee")
+                || descLower.contains("buc-ee's")
+                || descLower.contains("bucee")
+                || descLower.contains("bucees")
+                || normalizedDesc.contains("buc-ee")
+                || normalizedDesc.contains("bucee")) {
+            LOGGER.debug(
+                    "🏷️ detectCategoryFromDescription: Detected BUC-EE's (travel center) → 'transportation'");
             return "transportation";
         }
-        
+
         // Gas keywords
-        if (descLower.contains("gas station") || descLower.contains("gasstation") ||
-            descLower.contains("fuel") || descLower.contains("petrol") ||
-            descLower.contains("kwik sak") || descLower.contains("kwiksak") ||
-            descLower.contains("kwik-sak") || normalizedDesc.contains("kwik sak")) {
+        if (descLower.contains("gas station")
+                || descLower.contains("gasstation")
+                || descLower.contains("fuel")
+                || descLower.contains("petrol")
+                || descLower.contains("kwik sak")
+                || descLower.contains("kwiksak")
+                || descLower.contains("kwik-sak")
+                || normalizedDesc.contains("kwik sak")) {
             return "transportation";
         }
-        
-        // NOTE: Parking payment services (PAY BY PHONE, ParkMobile, etc.) are handled earlier (before utilities)
+
+        // NOTE: Parking payment services (PAY BY PHONE, ParkMobile, etc.) are handled earlier
+        // (before utilities)
         // This section is kept for any additional parking patterns not covered earlier
-        if (descLower.contains("parking") || descLower.contains("parking meter") ||
-            descLower.contains("parkingmeter") || descLower.contains("garage")) {
+        if (descLower.contains("parking")
+                || descLower.contains("parking meter")
+                || descLower.contains("parkingmeter")
+                || descLower.contains("garage")) {
             // Skip if already handled above (pay by phone, parkmobile, etc.)
-            if (!descLower.contains("pay by phone") && !descLower.contains("paybyphone") &&
-                !descLower.contains("parkmobile") && !descLower.contains("park mobile")) {
-                logger.debug("🏷️ detectCategoryFromDescription: Detected parking → 'transportation'");
+            if (!descLower.contains("pay by phone")
+                    && !descLower.contains("paybyphone")
+                    && !descLower.contains("parkmobile")
+                    && !descLower.contains("park mobile")) {
+                LOGGER.debug(
+                        "🏷️ detectCategoryFromDescription: Detected parking → 'transportation'");
                 return "transportation";
             }
         }
-        
+
         // QFC (grocery store) in description
         if (descLower.contains("qfc") || descLower.contains("quality food centers")) {
-            logger.debug("🏷️ detectCategoryFromDescription: Detected QFC → 'groceries'");
+            LOGGER.debug("🏷️ detectCategoryFromDescription: Detected QFC → 'groceries'");
             return "groceries";
         }
-        
+
         // Education/School Payments
         // PayPAMS - online school payments for food (dining)
         if (descLower.contains("paypams") || descLower.contains("pay pams")) {
-            logger.debug("🏷️ detectCategoryFromDescription: Detected PayPAMS (school food payment) → 'dining'");
+            LOGGER.debug(
+                    "🏷️ detectCategoryFromDescription: Detected PayPAMS (school food payment) → 'dining'");
             return "dining";
         }
-        
+
         // School District payments - should be categorized as "education"
         // Check for any school district (not just Bellevue)
-        if (descLower.contains("school district") || descLower.contains("schooldistrict") ||
-            descLower.contains("school distri")) {
-            logger.debug("🏷️ detectCategoryFromDescription: Detected School District → 'education'");
+        if (descLower.contains("school district")
+                || descLower.contains("schooldistrict")
+                || descLower.contains("school distri")) {
+            LOGGER.debug(
+                    "🏷️ detectCategoryFromDescription: Detected School District → 'education'");
             return "education";
         }
-        
+
         // CRITICAL FIX: Check for all school/education types FIRST (before charity)
         // Middle school, high school, elementary school, college, university, PhD, etc. → education
-        String[] schoolTypes = {"middle school", "middleschool", "high school", "highschool",
-                                "elementary school", "elementaryschool", "elementary",
-                                "secondary school", "secondaryschool", "senior secondary school",
-                                "seniorschool", "college", "university", "phd", "ph.d", "ph.d.",
-                                "doctorate", "graduate school", "graduateschool",
-                                "school district", "schooldistrict", "bellevue school district",
-                                "bellevueschooldistrict", "tyee middle school", "tyeemiddleschool"};
-        for (String school : schoolTypes) {
+        final String[] schoolTypes = {
+                "middle school",
+                "middleschool",
+                "high school",
+                "highschool",
+                "elementary school",
+                "elementaryschool",
+                "elementary",
+                "secondary school",
+                "secondaryschool",
+                "senior secondary school",
+                "seniorschool",
+                "college",
+                "university",
+                "phd",
+                "ph.d",
+                "ph.d.",
+                "doctorate",
+                "graduate school",
+                "graduateschool",
+                "school district",
+                "schooldistrict",
+                "bellevue school district",
+                "bellevueschooldistrict",
+                "tyee middle school",
+                "tyeemiddleschool"
+        };
+        for (final String school : schoolTypes) {
             if (descLower.contains(school)) {
-                logger.debug("🏷️ detectCategoryFromDescription: Detected school type '{}' → 'education'", school);
+                LOGGER.debug(
+                        "🏷️ detectCategoryFromDescription: Detected school type '{}' → 'education'",
+                        school);
                 return "education";
             }
         }
-        
+
         // CRITICAL: Subscription merchants (WSJ, NYTimes, etc.) - subscriptions, NOT education
         // Must come BEFORE all education checks to avoid false positives
-        String[] subscriptionMerchants = {"wsj", "wall street journal", 
-                                          "the wall street journal", "nytimes", "new york times", 
-                                          "financial times", "ft.com", "the financial times",
-                                          "economist", "the economist", "bloomberg", "bloomberg news"};
-        for (String merchant : subscriptionMerchants) {
-            if (descLower.contains(merchant) || normalizedDesc.contains(merchant) || 
-                (merchantName != null && merchantName.toLowerCase().contains(merchant))) {
-                logger.debug("🏷️ detectCategoryFromDescription: Detected subscription merchant '{}' → 'subscriptions'", merchant);
+        final String[] subscriptionMerchants = {
+                "wsj",
+                "wall street journal",
+                "the wall street journal",
+                "nytimes",
+                "new york times",
+                "financial times",
+                "ft.com",
+                "the financial times",
+                "economist",
+                "the economist",
+                "bloomberg",
+                "bloomberg news"
+        };
+        for (final String merchant : subscriptionMerchants) {
+            if (descLower.contains(merchant)
+                    || normalizedDesc.contains(merchant)
+                    || (merchantName != null && merchantName.toLowerCase(Locale.ROOT).contains(merchant))) {
+                LOGGER.debug(
+                        "🏷️ detectCategoryFromDescription: Detected subscription merchant '{}' → 'subscriptions'",
+                        merchant);
                 return "subscriptions";
             }
         }
-        
+
         // Educational media (books, newspapers, magazines, journals) → education
-        // CRITICAL: Don't match "journal" alone - it matches subscription journals like "Wall Street Journal"
+        // CRITICAL: Don't match "journal" alone - it matches subscription journals like "Wall
+        // Street Journal"
         // Only match specific academic journal types or "journal" in educational context
-        String[] educationalMedia = {"newspaper", "magazine", "books", "bookstore",
-                                     "book store", "textbook", "text book", "library",
-                                     "academic journal", "research journal", "scientific journal",
-                                     "scholarly journal", "peer-reviewed journal"};
-        for (String media : educationalMedia) {
+        final String[] educationalMedia = {
+                "newspaper",
+                "magazine",
+                "books",
+                "bookstore",
+                "book store",
+                "textbook",
+                "text book",
+                "library",
+                "academic journal",
+                "research journal",
+                "scientific journal",
+                "scholarly journal",
+                "peer-reviewed journal"
+        };
+        for (final String media : educationalMedia) {
             if (descLower.contains(media)) {
-                logger.debug("🏷️ detectCategoryFromDescription: Detected educational media '{}' → 'education'", media);
+                LOGGER.debug(
+                        "🏷️ detectCategoryFromDescription: Detected educational media '{}' → 'education'",
+                        media);
                 return "education";
             }
         }
-        
+
         // Check for "journal" only in educational context (not subscription journals like WSJ)
         // Must check AFTER subscription merchant check to avoid false positives
-        if (descLower.contains("journal") && 
-            (descLower.contains("academic") || descLower.contains("research") || 
-             descLower.contains("scientific") || descLower.contains("scholarly") ||
-             descLower.contains("peer-reviewed") || descLower.contains("education journal"))) {
-            logger.debug("🏷️ detectCategoryFromDescription: Detected educational journal → 'education'");
+        if (descLower.contains("journal")
+                && (descLower.contains("academic")
+                        || descLower.contains("research")
+                        || descLower.contains("scientific")
+                        || descLower.contains("scholarly")
+                        || descLower.contains("peer-reviewed")
+                        || descLower.contains("education journal"))) {
+            LOGGER.debug(
+                    "🏷️ detectCategoryFromDescription: Detected educational journal → 'education'");
             return "education";
         }
-        
+
         // Charity keywords (Go Fund Me, donations) - ONLY actual charity, NOT schools
-        if (descLower.contains("go fund me") || descLower.contains("gofundme") ||
-            descLower.contains("charity") || descLower.contains("donation")) {
+        if (descLower.contains("go fund me")
+                || descLower.contains("gofundme")
+                || descLower.contains("charity")
+                || descLower.contains("donation")) {
             // Skip if it's actually a school (already handled above)
             boolean isSchool = false;
-            for (String school : schoolTypes) {
+            for (final String school : schoolTypes) {
                 if (descLower.contains(school)) {
                     isSchool = true;
                     break;
                 }
             }
             if (!isSchool) {
-                logger.debug("🏷️ detectCategoryFromDescription: Detected charity/donation → 'charity'");
+                LOGGER.debug(
+                        "🏷️ detectCategoryFromDescription: Detected charity/donation → 'charity'");
                 return "charity";
             }
         }
-        
+
         // CRITICAL FIX: Pet care clinics (specialized) - pet, NOT healthcare
         // Pet care clinics should be detected BEFORE general healthcare/clinic detection
-        if (descLower.contains("petcare clinic") || descLower.contains("petcareclinic") ||
-            descLower.contains("pet care clinic") || descLower.contains("petcare") ||
-            descLower.contains("pet care") || descLower.contains("pet clinic") ||
-            descLower.contains("petclinic") || descLower.contains("veterinary") ||
-            descLower.contains("vet ") || descLower.contains("vet.") ||
-            descLower.contains("animal hospital") || descLower.contains("animalhospital") ||
-            descLower.contains("animal clinic") || descLower.contains("animalclinic") ||
-            descLower.contains("pet hospital") || descLower.contains("pethospital") ||
-            descLower.contains("veterinarian") || descLower.contains("veterinary clinic")) {
-            logger.debug("🏷️ detectCategoryFromDescription: Detected pet care clinic/service → 'pet'");
+        if (descLower.contains("petcare clinic")
+                || descLower.contains("petcareclinic")
+                || descLower.contains("pet care clinic")
+                || descLower.contains("petcare")
+                || descLower.contains("pet care")
+                || descLower.contains("pet clinic")
+                || descLower.contains("petclinic")
+                || descLower.contains("veterinary")
+                || descLower.contains("vet ")
+                || descLower.contains("vet.")
+                || descLower.contains("animal hospital")
+                || descLower.contains("animalhospital")
+                || descLower.contains("animal clinic")
+                || descLower.contains("animalclinic")
+                || descLower.contains("pet hospital")
+                || descLower.contains("pethospital")
+                || descLower.contains("veterinarian")
+                || descLower.contains("veterinary clinic")) {
+            LOGGER.debug(
+                    "🏷️ detectCategoryFromDescription: Detected pet care clinic/service → 'pet'");
             return "pet";
         }
-        
+
         // Pet-related services (petsmart, petco, chewy, etc.)
-        String[] petServices = {"petsmart", "petco", "pet supplies plus", "pet supplies",
-                                "petland", "chewy", "petmeds", "1800petmeds", "pet supermarket",
-                                "pet pharmacy", "petpharmacy"};
-        for (String service : petServices) {
+        final String[] petServices = {
+                "petsmart",
+                "petco",
+                "pet supplies plus",
+                "pet supplies",
+                "petland",
+                "chewy",
+                "petmeds",
+                "1800petmeds",
+                "pet supermarket",
+                "pet pharmacy",
+                "petpharmacy"
+        };
+        for (final String service : petServices) {
             if (descLower.contains(service)) {
-                logger.debug("🏷️ detectCategoryFromDescription: Detected pet service '{}' → 'pet'", service);
+                LOGGER.debug(
+                        "🏷️ detectCategoryFromDescription: Detected pet service '{}' → 'pet'",
+                        service);
                 return "pet";
             }
         }
-        
+
         // Health/Beauty keywords (nails, hair, spa, toes, skin, massages, cosmetic stores)
-        // NOTE: Pet care clinics are handled above, so "clinic" here refers to general healthcare clinics
-        if (descLower.contains("nails") || descLower.contains("nail salon") || descLower.contains("nailsalon") ||
-            descLower.contains("manicure") || descLower.contains("pedicure") ||
-            descLower.contains("spa") || descLower.contains("massage") || descLower.contains("massages") ||
-            descLower.contains("toes") || descLower.contains("skin") || descLower.contains("skin care") ||
-            descLower.contains("skincare") || descLower.contains("stop 4 nails") || descLower.contains("stop4nails") ||
-            descLower.contains("stop four nails") || descLower.contains("stopfournails") ||
-            descLower.contains("hair salon") || descLower.contains("hairsalon") || descLower.contains("haircut") ||
-            descLower.contains("beauty salon") || descLower.contains("beautysalon") ||
-            descLower.contains("cosmetic store") || descLower.contains("cosmeticstore") ||
-            descLower.contains("cosmetics") || descLower.contains("makeup store") || descLower.contains("makeupstore") ||
-            descLower.contains("new york cosmetic") || descLower.contains("ny cosmetic")) {
-            logger.debug("🏷️ detectCategoryFromDescription: Detected health/beauty service → 'health'");
+        // NOTE: Pet care clinics are handled above, so "clinic" here refers to general healthcare
+        // clinics
+        if (descLower.contains("nails")
+                || descLower.contains("nail salon")
+                || descLower.contains("nailsalon")
+                || descLower.contains("manicure")
+                || descLower.contains("pedicure")
+                || descLower.contains("spa")
+                || descLower.contains("massage")
+                || descLower.contains("massages")
+                || descLower.contains("toes")
+                || descLower.contains("skin")
+                || descLower.contains("skin care")
+                || descLower.contains("skincare")
+                || descLower.contains("stop 4 nails")
+                || descLower.contains("stop4nails")
+                || descLower.contains("stop four nails")
+                || descLower.contains("stopfournails")
+                || descLower.contains("hair salon")
+                || descLower.contains("hairsalon")
+                || descLower.contains("haircut")
+                || descLower.contains("beauty salon")
+                || descLower.contains("beautysalon")
+                || descLower.contains("cosmetic store")
+                || descLower.contains("cosmeticstore")
+                || descLower.contains("cosmetics")
+                || descLower.contains("makeup store")
+                || descLower.contains("makeupstore")
+                || descLower.contains("new york cosmetic")
+                || descLower.contains("ny cosmetic")) {
+            LOGGER.debug(
+                    "🏷️ detectCategoryFromDescription: Detected health/beauty service → 'health'");
             return "health";
         }
-        
+
         // LUL Ticket Machine (London Underground) - transportation
-        if (descLower.contains("lul ticket machine") || descLower.contains("lulticketmachine") ||
-            descLower.contains("lul ticket mach") || descLower.contains("london underground") ||
-            (descLower.contains("lul") && (descLower.contains("ticket") || descLower.contains("machine")))) {
-            logger.debug("🏷️ detectCategoryFromDescription: Detected LUL Ticket Machine → 'transportation'");
+        if (descLower.contains("lul ticket machine")
+                || descLower.contains("lulticketmachine")
+                || descLower.contains("lul ticket mach")
+                || descLower.contains("london underground")
+                || (descLower.contains("lul")
+                        && (descLower.contains("ticket") || descLower.contains("machine")))) {
+            LOGGER.debug(
+                    "🏷️ detectCategoryFromDescription: Detected LUL Ticket Machine → 'transportation'");
             return "transportation";
         }
-        
+
         // Ticket machine patterns (general)
         if (descLower.contains("ticket machine") || descLower.contains("ticketmachine")) {
-            logger.debug("🏷️ detectCategoryFromDescription: Detected ticket machine → 'transportation'");
+            LOGGER.debug(
+                    "🏷️ detectCategoryFromDescription: Detected ticket machine → 'transportation'");
             return "transportation";
         }
-        
+
         // Amex Airlines Fee Reimbursement - transportation (even though it's a credit)
-        if (descLower.contains("amex airlines fee reimbursement") || 
-            descLower.contains("amexairlinesfeereimbursement") ||
-            (descLower.contains("amex") && descLower.contains("airlines") && 
-             (descLower.contains("fee") || descLower.contains("reimbursement")))) {
-            logger.debug("🏷️ detectCategoryFromDescription: Detected Amex Airlines Fee Reimbursement → 'transportation'");
+        if (descLower.contains("amex airlines fee reimbursement")
+                || descLower.contains("amexairlinesfeereimbursement")
+                || (descLower.contains("amex")
+                        && descLower.contains("airlines")
+                        && (descLower.contains("fee") || descLower.contains("reimbursement")))) {
+            LOGGER.debug(
+                    "🏷️ detectCategoryFromDescription: Detected Amex Airlines Fee Reimbursement → 'transportation'");
             return "transportation";
         }
-        
+
         // CRITICAL: Financial education publications (Barrons, etc.) - education, NOT subscriptions
         // Must come AFTER subscription merchant check to avoid false positives
-        if (descLower.contains("barrons") || descLower.contains("barron") ||
-            descLower.contains("barron's") || descLower.contains("dj*barrons") ||
-            descLower.contains("d j*barrons") || normalizedDesc.contains("barrons") ||
-            normalizedDesc.contains("barron") || (merchantName != null && 
-            (merchantName.toLowerCase().contains("barrons") || merchantName.toLowerCase().contains("barron")))) {
-            logger.debug("🏷️ detectCategoryFromDescription: Detected Barrons financial education publication → 'education'");
+        if (descLower.contains("barrons")
+                || descLower.contains("barron")
+                || descLower.contains("barron's")
+                || descLower.contains("dj*barrons")
+                || descLower.contains("d j*barrons")
+                || normalizedDesc.contains("barrons")
+                || normalizedDesc.contains("barron")
+                || (merchantName != null
+                        && (merchantName.toLowerCase(Locale.ROOT).contains("barrons")
+                                || merchantName.toLowerCase(Locale.ROOT).contains("barron")))) {
+            LOGGER.debug(
+                    "🏷️ detectCategoryFromDescription: Detected Barrons financial education publication → 'education'");
             return "education";
         }
-        
+
         // Toll patterns (Eractoll, etc.) - transportation
         // Must come BEFORE education check to prevent "eractoll" from being caught by education
-        if (descLower.contains("eractoll") || descLower.contains("era toll") ||
-            normalizedDesc.contains("eractoll") || normalizedDesc.contains("eratoll") ||
-            (merchantName != null && (merchantName.toLowerCase().contains("eractoll") || merchantName.toLowerCase().contains("era toll"))) ||
-            descLower.contains("toll payment") || descLower.contains("toll charge") ||
-            descLower.contains("toll fee") || descLower.contains("road toll") ||
-            descLower.contains("bridge toll") || descLower.contains("tunnel toll") ||
-            descLower.contains("highway toll") || descLower.contains("expressway toll")) {
-            logger.debug("🏷️ detectCategoryFromDescription: Detected toll → 'transportation'");
+        if (descLower.contains("eractoll")
+                || descLower.contains("era toll")
+                || normalizedDesc.contains("eractoll")
+                || normalizedDesc.contains("eratoll")
+                || (merchantName != null
+                        && (merchantName.toLowerCase(Locale.ROOT).contains("eractoll")
+                                || merchantName.toLowerCase(Locale.ROOT).contains("era toll")))
+                || descLower.contains("toll payment")
+                || descLower.contains("toll charge")
+                || descLower.contains("toll fee")
+                || descLower.contains("road toll")
+                || descLower.contains("bridge toll")
+                || descLower.contains("tunnel toll")
+                || descLower.contains("highway toll")
+                || descLower.contains("expressway toll")) {
+            LOGGER.debug("🏷️ detectCategoryFromDescription: Detected toll → 'transportation'");
             return "transportation";
         }
-        
+
         // Car Service (Hona CTR, etc.)
-        if (descLower.contains("hona ctr") || descLower.contains("honactr") ||
-            descLower.contains("hona car service") || descLower.contains("honacarservice") ||
-            descLower.contains("car service")) {
-            logger.debug("🏷️ detectCategoryFromDescription: Detected car service → 'transportation'");
+        if (descLower.contains("hona ctr")
+                || descLower.contains("honactr")
+                || descLower.contains("hona car service")
+                || descLower.contains("honacarservice")
+                || descLower.contains("car service")) {
+            LOGGER.debug(
+                    "🏷️ detectCategoryFromDescription: Detected car service → 'transportation'");
             return "transportation";
         }
-        
+
         // Restaurant keywords (Burger and Kabob Hut, Insomnia Cookies, Banaras, Resy, Maxmillen)
-        if (descLower.contains("burger and kabob hut") || descLower.contains("burgerandkabobhut") ||
-            descLower.contains("kabob hut") || descLower.contains("kabobhut") ||
-            descLower.contains("insomnia cookies") || descLower.contains("insomniacookies") ||
-            descLower.contains("insomnia cookie") || descLower.contains("banaras") ||
-            descLower.contains("banaras restaurant") || descLower.contains("banarasrestaurant") ||
-            descLower.contains("resy") || descLower.contains("maxmillen") ||
-            descLower.contains("maxmillian") || descLower.contains("maximilian")) {
-            logger.debug("🏷️ detectCategoryFromDescription: Detected restaurant → 'dining'");
+        if (descLower.contains("burger and kabob hut")
+                || descLower.contains("burgerandkabobhut")
+                || descLower.contains("kabob hut")
+                || descLower.contains("kabobhut")
+                || descLower.contains("insomnia cookies")
+                || descLower.contains("insomniacookies")
+                || descLower.contains("insomnia cookie")
+                || descLower.contains("banaras")
+                || descLower.contains("banaras restaurant")
+                || descLower.contains("banarasrestaurant")
+                || descLower.contains("resy")
+                || descLower.contains("maxmillen")
+                || descLower.contains("maxmillian")
+                || descLower.contains("maximilian")) {
+            LOGGER.debug("🏷️ detectCategoryFromDescription: Detected restaurant → 'dining'");
             return "dining";
         }
-        
-        // CRITICAL FIX: Check for exam/testing keywords FIRST (AAMC, SAT, TOEFL, GRE, GMAT, LSAT, MCAT, etc.)
-        // These should be categorized as "education" even if they're sometimes miscategorized as "entertainment"
+
+        // CRITICAL FIX: Check for exam/testing keywords FIRST (AAMC, SAT, TOEFL, GRE, GMAT, LSAT,
+        // MCAT, etc.)
+        // These should be categorized as "education" even if they're sometimes miscategorized as
+        // "entertainment"
         // VUE (Pearson VUE) - testing center for professional exams
-        // CRITICAL: Don't check for "act" here - it matches "eractoll". ACT is handled separately below.
-        if (descLower.contains("vue") && 
-            (descLower.contains("exam") || descLower.contains("test") || 
-             descLower.contains("aamc") || descLower.contains("sat") || 
-             descLower.contains("toefl") || descLower.contains("gre") || 
-             descLower.contains("gmat") || descLower.contains("lsat") || 
-             descLower.contains("mcat"))) {
-            logger.debug("🏷️ detectCategoryFromDescription: Detected VUE exam/testing → 'education'");
+        // CRITICAL: Don't check for "act" here - it matches "eractoll". ACT is handled separately
+        // below.
+        if (descLower.contains("vue")
+                && (descLower.contains("exam")
+                        || descLower.contains("test")
+                        || descLower.contains("aamc")
+                        || descLower.contains("sat")
+                        || descLower.contains("toefl")
+                        || descLower.contains("gre")
+                        || descLower.contains("gmat")
+                        || descLower.contains("lsat")
+                        || descLower.contains("mcat"))) {
+            LOGGER.debug(
+                    "🏷️ detectCategoryFromDescription: Detected VUE exam/testing → 'education'");
             return "education";
         }
-        
+
         // CRITICAL: Toll patterns (Eractoll, etc.) - transportation
         // Must come BEFORE education/ACT check to prevent "eractoll" from being caught by education
-        if (descLower.contains("eractoll") || descLower.contains("era toll") ||
-            normalizedDesc.contains("eractoll") || normalizedDesc.contains("eratoll") ||
-            (merchantName != null && (merchantName.toLowerCase().contains("eractoll") || merchantName.toLowerCase().contains("era toll"))) ||
-            descLower.contains("toll payment") || descLower.contains("toll charge") ||
-            descLower.contains("toll fee") || descLower.contains("road toll") ||
-            descLower.contains("bridge toll") || descLower.contains("tunnel toll") ||
-            descLower.contains("highway toll") || descLower.contains("expressway toll")) {
-            logger.debug("🏷️ detectCategoryFromDescription: Detected toll → 'transportation'");
+        if (descLower.contains("eractoll")
+                || descLower.contains("era toll")
+                || normalizedDesc.contains("eractoll")
+                || normalizedDesc.contains("eratoll")
+                || (merchantName != null
+                        && (merchantName.toLowerCase(Locale.ROOT).contains("eractoll")
+                                || merchantName.toLowerCase(Locale.ROOT).contains("era toll")))
+                || descLower.contains("toll payment")
+                || descLower.contains("toll charge")
+                || descLower.contains("toll fee")
+                || descLower.contains("road toll")
+                || descLower.contains("bridge toll")
+                || descLower.contains("tunnel toll")
+                || descLower.contains("highway toll")
+                || descLower.contains("expressway toll")) {
+            LOGGER.debug("🏷️ detectCategoryFromDescription: Detected toll → 'transportation'");
             return "transportation";
         }
-        
+
         // Exam/testing keywords (AAMC, SAT, TOEFL, GRE, GMAT, LSAT, MCAT, ACT, AP, IB, etc.)
         // CRITICAL: "act" must be checked as whole word to avoid matching "eractoll"
-        String[] examKeywords = {"aamc", "sat", "toefl", "gre", "gmat", "lsat", "mcat", 
-                                 "ap exam", "ib exam", "clep", "praxis", "bar exam",
-                                 "nclex", "usmle", "comlex", "test registration",
-                                 "test fee", "test center", "pearson vue", "ets", "prometric"};
-        for (String exam : examKeywords) {
+        final String[] examKeywords = {
+                "aamc",
+                "sat",
+                "toefl",
+                "gre",
+                "gmat",
+                "lsat",
+                "mcat",
+                "ap exam",
+                "ib exam",
+                "clep",
+                "praxis",
+                "bar exam",
+                "nclex",
+                "usmle",
+                "comlex",
+                "test registration",
+                "test fee",
+                "test center",
+                "pearson vue",
+                "ets",
+                "prometric"
+        };
+        for (final String exam : examKeywords) {
             if (descLower.contains(exam)) {
-                logger.debug("🏷️ detectCategoryFromDescription: Detected exam/testing keyword '{}' → 'education'", exam);
+                LOGGER.debug(
+                        "🏷️ detectCategoryFromDescription: Detected exam/testing keyword '{}' → 'education'",
+                        exam);
                 return "education";
             }
         }
-        // Check for "act" as whole word (ACT exam) - must come AFTER toll check to avoid matching "eractoll"
+        // Check for "act" as whole word (ACT exam) - must come AFTER toll check to avoid matching
+        // "eractoll"
         // Check for "act exam", "act test", or "act" at word boundaries, but exclude "eractoll"
-        if (!descLower.contains("eractoll") && !descLower.contains("era toll") &&
-            (descLower.contains("act exam") || descLower.contains("act test") || 
-             descLower.matches(".*\\bact\\b.*"))) {
-            logger.debug("🏷️ detectCategoryFromDescription: Detected ACT exam → 'education'");
+        if (!descLower.contains("eractoll")
+                && !descLower.contains("era toll")
+                && (descLower.contains("act exam")
+                        || descLower.contains("act test")
+                        || descLower.matches(".*\\bact\\b.*"))) {
+            LOGGER.debug("🏷️ detectCategoryFromDescription: Detected ACT exam → 'education'");
             return "education";
         }
-        
+
         // Regional school/college names - Education
-        // CRITICAL: Check for regional terms BEFORE generic education keywords to ensure they're always detected
+        // CRITICAL: Check for regional terms BEFORE generic education keywords to ensure they're
+        // always detected
         // Indian: Gurukul, Vidyalaya, Shiksha, Pathshala
         // Spanish: Escuela, Colegio, Universidad
         // French: École, Collège, Université
         // German: Schule, Universität
         // Arabic: Madrasa, Kuttab
-        String[] regionalSchoolTerms = {"gurukul", "vidyalaya", "shiksha", "pathshala",
-                                        "escuela", "colegio", "universidad",
-                                        "école", "collège", "université",
-                                        "schule", "universität",
-                                        "madrasa", "kuttab", "madrassa"};
-        for (String term : regionalSchoolTerms) {
+        final String[] regionalSchoolTerms = {
+                "gurukul",
+                "vidyalaya",
+                "shiksha",
+                "pathshala",
+                "escuela",
+                "colegio",
+                "universidad",
+                "école",
+                "collège",
+                "université",
+                "schule",
+                "universität",
+                "madrasa",
+                "kuttab",
+                "madrassa"
+        };
+        for (final String term : regionalSchoolTerms) {
             if (descLower.contains(term)) {
-                logger.debug("🏷️ detectCategoryFromDescription: Detected regional school term '{}' → 'education'", term);
+                LOGGER.debug(
+                        "🏷️ detectCategoryFromDescription: Detected regional school term '{}' → 'education'",
+                        term);
                 return "education";
             }
         }
-        
+
         // SP ANKI REMOTE - Education (Anki remote learning/spaced repetition)
         // CRITICAL: Check for "anki" before generic education keywords
-        if (descLower.contains("sp anki remote") || descLower.contains("spankiremote") ||
-            descLower.contains("anki remote")) {
-            logger.debug("🏷️ detectCategoryFromDescription: Detected SP ANKI REMOTE → 'education'");
+        if (descLower.contains("sp anki remote")
+                || descLower.contains("spankiremote")
+                || descLower.contains("anki remote")) {
+            LOGGER.debug(
+                    "🏷️ detectCategoryFromDescription: Detected SP ANKI REMOTE → 'education'");
             return "education";
         }
-        
-        // Education keywords (school, books, reading, newspapers, magazines, journals, etc.) - categorized as "education"
-        // NOTE: School types (middle school, high school, etc.) and educational media are handled separately above
+
+        // Education keywords (school, books, reading, newspapers, magazines, journals, etc.) -
+        // categorized as "education"
+        // NOTE: School types (middle school, high school, etc.) and educational media are handled
+        // separately above
         // NOTE: "gurukul" is handled separately above to ensure it's always detected
-        // NOTE: Subscription merchants (WSJ, Barrons, etc.) are checked BEFORE this to prevent false positives
-        if (descLower.contains("school") ||
-            descLower.contains("university") || descLower.contains("college") ||
-            descLower.contains("tuition") || descLower.contains("books") ||
-            descLower.contains("bookstore") || descLower.contains("book store") ||
-            descLower.contains("reading") || descLower.contains("textbook") ||
-            descLower.contains("text book") || descLower.contains("education") ||
-            descLower.contains("educational") || descLower.contains("course") ||
-            descLower.contains("class") || descLower.contains("lesson") ||
-            descLower.contains("training") || descLower.contains("anki") ||
-            descLower.contains("newspaper") || descLower.contains("magazine") ||
-            // Note: "journal" is handled separately above to avoid matching subscription journals
-            descLower.contains("phd") ||
-            descLower.contains("ph.d") || descLower.contains("ph.d.") ||
-            descLower.contains("doctorate") || descLower.contains("library")) {
+        // NOTE: Subscription merchants (WSJ, Barrons, etc.) are checked BEFORE this to prevent
+        // false positives
+        if (descLower.contains("school")
+                || descLower.contains("university")
+                || descLower.contains("college")
+                || descLower.contains("tuition")
+                || descLower.contains("books")
+                || descLower.contains("bookstore")
+                || descLower.contains("book store")
+                || descLower.contains("reading")
+                || descLower.contains("textbook")
+                || descLower.contains("text book")
+                || descLower.contains("education")
+                || descLower.contains("educational")
+                || descLower.contains("course")
+                || descLower.contains("class")
+                || descLower.contains("lesson")
+                || descLower.contains("training")
+                || descLower.contains("anki")
+                || descLower.contains("newspaper")
+                || descLower.contains("magazine")
+                ||
+                // Note: "journal" is handled separately above to avoid matching subscription
+                // journals
+                descLower.contains("phd")
+                || descLower.contains("ph.d")
+                || descLower.contains("ph.d.")
+                || descLower.contains("doctorate")
+                || descLower.contains("library")) {
             // Skip if it's a school payment (PayPAMS) - those are handled separately
             if (!descLower.contains("paypams")) {
-                logger.debug("🏷️ detectCategoryFromDescription: Detected education item → 'education'");
+                LOGGER.debug(
+                        "🏷️ detectCategoryFromDescription: Detected education item → 'education'");
                 return "education";
             }
         }
-        
+
         // Entertainment keywords (State Fair, Disney, Universal Studio, Sea World, camping)
         // CRITICAL FIX: Check for movie theaters and entertainment venues in description
         // Use word boundaries for short names like "amc" to prevent false matches
-        if (descLower.matches(".*\\bamc\\b.*") || 
-            descLower.contains("cinemark") || descLower.contains("regal") ||
-            descLower.contains("carmike") || descLower.contains("marcus") ||
-            descLower.contains("harkins") || descLower.contains("alamo drafthouse") ||
-            descLower.contains("movie theater") || descLower.contains("movietheater") ||
-            descLower.contains("cinema") || descLower.contains("theater") || 
-            descLower.contains("theatre") || descLower.contains("imax") ||
-            descLower.contains("escape room") || descLower.contains("escaperoom") ||
-            descLower.contains("conundroom") || descLower.contains("conundroom.us") ||
-            descLower.contains("top golf") || descLower.contains("topgolf") ||
-            descLower.contains("state fair") || descLower.contains("statefair") ||
-            descLower.contains("disney") || descLower.contains("universal studio") ||
-            descLower.contains("universalstudio") || descLower.contains("sea world") ||
-            descLower.contains("seaworld") || descLower.contains("camping") ||
-            descLower.contains("cape disappointment") || descLower.contains("recreation.gov")) {
-            logger.debug("🏷️ detectCategoryFromDescription: Detected entertainment venue → 'entertainment'");
+        if (descLower.matches(".*\\bamc\\b.*")
+                || descLower.contains("cinemark")
+                || descLower.contains("regal")
+                || descLower.contains("carmike")
+                || descLower.contains("marcus")
+                || descLower.contains("harkins")
+                || descLower.contains("alamo drafthouse")
+                || descLower.contains("movie theater")
+                || descLower.contains("movietheater")
+                || descLower.contains("cinema")
+                || descLower.contains("theater")
+                || descLower.contains("theatre")
+                || descLower.contains("imax")
+                || descLower.contains("escape room")
+                || descLower.contains("escaperoom")
+                || descLower.contains("conundroom")
+                || descLower.contains("conundroom.us")
+                || descLower.contains("top golf")
+                || descLower.contains("topgolf")
+                || descLower.contains("state fair")
+                || descLower.contains("statefair")
+                || descLower.contains("disney")
+                || descLower.contains("universal studio")
+                || descLower.contains("universalstudio")
+                || descLower.contains("sea world")
+                || descLower.contains("seaworld")
+                || descLower.contains("camping")
+                || descLower.contains("cape disappointment")
+                || descLower.contains("recreation.gov")) {
+            LOGGER.debug(
+                    "🏷️ detectCategoryFromDescription: Detected entertainment venue → 'entertainment'");
             return "entertainment";
         }
-        
-        logger.debug("detectCategoryFromDescription: No match found for description '{}'", description);
+
+        LOGGER.debug(
+                "detectCategoryFromDescription: No match found for description '{}'", description);
         return null;
     }
-    
-    /**
-     * Sophisticated Transaction Type Determination
-     * Uses category, amount, debit/credit indicator, and description to determine INCOME vs EXPENSE
-     * 
-     * @param category Detected category
-     * @param amount Transaction amount
-     * @param transactionTypeIndicator Debit/credit indicator from CSV
-     * @param description Transaction description
-     * @param paymentChannel Payment channel
-     * @return "INCOME" or "EXPENSE"
-     */
-    private String determineTransactionType(String category, BigDecimal amount, 
-                                           String transactionTypeIndicator, 
-                                           String description, String paymentChannel) {
-        // CRITICAL: Input validation and null safety
-        String safeCategory = category != null ? category.trim().toLowerCase() : null;
-        String safeTransactionTypeIndicator = transactionTypeIndicator != null ? transactionTypeIndicator.trim() : null;
-        String safeDescription = description != null ? description.trim() : null;
-        // NOTE: paymentChannel parameter is not used in this method - removed unused variable
-        BigDecimal safeAmount = amount;
-        
-        // CRITICAL: Validate amount is reasonable
-        if (amount != null) {
-            BigDecimal maxAmount = BigDecimal.valueOf(1_000_000_000);
-            BigDecimal minAmount = BigDecimal.valueOf(-1_000_000_000);
-            if (amount.compareTo(maxAmount) > 0 || amount.compareTo(minAmount) < 0) {
-                logger.warn("determineTransactionType: Amount out of reasonable range: {}, using null", amount);
-                safeAmount = null;
-            }
-        }
-        
-        // STEP 1: Use explicit debit/credit indicator if available (most reliable)
-        if (safeTransactionTypeIndicator != null && !safeTransactionTypeIndicator.isEmpty()) {
-            String indicator = safeTransactionTypeIndicator.toLowerCase();
-            if (indicator.contains("debit") || indicator.contains("dr") || 
-                indicator.startsWith("db ") || indicator.startsWith("dr ") ||
-                indicator.equals("db") || indicator.equals("dr")) {
-                logger.debug("determineTransactionType: Using debit indicator → 'EXPENSE'");
-                return "EXPENSE";
-            }
-            if (indicator.contains("credit") || indicator.contains("cr") ||
-                indicator.startsWith("cr ") || indicator.equals("cr")) {
-                // CRITICAL: Exclude credit card payments (they're expenses even if marked as "credit")
-                if (!isCreditCardPayment(safeDescription, null, null)) {
-                    logger.debug("determineTransactionType: Using credit indicator → 'INCOME'");
-                    return "INCOME";
-                } else {
-                    logger.debug("determineTransactionType: Credit indicator but credit card payment → 'EXPENSE'");
-                    return "EXPENSE";
-                }
-            }
-        }
-        
-        // STEP 2: Use category to infer type (income categories → INCOME, expense categories → EXPENSE, payment → LOAN)
-        if (safeCategory != null && !safeCategory.isEmpty()) {
-            // CRITICAL FIX: Income categories MUST result in INCOME type, regardless of amount sign
-            // Income categories (case-insensitive check)
-            if (safeCategory.equals("salary") || safeCategory.equals("rsu") || 
-                safeCategory.equals("interest") || safeCategory.equals("dividend") ||
-                safeCategory.equals("income") || safeCategory.equals("deposit") ||
-                safeCategory.equals("stipend") || safeCategory.equals("rentincome") ||
-                safeCategory.equals("tips") || safeCategory.equals("otherincome")) {
-                logger.info("determineTransactionType: ✅ Income category '{}' → 'INCOME' (amount: {})", category, safeAmount);
-                return "INCOME";
-            }
-            
-            // Investment categories - deposits are INVESTMENT type, withdrawals are INVESTMENT type (negative)
-            if (safeCategory.equals("investment") || safeCategory.equals("cd") || 
-                safeCategory.equals("bonds") || safeCategory.equals("stocks") ||
-                safeCategory.equals("mutualfunds") || safeCategory.equals("etf") ||
-                safeCategory.equals("401k") || safeCategory.equals("ira") ||
-                safeCategory.equals("529") || safeCategory.equals("hsa")) {
-                // Investment transactions are INVESTMENT type regardless of amount sign
-                logger.info("determineTransactionType: ✅ Investment category '{}' → 'INVESTMENT' (amount: {})", category, safeAmount);
-                return "INVESTMENT";
-            }
-            
-            // CRITICAL FIX: Payment category should be LOAN type (not EXPENSE)
-            // Payments to credit cards, loans, investments are LOAN type
-            // This distinguishes payments (money going to debts/investments) from expenses (money spent on goods/services)
-            if (safeCategory.equals("payment")) {
-                // Check if it's a payment to credit card, loan, or investment
-                if (isCreditCardPayment(safeDescription, null, null) ||
-                    isLoanPayment(safeDescription, null, null) ||
-                    (safeDescription != null && (safeDescription.toLowerCase().contains("credit card") || 
-                     safeDescription.toLowerCase().contains("loan") ||
-                     safeDescription.toLowerCase().contains("mortgage") || 
-                     safeDescription.toLowerCase().contains("investment")))) {
-                    logger.info("determineTransactionType: ✅ Payment category → 'LOAN' (credit card/loan/investment payment)");
-                    return "LOAN";
-                }
-                // Generic payment (check, cash withdrawal, etc.) - still LOAN type
-                logger.info("determineTransactionType: ✅ Payment category → 'LOAN' (generic payment)");
-                return "LOAN";
-            }
-            
-            // Cash withdrawal category - EXPENSE type
-            if (safeCategory.equals("cash")) {
-                logger.info("determineTransactionType: ✅ Cash category → 'EXPENSE'");
-                return "EXPENSE";
-            }
-            
-            // Transfer category - depends on context (could be transfer, investment transfer, etc.)
-            if (safeCategory.equals("transfer")) {
-                // Check if it's an investment transfer
-                if (isInvestmentTransfer(safeDescription, null, null)) {
-                    logger.info("determineTransactionType: ✅ Transfer category (investment) → 'INVESTMENT'");
-                    return "INVESTMENT";
-                }
-                // Regular account transfer - use amount sign
-                if (safeAmount != null) {
-                    if (safeAmount.compareTo(BigDecimal.ZERO) > 0) {
-                        logger.info("determineTransactionType: Transfer category with positive amount → 'INCOME'");
-                        return "INCOME";
-                    } else {
-                        logger.info("determineTransactionType: Transfer category with negative amount → 'EXPENSE'");
-                        return "EXPENSE";
-                    }
-                }
-                // Default transfer to EXPENSE if amount is null
-                logger.info("determineTransactionType: Transfer category with null amount → 'EXPENSE' (default)");
-                return "EXPENSE";
-            }
-            
-            // Expense categories (all others are expenses)
-            // Common expense categories: groceries, dining, rent, utilities, transportation, etc.
-            if (!safeCategory.equals("other")) {
-                logger.debug("determineTransactionType: Expense category '{}' → 'EXPENSE'", category);
-                return "EXPENSE";
-            }
-        }
-        
-        // STEP 3: For ambiguous categories (other, payment, transfer) or null category, use amount sign
-        // CRITICAL: Handle zero amounts specially
-        if (safeAmount != null) {
-            int comparison = safeAmount.compareTo(BigDecimal.ZERO);
-            if (comparison > 0) {
-                // Positive amount = INCOME (money coming in)
-                logger.debug("determineTransactionType: Positive amount {} → 'INCOME'", safeAmount);
-                return "INCOME";
-            } else if (comparison < 0) {
-                // Negative amount = EXPENSE (money going out)
-                logger.debug("determineTransactionType: Negative amount {} → 'EXPENSE'", safeAmount);
-                return "EXPENSE";
-            } else {
-                // CRITICAL: Zero amount is ambiguous - use description/context
-                logger.debug("determineTransactionType: Zero amount detected, using context");
-                if (safeDescription != null && !safeDescription.isEmpty()) {
-                    String descLower = safeDescription.toLowerCase();
-                    // Zero amounts are often fees, adjustments, or transfers
-                    if (descLower.contains("fee") || descLower.contains("adjustment") || 
-                        descLower.contains("correction") || descLower.contains("charge")) {
-                        logger.debug("determineTransactionType: Zero amount with fee/adjustment context → 'EXPENSE'");
-                        return "EXPENSE";
-                    }
-                    if (descLower.contains("refund") || descLower.contains("credit")) {
-                        logger.debug("determineTransactionType: Zero amount with refund/credit context → 'INCOME'");
-                        return "INCOME";
-                    }
-                }
-                // Default zero amounts to EXPENSE (more common for fees/adjustments)
-                logger.debug("determineTransactionType: Zero amount without clear context → 'EXPENSE' (default)");
-                return "EXPENSE";
-            }
-        }
-        
-        // STEP 4: Final fallback - no amount, no category, no indicator
-        // CRITICAL: Default to EXPENSE (most common transaction type)
-        logger.debug("determineTransactionType: No indicators available, defaulting to 'EXPENSE'");
-        return "EXPENSE";
-    }
 }
-
-

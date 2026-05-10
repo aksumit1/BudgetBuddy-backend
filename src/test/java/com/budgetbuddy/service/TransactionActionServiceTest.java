@@ -1,12 +1,29 @@
 package com.budgetbuddy.service;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.anyString;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import com.budgetbuddy.exception.AppException;
-import com.budgetbuddy.exception.ErrorCode;
 import com.budgetbuddy.model.dynamodb.TransactionActionTable;
 import com.budgetbuddy.model.dynamodb.TransactionTable;
 import com.budgetbuddy.model.dynamodb.UserTable;
 import com.budgetbuddy.repository.dynamodb.TransactionActionRepository;
 import com.budgetbuddy.repository.dynamodb.TransactionRepository;
+import java.time.Instant;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -14,30 +31,16 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.time.Instant;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
-
-/**
- * Unit Tests for TransactionActionService
- */
+/** Unit Tests for TransactionActionService */
 @ExtendWith(MockitoExtension.class)
 @org.mockito.junit.jupiter.MockitoSettings(strictness = org.mockito.quality.Strictness.LENIENT)
 class TransactionActionServiceTest {
 
-    @Mock
-    private TransactionActionRepository actionRepository;
+    @Mock private TransactionActionRepository actionRepository;
 
-    @Mock
-    private TransactionRepository transactionRepository;
+    @Mock private TransactionRepository transactionRepository;
 
-    @InjectMocks
-    private TransactionActionService actionService;
+    @InjectMocks private TransactionActionService actionService;
 
     private UserTable testUser;
     private TransactionTable testTransaction;
@@ -66,7 +69,7 @@ class TransactionActionServiceTest {
     }
 
     @Test
-    void testCreateAction_WithValidInput_ReturnsAction() {
+    void testCreateActionWithValidInputReturnsAction() {
         // Given
         when(transactionRepository.findById(testTransaction.getTransactionId()))
                 .thenReturn(Optional.of(testTransaction));
@@ -74,15 +77,15 @@ class TransactionActionServiceTest {
         doNothing().when(actionRepository).save(any(TransactionActionTable.class));
 
         // When
-        TransactionActionTable result = actionService.createAction(
-                testUser,
-                testTransaction.getTransactionId(),
-                "New Action",
-                "Description",
-                null,
-                null,
-                "HIGH"
-        );
+        final TransactionActionTable result =
+                actionService.createAction(
+                        testUser,
+                        testTransaction.getTransactionId(),
+                        "New Action",
+                        "Description",
+                        null,
+                        null,
+                        "HIGH");
 
         // Then
         assertNotNull(result);
@@ -96,34 +99,61 @@ class TransactionActionServiceTest {
     }
 
     @Test
-    void testCreateAction_WithNullUser_ThrowsException() {
+    void testCreateActionWithNullUserThrowsException() {
         // When/Then
-        assertThrows(AppException.class, () -> actionService.createAction(
-                null, testTransaction.getTransactionId(), "Title", null, null, null, null));
+        assertThrows(
+                AppException.class,
+                () ->
+                        actionService.createAction(
+                                null,
+                                testTransaction.getTransactionId(),
+                                "Title",
+                                null,
+                                null,
+                                null,
+                                null));
     }
 
     @Test
-    void testCreateAction_WithEmptyTitle_ThrowsException() {
+    void testCreateActionWithEmptyTitleThrowsException() {
         // When/Then
-        assertThrows(AppException.class, () -> actionService.createAction(
-                testUser, testTransaction.getTransactionId(), "", null, null, null, null));
+        assertThrows(
+                AppException.class,
+                () ->
+                        actionService.createAction(
+                                testUser,
+                                testTransaction.getTransactionId(),
+                                "",
+                                null,
+                                null,
+                                null,
+                                null));
     }
 
     @Test
-    void testCreateAction_WithNonExistentTransaction_ThrowsException() {
+    void testCreateActionWithNonExistentTransactionThrowsException() {
         // Given
         when(transactionRepository.findById(testTransaction.getTransactionId()))
                 .thenReturn(Optional.empty());
 
         // When/Then
-        assertThrows(AppException.class, () -> actionService.createAction(
-                testUser, testTransaction.getTransactionId(), "Title", null, null, null, null));
+        assertThrows(
+                AppException.class,
+                () ->
+                        actionService.createAction(
+                                testUser,
+                                testTransaction.getTransactionId(),
+                                "Title",
+                                null,
+                                null,
+                                null,
+                                null));
     }
 
     @Test
-    void testCreateAction_WithTransactionBelongingToDifferentUser_ThrowsException() {
+    void testCreateActionWithTransactionBelongingToDifferentUserThrowsException() {
         // Given
-        TransactionTable otherUserTransaction = new TransactionTable();
+        final TransactionTable otherUserTransaction = new TransactionTable();
         otherUserTransaction.setTransactionId(testTransaction.getTransactionId());
         otherUserTransaction.setUserId("other-user-123");
 
@@ -131,29 +161,38 @@ class TransactionActionServiceTest {
                 .thenReturn(Optional.of(otherUserTransaction));
 
         // When/Then
-        assertThrows(AppException.class, () -> actionService.createAction(
-                testUser, testTransaction.getTransactionId(), "Title", null, null, null, null));
+        assertThrows(
+                AppException.class,
+                () ->
+                        actionService.createAction(
+                                testUser,
+                                testTransaction.getTransactionId(),
+                                "Title",
+                                null,
+                                null,
+                                null,
+                                null));
     }
 
     @Test
-    void testUpdateAction_WithValidInput_ReturnsUpdatedAction() {
+    void testUpdateActionWithValidInputReturnsUpdatedAction() {
         // Given
         when(actionRepository.findById(testAction.getActionId()))
                 .thenReturn(Optional.of(testAction));
         doNothing().when(actionRepository).save(any(TransactionActionTable.class));
 
         // When
-        TransactionActionTable result = actionService.updateAction(
-                testUser,
-                testAction.getActionId(),
-                "Updated Title",
-                "Updated Description",
-                null,
-                null,
-                true,
-                "LOW",
-                null
-        );
+        final TransactionActionTable result =
+                actionService.updateAction(
+                        testUser,
+                        testAction.getActionId(),
+                        "Updated Title",
+                        "Updated Description",
+                        null,
+                        null,
+                        true,
+                        "LOW",
+                        null);
 
         // Then
         assertNotNull(result);
@@ -165,20 +204,30 @@ class TransactionActionServiceTest {
     }
 
     @Test
-    void testUpdateAction_WithNonExistentAction_ThrowsException() {
+    void testUpdateActionWithNonExistentActionThrowsException() {
         // Given
-        when(actionRepository.findById(testAction.getActionId()))
-                .thenReturn(Optional.empty());
+        when(actionRepository.findById(testAction.getActionId())).thenReturn(Optional.empty());
 
         // When/Then
-        assertThrows(AppException.class, () -> actionService.updateAction(
-                testUser, testAction.getActionId(), "Title", null, null, null, null, null, null));
+        assertThrows(
+                AppException.class,
+                () ->
+                        actionService.updateAction(
+                                testUser,
+                                testAction.getActionId(),
+                                "Title",
+                                null,
+                                null,
+                                null,
+                                null,
+                                null,
+                                null));
     }
 
     @Test
-    void testUpdateAction_WithActionBelongingToDifferentUser_ThrowsException() {
+    void testUpdateActionWithActionBelongingToDifferentUserThrowsException() {
         // Given
-        TransactionActionTable otherUserAction = new TransactionActionTable();
+        final TransactionActionTable otherUserAction = new TransactionActionTable();
         otherUserAction.setActionId(testAction.getActionId());
         otherUserAction.setUserId("other-user-123");
 
@@ -186,12 +235,23 @@ class TransactionActionServiceTest {
                 .thenReturn(Optional.of(otherUserAction));
 
         // When/Then
-        assertThrows(AppException.class, () -> actionService.updateAction(
-                testUser, testAction.getActionId(), "Title", null, null, null, null, null, null));
+        assertThrows(
+                AppException.class,
+                () ->
+                        actionService.updateAction(
+                                testUser,
+                                testAction.getActionId(),
+                                "Title",
+                                null,
+                                null,
+                                null,
+                                null,
+                                null,
+                                null));
     }
 
     @Test
-    void testDeleteAction_WithValidAction_DeletesAction() {
+    void testDeleteActionWithValidActionDeletesAction() {
         // Given
         when(actionRepository.findById(testAction.getActionId()))
                 .thenReturn(Optional.of(testAction));
@@ -205,28 +265,29 @@ class TransactionActionServiceTest {
     }
 
     @Test
-    void testDeleteAction_WithNonExistentAction_ThrowsException() {
+    void testDeleteActionWithNonExistentActionThrowsException() {
         // Given
-        when(actionRepository.findById(testAction.getActionId()))
-                .thenReturn(Optional.empty());
+        when(actionRepository.findById(testAction.getActionId())).thenReturn(Optional.empty());
 
         // When/Then
-        assertThrows(AppException.class, () -> actionService.deleteAction(
-                testUser, testAction.getActionId()));
+        assertThrows(
+                AppException.class,
+                () -> actionService.deleteAction(testUser, testAction.getActionId()));
     }
 
     @Test
-    void testGetActionsByTransactionId_WithValidTransaction_ReturnsActions() {
+    void testGetActionsByTransactionIdWithValidTransactionReturnsActions() {
         // Given
-        List<TransactionActionTable> mockActions = Arrays.asList(testAction);
+        final List<TransactionActionTable> mockActions = Arrays.asList(testAction);
         when(transactionRepository.findById(testTransaction.getTransactionId()))
                 .thenReturn(Optional.of(testTransaction));
         when(actionRepository.findByTransactionId(testTransaction.getTransactionId()))
                 .thenReturn(mockActions);
 
         // When
-        List<TransactionActionTable> result = actionService.getActionsByTransactionId(
-                testUser, testTransaction.getTransactionId());
+        final List<TransactionActionTable> result =
+                actionService.getActionsByTransactionId(
+                        testUser, testTransaction.getTransactionId());
 
         // Then
         assertNotNull(result);
@@ -235,7 +296,7 @@ class TransactionActionServiceTest {
     }
 
     @Test
-    void testGetActionsByTransactionId_WithNonExistentTransaction_ReturnsEmptyList() {
+    void testGetActionsByTransactionIdWithNonExistentTransactionReturnsEmptyList() {
         // Given
         when(transactionRepository.findById(testTransaction.getTransactionId()))
                 .thenReturn(Optional.empty());
@@ -243,8 +304,9 @@ class TransactionActionServiceTest {
                 .thenReturn(java.util.Collections.emptyList());
 
         // When
-        List<TransactionActionTable> result = actionService.getActionsByTransactionId(
-                testUser, testTransaction.getTransactionId());
+        final List<TransactionActionTable> result =
+                actionService.getActionsByTransactionId(
+                        testUser, testTransaction.getTransactionId());
 
         // Then - Should return empty list (transaction may not be synced yet)
         assertNotNull(result);
@@ -252,14 +314,13 @@ class TransactionActionServiceTest {
     }
 
     @Test
-    void testGetActionsByUserId_WithValidUser_ReturnsActions() {
+    void testGetActionsByUserIdWithValidUserReturnsActions() {
         // Given
-        List<TransactionActionTable> mockActions = Arrays.asList(testAction);
-        when(actionRepository.findByUserId(testUser.getUserId()))
-                .thenReturn(mockActions);
+        final List<TransactionActionTable> mockActions = Arrays.asList(testAction);
+        when(actionRepository.findByUserId(testUser.getUserId())).thenReturn(mockActions);
 
         // When
-        List<TransactionActionTable> result = actionService.getActionsByUserId(testUser);
+        final List<TransactionActionTable> result = actionService.getActionsByUserId(testUser);
 
         // Then
         assertNotNull(result);
@@ -267,4 +328,3 @@ class TransactionActionServiceTest {
         assertEquals("Test Action", result.get(0).getTitle());
     }
 }
-

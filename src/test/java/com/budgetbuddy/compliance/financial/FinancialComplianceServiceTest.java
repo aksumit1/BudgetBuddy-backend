@@ -1,6 +1,19 @@
 package com.budgetbuddy.compliance.financial;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.anyBoolean;
+import static org.mockito.Mockito.anyDouble;
+import static org.mockito.Mockito.anyString;
+import static org.mockito.Mockito.atLeast;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import com.budgetbuddy.compliance.AuditLogService;
+import java.time.Instant;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -11,27 +24,18 @@ import software.amazon.awssdk.services.cloudwatch.CloudWatchClient;
 import software.amazon.awssdk.services.cloudwatch.model.PutMetricDataRequest;
 import software.amazon.awssdk.services.cloudwatch.model.PutMetricDataResponse;
 
-import java.time.Instant;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
-
 /**
- * Unit Tests for FinancialComplianceService
- * Tests financial compliance (PCI DSS, GLBA, SOX, FFIEC, FINRA)
+ * Unit Tests for FinancialComplianceService Tests financial compliance (PCI DSS, GLBA, SOX, FFIEC,
+ * FINRA)
  */
 @ExtendWith(MockitoExtension.class)
 class FinancialComplianceServiceTest {
 
-    @Mock
-    private CloudWatchClient cloudWatchClient;
+    @Mock private CloudWatchClient cloudWatchClient;
 
-    @Mock
-    private AuditLogService auditLogService;
+    @Mock private AuditLogService auditLogService;
 
-    @InjectMocks
-    private FinancialComplianceService financialComplianceService;
+    @InjectMocks private FinancialComplianceService financialComplianceService;
 
     private String testUserId;
 
@@ -41,12 +45,12 @@ class FinancialComplianceServiceTest {
     }
 
     @Test
-    void testLogCardDataAccess_WithEncrypted_LogsAccess() {
+    void testLogCardDataAccessWithEncryptedLogsAccess() {
         // Given
-        String cardLast4 = "1111";
-        boolean encrypted = true;
+        final String cardLast4 = "1111";
+        final boolean encrypted = true;
         doNothing().when(auditLogService).logCardDataAccess(anyString(), anyString(), anyBoolean());
-        PutMetricDataResponse response = PutMetricDataResponse.builder().build();
+        final PutMetricDataResponse response = PutMetricDataResponse.builder().build();
         when(cloudWatchClient.putMetricData(any(PutMetricDataRequest.class))).thenReturn(response);
 
         // When
@@ -58,12 +62,12 @@ class FinancialComplianceServiceTest {
     }
 
     @Test
-    void testLogCardDataAccess_WithUnencrypted_LogsViolation() {
+    void testLogCardDataAccessWithUnencryptedLogsViolation() {
         // Given
-        String cardLast4 = "1111";
-        boolean encrypted = false;
+        final String cardLast4 = "1111";
+        final boolean encrypted = false;
         doNothing().when(auditLogService).logCardDataAccess(anyString(), anyString(), anyBoolean());
-        PutMetricDataResponse response = PutMetricDataResponse.builder().build();
+        final PutMetricDataResponse response = PutMetricDataResponse.builder().build();
         when(cloudWatchClient.putMetricData(any(PutMetricDataRequest.class))).thenReturn(response);
 
         // When
@@ -75,12 +79,14 @@ class FinancialComplianceServiceTest {
     }
 
     @Test
-    void testLogCardholderDataAccess_WithAuthorized_LogsAccess() {
+    void testLogCardholderDataAccessWithAuthorizedLogsAccess() {
         // Given
-        String resource = "/api/accounts";
-        boolean authorized = true;
-        doNothing().when(auditLogService).logCardholderDataAccess(anyString(), anyString(), anyBoolean());
-        PutMetricDataResponse response = PutMetricDataResponse.builder().build();
+        final String resource = "/api/accounts";
+        final boolean authorized = true;
+        doNothing()
+                .when(auditLogService)
+                .logCardholderDataAccess(anyString(), anyString(), anyBoolean());
+        final PutMetricDataResponse response = PutMetricDataResponse.builder().build();
         when(cloudWatchClient.putMetricData(any(PutMetricDataRequest.class))).thenReturn(response);
 
         // When
@@ -92,12 +98,14 @@ class FinancialComplianceServiceTest {
     }
 
     @Test
-    void testLogFinancialDataAccess_WithValidInput_LogsAccess() {
+    void testLogFinancialDataAccessWithValidInputLogsAccess() {
         // Given
-        String dataType = "ACCOUNT_BALANCE";
-        String action = "READ";
-        doNothing().when(auditLogService).logFinancialDataAccess(anyString(), anyString(), anyString());
-        PutMetricDataResponse response = PutMetricDataResponse.builder().build();
+        final String dataType = "ACCOUNT_BALANCE";
+        final String action = "READ";
+        doNothing()
+                .when(auditLogService)
+                .logFinancialDataAccess(anyString(), anyString(), anyString());
+        final PutMetricDataResponse response = PutMetricDataResponse.builder().build();
         when(cloudWatchClient.putMetricData(any(PutMetricDataRequest.class))).thenReturn(response);
 
         // When
@@ -109,31 +117,37 @@ class FinancialComplianceServiceTest {
     }
 
     @Test
-    void testLogFinancialDataModification_WithSignificantChange_LogsWarning() {
+    void testLogFinancialDataModificationWithSignificantChangeLogsWarning() {
         // Given
-        String dataType = "balance";
-        String beforeValue = "1000.00";
-        String afterValue = "5000.00";
-        doNothing().when(auditLogService).logFinancialDataModification(anyString(), anyString(), anyString(), anyString());
-        PutMetricDataResponse response = PutMetricDataResponse.builder().build();
+        final String dataType = "balance";
+        final String beforeValue = "1000.00";
+        final String afterValue = "5000.00";
+        doNothing()
+                .when(auditLogService)
+                .logFinancialDataModification(anyString(), anyString(), anyString(), anyString());
+        final PutMetricDataResponse response = PutMetricDataResponse.builder().build();
         when(cloudWatchClient.putMetricData(any(PutMetricDataRequest.class))).thenReturn(response);
 
         // When
-        financialComplianceService.logFinancialDataModification(testUserId, dataType, beforeValue, afterValue);
+        financialComplianceService.logFinancialDataModification(
+                testUserId, dataType, beforeValue, afterValue);
 
         // Then
-        verify(auditLogService, times(1)).logFinancialDataModification(testUserId, dataType, beforeValue, afterValue);
+        verify(auditLogService, times(1))
+                .logFinancialDataModification(testUserId, dataType, beforeValue, afterValue);
         verify(cloudWatchClient, atLeast(2)).putMetricData(any(PutMetricDataRequest.class));
     }
 
     @Test
-    void testLogInternalControl_WithEffective_LogsControl() {
+    void testLogInternalControlWithEffectiveLogsControl() {
         // Given
-        String controlId = "CTRL-001";
-        String activity = "ACCESS_REVIEW";
-        boolean effective = true;
-        doNothing().when(auditLogService).logInternalControl(anyString(), anyString(), anyBoolean());
-        PutMetricDataResponse response = PutMetricDataResponse.builder().build();
+        final String controlId = "CTRL-001";
+        final String activity = "ACCESS_REVIEW";
+        final boolean effective = true;
+        doNothing()
+                .when(auditLogService)
+                .logInternalControl(anyString(), anyString(), anyBoolean());
+        final PutMetricDataResponse response = PutMetricDataResponse.builder().build();
         when(cloudWatchClient.putMetricData(any(PutMetricDataRequest.class))).thenReturn(response);
 
         // When
@@ -145,12 +159,12 @@ class FinancialComplianceServiceTest {
     }
 
     @Test
-    void testLogSecurityControl_WithPassStatus_LogsControl() {
+    void testLogSecurityControlWithPassStatusLogsControl() {
         // Given
-        String controlId = "SEC-001";
-        String status = "PASS";
+        final String controlId = "SEC-001";
+        final String status = "PASS";
         doNothing().when(auditLogService).logSecurityControl(anyString(), anyString());
-        PutMetricDataResponse response = PutMetricDataResponse.builder().build();
+        final PutMetricDataResponse response = PutMetricDataResponse.builder().build();
         when(cloudWatchClient.putMetricData(any(PutMetricDataRequest.class))).thenReturn(response);
 
         // When
@@ -162,31 +176,37 @@ class FinancialComplianceServiceTest {
     }
 
     @Test
-    void testLogCustomerAssetAccess_WithValidInput_LogsAccess() {
+    void testLogCustomerAssetAccessWithValidInputLogsAccess() {
         // Given
-        String customerId = "customer-123";
-        String assetType = "ACCOUNT";
-        String action = "VIEW";
-        doNothing().when(auditLogService).logCustomerAssetAccess(anyString(), anyString(), anyString(), anyString());
-        PutMetricDataResponse response = PutMetricDataResponse.builder().build();
+        final String customerId = "customer-123";
+        final String assetType = "ACCOUNT";
+        final String action = "VIEW";
+        doNothing()
+                .when(auditLogService)
+                .logCustomerAssetAccess(anyString(), anyString(), anyString(), anyString());
+        final PutMetricDataResponse response = PutMetricDataResponse.builder().build();
         when(cloudWatchClient.putMetricData(any(PutMetricDataRequest.class))).thenReturn(response);
 
         // When
-        financialComplianceService.logCustomerAssetAccess(testUserId, customerId, assetType, action);
+        financialComplianceService.logCustomerAssetAccess(
+                testUserId, customerId, assetType, action);
 
         // Then
-        verify(auditLogService, times(1)).logCustomerAssetAccess(testUserId, customerId, assetType, action);
+        verify(auditLogService, times(1))
+                .logCustomerAssetAccess(testUserId, customerId, assetType, action);
         verify(cloudWatchClient, times(1)).putMetricData(any(PutMetricDataRequest.class));
     }
 
     @Test
-    void testLogRecordKeeping_WithValidInput_LogsRecord() {
+    void testLogRecordKeepingWithValidInputLogsRecord() {
         // Given
-        String recordType = "TRANSACTION";
-        String recordId = "record-123";
-        Instant retentionUntil = Instant.now().plusSeconds(7L * 365 * 24 * 60 * 60);
-        doNothing().when(auditLogService).logRecordKeeping(anyString(), anyString(), any(Instant.class));
-        PutMetricDataResponse response = PutMetricDataResponse.builder().build();
+        final String recordType = "TRANSACTION";
+        final String recordId = "record-123";
+        final Instant retentionUntil = Instant.now().plusSeconds(7L * 365 * 24 * 60 * 60);
+        doNothing()
+                .when(auditLogService)
+                .logRecordKeeping(anyString(), anyString(), any(Instant.class));
+        final PutMetricDataResponse response = PutMetricDataResponse.builder().build();
         when(cloudWatchClient.putMetricData(any(PutMetricDataRequest.class))).thenReturn(response);
 
         // When
@@ -198,31 +218,37 @@ class FinancialComplianceServiceTest {
     }
 
     @Test
-    void testLogSupervision_WithApproved_LogsSupervision() {
+    void testLogSupervisionWithApprovedLogsSupervision() {
         // Given
-        String supervisorId = "supervisor-123";
-        String supervisedUserId = "user-456";
-        String activity = "TRANSACTION_REVIEW";
-        boolean approved = true;
-        doNothing().when(auditLogService).logSupervision(anyString(), anyString(), anyString(), anyBoolean());
-        PutMetricDataResponse response = PutMetricDataResponse.builder().build();
+        final String supervisorId = "supervisor-123";
+        final String supervisedUserId = "user-456";
+        final String activity = "TRANSACTION_REVIEW";
+        final boolean approved = true;
+        doNothing()
+                .when(auditLogService)
+                .logSupervision(anyString(), anyString(), anyString(), anyBoolean());
+        final PutMetricDataResponse response = PutMetricDataResponse.builder().build();
         when(cloudWatchClient.putMetricData(any(PutMetricDataRequest.class))).thenReturn(response);
 
         // When
-        financialComplianceService.logSupervision(supervisorId, supervisedUserId, activity, approved);
+        financialComplianceService.logSupervision(
+                supervisorId, supervisedUserId, activity, approved);
 
         // Then
-        verify(auditLogService, times(1)).logSupervision(supervisorId, supervisedUserId, activity, approved);
+        verify(auditLogService, times(1))
+                .logSupervision(supervisorId, supervisedUserId, activity, approved);
         verify(cloudWatchClient, times(1)).putMetricData(any(PutMetricDataRequest.class));
     }
 
     @Test
-    void testReportSuspiciousActivity_WithValidInput_LogsActivity() {
+    void testReportSuspiciousActivityWithValidInputLogsActivity() {
         // Given
-        String activityType = "LARGE_TRANSACTION";
-        String details = "Transaction amount exceeds threshold";
-        doNothing().when(auditLogService).logSuspiciousActivity(anyString(), anyString(), anyString());
-        PutMetricDataResponse response = PutMetricDataResponse.builder().build();
+        final String activityType = "LARGE_TRANSACTION";
+        final String details = "Transaction amount exceeds threshold";
+        doNothing()
+                .when(auditLogService)
+                .logSuspiciousActivity(anyString(), anyString(), anyString());
+        final PutMetricDataResponse response = PutMetricDataResponse.builder().build();
         when(cloudWatchClient.putMetricData(any(PutMetricDataRequest.class))).thenReturn(response);
 
         // When
@@ -234,63 +260,71 @@ class FinancialComplianceServiceTest {
     }
 
     @Test
-    void testLogCommunication_WithValidInput_LogsCommunication() {
+    void testLogCommunicationWithValidInputLogsCommunication() {
         // Given
-        String customerId = "customer-123";
-        String communicationType = "EMAIL";
-        String content = "Account statement";
-        doNothing().when(auditLogService).logCommunication(anyString(), anyString(), anyString(), anyString());
-        PutMetricDataResponse response = PutMetricDataResponse.builder().build();
+        final String customerId = "customer-123";
+        final String communicationType = "EMAIL";
+        final String content = "Account statement";
+        doNothing()
+                .when(auditLogService)
+                .logCommunication(anyString(), anyString(), anyString(), anyString());
+        final PutMetricDataResponse response = PutMetricDataResponse.builder().build();
         when(cloudWatchClient.putMetricData(any(PutMetricDataRequest.class))).thenReturn(response);
 
         // When
-        financialComplianceService.logCommunication(testUserId, customerId, communicationType, content);
+        financialComplianceService.logCommunication(
+                testUserId, customerId, communicationType, content);
 
         // Then
-        verify(auditLogService, times(1)).logCommunication(testUserId, customerId, communicationType, content);
+        verify(auditLogService, times(1))
+                .logCommunication(testUserId, customerId, communicationType, content);
         verify(cloudWatchClient, times(1)).putMetricData(any(PutMetricDataRequest.class));
     }
 
     @Test
-    void testMonitorTransaction_WithSuspiciousAmount_LogsSuspicious() {
+    void testMonitorTransactionWithSuspiciousAmountLogsSuspicious() {
         // Given
-        String transactionId = "txn-123";
-        double amount = 15000.00; // Over threshold
-        doNothing().when(auditLogService).logSuspiciousTransaction(anyString(), anyDouble(), anyString());
-        PutMetricDataResponse response = PutMetricDataResponse.builder().build();
-        when(cloudWatchClient.putMetricData(any(PutMetricDataRequest.class))).thenReturn(response);
-
-        // When
-        financialComplianceService.monitorTransaction(transactionId, amount, testUserId);
-
-        // Then
-        verify(auditLogService, times(1)).logSuspiciousTransaction(transactionId, amount, testUserId);
-        verify(cloudWatchClient, times(1)).putMetricData(any(PutMetricDataRequest.class));
-    }
-
-    @Test
-    void testMonitorTransaction_WithNormalAmount_LogsTransaction() {
-        // Given
-        String transactionId = "txn-123";
-        double amount = 100.00; // Under threshold
-        PutMetricDataResponse response = PutMetricDataResponse.builder().build();
+        final String transactionId = "txn-123";
+        final double amount = 15000.00; // Over threshold
+        doNothing()
+                .when(auditLogService)
+                .logSuspiciousTransaction(anyString(), anyDouble(), anyString());
+        final PutMetricDataResponse response = PutMetricDataResponse.builder().build();
         when(cloudWatchClient.putMetricData(any(PutMetricDataRequest.class))).thenReturn(response);
 
         // When
         financialComplianceService.monitorTransaction(transactionId, amount, testUserId);
 
         // Then
-        verify(auditLogService, never()).logSuspiciousTransaction(anyString(), anyDouble(), anyString());
+        verify(auditLogService, times(1))
+                .logSuspiciousTransaction(transactionId, amount, testUserId);
         verify(cloudWatchClient, times(1)).putMetricData(any(PutMetricDataRequest.class));
     }
 
     @Test
-    void testLogDataRetention_WithValidInput_LogsRetention() {
+    void testMonitorTransactionWithNormalAmountLogsTransaction() {
         // Given
-        String dataType = "TRANSACTION";
-        Instant retentionUntil = Instant.now().plusSeconds(7L * 365 * 24 * 60 * 60);
+        final String transactionId = "txn-123";
+        final double amount = 100.00; // Under threshold
+        final PutMetricDataResponse response = PutMetricDataResponse.builder().build();
+        when(cloudWatchClient.putMetricData(any(PutMetricDataRequest.class))).thenReturn(response);
+
+        // When
+        financialComplianceService.monitorTransaction(transactionId, amount, testUserId);
+
+        // Then
+        verify(auditLogService, never())
+                .logSuspiciousTransaction(anyString(), anyDouble(), anyString());
+        verify(cloudWatchClient, times(1)).putMetricData(any(PutMetricDataRequest.class));
+    }
+
+    @Test
+    void testLogDataRetentionWithValidInputLogsRetention() {
+        // Given
+        final String dataType = "TRANSACTION";
+        final Instant retentionUntil = Instant.now().plusSeconds(7L * 365 * 24 * 60 * 60);
         doNothing().when(auditLogService).logDataRetention(anyString(), any(Instant.class));
-        PutMetricDataResponse response = PutMetricDataResponse.builder().build();
+        final PutMetricDataResponse response = PutMetricDataResponse.builder().build();
         when(cloudWatchClient.putMetricData(any(PutMetricDataRequest.class))).thenReturn(response);
 
         // When
@@ -301,4 +335,3 @@ class FinancialComplianceServiceTest {
         verify(cloudWatchClient, times(1)).putMetricData(any(PutMetricDataRequest.class));
     }
 }
-

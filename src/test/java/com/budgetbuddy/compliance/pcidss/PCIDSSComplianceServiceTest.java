@@ -1,6 +1,18 @@
 package com.budgetbuddy.compliance.pcidss;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.anyString;
+import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.verify;
+
 import com.budgetbuddy.compliance.AuditLogService;
+import java.util.Arrays;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -9,44 +21,32 @@ import org.mockito.MockitoAnnotations;
 import software.amazon.awssdk.services.cloudwatch.CloudWatchClient;
 import software.amazon.awssdk.services.kms.KmsClient;
 
-import java.util.Arrays;
-import java.util.List;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
-
-/**
- * Comprehensive tests for PCIDSSComplianceService
- */
+/** Comprehensive tests for PCIDSSComplianceService */
 class PCIDSSComplianceServiceTest {
 
-    @Mock
-    private AuditLogService auditLogService;
+    @Mock private AuditLogService auditLogService;
 
-    @Mock
-    private CloudWatchClient cloudWatchClient;
+    @Mock private CloudWatchClient cloudWatchClient;
 
-    @Mock
-    private KmsClient kmsClient;
+    @Mock private KmsClient kmsClient;
 
     private PCIDSSComplianceService pciDSSComplianceService;
 
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        pciDSSComplianceService = new PCIDSSComplianceService(
-                auditLogService, cloudWatchClient, kmsClient);
+        pciDSSComplianceService =
+                new PCIDSSComplianceService(auditLogService, cloudWatchClient, kmsClient);
     }
 
     @Test
     @DisplayName("Should mask PAN showing only last 4 digits")
     void testMaskPAN() {
         // Given
-        String pan = "4111111111111111";
+        final String pan = "4111111111111111";
 
         // When
-        String masked = pciDSSComplianceService.maskPAN(pan);
+        final String masked = pciDSSComplianceService.maskPAN(pan);
 
         // Then
         assertEquals("****1111", masked);
@@ -55,12 +55,12 @@ class PCIDSSComplianceServiceTest {
 
     @Test
     @DisplayName("Should return all stars for invalid PAN")
-    void testMaskPAN_Invalid() {
+    void testMaskPANInvalid() {
         // Given
-        String pan = "123";
+        final String pan = "123";
 
         // When
-        String masked = pciDSSComplianceService.maskPAN(pan);
+        final String masked = pciDSSComplianceService.maskPAN(pan);
 
         // Then
         assertEquals("****", masked);
@@ -68,9 +68,9 @@ class PCIDSSComplianceServiceTest {
 
     @Test
     @DisplayName("Should handle null PAN")
-    void testMaskPAN_Null() {
+    void testMaskPANNull() {
         // When
-        String masked = pciDSSComplianceService.maskPAN(null);
+        final String masked = pciDSSComplianceService.maskPAN(null);
 
         // Then
         assertEquals("****", masked);
@@ -80,11 +80,11 @@ class PCIDSSComplianceServiceTest {
     @DisplayName("Should encrypt PAN")
     void testEncryptPAN() {
         // Given
-        String pan = "4111111111111111";
-        String keyId = "key-123";
+        final String pan = "4111111111111111";
+        final String keyId = "key-123";
 
         // When
-        String encrypted = pciDSSComplianceService.encryptPAN(pan, keyId);
+        final String encrypted = pciDSSComplianceService.encryptPAN(pan, keyId);
 
         // Then
         assertNotNull(encrypted);
@@ -96,11 +96,11 @@ class PCIDSSComplianceServiceTest {
     @DisplayName("Should validate TLS configuration")
     void testValidateTLSConfiguration() {
         // Given
-        String tlsVersion = "TLSv1.2";
-        List<String> cipherSuites = Arrays.asList("TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384");
+        final String tlsVersion = "TLSv1.2";
+        final List<String> cipherSuites = Arrays.asList("TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384");
 
         // When
-        boolean valid = pciDSSComplianceService.validateTLSConfiguration(tlsVersion, cipherSuites);
+        final boolean valid = pciDSSComplianceService.validateTLSConfiguration(tlsVersion, cipherSuites);
 
         // Then
         assertTrue(valid);
@@ -108,13 +108,13 @@ class PCIDSSComplianceServiceTest {
 
     @Test
     @DisplayName("Should reject weak TLS version")
-    void testValidateTLSConfiguration_WeakVersion() {
+    void testValidateTLSConfigurationWeakVersion() {
         // Given
-        String tlsVersion = "TLSv1.0";
-        List<String> cipherSuites = Arrays.asList("TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384");
+        final String tlsVersion = "TLSv1.0";
+        final List<String> cipherSuites = Arrays.asList("TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384");
 
         // When
-        boolean valid = pciDSSComplianceService.validateTLSConfiguration(tlsVersion, cipherSuites);
+        final boolean valid = pciDSSComplianceService.validateTLSConfiguration(tlsVersion, cipherSuites);
 
         // Then
         assertFalse(valid);
@@ -122,13 +122,13 @@ class PCIDSSComplianceServiceTest {
 
     @Test
     @DisplayName("Should reject weak cipher suites")
-    void testValidateTLSConfiguration_WeakCipher() {
+    void testValidateTLSConfigurationWeakCipher() {
         // Given
-        String tlsVersion = "TLSv1.2";
-        List<String> cipherSuites = Arrays.asList("RC4-SHA");
+        final String tlsVersion = "TLSv1.2";
+        final List<String> cipherSuites = Arrays.asList("RC4-SHA");
 
         // When
-        boolean valid = pciDSSComplianceService.validateTLSConfiguration(tlsVersion, cipherSuites);
+        final boolean valid = pciDSSComplianceService.validateTLSConfiguration(tlsVersion, cipherSuites);
 
         // Then
         assertFalse(valid);
@@ -138,10 +138,10 @@ class PCIDSSComplianceServiceTest {
     @DisplayName("Should validate password strength")
     void testValidatePasswordStrength() {
         // Given
-        String strongPassword = "StrongP@ssw0rd123";
+        final String strongPassword = "StrongP@ssw0rd123";
 
         // When
-        boolean valid = pciDSSComplianceService.validatePasswordStrength(strongPassword);
+        final boolean valid = pciDSSComplianceService.validatePasswordStrength(strongPassword);
 
         // Then
         assertTrue(valid);
@@ -149,12 +149,12 @@ class PCIDSSComplianceServiceTest {
 
     @Test
     @DisplayName("Should reject weak password")
-    void testValidatePasswordStrength_Weak() {
+    void testValidatePasswordStrengthWeak() {
         // Given
-        String weakPassword = "weak";
+        final String weakPassword = "weak";
 
         // When
-        boolean valid = pciDSSComplianceService.validatePasswordStrength(weakPassword);
+        final boolean valid = pciDSSComplianceService.validatePasswordStrength(weakPassword);
 
         // Then
         assertFalse(valid);
@@ -164,8 +164,8 @@ class PCIDSSComplianceServiceTest {
     @DisplayName("Should log MFA usage")
     void testLogMFAUsage() {
         // Given
-        String userId = "user-123";
-        String mfaMethod = "TOTP";
+        final String userId = "user-123";
+        final String mfaMethod = "TOTP";
 
         // When
         pciDSSComplianceService.logMFAUsage(userId, mfaMethod, true);
@@ -178,12 +178,13 @@ class PCIDSSComplianceServiceTest {
     @DisplayName("Should check access authorization")
     void testCheckAccessAuthorization() {
         // Given
-        String userId = "user-123";
-        String resource = "/api/transactions";
-        String action = "GET";
+        final String userId = "user-123";
+        final String resource = "/api/transactions";
+        final String action = "GET";
 
         // When
-        boolean authorized = pciDSSComplianceService.checkAccessAuthorization(userId, resource, action);
+        final boolean authorized =
+                pciDSSComplianceService.checkAccessAuthorization(userId, resource, action);
 
         // Then
         assertTrue(authorized);
@@ -192,14 +193,15 @@ class PCIDSSComplianceServiceTest {
 
     @Test
     @DisplayName("Should detect unauthorized access")
-    void testCheckAccessAuthorization_Unauthorized() {
+    void testCheckAccessAuthorizationUnauthorized() {
         // Given
-        String userId = "user-123";
-        String resource = "/api/admin/users";
-        String action = "DELETE";
+        final String userId = "user-123";
+        final String resource = "/api/admin/users";
+        final String action = "DELETE";
 
         // When
-        boolean authorized = pciDSSComplianceService.checkAccessAuthorization(userId, resource, action);
+        final boolean authorized =
+                pciDSSComplianceService.checkAccessAuthorization(userId, resource, action);
 
         // Then
         assertFalse(authorized);
@@ -210,10 +212,10 @@ class PCIDSSComplianceServiceTest {
     @DisplayName("Should validate no sensitive data storage")
     void testValidateNoSensitiveDataStorage() {
         // Given
-        String data = "Normal transaction data";
+        final String data = "Normal transaction data";
 
         // When
-        boolean valid = pciDSSComplianceService.validateNoSensitiveDataStorage(data);
+        final boolean valid = pciDSSComplianceService.validateNoSensitiveDataStorage(data);
 
         // Then
         assertTrue(valid);
@@ -221,12 +223,12 @@ class PCIDSSComplianceServiceTest {
 
     @Test
     @DisplayName("Should detect CVV in stored data")
-    void testValidateNoSensitiveDataStorage_CVV() {
+    void testValidateNoSensitiveDataStorageCVV() {
         // Given
-        String data = "Card number 4111111111111111 CVV 123";
+        final String data = "Card number 4111111111111111 CVV 123";
 
         // When
-        boolean valid = pciDSSComplianceService.validateNoSensitiveDataStorage(data);
+        final boolean valid = pciDSSComplianceService.validateNoSensitiveDataStorage(data);
 
         // Then
         assertFalse(valid);
@@ -234,12 +236,12 @@ class PCIDSSComplianceServiceTest {
 
     @Test
     @DisplayName("Should detect track data")
-    void testValidateNoSensitiveDataStorage_TrackData() {
+    void testValidateNoSensitiveDataStorageTrackData() {
         // Given
-        String data = "%B4111111111111111^TEST";
+        final String data = "%B4111111111111111^TEST";
 
         // When
-        boolean valid = pciDSSComplianceService.validateNoSensitiveDataStorage(data);
+        final boolean valid = pciDSSComplianceService.validateNoSensitiveDataStorage(data);
 
         // Then
         assertFalse(valid);
@@ -249,9 +251,9 @@ class PCIDSSComplianceServiceTest {
     @DisplayName("Should log cardholder data access")
     void testLogCardholderDataAccess() {
         // Given
-        String userId = "user-123";
-        String resource = "/api/transactions";
-        String action = "GET";
+        final String userId = "user-123";
+        final String resource = "/api/transactions";
+        final String action = "GET";
 
         // When
         pciDSSComplianceService.logCardholderDataAccess(userId, resource, action, true);
@@ -264,7 +266,7 @@ class PCIDSSComplianceServiceTest {
     @DisplayName("Should protect audit trail")
     void testProtectAuditTrail() {
         // Given
-        String auditLogId = "log-123";
+        final String auditLogId = "log-123";
 
         // When
         pciDSSComplianceService.protectAuditTrail(auditLogId);
@@ -277,22 +279,23 @@ class PCIDSSComplianceServiceTest {
     @DisplayName("Should detect intrusion")
     void testDetectIntrusion() {
         // Given
-        String userId = "user-123";
-        String resource = "/api/admin";
-        String suspiciousActivity = "Multiple failed login attempts";
+        final String userId = "user-123";
+        final String resource = "/api/admin";
+        final String suspiciousActivity = "Multiple failed login attempts";
 
         // When
         pciDSSComplianceService.detectIntrusion(userId, resource, suspiciousActivity);
 
         // Then
-        verify(auditLogService).logSecurityEvent(eq("INTRUSION_DETECTED"), eq("CRITICAL"), eq(suspiciousActivity));
+        verify(auditLogService)
+                .logSecurityEvent(eq("INTRUSION_DETECTED"), eq("CRITICAL"), eq(suspiciousActivity));
     }
 
     @Test
     @DisplayName("Should log policy compliance")
     void testLogPolicyCompliance() {
         // Given
-        String policyId = "POL-001";
+        final String policyId = "POL-001";
 
         // When
         pciDSSComplianceService.logPolicyCompliance(policyId, true);

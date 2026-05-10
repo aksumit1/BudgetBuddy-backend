@@ -1,0 +1,68 @@
+# HDFC Bank (India) — savings, current, credit card.
+#
+# Indian-bank subtleties:
+#
+#   1. Dates are DD/MM/YY or DD/MM/YYYY. NOT MM/DD — this is the single
+#      biggest source of cross-locale parse bugs.
+#
+#   2. Amounts use "1,23,456.78" Indian lakh formatting (inner comma every
+#      2 digits after the first 3). Our amount regex handles both Indian
+#      and Western grouping because we match
+#      `\d{1,3}(?:,\d{3})*(?:\.\d{2})` which happens to also accept
+#      "1,23,456.78" (matches as 1 + "," + 23 + "," + 456 + "." + 78 via
+#      repeated `,\d{3}` being lenient about widths — we accept "1,23"
+#      since \d{1,3} allows 2-digit groups).
+#
+#   3. Transactions have a trailing "Dr" (debit) or "Cr" (credit) suffix on
+#      credit card statements. We strip it via optional trailing group.
+#
+#   4. UPI transactions have narration like "UPI-PAYTM-SOMEMERCHANT@paytm-...".
+#      Multiple long tokens joined with hyphens. No special parsing needed —
+#      the description field is greedy.
+#
+#   5. Savings accounts show separate Withdrawal / Deposit columns rather
+#      than a signed amount. The handling is: if a row has two amount-shaped
+#      tokens (amount + balance), the first is the movement and the second
+#      is the running balance. Savings statements ALWAYS have a trailing
+#      running balance column.
+#
+#   6. Credit card statements show "Reward Points earned" as separate rows
+#      — these have no date column, just description + integer value. We
+#      skip them intentionally (date regex fails → no match).
+#
+# Status: VALIDATED — passes hdfc-bank/savings-upi snapshot.
+id: hdfc-bank-in-v1
+institution: HDFC Bank
+description: "HDFC Bank India — savings, current, credit card (+ UPI narrations)"
+status: VALIDATED
+layouts:
+  # Savings / current: narration + withdrawal OR deposit + running balance.
+  # We capture the first amount column as the transaction amount and
+  # negate it (debits are more common and layout default).
+  # For deposit rows, the withdrawal column is empty so the first amount
+  # we match is actually the deposit — still correct shape, but the sign
+  # should be positive. We detect this by checking if the description
+  # contains common credit indicators ("NEFT CR", "IMPS CR", "SALARY",
+  # "REFUND") at the regex level — not practical in a single pattern,
+  # so we ship TWO layouts and let the first matching one win.
+  - name: savings-narration-debit-balance
+    accountType: savings
+    lineRegex: '^\s*(?<date>\d{1,2}/\d{1,2}/\d{2,4})\s+(?<description>(?!.*(?:NEFT\s+CR|IMPS\s+CR|UPI\s+CR|SALARY|REFUND|CREDIT|CR\s*$)).+?)\s+(?<amount>\d{1,3}(?:,\d{1,3})*(?:\.\d{2}))\s+\d{1,3}(?:,\d{1,3})*(?:\.\d{2})\s*$'
+    dateFormat: "d/M/yy"
+    signConvention: negate
+    minAmount: 0.01
+
+  - name: savings-narration-credit-balance
+    accountType: savings
+    lineRegex: '^\s*(?<date>\d{1,2}/\d{1,2}/\d{2,4})\s+(?<description>.*?(?:NEFT\s+CR|IMPS\s+CR|UPI\s+CR|SALARY|REFUND|CREDIT|CR)\s*.*?)\s+(?<amount>\d{1,3}(?:,\d{1,3})*(?:\.\d{2}))\s+\d{1,3}(?:,\d{1,3})*(?:\.\d{2})\s*$'
+    dateFormat: "d/M/yy"
+    signConvention: as-is
+    minAmount: 0.01
+
+  # Credit card: amount + optional Dr/Cr suffix.
+  - name: credit-card-single-line
+    accountType: credit
+    lineRegex: '^\s*(?<date>\d{1,2}/\d{1,2}/\d{2,4})\s+(?<description>.+?)\s+₹?(?<amount>-?\d{1,3}(?:,\d{1,3})*(?:\.\d{2}))\s*(?:Dr|Cr)?\s*$'
+    dateFormat: "d/M/yy"
+    signConvention: credit-positive
+    minAmount: 0.01

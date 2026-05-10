@@ -1,8 +1,13 @@
 package com.budgetbuddy.integration;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import com.budgetbuddy.AWSTestConfiguration;
 import com.budgetbuddy.exception.AppException;
-import com.budgetbuddy.exception.ErrorCode;
 import com.budgetbuddy.model.dynamodb.AccountTable;
 import com.budgetbuddy.model.dynamodb.TransactionActionTable;
 import com.budgetbuddy.model.dynamodb.TransactionTable;
@@ -14,6 +19,11 @@ import com.budgetbuddy.repository.dynamodb.UserRepository;
 import com.budgetbuddy.service.TransactionActionService;
 import com.budgetbuddy.service.TransactionService;
 import com.budgetbuddy.util.TableInitializer;
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.util.List;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -26,46 +36,29 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 
-import java.math.BigDecimal;
-import java.time.Instant;
-import java.time.LocalDate;
-import java.util.List;
-import java.util.UUID;
-
-import static org.junit.jupiter.api.Assertions.*;
-
-/**
- * Integration Tests for Transaction Action Service
- * Tests with real DynamoDB (LocalStack)
- */
+/** Integration Tests for Transaction Action Service Tests with real DynamoDB (LocalStack) */
 @SpringBootTest(classes = com.budgetbuddy.BudgetBuddyApplication.class)
 @ActiveProfiles("test")
 @Import(AWSTestConfiguration.class)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class TransactionActionIntegrationTest {
 
-    private static final Logger logger = LoggerFactory.getLogger(TransactionActionIntegrationTest.class);
+    private static final Logger LOGGER =
+            LoggerFactory.getLogger(TransactionActionIntegrationTest.class);
 
-    @Autowired
-    private TransactionActionService actionService;
+    @Autowired private TransactionActionService actionService;
 
-    @Autowired
-    private TransactionActionRepository actionRepository;
+    @Autowired private TransactionActionRepository actionRepository;
 
-    @Autowired
-    private TransactionService transactionService;
+    @Autowired private TransactionService transactionService;
 
-    @Autowired
-    private TransactionRepository transactionRepository;
+    @Autowired private TransactionRepository transactionRepository;
 
-    @Autowired
-    private AccountRepository accountRepository;
+    @Autowired private AccountRepository accountRepository;
 
-    @Autowired
-    private UserRepository userRepository;
+    @Autowired private UserRepository userRepository;
 
-    @Autowired
-    private DynamoDbClient dynamoDbClient;
+    @Autowired private DynamoDbClient dynamoDbClient;
 
     private UserTable testUser;
     private AccountTable testAccount;
@@ -81,7 +74,7 @@ class TransactionActionIntegrationTest {
     @BeforeEach
     void setUp() {
         // Create test user
-        String email = "test-" + UUID.randomUUID() + "@example.com";
+        final String email = "test-" + UUID.randomUUID() + "@example.com";
         testUser = new UserTable();
         testUser.setUserId(UUID.randomUUID().toString());
         testUser.setEmail(email);
@@ -103,32 +96,33 @@ class TransactionActionIntegrationTest {
         accountRepository.save(testAccount);
 
         // Create test transaction
-        testTransaction = transactionService.createTransaction(
-                testUser,
-                testAccount.getAccountId(),
-                BigDecimal.valueOf(100.00),
-                LocalDate.now(),
-                "Test transaction",
-                "FOOD"
-        );
+        testTransaction =
+                transactionService.createTransaction(
+                        testUser,
+                        testAccount.getAccountId(),
+                        BigDecimal.valueOf(100.00),
+                        LocalDate.now(),
+                        "Test transaction",
+                        "FOOD");
     }
 
     @Test
     void testCreateAndRetrieveAction() {
         // Given
-        TransactionActionTable action = actionService.createAction(
-                testUser,
-                testTransaction.getTransactionId(),
-                "Review transaction",
-                "Check if this transaction is correct",
-                null,
-                null,
-                "HIGH"
-        );
+        final TransactionActionTable action =
+                actionService.createAction(
+                        testUser,
+                        testTransaction.getTransactionId(),
+                        "Review transaction",
+                        "Check if this transaction is correct",
+                        null,
+                        null,
+                        "HIGH");
 
         // When
-        List<TransactionActionTable> actions = actionService.getActionsByTransactionId(
-                testUser, testTransaction.getTransactionId());
+        final List<TransactionActionTable> actions =
+                actionService.getActionsByTransactionId(
+                        testUser, testTransaction.getTransactionId());
 
         // Then
         assertNotNull(actions);
@@ -140,21 +134,21 @@ class TransactionActionIntegrationTest {
     }
 
     @Test
-    void testCreateAction_WithDueDateAndReminder() {
+    void testCreateActionWithDueDateAndReminder() {
         // Given
-        String dueDate = "2024-12-31";
-        String reminderDate = "2024-12-30T10:00:00Z";
+        final String dueDate = "2024-12-31";
+        final String reminderDate = "2024-12-30T10:00:00Z";
 
         // When
-        TransactionActionTable action = actionService.createAction(
-                testUser,
-                testTransaction.getTransactionId(),
-                "Action with due date",
-                "Description",
-                dueDate,
-                reminderDate,
-                "MEDIUM"
-        );
+        final TransactionActionTable action =
+                actionService.createAction(
+                        testUser,
+                        testTransaction.getTransactionId(),
+                        "Action with due date",
+                        "Description",
+                        dueDate,
+                        reminderDate,
+                        "MEDIUM");
 
         // Then
         assertNotNull(action);
@@ -163,30 +157,22 @@ class TransactionActionIntegrationTest {
     }
 
     @Test
-    void testUpdateAction_CompletesAction() {
+    void testUpdateActionCompletesAction() {
         // Given
-        TransactionActionTable action = actionService.createAction(
-                testUser,
-                testTransaction.getTransactionId(),
-                "Action to complete",
-                null,
-                null,
-                null,
-                "LOW"
-        );
+        final TransactionActionTable action =
+                actionService.createAction(
+                        testUser,
+                        testTransaction.getTransactionId(),
+                        "Action to complete",
+                        null,
+                        null,
+                        null,
+                        "LOW");
 
         // When
-        TransactionActionTable updated = actionService.updateAction(
-                testUser,
-                action.getActionId(),
-                null,
-                null,
-                null,
-                null,
-                true,
-                null,
-                null
-        );
+        final TransactionActionTable updated =
+                actionService.updateAction(
+                        testUser, action.getActionId(), null, null, null, null, true, null, null);
 
         // Then
         assertTrue(updated.getIsCompleted());
@@ -194,30 +180,30 @@ class TransactionActionIntegrationTest {
     }
 
     @Test
-    void testUpdateAction_ChangesTitleAndPriority() {
+    void testUpdateActionChangesTitleAndPriority() {
         // Given
-        TransactionActionTable action = actionService.createAction(
-                testUser,
-                testTransaction.getTransactionId(),
-                "Original title",
-                null,
-                null,
-                null,
-                "LOW"
-        );
+        final TransactionActionTable action =
+                actionService.createAction(
+                        testUser,
+                        testTransaction.getTransactionId(),
+                        "Original title",
+                        null,
+                        null,
+                        null,
+                        "LOW");
 
         // When
-        TransactionActionTable updated = actionService.updateAction(
-                testUser,
-                action.getActionId(),
-                "Updated title",
-                null,
-                null,
-                null,
-                null,
-                "HIGH",
-                null
-        );
+        final TransactionActionTable updated =
+                actionService.updateAction(
+                        testUser,
+                        action.getActionId(),
+                        "Updated title",
+                        null,
+                        null,
+                        null,
+                        null,
+                        "HIGH",
+                        null);
 
         // Then
         assertEquals("Updated title", updated.getTitle());
@@ -225,64 +211,66 @@ class TransactionActionIntegrationTest {
     }
 
     @Test
-    void testDeleteAction_RemovesAction() {
+    void testDeleteActionRemovesAction() {
         // Given
-        TransactionActionTable action = actionService.createAction(
-                testUser,
-                testTransaction.getTransactionId(),
-                "Action to delete",
-                null,
-                null,
-                null,
-                "MEDIUM"
-        );
+        final TransactionActionTable action =
+                actionService.createAction(
+                        testUser,
+                        testTransaction.getTransactionId(),
+                        "Action to delete",
+                        null,
+                        null,
+                        null,
+                        "MEDIUM");
 
         // When
         actionService.deleteAction(testUser, action.getActionId());
 
         // Then
-        List<TransactionActionTable> actions = actionService.getActionsByTransactionId(
-                testUser, testTransaction.getTransactionId());
+        final List<TransactionActionTable> actions =
+                actionService.getActionsByTransactionId(
+                        testUser, testTransaction.getTransactionId());
         assertFalse(actions.stream().anyMatch(a -> a.getActionId().equals(action.getActionId())));
     }
 
     @Test
-    void testGetActionsByTransactionId_ReturnsOnlyActionsForTransaction() {
+    void testGetActionsByTransactionIdReturnsOnlyActionsForTransaction() {
         // Given
-        TransactionTable transaction2 = transactionService.createTransaction(
-                testUser,
-                testAccount.getAccountId(),
-                BigDecimal.valueOf(200.00),
-                LocalDate.now(),
-                "Second transaction",
-                "TRANSPORTATION"
-        );
+        final TransactionTable transaction2 =
+                transactionService.createTransaction(
+                        testUser,
+                        testAccount.getAccountId(),
+                        BigDecimal.valueOf(200.00),
+                        LocalDate.now(),
+                        "Second transaction",
+                        "TRANSPORTATION");
 
-        TransactionActionTable action1 = actionService.createAction(
-                testUser,
-                testTransaction.getTransactionId(),
-                "Action 1",
-                null,
-                null,
-                null,
-                "MEDIUM"
-        );
+        final TransactionActionTable action1 =
+                actionService.createAction(
+                        testUser,
+                        testTransaction.getTransactionId(),
+                        "Action 1",
+                        null,
+                        null,
+                        null,
+                        "MEDIUM");
 
-        TransactionActionTable action2 = actionService.createAction(
-                testUser,
-                transaction2.getTransactionId(),
-                "Action 2",
-                null,
-                null,
-                null,
-                "MEDIUM"
-        );
+        final TransactionActionTable action2 =
+                actionService.createAction(
+                        testUser,
+                        transaction2.getTransactionId(),
+                        "Action 2",
+                        null,
+                        null,
+                        null,
+                        "MEDIUM");
 
         // When
-        List<TransactionActionTable> tx1Actions = actionService.getActionsByTransactionId(
-                testUser, testTransaction.getTransactionId());
-        List<TransactionActionTable> tx2Actions = actionService.getActionsByTransactionId(
-                testUser, transaction2.getTransactionId());
+        final List<TransactionActionTable> tx1Actions =
+                actionService.getActionsByTransactionId(
+                        testUser, testTransaction.getTransactionId());
+        final List<TransactionActionTable> tx2Actions =
+                actionService.getActionsByTransactionId(testUser, transaction2.getTransactionId());
 
         // Then
         assertEquals(1, tx1Actions.size());
@@ -292,16 +280,16 @@ class TransactionActionIntegrationTest {
     }
 
     @Test
-    void testGetActionsByUserId_ReturnsAllUserActions() {
+    void testGetActionsByUserIdReturnsAllUserActions() {
         // Given
-        TransactionTable transaction2 = transactionService.createTransaction(
-                testUser,
-                testAccount.getAccountId(),
-                BigDecimal.valueOf(200.00),
-                LocalDate.now(),
-                "Second transaction",
-                "TRANSPORTATION"
-        );
+        final TransactionTable transaction2 =
+                transactionService.createTransaction(
+                        testUser,
+                        testAccount.getAccountId(),
+                        BigDecimal.valueOf(200.00),
+                        LocalDate.now(),
+                        "Second transaction",
+                        "TRANSPORTATION");
 
         actionService.createAction(
                 testUser,
@@ -310,77 +298,73 @@ class TransactionActionIntegrationTest {
                 null,
                 null,
                 null,
-                "MEDIUM"
-        );
+                "MEDIUM");
 
         actionService.createAction(
-                testUser,
-                transaction2.getTransactionId(),
-                "Action 2",
-                null,
-                null,
-                null,
-                "MEDIUM"
-        );
+                testUser, transaction2.getTransactionId(), "Action 2", null, null, null, "MEDIUM");
 
         // When
-        List<TransactionActionTable> allActions = actionService.getActionsByUserId(testUser);
+        final List<TransactionActionTable> allActions = actionService.getActionsByUserId(testUser);
 
         // Then
         assertTrue(allActions.size() >= 2);
     }
 
     @Test
-    void testCreateAction_WithNonExistentTransaction_ThrowsException() {
+    void testCreateActionWithNonExistentTransactionThrowsException() {
         // When/Then
-        assertThrows(AppException.class, () -> actionService.createAction(
-                testUser,
-                UUID.randomUUID().toString(),
-                "Title",
-                null,
-                null,
-                null,
-                "MEDIUM"
-        ));
+        assertThrows(
+                AppException.class,
+                () ->
+                        actionService.createAction(
+                                testUser,
+                                UUID.randomUUID().toString(),
+                                "Title",
+                                null,
+                                null,
+                                null,
+                                "MEDIUM"));
     }
 
     @Test
-    void testCreateAction_WithEmptyTitle_ThrowsException() {
+    void testCreateActionWithEmptyTitleThrowsException() {
         // When/Then
-        assertThrows(AppException.class, () -> actionService.createAction(
-                testUser,
-                testTransaction.getTransactionId(),
-                "",
-                null,
-                null,
-                null,
-                null
-        ));
+        assertThrows(
+                AppException.class,
+                () ->
+                        actionService.createAction(
+                                testUser,
+                                testTransaction.getTransactionId(),
+                                "",
+                                null,
+                                null,
+                                null,
+                                null));
     }
 
     @Test
-    void testUpdateAction_WithNonExistentAction_ThrowsException() {
+    void testUpdateActionWithNonExistentActionThrowsException() {
         // When/Then
-        assertThrows(AppException.class, () -> actionService.updateAction(
-                testUser,
-                UUID.randomUUID().toString(),
-                "Title",
-                null,
-                null,
-                null,
-                null,
-                null,
-                null
-        ));
+        assertThrows(
+                AppException.class,
+                () ->
+                        actionService.updateAction(
+                                testUser,
+                                UUID.randomUUID().toString(),
+                                "Title",
+                                null,
+                                null,
+                                null,
+                                null,
+                                null,
+                                null));
     }
 
     @Test
-    void testDeleteAction_WithNonExistentAction_ThrowsException() {
+    void testDeleteActionWithNonExistentActionThrowsException() {
         // When/Then
-        assertThrows(AppException.class, () -> actionService.deleteAction(
-                testUser,
-                UUID.randomUUID().toString()
-        ));
+        assertThrows(
+                AppException.class,
+                () -> actionService.deleteAction(testUser, UUID.randomUUID().toString()));
     }
 }
-

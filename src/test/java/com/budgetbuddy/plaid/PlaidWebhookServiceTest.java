@@ -1,5 +1,21 @@
 package com.budgetbuddy.plaid;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.anyString;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
@@ -14,6 +30,16 @@ import com.budgetbuddy.repository.dynamodb.TransactionRepository;
 import com.budgetbuddy.repository.dynamodb.UserRepository;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Base64;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -23,61 +49,50 @@ import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 import org.slf4j.LoggerFactory;
 
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
-import java.nio.charset.StandardCharsets;
-import java.util.*;
-import java.util.Base64;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
-
-/**
- * Unit Tests for Plaid Webhook Service
- */
+/** Unit Tests for Plaid Webhook Service */
+// PMD's LawOfDemeter is documented as imprecise on chains involving
+// standard library types (BigDecimal, String, Optional) and DTO
+// getters; this class has many such idiomatic uses. Suppress at
+// class level rather than littering every method.
+@SuppressWarnings("PMD.LawOfDemeter")
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
 class PlaidWebhookServiceTest {
 
-    @Mock
-    private UserRepository userRepository;
+    @Mock private UserRepository userRepository;
 
-    @Mock
-    private AccountRepository accountRepository;
+    @Mock private AccountRepository accountRepository;
 
-    @Mock
-    private TransactionRepository transactionRepository;
+    @Mock private TransactionRepository transactionRepository;
 
-    @Mock
-    private NotificationService notificationService;
+    @Mock private NotificationService notificationService;
 
-    @Mock
-    private SecretsManagerService secretsManagerService;
+    @Mock private SecretsManagerService secretsManagerService;
 
-    @Mock
-    private ObjectMapper objectMapper;
+    @Mock private ObjectMapper objectMapper;
 
     private PlaidWebhookService service;
     private String webhookSecret = "test-webhook-secret";
-    
+
     private ListAppender<ILoggingEvent> logAppender;
     private Logger logger;
 
     @BeforeEach
     void setUp() throws Exception {
-        service = new PlaidWebhookService(
-                userRepository,
-                accountRepository,
-                transactionRepository,
-                notificationService,
-                secretsManagerService,
-                objectMapper
-        );
-        
+        service =
+                new PlaidWebhookService(
+                        userRepository,
+                        accountRepository,
+                        transactionRepository,
+                        notificationService,
+                        secretsManagerService,
+                        objectMapper);
+
         // Use lenient stubbing to avoid unnecessary stubbing errors
-        lenient().when(secretsManagerService.getSecret("plaid/webhook_secret", "")).thenReturn(webhookSecret);
-        
+        lenient()
+                .when(secretsManagerService.getSecret("plaid/webhook_secret", ""))
+                .thenReturn(webhookSecret);
+
         // Set up log appender to capture log events for verification
         logger = (Logger) LoggerFactory.getLogger(PlaidWebhookService.class);
         logAppender = new ListAppender<>();
@@ -86,924 +101,1000 @@ class PlaidWebhookServiceTest {
     }
 
     @Test
-    void testVerifyWebhookSignature_WithValidSignature_ReturnsTrue() throws Exception {
+    void testVerifyWebhookSignatureWithValidSignatureReturnsTrue() throws Exception {
         // Given
-        Map<String, Object> payload = new HashMap<>();
+        final Map<String, Object> payload = new HashMap<>();
         payload.put("webhook_code", "INITIAL_UPDATE");
         payload.put("item_id", "item-123");
-        
-        String payloadJson = "{\"webhook_code\":\"INITIAL_UPDATE\",\"item_id\":\"item-123\"}";
+
+        final String payloadJson = "{\"webhook_code\":\"INITIAL_UPDATE\",\"item_id\":\"item-123\"}";
         when(objectMapper.writeValueAsString(payload)).thenReturn(payloadJson);
-        
+
         // Calculate expected signature
-        Mac mac = Mac.getInstance("HmacSHA256");
-        SecretKeySpec secretKeySpec = new SecretKeySpec(webhookSecret.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
+        final Mac mac = Mac.getInstance("HmacSHA256");
+        final SecretKeySpec secretKeySpec =
+                new SecretKeySpec(webhookSecret.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
         mac.init(secretKeySpec);
-        byte[] signatureBytes = mac.doFinal(payloadJson.getBytes(StandardCharsets.UTF_8));
-        String expectedSignature = Base64.getEncoder().encodeToString(signatureBytes);
-        
+        final byte[] signatureBytes = mac.doFinal(payloadJson.getBytes(StandardCharsets.UTF_8));
+        final String expectedSignature = Base64.getEncoder().encodeToString(signatureBytes);
+
         // When
-        boolean isValid = service.verifyWebhookSignature(payload, expectedSignature);
-        
+        final boolean isValid = service.verifyWebhookSignature(payload, expectedSignature);
+
         // Then
         assertTrue(isValid);
     }
 
     @Test
-    void testVerifyWebhookSignature_WithInvalidSignature_ReturnsFalse() throws Exception {
+    void testVerifyWebhookSignatureWithInvalidSignatureReturnsFalse() throws Exception {
         // Given
-        Map<String, Object> payload = new HashMap<>();
+        final Map<String, Object> payload = new HashMap<>();
         payload.put("webhook_code", "INITIAL_UPDATE");
-        
-        String payloadJson = "{\"webhook_code\":\"INITIAL_UPDATE\"}";
+
+        final String payloadJson = "{\"webhook_code\":\"INITIAL_UPDATE\"}";
         when(objectMapper.writeValueAsString(payload)).thenReturn(payloadJson);
-        
+
         // When
-        boolean isValid = service.verifyWebhookSignature(payload, "invalid-signature");
-        
+        final boolean isValid = service.verifyWebhookSignature(payload, "invalid-signature");
+
         // Then
         assertFalse(isValid);
     }
 
     @Test
-    void testVerifyWebhookSignature_WithNullHeader_ReturnsFalse() {
+    void testVerifyWebhookSignatureWithNullHeaderReturnsFalse() {
         // When
-        boolean isValid = service.verifyWebhookSignature(new HashMap<>(), null);
-        
+        final boolean isValid = service.verifyWebhookSignature(new HashMap<>(), null);
+
         // Then
         assertFalse(isValid);
     }
 
     @Test
-    void testVerifyWebhookSignature_WithEmptyHeader_ReturnsFalse() {
+    void testVerifyWebhookSignatureWithEmptyHeaderReturnsFalse() {
         // When
-        boolean isValid = service.verifyWebhookSignature(new HashMap<>(), "");
-        
+        final boolean isValid = service.verifyWebhookSignature(new HashMap<>(), "");
+
         // Then
         assertFalse(isValid);
     }
 
     @Test
-    void testVerifyWebhookSignature_WithMissingSecret_ReturnsFalse() throws Exception {
+    void testVerifyWebhookSignatureWithMissingSecretReturnsFalse() throws Exception {
         // Given
         // Override the lenient stubbing from setUp - use lenient here too to avoid conflicts
         lenient().when(secretsManagerService.getSecret("plaid/webhook_secret", "")).thenReturn("");
-        
-        Map<String, Object> payload = new HashMap<>();
-        String payloadJson = "{}";
+
+        final Map<String, Object> payload = new HashMap<>();
+        final String payloadJson = "{}";
         when(objectMapper.writeValueAsString(payload)).thenReturn(payloadJson);
-        
+
         // When
-        boolean isValid = service.verifyWebhookSignature(payload, "signature");
-        
+        final boolean isValid = service.verifyWebhookSignature(payload, "signature");
+
         // Then
         assertFalse(isValid);
     }
 
     @Test
-    void testHandleTransactionWebhook_WithInitialUpdate_CallsSyncTransactions() {
+    void testHandleTransactionWebhookWithInitialUpdateCallsSyncTransactions() {
         // Given
-        Map<String, Object> payload = new HashMap<>();
+        final Map<String, Object> payload = new HashMap<>();
         payload.put("webhook_code", "INITIAL_UPDATE");
         payload.put("item_id", "item-123");
-        
-        UserTable user = new UserTable();
+
+        final UserTable user = new UserTable();
         user.setUserId("user-123");
         user.setEmail("test@example.com");
-        
-        AccountTable account = new AccountTable();
+
+        final AccountTable account = new AccountTable();
         account.setAccountId("account-123");
         account.setUserId("user-123");
         account.setPlaidItemId("item-123");
-        
+
         when(accountRepository.findByPlaidItemId("item-123")).thenReturn(List.of(account));
         when(userRepository.findById("user-123")).thenReturn(Optional.of(user));
-        
+
         // When
         service.handleTransactionWebhook(payload);
-        
+
         // Then - Should not throw exception
-        assertDoesNotThrow(() -> {
-            service.handleTransactionWebhook(payload);
-        });
+        assertDoesNotThrow(
+                () -> {
+                    service.handleTransactionWebhook(payload);
+                });
     }
 
     @Test
-    void testHandleTransactionWebhook_WithHistoricalUpdate_CallsSyncTransactions() {
+    void testHandleTransactionWebhookWithHistoricalUpdateCallsSyncTransactions() {
         // Given
-        Map<String, Object> payload = new HashMap<>();
+        final Map<String, Object> payload = new HashMap<>();
         payload.put("webhook_code", "HISTORICAL_UPDATE");
         payload.put("item_id", "item-123");
-        
+
         // When/Then
-        assertDoesNotThrow(() -> {
-            service.handleTransactionWebhook(payload);
-        });
+        assertDoesNotThrow(
+                () -> {
+                    service.handleTransactionWebhook(payload);
+                });
     }
 
     @Test
-    void testHandleTransactionWebhook_WithDefaultUpdate_CallsSyncNewTransactions() {
+    void testHandleTransactionWebhookWithDefaultUpdateCallsSyncNewTransactions() {
         // Given
-        Map<String, Object> payload = new HashMap<>();
+        final Map<String, Object> payload = new HashMap<>();
         payload.put("webhook_code", "DEFAULT_UPDATE");
         payload.put("item_id", "item-123");
-        
+
         // When/Then
-        assertDoesNotThrow(() -> {
-            service.handleTransactionWebhook(payload);
-        });
+        assertDoesNotThrow(
+                () -> {
+                    service.handleTransactionWebhook(payload);
+                });
     }
 
     @Test
-    void testHandleTransactionWebhook_WithTransactionsRemoved_HandlesRemoval() {
+    void testHandleTransactionWebhookWithTransactionsRemovedHandlesRemoval() {
         // Given
-        Map<String, Object> payload = new HashMap<>();
+        final Map<String, Object> payload = new HashMap<>();
         payload.put("webhook_code", "TRANSACTIONS_REMOVED");
         payload.put("item_id", "item-123");
         payload.put("removed_transactions", List.of("txn-123", "txn-456"));
-        
-        UserTable user = new UserTable();
+
+        final UserTable user = new UserTable();
         user.setUserId("user-123");
-        
-        AccountTable account = new AccountTable();
+
+        final AccountTable account = new AccountTable();
         account.setUserId("user-123");
-        
-        TransactionTable transaction = new TransactionTable();
+
+        final TransactionTable transaction = new TransactionTable();
         transaction.setTransactionId("txn-123");
         transaction.setUserId("user-123");
         transaction.setPlaidTransactionId("txn-123");
-        
+
         when(accountRepository.findByPlaidItemId("item-123")).thenReturn(List.of(account));
         when(userRepository.findById("user-123")).thenReturn(Optional.of(user));
-        when(transactionRepository.findByPlaidTransactionId("txn-123")).thenReturn(Optional.of(transaction));
-        when(transactionRepository.findByPlaidTransactionId("txn-456")).thenReturn(Optional.empty());
-        
+        when(transactionRepository.findByPlaidTransactionId("txn-123"))
+                .thenReturn(Optional.of(transaction));
+        when(transactionRepository.findByPlaidTransactionId("txn-456"))
+                .thenReturn(Optional.empty());
+
         // When
         service.handleTransactionWebhook(payload);
-        
+
         // Then - Should not throw exception
         verify(transactionRepository, atLeastOnce()).findByPlaidTransactionId(anyString());
     }
 
     @Test
-    void testHandleItemWebhook_WithError_HandlesError() {
+    void testHandleItemWebhookWithErrorHandlesError() {
         // Given
-        Map<String, Object> payload = new HashMap<>();
+        final Map<String, Object> payload = new HashMap<>();
         payload.put("webhook_code", "ERROR");
         payload.put("item_id", "item-123");
         payload.put("error_code", "ITEM_LOGIN_REQUIRED");
         payload.put("error_message", "User needs to re-authenticate");
-        
-        UserTable user = new UserTable();
+
+        final UserTable user = new UserTable();
         user.setUserId("user-123");
         user.setEmail("test@example.com");
-        
-        AccountTable account = new AccountTable();
+
+        final AccountTable account = new AccountTable();
         account.setUserId("user-123");
-        
+
         when(accountRepository.findByPlaidItemId("item-123")).thenReturn(List.of(account));
         when(userRepository.findById("user-123")).thenReturn(Optional.of(user));
-        when(notificationService.sendNotification(any(NotificationService.NotificationRequest.class)))
+        when(notificationService.sendNotification(
+                        any(NotificationService.NotificationRequest.class)))
                 .thenReturn(new NotificationService.NotificationResult(true, "success"));
-        
+
         // When
         service.handleItemWebhook(payload);
-        
+
         // Then
-        verify(notificationService).sendNotification(any(NotificationService.NotificationRequest.class));
+        verify(notificationService)
+                .sendNotification(any(NotificationService.NotificationRequest.class));
     }
 
     @Test
-    void testHandleItemWebhook_WithPendingExpiration_HandlesExpiration() {
+    void testHandleItemWebhookWithPendingExpirationHandlesExpiration() {
         // Given
-        Map<String, Object> payload = new HashMap<>();
+        final Map<String, Object> payload = new HashMap<>();
         payload.put("webhook_code", "PENDING_EXPIRATION");
         payload.put("item_id", "item-123");
-        
-        UserTable user = new UserTable();
+
+        final UserTable user = new UserTable();
         user.setUserId("user-123");
         user.setEmail("test@example.com");
-        
-        AccountTable account = new AccountTable();
+
+        final AccountTable account = new AccountTable();
         account.setUserId("user-123");
-        
+
         when(accountRepository.findByPlaidItemId("item-123")).thenReturn(List.of(account));
         when(userRepository.findById("user-123")).thenReturn(Optional.of(user));
-        when(notificationService.sendNotification(any(NotificationService.NotificationRequest.class)))
+        when(notificationService.sendNotification(
+                        any(NotificationService.NotificationRequest.class)))
                 .thenReturn(new NotificationService.NotificationResult(true, "success"));
-        
+
         // When
         service.handleItemWebhook(payload);
-        
+
         // Then
-        verify(notificationService).sendNotification(any(NotificationService.NotificationRequest.class));
+        verify(notificationService)
+                .sendNotification(any(NotificationService.NotificationRequest.class));
     }
 
     @Test
-    void testHandleItemWebhook_WithPermissionRevoked_DeactivatesAccounts() {
+    void testHandleItemWebhookWithPermissionRevokedDeactivatesAccounts() {
         // Given
-        Map<String, Object> payload = new HashMap<>();
+        final Map<String, Object> payload = new HashMap<>();
         payload.put("webhook_code", "USER_PERMISSION_REVOKED");
         payload.put("item_id", "item-123");
-        
-        UserTable user = new UserTable();
+
+        final UserTable user = new UserTable();
         user.setUserId("user-123");
         user.setEmail("test@example.com");
-        
-        AccountTable account = new AccountTable();
+
+        final AccountTable account = new AccountTable();
         account.setAccountId("account-123");
         account.setUserId("user-123");
         account.setActive(true);
-        
+
         when(accountRepository.findByPlaidItemId("item-123")).thenReturn(List.of(account));
         when(userRepository.findById("user-123")).thenReturn(Optional.of(user));
-        when(notificationService.sendNotification(any(NotificationService.NotificationRequest.class)))
+        when(notificationService.sendNotification(
+                        any(NotificationService.NotificationRequest.class)))
                 .thenReturn(new NotificationService.NotificationResult(true, "success"));
-        
+
         // When
         service.handleItemWebhook(payload);
-        
+
         // Then
         verify(accountRepository).save(any(AccountTable.class));
-        verify(notificationService).sendNotification(any(NotificationService.NotificationRequest.class));
+        verify(notificationService)
+                .sendNotification(any(NotificationService.NotificationRequest.class));
     }
 
     @Test
-    void testHandleAuthWebhook_LogsEvent() {
+    void testHandleAuthWebhookLogsEvent() {
         // Given
-        Map<String, Object> payload = new HashMap<>();
+        final Map<String, Object> payload = new HashMap<>();
         payload.put("webhook_code", "AUTH");
         payload.put("item_id", "item-123");
-        
+
         // When/Then
-        assertDoesNotThrow(() -> {
-            service.handleAuthWebhook(payload);
-        });
+        assertDoesNotThrow(
+                () -> {
+                    service.handleAuthWebhook(payload);
+                });
     }
 
     @Test
-    void testHandleIncomeWebhook_LogsEvent() {
+    void testHandleIncomeWebhookLogsEvent() {
         // Given
-        Map<String, Object> payload = new HashMap<>();
+        final Map<String, Object> payload = new HashMap<>();
         payload.put("webhook_code", "INCOME");
         payload.put("item_id", "item-123");
-        
+
         // When/Then
-        assertDoesNotThrow(() -> {
-            service.handleIncomeWebhook(payload);
-        });
+        assertDoesNotThrow(
+                () -> {
+                    service.handleIncomeWebhook(payload);
+                });
     }
 
     @Test
-    void testHandleTransactionWebhook_WithMissingItemId_HandlesGracefully() {
+    void testHandleTransactionWebhookWithMissingItemIdHandlesGracefully() {
         // Given
-        Map<String, Object> payload = new HashMap<>();
+        final Map<String, Object> payload = new HashMap<>();
         payload.put("webhook_code", "INITIAL_UPDATE");
         // Missing item_id
-        
+
         // When/Then
-        assertDoesNotThrow(() -> {
-            service.handleTransactionWebhook(payload);
-        });
+        assertDoesNotThrow(
+                () -> {
+                    service.handleTransactionWebhook(payload);
+                });
     }
 
     @Test
-    void testHandleTransactionWebhook_WithUnknownCode_LogsWarning() {
+    void testHandleTransactionWebhookWithUnknownCodeLogsWarning() {
         // Given
-        Map<String, Object> payload = new HashMap<>();
+        final Map<String, Object> payload = new HashMap<>();
         payload.put("webhook_code", "UNKNOWN_CODE");
         payload.put("item_id", "item-123");
-        
+
         // When/Then
-        assertDoesNotThrow(() -> {
-            service.handleTransactionWebhook(payload);
-        });
+        assertDoesNotThrow(
+                () -> {
+                    service.handleTransactionWebhook(payload);
+                });
     }
 
     @Test
-    void testHandleItemWebhook_WithMissingItemId_HandlesGracefully() {
+    void testHandleItemWebhookWithMissingItemIdHandlesGracefully() {
         // Given
-        Map<String, Object> payload = new HashMap<>();
+        final Map<String, Object> payload = new HashMap<>();
         payload.put("webhook_code", "ERROR");
         // Missing item_id
-        
+
         // When/Then
-        assertDoesNotThrow(() -> {
-            service.handleItemWebhook(payload);
-        });
+        assertDoesNotThrow(
+                () -> {
+                    service.handleItemWebhook(payload);
+                });
     }
 
     @Test
-    void testHandleItemWebhook_WithUnknownCode_LogsWarning() {
+    void testHandleItemWebhookWithUnknownCodeLogsWarning() {
         // Given
-        Map<String, Object> payload = new HashMap<>();
+        final Map<String, Object> payload = new HashMap<>();
         payload.put("webhook_code", "UNKNOWN_ITEM_CODE");
         payload.put("item_id", "item-123");
-        
+
         // When/Then
-        assertDoesNotThrow(() -> {
-            service.handleItemWebhook(payload);
-        });
+        assertDoesNotThrow(
+                () -> {
+                    service.handleItemWebhook(payload);
+                });
     }
 
     @Test
-    void testHandleTransactionsRemoved_WithEmptyList_HandlesGracefully() {
+    void testHandleTransactionsRemovedWithEmptyListHandlesGracefully() {
         // Given
-        Map<String, Object> payload = new HashMap<>();
+        final Map<String, Object> payload = new HashMap<>();
         payload.put("webhook_code", "TRANSACTIONS_REMOVED");
         payload.put("item_id", "item-123");
         payload.put("removed_transactions", new ArrayList<>());
-        
-        UserTable user = new UserTable();
+
+        final UserTable user = new UserTable();
         user.setUserId("user-123");
-        
-        AccountTable account = new AccountTable();
+
+        final AccountTable account = new AccountTable();
         account.setUserId("user-123");
-        
+
         when(accountRepository.findByPlaidItemId("item-123")).thenReturn(List.of(account));
         when(userRepository.findById("user-123")).thenReturn(Optional.of(user));
-        
+
         // When/Then
-        assertDoesNotThrow(() -> {
-            service.handleTransactionWebhook(payload);
-        });
+        assertDoesNotThrow(
+                () -> {
+                    service.handleTransactionWebhook(payload);
+                });
     }
 
     @Test
-    void testHandleTransactionsRemoved_WithNullList_HandlesGracefully() {
+    void testHandleTransactionsRemovedWithNullListHandlesGracefully() {
         // Given
-        Map<String, Object> payload = new HashMap<>();
+        final Map<String, Object> payload = new HashMap<>();
         payload.put("webhook_code", "TRANSACTIONS_REMOVED");
         payload.put("item_id", "item-123");
         payload.put("removed_transactions", null);
-        
+
         // When/Then
-        assertDoesNotThrow(() -> {
-            service.handleTransactionWebhook(payload);
-        });
+        assertDoesNotThrow(
+                () -> {
+                    service.handleTransactionWebhook(payload);
+                });
     }
 
     @Test
-    void testHandleTransactionsRemoved_WithTransactionNotBelongingToUser_SkipsDeletion() {
+    void testHandleTransactionsRemovedWithTransactionNotBelongingToUserSkipsDeletion() {
         // Given
-        Map<String, Object> payload = new HashMap<>();
+        final Map<String, Object> payload = new HashMap<>();
         payload.put("webhook_code", "TRANSACTIONS_REMOVED");
         payload.put("item_id", "item-123");
         payload.put("removed_transactions", List.of("txn-123"));
-        
-        UserTable user = new UserTable();
+
+        final UserTable user = new UserTable();
         user.setUserId("user-123");
-        
-        AccountTable account = new AccountTable();
+
+        final AccountTable account = new AccountTable();
         account.setUserId("user-123");
-        
-        TransactionTable transaction = new TransactionTable();
+
+        final TransactionTable transaction = new TransactionTable();
         transaction.setTransactionId("txn-123");
         transaction.setUserId("different-user"); // Different user
         transaction.setPlaidTransactionId("txn-123");
-        
+
         when(accountRepository.findByPlaidItemId("item-123")).thenReturn(List.of(account));
         when(userRepository.findById("user-123")).thenReturn(Optional.of(user));
-        when(transactionRepository.findByPlaidTransactionId("txn-123")).thenReturn(Optional.of(transaction));
-        
+        when(transactionRepository.findByPlaidTransactionId("txn-123"))
+                .thenReturn(Optional.of(transaction));
+
         // When
         service.handleTransactionWebhook(payload);
-        
+
         // Then - Should not delete transaction belonging to different user
         verify(transactionRepository, never()).delete(anyString());
     }
 
     @Test
-    void testHandleItemError_WithMissingUser_HandlesGracefully() {
+    void testHandleItemErrorWithMissingUserHandlesGracefully() {
         // Given
-        Map<String, Object> payload = new HashMap<>();
+        final Map<String, Object> payload = new HashMap<>();
         payload.put("webhook_code", "ERROR");
         payload.put("item_id", "item-123");
         payload.put("error_code", "ITEM_LOGIN_REQUIRED");
         payload.put("error_message", "User needs to re-authenticate");
-        
+
         when(accountRepository.findByPlaidItemId("item-123")).thenReturn(Collections.emptyList());
-        
+
         // When/Then
-        assertDoesNotThrow(() -> {
-            service.handleItemWebhook(payload);
-        });
+        assertDoesNotThrow(
+                () -> {
+                    service.handleItemWebhook(payload);
+                });
     }
 
     @Test
-    void testHandlePendingExpiration_WithMissingUser_HandlesGracefully() {
+    void testHandlePendingExpirationWithMissingUserHandlesGracefully() {
         // Given
-        Map<String, Object> payload = new HashMap<>();
+        final Map<String, Object> payload = new HashMap<>();
         payload.put("webhook_code", "PENDING_EXPIRATION");
         payload.put("item_id", "item-123");
-        
+
         when(accountRepository.findByPlaidItemId("item-123")).thenReturn(Collections.emptyList());
-        
+
         // When/Then
-        assertDoesNotThrow(() -> {
-            service.handleItemWebhook(payload);
-        });
+        assertDoesNotThrow(
+                () -> {
+                    service.handleItemWebhook(payload);
+                });
     }
 
     @Test
-    void testHandlePermissionRevoked_WithMissingUser_HandlesGracefully() {
+    void testHandlePermissionRevokedWithMissingUserHandlesGracefully() {
         // Given
-        Map<String, Object> payload = new HashMap<>();
+        final Map<String, Object> payload = new HashMap<>();
         payload.put("webhook_code", "USER_PERMISSION_REVOKED");
         payload.put("item_id", "item-123");
-        
+
         when(accountRepository.findByPlaidItemId("item-123")).thenReturn(Collections.emptyList());
-        
+
         // When/Then
-        assertDoesNotThrow(() -> {
-            service.handleItemWebhook(payload);
-        });
+        assertDoesNotThrow(
+                () -> {
+                    service.handleItemWebhook(payload);
+                });
     }
 
     @Test
-    void testHandlePermissionRevoked_WithNoAccounts_HandlesGracefully() {
+    void testHandlePermissionRevokedWithNoAccountsHandlesGracefully() {
         // Given
-        Map<String, Object> payload = new HashMap<>();
+        final Map<String, Object> payload = new HashMap<>();
         payload.put("webhook_code", "USER_PERMISSION_REVOKED");
         payload.put("item_id", "item-123");
-        
-        UserTable user = new UserTable();
+
+        final UserTable user = new UserTable();
         user.setUserId("user-123");
         user.setEmail("test@example.com");
-        
-        AccountTable account = new AccountTable();
+
+        final AccountTable account = new AccountTable();
         account.setUserId("user-123");
-        
+
         when(accountRepository.findByPlaidItemId("item-123")).thenReturn(Collections.emptyList());
         when(userRepository.findById("user-123")).thenReturn(Optional.of(user));
-        
+
         // When/Then
-        assertDoesNotThrow(() -> {
-            service.handleItemWebhook(payload);
-        });
+        assertDoesNotThrow(
+                () -> {
+                    service.handleItemWebhook(payload);
+                });
     }
 
     @Test
-    void testSyncTransactionsForItem_WithNoAccounts_HandlesGracefully() {
+    void testSyncTransactionsForItemWithNoAccountsHandlesGracefully() {
         // Given
-        Map<String, Object> payload = new HashMap<>();
+        final Map<String, Object> payload = new HashMap<>();
         payload.put("webhook_code", "INITIAL_UPDATE");
         payload.put("item_id", "item-123");
-        
+
         when(accountRepository.findByPlaidItemId("item-123")).thenReturn(Collections.emptyList());
-        
+
         // When/Then
-        assertDoesNotThrow(() -> {
-            service.handleTransactionWebhook(payload);
-        });
+        assertDoesNotThrow(
+                () -> {
+                    service.handleTransactionWebhook(payload);
+                });
     }
 
     @Test
-    void testSyncNewTransactionsForItem_WithNoAccounts_HandlesGracefully() {
+    void testSyncNewTransactionsForItemWithNoAccountsHandlesGracefully() {
         // Given
-        Map<String, Object> payload = new HashMap<>();
+        final Map<String, Object> payload = new HashMap<>();
         payload.put("webhook_code", "DEFAULT_UPDATE");
         payload.put("item_id", "item-123");
-        
+
         when(accountRepository.findByPlaidItemId("item-123")).thenReturn(Collections.emptyList());
-        
+
         // When/Then
-        assertDoesNotThrow(() -> {
-            service.handleTransactionWebhook(payload);
-        });
+        assertDoesNotThrow(
+                () -> {
+                    service.handleTransactionWebhook(payload);
+                });
     }
 
     @Test
-    void testVerifyWebhookSignature_WithSignatureLengthMismatch_ReturnsFalse() throws Exception {
+    void testVerifyWebhookSignatureWithSignatureLengthMismatchReturnsFalse() throws Exception {
         // Given
-        Map<String, Object> payload = new HashMap<>();
+        final Map<String, Object> payload = new HashMap<>();
         payload.put("webhook_code", "INITIAL_UPDATE");
-        
-        String payloadJson = "{\"webhook_code\":\"INITIAL_UPDATE\"}";
+
+        final String payloadJson = "{\"webhook_code\":\"INITIAL_UPDATE\"}";
         when(objectMapper.writeValueAsString(payload)).thenReturn(payloadJson);
-        
+
         // When - Signature with different length
-        boolean isValid = service.verifyWebhookSignature(payload, "short");
-        
+        final boolean isValid = service.verifyWebhookSignature(payload, "short");
+
         // Then
         assertFalse(isValid);
     }
 
     @Test
-    void testVerifyWebhookSignature_WithJsonProcessingException_ReturnsFalse() throws Exception {
+    void testVerifyWebhookSignatureWithJsonProcessingExceptionReturnsFalse() throws Exception {
         // Given
-        Map<String, Object> payload = new HashMap<>();
+        final Map<String, Object> payload = new HashMap<>();
         // Use JsonMappingException which is a concrete subclass of JsonProcessingException
         // Use the non-deprecated constructor that takes a message and a cause
-        when(objectMapper.writeValueAsString(payload)).thenThrow(new JsonMappingException(null, "Error"));
-        
+        when(objectMapper.writeValueAsString(payload))
+                .thenThrow(new JsonMappingException(null, "Error"));
+
         // When
-        boolean isValid = service.verifyWebhookSignature(payload, "signature");
-        
+        final boolean isValid = service.verifyWebhookSignature(payload, "signature");
+
         // Then
         assertFalse(isValid);
-        
+
         // Verify logging behavior - should log WARN for handled failures (returns false gracefully)
-        List<ILoggingEvent> logEvents = logAppender.list;
-        long warnLogs = logEvents.stream()
-                .filter(event -> event.getLevel() == Level.WARN 
-                        && event.getMessage().contains("Error verifying webhook signature"))
-                .count();
-        
-        assertEquals(1, warnLogs, "Should log WARN when webhook signature verification fails (handled gracefully)");
-        
+        final List<ILoggingEvent> logEvents = logAppender.list;
+        final long warnLogs =
+                logEvents.stream()
+                        .filter(
+                                event ->
+                                        event.getLevel() == Level.WARN
+                                                && event.getMessage()
+                                                .contains(
+                                                        "Error verifying webhook signature"))
+                        .count();
+
+        assertEquals(
+                1,
+                warnLogs,
+                "Should log WARN when webhook signature verification fails (handled gracefully)");
+
         // Verify WARN log contains expected message
-        boolean foundWarnLog = logEvents.stream()
-                .anyMatch(event -> event.getLevel() == Level.WARN 
-                        && event.getMessage().contains("Error verifying webhook signature")
-                        && event.getMessage().contains("Error"));
+        final boolean foundWarnLog =
+                logEvents.stream()
+                        .anyMatch(
+                                event ->
+                                        event.getLevel() == Level.WARN
+                                                && event.getMessage()
+                                                .contains(
+                                                        "Error verifying webhook signature")
+                                                && event.getMessage().contains("Error"));
         assertTrue(foundWarnLog, "Should log WARN with exception message");
     }
 
     @Test
-    void testHandleItemError_WithNotificationFailure_HandlesGracefully() {
+    void testHandleItemErrorWithNotificationFailureHandlesGracefully() {
         // Given
-        Map<String, Object> payload = new HashMap<>();
+        final Map<String, Object> payload = new HashMap<>();
         payload.put("webhook_code", "ERROR");
         payload.put("item_id", "item-123");
         payload.put("error_code", "ITEM_LOGIN_REQUIRED");
         payload.put("error_message", "User needs to re-authenticate");
-        
-        UserTable user = new UserTable();
+
+        final UserTable user = new UserTable();
         user.setUserId("user-123");
         user.setEmail("test@example.com");
-        
-        AccountTable account = new AccountTable();
+
+        final AccountTable account = new AccountTable();
         account.setUserId("user-123");
-        
+
         when(accountRepository.findByPlaidItemId("item-123")).thenReturn(List.of(account));
         when(userRepository.findById("user-123")).thenReturn(Optional.of(user));
-        when(notificationService.sendNotification(any(NotificationService.NotificationRequest.class)))
+        when(notificationService.sendNotification(
+                        any(NotificationService.NotificationRequest.class)))
                 .thenReturn(new NotificationService.NotificationResult(false, "failed"));
-        
+
         // When/Then
-        assertDoesNotThrow(() -> {
-            service.handleItemWebhook(payload);
-        });
+        assertDoesNotThrow(
+                () -> {
+                    service.handleItemWebhook(payload);
+                });
     }
 
     @Test
-    void testFindUserByItemId_WithNullItemId_ReturnsEmpty() {
+    void testFindUserByItemIdWithNullItemIdReturnsEmpty() {
         // Given - This tests the private findUserByItemId method indirectly
-        Map<String, Object> payload = new HashMap<>();
+        final Map<String, Object> payload = new HashMap<>();
         payload.put("webhook_code", "INITIAL_UPDATE");
         payload.put("item_id", null); // Null item ID
-        
+
         // When/Then - Should handle gracefully
-        assertDoesNotThrow(() -> {
-            service.handleTransactionWebhook(payload);
-        });
+        assertDoesNotThrow(
+                () -> {
+                    service.handleTransactionWebhook(payload);
+                });
     }
 
     @Test
-    void testFindUserByItemId_WithEmptyItemId_ReturnsEmpty() {
+    void testFindUserByItemIdWithEmptyItemIdReturnsEmpty() {
         // Given - This tests the private findUserByItemId method indirectly
-        Map<String, Object> payload = new HashMap<>();
+        final Map<String, Object> payload = new HashMap<>();
         payload.put("webhook_code", "INITIAL_UPDATE");
         payload.put("item_id", ""); // Empty item ID
-        
+
         // When/Then - Should handle gracefully
-        assertDoesNotThrow(() -> {
-            service.handleTransactionWebhook(payload);
-        });
+        assertDoesNotThrow(
+                () -> {
+                    service.handleTransactionWebhook(payload);
+                });
     }
 
     @Test
-    void testFindUserByItemId_WithAccountHavingNullUserId_ReturnsEmpty() {
+    void testFindUserByItemIdWithAccountHavingNullUserIdReturnsEmpty() {
         // Given - Account exists but has null userId
-        Map<String, Object> payload = new HashMap<>();
+        final Map<String, Object> payload = new HashMap<>();
         payload.put("webhook_code", "INITIAL_UPDATE");
         payload.put("item_id", "item-123");
-        
-        AccountTable account = new AccountTable();
+
+        final AccountTable account = new AccountTable();
         account.setAccountId("account-123");
         account.setUserId(null); // Null userId
-        
+
         when(accountRepository.findByPlaidItemId("item-123")).thenReturn(List.of(account));
-        
+
         // When/Then - Should handle gracefully
-        assertDoesNotThrow(() -> {
-            service.handleTransactionWebhook(payload);
-        });
+        assertDoesNotThrow(
+                () -> {
+                    service.handleTransactionWebhook(payload);
+                });
     }
 
     @Test
-    void testFindUserByItemId_WithAccountHavingEmptyUserId_ReturnsEmpty() {
+    void testFindUserByItemIdWithAccountHavingEmptyUserIdReturnsEmpty() {
         // Given - Account exists but has empty userId
-        Map<String, Object> payload = new HashMap<>();
+        final Map<String, Object> payload = new HashMap<>();
         payload.put("webhook_code", "INITIAL_UPDATE");
         payload.put("item_id", "item-123");
-        
-        AccountTable account = new AccountTable();
+
+        final AccountTable account = new AccountTable();
         account.setAccountId("account-123");
         account.setUserId(""); // Empty userId
-        
+
         when(accountRepository.findByPlaidItemId("item-123")).thenReturn(List.of(account));
-        
+
         // When/Then - Should handle gracefully
-        assertDoesNotThrow(() -> {
-            service.handleTransactionWebhook(payload);
-        });
+        assertDoesNotThrow(
+                () -> {
+                    service.handleTransactionWebhook(payload);
+                });
     }
 
     @Test
-    void testFindUserByItemId_WithRepositoryException_HandlesGracefully() {
+    void testFindUserByItemIdWithRepositoryExceptionHandlesGracefully() {
         // Given - Repository throws exception
-        Map<String, Object> payload = new HashMap<>();
+        final Map<String, Object> payload = new HashMap<>();
         payload.put("webhook_code", "INITIAL_UPDATE");
         payload.put("item_id", "item-123");
-        
-        when(accountRepository.findByPlaidItemId("item-123")).thenThrow(new RuntimeException("Database error"));
-        
+
+        when(accountRepository.findByPlaidItemId("item-123"))
+                .thenThrow(new RuntimeException("Database error"));
+
         // When/Then - Should handle gracefully
-        assertDoesNotThrow(() -> {
-            service.handleTransactionWebhook(payload);
-        });
+        assertDoesNotThrow(
+                () -> {
+                    service.handleTransactionWebhook(payload);
+                });
     }
 
     @Test
-    void testHandlePermissionRevoked_WithAccountSaveException_HandlesGracefully() {
+    void testHandlePermissionRevokedWithAccountSaveExceptionHandlesGracefully() {
         // Given
-        Map<String, Object> payload = new HashMap<>();
+        final Map<String, Object> payload = new HashMap<>();
         payload.put("webhook_code", "USER_PERMISSION_REVOKED");
         payload.put("item_id", "item-123");
-        
-        UserTable user = new UserTable();
+
+        final UserTable user = new UserTable();
         user.setUserId("user-123");
         user.setEmail("test@example.com");
-        
-        AccountTable account = new AccountTable();
+
+        final AccountTable account = new AccountTable();
         account.setAccountId("account-123");
         account.setUserId("user-123");
         account.setActive(true);
-        
+
         when(accountRepository.findByPlaidItemId("item-123")).thenReturn(List.of(account));
         when(userRepository.findById("user-123")).thenReturn(Optional.of(user));
-        doThrow(new RuntimeException("Save failed")).when(accountRepository).save(any(AccountTable.class));
-        when(notificationService.sendNotification(any(NotificationService.NotificationRequest.class)))
+        doThrow(new RuntimeException("Save failed"))
+                .when(accountRepository)
+                .save(any(AccountTable.class));
+        when(notificationService.sendNotification(
+                        any(NotificationService.NotificationRequest.class)))
                 .thenReturn(new NotificationService.NotificationResult(true, "success"));
-        
+
         // When/Then - Should handle save exception gracefully
-        assertDoesNotThrow(() -> {
-            service.handleItemWebhook(payload);
-        });
+        assertDoesNotThrow(
+                () -> {
+                    service.handleItemWebhook(payload);
+                });
     }
 
     @Test
-    void testHandleTransactionsRemoved_WithTransactionRepositoryException_HandlesGracefully() {
+    void testHandleTransactionsRemovedWithTransactionRepositoryExceptionHandlesGracefully() {
         // Given
-        Map<String, Object> payload = new HashMap<>();
+        final Map<String, Object> payload = new HashMap<>();
         payload.put("webhook_code", "TRANSACTIONS_REMOVED");
         payload.put("item_id", "item-123");
         payload.put("removed_transactions", List.of("txn-123"));
-        
-        UserTable user = new UserTable();
+
+        final UserTable user = new UserTable();
         user.setUserId("user-123");
-        
-        AccountTable account = new AccountTable();
+
+        final AccountTable account = new AccountTable();
         account.setUserId("user-123");
-        
+
         when(accountRepository.findByPlaidItemId("item-123")).thenReturn(List.of(account));
         when(userRepository.findById("user-123")).thenReturn(Optional.of(user));
-        when(transactionRepository.findByPlaidTransactionId("txn-123")).thenThrow(new RuntimeException("Repository error"));
-        
+        when(transactionRepository.findByPlaidTransactionId("txn-123"))
+                .thenThrow(new RuntimeException("Repository error"));
+
         // When/Then - Should handle exception gracefully
-        assertDoesNotThrow(() -> {
-            service.handleTransactionWebhook(payload);
-        });
+        assertDoesNotThrow(
+                () -> {
+                    service.handleTransactionWebhook(payload);
+                });
     }
 
     @Test
-    void testVerifyWebhookSignature_WithInvalidKeyException_ReturnsFalse() throws Exception {
+    void testVerifyWebhookSignatureWithInvalidKeyExceptionReturnsFalse() throws Exception {
         // Given
-        Map<String, Object> payload = new HashMap<>();
+        final Map<String, Object> payload = new HashMap<>();
         payload.put("webhook_code", "INITIAL_UPDATE");
-        
-        String payloadJson = "{\"webhook_code\":\"INITIAL_UPDATE\"}";
+
+        final String payloadJson = "{\"webhook_code\":\"INITIAL_UPDATE\"}";
         when(objectMapper.writeValueAsString(payload)).thenReturn(payloadJson);
-        
+
         // Mock secretsManagerService to return invalid key
-        lenient().when(secretsManagerService.getSecret("plaid/webhook_secret", "")).thenReturn("\u0000\u0000\u0000"); // Invalid key bytes
-        
+        lenient()
+                .when(secretsManagerService.getSecret("plaid/webhook_secret", ""))
+                .thenReturn("\u0000\u0000\u0000"); // Invalid key bytes
+
         // When
-        boolean isValid = service.verifyWebhookSignature(payload, "signature");
-        
+        final boolean isValid = service.verifyWebhookSignature(payload, "signature");
+
         // Then
         assertFalse(isValid);
     }
 
     @Test
-    void testVerifyWebhookSignature_WithNoSuchAlgorithmException_ReturnsFalse() throws Exception {
+    void testVerifyWebhookSignatureWithNoSuchAlgorithmExceptionReturnsFalse() throws Exception {
         // Given - This is hard to test directly, but we can test the error path
-        Map<String, Object> payload = new HashMap<>();
-        String payloadJson = "{\"webhook_code\":\"INITIAL_UPDATE\"}";
+        final Map<String, Object> payload = new HashMap<>();
+        final String payloadJson = "{\"webhook_code\":\"INITIAL_UPDATE\"}";
         when(objectMapper.writeValueAsString(payload)).thenReturn(payloadJson);
-        lenient().when(secretsManagerService.getSecret("plaid/webhook_secret", "")).thenReturn("test-secret");
-        
+        lenient()
+                .when(secretsManagerService.getSecret("plaid/webhook_secret", ""))
+                .thenReturn("test-secret");
+
         // When - The algorithm should be available, but we test the path exists
-        boolean isValid = service.verifyWebhookSignature(payload, "invalid-signature");
-        
+        final boolean isValid = service.verifyWebhookSignature(payload, "invalid-signature");
+
         // Then
         assertFalse(isValid);
     }
 
     @Test
-    void testSyncTransactionsForItem_WithException_HandlesGracefully() {
+    void testSyncTransactionsForItemWithExceptionHandlesGracefully() {
         // Given - Repository throws exception during sync
-        Map<String, Object> payload = new HashMap<>();
+        final Map<String, Object> payload = new HashMap<>();
         payload.put("webhook_code", "INITIAL_UPDATE");
         payload.put("item_id", "item-123");
-        
-        when(accountRepository.findByPlaidItemId("item-123")).thenThrow(new RuntimeException("Database connection failed"));
-        
+
+        when(accountRepository.findByPlaidItemId("item-123"))
+                .thenThrow(new RuntimeException("Database connection failed"));
+
         // When/Then - Should handle exception gracefully
-        assertDoesNotThrow(() -> {
-            service.handleTransactionWebhook(payload);
-        });
+        assertDoesNotThrow(
+                () -> {
+                    service.handleTransactionWebhook(payload);
+                });
     }
 
     @Test
-    void testSyncNewTransactionsForItem_WithException_HandlesGracefully() {
+    void testSyncNewTransactionsForItemWithExceptionHandlesGracefully() {
         // Given - Repository throws exception during sync
-        Map<String, Object> payload = new HashMap<>();
+        final Map<String, Object> payload = new HashMap<>();
         payload.put("webhook_code", "DEFAULT_UPDATE");
         payload.put("item_id", "item-123");
-        
-        when(accountRepository.findByPlaidItemId("item-123")).thenThrow(new RuntimeException("Database connection failed"));
-        
+
+        when(accountRepository.findByPlaidItemId("item-123"))
+                .thenThrow(new RuntimeException("Database connection failed"));
+
         // When/Then - Should handle exception gracefully
-        assertDoesNotThrow(() -> {
-            service.handleTransactionWebhook(payload);
-        });
+        assertDoesNotThrow(
+                () -> {
+                    service.handleTransactionWebhook(payload);
+                });
     }
 
     @Test
-    void testSyncTransactionsForItem_WithUserFoundButException_HandlesGracefully() {
+    void testSyncTransactionsForItemWithUserFoundButExceptionHandlesGracefully() {
         // Given
-        Map<String, Object> payload = new HashMap<>();
+        final Map<String, Object> payload = new HashMap<>();
         payload.put("webhook_code", "HISTORICAL_UPDATE");
         payload.put("item_id", "item-123");
-        
-        UserTable user = new UserTable();
+
+        final UserTable user = new UserTable();
         user.setUserId("user-123");
-        
-        AccountTable account = new AccountTable();
+
+        final AccountTable account = new AccountTable();
         account.setUserId("user-123");
-        
+
         when(accountRepository.findByPlaidItemId("item-123")).thenReturn(List.of(account));
-        when(userRepository.findById("user-123")).thenThrow(new RuntimeException("User lookup failed"));
-        
+        when(userRepository.findById("user-123"))
+                .thenThrow(new RuntimeException("User lookup failed"));
+
         // When/Then - Should handle exception gracefully
-        assertDoesNotThrow(() -> {
-            service.handleTransactionWebhook(payload);
-        });
+        assertDoesNotThrow(
+                () -> {
+                    service.handleTransactionWebhook(payload);
+                });
     }
 
     @Test
-    void testHandleTransactionsRemoved_WithDeleteException_HandlesGracefully() {
+    void testHandleTransactionsRemovedWithDeleteExceptionHandlesGracefully() {
         // Given
-        Map<String, Object> payload = new HashMap<>();
+        final Map<String, Object> payload = new HashMap<>();
         payload.put("webhook_code", "TRANSACTIONS_REMOVED");
         payload.put("item_id", "item-123");
         payload.put("removed_transactions", List.of("txn-123"));
-        
-        UserTable user = new UserTable();
+
+        final UserTable user = new UserTable();
         user.setUserId("user-123");
-        
-        AccountTable account = new AccountTable();
+
+        final AccountTable account = new AccountTable();
         account.setUserId("user-123");
-        
-        TransactionTable transaction = new TransactionTable();
+
+        final TransactionTable transaction = new TransactionTable();
         transaction.setTransactionId("txn-123");
         transaction.setUserId("user-123");
         transaction.setPlaidTransactionId("txn-123");
-        
+
         when(accountRepository.findByPlaidItemId("item-123")).thenReturn(List.of(account));
         when(userRepository.findById("user-123")).thenReturn(Optional.of(user));
-        when(transactionRepository.findByPlaidTransactionId("txn-123")).thenReturn(Optional.of(transaction));
-        doThrow(new RuntimeException("Delete failed")).when(transactionRepository).delete("txn-123");
-        
+        when(transactionRepository.findByPlaidTransactionId("txn-123"))
+                .thenReturn(Optional.of(transaction));
+        doThrow(new RuntimeException("Delete failed"))
+                .when(transactionRepository)
+                .delete("txn-123");
+
         // When/Then - Should handle delete exception gracefully
-        assertDoesNotThrow(() -> {
-            service.handleTransactionWebhook(payload);
-        });
+        assertDoesNotThrow(
+                () -> {
+                    service.handleTransactionWebhook(payload);
+                });
     }
 
     @Test
-    void testHandleItemError_WithNotificationException_HandlesGracefully() {
+    void testHandleItemErrorWithNotificationExceptionHandlesGracefully() {
         // Given
-        Map<String, Object> payload = new HashMap<>();
+        final Map<String, Object> payload = new HashMap<>();
         payload.put("webhook_code", "ERROR");
         payload.put("item_id", "item-123");
         payload.put("error_code", "ITEM_LOGIN_REQUIRED");
         payload.put("error_message", "User needs to re-authenticate");
-        
-        UserTable user = new UserTable();
+
+        final UserTable user = new UserTable();
         user.setUserId("user-123");
         user.setEmail("test@example.com");
-        
-        AccountTable account = new AccountTable();
+
+        final AccountTable account = new AccountTable();
         account.setUserId("user-123");
-        
+
         when(accountRepository.findByPlaidItemId("item-123")).thenReturn(List.of(account));
         when(userRepository.findById("user-123")).thenReturn(Optional.of(user));
-        when(notificationService.sendNotification(any(NotificationService.NotificationRequest.class)))
+        when(notificationService.sendNotification(
+                        any(NotificationService.NotificationRequest.class)))
                 .thenThrow(new RuntimeException("Notification service unavailable"));
-        
+
         // When/Then - Should handle notification exception gracefully
-        assertDoesNotThrow(() -> {
-            service.handleItemWebhook(payload);
-        });
+        assertDoesNotThrow(
+                () -> {
+                    service.handleItemWebhook(payload);
+                });
     }
 
     @Test
-    void testHandlePendingExpiration_WithNotificationException_HandlesGracefully() {
+    void testHandlePendingExpirationWithNotificationExceptionHandlesGracefully() {
         // Given
-        Map<String, Object> payload = new HashMap<>();
+        final Map<String, Object> payload = new HashMap<>();
         payload.put("webhook_code", "PENDING_EXPIRATION");
         payload.put("item_id", "item-123");
-        
-        UserTable user = new UserTable();
+
+        final UserTable user = new UserTable();
         user.setUserId("user-123");
         user.setEmail("test@example.com");
-        
-        AccountTable account = new AccountTable();
+
+        final AccountTable account = new AccountTable();
         account.setUserId("user-123");
-        
+
         when(accountRepository.findByPlaidItemId("item-123")).thenReturn(List.of(account));
         when(userRepository.findById("user-123")).thenReturn(Optional.of(user));
-        when(notificationService.sendNotification(any(NotificationService.NotificationRequest.class)))
+        when(notificationService.sendNotification(
+                        any(NotificationService.NotificationRequest.class)))
                 .thenThrow(new RuntimeException("Notification service unavailable"));
-        
+
         // When/Then - Should handle notification exception gracefully
-        assertDoesNotThrow(() -> {
-            service.handleItemWebhook(payload);
-        });
+        assertDoesNotThrow(
+                () -> {
+                    service.handleItemWebhook(payload);
+                });
     }
 
     @Test
-    void testHandlePermissionRevoked_WithNotificationException_HandlesGracefully() {
+    void testHandlePermissionRevokedWithNotificationExceptionHandlesGracefully() {
         // Given
-        Map<String, Object> payload = new HashMap<>();
+        final Map<String, Object> payload = new HashMap<>();
         payload.put("webhook_code", "USER_PERMISSION_REVOKED");
         payload.put("item_id", "item-123");
-        
-        UserTable user = new UserTable();
+
+        final UserTable user = new UserTable();
         user.setUserId("user-123");
         user.setEmail("test@example.com");
-        
-        AccountTable account = new AccountTable();
+
+        final AccountTable account = new AccountTable();
         account.setAccountId("account-123");
         account.setUserId("user-123");
         account.setActive(true);
-        
+
         when(accountRepository.findByPlaidItemId("item-123")).thenReturn(List.of(account));
         when(userRepository.findById("user-123")).thenReturn(Optional.of(user));
-        when(notificationService.sendNotification(any(NotificationService.NotificationRequest.class)))
+        when(notificationService.sendNotification(
+                        any(NotificationService.NotificationRequest.class)))
                 .thenThrow(new RuntimeException("Notification service unavailable"));
-        
+
         // When/Then - Should handle notification exception gracefully
-        assertDoesNotThrow(() -> {
-            service.handleItemWebhook(payload);
-        });
+        assertDoesNotThrow(
+                () -> {
+                    service.handleItemWebhook(payload);
+                });
     }
 
     @Test
-    void testHandlePermissionRevoked_WithMultipleAccounts_DeactivatesAll() {
+    void testHandlePermissionRevokedWithMultipleAccountsDeactivatesAll() {
         // Given
-        Map<String, Object> payload = new HashMap<>();
+        final Map<String, Object> payload = new HashMap<>();
         payload.put("webhook_code", "USER_PERMISSION_REVOKED");
         payload.put("item_id", "item-123");
-        
-        UserTable user = new UserTable();
+
+        final UserTable user = new UserTable();
         user.setUserId("user-123");
         user.setEmail("test@example.com");
-        
-        AccountTable account1 = new AccountTable();
+
+        final AccountTable account1 = new AccountTable();
         account1.setAccountId("account-1");
         account1.setUserId("user-123");
         account1.setActive(true);
-        
-        AccountTable account2 = new AccountTable();
+
+        final AccountTable account2 = new AccountTable();
         account2.setAccountId("account-2");
         account2.setUserId("user-123");
         account2.setActive(true);
-        
-        when(accountRepository.findByPlaidItemId("item-123")).thenReturn(List.of(account1, account2));
+
+        when(accountRepository.findByPlaidItemId("item-123"))
+                .thenReturn(List.of(account1, account2));
         when(userRepository.findById("user-123")).thenReturn(Optional.of(user));
-        when(notificationService.sendNotification(any(NotificationService.NotificationRequest.class)))
+        when(notificationService.sendNotification(
+                        any(NotificationService.NotificationRequest.class)))
                 .thenReturn(new NotificationService.NotificationResult(true, "success"));
-        
+
         // When
         service.handleItemWebhook(payload);
-        
+
         // Then - Should save all accounts
         verify(accountRepository, times(2)).save(any(AccountTable.class));
     }
 }
-

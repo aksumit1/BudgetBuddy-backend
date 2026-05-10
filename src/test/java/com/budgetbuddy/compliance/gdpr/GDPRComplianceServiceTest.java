@@ -1,54 +1,62 @@
 package com.budgetbuddy.compliance.gdpr;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.anyBoolean;
+import static org.mockito.Mockito.anyLong;
+import static org.mockito.Mockito.anyString;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import com.budgetbuddy.compliance.AuditLogService;
 import com.budgetbuddy.compliance.AuditLogTable;
-import com.budgetbuddy.model.dynamodb.*;
-import com.budgetbuddy.repository.dynamodb.*;
+import com.budgetbuddy.model.dynamodb.AccountTable;
+import com.budgetbuddy.model.dynamodb.BudgetTable;
+import com.budgetbuddy.model.dynamodb.GoalTable;
+import com.budgetbuddy.model.dynamodb.TransactionTable;
+import com.budgetbuddy.model.dynamodb.UserTable;
+import com.budgetbuddy.repository.dynamodb.AccountRepository;
+import com.budgetbuddy.repository.dynamodb.AuditLogRepository;
+import com.budgetbuddy.repository.dynamodb.BudgetRepository;
+import com.budgetbuddy.repository.dynamodb.GoalRepository;
+import com.budgetbuddy.repository.dynamodb.TransactionRepository;
+import com.budgetbuddy.repository.dynamodb.UserRepository;
+import com.budgetbuddy.service.aws.S3Service;
+import java.time.Instant;
+import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import com.budgetbuddy.service.aws.S3Service;
 
-import java.math.BigDecimal;
-import java.time.Instant;
-import java.util.List;
-import java.util.Optional;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
-
-/**
- * Unit Tests for GDPRComplianceService
- */
+/** Unit Tests for GDPRComplianceService */
 @ExtendWith(MockitoExtension.class)
 class GDPRComplianceServiceTest {
 
-    @Mock
-    private UserRepository userRepository;
+    @Mock private UserRepository userRepository;
 
-    @Mock
-    private TransactionRepository transactionRepository;
+    @Mock private TransactionRepository transactionRepository;
 
-    @Mock
-    private AccountRepository accountRepository;
+    @Mock private AccountRepository accountRepository;
 
-    @Mock
-    private BudgetRepository budgetRepository;
+    @Mock private BudgetRepository budgetRepository;
 
-    @Mock
-    private GoalRepository goalRepository;
+    @Mock private GoalRepository goalRepository;
 
-    @Mock
-    private AuditLogRepository auditLogRepository;
+    @Mock private AuditLogRepository auditLogRepository;
 
-    @Mock
-    private S3Service s3Service;
+    @Mock private S3Service s3Service;
 
-    @Mock
-    private AuditLogService auditLogService;
+    @Mock private AuditLogService auditLogService;
 
     private GDPRComplianceService gdprComplianceService;
     private String testUserId;
@@ -56,17 +64,17 @@ class GDPRComplianceServiceTest {
 
     @BeforeEach
     void setUp() {
-        gdprComplianceService = new GDPRComplianceService(
-                userRepository,
-                transactionRepository,
-                accountRepository,
-                budgetRepository,
-                goalRepository,
-                auditLogRepository,
-                s3Service,
-                auditLogService
-        );
-        
+        gdprComplianceService =
+                new GDPRComplianceService(
+                        userRepository,
+                        transactionRepository,
+                        accountRepository,
+                        budgetRepository,
+                        goalRepository,
+                        auditLogRepository,
+                        s3Service,
+                        auditLogService);
+
         testUserId = "user-123";
         testUser = new UserTable();
         testUser.setUserId(testUserId);
@@ -76,18 +84,20 @@ class GDPRComplianceServiceTest {
     }
 
     @Test
-    void testExportUserData_WithValidUser_ReturnsExport() {
+    void testExportUserDataWithValidUserReturnsExport() {
         // Given
         when(userRepository.findById(testUserId)).thenReturn(Optional.of(testUser));
-        when(transactionRepository.findByUserId(testUserId, 0, 10000)).thenReturn(List.of());
+        when(transactionRepository.findByUserId(testUserId, 0, 10_000)).thenReturn(List.of());
         when(accountRepository.findByUserId(testUserId)).thenReturn(List.of());
         when(budgetRepository.findByUserId(testUserId)).thenReturn(List.of());
         when(goalRepository.findByUserId(testUserId)).thenReturn(List.of());
-        when(auditLogRepository.findByUserIdAndDateRange(anyString(), anyLong(), anyLong())).thenReturn(List.of());
+        when(auditLogRepository.findByUserIdAndDateRange(anyString(), anyLong(), anyLong()))
+                .thenReturn(List.of());
         doNothing().when(auditLogService).logDataExport(anyString(), anyString());
 
         // When
-        GDPRComplianceService.GDPRDataExport export = gdprComplianceService.exportUserData(testUserId);
+        final GDPRComplianceService.GDPRDataExport export =
+                gdprComplianceService.exportUserData(testUserId);
 
         // Then
         assertNotNull(export);
@@ -98,29 +108,32 @@ class GDPRComplianceServiceTest {
     }
 
     @Test
-    void testExportUserData_WithAllData_ExportsEverything() {
+    void testExportUserDataWithAllDataExportsEverything() {
         // Given
-        TransactionTable transaction = new TransactionTable();
+        final TransactionTable transaction = new TransactionTable();
         transaction.setTransactionId("txn-123");
-        AccountTable account = new AccountTable();
+        final AccountTable account = new AccountTable();
         account.setAccountId("acc-123");
-        BudgetTable budget = new BudgetTable();
+        final BudgetTable budget = new BudgetTable();
         budget.setBudgetId("budget-123");
-        GoalTable goal = new GoalTable();
+        final GoalTable goal = new GoalTable();
         goal.setGoalId("goal-123");
-        AuditLogTable auditLog = new AuditLogTable();
+        final AuditLogTable auditLog = new AuditLogTable();
         auditLog.setAuditLogId("log-123");
-        
+
         when(userRepository.findById(testUserId)).thenReturn(Optional.of(testUser));
-        when(transactionRepository.findByUserId(testUserId, 0, 10000)).thenReturn(List.of(transaction));
+        when(transactionRepository.findByUserId(testUserId, 0, 10_000))
+                .thenReturn(List.of(transaction));
         when(accountRepository.findByUserId(testUserId)).thenReturn(List.of(account));
         when(budgetRepository.findByUserId(testUserId)).thenReturn(List.of(budget));
         when(goalRepository.findByUserId(testUserId)).thenReturn(List.of(goal));
-        when(auditLogRepository.findByUserIdAndDateRange(anyString(), anyLong(), anyLong())).thenReturn(List.of(auditLog));
+        when(auditLogRepository.findByUserIdAndDateRange(anyString(), anyLong(), anyLong()))
+                .thenReturn(List.of(auditLog));
         doNothing().when(auditLogService).logDataExport(anyString(), anyString());
 
         // When
-        GDPRComplianceService.GDPRDataExport export = gdprComplianceService.exportUserData(testUserId);
+        final GDPRComplianceService.GDPRDataExport export =
+                gdprComplianceService.exportUserData(testUserId);
 
         // Then
         assertNotNull(export);
@@ -133,18 +146,19 @@ class GDPRComplianceServiceTest {
     }
 
     @Test
-    void testDeleteUserData_WithValidUser_DeletesAllData() {
+    void testDeleteUserDataWithValidUserDeletesAllData() {
         // Given
-        TransactionTable transaction = new TransactionTable();
+        final TransactionTable transaction = new TransactionTable();
         transaction.setTransactionId("txn-123");
-        AccountTable account = new AccountTable();
+        final AccountTable account = new AccountTable();
         account.setAccountId("acc-123");
-        BudgetTable budget = new BudgetTable();
+        final BudgetTable budget = new BudgetTable();
         budget.setBudgetId("budget-123");
-        GoalTable goal = new GoalTable();
+        final GoalTable goal = new GoalTable();
         goal.setGoalId("goal-123");
-        
-        when(transactionRepository.findByUserId(testUserId, 0, 10000)).thenReturn(List.of(transaction));
+
+        when(transactionRepository.findByUserId(testUserId, 0, 10_000))
+                .thenReturn(List.of(transaction));
         when(accountRepository.findByUserId(testUserId)).thenReturn(List.of(account));
         when(budgetRepository.findByUserId(testUserId)).thenReturn(List.of(budget));
         when(goalRepository.findByUserId(testUserId)).thenReturn(List.of(goal));
@@ -167,18 +181,19 @@ class GDPRComplianceServiceTest {
     }
 
     @Test
-    void testExportDataPortable_WithValidUser_ReturnsJSON() {
+    void testExportDataPortableWithValidUserReturnsJSON() {
         // Given
         when(userRepository.findById(testUserId)).thenReturn(Optional.of(testUser));
-        when(transactionRepository.findByUserId(testUserId, 0, 10000)).thenReturn(List.of());
+        when(transactionRepository.findByUserId(testUserId, 0, 10_000)).thenReturn(List.of());
         when(accountRepository.findByUserId(testUserId)).thenReturn(List.of());
         when(budgetRepository.findByUserId(testUserId)).thenReturn(List.of());
         when(goalRepository.findByUserId(testUserId)).thenReturn(List.of());
-        when(auditLogRepository.findByUserIdAndDateRange(anyString(), anyLong(), anyLong())).thenReturn(List.of());
+        when(auditLogRepository.findByUserIdAndDateRange(anyString(), anyLong(), anyLong()))
+                .thenReturn(List.of());
         doNothing().when(auditLogService).logDataExport(anyString(), anyString());
 
         // When
-        String json = gdprComplianceService.exportDataPortable(testUserId);
+        final String json = gdprComplianceService.exportDataPortable(testUserId);
 
         // Then
         assertNotNull(json);
@@ -187,13 +202,13 @@ class GDPRComplianceServiceTest {
     }
 
     @Test
-    void testUpdateUserData_WithValidData_UpdatesUser() {
+    void testUpdateUserDataWithValidDataUpdatesUser() {
         // Given
-        UserTable updatedData = new UserTable();
+        final UserTable updatedData = new UserTable();
         updatedData.setFirstName("Jane");
         updatedData.setLastName("Smith");
         updatedData.setEmail("newemail@example.com");
-        
+
         when(userRepository.findById(testUserId)).thenReturn(Optional.of(testUser));
         doNothing().when(userRepository).save(any(UserTable.class));
         doNothing().when(auditLogService).logDataUpdate(anyString());
@@ -207,12 +222,12 @@ class GDPRComplianceServiceTest {
     }
 
     @Test
-    void testUpdateUserData_WithPartialData_UpdatesOnlyProvidedFields() {
+    void testUpdateUserDataWithPartialDataUpdatesOnlyProvidedFields() {
         // Given
-        UserTable updatedData = new UserTable();
+        final UserTable updatedData = new UserTable();
         updatedData.setFirstName("Jane");
         // lastName and email are null
-        
+
         when(userRepository.findById(testUserId)).thenReturn(Optional.of(testUser));
         doNothing().when(userRepository).save(any(UserTable.class));
         doNothing().when(auditLogService).logDataUpdate(anyString());
@@ -226,11 +241,11 @@ class GDPRComplianceServiceTest {
     }
 
     @Test
-    void testReportBreach_WithValidInput_ReportsBreach() {
+    void testReportBreachWithValidInputReportsBreach() {
         // Given
-        String breachType = "UNAUTHORIZED_ACCESS";
-        String details = "Data breach detected";
-        int affectedUsers = 10;
+        final String breachType = "UNAUTHORIZED_ACCESS";
+        final String details = "Data breach detected";
+        final int affectedUsers = 10;
         doNothing().when(auditLogService).logBreach(any());
 
         // When
@@ -241,12 +256,14 @@ class GDPRComplianceServiceTest {
     }
 
     @Test
-    void testRecordConsent_WithValidInput_RecordsConsent() {
+    void testRecordConsentWithValidInputRecordsConsent() {
         // Given
-        String consentType = "MARKETING";
-        boolean granted = true;
-        String purpose = "Email marketing";
-        doNothing().when(auditLogService).logConsent(anyString(), anyString(), anyBoolean(), anyString());
+        final String consentType = "MARKETING";
+        final boolean granted = true;
+        final String purpose = "Email marketing";
+        doNothing()
+                .when(auditLogService)
+                .logConsent(anyString(), anyString(), anyBoolean(), anyString());
 
         // When
         gdprComplianceService.recordConsent(testUserId, consentType, granted, purpose);
@@ -256,9 +273,9 @@ class GDPRComplianceServiceTest {
     }
 
     @Test
-    void testWithdrawConsent_WithValidInput_WithdrawsConsent() {
+    void testWithdrawConsentWithValidInputWithdrawsConsent() {
         // Given
-        String consentType = "MARKETING";
+        final String consentType = "MARKETING";
         doNothing().when(auditLogService).logConsentWithdrawal(anyString(), anyString());
 
         // When
@@ -269,27 +286,31 @@ class GDPRComplianceServiceTest {
     }
 
     @Test
-    void testLogDataProcessingNotification_WithValidInput_LogsNotification() {
+    void testLogDataProcessingNotificationWithValidInputLogsNotification() {
         // Given
-        String processingPurpose = "Account management";
-        String legalBasis = "Contract";
-        doNothing().when(auditLogService).logDataProcessingNotification(anyString(), anyString(), anyString());
+        final String processingPurpose = "Account management";
+        final String legalBasis = "Contract";
+        doNothing()
+                .when(auditLogService)
+                .logDataProcessingNotification(anyString(), anyString(), anyString());
 
         // When
-        gdprComplianceService.logDataProcessingNotification(testUserId, processingPurpose, legalBasis);
+        gdprComplianceService.logDataProcessingNotification(
+                testUserId, processingPurpose, legalBasis);
 
         // Then
-        verify(auditLogService).logDataProcessingNotification(testUserId, processingPurpose, legalBasis);
+        verify(auditLogService)
+                .logDataProcessingNotification(testUserId, processingPurpose, legalBasis);
     }
 
     @Test
-    void testGDPRDataExport_SettersAndGetters() {
+    void testGDPRDataExportSettersAndGetters() {
         // Given
-        GDPRComplianceService.GDPRDataExport export = new GDPRComplianceService.GDPRDataExport();
-        String exportId = "export-123";
-        Instant exportDate = Instant.now();
-        UserTable userData = new UserTable();
-        
+        final GDPRComplianceService.GDPRDataExport export = new GDPRComplianceService.GDPRDataExport();
+        final String exportId = "export-123";
+        final Instant exportDate = Instant.now();
+        final UserTable userData = new UserTable();
+
         // When
         export.setExportId(exportId);
         export.setUserId(testUserId);
@@ -313,4 +334,3 @@ class GDPRComplianceServiceTest {
         assertNotNull(export.getAuditLogs());
     }
 }
-

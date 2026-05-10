@@ -1,5 +1,18 @@
 package com.budgetbuddy.api;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.anyString;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
@@ -9,6 +22,10 @@ import com.budgetbuddy.exception.ErrorCode;
 import com.budgetbuddy.model.dynamodb.UserTable;
 import com.budgetbuddy.service.UserDeletionService;
 import com.budgetbuddy.service.UserService;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -20,38 +37,27 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.userdetails.UserDetails;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.*;
-
-/**
- * Unit Tests for UserDeletionController
- * Tests user data and account deletion endpoints
- */
+/** Unit Tests for UserDeletionController Tests user data and account deletion endpoints */
+// PMD's LawOfDemeter is documented as imprecise on chains involving
+// standard library types (BigDecimal, String, Optional) and DTO
+// getters; this class has many such idiomatic uses. Suppress at
+// class level rather than littering every method.
+@SuppressWarnings("PMD.LawOfDemeter")
 @ExtendWith(MockitoExtension.class)
 class UserDeletionControllerTest {
 
-    @Mock
-    private UserDeletionService userDeletionService;
+    @Mock private UserDeletionService userDeletionService;
 
-    @Mock
-    private UserService userService;
+    @Mock private UserService userService;
 
-    @Mock
-    private UserDetails userDetails;
+    @Mock private UserDetails userDetails;
 
-    @InjectMocks
-    private UserDeletionController userDeletionController;
+    @InjectMocks private UserDeletionController userDeletionController;
 
     private UserTable testUser;
     private String testUserId;
     private String testEmail;
-    
+
     private ListAppender<ILoggingEvent> logAppender;
     private Logger logger;
 
@@ -59,11 +65,11 @@ class UserDeletionControllerTest {
     void setUp() {
         testUserId = UUID.randomUUID().toString();
         testEmail = "test@example.com";
-        
+
         testUser = new UserTable();
         testUser.setUserId(testUserId);
         testUser.setEmail(testEmail);
-        
+
         // Set up log appender to capture log events for verification
         logger = (Logger) LoggerFactory.getLogger(UserDeletionController.class);
         logAppender = new ListAppender<>();
@@ -72,14 +78,14 @@ class UserDeletionControllerTest {
     }
 
     @Test
-    void testDeleteAllData_WithConfirmation_DeletesData() {
+    void testDeleteAllDataWithConfirmationDeletesData() {
         // Given
         when(userDetails.getUsername()).thenReturn(testEmail);
         when(userService.findByEmail(testEmail)).thenReturn(Optional.of(testUser));
         doNothing().when(userDeletionService).deleteAllUserData(testUserId);
 
         // When
-        ResponseEntity<Map<String, String>> response = 
+        final ResponseEntity<Map<String, String>> response =
                 userDeletionController.deleteAllData(userDetails, true);
 
         // Then
@@ -90,12 +96,12 @@ class UserDeletionControllerTest {
     }
 
     @Test
-    void testDeleteAllData_WithoutConfirmation_ReturnsBadRequest() {
+    void testDeleteAllDataWithoutConfirmationReturnsBadRequest() {
         // Given
         when(userDetails.getUsername()).thenReturn(testEmail);
-        
+
         // When
-        ResponseEntity<Map<String, String>> response = 
+        final ResponseEntity<Map<String, String>> response =
                 userDeletionController.deleteAllData(userDetails, false);
 
         // Then
@@ -107,52 +113,63 @@ class UserDeletionControllerTest {
     }
 
     @Test
-    void testDeleteAllData_WithNullUserDetails_ThrowsException() {
+    void testDeleteAllDataWithNullUserDetailsThrowsException() {
         // When/Then
-        AppException exception = assertThrows(AppException.class, () -> {
-            userDeletionController.deleteAllData(null, true);
-        });
+        final AppException exception =
+                assertThrows(
+                        AppException.class,
+                        () -> {
+                            userDeletionController.deleteAllData(null, true);
+                        });
         assertEquals(ErrorCode.UNAUTHORIZED_ACCESS, exception.getErrorCode());
         verify(userDeletionService, never()).deleteAllUserData(anyString());
     }
 
     @Test
-    void testDeleteAllData_WithUserNotFound_ThrowsException() {
+    void testDeleteAllDataWithUserNotFoundThrowsException() {
         // Given
         when(userDetails.getUsername()).thenReturn(testEmail);
         when(userService.findByEmail(testEmail)).thenReturn(Optional.empty());
 
         // When/Then
-        AppException exception = assertThrows(AppException.class, () -> {
-            userDeletionController.deleteAllData(userDetails, true);
-        });
+        final AppException exception =
+                assertThrows(
+                        AppException.class,
+                        () -> {
+                            userDeletionController.deleteAllData(userDetails, true);
+                        });
         assertEquals(ErrorCode.USER_NOT_FOUND, exception.getErrorCode());
         verify(userDeletionService, never()).deleteAllUserData(anyString());
     }
 
     @Test
-    void testDeleteAllData_WithServiceException_ThrowsException() {
+    void testDeleteAllDataWithServiceExceptionThrowsException() {
         // Given
         when(userDetails.getUsername()).thenReturn(testEmail);
         when(userService.findByEmail(testEmail)).thenReturn(Optional.of(testUser));
-        doThrow(new RuntimeException("Service error")).when(userDeletionService).deleteAllUserData(testUserId);
+        doThrow(new RuntimeException("Service error"))
+                .when(userDeletionService)
+                .deleteAllUserData(testUserId);
 
         // When/Then
-        AppException exception = assertThrows(AppException.class, () -> {
-            userDeletionController.deleteAllData(userDetails, true);
-        });
+        final AppException exception =
+                assertThrows(
+                        AppException.class,
+                        () -> {
+                            userDeletionController.deleteAllData(userDetails, true);
+                        });
         assertEquals(ErrorCode.INTERNAL_SERVER_ERROR, exception.getErrorCode());
     }
 
     @Test
-    void testDeletePlaidIntegration_WithConfirmation_DeletesIntegration() {
+    void testDeletePlaidIntegrationWithConfirmationDeletesIntegration() {
         // Given
         when(userDetails.getUsername()).thenReturn(testEmail);
         when(userService.findByEmail(testEmail)).thenReturn(Optional.of(testUser));
         doNothing().when(userDeletionService).deletePlaidIntegration(testUserId);
 
         // When
-        ResponseEntity<Map<String, String>> response = 
+        final ResponseEntity<Map<String, String>> response =
                 userDeletionController.deletePlaidIntegration(userDetails, true);
 
         // Then
@@ -163,12 +180,12 @@ class UserDeletionControllerTest {
     }
 
     @Test
-    void testDeletePlaidIntegration_WithoutConfirmation_ReturnsBadRequest() {
+    void testDeletePlaidIntegrationWithoutConfirmationReturnsBadRequest() {
         // Given
         when(userDetails.getUsername()).thenReturn(testEmail);
-        
+
         // When
-        ResponseEntity<Map<String, String>> response = 
+        final ResponseEntity<Map<String, String>> response =
                 userDeletionController.deletePlaidIntegration(userDetails, false);
 
         // Then
@@ -180,28 +197,33 @@ class UserDeletionControllerTest {
     }
 
     @Test
-    void testDeletePlaidIntegration_WithServiceException_ThrowsException() {
+    void testDeletePlaidIntegrationWithServiceExceptionThrowsException() {
         // Given
         when(userDetails.getUsername()).thenReturn(testEmail);
         when(userService.findByEmail(testEmail)).thenReturn(Optional.of(testUser));
-        doThrow(new RuntimeException("Service error")).when(userDeletionService).deletePlaidIntegration(testUserId);
+        doThrow(new RuntimeException("Service error"))
+                .when(userDeletionService)
+                .deletePlaidIntegration(testUserId);
 
         // When/Then
-        AppException exception = assertThrows(AppException.class, () -> {
-            userDeletionController.deletePlaidIntegration(userDetails, true);
-        });
+        final AppException exception =
+                assertThrows(
+                        AppException.class,
+                        () -> {
+                            userDeletionController.deletePlaidIntegration(userDetails, true);
+                        });
         assertEquals(ErrorCode.INTERNAL_SERVER_ERROR, exception.getErrorCode());
     }
 
     @Test
-    void testDeleteAccount_WithConfirmation_DeletesAccount() {
+    void testDeleteAccountWithConfirmationDeletesAccount() {
         // Given
         when(userDetails.getUsername()).thenReturn(testEmail);
         when(userService.findByEmail(testEmail)).thenReturn(Optional.of(testUser));
         doNothing().when(userDeletionService).deleteAccountCompletely(testUserId);
 
         // When
-        ResponseEntity<Map<String, String>> response = 
+        final ResponseEntity<Map<String, String>> response =
                 userDeletionController.deleteAccount(userDetails, true);
 
         // Then
@@ -212,12 +234,12 @@ class UserDeletionControllerTest {
     }
 
     @Test
-    void testDeleteAccount_WithoutConfirmation_ReturnsBadRequest() {
+    void testDeleteAccountWithoutConfirmationReturnsBadRequest() {
         // Given
         when(userDetails.getUsername()).thenReturn(testEmail);
-        
+
         // When
-        ResponseEntity<Map<String, String>> response = 
+        final ResponseEntity<Map<String, String>> response =
                 userDeletionController.deleteAccount(userDetails, false);
 
         // Then
@@ -229,34 +251,47 @@ class UserDeletionControllerTest {
     }
 
     @Test
-    void testDeleteAccount_WithServiceException_ThrowsException() {
+    void testDeleteAccountWithServiceExceptionThrowsException() {
         // Given
         when(userDetails.getUsername()).thenReturn(testEmail);
         when(userService.findByEmail(testEmail)).thenReturn(Optional.of(testUser));
-        doThrow(new RuntimeException("Service error")).when(userDeletionService).deleteAccountCompletely(testUserId);
+        doThrow(new RuntimeException("Service error"))
+                .when(userDeletionService)
+                .deleteAccountCompletely(testUserId);
 
         // When/Then
-        AppException exception = assertThrows(AppException.class, () -> {
-            userDeletionController.deleteAccount(userDetails, true);
-        });
+        final AppException exception =
+                assertThrows(
+                        AppException.class,
+                        () -> {
+                            userDeletionController.deleteAccount(userDetails, true);
+                        });
         assertEquals(ErrorCode.INTERNAL_SERVER_ERROR, exception.getErrorCode());
-        
+
         // Verify logging behavior - should log ERROR when account deletion fails
-        List<ILoggingEvent> logEvents = logAppender.list;
-        long errorLogs = logEvents.stream()
-                .filter(event -> event.getLevel() == Level.ERROR 
-                        && event.getMessage().contains("Failed to delete account"))
-                .count();
-        
+        final List<ILoggingEvent> logEvents = logAppender.list;
+        final long errorLogs =
+                logEvents.stream()
+                        .filter(
+                                event ->
+                                        event.getLevel() == Level.ERROR
+                                                && event.getMessage()
+                                                .contains("Failed to delete account"))
+                        .count();
+
         assertEquals(1, errorLogs, "Should log ERROR when account deletion fails");
-        
+
         // Verify ERROR log contains expected message
         // Use getFormattedMessage() to get the actual formatted message, not the template
-        boolean foundErrorLog = logEvents.stream()
-                .anyMatch(event -> event.getLevel() == Level.ERROR 
-                        && event.getFormattedMessage().contains("Failed to delete account")
-                        && event.getFormattedMessage().contains("Service error"));
+        final boolean foundErrorLog =
+                logEvents.stream()
+                        .anyMatch(
+                                event ->
+                                        event.getLevel() == Level.ERROR
+                                                && event.getFormattedMessage()
+                                                .contains("Failed to delete account")
+                                                && event.getFormattedMessage()
+                                                .contains("Service error"));
         assertTrue(foundErrorLog, "Should log ERROR with service error message");
     }
 }
-

@@ -1,5 +1,17 @@
 package com.budgetbuddy.api;
 
+
+import java.nio.charset.StandardCharsets;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
 import com.budgetbuddy.AWSTestConfiguration;
 import com.budgetbuddy.dto.AuthRequest;
 import com.budgetbuddy.dto.AuthResponse;
@@ -14,6 +26,10 @@ import com.budgetbuddy.service.AuthService;
 import com.budgetbuddy.service.SubscriptionService;
 import com.budgetbuddy.service.UserService;
 import com.budgetbuddy.util.TableInitializer;
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.List;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,19 +41,15 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 
-import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.util.List;
-import java.util.UUID;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
-
 /**
- * Integration tests for SubscriptionController
- * Tests the full API flow including authentication and database operations
+ * Integration tests for SubscriptionController Tests the full API flow including authentication and
+ * database operations
  */
+// PMD's LawOfDemeter is documented as imprecise on chains involving
+// standard library types (BigDecimal, String, Optional) and DTO
+// getters; this class has many such idiomatic uses. Suppress at
+// class level rather than littering every method.
+@SuppressWarnings("PMD.LawOfDemeter")
 @SpringBootTest(classes = com.budgetbuddy.BudgetBuddyApplication.class)
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
@@ -45,29 +57,21 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @org.junit.jupiter.api.Tag("integration")
 public class SubscriptionControllerIntegrationTest {
 
-    @Autowired
-    private MockMvc mockMvc;
+    @Autowired private MockMvc mockMvc;
 
-    @Autowired
-    private SubscriptionService subscriptionService;
+    @Autowired private SubscriptionService subscriptionService;
 
-    @Autowired
-    private TransactionRepository transactionRepository;
+    @Autowired private TransactionRepository transactionRepository;
 
-    @Autowired
-    private AccountRepository accountRepository;
+    @Autowired private AccountRepository accountRepository;
 
-    @Autowired
-    private UserRepository userRepository;
+    @Autowired private UserRepository userRepository;
 
-    @Autowired
-    private UserService userService;
+    @Autowired private UserService userService;
 
-    @Autowired
-    private AuthService authService;
+    @Autowired private AuthService authService;
 
-    @Autowired
-    private DynamoDbClient dynamoDbClient;
+    @Autowired private DynamoDbClient dynamoDbClient;
 
     private String testUserId;
     private String testUserEmail;
@@ -82,18 +86,14 @@ public class SubscriptionControllerIntegrationTest {
 
         // Create test user using UserService (properly hashed password)
         testUserEmail = "test-subscription-" + UUID.randomUUID() + "@example.com";
-        String base64PasswordHash = java.util.Base64.getEncoder().encodeToString("test-password".getBytes());
-        testUser = userService.createUserSecure(
-                testUserEmail,
-                base64PasswordHash,
-                "Test",
-                "User"
-        );
+        final String base64PasswordHash =
+                java.util.Base64.getEncoder().encodeToString("test-password".getBytes(StandardCharsets.UTF_8));
+        testUser = userService.createUserSecure(testUserEmail, base64PasswordHash, "Test", "User");
         testUserId = testUser.getUserId();
 
         // Authenticate and get JWT token
-        AuthRequest authRequest = new AuthRequest(testUserEmail, base64PasswordHash);
-        AuthResponse authResponse = authService.authenticate(authRequest);
+        final AuthRequest authRequest = new AuthRequest(testUserEmail, base64PasswordHash);
+        final AuthResponse authResponse = authService.authenticate(authRequest);
         accessToken = authResponse.getAccessToken();
 
         // Create test account
@@ -107,49 +107,51 @@ public class SubscriptionControllerIntegrationTest {
         accountRepository.save(testAccount);
     }
 
-    /**
-     * Helper method to add JWT token to request
-     */
+    /** Helper method to add JWT token to request */
     private org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder withAuth(
-            org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder builder) {
+            final org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder builder) {
         return builder.header("Authorization", "Bearer " + accessToken);
     }
 
     @Test
-    void testDetectSubscriptions_WithMonthlyTransactions_ReturnsSubscriptions() throws Exception {
+    void testDetectSubscriptionsWithMonthlyTransactionsReturnsSubscriptions() throws Exception {
         // Given: Create monthly subscription transactions
-        LocalDate startDate = LocalDate.of(2024, 1, 15);
+        final LocalDate startDate = LocalDate.of(2024, 1, 15);
         for (int i = 0; i < 3; i++) {
-            TransactionTable tx = createSubscriptionTransaction("Netflix", new BigDecimal("-15.99"), startDate.plusMonths(i));
+            final TransactionTable tx =
+                    createSubscriptionTransaction(
+                            "Netflix", new BigDecimal("-15.99"), startDate.plusMonths(i));
             transactionRepository.save(tx);
         }
 
         // Verify transactions were saved
-        var savedTransactions = transactionRepository.findByUserId(testUserId, 0, 100);
+        final var savedTransactions = transactionRepository.findByUserId(testUserId, 0, 100);
         assertTrue(savedTransactions.size() >= 3, "Should have at least 3 transactions");
 
         // When: Call detect endpoint with authentication
-        var result = mockMvc.perform(withAuth(post("/api/subscriptions/detect"))
-                .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isArray())
-                .andReturn();
+        final var result =
+                mockMvc.perform(
+                        withAuth(post("/api/subscriptions/detect"))
+                                .contentType(MediaType.APPLICATION_JSON))
+                        .andExpect(status().isOk())
+                        .andExpect(jsonPath("$").isArray())
+                        .andReturn();
 
         // Debug: Check if subscriptions were detected
-        String responseBody = result.getResponse().getContentAsString();
+        final String responseBody = result.getResponse().getContentAsString();
         System.out.println("Detect response: " + responseBody);
 
         // Then: Verify subscriptions were saved (check via service, not response format)
-        var subscriptions = subscriptionService.getSubscriptions(testUserId);
+        final var subscriptions = subscriptionService.getSubscriptions(testUserId);
         // Note: Detection may require more transactions or different patterns to work reliably
         // For now, we verify the endpoint doesn't crash and returns a valid response
         assertNotNull(subscriptions);
     }
 
     @Test
-    void testGetSubscriptions_ReturnsSubscriptions() throws Exception {
+    void testGetSubscriptionsReturnsSubscriptions() throws Exception {
         // Given: Create a subscription directly
-        Subscription subscription = new Subscription();
+        final Subscription subscription = new Subscription();
         subscription.setSubscriptionId(UUID.randomUUID().toString());
         subscription.setUserId(testUserId);
         subscription.setAccountId(testAccount.getAccountId());
@@ -162,106 +164,120 @@ public class SubscriptionControllerIntegrationTest {
         subscriptionService.saveSubscriptions(testUserId, List.of(subscription));
 
         // Verify subscription was saved
-        var savedSubscriptions = subscriptionService.getSubscriptions(testUserId);
+        final var savedSubscriptions = subscriptionService.getSubscriptions(testUserId);
         assertTrue(savedSubscriptions.size() >= 1, "Should have at least 1 subscription");
 
         // When: Call get endpoint with authentication
-        var result = mockMvc.perform(withAuth(get("/api/subscriptions"))
-                .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isArray())
-                .andExpect(jsonPath("$[0]").exists())
-                .andExpect(jsonPath("$[0].merchantName").exists())
-                .andExpect(jsonPath("$[0].frequency").exists())
-                .andReturn();
+        final var result =
+                mockMvc.perform(
+                        withAuth(get("/api/subscriptions"))
+                                .contentType(MediaType.APPLICATION_JSON))
+                        .andExpect(status().isOk())
+                        .andExpect(jsonPath("$").isArray())
+                        .andExpect(jsonPath("$[0]").exists())
+                        .andExpect(jsonPath("$[0].merchantName").exists())
+                        .andExpect(jsonPath("$[0].frequency").exists())
+                        .andReturn();
 
         // Debug: Print response
-        String responseBody = result.getResponse().getContentAsString();
+        final String responseBody = result.getResponse().getContentAsString();
         System.out.println("Get subscriptions response: " + responseBody);
-        
+
         // Verify via service (subscriptions should be saved)
-        var subscriptions = subscriptionService.getSubscriptions(testUserId);
+        final var subscriptions = subscriptionService.getSubscriptions(testUserId);
         assertTrue(subscriptions.size() >= 1, "Should have at least 1 subscription");
         // Verify the subscription we created exists
-        var netflixSubscription = subscriptions.stream()
-                .filter(s -> "Netflix".equalsIgnoreCase(s.getMerchantName()))
-                .findFirst();
+        final var netflixSubscription =
+                subscriptions.stream()
+                        .filter(s -> "Netflix".equalsIgnoreCase(s.getMerchantName()))
+                        .findFirst();
         assertTrue(netflixSubscription.isPresent(), "Netflix subscription should exist");
     }
 
     @Test
-    void testGetActiveSubscriptions_ReturnsOnlyActive() throws Exception {
+    void testGetActiveSubscriptionsReturnsOnlyActive() throws Exception {
         // Given: Create active and inactive subscriptions
-        Subscription active = createTestSubscription("Netflix", true);
-        Subscription inactive = createTestSubscription("Cancelled", false);
+        final Subscription active = createTestSubscription("Netflix", true);
+        final Subscription inactive = createTestSubscription("Cancelled", false);
         subscriptionService.saveSubscriptions(testUserId, List.of(active, inactive));
 
         // When: Call get active endpoint with authentication
-        mockMvc.perform(withAuth(get("/api/subscriptions/active"))
-                .contentType(MediaType.APPLICATION_JSON))
+        mockMvc.perform(
+                        withAuth(get("/api/subscriptions/active"))
+                                .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray())
                 .andExpect(jsonPath("$.length()").value(1))
                 .andExpect(jsonPath("$[0].merchantName").exists());
-        
+
         // Verify via service
-        var activeSubscriptions = subscriptionService.getActiveSubscriptions(testUserId);
+        final var activeSubscriptions = subscriptionService.getActiveSubscriptions(testUserId);
         assertEquals(1, activeSubscriptions.size());
         assertEquals("Netflix", activeSubscriptions.get(0).getMerchantName());
     }
 
     @Test
-    void testDeleteSubscription_RemovesSubscription() throws Exception {
+    void testDeleteSubscriptionRemovesSubscription() throws Exception {
         // Given: Create a subscription
-        Subscription subscription = createTestSubscription("Netflix", true);
+        final Subscription subscription = createTestSubscription("Netflix", true);
         subscriptionService.saveSubscriptions(testUserId, List.of(subscription));
-        
+
         // Verify subscription was saved
-        var beforeDelete = subscriptionService.getSubscriptions(testUserId);
+        final var beforeDelete = subscriptionService.getSubscriptions(testUserId);
         assertTrue(beforeDelete.size() >= 1, "Subscription should be saved before delete");
 
         // When: Delete subscription with authentication
-        mockMvc.perform(withAuth(delete("/api/subscriptions/{subscriptionId}", subscription.getSubscriptionId()))
-                .contentType(MediaType.APPLICATION_JSON))
+        mockMvc.perform(
+                        withAuth(
+                                        delete(
+                                                "/api/subscriptions/{subscriptionId}",
+                                                subscription.getSubscriptionId()))
+                                .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isNoContent());
 
         // Then: Verify subscription is deleted
-        var subscriptions = subscriptionService.getSubscriptions(testUserId);
+        final var subscriptions = subscriptionService.getSubscriptions(testUserId);
         // Subscription should be deleted (or at least not found by ID)
-        var deletedSubscription = subscriptions.stream()
-                .filter(s -> s.getSubscriptionId().equals(subscription.getSubscriptionId()))
-                .findFirst();
+        final var deletedSubscription =
+                subscriptions.stream()
+                        .filter(s -> s.getSubscriptionId().equals(subscription.getSubscriptionId()))
+                        .findFirst();
         assertFalse(deletedSubscription.isPresent(), "Subscription should be deleted");
     }
 
     @Test
-    void testDetectSubscriptions_WithQuarterlyTransactions_DetectsQuarterly() throws Exception {
+    void testDetectSubscriptionsWithQuarterlyTransactionsDetectsQuarterly() throws Exception {
         // Given: Create quarterly transactions
-        LocalDate startDate = LocalDate.of(2024, 1, 1);
+        final LocalDate startDate = LocalDate.of(2024, 1, 1);
         for (int i = 0; i < 3; i++) {
-            TransactionTable tx = createSubscriptionTransaction("Adobe", new BigDecimal("-52.99"), startDate.plusMonths(i * 3));
+            final TransactionTable tx =
+                    createSubscriptionTransaction(
+                            "Adobe", new BigDecimal("-52.99"), startDate.plusMonths(i * 3));
             transactionRepository.save(tx);
         }
 
         // When: Call detect endpoint with authentication
-        var result = mockMvc.perform(withAuth(post("/api/subscriptions/detect"))
-                .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isArray())
-                .andReturn();
+        final var result =
+                mockMvc.perform(
+                        withAuth(post("/api/subscriptions/detect"))
+                                .contentType(MediaType.APPLICATION_JSON))
+                        .andExpect(status().isOk())
+                        .andExpect(jsonPath("$").isArray())
+                        .andReturn();
 
         // Debug: Print response
-        String responseBody = result.getResponse().getContentAsString();
+        final String responseBody = result.getResponse().getContentAsString();
         System.out.println("Quarterly detect response: " + responseBody);
-        
+
         // Verify via service - detection may require more transactions or different patterns
-        var subscriptions = subscriptionService.detectSubscriptions(testUserId);
+        final var subscriptions = subscriptionService.detectSubscriptions(testUserId);
         assertNotNull(subscriptions);
     }
 
     // Helper methods
-    private TransactionTable createSubscriptionTransaction(String merchant, BigDecimal amount, LocalDate date) {
-        TransactionTable tx = new TransactionTable();
+    private TransactionTable createSubscriptionTransaction(
+            final String merchant, final BigDecimal amount, final LocalDate date) {
+        final TransactionTable tx = new TransactionTable();
         tx.setTransactionId(UUID.randomUUID().toString());
         tx.setUserId(testUserId);
         tx.setAccountId(testAccount.getAccountId());
@@ -279,8 +295,8 @@ public class SubscriptionControllerIntegrationTest {
         return tx;
     }
 
-    private Subscription createTestSubscription(String merchant, boolean active) {
-        Subscription subscription = new Subscription();
+    private Subscription createTestSubscription(final String merchant, final boolean active) {
+        final Subscription subscription = new Subscription();
         subscription.setSubscriptionId(UUID.randomUUID().toString());
         subscription.setUserId(testUserId);
         subscription.setAccountId(testAccount.getAccountId());
@@ -293,4 +309,3 @@ public class SubscriptionControllerIntegrationTest {
         return subscription;
     }
 }
-

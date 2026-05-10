@@ -1,5 +1,9 @@
 package com.budgetbuddy.config;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import com.budgetbuddy.AWSTestConfiguration;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -7,42 +11,34 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.TestPropertySource;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.TestPropertySource;
 
-import static org.junit.jupiter.api.Assertions.*;
-
-/**
- * Tests for ApiVersioningInterceptor
- */
+/** Tests for ApiVersioningInterceptor */
 @SpringBootTest(classes = com.budgetbuddy.BudgetBuddyApplication.class)
 @ActiveProfiles("test")
 @Import(AWSTestConfiguration.class)
-@TestPropertySource(properties = {
-    "api.version=1.0.0",
-    "api.base-url=https://api.budgetbuddy.com"
-})
+@TestPropertySource(properties = {"api.version=1.0.0", "api.base-url=https://api.budgetbuddy.com"})
 class ApiVersioningInterceptorTest {
 
-    @Autowired
-    private ApiVersioningInterceptor interceptor;
+    @Autowired private ApiVersioningInterceptor interceptor;
 
     @Test
-    void testInterceptor_IsCreated() {
+    void testInterceptorIsCreated() {
         // Then
         assertNotNull(interceptor, "ApiVersioningInterceptor should be created");
     }
 
     @Test
-    void testPreHandle_AddsApiVersionHeader() {
+    void testPreHandleAddsApiVersionHeader() {
         // Given
-        HttpServletRequest request = new MockHttpServletRequest();
-        HttpServletResponse response = new MockHttpServletResponse();
+        final HttpServletRequest request = new MockHttpServletRequest();
+        final HttpServletResponse response = new MockHttpServletResponse();
 
         // When
-        boolean result = interceptor.preHandle(request, response, null);
+        final boolean result = interceptor.preHandle(request, response, null);
 
         // Then
         assertTrue(result, "Should return true");
@@ -50,33 +46,34 @@ class ApiVersioningInterceptorTest {
     }
 
     @Test
-    void testPreHandle_AddsApiBaseUrlHeader() {
+    void testPreHandleAddsApiBaseUrlHeader() {
         // Given
-        HttpServletRequest request = new MockHttpServletRequest();
-        HttpServletResponse response = new MockHttpServletResponse();
+        final HttpServletRequest request = new MockHttpServletRequest();
+        final HttpServletResponse response = new MockHttpServletResponse();
 
         // When
         interceptor.preHandle(request, response, null);
 
         // Then
-        assertEquals("https://api.budgetbuddy.com", response.getHeader("X-API-Base-URL"), 
+        assertEquals(
+                "https://api.budgetbuddy.com",
+                response.getHeader("X-API-Base-URL"),
                 "Should add API base URL header");
     }
 
     @Test
-    void testPreHandle_WithEmptyBaseUrl_DoesNotAddHeader() {
+    void testPreHandleWithEmptyBaseUrlDoesNotAddHeader() {
         // Given - Create interceptor with empty base URL
-        ApiVersioningInterceptor interceptorWithEmptyUrl = new ApiVersioningInterceptor();
+        final ApiVersioningInterceptor interceptorWithEmptyUrl = new ApiVersioningInterceptor();
         // Use reflection or create a test configuration
-        HttpServletRequest request = new MockHttpServletRequest();
-        HttpServletResponse response = new MockHttpServletResponse();
+        final HttpServletRequest request = new MockHttpServletRequest();
+        final HttpServletResponse response = new MockHttpServletResponse();
 
         // When
-        boolean result = interceptor.preHandle(request, response, null);
+        final boolean result = interceptor.preHandle(request, response, null);
 
         // Then - Should still work
         assertTrue(result, "Should return true");
         assertNotNull(response.getHeader("X-API-Version"), "Should still add version header");
     }
 }
-

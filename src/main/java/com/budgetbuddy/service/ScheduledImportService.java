@@ -10,19 +10,23 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 /**
- * Scheduled Import Service
- * Automatically processes imports from configured sources (cloud storage, email, etc.)
- * 
- * Features:
- * - Scheduled imports from cloud storage (S3, Dropbox, Google Drive)
- * - Email-based imports (forward statements)
- * - Automatic processing and notification
- * - Configurable schedule (daily, weekly, monthly)
+ * Scheduled Import Service Automatically processes imports from configured sources (cloud storage,
+ * email, etc.)
+ *
+ * <p>Features: - Scheduled imports from cloud storage (S3, Dropbox, Google Drive) - Email-based
+ * imports (forward statements) - Automatic processing and notification - Configurable schedule
+ * (daily, weekly, monthly)
  */
+// SDK / Spring integration — the underlying APIs (AWS SDK, Plaid SDK,
+// Spring services, reflection) throw arbitrary RuntimeException subtypes
+// that can't reasonably be enumerated. Broad catches log + recover (or
+// translate to AppException). Suppress at class level since narrowing
+// here would mean catch (RuntimeException) which PMD flags identically.
+@SuppressWarnings("PMD.AvoidCatchingGenericException")
 @Service
 public class ScheduledImportService {
 
-    private static final Logger logger = LoggerFactory.getLogger(ScheduledImportService.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(ScheduledImportService.class);
 
     @Value("${app.import.scheduled.enabled:false}")
     private boolean scheduledImportEnabled;
@@ -51,17 +55,19 @@ public class ScheduledImportService {
     }
 
     /**
-     * Scheduled import job - runs daily at 2 AM
-     * Processes imports from configured sources for all users
+     * Scheduled import job - runs daily at 2 AM Processes imports from configured sources for all
+     * users
      */
-    @Scheduled(cron = "${app.import.scheduled.cron:0 0 2 * * ?}") // Default: 2 AM daily
+    @Scheduled(
+            cron = "${app.import.scheduled.cron:0 45 2 * * ?}",
+            zone = "UTC") // Default: 02:45 UTC (staggered)
     public void processScheduledImports() {
         if (!scheduledImportEnabled) {
-            logger.debug("Scheduled imports are disabled");
+            LOGGER.debug("Scheduled imports are disabled");
             return;
         }
 
-        logger.info("Starting scheduled import processing");
+        LOGGER.info("Starting scheduled import processing");
 
         try {
             // Get all active users (in production, use pagination)
@@ -71,23 +77,20 @@ public class ScheduledImportService {
             // 3. Process files from cloud storage or email
             // 4. Create import history records
 
-            logger.info("Scheduled import processing completed");
+            LOGGER.info("Scheduled import processing completed");
         } catch (Exception e) {
-            logger.error("Error processing scheduled imports", e);
+            LOGGER.error("Error processing scheduled imports", e);
         }
     }
 
-    /**
-     * Process imports for a specific user
-     * Called by scheduled job or manually triggered
-     */
-    public void processUserImports(UserTable user) {
+    /** Process imports for a specific user Called by scheduled job or manually triggered */
+    public void processUserImports(final UserTable user) {
         if (user == null || user.getUserId() == null) {
-            logger.warn("Invalid user for scheduled import");
+            LOGGER.warn("Invalid user for scheduled import");
             return;
         }
 
-        logger.info("Processing scheduled imports for user: {}", user.getUserId());
+        LOGGER.info("Processing scheduled imports for user: {}", user.getUserId());
 
         try {
             // TODO: Implement actual import processing
@@ -97,27 +100,22 @@ public class ScheduledImportService {
             // 4. Create import history records
             // 5. Send notification to user
 
-            logger.info("Completed scheduled imports for user: {}", user.getUserId());
+            LOGGER.info("Completed scheduled imports for user: {}", user.getUserId());
         } catch (Exception e) {
-            logger.error("Error processing scheduled imports for user: {}", user.getUserId(), e);
+            LOGGER.error("Error processing scheduled imports for user: {}", user.getUserId(), e);
         }
     }
 
-    /**
-     * Enable scheduled imports for a user
-     */
-    public void enableScheduledImports(String userId, String sourceType, String sourceConfig) {
+    /** Enable scheduled imports for a user */
+    public void enableScheduledImports(final String userId, final String sourceType, final String sourceConfig) {
         // TODO: Store user's scheduled import configuration
         // This would typically be stored in a user preferences table or DynamoDB
-        logger.info("Enabling scheduled imports for user: {}, source: {}", userId, sourceType);
+        LOGGER.info("Enabling scheduled imports for user: {}, source: {}", userId, sourceType);
     }
 
-    /**
-     * Disable scheduled imports for a user
-     */
-    public void disableScheduledImports(String userId) {
+    /** Disable scheduled imports for a user */
+    public void disableScheduledImports(final String userId) {
         // TODO: Remove user's scheduled import configuration
-        logger.info("Disabling scheduled imports for user: {}", userId);
+        LOGGER.info("Disabling scheduled imports for user: {}", userId);
     }
 }
-

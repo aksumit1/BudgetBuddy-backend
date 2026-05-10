@@ -1,8 +1,19 @@
 package com.budgetbuddy.repository.dynamodb;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import com.budgetbuddy.AWSTestConfiguration;
 import com.budgetbuddy.model.dynamodb.GoalTable;
 import com.budgetbuddy.util.TableInitializer;
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -13,29 +24,16 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 
-import java.math.BigDecimal;
-import java.time.Instant;
-import java.time.LocalDate;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
-
-import static org.junit.jupiter.api.Assertions.*;
-
-/**
- * Tests for GoalRepository
- */
+/** Tests for GoalRepository */
 @SpringBootTest(classes = com.budgetbuddy.BudgetBuddyApplication.class)
 @ActiveProfiles("test")
 @Import(AWSTestConfiguration.class)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class GoalRepositoryTest {
 
-    @Autowired
-    private GoalRepository goalRepository;
+    @Autowired private GoalRepository goalRepository;
 
-    @Autowired
-    private DynamoDbClient dynamoDbClient;
+    @Autowired private DynamoDbClient dynamoDbClient;
 
     private String testUserId;
     private GoalTable testGoal;
@@ -48,7 +46,7 @@ class GoalRepositoryTest {
     @BeforeEach
     void setUp() {
         testUserId = UUID.randomUUID().toString();
-        
+
         testGoal = new GoalTable();
         testGoal.setGoalId(UUID.randomUUID().toString());
         testGoal.setUserId(testUserId);
@@ -64,23 +62,23 @@ class GoalRepositoryTest {
     }
 
     @Test
-    void testSave_WithValidGoal_Succeeds() {
+    void testSaveWithValidGoalSucceeds() {
         // When
         goalRepository.save(testGoal);
 
         // Then
-        Optional<GoalTable> found = goalRepository.findById(testGoal.getGoalId());
+        final Optional<GoalTable> found = goalRepository.findById(testGoal.getGoalId());
         assertTrue(found.isPresent(), "Goal should be saved");
         assertEquals(testGoal.getName(), found.get().getName());
     }
 
     @Test
-    void testFindById_WithExistingGoal_ReturnsGoal() {
+    void testFindByIdWithExistingGoalReturnsGoal() {
         // Given
         goalRepository.save(testGoal);
 
         // When
-        Optional<GoalTable> found = goalRepository.findById(testGoal.getGoalId());
+        final Optional<GoalTable> found = goalRepository.findById(testGoal.getGoalId());
 
         // Then
         assertTrue(found.isPresent(), "Goal should be found");
@@ -88,20 +86,20 @@ class GoalRepositoryTest {
     }
 
     @Test
-    void testFindById_WithNonExistentGoal_ReturnsEmpty() {
+    void testFindByIdWithNonExistentGoalReturnsEmpty() {
         // When
-        Optional<GoalTable> found = goalRepository.findById(UUID.randomUUID().toString());
+        final Optional<GoalTable> found = goalRepository.findById(UUID.randomUUID().toString());
 
         // Then
         assertTrue(found.isEmpty(), "Should return empty for non-existent goal");
     }
 
     @Test
-    void testFindByUserId_ReturnsUserGoals() {
+    void testFindByUserIdReturnsUserGoals() {
         // Given
         goalRepository.save(testGoal);
-        
-        GoalTable goal2 = new GoalTable();
+
+        final GoalTable goal2 = new GoalTable();
         goal2.setGoalId(UUID.randomUUID().toString());
         goal2.setUserId(testUserId);
         goal2.setName("Goal 2");
@@ -115,7 +113,7 @@ class GoalRepositoryTest {
         goalRepository.save(goal2);
 
         // When
-        List<GoalTable> goals = goalRepository.findByUserId(testUserId);
+        final List<GoalTable> goals = goalRepository.findByUserId(testUserId);
 
         // Then
         assertNotNull(goals, "Goals should not be null");
@@ -123,68 +121,70 @@ class GoalRepositoryTest {
     }
 
     @Test
-    void testDelete_WithValidId_RemovesGoal() {
+    void testDeleteWithValidIdRemovesGoal() {
         // Given
         goalRepository.save(testGoal);
-        String goalId = testGoal.getGoalId();
+        final String goalId = testGoal.getGoalId();
 
         // When
         goalRepository.delete(goalId);
 
         // Then
-        Optional<GoalTable> found = goalRepository.findById(goalId);
+        final Optional<GoalTable> found = goalRepository.findById(goalId);
         assertTrue(found.isEmpty(), "Goal should be deleted");
     }
 
     @Test
-    void testSaveIfNotExists_WithNewGoal_ReturnsTrue() {
+    void testSaveIfNotExistsWithNewGoalReturnsTrue() {
         // When
-        boolean saved = goalRepository.saveIfNotExists(testGoal);
+        final boolean saved = goalRepository.saveIfNotExists(testGoal);
 
         // Then
         assertTrue(saved, "Should save new goal");
-        Optional<GoalTable> found = goalRepository.findById(testGoal.getGoalId());
+        final Optional<GoalTable> found = goalRepository.findById(testGoal.getGoalId());
         assertTrue(found.isPresent(), "Goal should be saved");
     }
 
     @Test
-    void testSaveIfNotExists_WithExistingGoal_ReturnsFalse() {
+    void testSaveIfNotExistsWithExistingGoalReturnsFalse() {
         // Given
         goalRepository.save(testGoal);
 
         // When
-        boolean saved = goalRepository.saveIfNotExists(testGoal);
+        final boolean saved = goalRepository.saveIfNotExists(testGoal);
 
         // Then
         assertFalse(saved, "Should not save existing goal");
     }
-    
+
     @Test
-    void testFindByUserIdAndUpdatedAfter_WithValidParams_ReturnsUpdatedGoals() {
+    void testFindByUserIdAndUpdatedAfterWithValidParamsReturnsUpdatedGoals() {
         // Given
-        long updatedAfterTimestamp = Instant.now().minusSeconds(3600).getEpochSecond();
+        final long updatedAfterTimestamp = Instant.now().minusSeconds(3600).getEpochSecond();
         testGoal.setUpdatedAtTimestamp(Instant.now().getEpochSecond());
         goalRepository.save(testGoal);
-        
+
         // When
-        List<GoalTable> result = goalRepository.findByUserIdAndUpdatedAfter(testUserId, updatedAfterTimestamp);
-        
+        final List<GoalTable> result =
+                goalRepository.findByUserIdAndUpdatedAfter(testUserId, updatedAfterTimestamp);
+
         // Then
         assertNotNull(result);
         assertTrue(result.size() >= 0);
     }
-    
+
     @Test
-    void testFindByUserIdAndUpdatedAfter_WithNullParams_ReturnsEmpty() {
+    void testFindByUserIdAndUpdatedAfterWithNullParamsReturnsEmpty() {
         // When
-        List<GoalTable> result1 = goalRepository.findByUserIdAndUpdatedAfter(null, Instant.now().getEpochSecond());
-        List<GoalTable> result2 = goalRepository.findByUserIdAndUpdatedAfter(testUserId, null);
-        List<GoalTable> result3 = goalRepository.findByUserIdAndUpdatedAfter("", Instant.now().getEpochSecond());
-        
+        final List<GoalTable> result1 =
+                goalRepository.findByUserIdAndUpdatedAfter(null, Instant.now().getEpochSecond());
+        final List<GoalTable> result2 = goalRepository.findByUserIdAndUpdatedAfter(testUserId, null);
+        final List<GoalTable> result3 =
+                goalRepository.findByUserIdAndUpdatedAfter("", Instant.now().getEpochSecond());
+
         // Then
         assertTrue(result1.isEmpty());
         assertTrue(result2.isEmpty());
         assertTrue(result3.isEmpty());
     }
 }
-

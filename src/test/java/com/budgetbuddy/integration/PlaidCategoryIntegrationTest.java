@@ -1,13 +1,19 @@
 package com.budgetbuddy.integration;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import com.budgetbuddy.AWSTestConfiguration;
+import com.budgetbuddy.model.dynamodb.AccountTable;
 import com.budgetbuddy.model.dynamodb.TransactionTable;
 import com.budgetbuddy.model.dynamodb.UserTable;
-import com.budgetbuddy.model.dynamodb.AccountTable;
 import com.budgetbuddy.repository.dynamodb.TransactionRepository;
-import com.budgetbuddy.repository.dynamodb.AccountRepository;
 import com.budgetbuddy.service.PlaidCategoryMapper;
 import com.budgetbuddy.service.TransactionService;
+import java.time.LocalDate;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,25 +21,18 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 
-import java.time.LocalDate;
-import java.util.Optional;
-
-import static org.junit.jupiter.api.Assertions.*;
-
 /**
- * Integration tests for Plaid category sync end-to-end
- * Tests the full flow from Plaid sync to category mapping to override
+ * Integration tests for Plaid category sync end-to-end Tests the full flow from Plaid sync to
+ * category mapping to override
  */
 @SpringBootTest(classes = com.budgetbuddy.BudgetBuddyApplication.class)
 @ActiveProfiles("test")
 @Import(AWSTestConfiguration.class)
 class PlaidCategoryIntegrationTest {
 
-    @Autowired
-    private TransactionService transactionService;
+    @Autowired private TransactionService transactionService;
 
-    @Autowired
-    private TransactionRepository transactionRepository;
+    @Autowired private TransactionRepository transactionRepository;
 
     private UserTable testUser;
     private AccountTable testAccount;
@@ -53,9 +52,9 @@ class PlaidCategoryIntegrationTest {
     }
 
     @Test
-    void testFullCategoryFlow_FromPlaidToOverride() {
+    void testFullCategoryFlowFromPlaidToOverride() {
         // Given - Transaction synced from Plaid with categories
-        TransactionTable transaction = new TransactionTable();
+        final TransactionTable transaction = new TransactionTable();
         transaction.setTransactionId("test-txn-" + System.currentTimeMillis());
         transaction.setUserId(testUser.getUserId());
         transaction.setAccountId(testAccount.getAccountId());
@@ -74,7 +73,8 @@ class PlaidCategoryIntegrationTest {
         transactionRepository.save(transaction);
 
         // Then - Verify categories are stored
-        Optional<TransactionTable> saved = transactionRepository.findById(transaction.getTransactionId());
+        final Optional<TransactionTable> saved =
+                transactionRepository.findById(transaction.getTransactionId());
         assertTrue(saved.isPresent());
         assertEquals("FOOD_AND_DRINK", saved.get().getImporterCategoryPrimary());
         assertEquals("RESTAURANTS", saved.get().getImporterCategoryDetailed());
@@ -83,20 +83,21 @@ class PlaidCategoryIntegrationTest {
         assertFalse(saved.get().getCategoryOverridden());
 
         // When - User overrides category
-        TransactionTable updated = transactionService.updateTransaction(
-                testUser,
-                transaction.getTransactionId(),
-                null, // plaidTransactionId
-                null, // amount
-                null, // notes
-                "groceries", // categoryPrimary
-                "groceries", // categoryDetailed
-                null, // reviewStatus
-                null, // isHidden
-                null, // transactionType
-                false, // clearNotesIfNull = false means preserve existing notes
-                null,  // goalId
-                null   // linkedTransactionId
+        final TransactionTable updated =
+                transactionService.updateTransaction(
+                        testUser,
+                        transaction.getTransactionId(),
+                        null, // plaidTransactionId
+                        null, // amount
+                        null, // notes
+                        "groceries", // categoryPrimary
+                        "groceries", // categoryDetailed
+                        null, // reviewStatus
+                        null, // isHidden
+                        null, // transactionType
+                        false, // clearNotesIfNull = false means preserve existing notes
+                        null, // goalId
+                        null // linkedTransactionId
                 );
 
         // Then - Verify override is applied
@@ -110,40 +111,44 @@ class PlaidCategoryIntegrationTest {
     }
 
     @Test
-    void testCategoryMapper_AllPlaidCategories() {
+    void testCategoryMapperAllPlaidCategories() {
         // Test all major Plaid category mappings
-        PlaidCategoryMapper mapper = new PlaidCategoryMapper();
+        final PlaidCategoryMapper mapper = new PlaidCategoryMapper();
 
         // Food and Drink
-        PlaidCategoryMapper.CategoryMapping food = mapper.mapPlaidCategory(
-                "FOOD_AND_DRINK", "RESTAURANTS", "McDonald's", "Fast food");
+        final PlaidCategoryMapper.CategoryMapping food =
+                mapper.mapPlaidCategory("FOOD_AND_DRINK", "RESTAURANTS", "McDonald's", "Fast food");
         assertEquals("dining", food.getPrimary());
         assertEquals("dining", food.getDetailed());
 
         // Groceries
-        PlaidCategoryMapper.CategoryMapping groceries = mapper.mapPlaidCategory(
-                "FOOD_AND_DRINK", "GROCERIES", "Walmart", "Grocery shopping");
+        final PlaidCategoryMapper.CategoryMapping groceries =
+                mapper.mapPlaidCategory(
+                        "FOOD_AND_DRINK", "GROCERIES", "Walmart", "Grocery shopping");
         assertEquals("groceries", groceries.getPrimary());
         assertEquals("groceries", groceries.getDetailed());
 
         // Transportation
-        PlaidCategoryMapper.CategoryMapping transport = mapper.mapPlaidCategory(
-                "TRANSPORTATION", "GAS_STATIONS", "Shell", "Gas");
+        final PlaidCategoryMapper.CategoryMapping transport =
+                mapper.mapPlaidCategory("TRANSPORTATION", "GAS_STATIONS", "Shell", "Gas");
         assertEquals("transportation", transport.getPrimary());
         assertEquals("transportation", transport.getDetailed());
 
         // Income
-        PlaidCategoryMapper.CategoryMapping income = mapper.mapPlaidCategory(
-                "INCOME", "SALARY", "Employer", "Salary");
+        final PlaidCategoryMapper.CategoryMapping income =
+                mapper.mapPlaidCategory("INCOME", "SALARY", "Employer", "Salary");
         assertEquals("income", income.getPrimary());
         // Description contains "Salary", so should be categorized as specific income type "salary"
-        assertEquals("salary", income.getDetailed(), "Income with salary description should be categorized as salary");
+        assertEquals(
+                "salary",
+                income.getDetailed(),
+                "Income with salary description should be categorized as salary");
 
         // Subscriptions
-        PlaidCategoryMapper.CategoryMapping subscription = mapper.mapPlaidCategory(
-                "GENERAL_SERVICES", "SOFTWARE_SUBSCRIPTIONS", "Netflix", "Subscription");
+        final PlaidCategoryMapper.CategoryMapping subscription =
+                mapper.mapPlaidCategory(
+                        "GENERAL_SERVICES", "SOFTWARE_SUBSCRIPTIONS", "Netflix", "Subscription");
         assertEquals("subscriptions", subscription.getPrimary());
         assertEquals("subscriptions", subscription.getDetailed());
     }
 }
-

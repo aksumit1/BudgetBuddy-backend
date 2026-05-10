@@ -1,35 +1,37 @@
 package com.budgetbuddy.repository.dynamodb;
 
 import com.budgetbuddy.model.dynamodb.GoalTable;
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Repository;
+import software.amazon.awssdk.core.pagination.sync.SdkIterable;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbIndex;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable;
+import software.amazon.awssdk.enhanced.dynamodb.Expression;
 import software.amazon.awssdk.enhanced.dynamodb.Key;
 import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
 import software.amazon.awssdk.enhanced.dynamodb.model.QueryConditional;
-import software.amazon.awssdk.enhanced.dynamodb.Expression;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 import software.amazon.awssdk.services.dynamodb.model.ConditionalCheckFailedException;
 import software.amazon.awssdk.services.dynamodb.model.ResourceNotFoundException;
 import software.amazon.awssdk.services.dynamodb.model.UpdateItemRequest;
-import software.amazon.awssdk.core.pagination.sync.SdkIterable;
 
-import java.util.HashMap;
-import java.util.Map;
-
-import java.math.BigDecimal;
-import java.time.Instant;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-
-/**
- * DynamoDB Repository for Goals
- */
+/** DynamoDB Repository for Goals */
+// SDK / Spring integration — the underlying APIs (AWS SDK, Plaid SDK,
+// Spring services, reflection) throw arbitrary RuntimeException subtypes
+// that can't reasonably be enumerated. Broad catches log + recover (or
+// translate to AppException). Suppress at class level since narrowing
+// here would mean catch (RuntimeException) which PMD flags identically.
+@SuppressWarnings("PMD.AvoidCatchingGenericException")
 @Repository
 public class GoalRepository {
 
@@ -42,9 +44,12 @@ public class GoalRepository {
     public GoalRepository(
             final DynamoDbEnhancedClient enhancedClient,
             final DynamoDbClient dynamoDbClient,
-            @org.springframework.beans.factory.annotation.Value("${app.aws.dynamodb.table-prefix:BudgetBuddy}") final String tablePrefix) {
+            @org.springframework.beans.factory.annotation.Value(
+                            "${app.aws.dynamodb.table-prefix:BudgetBuddy}")
+                    final String tablePrefix) {
         this.tableName = tablePrefix + "-Goals";
-        this.goalTable = enhancedClient.table(this.tableName, TableSchema.fromBean(GoalTable.class));
+        this.goalTable =
+                enhancedClient.table(this.tableName, TableSchema.fromBean(GoalTable.class));
         this.userIdIndex = goalTable.index("UserIdIndex");
         this.userIdUpdatedAtIndex = goalTable.index("UserIdUpdatedAtIndex");
         this.dynamoDbClient = dynamoDbClient;
@@ -53,10 +58,26 @@ public class GoalRepository {
     @CacheEvict(value = "goals", key = "#goal.userId")
     public void save(final GoalTable goal) {
         // CRITICAL FIX: Add retry logic for DynamoDB throttling and transient errors
-        com.budgetbuddy.util.RetryHelper.executeDynamoDbWithRetry(() -> {
-            goalTable.putItem(goal);
-            return null;
-        });
+        com.budgetbuddy.util.RetryHelper.executeDynamoDbWithRetry(
+                () -> {
+                    goalTable.putItem(goal);
+                    return null;
+                });
+    }
+
+    /**
+     * Save with optimistic concurrency on the {@code version} column. Use on paths where user
+     * contributions can race with budget→goal auto-flow or partner writes. Throws {@link
+     * OptimisticLockHelper.OptimisticLockException} on conflict; caller should re-read and retry.
+     */
+    @CacheEvict(value = "goals", key = "#goal.userId")
+    public GoalTable saveWithLock(final GoalTable goal) {
+        return OptimisticLockHelper.saveWithLock(
+                goalTable,
+                goal,
+                GoalTable::getVersion,
+                goal::setVersion,
+                "goalId=" + goal.getGoalId());
     }
 
     public Optional<GoalTable> findById(final String goalId) {
@@ -64,9 +85,10 @@ public class GoalRepository {
             return Optional.empty();
         }
         // Normalize ID to lowercase for case-insensitive lookup
-        String normalizedId = com.budgetbuddy.util.IdGenerator.normalizeUUID(goalId);
+        final String normalizedId = com.budgetbuddy.util.IdGenerator.normalizeUUID(goalId);
         GoalTable goal = goalTable.getItem(Key.builder().partitionValue(normalizedId).build());
-        // If not found with normalized ID, try original (for backward compatibility with mixed-case IDs)
+        // If not found with normalized ID, try original (for backward compatibility with mixed-case
+        // IDs)
         if (goal == null && !normalizedId.equals(goalId)) {
             goal = goalTable.getItem(Key.builder().partitionValue(goalId).build());
         }
@@ -75,12 +97,19 @@ public class GoalRepository {
 
     @Cacheable(value = "goals", key = "#userId", unless = "#result == null || #result.isEmpty()")
     public List<GoalTable> findByUserId(final String userId) {
-        List<GoalTable> results = new ArrayList<>();
-        SdkIterable<software.amazon.awssdk.enhanced.dynamodb.model.Page<GoalTable>> pages =
-                userIdIndex.query(QueryConditional.keyEqualTo(Key.builder().partitionValue(userId).build()));
-        for (software.amazon.awssdk.enhanced.dynamodb.model.Page<GoalTable> page : pages) {
-            for (GoalTable goal : page.items()) {
-                if (goal.getActive() != null && goal.getActive()) {
+        final List<GoalTable> results = new ArrayList<>();
+        final SdkIterable<software.amazon.awssdk.enhanced.dynamodb.model.Page<GoalTable>> pages =
+                userIdIndex.query(
+                        QueryConditional.keyEqualTo(Key.builder().partitionValue(userId).build()));
+        for (final software.amazon.awssdk.enhanced.dynamodb.model.Page<GoalTable> page : pages) {
+            for (final GoalTable goal : page.items()) {
+                if (goal.getActive() != null && goal.getActive() && goal.getDeletedAt() == null) {
+                    // Cross-flow audit fix: soft-deleted goals must stay out of the
+                    // normal list view. They keep existing on disk so the iOS Undo
+                    // toast / restore endpoint can resurrect them, but they mustn't
+                    // leak into budget summaries, goal recommendations, or the trend
+                    // chart. Callers that specifically need deleted goals should use
+                    // findById directly.
                     results.add(goal);
                 }
             }
@@ -90,34 +119,36 @@ public class GoalRepository {
     }
 
     /**
-     * Find goals updated after a specific timestamp using GSI
-     * Optimized for incremental sync - queries only changed items
+     * Find goals updated after a specific timestamp using GSI Optimized for incremental sync -
+     * queries only changed items
      */
     /**
-     * CRITICAL: Do NOT cache this method - incremental sync queries must always be fresh
-     * to handle DynamoDB GSI eventual consistency. Caching empty results would prevent
-     * finding updated items until cache expires.
+     * CRITICAL: Do NOT cache this method - incremental sync queries must always be fresh to handle
+     * DynamoDB GSI eventual consistency. Caching empty results would prevent finding updated items
+     * until cache expires.
      */
-    public List<GoalTable> findByUserIdAndUpdatedAfter(String userId, Long updatedAfterTimestamp) {
+    public List<GoalTable> findByUserIdAndUpdatedAfter(final String userId, final Long updatedAfterTimestamp) {
         if (userId == null || userId.isEmpty() || updatedAfterTimestamp == null) {
             return List.of();
         }
-        
-        List<GoalTable> results = new ArrayList<>();
+
+        final List<GoalTable> results = new ArrayList<>();
         try {
-            // CRITICAL FIX: Cannot use filter expression on sort key (updatedAtTimestamp is GSI sort key)
+            // CRITICAL FIX: Cannot use filter expression on sort key (updatedAtTimestamp is GSI
+            // sort key)
             // Query all items for user, then filter in application code
             // This is still efficient because we're using the GSI partition key
-            SdkIterable<software.amazon.awssdk.enhanced.dynamodb.model.Page<GoalTable>> pages =
+            final SdkIterable<software.amazon.awssdk.enhanced.dynamodb.model.Page<GoalTable>> pages =
                     userIdUpdatedAtIndex.query(
-                            QueryConditional.keyEqualTo(Key.builder().partitionValue(userId).build()));
+                            QueryConditional.keyEqualTo(
+                                    Key.builder().partitionValue(userId).build()));
 
-            for (software.amazon.awssdk.enhanced.dynamodb.model.Page<GoalTable> page : pages) {
-                for (GoalTable goal : page.items()) {
+            for (final software.amazon.awssdk.enhanced.dynamodb.model.Page<GoalTable> page : pages) {
+                for (final GoalTable goal : page.items()) {
                     // Filter in application code: updatedAtTimestamp >= updatedAfterTimestamp
                     // Use >= to include items updated exactly at the timestamp
-                    if (goal.getUpdatedAtTimestamp() != null && 
-                        goal.getUpdatedAtTimestamp() >= updatedAfterTimestamp) {
+                    if (goal.getUpdatedAtTimestamp() != null
+                            && goal.getUpdatedAtTimestamp() >= updatedAfterTimestamp) {
                         if (goal.getActive() == null || goal.getActive()) {
                             results.add(goal);
                         }
@@ -128,12 +159,14 @@ public class GoalRepository {
         } catch (ResourceNotFoundException e) {
             // GSI not available - fallback to findByUserId and filter in memory
             org.slf4j.LoggerFactory.getLogger(GoalRepository.class)
-                    .warn("UserIdUpdatedAtIndex GSI not found for userId {}. Falling back to findByUserId and filtering in memory.", userId);
+                    .warn(
+                            "UserIdUpdatedAtIndex GSI not found for userId {}. Falling back to findByUserId and filtering in memory.",
+                            userId);
             try {
-                List<GoalTable> allGoals = findByUserId(userId);
-                for (GoalTable goal : allGoals) {
-                    if (goal.getUpdatedAtTimestamp() != null && 
-                        goal.getUpdatedAtTimestamp() >= updatedAfterTimestamp) {
+                final List<GoalTable> allGoals = findByUserId(userId);
+                for (final GoalTable goal : allGoals) {
+                    if (goal.getUpdatedAtTimestamp() != null
+                            && goal.getUpdatedAtTimestamp() >= updatedAfterTimestamp) {
                         if (goal.getActive() == null || goal.getActive()) {
                             results.add(goal);
                         }
@@ -142,13 +175,21 @@ public class GoalRepository {
                 results.sort((g1, g2) -> g1.getTargetDate().compareTo(g2.getTargetDate()));
             } catch (Exception fallbackException) {
                 org.slf4j.LoggerFactory.getLogger(GoalRepository.class)
-                        .error("Error in fallback query for userId {}: {}", userId, fallbackException.getMessage(), fallbackException);
+                        .error(
+                                "Error in fallback query for userId {}: {}",
+                                userId,
+                                fallbackException.getMessage(),
+                                fallbackException);
             }
         } catch (Exception e) {
             org.slf4j.LoggerFactory.getLogger(GoalRepository.class)
-                    .error("Error finding goals by userId and updatedAfter {}: {}", userId, e.getMessage(), e);
+                    .error(
+                            "Error finding goals by userId and updatedAfter {}: {}",
+                            userId,
+                            e.getMessage(),
+                            e);
         }
-        
+
         return results;
     }
 
@@ -160,13 +201,13 @@ public class GoalRepository {
     /**
      * Increment goal progress using UpdateItem with ADD expression (cost-optimized and atomic)
      * Eliminates read-before-write pattern and race conditions
-     * 
-     * CRITICAL FIX: The previous implementation read the current value and then wrote back
-     * the incremented value, which is not atomic. Two concurrent calls could both read the
-     * same value, increment it, and write back, causing one increment to be lost.
-     * 
-     * Solution: Use DynamoDB's low-level client with UpdateItem and ADD expression, which
-     * is atomic. This ensures concurrent increments are properly accumulated.
+     *
+     * <p>CRITICAL FIX: The previous implementation read the current value and then wrote back the
+     * incremented value, which is not atomic. Two concurrent calls could both read the same value,
+     * increment it, and write back, causing one increment to be lost.
+     *
+     * <p>Solution: Use DynamoDB's low-level client with UpdateItem and ADD expression, which is
+     * atomic. This ensures concurrent increments are properly accumulated.
      */
     public void incrementProgress(final String goalId, final BigDecimal amount) {
         if (goalId == null || goalId.isEmpty()) {
@@ -178,30 +219,34 @@ public class GoalRepository {
 
         // Use low-level DynamoDB client for atomic ADD operation
         // DynamoDB Enhanced Client doesn't directly support ADD expressions
-        Map<String, AttributeValue> key = new HashMap<>();
+        final Map<String, AttributeValue> key = new HashMap<>();
         key.put("goalId", AttributeValue.builder().s(goalId).build());
 
         // Build update expression: ADD currentAmount :amount, SET updatedAt = :updatedAt
-        Map<String, String> expressionAttributeNames = new HashMap<>();
+        final Map<String, String> expressionAttributeNames = new HashMap<>();
         expressionAttributeNames.put("#currentAmount", "currentAmount");
         expressionAttributeNames.put("#updatedAt", "updatedAt");
 
-        Map<String, AttributeValue> expressionAttributeValues = new HashMap<>();
-        expressionAttributeValues.put(":amount", AttributeValue.builder().n(amount.toString()).build());
-        // CRITICAL: Write updatedAt as ISO8601 string (S) to match Enhanced Client's InstantAsStringAttributeConverter
-        expressionAttributeValues.put(":updatedAt", AttributeValue.builder().s(Instant.now().toString()).build());
+        final Map<String, AttributeValue> expressionAttributeValues = new HashMap<>();
+        expressionAttributeValues.put(
+                ":amount", AttributeValue.builder().n(amount.toString()).build());
+        // CRITICAL: Write updatedAt as ISO8601 string (S) to match Enhanced Client's
+        // InstantAsStringAttributeConverter
+        expressionAttributeValues.put(
+                ":updatedAt", AttributeValue.builder().s(Instant.now().toString()).build());
 
         // Use ADD for atomic increment and SET for updatedAt
-        String updateExpression = "ADD #currentAmount :amount SET #updatedAt = :updatedAt";
+        final String updateExpression = "ADD #currentAmount :amount SET #updatedAt = :updatedAt";
 
-        UpdateItemRequest updateRequest = UpdateItemRequest.builder()
-                    .tableName(this.tableName)
-                .key(key)
-                .updateExpression(updateExpression)
-                .expressionAttributeNames(expressionAttributeNames)
-                .expressionAttributeValues(expressionAttributeValues)
-                .conditionExpression("attribute_exists(goalId)") // Ensure goal exists
-                .build();
+        final UpdateItemRequest updateRequest =
+                UpdateItemRequest.builder()
+                        .tableName(this.tableName)
+                        .key(key)
+                        .updateExpression(updateExpression)
+                        .expressionAttributeNames(expressionAttributeNames)
+                        .expressionAttributeValues(expressionAttributeValues)
+                        .conditionExpression("attribute_exists(goalId)") // Ensure goal exists
+                        .build();
 
         try {
             dynamoDbClient.updateItem(updateRequest);
@@ -210,10 +255,7 @@ public class GoalRepository {
         }
     }
 
-    /**
-     * Save goal only if it doesn't exist (conditional write)
-     * Prevents accidental overwrites
-     */
+    /** Save goal only if it doesn't exist (conditional write) Prevents accidental overwrites */
     public boolean saveIfNotExists(final GoalTable goal) {
         if (goal == null) {
             throw new IllegalArgumentException("Goal cannot be null");
@@ -224,7 +266,8 @@ public class GoalRepository {
 
         try {
             goalTable.putItem(
-                    software.amazon.awssdk.enhanced.dynamodb.model.PutItemEnhancedRequest.builder(GoalTable.class)
+                    software.amazon.awssdk.enhanced.dynamodb.model.PutItemEnhancedRequest.builder(
+                                    GoalTable.class)
                             .item(goal)
                             .conditionExpression(
                                     Expression.builder()
@@ -237,4 +280,3 @@ public class GoalRepository {
         }
     }
 }
-
